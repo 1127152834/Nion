@@ -53,11 +53,11 @@ export const enUS: Translations = {
   welcome: {
     greeting: "Hello, again!",
     description:
-      "Welcome to 🦌 DeerFlow, an open source super agent. With built-in and custom skills, DeerFlow helps you search on the web, analyze data, and generate artifacts like slides, web pages and do almost anything.",
+      "One thought, everything delivered. Your personal AI assistant that understands your intent and acts for you.",
 
     createYourOwnSkill: "Create Your Own Skill",
     createYourOwnSkillDescription:
-      "Create your own skill to release the power of DeerFlow. With customized skills,\nDeerFlow can help you search on the web, analyze data, and generate\n artifacts like slides, web pages and do almost anything.",
+      "Create your own skill to release the power of Nion. With customized skills,\nNion can help you search on the web, analyze data, and generate\n artifacts like slides, web pages and do almost anything.",
   },
 
   // Clipboard
@@ -208,13 +208,13 @@ export const enUS: Translations = {
 
   // Workspace
   workspace: {
-    officialWebsite: "DeerFlow's official website",
-    githubTooltip: "DeerFlow on Github",
+    officialWebsite: "Nion's official website",
+    githubTooltip: "Nion on Github",
     settingsAndMore: "Settings and more",
-    visitGithub: "DeerFlow on GitHub",
+    visitGithub: "Nion on GitHub",
     reportIssue: "Report a issue",
     contactUs: "Contact us",
-    about: "About DeerFlow",
+    about: "About Nion",
   },
 
   // Conversation
@@ -230,7 +230,7 @@ export const enUS: Translations = {
 
   // Page titles (document title)
   pages: {
-    appName: "DeerFlow",
+    appName: "Nion",
     chats: "Chats",
     newChat: "New chat",
     untitled: "Untitled",
@@ -256,7 +256,7 @@ export const enUS: Translations = {
     writeFile: "Write file",
     clickToViewContent: "Click to view file content",
     writeTodos: "Update to-do list",
-    skillInstallTooltip: "Install skill and make it available to DeerFlow",
+    skillInstallTooltip: "Install skill and make it available to Nion",
   },
 
   // Subtasks
@@ -280,7 +280,8 @@ export const enUS: Translations = {
     noResults: "No results found.",
     actions: "Actions",
     keyboardShortcuts: "Keyboard Shortcuts",
-    keyboardShortcutsDescription: "Navigate DeerFlow faster with keyboard shortcuts.",
+    keyboardShortcutsDescription:
+      "Navigate Nion faster with keyboard shortcuts.",
     openCommandPalette: "Open Command Palette",
     toggleSidebar: "Toggle Sidebar",
   },
@@ -288,7 +289,7 @@ export const enUS: Translations = {
   // Settings
   settings: {
     title: "Settings",
-    description: "Adjust how DeerFlow looks and behaves for you.",
+    description: "Adjust how Nion looks and behaves for you.",
     sections: {
       appearance: "Appearance",
       memory: "Memory",
@@ -300,7 +301,7 @@ export const enUS: Translations = {
     memory: {
       title: "Memory",
       description:
-        "DeerFlow automatically learns from your conversations in the background. These memories help DeerFlow understand you better and deliver a more personalized experience.",
+        "Nion automatically learns from your conversations in the background. These memories help Nion understand you better and deliver a more personalized experience.",
       empty: "No memory data to display.",
       rawJson: "Raw JSON",
       markdown: {
@@ -356,21 +357,133 @@ export const enUS: Translations = {
       createSkill: "Create skill",
       emptyTitle: "No agent skill yet",
       emptyDescription:
-        "Put your agent skill folders under the `/skills/custom` folder under the root folder of DeerFlow.",
+        "Put your agent skill folders under the `/skills/custom` folder under the root folder of Nion.",
       emptyButton: "Create Your First Skill",
     },
     notification: {
       title: "Notification",
       description:
-        "DeerFlow only sends a completion notification when the window is not active. This is especially useful for long-running tasks so you can switch to other work and get notified when done.",
+        "Nion only sends a completion notification when the window is not active. This is especially useful for long-running tasks so you can switch to other work and get notified when done.",
       requestPermission: "Request notification permission",
       deniedHint:
         "Notification permission was denied. You can enable it in your browser's site settings to receive completion alerts.",
       testButton: "Send test notification",
-      testTitle: "DeerFlow",
+      testTitle: "Nion",
       testBody: "This is a test notification.",
       notSupported: "Your browser does not support notifications.",
       disableNotification: "Disable notification",
+    },
+    aboutPage: {
+      brand: {
+        eyebrow: "Personal intelligent work system",
+        slogan: "One sentence command, system-level execution.",
+        subline:
+          "You focus on goals and judgment. Nion handles decomposition, execution, delivery, and optimization.",
+        masterClaim:
+          "Nion is not just an AI that answers questions. It turns complex work into traceable, verifiable delivery.",
+        ctaPrimary: "Start a conversation",
+        ctaSecondary: "Explore agent capabilities",
+      },
+      proofMetrics: {
+        orchestrationLabel: "Execution model",
+        orchestrationValue: "Multi-agent orchestration",
+        orchestrationHint:
+          "Task breakdown, parallel progress, incremental delivery",
+        memoryLabel: "Context capability",
+        memoryValue: "Long-term memory + session policy",
+        memoryHint: "Persistent context with controlled temporary isolation",
+        channelLabel: "Reach",
+        channelValue: "Multi-channel access",
+        channelHint: "Lark / DingTalk / Telegram",
+      },
+      messageHouse: {
+        title: "How we move from 'can chat' to 'can deliver'",
+        promise: "Turn complex work into a natural conversation.",
+        pillars: {
+          orchestration: "Multi-agent collaboration",
+          memory: "Memory and context",
+          ecosystem: "Tools and plugin ecosystem",
+          automation: "Automation and channels",
+          safety: "Runtime safety",
+        },
+      },
+      capabilitiesTitle: "Capability Overview",
+      capabilitiesSubtitle:
+        "Each point maps to a real mechanism, not conceptual packaging.",
+      capabilities: {
+        orchestrationTitle: "Multi-agent collaboration",
+        orchestrationValue: "Automatic decomposition of complex goals",
+        orchestrationProof:
+          "The lead agent can dispatch subagents and toolchains in parallel with traceable progress.",
+        memoryTitle: "Memory and context",
+        memoryValue: "Long-term preference retention",
+        memoryProof:
+          "Supports workspace/thread context and OpenViking governance flows.",
+        ecosystemTitle: "Tools and plugin ecosystem",
+        ecosystemValue: "Extensible and verifiable capability",
+        ecosystemProof:
+          "Supports SKILL, MCP, Workbench plugins, and plugin test verification loops.",
+        automationTitle: "Automation scheduling",
+        automationValue: "Time-based + event-driven",
+        automationProof:
+          "Supports cron / interval / once / event / webhook triggers and multi-step workflows.",
+        channelsTitle: "Multi-channel reach",
+        channelsValue: "Connect execution to real conversations",
+        channelsProof:
+          "Provides Lark, DingTalk, and Telegram channel integration with session override controls.",
+      },
+      trustTitle: "Trust Mechanisms",
+      trustSubtitle:
+        "Not only capable, but also clear about how execution happens and why it is stable.",
+      trust: {
+        runtimeTitle: "Controlled runtime boundaries",
+        runtimeDescription:
+          "Sandbox by default, with controlled host mode in desktop runtime.",
+        runtimeProof:
+          "Execution mode, workdir, and permission states are visible and diagnosable.",
+        memoryTitle: "Clear memory governance",
+        memoryDescription:
+          "Temporary sessions and long-term memory policies are separated to avoid accidental pollution.",
+        memoryProof:
+          "Supports query, write, forget, compact, and governance decisions.",
+        pluginTitle: "Verifiable plugin quality",
+        pluginDescription:
+          "Plugins follow a closed loop from generation to auto-check, manual verification, and packaging.",
+        pluginProof:
+          "Capability declarations, test steps, and reports are auditable.",
+        taskTitle: "Traceable execution states",
+        taskDescription:
+          "Trigger, step execution, and result status are visible end-to-end.",
+        taskProof:
+          "Supports running, completed, failed, and cancelled lifecycle states.",
+      },
+      scenariosTitle: "Common user scenarios",
+      scenariosSubtitle: "From information to decisions, from intent to delivery.",
+      scenarios: {
+        infoTitle: "Information processing",
+        infoResult: "Finish key daily briefings in 10 minutes",
+        infoPath:
+          "Ingestion, cleaning, summarization, and recommendations in one flow.",
+        writingTitle: "Writing assistant",
+        writingResult: "Iterate continuously from outline to final draft",
+        writingPath:
+          "Generate and refine with audience and style constraints.",
+        automationTitle: "Digital workflow automation",
+        automationResult: "Turn recurring work into reusable workflows",
+        automationPath:
+          "Use the scheduler for recurring and event-triggered execution.",
+        channelTitle: "Cross-channel response",
+        channelResult:
+          "Bring system capability into live business communication",
+        channelPath:
+          "Unified session control with stable cross-platform message handling.",
+      },
+      ctaTitle: "Ready to hand your next complex task to Nion?",
+      ctaDescription:
+        "Give the goal. We deliver results through system-level execution.",
+      ctaBadge: "Credible and powerful",
+      ctaPrimary: "Start now",
+      ctaSecondary: "Browse agents",
     },
     acknowledge: {
       emptyTitle: "Acknowledgements",

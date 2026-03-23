@@ -53,11 +53,11 @@ export const zhCN: Translations = {
   welcome: {
     greeting: "你好，欢迎回来！",
     description:
-      "欢迎使用 🦌 DeerFlow，一个完全开源的超级智能体。通过内置和自定义的 Skills，\nDeerFlow 可以帮你搜索网络、分析数据，还能为你生成幻灯片、\n图片、视频、播客及网页等，几乎可以做任何事情。",
+      "一念之间，万事即达。你的专属 AI 智能助手，懂你所想，为你而行。\n耗费繁琐操作，只需一个念头，工作与生活，皆可轻松托付。",
 
     createYourOwnSkill: "创建你自己的 Agent SKill",
     createYourOwnSkillDescription:
-      "创建你的 Agent Skill 来释放 DeerFlow 的潜力。通过自定义技能，DeerFlow\n可以帮你搜索网络、分析数据，还能为你生成幻灯片、\n网页等作品，几乎可以做任何事情。",
+      "创建你的 Agent Skill 来释放 Nion 的潜力。通过自定义技能，Nion\n可以帮你搜索网络、分析数据，还能为你生成幻灯片、\n网页等作品，几乎可以做任何事情。",
   },
 
   // Clipboard
@@ -197,13 +197,13 @@ export const zhCN: Translations = {
 
   // Workspace
   workspace: {
-    officialWebsite: "访问 DeerFlow 官方网站",
-    githubTooltip: "访问 DeerFlow 的 Github 仓库",
+    officialWebsite: "访问 Nion 官方网站",
+    githubTooltip: "访问 Nion 的 Github 仓库",
     settingsAndMore: "设置和更多",
-    visitGithub: "在 Github 上查看 DeerFlow",
+    visitGithub: "在 Github 上查看 Nion",
     reportIssue: "报告问题",
     contactUs: "联系我们",
-    about: "关于 DeerFlow",
+    about: "关于 Nion",
   },
 
   // Conversation
@@ -219,7 +219,7 @@ export const zhCN: Translations = {
 
   // Page titles (document title)
   pages: {
-    appName: "DeerFlow",
+    appName: "Nion",
     chats: "对话",
     newChat: "新对话",
     untitled: "未命名",
@@ -244,7 +244,7 @@ export const zhCN: Translations = {
     writeFile: "写入文件",
     clickToViewContent: "点击查看文件内容",
     writeTodos: "更新 To-do 列表",
-    skillInstallTooltip: "安装技能并使其可在 DeerFlow 中使用",
+    skillInstallTooltip: "安装技能并使其可在 Nion 中使用",
   },
 
   uploads: {
@@ -267,7 +267,7 @@ export const zhCN: Translations = {
     noResults: "未找到结果。",
     actions: "操作",
     keyboardShortcuts: "键盘快捷键",
-    keyboardShortcutsDescription: "使用键盘快捷键更快地操作 DeerFlow。",
+    keyboardShortcutsDescription: "使用键盘快捷键更快地操作 Nion。",
     openCommandPalette: "打开命令面板",
     toggleSidebar: "切换侧边栏",
   },
@@ -275,7 +275,7 @@ export const zhCN: Translations = {
   // Settings
   settings: {
     title: "设置",
-    description: "根据你的偏好调整 DeerFlow 的界面和行为。",
+    description: "根据你的偏好调整 Nion 的界面和行为。",
     sections: {
       appearance: "外观",
       memory: "记忆",
@@ -287,7 +287,7 @@ export const zhCN: Translations = {
     memory: {
       title: "记忆",
       description:
-        "DeerFlow 会在后台不断从你的对话中自动学习。这些记忆能帮助 DeerFlow 更好地理解你，并提供更个性化的体验。",
+        "Nion 会在后台不断从你的对话中自动学习。这些记忆能帮助 Nion 更好地理解你，并提供更个性化的体验。",
       empty: "暂无可展示的记忆数据。",
       rawJson: "原始 JSON",
       markdown: {
@@ -341,21 +341,118 @@ export const zhCN: Translations = {
       createSkill: "新建技能",
       emptyTitle: "还没有技能",
       emptyDescription:
-        "将你的 Agent Skill 文件夹放在 DeerFlow 根目录下的 `/skills/custom` 文件夹中。",
+        "将你的 Agent Skill 文件夹放在 Nion 根目录下的 `/skills/custom` 文件夹中。",
       emptyButton: "创建你的第一个技能",
     },
     notification: {
       title: "通知",
       description:
-        "DeerFlow 只会在窗口不活跃时发送完成通知，特别适合长时间任务：你可以先去做别的事，完成后会收到提醒。",
+        "Nion 只会在窗口不活跃时发送完成通知，特别适合长时间任务：你可以先去做别的事，完成后会收到提醒。",
       requestPermission: "请求通知权限",
       deniedHint:
         "通知权限已被拒绝。可在浏览器的网站设置中重新开启，以接收完成提醒。",
       testButton: "发送测试通知",
-      testTitle: "DeerFlow",
+      testTitle: "Nion",
       testBody: "这是一条测试通知。",
       notSupported: "当前浏览器不支持通知功能。",
       disableNotification: "关闭通知",
+    },
+    aboutPage: {
+      brand: {
+        eyebrow: "个人智能工作系统",
+        slogan: "一句话发令，系统级执行。",
+        subline:
+          "你负责目标判断，Nion 负责拆解、执行、交付与持续优化。",
+        masterClaim:
+          "Nion 不是只会回答问题的 AI，而是能把复杂任务变成可追踪、可验证的结果链路。",
+        ctaPrimary: "立即开始对话",
+        ctaSecondary: "查看智能体能力",
+      },
+      proofMetrics: {
+        orchestrationLabel: "任务执行方式",
+        orchestrationValue: "多智能体编排",
+        orchestrationHint: "拆解任务、并行推进、逐步交付",
+        memoryLabel: "上下文能力",
+        memoryValue: "长期记忆 + 会话策略",
+        memoryHint: "长期沉淀，临时会话可控隔离",
+        channelLabel: "触达方式",
+        channelValue: "多通道接入",
+        channelHint: "Lark / 钉钉 / Telegram",
+      },
+      messageHouse: {
+        title: "我们如何把“能聊”升级为“能交付”",
+        promise: "把复杂工作，变成一段自然对话。",
+        pillars: {
+          orchestration: "多智能体协作",
+          memory: "记忆与上下文",
+          ecosystem: "工具与插件生态",
+          automation: "自动化与通道",
+          safety: "运行时安全",
+        },
+      },
+      capabilitiesTitle: "能力总览",
+      capabilitiesSubtitle: "每一项都对应真实机制，而非概念包装。",
+      capabilities: {
+        orchestrationTitle: "多智能体协作",
+        orchestrationValue: "复杂目标自动拆解执行",
+        orchestrationProof:
+          "主智能体可调度子智能体与工具链并行推进，过程可追踪。",
+        memoryTitle: "记忆与上下文",
+        memoryValue: "长期偏好持续沉淀",
+        memoryProof:
+          "支持 workspace/thread 级上下文与 OpenViking 记忆治理能力。",
+        ecosystemTitle: "工具与插件生态",
+        ecosystemValue: "能力可扩展、可验证",
+        ecosystemProof:
+          "支持 SKILL、MCP、Workbench 插件与插件测试验证流程。",
+        automationTitle: "自动化调度",
+        automationValue: "定时 + 事件驱动",
+        automationProof:
+          "支持 cron / interval / once / event / webhook 触发和多步工作流。",
+        channelsTitle: "多通道触达",
+        channelsValue: "跨平台连接业务现场",
+        channelsProof:
+          "已提供 Lark、钉钉、Telegram 通道接入与会话覆盖机制。",
+      },
+      trustTitle: "可信机制",
+      trustSubtitle: "不仅能做，还能清楚地知道“如何做、为什么稳”。",
+      trust: {
+        runtimeTitle: "运行边界可控",
+        runtimeDescription: "默认沙箱执行；桌面端支持受控主机模式。",
+        runtimeProof: "运行模式、工作目录与权限状态可见可诊断。",
+        memoryTitle: "记忆治理清晰",
+        memoryDescription:
+          "临时会话与长期记忆策略分离，避免错误写回污染。",
+        memoryProof: "支持查询、写入、遗忘、压缩与治理决策。",
+        pluginTitle: "插件质量可验证",
+        pluginDescription:
+          "插件从生成到自动验证、人工确认、打包形成闭环。",
+        pluginProof: "能力声明、测试步骤与报告可回溯。",
+        taskTitle: "执行状态可追踪",
+        taskDescription: "任务触发、步骤执行、结果状态全链路可见。",
+        taskProof: "支持运行中、完成、失败、取消等状态管理。",
+      },
+      scenariosTitle: "用户常见场景",
+      scenariosSubtitle: "从信息到决策，从意图到交付。",
+      scenarios: {
+        infoTitle: "信息处理",
+        infoResult: "每天 10 分钟完成重点资讯快报",
+        infoPath: "抓取、清洗、总结、结论建议一体推进。",
+        writingTitle: "写作助手",
+        writingResult: "提纲到成稿持续迭代",
+        writingPath: "按目标受众与风格约束生成并持续润色。",
+        automationTitle: "数字工作流自动化",
+        automationResult: "重复任务变成可复用工作流",
+        automationPath: "通过调度器沉淀周期任务与事件响应任务。",
+        channelTitle: "跨通道响应",
+        channelResult: "把系统能力带到业务沟通现场",
+        channelPath: "统一会话参数，按平台稳定收发与联动。",
+      },
+      ctaTitle: "准备把下一件复杂任务交给 Nion 吗？",
+      ctaDescription: "给出你的目标，我们用系统级执行把结果交付到你面前。",
+      ctaBadge: "可信且有力量",
+      ctaPrimary: "现在开始",
+      ctaSecondary: "浏览智能体",
     },
     acknowledge: {
       emptyTitle: "致谢",

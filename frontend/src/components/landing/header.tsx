@@ -1,4 +1,5 @@
 import { StarFilledIcon, GitHubLogoIcon } from "@radix-ui/react-icons";
+import Image from "next/image";
 
 import { Button } from "@/components/ui/button";
 import { NumberTicker } from "@/components/ui/number-ticker";
@@ -8,8 +9,18 @@ export function Header() {
   return (
     <header className="container-md fixed top-0 right-0 left-0 z-20 mx-auto flex h-16 items-center justify-between backdrop-blur-xs">
       <div className="flex items-center gap-2">
-        <a href="https://github.com/bytedance/deer-flow" target="_blank">
-          <h1 className="font-serif text-xl">DeerFlow</h1>
+        <a
+          className="flex items-center gap-2"
+          href="https://github.com/huanxi/nion"
+          target="_blank"
+        >
+          <Image
+            src="/images/nion-logo.svg"
+            alt="Nion"
+            width={28}
+            height={28}
+          />
+          <h1 className="font-serif text-xl">Nion</h1>
         </a>
       </div>
       <div className="relative">
@@ -26,7 +37,7 @@ export function Header() {
           asChild
           className="group relative z-10"
         >
-          <a href="https://github.com/bytedance/deer-flow" target="_blank">
+          <a href="https://github.com/huanxi/nion" target="_blank">
             <GitHubLogoIcon className="size-4" />
             Star on GitHub
             {env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY === "true" &&
@@ -44,7 +55,7 @@ async function StarCounter() {
 
   try {
     const response = await fetch(
-      "https://api.github.com/repos/bytedance/deer-flow",
+      "https://api.github.com/repos/huanxi/nion",
       {
         headers: env.GITHUB_OAUTH_TOKEN
           ? {

@@ -303,6 +303,94 @@ export interface Translations {
       notSupported: string;
       disableNotification: string;
     };
+    aboutPage: {
+      brand: {
+        eyebrow: string;
+        slogan: string;
+        subline: string;
+        masterClaim: string;
+        ctaPrimary: string;
+        ctaSecondary: string;
+      };
+      proofMetrics: {
+        orchestrationLabel: string;
+        orchestrationValue: string;
+        orchestrationHint: string;
+        memoryLabel: string;
+        memoryValue: string;
+        memoryHint: string;
+        channelLabel: string;
+        channelValue: string;
+        channelHint: string;
+      };
+      messageHouse: {
+        title: string;
+        promise: string;
+        pillars: {
+          orchestration: string;
+          memory: string;
+          ecosystem: string;
+          automation: string;
+          safety: string;
+        };
+      };
+      capabilitiesTitle: string;
+      capabilitiesSubtitle: string;
+      capabilities: {
+        orchestrationTitle: string;
+        orchestrationValue: string;
+        orchestrationProof: string;
+        memoryTitle: string;
+        memoryValue: string;
+        memoryProof: string;
+        ecosystemTitle: string;
+        ecosystemValue: string;
+        ecosystemProof: string;
+        automationTitle: string;
+        automationValue: string;
+        automationProof: string;
+        channelsTitle: string;
+        channelsValue: string;
+        channelsProof: string;
+      };
+      trustTitle: string;
+      trustSubtitle: string;
+      trust: {
+        runtimeTitle: string;
+        runtimeDescription: string;
+        runtimeProof: string;
+        memoryTitle: string;
+        memoryDescription: string;
+        memoryProof: string;
+        pluginTitle: string;
+        pluginDescription: string;
+        pluginProof: string;
+        taskTitle: string;
+        taskDescription: string;
+        taskProof: string;
+      };
+      scenariosTitle: string;
+      scenariosSubtitle: string;
+      scenarios: {
+        infoTitle: string;
+        infoResult: string;
+        infoPath: string;
+        writingTitle: string;
+        writingResult: string;
+        writingPath: string;
+        automationTitle: string;
+        automationResult: string;
+        automationPath: string;
+        channelTitle: string;
+        channelResult: string;
+        channelPath: string;
+      };
+      ctaTitle: string;
+      ctaDescription: string;
+      ctaBadge: string;
+      ctaPrimary: string;
+      ctaSecondary: string;
+    };
     acknowledge: {
       emptyTitle: string;
       emptyDescription: string;
