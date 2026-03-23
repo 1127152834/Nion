@@ -2,7 +2,7 @@
 
 .PHONY: help config config-upgrade check check-branding install dev dev-daemon start stop up down clean docker-init docker-start docker-stop docker-logs docker-logs-frontend docker-logs-gateway
 
-PYTHON ?= /usr/bin/python3
+PYTHON ?= python
 
 help:
 	@echo "DeerFlow Development Commands:"
@@ -39,6 +39,7 @@ config-upgrade:
 check:
 	@$(PYTHON) ./scripts/check.py
 
+check-branding: PYTHON := /usr/bin/python3
 check-branding:
 	@$(PYTHON) ./scripts/check_branding.py
 
