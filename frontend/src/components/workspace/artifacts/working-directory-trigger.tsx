@@ -1,4 +1,4 @@
-import { FilesIcon } from "lucide-react";
+import { FolderIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Tooltip } from "@/components/workspace/tooltip";
@@ -6,25 +6,23 @@ import { useI18n } from "@/core/i18n/hooks";
 
 import { useArtifacts } from "./context";
 
-export const ArtifactTrigger = () => {
+export const WorkingDirectoryTrigger = () => {
   const { t } = useI18n();
-  const { artifacts, setOpen: setArtifactsOpen, setPanelType } = useArtifacts();
+  const { deselect, setOpen: setArtifactsOpen, setPanelType } = useArtifacts();
 
-  if (!artifacts || artifacts.length === 0) {
-    return null;
-  }
   return (
-    <Tooltip content="Show artifacts of this conversation">
+    <Tooltip content={t.common.browseWorkspace}>
       <Button
         className="text-muted-foreground hover:text-foreground"
         variant="ghost"
         onClick={() => {
-          setPanelType("artifacts");
+          deselect();
+          setPanelType("working-directory");
           setArtifactsOpen(true);
         }}
       >
-        <FilesIcon />
-        {t.common.artifacts}
+        <FolderIcon />
+        {t.common.workingDirectory}
       </Button>
     </Tooltip>
   );

@@ -2,10 +2,11 @@
 
 import {
   Sidebar,
-  SidebarHeader,
   SidebarContent,
   SidebarFooter,
+  SidebarHeader,
   SidebarRail,
+  SidebarSeparator,
   useSidebar,
 } from "@/components/ui/sidebar";
 
@@ -13,26 +14,34 @@ import { RecentChatList } from "./recent-chat-list";
 import { WorkspaceHeader } from "./workspace-header";
 import { WorkspaceNavChatList } from "./workspace-nav-chat-list";
 import { WorkspaceNavMenu } from "./workspace-nav-menu";
+import { WorkspaceSidebarPrimaryAction } from "./workspace-sidebar-primary-action";
 
 export function WorkspaceSidebar({
   ...props
 }: React.ComponentProps<typeof Sidebar>) {
-  const { open: isSidebarOpen } = useSidebar();
+  const { state } = useSidebar();
+  const isSidebarOpen = state === "expanded";
+
   return (
-    <>
-      <Sidebar variant="sidebar" collapsible="icon" {...props}>
-        <SidebarHeader className="py-0">
-          <WorkspaceHeader />
-        </SidebarHeader>
-        <SidebarContent>
-          <WorkspaceNavChatList />
-          {isSidebarOpen && <RecentChatList />}
-        </SidebarContent>
-        <SidebarFooter>
-          <WorkspaceNavMenu />
-        </SidebarFooter>
-        <SidebarRail />
-      </Sidebar>
-    </>
+    <Sidebar variant="floating" collapsible="icon" {...props}>
+      <SidebarHeader className="py-0">
+        <WorkspaceHeader />
+      </SidebarHeader>
+      <SidebarContent>
+        <WorkspaceSidebarPrimaryAction />
+        <SidebarSeparator />
+        <WorkspaceNavChatList />
+        {isSidebarOpen ? (
+          <>
+            <SidebarSeparator />
+            <RecentChatList />
+          </>
+        ) : null}
+      </SidebarContent>
+      <SidebarFooter>
+        <WorkspaceNavMenu />
+      </SidebarFooter>
+      <SidebarRail />
+    </Sidebar>
   );
 }

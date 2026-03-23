@@ -31,6 +31,8 @@ export const zhCN: Translations = {
     download: "下载",
     thinking: "思考",
     artifacts: "文件",
+    workingDirectory: "工作目录",
+    browseWorkspace: "浏览工作区文件",
     public: "公共",
     custom: "自定义",
     notAvailableInDemoMode: "在演示模式下不可用",

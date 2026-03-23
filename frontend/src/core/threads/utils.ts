@@ -6,6 +6,10 @@ export function pathOfThread(threadId: string) {
   return `/workspace/chats/${threadId}`;
 }
 
+export function pathOfNewThread() {
+  return "/workspace/chats/new";
+}
+
 export function textOfMessage(message: Message) {
   if (typeof message.content === "string") {
     return message.content;

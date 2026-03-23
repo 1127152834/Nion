@@ -9,6 +9,8 @@ import {
 import { useSidebar } from "@/components/ui/sidebar";
 import { env } from "@/env";
 
+export type ArtifactPanelType = "artifacts" | "working-directory";
+
 export interface ArtifactsContextType {
   artifacts: string[];
   setArtifacts: (artifacts: string[]) => void;
@@ -20,7 +22,9 @@ export interface ArtifactsContextType {
 
   open: boolean;
   autoOpen: boolean;
+  panelType: ArtifactPanelType;
   setOpen: (open: boolean) => void;
+  setPanelType: (panelType: ArtifactPanelType) => void;
 }
 
 const ArtifactsContext = createContext<ArtifactsContextType | undefined>(
@@ -39,11 +43,13 @@ export function ArtifactsProvider({ children }: ArtifactsProviderProps) {
     env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY === "true",
   );
   const [autoOpen, setAutoOpen] = useState(true);
+  const [panelType, setPanelType] = useState<ArtifactPanelType>("artifacts");
   const { setOpen: setSidebarOpen } = useSidebar();
 
   const select = useCallback(
     (artifact: string, autoSelect = false) => {
       setSelectedArtifact(artifact);
+      setPanelType("artifacts");
       if (env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY !== "true") {
         setSidebarOpen(false);
       }
@@ -57,7 +63,6 @@ export function ArtifactsProvider({ children }: ArtifactsProviderProps) {
   const deselect = useCallback(() => {
     setSelectedArtifact(null);
     setAutoSelect(true);
-    setOpen(false);
   }, []);
 
   const value: ArtifactsContextType = {
@@ -66,6 +71,7 @@ export function ArtifactsProvider({ children }: ArtifactsProviderProps) {
 
     open,
     autoOpen,
+    panelType,
     autoSelect,
     setOpen: (isOpen: boolean) => {
       if (!isOpen && autoOpen) {
@@ -74,6 +80,7 @@ export function ArtifactsProvider({ children }: ArtifactsProviderProps) {
       }
       setOpen(isOpen);
     },
+    setPanelType,
 
     selectedArtifact,
     select,

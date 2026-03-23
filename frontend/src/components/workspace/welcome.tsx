@@ -29,19 +29,25 @@ export function Welcome({
   useEffect(() => {
     waved = true;
   }, []);
+
   return (
     <div
       className={cn(
-        "mx-auto flex w-full flex-col items-center justify-center gap-2 px-8 py-4 text-center",
+        "mx-auto flex w-full flex-col items-center justify-center gap-4 px-4 text-center",
         className,
       )}
     >
-      <div className="text-2xl font-bold">
+      <div className="text-[clamp(2.35rem,4.6vw,3.6rem)] font-semibold tracking-[-0.06em] text-balance text-foreground">
         {searchParams.get("mode") === "skill" ? (
           `✨ ${t.welcome.createYourOwnSkill} ✨`
         ) : (
-          <div className="flex items-center gap-2">
-            <div className={cn("inline-block", !waved ? "animate-wave" : "")}>
+          <div className="flex items-center justify-center gap-3">
+            <div
+              className={cn(
+                "inline-flex shrink-0 items-center justify-center",
+                !waved ? "animate-wave" : "",
+              )}
+            >
               {isUltra ? "🚀" : "👋"}
             </div>
             <AuroraText colors={colors}>{t.welcome.greeting}</AuroraText>
@@ -49,9 +55,9 @@ export function Welcome({
         )}
       </div>
       {searchParams.get("mode") === "skill" ? (
-        <div className="text-muted-foreground text-sm">
+        <div className="text-foreground/62 max-w-2xl text-[15px] leading-7">
           {t.welcome.createYourOwnSkillDescription.includes("\n") ? (
-            <pre className="font-sans whitespace-pre">
+            <pre className="font-sans whitespace-pre-wrap">
               {t.welcome.createYourOwnSkillDescription}
             </pre>
           ) : (
@@ -59,9 +65,11 @@ export function Welcome({
           )}
         </div>
       ) : (
-        <div className="text-muted-foreground text-sm">
+        <div className="text-foreground/62 max-w-[44rem] text-[15px] leading-8 sm:text-base">
           {t.welcome.description.includes("\n") ? (
-            <pre className="whitespace-pre">{t.welcome.description}</pre>
+            <pre className="font-sans whitespace-pre-wrap">
+              {t.welcome.description}
+            </pre>
           ) : (
             <p>{t.welcome.description}</p>
           )}

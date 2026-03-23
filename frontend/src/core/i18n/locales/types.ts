@@ -20,6 +20,8 @@ export interface Translations {
     download: string;
     thinking: string;
     artifacts: string;
+    workingDirectory: string;
+    browseWorkspace: string;
     public: string;
     custom: string;
     notAvailableInDemoMode: string;

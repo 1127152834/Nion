@@ -1,4 +1,4 @@
-import { FilesIcon, XIcon } from "lucide-react";
+import { FilesIcon, FolderIcon, XIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { GroupImperativeHandle } from "react-resizable-panels";
 
@@ -9,6 +9,7 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
+import { useI18n } from "@/core/i18n/hooks";
 import { env } from "@/env";
 import { cn } from "@/lib/utils";
 
@@ -26,6 +27,7 @@ const ChatBox: React.FC<{ children: React.ReactNode; threadId: string }> = ({
   children,
   threadId,
 }) => {
+  const { t } = useI18n();
   const { thread } = useThread();
   const threadIdRef = useRef(threadId);
   const layoutRef = useRef<GroupImperativeHandle>(null);
@@ -37,6 +39,7 @@ const ChatBox: React.FC<{ children: React.ReactNode; threadId: string }> = ({
     setArtifacts,
     select: selectArtifact,
     deselect,
+    panelType,
     selectedArtifact,
   } = useArtifacts();
 
@@ -94,6 +97,11 @@ const ChatBox: React.FC<{ children: React.ReactNode; threadId: string }> = ({
     }
   }, [artifactPanelOpen]);
 
+  const panelTitle =
+    panelType === "working-directory"
+      ? t.common.workingDirectory
+      : t.common.artifacts;
+
   return (
     <ResizablePanelGroup
       orientation="horizontal"
@@ -143,14 +151,29 @@ const ChatBox: React.FC<{ children: React.ReactNode; threadId: string }> = ({
               </div>
               {thread.values.artifacts?.length === 0 ? (
                 <ConversationEmptyState
-                  icon={<FilesIcon />}
-                  title="No artifact selected"
-                  description="Select an artifact to view its details"
+                  icon={
+                    panelType === "working-directory" ? (
+                      <FolderIcon />
+                    ) : (
+                      <FilesIcon />
+                    )
+                  }
+                  title={panelTitle}
+                  description={
+                    panelType === "working-directory"
+                      ? t.common.browseWorkspace
+                      : "Select an artifact to view its details"
+                  }
                 />
               ) : (
                 <div className="flex size-full max-w-(--container-width-sm) flex-col justify-center p-4 pt-8">
                   <header className="shrink-0">
-                    <h2 className="text-lg font-medium">Artifacts</h2>
+                    <h2 className="text-lg font-medium">{panelTitle}</h2>
+                    {panelType === "working-directory" ? (
+                      <p className="text-muted-foreground mt-1 text-sm">
+                        {t.common.browseWorkspace}
+                      </p>
+                    ) : null}
                   </header>
                   <main className="min-h-0 grow">
                     <ArtifactFileList

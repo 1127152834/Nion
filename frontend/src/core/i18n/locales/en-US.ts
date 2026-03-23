@@ -31,6 +31,8 @@ export const enUS: Translations = {
     download: "Download",
     thinking: "Thinking",
     artifacts: "Artifacts",
+    workingDirectory: "Working Directory",
+    browseWorkspace: "Browse workspace files",
     public: "Public",
     custom: "Custom",
     notAvailableInDemoMode: "Not available in demo mode",
