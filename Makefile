@@ -1,8 +1,8 @@
 # DeerFlow - Unified Development Environment
 
-.PHONY: help config config-upgrade check install dev dev-daemon start stop up down clean docker-init docker-start docker-stop docker-logs docker-logs-frontend docker-logs-gateway
+.PHONY: help config config-upgrade check check-branding install dev dev-daemon start stop up down clean docker-init docker-start docker-stop docker-logs docker-logs-frontend docker-logs-gateway
 
-PYTHON ?= python
+PYTHON ?= /usr/bin/python3
 
 help:
 	@echo "DeerFlow Development Commands:"
@@ -38,6 +38,9 @@ config-upgrade:
 # Check required tools
 check:
 	@$(PYTHON) ./scripts/check.py
+
+check-branding:
+	@$(PYTHON) ./scripts/check_branding.py
 
 # Install all dependencies
 install:
