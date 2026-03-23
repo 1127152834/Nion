@@ -292,6 +292,13 @@ export const enUS: Translations = {
   settings: {
     title: "Settings",
     description: "Adjust how Nion looks and behaves for you.",
+    loadingState: "Loading config center…",
+    configCenterError: "Config center is unavailable right now.",
+    navGroups: {
+      experience: "Experience",
+      knowledge: "Knowledge & Memory",
+      capabilities: "Tools & Skills",
+    },
     sections: {
       appearance: "Appearance",
       memory: "Memory",

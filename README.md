@@ -37,14 +37,19 @@
 make check
 ```
 
-### 2) 初始化配置
+### 2) 初始化环境变量
 
 ```bash
 cp .env.example .env
 cp frontend/.env.example frontend/.env
 ```
 
-运行时配置由应用内“配置中心”统一管理并持久化到 SQLite（默认路径 `$HOME/.nion/config.db`；可通过 `NION_HOME` 或 `NION_CONFIG_DB_PATH` 覆盖）。
+运行时配置由应用内“配置中心”统一管理并持久化到本地 SQLite。
+
+- 默认数据库路径：`$HOME/.nion/config.db`
+- 可通过 `NION_HOME` 或 `NION_CONFIG_DB_PATH` 覆盖
+- `config.yaml` 不再是启动必需项；即使本地没有 YAML，`make dev` 也会以 Config Center 默认值启动
+- 如果你还保留旧的 `config.yaml`，当前脚本会继续兼容并自动补齐缺失字段，但新的设置写入路径应统一走应用内设置页
 
 可选（自定义数据库位置）：
 
@@ -69,6 +74,7 @@ make dev
 - 应用入口：`http://localhost:2026`
 - Gateway API：`http://localhost:2026/api/*`
 - LangGraph：`http://localhost:2026/api/langgraph/*`
+- Config Center API：`http://localhost:2026/api/config*`
 
 ---
 

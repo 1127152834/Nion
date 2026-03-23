@@ -228,6 +228,13 @@ export interface Translations {
   settings: {
     title: string;
     description: string;
+    loadingState: string;
+    configCenterError: string;
+    navGroups: {
+      experience: string;
+      knowledge: string;
+      capabilities: string;
+    };
     sections: {
       appearance: string;
       memory: string;

@@ -278,6 +278,13 @@ export const zhCN: Translations = {
   settings: {
     title: "设置",
     description: "根据你的偏好调整 Nion 的界面和行为。",
+    loadingState: "正在加载配置中心…",
+    configCenterError: "配置中心当前不可用。",
+    navGroups: {
+      experience: "体验",
+      knowledge: "知识与记忆",
+      capabilities: "工具与技能",
+    },
     sections: {
       appearance: "外观",
       memory: "记忆",

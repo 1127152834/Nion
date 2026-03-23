@@ -61,26 +61,27 @@ echo "  → Frontend: Next.js"
 echo "  → Nginx: Reverse Proxy"
 echo ""
 
-# ── Config check ─────────────────────────────────────────────────────────────
+# ── Optional legacy config handling ──────────────────────────────────────────
 
-if ! { \
-        [ -n "$NION_CONFIG_PATH" ] && [ -f "$NION_CONFIG_PATH" ] || \
+HAS_LEGACY_CONFIG=false
+if { \
+        [ -n "${NION_CONFIG_PATH:-}" ] && [ -f "$NION_CONFIG_PATH" ] || \
         [ -f backend/config.yaml ] || \
         [ -f config.yaml ]; \
     }; then
-    echo "✗ No Nion config file found."
-    echo "  Checked these locations:"
-    echo "    - $NION_CONFIG_PATH (when NION_CONFIG_PATH is set)"
-    echo "    - backend/config.yaml"
-    echo "    - ./config.yaml"
-    echo ""
-    echo "  Run 'make config' from the repo root to generate ./config.yaml, then set required model API keys in .env or your config file."
-    exit 1
+    HAS_LEGACY_CONFIG=true
 fi
 
-# ── Auto-upgrade config ──────────────────────────────────────────────────
+if ! $HAS_LEGACY_CONFIG; then
+    echo "ℹ No config.yaml found — continuing with Config Center bootstrap defaults."
+    echo "  You can configure models and runtime settings later from the Settings dialog."
+fi
 
-"$REPO_ROOT/scripts/config-upgrade.sh"
+# ── Auto-upgrade legacy config when present ──────────────────────────────
+
+if $HAS_LEGACY_CONFIG; then
+    "$REPO_ROOT/scripts/config-upgrade.sh"
+fi
 
 # ── Cleanup trap ─────────────────────────────────────────────────────────────
 

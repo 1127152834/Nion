@@ -44,6 +44,7 @@ The frontend is a stateful chat application. Users create **threads** (conversat
   - `threads/` — Thread creation, streaming, state management (hooks + types)
   - `api/` — LangGraph client singleton
   - `artifacts/` — Artifact loading and caching
+  - `config-center/` — `/api/config*` client, hooks, and validation error types
   - `i18n/` — Internationalization (en-US, zh-CN)
   - `settings/` — User preferences in localStorage
   - `memory/` — Persistent user memory system
@@ -85,5 +86,7 @@ Backend API URLs are optional; an nginx proxy is used by default:
 NEXT_PUBLIC_BACKEND_BASE_URL=http://localhost:8001
 NEXT_PUBLIC_LANGGRAPH_BASE_URL=http://localhost:2024
 ```
+
+The grouped settings shell also expects `/api/config`, `/api/config/schema`, and `/api/config/runtime-status` to be reachable through the gateway or nginx proxy.
 
 Requires Node.js 22+ and pnpm 10.26.2+.

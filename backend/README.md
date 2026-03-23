@@ -115,6 +115,11 @@ FastAPI application providing REST endpoints for frontend integration:
 
 | Route | Purpose |
 |-------|---------|
+| `GET /api/config` | Read config-center state |
+| `GET /api/config/schema` | Read config-center section schema |
+| `POST /api/config/validate` | Validate config payload |
+| `PUT /api/config` | Persist config with version conflict detection |
+| `GET /api/config/runtime-status` | Inspect store/runtime version alignment |
 | `GET /api/models` | List available LLM models |
 | `GET/PUT /api/mcp/config` | Manage MCP server configurations |
 | `GET/PUT /api/skills` | List and manage skills |
@@ -148,9 +153,6 @@ For Feishu card updates, Nion stores the running card's `message_id` per inbound
 ```bash
 cd nion
 
-# Copy configuration files
-cp config.example.yaml config.yaml
-
 # Install backend dependencies
 cd backend
 make install
@@ -158,7 +160,9 @@ make install
 
 ### Configuration
 
-Edit `config.yaml` in the project root:
+The backend can now boot without a local `config.yaml`. If you want a legacy YAML bootstrap path, you can still copy and edit one, but the preferred path is the Config Center API / settings UI backed by SQLite.
+
+Optional legacy example:
 
 ```yaml
 models:
@@ -195,6 +199,8 @@ make dev  # Starts LangGraph + Gateway + Frontend + Nginx
 ```
 
 Access at: http://localhost:2026
+
+When no `config.yaml` exists, Nion boots with Config Center defaults and stores runtime config in SQLite instead of failing startup.
 
 **Backend Only** (from backend directory):
 

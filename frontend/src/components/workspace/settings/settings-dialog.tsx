@@ -16,65 +16,122 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { SidebarGroupLabel } from "@/components/ui/sidebar";
 import { AppearanceSettingsPage } from "@/components/workspace/settings/appearance-settings-page";
 import { MemorySettingsPage } from "@/components/workspace/settings/memory-settings-page";
 import { NotificationSettingsPage } from "@/components/workspace/settings/notification-settings-page";
 import { SkillSettingsPage } from "@/components/workspace/settings/skill-settings-page";
 import { ToolSettingsPage } from "@/components/workspace/settings/tool-settings-page";
+import { useConfigCenter } from "@/core/config-center";
 import { useI18n } from "@/core/i18n/hooks";
 import { cn } from "@/lib/utils";
 
-type SettingsSection =
-  | "appearance"
-  | "memory"
-  | "tools"
-  | "skills"
-  | "notification";
+import { SettingsDialogProvider } from "./settings-dialog-context";
+import { SETTINGS_SECTIONS, type SettingsSection } from "./settings-sections";
 
 type SettingsDialogProps = React.ComponentProps<typeof Dialog> & {
   defaultSection?: SettingsSection;
 };
 
+type SettingsNavItem = {
+  id: SettingsSection;
+  label: string;
+  icon: typeof PaletteIcon;
+};
+
+const SETTINGS_SECTION_SET = new Set<string>(SETTINGS_SECTIONS);
+
+function SettingsNavGroupTitle({ title }: { title: string }) {
+  return (
+    <div className="space-y-1">
+      <SidebarGroupLabel
+        className={cn(
+          "h-auto gap-0 rounded-none bg-transparent px-2 py-1",
+          "text-[11px] font-semibold text-sidebar-foreground/60",
+        )}
+      >
+        <span className="truncate">{title}</span>
+      </SidebarGroupLabel>
+      <div className="mx-2 h-px bg-sidebar-border/60" aria-hidden="true" />
+    </div>
+  );
+}
+
 export function SettingsDialog(props: SettingsDialogProps) {
   const { defaultSection = "appearance", ...dialogProps } = props;
   const { t } = useI18n();
+  const resolvedDefaultSection = SETTINGS_SECTION_SET.has(defaultSection)
+    ? defaultSection
+    : "appearance";
   const [activeSection, setActiveSection] =
-    useState<SettingsSection>(defaultSection);
+    useState<SettingsSection>(resolvedDefaultSection);
+  const { isLoading: isConfigLoading, error: configError } = useConfigCenter({
+    enabled: dialogProps.open,
+  });
 
   useEffect(() => {
-    // When opening the dialog, ensure the active section follows the caller's intent.
-    // This allows triggers like "About" to open the dialog directly on that page.
     if (dialogProps.open) {
-      setActiveSection(defaultSection);
+      setActiveSection(resolvedDefaultSection);
     }
-  }, [defaultSection, dialogProps.open]);
+  }, [dialogProps.open, resolvedDefaultSection]);
 
-  const sections = useMemo(
-    () => [
-      {
-        id: "appearance",
-        label: t.settings.sections.appearance,
-        icon: PaletteIcon,
-      },
-      {
-        id: "notification",
-        label: t.settings.sections.notification,
-        icon: BellIcon,
-      },
-      {
-        id: "memory",
-        label: t.settings.sections.memory,
-        icon: BrainIcon,
-      },
-      { id: "tools", label: t.settings.sections.tools, icon: WrenchIcon },
-      { id: "skills", label: t.settings.sections.skills, icon: SparklesIcon },
-    ],
+  const navGroups = useMemo(
+    () => {
+      const items: Record<SettingsSection, SettingsNavItem> = {
+        appearance: {
+          id: "appearance",
+          label: t.settings.sections.appearance,
+          icon: PaletteIcon,
+        },
+        notification: {
+          id: "notification",
+          label: t.settings.sections.notification,
+          icon: BellIcon,
+        },
+        memory: {
+          id: "memory",
+          label: t.settings.sections.memory,
+          icon: BrainIcon,
+        },
+        tools: {
+          id: "tools",
+          label: t.settings.sections.tools,
+          icon: WrenchIcon,
+        },
+        skills: {
+          id: "skills",
+          label: t.settings.sections.skills,
+          icon: SparklesIcon,
+        },
+      };
+
+      return [
+        {
+          id: "experience",
+          title: t.settings.navGroups.experience,
+          items: [items.appearance, items.notification],
+        },
+        {
+          id: "knowledge",
+          title: t.settings.navGroups.knowledge,
+          items: [items.memory],
+        },
+        {
+          id: "capabilities",
+          title: t.settings.navGroups.capabilities,
+          items: [items.tools, items.skills],
+        },
+      ];
+    },
     [
       t.settings.sections.appearance,
+      t.settings.sections.notification,
       t.settings.sections.memory,
       t.settings.sections.tools,
       t.settings.sections.skills,
-      t.settings.sections.notification,
+      t.settings.navGroups.experience,
+      t.settings.navGroups.knowledge,
+      t.settings.navGroups.capabilities,
     ],
   );
   return (
@@ -89,48 +146,76 @@ export function SettingsDialog(props: SettingsDialogProps) {
         <DialogHeader className="gap-1">
           <DialogTitle>{t.settings.title}</DialogTitle>
           <p className="text-muted-foreground text-sm">
-            {t.settings.description}
+            {configError
+              ? t.settings.configCenterError
+              : isConfigLoading
+                ? t.settings.loadingState
+                : t.settings.description}
           </p>
         </DialogHeader>
-        <div className="grid min-h-0 flex-1 gap-4 md:grid-cols-[220px_1fr]">
-          <nav className="bg-sidebar min-h-0 overflow-y-auto rounded-lg border p-2">
-            <ul className="space-y-1 pr-1">
-              {sections.map(({ id, label, icon: Icon }) => {
-                const active = activeSection === id;
-                return (
-                  <li key={id}>
-                    <button
-                      type="button"
-                      onClick={() => setActiveSection(id as SettingsSection)}
-                      className={cn(
-                        "flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                        active
-                          ? "bg-primary text-primary-foreground shadow-sm"
-                          : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                      )}
-                    >
-                      <Icon className="size-4" />
-                      <span>{label}</span>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          </nav>
-          <ScrollArea className="h-full min-h-0 rounded-lg border">
-            <div className="space-y-8 p-6">
-              {activeSection === "appearance" && <AppearanceSettingsPage />}
-              {activeSection === "memory" && <MemorySettingsPage />}
-              {activeSection === "tools" && <ToolSettingsPage />}
-              {activeSection === "skills" && (
-                <SkillSettingsPage
-                  onClose={() => props.onOpenChange?.(false)}
-                />
-              )}
-              {activeSection === "notification" && <NotificationSettingsPage />}
-            </div>
-          </ScrollArea>
-        </div>
+        <SettingsDialogProvider
+          value={{
+            activeSection,
+            goToSection: (sectionId) => setActiveSection(sectionId),
+          }}
+        >
+          <div className="grid min-h-0 flex-1 gap-4 md:grid-cols-[220px_1fr]">
+            <nav className="bg-sidebar min-h-0 overflow-y-auto rounded-lg border border-sidebar-border p-2">
+              <div className="space-y-3 pr-1">
+                {navGroups.map((group) => (
+                  <div key={group.id} className="space-y-2">
+                    <SettingsNavGroupTitle title={group.title} />
+                    <ul className="space-y-1">
+                      {group.items.map(({ id, label, icon: Icon }) => {
+                        const active = activeSection === id;
+                        return (
+                          <li key={id}>
+                            <button
+                              type="button"
+                              onClick={() => setActiveSection(id)}
+                              className={cn(
+                                "group flex w-full items-center gap-3 rounded-md border px-3 py-2 text-sm transition-colors",
+                                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                                active
+                                  ? "border-sidebar-border bg-sidebar-accent font-semibold text-foreground"
+                                  : "border-transparent text-muted-foreground hover:border-sidebar-border/70 hover:bg-sidebar-accent/50 hover:text-foreground",
+                              )}
+                            >
+                              <Icon
+                                className={cn(
+                                  "size-4 shrink-0",
+                                  active
+                                    ? "opacity-90"
+                                    : "opacity-70 group-hover:opacity-90",
+                                )}
+                              />
+                              <span className="truncate">{label}</span>
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            </nav>
+            <ScrollArea className="h-full min-h-0 rounded-lg border">
+              <div className="space-y-8 p-6">
+                {activeSection === "appearance" && <AppearanceSettingsPage />}
+                {activeSection === "memory" && <MemorySettingsPage />}
+                {activeSection === "tools" && <ToolSettingsPage />}
+                {activeSection === "skills" && (
+                  <SkillSettingsPage
+                    onClose={() => props.onOpenChange?.(false)}
+                  />
+                )}
+                {activeSection === "notification" && (
+                  <NotificationSettingsPage />
+                )}
+              </div>
+            </ScrollArea>
+          </div>
+        </SettingsDialogProvider>
       </DialogContent>
     </Dialog>
   );

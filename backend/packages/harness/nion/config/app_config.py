@@ -1,5 +1,8 @@
 import logging
 import os
+import sys
+import threading
+import time
 from pathlib import Path
 from typing import Any, Self
 
@@ -8,6 +11,11 @@ from dotenv import load_dotenv
 from pydantic import BaseModel, ConfigDict, Field
 
 from nion.config.checkpointer_config import CheckpointerConfig, load_checkpointer_config_from_dict
+from nion.config.config_store import (
+    DEFAULT_CHECKPOINTER_CONFIG,
+    ConfigStoreNotInitializedError,
+    create_config_store,
+)
 from nion.config.extensions_config import ExtensionsConfig
 from nion.config.guardrails_config import load_guardrails_config_from_dict
 from nion.config.memory_config import load_memory_config_from_dict
@@ -68,60 +76,102 @@ class AppConfig(BaseModel):
             return path
 
     @classmethod
-    def from_file(cls, config_path: str | None = None) -> Self:
-        """Load config from YAML file.
+    def _hydrate_auxiliary_configs(cls, config_data: dict[str, Any]) -> None:
+        """Load singleton sub-configs from the config payload."""
+        if "title" in config_data:
+            load_title_config_from_dict(config_data["title"])
+        if "summarization" in config_data:
+            load_summarization_config_from_dict(config_data["summarization"])
+        if "memory" in config_data:
+            load_memory_config_from_dict(config_data["memory"])
+        if "subagents" in config_data:
+            load_subagents_config_from_dict(config_data["subagents"])
+        if "tool_search" in config_data:
+            load_tool_search_config_from_dict(config_data["tool_search"])
+        if "guardrails" in config_data:
+            load_guardrails_config_from_dict(config_data["guardrails"])
 
-        See `resolve_config_path` for more details.
+        raw_checkpointer = config_data.get("checkpointer")
+        if isinstance(raw_checkpointer, dict) and isinstance(
+            raw_checkpointer.get("type"), str
+        ):
+            raw_type = raw_checkpointer.get("type")
+            if raw_type == "memory":
+                load_checkpointer_config_from_dict({"type": "memory"})
+                return
+            if raw_type == "sqlite" and bool(raw_checkpointer.get("connection_string")):
+                load_checkpointer_config_from_dict(raw_checkpointer)
+                return
 
-        Args:
-            config_path: Path to the config file.
+        fallback = dict(DEFAULT_CHECKPOINTER_CONFIG)
+        config_data["checkpointer"] = fallback
+        load_checkpointer_config_from_dict(fallback)
 
-        Returns:
-            AppConfig: The loaded config.
-        """
+    @classmethod
+    def _validate_payload(cls, payload: dict[str, Any], *, strict_env: bool) -> Self:
+        resolved_payload = cls.resolve_env_variables(payload, strict=strict_env)
+        cls._hydrate_auxiliary_configs(resolved_payload)
+        resolved_payload["extensions"] = ExtensionsConfig.from_file().model_dump()
+        return cls.model_validate(resolved_payload)
+
+    @classmethod
+    def from_file(cls, config_path: str | None = None, *, strict_env: bool = False) -> Self:
+        """Load config directly from YAML (legacy escape hatch)."""
         resolved_path = cls.resolve_config_path(config_path)
         with open(resolved_path, encoding="utf-8") as f:
             config_data = yaml.safe_load(f) or {}
 
-        # Check config version before processing
+        if not isinstance(config_data, dict):
+            raise ValueError("Config file root must be a mapping object")
+
         cls._check_config_version(config_data, resolved_path)
+        return cls._validate_payload(config_data, strict_env=strict_env)
 
-        config_data = cls.resolve_env_variables(config_data)
+    @classmethod
+    def from_store_with_meta(cls, *, strict_env: bool = False) -> tuple[Self, str, Path]:
+        """Load config from the SQLite config center."""
+        store = create_config_store()
+        payload, version, db_path = store.read()
+        if not isinstance(payload, dict):
+            raise ValueError("Config store root must be a mapping object")
+        config = cls._validate_payload(payload, strict_env=strict_env)
+        return config, version, db_path
 
-        # Load title config if present
-        if "title" in config_data:
-            load_title_config_from_dict(config_data["title"])
+    @classmethod
+    def from_store(cls, *, strict_env: bool = False) -> Self:
+        config, _, _ = cls.from_store_with_meta(strict_env=strict_env)
+        return config
 
-        # Load summarization config if present
-        if "summarization" in config_data:
-            load_summarization_config_from_dict(config_data["summarization"])
+    @classmethod
+    def from_store_or_file_with_meta(
+        cls,
+        config_path: str | None = None,
+        *,
+        strict_env: bool = False,
+    ) -> tuple[Self, str | None, Path | None, str]:
+        """Load config from store first, with minimal legacy fallback."""
+        store = create_config_store()
 
-        # Load memory config if present
-        if "memory" in config_data:
-            load_memory_config_from_dict(config_data["memory"])
+        if store.exists():
+            try:
+                config, version, source_path = cls.from_store_with_meta(
+                    strict_env=strict_env
+                )
+                return config, version, source_path, "sqlite"
+            except Exception as exc:  # noqa: BLE001
+                raise RuntimeError(f"Config store exists but failed to load: {exc}") from exc
 
-        # Load subagents config if present
-        if "subagents" in config_data:
-            load_subagents_config_from_dict(config_data["subagents"])
+        config, version, source_path = cls.from_store_with_meta(strict_env=strict_env)
+        return config, version, source_path, "sqlite"
 
-        # Load tool_search config if present
-        if "tool_search" in config_data:
-            load_tool_search_config_from_dict(config_data["tool_search"])
-
-        # Load guardrails config if present
-        if "guardrails" in config_data:
-            load_guardrails_config_from_dict(config_data["guardrails"])
-
-        # Load checkpointer config if present
-        if "checkpointer" in config_data:
-            load_checkpointer_config_from_dict(config_data["checkpointer"])
-
-        # Load extensions config separately (it's in a different file)
-        extensions_config = ExtensionsConfig.from_file()
-        config_data["extensions"] = extensions_config.model_dump()
-
-        result = cls.model_validate(config_data)
-        return result
+    @classmethod
+    def from_store_or_file(
+        cls, config_path: str | None = None, *, strict_env: bool = False
+    ) -> Self:
+        config, _, _, _ = cls.from_store_or_file_with_meta(
+            config_path, strict_env=strict_env
+        )
+        return config
 
     @classmethod
     def _check_config_version(cls, config_data: dict, config_path: Path) -> None:
@@ -170,7 +220,7 @@ class AppConfig(BaseModel):
             )
 
     @classmethod
-    def resolve_env_variables(cls, config: Any) -> Any:
+    def resolve_env_variables(cls, config: Any, *, strict: bool = True) -> Any:
         """Recursively resolve environment variables in the config.
 
         Environment variables are resolved using the `os.getenv` function. Example: $OPENAI_API_KEY
@@ -185,13 +235,17 @@ class AppConfig(BaseModel):
             if config.startswith("$"):
                 env_value = os.getenv(config[1:])
                 if env_value is None:
-                    raise ValueError(f"Environment variable {config[1:]} not found for config value {config}")
+                    if strict:
+                        raise ValueError(
+                            f"Environment variable {config[1:]} not found for config value {config}"
+                        )
+                    return config
                 return env_value
             return config
         elif isinstance(config, dict):
-            return {k: cls.resolve_env_variables(v) for k, v in config.items()}
+            return {k: cls.resolve_env_variables(v, strict=strict) for k, v in config.items()}
         elif isinstance(config, list):
-            return [cls.resolve_env_variables(item) for item in config]
+            return [cls.resolve_env_variables(item, strict=strict) for item in config]
         return config
 
     def get_model_config(self, name: str) -> ModelConfig | None:
@@ -229,108 +283,239 @@ class AppConfig(BaseModel):
 
 
 _app_config: AppConfig | None = None
-_app_config_path: Path | None = None
-_app_config_mtime: float | None = None
+_app_config_version: str | None = None
+_app_config_source_path: Path | None = None
+_app_config_source_kind: str = "unknown"
+_app_config_last_error: str | None = None
+_app_config_last_loaded_at: str | None = None
 _app_config_is_custom = False
 
+_reload_lock = threading.Lock()
+_last_version_check_at: float = 0.0
+_last_checked_store_version: str | None = None
+_MIN_RELOAD_INTERVAL_SECONDS = float(
+    os.getenv("NION_CONFIG_RELOAD_THROTTLE_SECONDS", "0.8")
+)
 
-def _get_config_mtime(config_path: Path) -> float | None:
-    """Get the modification time of a config file if it exists."""
+
+def _detect_process_name(explicit: str | None = None) -> str:
+    if explicit:
+        return explicit
+    if env_name := os.getenv("NION_RUNTIME_PROCESS_NAME"):
+        return env_name
+
+    argv_text = " ".join(sys.argv).lower()
+    if "langgraph" in argv_text:
+        return "langgraph"
+    if "gateway" in argv_text or "uvicorn" in argv_text:
+        return "gateway"
+    return "runtime"
+
+
+def _record_runtime_status(process_name: str, *, status: str, reason: str | None) -> None:
+    """Best-effort persistence of process runtime load status."""
     try:
-        return config_path.stat().st_mtime
-    except OSError:
-        return None
+        store = create_config_store()
+        source_path = (
+            str(_app_config_source_path)
+            if _app_config_source_path is not None
+            else "unknown"
+        )
+        tools_count = len(_app_config.tools) if _app_config is not None else None
+        store.update_runtime_status(
+            process_name,
+            loaded_version=_app_config_version,
+            source_path=source_path,
+            tools_count=tools_count,
+            status=status,
+            reason=reason,
+        )
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("Failed to record runtime config status: %s", exc)
 
 
-def _load_and_cache_app_config(config_path: str | None = None) -> AppConfig:
-    """Load config from disk and refresh cache metadata."""
-    global _app_config, _app_config_path, _app_config_mtime, _app_config_is_custom
+def _set_cached_config(
+    config: AppConfig,
+    *,
+    version: str | None,
+    source_path: Path | None,
+    source_kind: str,
+    process_name: str,
+) -> AppConfig:
+    global _app_config
+    global _app_config_version
+    global _app_config_source_path
+    global _app_config_source_kind
+    global _app_config_last_error
+    global _app_config_last_loaded_at
 
-    resolved_path = AppConfig.resolve_config_path(config_path)
-    _app_config = AppConfig.from_file(str(resolved_path))
-    _app_config_path = resolved_path
-    _app_config_mtime = _get_config_mtime(resolved_path)
-    _app_config_is_custom = False
-    return _app_config
-
-
-def get_app_config() -> AppConfig:
-    """Get the Nion config instance.
-
-    Returns a cached singleton instance and automatically reloads it when the
-    underlying config file path or modification time changes. Use
-    `reload_app_config()` to force a reload, or `reset_app_config()` to clear
-    the cache.
-    """
-    global _app_config, _app_config_path, _app_config_mtime
-
-    if _app_config is not None and _app_config_is_custom:
-        return _app_config
-
-    resolved_path = AppConfig.resolve_config_path()
-    current_mtime = _get_config_mtime(resolved_path)
-
-    should_reload = (
-        _app_config is None
-        or _app_config_path != resolved_path
-        or _app_config_mtime != current_mtime
+    _app_config = config
+    _app_config_version = version
+    _app_config_source_path = source_path
+    _app_config_source_kind = source_kind
+    _app_config_last_error = None
+    _app_config_last_loaded_at = time.strftime(
+        "%Y-%m-%dT%H:%M:%S%z", time.localtime()
     )
-    if should_reload:
-        if (
-            _app_config_path == resolved_path
-            and _app_config_mtime is not None
-            and current_mtime is not None
-            and _app_config_mtime != current_mtime
-        ):
-            logger.info(
-                "Config file has been modified (mtime: %s -> %s), reloading AppConfig",
-                _app_config_mtime,
-                current_mtime,
-            )
-        _load_and_cache_app_config(str(resolved_path))
+    _record_runtime_status(process_name, status="ok", reason=None)
+    return config
+
+
+def _load_and_cache(
+    config_path: str | None = None, *, process_name: str | None = None
+) -> AppConfig:
+    process = _detect_process_name(process_name)
+    try:
+        config, version, source_path, source_kind = AppConfig.from_store_or_file_with_meta(
+            config_path,
+            strict_env=False,
+        )
+        return _set_cached_config(
+            config,
+            version=version,
+            source_path=source_path,
+            source_kind=source_kind,
+            process_name=process,
+        )
+    except Exception as exc:  # noqa: BLE001
+        global _app_config_last_error
+        _app_config_last_error = str(exc)
+        _record_runtime_status(process, status="error", reason=str(exc))
+        raise
+
+
+def get_app_config(*, process_name: str | None = None) -> AppConfig:
+    """Get the cached store-backed config instance."""
+    global _app_config
+    if _app_config is None:
+        return _load_and_cache(process_name=process_name)
     return _app_config
 
 
-def reload_app_config(config_path: str | None = None) -> AppConfig:
-    """Reload the config from file and update the cached instance.
+def reload_app_config(
+    config_path: str | None = None, *, process_name: str | None = None
+) -> AppConfig:
+    """Force reload config from the config center."""
+    with _reload_lock:
+        return _load_and_cache(config_path, process_name=process_name)
 
-    This is useful when the config file has been modified and you want
-    to pick up the changes without restarting the application.
 
-    Args:
-        config_path: Optional path to config file. If not provided,
-                     uses the default resolution strategy.
+def ensure_latest_app_config(*, process_name: str | None = None) -> AppConfig:
+    """Reload long-running processes when the config-store version changes."""
+    global _last_version_check_at
+    global _last_checked_store_version
 
-    Returns:
-        The newly loaded AppConfig instance.
-    """
-    return _load_and_cache_app_config(config_path)
+    process = _detect_process_name(process_name)
+
+    with _reload_lock:
+        current = get_app_config(process_name=process)
+        now = time.monotonic()
+        if now - _last_version_check_at < _MIN_RELOAD_INTERVAL_SECONDS:
+            return current
+        _last_version_check_at = now
+
+        store = create_config_store()
+        try:
+            store_version, _ = store.read_version()
+        except ConfigStoreNotInitializedError:
+            return current
+
+        if _app_config_version == store_version:
+            _last_checked_store_version = store_version
+            return current
+
+        try:
+            config, version, source_path = AppConfig.from_store_with_meta(
+                strict_env=False
+            )
+            _last_checked_store_version = version
+            return _set_cached_config(
+                config,
+                version=version,
+                source_path=source_path,
+                source_kind="sqlite",
+                process_name=process,
+            )
+        except Exception as exc:  # noqa: BLE001
+            global _app_config_last_error
+            _app_config_last_error = str(exc)
+            _record_runtime_status(process, status="error", reason=str(exc))
+            raise RuntimeError(
+                f"Failed to reload updated config version {store_version}: {exc}"
+            ) from exc
+
+
+def get_app_config_runtime_status(*, process_name: str | None = None) -> dict[str, Any]:
+    """Return runtime/store alignment details for observability."""
+    process = _detect_process_name(process_name)
+
+    store = create_config_store()
+    try:
+        store_version, store_path = store.read_version()
+        store_source_path: str | None = str(store_path)
+    except ConfigStoreNotInitializedError:
+        store_version = None
+        store_source_path = None
+
+    runtime_processes = store.read_runtime_statuses()
+
+    return {
+        "process_name": process,
+        "store_version": store_version,
+        "store_source_path": store_source_path,
+        "loaded_version": _app_config_version,
+        "loaded_source_path": str(_app_config_source_path)
+        if _app_config_source_path is not None
+        else None,
+        "source_kind": _app_config_source_kind,
+        "tools_count": len(_app_config.tools) if _app_config is not None else 0,
+        "loaded_tools": [tool.name for tool in _app_config.tools]
+        if _app_config is not None
+        else [],
+        "last_loaded_at": _app_config_last_loaded_at,
+        "last_error": _app_config_last_error,
+        "runtime_processes": runtime_processes,
+        "is_in_sync": bool(_app_config_version) and _app_config_version == store_version,
+    }
 
 
 def reset_app_config() -> None:
-    """Reset the cached config instance.
-
-    This clears the singleton cache, causing the next call to
-    `get_app_config()` to reload from file. Useful for testing
-    or when switching between different configurations.
-    """
-    global _app_config, _app_config_path, _app_config_mtime, _app_config_is_custom
+    """Reset cached config and runtime status metadata."""
+    global _app_config
+    global _app_config_version
+    global _app_config_source_path
+    global _app_config_source_kind
+    global _app_config_last_error
+    global _app_config_last_loaded_at
+    global _app_config_is_custom
+    global _last_version_check_at
+    global _last_checked_store_version
     _app_config = None
-    _app_config_path = None
-    _app_config_mtime = None
+    _app_config_version = None
+    _app_config_source_path = None
+    _app_config_source_kind = "unknown"
+    _app_config_last_error = None
+    _app_config_last_loaded_at = None
     _app_config_is_custom = False
+    _last_version_check_at = 0.0
+    _last_checked_store_version = None
 
 
-def set_app_config(config: AppConfig) -> None:
-    """Set a custom config instance.
-
-    This allows injecting a custom or mock config for testing purposes.
-
-    Args:
-        config: The AppConfig instance to use.
-    """
-    global _app_config, _app_config_path, _app_config_mtime, _app_config_is_custom
+def set_app_config(
+    config: AppConfig, *, version: str | None = None, source_path: Path | None = None
+) -> None:
+    """Inject a custom config instance, primarily for tests."""
+    global _app_config
+    global _app_config_version
+    global _app_config_source_path
+    global _app_config_source_kind
+    global _app_config_last_error
+    global _app_config_last_loaded_at
+    global _app_config_is_custom
     _app_config = config
-    _app_config_path = None
-    _app_config_mtime = None
+    _app_config_version = version
+    _app_config_source_path = source_path
+    _app_config_source_kind = "injected"
+    _app_config_last_error = None
+    _app_config_last_loaded_at = time.strftime("%Y-%m-%dT%H:%M:%S%z", time.localtime())
     _app_config_is_custom = True

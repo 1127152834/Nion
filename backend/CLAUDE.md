@@ -167,19 +167,21 @@ Middlewares execute in strict order in `packages/harness/nion/agents/lead_agent/
 
 ### Configuration System
 
-**Main Configuration** (`config.yaml`):
+**Main Configuration** (Config Center / SQLite-first):
 
-Setup: Copy `config.example.yaml` to `config.yaml` in the **project root** directory.
+Runtime configuration is now loaded from the Config Center SQLite store by default. The store lives at `config.db` under the resolved app data root and is versioned for optimistic writes.
 
-**Config Versioning**: `config.example.yaml` has a `config_version` field. On startup, `AppConfig.from_file()` compares user version vs example version and emits a warning if outdated. Missing `config_version` = version 0. Run `make config-upgrade` to auto-merge missing fields. When changing the config schema, bump `config_version` in `config.example.yaml`.
+Config DB priority:
+1. `NION_CONFIG_DB_PATH`
+2. `NION_HOME` + `config.db`
+3. `get_paths().base_dir / config.db`
 
-**Config Caching**: `get_app_config()` caches the parsed config, but automatically reloads it when the resolved config path changes or the file's mtime increases. This keeps Gateway and LangGraph reads aligned with `config.yaml` edits without requiring a manual process restart.
+`get_app_config()` now reads the SQLite store, records runtime load status per process, and can boot with minimal defaults even when no local `config.yaml` exists.
 
-Configuration priority:
-1. Explicit `config_path` argument
-2. `NION_CONFIG_PATH` environment variable
-3. `config.yaml` in current directory (backend/)
-4. `config.yaml` in parent directory (project root - **recommended location**)
+**Legacy YAML compatibility**:
+- `AppConfig.from_file()` still exists as an explicit legacy escape hatch
+- `config.example.yaml` and `make config-upgrade` remain available for old environments
+- new settings writes must go through `/api/config` and the frontend Config Center
 
 Config values starting with `$` are resolved as environment variables (e.g., `$OPENAI_API_KEY`).
 `ModelConfig` also declares `use_responses_api` and `output_version` so OpenAI `/v1/responses` can be enabled explicitly while still using `langchain_openai:ChatOpenAI`.
@@ -202,6 +204,7 @@ FastAPI application on port 8001 with health check at `GET /health`.
 
 | Router | Endpoints |
 |--------|-----------|
+| **Config** (`/api/config`) | `GET /` - read config; `GET /schema` - section metadata; `POST /validate` - validate payload; `PUT /` - update config; `GET /runtime-status` - runtime/store status |
 | **Models** (`/api/models`) | `GET /` - list models; `GET /{name}` - model details |
 | **MCP** (`/api/mcp`) | `GET /config` - get config; `PUT /config` - update config (saves to extensions_config.json) |
 | **Skills** (`/api/skills`) | `GET /` - list skills; `GET /{name}` - details; `PUT /{name}` - update enabled; `POST /install` - install from .skill archive (accepts standard optional frontmatter like `version`, `author`, `compatibility`) |
