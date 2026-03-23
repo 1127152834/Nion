@@ -43,7 +43,6 @@ def is_text_file(path: pathlib.Path) -> bool:
         "Makefile",
         "Dockerfile",
         ".env.example",
-        "deer-flow.code-workspace",
         "nion.code-workspace",
     }
 

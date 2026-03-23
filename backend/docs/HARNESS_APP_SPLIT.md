@@ -1,18 +1,18 @@
-# DeerFlow 后端拆分设计文档：Harness + App
+# Nion 后端拆分设计文档：Harness + App
 
 > 状态：Draft
-> 作者：DeerFlow Team
+> 作者：Nion Team
 > 日期：2026-03-13
 
 ## 1. 背景与动机
 
-DeerFlow 后端当前是一个单一 Python 包（`src.*`），包含了从底层 agent 编排到上层用户产品的所有代码。随着项目发展，这种结构带来了几个问题：
+Nion 后端当前是一个单一 Python 包（`src.*`），包含了从底层 agent 编排到上层用户产品的所有代码。随着项目发展，这种结构带来了几个问题：
 
 - **复用困难**：其他产品（CLI 工具、Slack bot、第三方集成）想用 agent 能力，必须依赖整个后端，包括 FastAPI、IM SDK 等不需要的依赖
 - **职责模糊**：agent 编排逻辑和用户产品逻辑混在同一个 `src/` 下，边界不清晰
 - **依赖膨胀**：LangGraph Server 运行时不需要 FastAPI/uvicorn/Slack SDK，但当前必须安装全部依赖
 
-本文档提出将后端拆分为两部分：**deerflow-harness**（可发布的 agent 框架包）和 **app**（不打包的用户产品代码）。
+本文档提出将后端拆分为两部分：**nion-harness**（可发布的 agent 框架包）和 **app**（不打包的用户产品代码）。
 
 ## 2. 核心概念
 
@@ -30,7 +30,7 @@ Harness 是 agent 的构建与编排框架，回答 **"如何构建和运行 age
 - 模型工厂
 - 配置系统
 
-**Harness 是一个可发布的 Python 包**（`deerflow-harness`），可以独立安装和使用。
+**Harness 是一个可发布的 Python 包**（`nion-harness`），可以独立安装和使用。
 
 **Harness 的设计原则**：对上层应用完全无感知。它不知道也不关心谁在调用它——可以是 Web App、CLI、Slack Bot、或者一个单元测试。
 
@@ -43,7 +43,7 @@ App 是面向用户的产品代码，回答 **"如何将 agent 呈现给用户"*
 - Custom Agent 的 CRUD 管理
 - 文件上传/下载的 HTTP 接口
 
-**App 不打包、不发布**，它是 DeerFlow 项目内部的应用代码，直接运行。
+**App 不打包、不发布**，它是 Nion 项目内部的应用代码，直接运行。
 
 **App 依赖 Harness，但 Harness 不依赖 App。**
 
@@ -76,8 +76,8 @@ App 是面向用户的产品代码，回答 **"如何将 agent 呈现给用户"*
 backend/
 ├── packages/
 │   └── harness/
-│       ├── pyproject.toml          # deerflow-harness 包定义
-│       └── deerflow/               # Python 包根（import 前缀: deerflow.*）
+│       ├── pyproject.toml          # nion-harness 包定义
+│       └── nion/               # Python 包根（import 前缀: nion.*）
 │           ├── __init__.py
 │           ├── config/
 │           ├── reflection/
@@ -127,12 +127,12 @@ backend/
 
 ```python
 # ---------------------------------------------------------------
-# Harness 内部互相引用（deerflow.* 前缀）
+# Harness 内部互相引用（nion.* 前缀）
 # ---------------------------------------------------------------
-from deerflow.agents import make_lead_agent
-from deerflow.models import create_chat_model
-from deerflow.config import get_app_config
-from deerflow.tools import get_available_tools
+from nion.agents import make_lead_agent
+from nion.models import create_chat_model
+from nion.config import get_app_config
+from nion.tools import get_available_tools
 
 # ---------------------------------------------------------------
 # App 内部互相引用（app.* 前缀）
@@ -144,19 +144,19 @@ from app.channels.service import start_channel_service
 # ---------------------------------------------------------------
 # App 调用 Harness（单向依赖，Harness 永远不 import app）
 # ---------------------------------------------------------------
-from deerflow.agents import make_lead_agent
-from deerflow.models import create_chat_model
-from deerflow.skills import load_skills
-from deerflow.config.extensions_config import get_extensions_config
+from nion.agents import make_lead_agent
+from nion.models import create_chat_model
+from nion.skills import load_skills
+from nion.config.extensions_config import get_extensions_config
 ```
 
 **App 调用 Harness 示例 — Gateway 中启动 agent**：
 
 ```python
 # app/gateway/routers/chat.py
-from deerflow.agents.lead_agent.agent import make_lead_agent
-from deerflow.models import create_chat_model
-from deerflow.config import get_app_config
+from nion.agents.lead_agent.agent import make_lead_agent
+from nion.models import create_chat_model
+from nion.config import get_app_config
 
 async def create_chat_session(thread_id: str, model_name: str):
     config = get_app_config()
@@ -169,8 +169,8 @@ async def create_chat_session(thread_id: str, model_name: str):
 
 ```python
 # app/channels/manager.py
-from deerflow.skills import load_skills
-from deerflow.agents.memory.updater import get_memory_data
+from nion.skills import load_skills
+from nion.agents.memory.updater import get_memory_data
 
 def handle_status_command():
     skills = load_skills(enabled_only=True)
@@ -184,12 +184,12 @@ def handle_status_command():
 
 | 方面 | 打包（放 packages/ 下） | 不打包（放 backend/app/） |
 |------|------------------------|--------------------------|
-| 命名空间 | 需要 pkgutil `extend_path` 合并，或独立前缀 | 天然独立，`app.*` vs `deerflow.*` |
+| 命名空间 | 需要 pkgutil `extend_path` 合并，或独立前缀 | 天然独立，`app.*` vs `nion.*` |
 | 发布需求 | 没有——App 是项目内部代码 | 不需要 pyproject.toml |
 | 复杂度 | 需要管理两个包的构建、版本、依赖声明 | 直接运行，零额外配置 |
-| 运行方式 | `pip install deerflow-app` | `PYTHONPATH=. uvicorn app.gateway.app:app` |
+| 运行方式 | `pip install nion-app` | `PYTHONPATH=. uvicorn app.gateway.app:app` |
 
-App 的唯一消费者是 DeerFlow 项目自身，没有独立发布的需求。放在 `backend/app/` 下作为普通 Python 包，通过 `PYTHONPATH` 或 editable install 让 Python 找到即可。
+App 的唯一消费者是 Nion 项目自身，没有独立发布的需求。放在 `backend/app/` 下作为普通 Python 包，通过 `PYTHONPATH` 或 editable install 让 Python 找到即可。
 
 ### 3.4 依赖关系
 
@@ -198,12 +198,12 @@ App 的唯一消费者是 DeerFlow 项目自身，没有独立发布的需求。
 │  app/  (不打包，直接运行)             │
 │  ├── fastapi, uvicorn               │
 │  ├── slack-sdk, lark-oapi, ...      │
-│  └── import deerflow.*              │
+│  └── import nion.*              │
 └──────────────┬──────────────────────┘
                │
                ▼
 ┌─────────────────────────────────────┐
-│  deerflow-harness  (可发布的包)       │
+│  nion-harness  (可发布的包)       │
 │  ├── langgraph, langchain           │
 │  ├── markitdown, pydantic, ...      │
 │  └── 零 app 依赖                     │
@@ -224,10 +224,10 @@ App 的唯一消费者是 DeerFlow 项目自身，没有独立发布的需求。
 
 ```toml
 [project]
-name = "deer-flow"
+name = "nion"
 version = "0.1.0"
 requires-python = ">=3.12"
-dependencies = ["deerflow-harness"]
+dependencies = ["nion-harness"]
 
 [dependency-groups]
 dev = ["pytest>=8.0.0", "ruff>=0.14.11"]
@@ -239,7 +239,7 @@ channels = ["lark-oapi", "slack-sdk", "python-telegram-bot"]
 members = ["packages/harness"]
 
 [tool.uv.sources]
-deerflow-harness = { workspace = true }
+nion-harness = { workspace = true }
 ```
 
 ## 4. 当前的跨层依赖问题
@@ -253,7 +253,7 @@ deerflow-harness = { workspace = true }
 from src.gateway.routers.skills import _validate_skill_frontmatter
 ```
 
-**解决方案**：将该函数提取到 `deerflow/skills/validation.py`。这是一个纯逻辑函数（解析 YAML frontmatter、校验字段），与 FastAPI 无关。
+**解决方案**：将该函数提取到 `nion/skills/validation.py`。这是一个纯逻辑函数（解析 YAML frontmatter、校验字段），与 FastAPI 无关。
 
 ### 4.2 `CONVERTIBLE_EXTENSIONS` + `convert_file_to_markdown`
 
@@ -262,7 +262,7 @@ from src.gateway.routers.skills import _validate_skill_frontmatter
 from src.gateway.routers.uploads import CONVERTIBLE_EXTENSIONS, convert_file_to_markdown
 ```
 
-**解决方案**：将它们提取到 `deerflow/utils/file_conversion.py`。仅依赖 `markitdown` + `pathlib`，是通用工具函数。
+**解决方案**：将它们提取到 `nion/utils/file_conversion.py`。仅依赖 `markitdown` + `pathlib`，是通用工具函数。
 
 ## 5. 基础设施变更
 
@@ -274,10 +274,10 @@ LangGraph Server 只需要 harness 包。`langgraph.json` 更新：
 {
   "dependencies": ["./packages/harness"],
   "graphs": {
-    "lead_agent": "deerflow.agents:make_lead_agent"
+    "lead_agent": "nion.agents:make_lead_agent"
   },
   "checkpointer": {
-    "path": "./packages/harness/deerflow/agents/checkpointer/async_provider.py:make_checkpointer"
+    "path": "./packages/harness/nion/agents/checkpointer/async_provider.py:make_checkpointer"
   }
 }
 ```
@@ -286,7 +286,7 @@ LangGraph Server 只需要 harness 包。`langgraph.json` 更新：
 
 ```bash
 # serve.sh / Makefile
-# PYTHONPATH 包含 backend/ 根目录，使 app.* 和 deerflow.* 都能被找到
+# PYTHONPATH 包含 backend/ 根目录，使 app.* 和 nion.* 都能被找到
 PYTHONPATH=. uvicorn app.gateway.app:app --host 0.0.0.0 --port 8001
 ```
 
@@ -296,7 +296,7 @@ PYTHONPATH=. uvicorn app.gateway.app:app --host 0.0.0.0 --port 8001
 
 ### 5.4 Docker
 
-Dockerfile 中的 module 引用从 `src.` 改为 `deerflow.` / `app.`，`COPY` 命令需覆盖 `packages/` 和 `app/` 目录。
+Dockerfile 中的 module 引用从 `src.` 改为 `nion.` / `app.`，`COPY` 命令需覆盖 `packages/` 和 `app/` 目录。
 
 ## 6. 实施计划
 
@@ -312,10 +312,10 @@ Dockerfile 中的 module 引用从 `src.` 改为 `deerflow.` / `app.`，`COPY` �
 ### PR 2：Rename + 物理拆分（High Risk，原子操作）
 
 1. 创建 `packages/harness/` 目录，创建 `pyproject.toml`
-2. `git mv` 将 harness 相关模块从 `src/` 移入 `packages/harness/deerflow/`
+2. `git mv` 将 harness 相关模块从 `src/` 移入 `packages/harness/nion/`
 3. `git mv` 将 app 相关模块从 `src/` 移入 `app/`
 4. 全局替换 import：
-   - harness 模块：`src.*` → `deerflow.*`（所有 `.py` 文件、`langgraph.json`、测试、文档）
+   - harness 模块：`src.*` → `nion.*`（所有 `.py` 文件、`langgraph.json`、测试、文档）
    - app 模块：`src.gateway.*` → `app.gateway.*`、`src.channels.*` → `app.channels.*`
 5. 更新 workspace root `pyproject.toml`
 6. 更新 `langgraph.json`、`Makefile`、`Dockerfile`
@@ -333,11 +333,11 @@ Dockerfile 中的 module 引用从 `src.` 改为 `deerflow.` / `app.`，`COPY` �
 | 全局 rename 误伤 | 字符串中的 `src` 被错误替换 | 正则精确匹配 `\bsrc\.`，review diff |
 | LangGraph Server 找不到模块 | 服务启动失败 | `langgraph.json` 的 `dependencies` 指向正确的 harness 包路径 |
 | App 的 `PYTHONPATH` 缺失 | Gateway/Channel 启动 import 报错 | Makefile/Docker 统一设置 `PYTHONPATH=.` |
-| `config.yaml` 中的 `use` 字段引用旧路径 | 运行时模块解析失败 | `config.yaml` 中的 `use` 字段同步更新为 `deerflow.*` |
-| 测试中 `sys.path` 混乱 | 测试失败 | 用 editable install（`uv sync`）确保 deerflow 可导入，`conftest.py` 中添加 `app/` 到 `sys.path` |
+| `config.yaml` 中的 `use` 字段引用旧路径 | 运行时模块解析失败 | `config.yaml` 中的 `use` 字段同步更新为 `nion.*` |
+| 测试中 `sys.path` 混乱 | 测试失败 | 用 editable install（`uv sync`）确保 nion 可导入，`conftest.py` 中添加 `app/` 到 `sys.path` |
 
 ## 8. 未来演进
 
-- **独立发布**：harness 可以发布到内部 PyPI，让其他项目直接 `pip install deerflow-harness`
+- **独立发布**：harness 可以发布到内部 PyPI，让其他项目直接 `pip install nion-harness`
 - **插件化 App**：不同的 app（web、CLI、bot）可以各自独立，都依赖同一个 harness
-- **更细粒度拆分**：如果 harness 内部模块继续增长，可以进一步拆分（如 `deerflow-sandbox`、`deerflow-mcp`）
+- **更细粒度拆分**：如果 harness 内部模块继续增长，可以进一步拆分（如 `nion-sandbox`、`nion-mcp`）
