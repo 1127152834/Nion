@@ -1,6 +1,6 @@
-# DeerFlow Backend
+# Nion Backend
 
-DeerFlow is a LangGraph-based AI super agent with sandbox execution, persistent memory, and extensible tool integration. The backend enables AI agents to execute code, browse the web, manage files, delegate tasks to subagents, and retain context across conversations - all in isolated, per-thread environments.
+Nion is a LangGraph-based AI super agent with sandbox execution, persistent memory, and extensible tool integration. The backend enables AI agents to execute code, browse the web, manage files, delegate tasks to subagents, and retain context across conversations - all in isolated, per-thread environments.
 
 ---
 
@@ -76,7 +76,7 @@ Per-thread isolated execution with virtual path translation:
 - **Abstract interface**: `execute_command`, `read_file`, `write_file`, `list_dir`
 - **Providers**: `LocalSandboxProvider` (filesystem) and `AioSandboxProvider` (Docker, in community/)
 - **Virtual paths**: `/mnt/user-data/{workspace,uploads,outputs}` → thread-specific physical directories
-- **Skills path**: `/mnt/skills` → `deer-flow/skills/` directory
+- **Skills path**: `/mnt/skills` → `nion/skills/` directory
 - **Skills loading**: Recursively discovers nested `SKILL.md` files under `skills/{public,custom}` and preserves nested container paths
 - **Tools**: `bash`, `ls`, `read_file`, `write_file`, `str_replace`
 
@@ -131,7 +131,7 @@ FastAPI application providing REST endpoints for frontend integration:
 
 The IM bridge supports Feishu, Slack, and Telegram. Slack and Telegram still use the final `runs.wait()` response path, while Feishu now streams through `runs.stream(["messages-tuple", "values"])` and updates a single in-thread card in place.
 
-For Feishu card updates, DeerFlow stores the running card's `message_id` per inbound message and patches that same card until the run finishes, preserving the existing `OK` / `DONE` reaction flow.
+For Feishu card updates, Nion stores the running card's `message_id` per inbound message and patches that same card until the run finishes, preserving the existing `OK` / `DONE` reaction flow.
 
 ---
 
@@ -146,7 +146,7 @@ For Feishu card updates, DeerFlow stores the running card's `message_id` per inb
 ### Installation
 
 ```bash
-cd deer-flow
+cd nion
 
 # Copy configuration files
 cp config.example.yaml config.yaml
@@ -269,7 +269,7 @@ Key sections:
 
 Provider note:
 - `models[*].use` references provider classes by module path (for example `langchain_openai:ChatOpenAI`).
-- If a provider module is missing, DeerFlow now returns an actionable error with install guidance (for example `uv add langchain-google-genai`).
+- If a provider module is missing, Nion now returns an actionable error with install guidance (for example `uv add langchain-google-genai`).
 
 ### Extensions Configuration (`extensions_config.json`)
 
@@ -306,8 +306,8 @@ MCP servers and skill states in a single file:
 
 ### Environment Variables
 
-- `DEER_FLOW_CONFIG_PATH` - Override config.yaml location
-- `DEER_FLOW_EXTENSIONS_CONFIG_PATH` - Override extensions_config.json location
+- `NION_CONFIG_PATH` - Override config.yaml location
+- `NION_EXTENSIONS_CONFIG_PATH` - Override extensions_config.json location
 - Model API keys: `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `DEEPSEEK_API_KEY`, etc.
 - Tool API keys: `TAVILY_API_KEY`, `GITHUB_TOKEN`, etc.
 

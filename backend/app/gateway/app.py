@@ -16,7 +16,7 @@ from app.gateway.routers import (
     suggestions,
     uploads,
 )
-from deerflow.config.app_config import get_app_config
+from nion.config.app_config import get_app_config
 
 # Configure logging
 logging.basicConfig(
@@ -77,11 +77,11 @@ def create_app() -> FastAPI:
     """
 
     app = FastAPI(
-        title="DeerFlow API Gateway",
+        title="Nion API Gateway",
         description="""
-## DeerFlow API Gateway
+## Nion API Gateway
 
-API Gateway for DeerFlow - A LangGraph-based AI agent backend with sandbox execution capabilities.
+API Gateway for Nion - A LangGraph-based AI agent backend with sandbox execution capabilities.
 
 ### Features
 
@@ -183,7 +183,7 @@ This gateway provides custom endpoints for models, MCP configuration, skills, an
         Returns:
             Service health status information.
         """
-        return {"status": "healthy", "service": "deer-flow-gateway"}
+        return {"status": "healthy", "service": "nion-gateway"}
 
     return app
 

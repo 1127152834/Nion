@@ -1,9 +1,9 @@
-# Configuration for the DeerFlow application
+# Configuration for the Nion application
 #
 # Guidelines:
 # - Copy this file to `config.yaml` and customize it for your environment
 # - The default path of this configuration file is `config.yaml` in the current working directory.
-#   However you can change it using the `DEER_FLOW_CONFIG_PATH` environment variable.
+#   However you can change it using the `NION_CONFIG_PATH` environment variable.
 # - Environment variables are available for all field values. Example: `api_key: $OPENAI_API_KEY`
 # - The `use` path is a string that looks like "package_name.sub_package_name.module_name:class_name/variable_name".
 
@@ -23,7 +23,7 @@ models:
   # Example: Volcengine (Doubao) model
   # - name: doubao-seed-1.8
   #   display_name: Doubao-Seed-1.8
-  #   use: deerflow.models.patched_deepseek:PatchedChatDeepSeek
+  #   use: nion.models.patched_deepseek:PatchedChatDeepSeek
   #   model: doubao-seed-1-8-251228
   #   api_base: https://ark.cn-beijing.volces.com/api/v3
   #   api_key: $VOLCENGINE_API_KEY
@@ -79,7 +79,7 @@ models:
   # Example: DeepSeek model (with thinking support)
   # - name: deepseek-v3
   #   display_name: DeepSeek V3 (Thinking)
-  #   use: deerflow.models.patched_deepseek:PatchedChatDeepSeek
+  #   use: nion.models.patched_deepseek:PatchedChatDeepSeek
   #   model: deepseek-reasoner
   #   api_key: $DEEPSEEK_API_KEY
   #   max_tokens: 16384
@@ -93,7 +93,7 @@ models:
   # Example: Kimi K2.5 model
   # - name: kimi-k2.5
   #   display_name: Kimi K2.5
-  #   use: deerflow.models.patched_deepseek:PatchedChatDeepSeek
+  #   use: nion.models.patched_deepseek:PatchedChatDeepSeek
   #   model: kimi-k2.5
   #   api_base: https://api.moonshot.cn/v1
   #   api_key: $MOONSHOT_API_KEY
@@ -177,27 +177,27 @@ tools:
   # Web search tool (requires Tavily API key)
   - name: web_search
     group: web
-    use: deerflow.community.tavily.tools:web_search_tool
+    use: nion.community.tavily.tools:web_search_tool
     max_results: 5
     # api_key: $TAVILY_API_KEY  # Set if needed
 
   # Web search tool (uses InfoQuest, requires InfoQuest API key)
   # - name: web_search
   #   group: web
-  #   use: deerflow.community.infoquest.tools:web_search_tool
+  #   use: nion.community.infoquest.tools:web_search_tool
   #   # Used to limit the scope of search results, only returns content within the specified time range. Set to -1 to disable time filtering
   #   search_time_range: 10
 
   # Web fetch tool (uses Jina AI reader)
   - name: web_fetch
     group: web
-    use: deerflow.community.jina_ai.tools:web_fetch_tool
+    use: nion.community.jina_ai.tools:web_fetch_tool
     timeout: 10
 
   # Web fetch tool (uses InfoQuest)
   # - name: web_fetch
   #   group: web
-  #   use: deerflow.community.infoquest.tools:web_fetch_tool
+  #   use: nion.community.infoquest.tools:web_fetch_tool
   #   # Overall timeout for the entire crawling process (in seconds). Set to positive value to enable, -1 to disable
   #   timeout: 10
   #   # Waiting time after page loading (in seconds). Set to positive value to enable, -1 to disable
@@ -209,13 +209,13 @@ tools:
   # Use this to find reference images before image generation
   - name: image_search
     group: web
-    use: deerflow.community.image_search.tools:image_search_tool
+    use: nion.community.image_search.tools:image_search_tool
     max_results: 5
 
   # Image search tool (uses InfoQuest)
   # - name: image_search
   #   group: web
-  #   use: deerflow.community.infoquest.tools:image_search_tool
+  #   use: nion.community.infoquest.tools:image_search_tool
   #   # Used to limit the scope of image search results, only returns content within the specified time range. Set to -1 to disable time filtering
   #   image_search_time_range: 10
   #   # Image size filter. Options: "l" (large), "m" (medium), "i" (icon).
@@ -224,24 +224,24 @@ tools:
   # File operations tools
   - name: ls
     group: file:read
-    use: deerflow.sandbox.tools:ls_tool
+    use: nion.sandbox.tools:ls_tool
 
   - name: read_file
     group: file:read
-    use: deerflow.sandbox.tools:read_file_tool
+    use: nion.sandbox.tools:read_file_tool
 
   - name: write_file
     group: file:write
-    use: deerflow.sandbox.tools:write_file_tool
+    use: nion.sandbox.tools:write_file_tool
 
   - name: str_replace
     group: file:write
-    use: deerflow.sandbox.tools:str_replace_tool
+    use: nion.sandbox.tools:str_replace_tool
 
   # Bash execution tool
   - name: bash
     group: bash
-    use: deerflow.sandbox.tools:bash_tool
+    use: nion.sandbox.tools:bash_tool
 
 # ============================================================================
 # Tool Search Configuration (Deferred Tool Loading)
@@ -263,7 +263,7 @@ tool_search:
 # Option 1: Local Sandbox (Default)
 # Executes commands directly on the host machine
 sandbox:
-  use: deerflow.sandbox.local:LocalSandboxProvider
+  use: nion.sandbox.local:LocalSandboxProvider
 
 # Option 2: Container-based AIO Sandbox
 # Executes commands in isolated containers (Docker or Apple Container)
@@ -271,7 +271,7 @@ sandbox:
 # On other platforms: Uses Docker
 # Uncomment to use:
 # sandbox:
-#   use: deerflow.community.aio_sandbox:AioSandboxProvider
+#   use: nion.community.aio_sandbox:AioSandboxProvider
 #
 #   # Optional: Container image to use (works with both Docker and Apple Container)
 #   # Default: enterprise-public-cn-beijing.cr.volces.com/vefaas-public/all-in-one-sandbox:latest
@@ -286,8 +286,8 @@ sandbox:
 #   # make room for new ones. Use a positive integer here; omit this field to use the default.
 #   # replicas: 3
 #
-#   # Optional: Prefix for container names (default: deer-flow-sandbox)
-#   # container_prefix: deer-flow-sandbox
+#   # Optional: Prefix for container names (default: nion-sandbox)
+#   # container_prefix: nion-sandbox
 #
 #   # Optional: Additional mount directories from host to container
 #   # NOTE: Skills directory is automatically mounted from skills.path to skills.container_path
@@ -309,7 +309,7 @@ sandbox:
 # Each sandbox_id gets a dedicated Pod in k3s, managed by the provisioner.
 # Recommended for production or advanced users who want better isolation and scalability.:
 # sandbox:
-#   use: deerflow.community.aio_sandbox:AioSandboxProvider
+#   use: nion.community.aio_sandbox:AioSandboxProvider
 #   provisioner_url: http://provisioner:8002
 
 # ============================================================================
@@ -422,11 +422,11 @@ memory:
 # ============================================================================
 # Checkpointer Configuration
 # ============================================================================
-# Configure state persistence for the embedded DeerFlowClient.
+# Configure state persistence for the embedded NionClient.
 # The LangGraph Server manages its own state persistence separately
 # via the server infrastructure (this setting does not affect it).
 #
-# When configured, DeerFlowClient will automatically use this checkpointer,
+# When configured, NionClient will automatically use this checkpointer,
 # enabling multi-turn conversations to persist across process restarts.
 #
 # Supported types:
@@ -450,12 +450,12 @@ checkpointer:
 # PostgreSQL (multi-process, production):
 # checkpointer:
 #   type: postgres
-#   connection_string: postgresql://user:password@localhost:5432/deerflow
+#   connection_string: postgresql://user:password@localhost:5432/nion
 
 # ============================================================================
 # IM Channels Configuration
 # ============================================================================
-# Connect DeerFlow to external messaging platforms.
+# Connect Nion to external messaging platforms.
 # All channels use outbound connections (WebSocket or polling) — no public IP required.
 
 # channels:
@@ -520,14 +520,14 @@ checkpointer:
 # guardrails:
 #   enabled: true
 #   provider:
-#     use: deerflow.guardrails.builtin:AllowlistProvider
+#     use: nion.guardrails.builtin:AllowlistProvider
 #     config:
 #       denied_tools: ["bash", "write_file"]
 
 # --- Option 2: OAP passport provider (open standard, any implementation) ---
 #   The Open Agent Passport (OAP) spec defines passport format and decision codes.
 #   Any OAP-compliant provider works. Example using APort (reference implementation):
-#     pip install aport-agent-guardrails && aport setup --framework deerflow
+#     pip install aport-agent-guardrails && aport setup --framework nion
 # guardrails:
 #   enabled: true
 #   provider:

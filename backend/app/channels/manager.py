@@ -1,4 +1,4 @@
-"""ChannelManager — consumes inbound messages and dispatches them to the DeerFlow agent via LangGraph Server."""
+"""ChannelManager — consumes inbound messages and dispatches them to the Nion agent via LangGraph Server."""
 
 from __future__ import annotations
 
@@ -248,7 +248,7 @@ def _resolve_attachments(thread_id: str, artifacts: list[str]) -> list[ResolvedA
     Skips artifacts that cannot be resolved (missing files, invalid paths)
     and logs warnings for them.
     """
-    from deerflow.config.paths import get_paths
+    from nion.config.paths import get_paths
 
     attachments: list[ResolvedAttachment] = []
     paths = get_paths()
@@ -315,7 +315,7 @@ def _prepare_artifact_delivery(
 
 
 class ChannelManager:
-    """Core dispatcher that bridges IM channels to the DeerFlow agent.
+    """Core dispatcher that bridges IM channels to the Nion agent.
 
     It reads from the MessageBus inbound queue, creates/reuses threads on
     the LangGraph Server, sends messages via ``runs.wait``, and publishes
@@ -479,7 +479,7 @@ class ChannelManager:
     async def _handle_chat(self, msg: InboundMessage, extra_context: dict[str, Any] | None = None) -> None:
         client = self._get_client()
 
-        # Look up existing DeerFlow thread.
+        # Look up existing Nion thread.
         # topic_id may be None (e.g. Telegram private chats) — the store
         # handles this by using the "channel:chat_id" key without a topic suffix.
         thread_id = self.store.get_thread_id(msg.channel_name, msg.chat_id, topic_id=msg.topic_id)
