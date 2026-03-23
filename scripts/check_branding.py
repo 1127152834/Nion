@@ -2,10 +2,13 @@ from __future__ import annotations
 
 import pathlib
 import re
-import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 SKIP_PARTS = {".git", "node_modules", ".next", ".venv", ".omx", ".worktrees"}
+SKIP_FILES = {
+    "docs/brand-audit-allowlist.md",
+    "scripts/check_branding.py",
+}
 TEXT_EXTENSIONS = {
     ".md", ".txt", ".py", ".toml", ".yaml", ".yml", ".json", ".ts", ".tsx",
     ".js", ".jsx", ".css", ".sh", ".env", ".example", ".conf", ".html",
@@ -58,6 +61,9 @@ def main() -> int:
             continue
         if any(part in SKIP_PARTS for part in path.parts):
             continue
+        rel_path = path.relative_to(ROOT).as_posix()
+        if rel_path in SKIP_FILES:
+            continue
         if not is_text_file(path):
             continue
         text = path.read_text(encoding="utf-8", errors="ignore")
@@ -65,7 +71,7 @@ def main() -> int:
             for match in pattern.finditer(text):
                 snippet = text[max(0, match.start() - 30):match.end() + 30]
                 if not is_allowlisted(path, snippet, allowlist):
-                    failures.append(f"{path.relative_to(ROOT)} | {label} | {snippet!r}")
+                    failures.append(f"{rel_path} | {label} | {snippet!r}")
     if failures:
         print("\n".join(failures))
         return 1
