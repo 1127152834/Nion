@@ -1,15 +1,8 @@
 "use client";
 
-import {
-  LightbulbIcon,
-  RocketIcon,
-  SparklesIcon,
-  ZapIcon,
-} from "lucide-react";
 import { useCallback } from "react";
 
 import { type PromptInputMessage } from "@/components/ai-elements/prompt-input";
-import { Button } from "@/components/ui/button";
 import {
   ArtifactTrigger,
   WorkingDirectoryTrigger,
@@ -23,10 +16,6 @@ import { ExportTrigger } from "@/components/workspace/export-trigger";
 import { InputBox } from "@/components/workspace/input-box";
 import { MessageList } from "@/components/workspace/messages";
 import { ThreadContext } from "@/components/workspace/messages/context";
-import {
-  ModeHoverGuide,
-  type AgentMode,
-} from "@/components/workspace/mode-hover-guide";
 import { NewChatStage } from "@/components/workspace/new-chat-stage";
 import { ThreadTitle } from "@/components/workspace/thread-title";
 import { TodoList } from "@/components/workspace/todo-list";
@@ -41,66 +30,6 @@ import {
 } from "@/core/threads/utils";
 import { env } from "@/env";
 import { cn } from "@/lib/utils";
-
-type ChatMode = AgentMode;
-
-const reasoningEffortByMode: Record<
-  ChatMode,
-  "minimal" | "low" | "medium" | "high"
-> = {
-  flash: "minimal",
-  thinking: "low",
-  pro: "medium",
-  ultra: "high",
-};
-
-function ConversationModeToggle({
-  mode,
-  onChange,
-}: {
-  mode: ChatMode;
-  onChange: (mode: ChatMode) => void;
-}) {
-  const { t } = useI18n();
-
-  const items = [
-    { mode: "flash" as const, label: t.inputBox.flashMode, icon: ZapIcon },
-    {
-      mode: "thinking" as const,
-      label: t.inputBox.reasoningMode,
-      icon: LightbulbIcon,
-    },
-    { mode: "pro" as const, label: t.inputBox.proMode, icon: SparklesIcon },
-    { mode: "ultra" as const, label: t.inputBox.ultraMode, icon: RocketIcon },
-  ];
-
-  return (
-    <div className="inline-flex flex-wrap items-center justify-center gap-1.5 rounded-[1.55rem] bg-[linear-gradient(180deg,rgba(250,248,243,0.94),rgba(239,234,225,0.9))] p-1.5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.92),inset_0_-1px_2px_rgba(102,88,63,0.08)]">
-      {items.map(({ mode: itemMode, label, icon: Icon }) => {
-        const active = mode === itemMode;
-        return (
-          <ModeHoverGuide key={itemMode} mode={itemMode}>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className={cn(
-                "rounded-[1.15rem] px-3.5 text-foreground/62 transition-all",
-                active &&
-                  "bg-background/95 text-foreground shadow-[0_10px_24px_-18px_rgba(70,60,41,0.42)]",
-                itemMode === "ultra" && active && "text-[#8a6a10]",
-              )}
-              onClick={() => onChange(itemMode)}
-            >
-              <Icon className="size-4" />
-              <span>{label}</span>
-            </Button>
-          </ModeHoverGuide>
-        );
-      })}
-    </div>
-  );
-}
 
 export default function ChatPage() {
   const { t } = useI18n();
@@ -149,16 +78,6 @@ export default function ChatPage() {
     await thread.stop();
   }, [thread]);
 
-  const handleModeChange = useCallback(
-    (mode: ChatMode) => {
-      setSettings("context", {
-        mode,
-        reasoning_effort: reasoningEffortByMode[mode],
-      });
-    },
-    [setSettings],
-  );
-
   const inputStatus = thread.error
     ? "error"
     : thread.isLoading
@@ -200,14 +119,6 @@ export default function ChatPage() {
             <main className="flex min-h-0 flex-1 items-center overflow-y-auto px-4 pb-10 pt-20">
               <NewChatStage
                 hero={<Welcome className="sm:pb-1" mode={currentMode} />}
-                controls={
-                  <div className="flex w-full flex-col items-center gap-5">
-                    <ConversationModeToggle
-                      mode={currentMode}
-                      onChange={handleModeChange}
-                    />
-                  </div>
-                }
                 composer={
                   <div className="relative w-full">
                     <div className="absolute -top-4 right-0 left-0 z-0">
