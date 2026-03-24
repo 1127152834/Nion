@@ -1,5 +1,265 @@
 import type { LucideIcon } from "lucide-react";
 
+type SettingsSearchTranslations = {
+  title: string;
+  description: string;
+  loadConfigFailed: string;
+  capabilityHint: string;
+  unsupportedProviderPrefix: string;
+  unsupportedProviderHint: string;
+  providerTitle: string;
+  providerPlaceholder: string;
+  enableLabel: string;
+  docsAction: string;
+  supportedBadge: string;
+  unsupportedBadge: string;
+  noProviderFields: string;
+  capabilities: {
+    web_search: {
+      title: string;
+      description: string;
+    };
+    web_fetch: {
+      title: string;
+      description: string;
+    };
+    image_search: {
+      title: string;
+      description: string;
+    };
+  };
+  fields: {
+    apiKey: {
+      label: string;
+      placeholder: string;
+    };
+    maxResults: {
+      label: string;
+      placeholder: string;
+    };
+    timeout: {
+      label: string;
+      placeholder: string;
+    };
+  };
+  providers: {
+    tavily: {
+      label: string;
+      webSearchTitle: string;
+      webSearchDescription: string;
+      webFetchTitle: string;
+      webFetchDescription: string;
+    };
+    firecrawl: {
+      label: string;
+      webSearchTitle: string;
+      webSearchDescription: string;
+      webFetchTitle: string;
+      webFetchDescription: string;
+    };
+    jina_ai: {
+      label: string;
+      webFetchTitle: string;
+      webFetchDescription: string;
+    };
+    duckduckgo: {
+      label: string;
+      imageSearchTitle: string;
+      imageSearchDescription: string;
+    };
+  };
+};
+
+type SettingsCliToolsTranslations = {
+  title: string;
+  description: string;
+  runtime: {
+    hint: string;
+  };
+  empty: string;
+  states: {
+    enabled: string;
+    disabled: string;
+    installed: string;
+    missing: string;
+    configured: string;
+  };
+  sources: {
+    hostDetected: string;
+  };
+  labels: {
+    path: string;
+    source: string;
+  };
+  hints: {
+    composer: string;
+  };
+  defaults: {
+    python3: string;
+    node: string;
+    git: string;
+    pnpm: string;
+    uv: string;
+    generic: string;
+  };
+  errors: {
+    loadFailed: string;
+    saveFailed: string;
+  };
+};
+
+type SettingsChannelsTranslations = {
+  title: string;
+  description: string;
+  workspace: {
+    title: string;
+    description: string;
+  };
+  platforms: {
+    lark: string;
+    dingtalk: string;
+    telegram: string;
+  };
+  configuration: {
+    title: string;
+    description: string;
+  };
+  labels: {
+    enabled: string;
+    disabled: string;
+    accessMode: string;
+    required: string;
+    optional: string;
+    loading: string;
+    requestedAt: string;
+    grantedAt: string;
+    unknownTime: string;
+  };
+  modes: {
+    webhook: string;
+    stream: string;
+  };
+  proxyModes: {
+    auto: string;
+    direct: string;
+    system: string;
+  };
+  fields: {
+    appId: string;
+    appSecret: string;
+    verificationToken: string;
+    encryptKey: string;
+    clientId: string;
+    clientSecret: string;
+    robotCode: string;
+    proxyMode: string;
+    webhookUrl: string;
+    signingSecret: string;
+    botToken: string;
+    allowedUsers: string;
+    secretToken: string;
+  };
+  hints: {
+    pairingGuide: string;
+    larkVerificationToken: string;
+    larkEncryptKey: string;
+    dingtalkRobotCode: string;
+    dingtalkProxyMode: string;
+    dingtalkWebhookUrl: string;
+  };
+  actions: {
+    setupDocs: string;
+    testConnection: string;
+    saveAndApply: string;
+    goToPairing: string;
+    refresh: string;
+    approve: string;
+    reject: string;
+    revoke: string;
+    cancel: string;
+  };
+  runtime: {
+    statusTitle: string;
+    statusDescription: string;
+    activeUsersLabel: string;
+    runningLabel: string;
+    stoppedLabel: string;
+    connectedLabel: string;
+    disconnectedLabel: string;
+    connectionFailedLabel: string;
+    noStatus: string;
+  };
+  pairing: {
+    sectionTitle: string;
+    sectionDescription: string;
+    code: {
+      title: string;
+      description: string;
+      expireMinutes: string;
+      generateAction: string;
+      activeCode: string;
+      noCodeGenerated: string;
+      copiedToast: string;
+      generatedToast: string;
+      generateFailed: string;
+      expiresAtPrefix: string;
+      slotHint: string;
+    };
+    pending: {
+      title: string;
+      empty: string;
+      approvedToast: string;
+      rejectedToast: string;
+    };
+  };
+  authorization: {
+    title: string;
+    empty: string;
+    sessionOverrideBadge: string;
+    sessionOverrideAction: string;
+    revokeConfirmTemplate: string;
+    revokedToast: string;
+  };
+  session: {
+    defaultsTitle: string;
+    defaultsDescription: string;
+    assistantIdLabel: string;
+    assistantIdPlaceholder: string;
+    recursionLimitLabel: string;
+    recursionLimitPlaceholder: string;
+    thinkingLabel: string;
+    planModeLabel: string;
+    subagentLabel: string;
+    inheritOption: string;
+    enabledOption: string;
+    disabledOption: string;
+    inheritLabel: string;
+    overrideDialogTitle: string;
+    overrideDialogDescription: string;
+    overrideCurrentLabel: string;
+    resetAction: string;
+    savedToast: string;
+  };
+  conversationTypes: {
+    conversation: string;
+    group: string;
+    direct: string;
+  };
+  errors: {
+    fillRequiredFieldsFirst: string;
+    fillConnectionFieldsFirst: string;
+    saveConfigFailed: string;
+    connectionTestFailed: string;
+    platformConfigSaved: string;
+    platformConnectionSuccess: string;
+    missingRequiredFieldsPrefix: string;
+    approveFailed: string;
+    rejectFailed: string;
+    revokeFailed: string;
+    sessionOverrideSaveFailed: string;
+  };
+};
+
 export interface Translations {
   // Locale meta
   locale: {
@@ -337,14 +597,8 @@ export interface Translations {
       title: string;
       description: string;
     };
-    search: {
-      title: string;
-      description: string;
-    };
-    cliTools: {
-      title: string;
-      description: string;
-    };
+    search: SettingsSearchTranslations;
+    cliTools: SettingsCliToolsTranslations;
     mcpServers: {
       title: string;
       description: string;
@@ -353,10 +607,7 @@ export interface Translations {
       title: string;
       description: string;
     };
-    channels: {
-      title: string;
-      description: string;
-    };
+    channels: SettingsChannelsTranslations;
     skills: {
       title: string;
       description: string;

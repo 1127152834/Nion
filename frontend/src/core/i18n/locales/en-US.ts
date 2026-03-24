@@ -413,11 +413,117 @@ export const enUS: Translations = {
       title: "Search",
       description:
         "Configure only the search and fetch providers that are actually wired into the current web runtime.",
+      loadConfigFailed: "Failed to load search settings",
+      capabilityHint:
+        "The current runtime supports one provider per capability. Donor-style provider fallback chains are intentionally not exposed until the backend supports them.",
+      unsupportedProviderPrefix:
+        "This capability is currently backed by an unsupported provider for the web settings UI:",
+      unsupportedProviderHint:
+        "You can keep the current runtime value, or switch to one of the supported providers below.",
+      providerTitle: "Provider",
+      providerPlaceholder: "Select a provider",
+      enableLabel: "Enabled",
+      docsAction: "Docs",
+      supportedBadge: "Supported",
+      unsupportedBadge: "Unsupported",
+      noProviderFields: "This provider has no extra config fields in the current runtime.",
+      capabilities: {
+        web_search: {
+          title: "Web Search",
+          description:
+            "Search the web and return structured results that can be cited in chat.",
+        },
+        web_fetch: {
+          title: "Web Fetch",
+          description:
+            "Fetch and simplify page contents from URLs already discovered by the runtime.",
+        },
+        image_search: {
+          title: "Image Search",
+          description:
+            "Search reference images for image generation and visual grounding tasks.",
+        },
+      },
+      fields: {
+        apiKey: {
+          label: "API Key",
+          placeholder: "Leave empty to use environment credentials if supported",
+        },
+        maxResults: {
+          label: "Max results",
+          placeholder: "5",
+        },
+        timeout: {
+          label: "Timeout (seconds)",
+          placeholder: "10",
+        },
+      },
+      providers: {
+        tavily: {
+          label: "Tavily",
+          webSearchTitle: "Tavily",
+          webSearchDescription: "Agent-oriented web search with configurable result count.",
+          webFetchTitle: "Tavily Extract",
+          webFetchDescription: "Fetch page content through Tavily extract.",
+        },
+        firecrawl: {
+          label: "Firecrawl",
+          webSearchTitle: "Firecrawl",
+          webSearchDescription: "Use Firecrawl search as the runtime web search provider.",
+          webFetchTitle: "Firecrawl Scrape",
+          webFetchDescription: "Fetch page content through Firecrawl scrape.",
+        },
+        jina_ai: {
+          label: "Jina Reader",
+          webFetchTitle: "Jina Reader",
+          webFetchDescription: "Read and simplify webpage contents through Jina Reader.",
+        },
+        duckduckgo: {
+          label: "DuckDuckGo",
+          imageSearchTitle: "DuckDuckGo Images",
+          imageSearchDescription: "Reference image search through DuckDuckGo.",
+        },
+      },
     },
     cliTools: {
       title: "CLI Tools",
       description:
         "Manage the runtime-visible CLI catalog that powers the composer CLI lane.",
+      runtime: {
+        hint:
+          "This runtime currently exposes a detected CLI catalog only. Marketplace/install jobs are not shipped in this repository yet, so the settings page only manages lane visibility for the same catalog the composer uses.",
+      },
+      empty: "No CLI tools detected in the current runtime.",
+      states: {
+        enabled: "Enabled",
+        disabled: "Disabled",
+        installed: "Installed",
+        missing: "Missing",
+        configured: "Configured",
+      },
+      sources: {
+        hostDetected: "Host detected",
+      },
+      labels: {
+        path: "Path",
+        source: "Source",
+      },
+      hints: {
+        composer:
+          "Disabling an item here removes it from the chat composer CLI shortcut lane because both surfaces read from /api/cli/catalog.",
+      },
+      defaults: {
+        python3: "Python runtime",
+        node: "Node.js runtime",
+        git: "Git version control",
+        pnpm: "pnpm package manager",
+        uv: "uv Python package manager",
+        generic: "CLI tool",
+      },
+      errors: {
+        loadFailed: "Failed to load CLI catalog",
+        saveFailed: "Failed to update CLI item",
+      },
     },
     mcpServers: {
       title: "MCP servers",
@@ -430,7 +536,165 @@ export const enUS: Translations = {
     },
     channels: {
       title: "Channels",
-      description: "Manage channel credentials, modes, and runtime status.",
+      description:
+        "Manage channel credentials, modes, pairing, authorization, and runtime status.",
+      workspace: {
+        title: "Single Workspace",
+        description:
+          "Nion uses a single app workspace. Channel authorization binds to the current app workspace instead of letting operators choose between multiple workspaces.",
+      },
+      platforms: {
+        lark: "Lark",
+        dingtalk: "DingTalk",
+        telegram: "Telegram",
+      },
+      configuration: {
+        title: "Channel Configuration",
+        description:
+          "Fill credentials, verify connectivity, then handle pairing and authorization from the same control surface.",
+      },
+      labels: {
+        enabled: "Enabled",
+        disabled: "Disabled",
+        accessMode: "Access Mode",
+        required: "Required",
+        optional: "Optional",
+        loading: "Loading...",
+        requestedAt: "Requested at",
+        grantedAt: "Granted at",
+        unknownTime: "Unknown time",
+      },
+      modes: {
+        webhook: "Webhook (HTTP callback)",
+        stream: "Stream (persistent connection)",
+      },
+      proxyModes: {
+        auto: "auto (adaptive)",
+        direct: "direct (no proxy)",
+        system: "system (system proxy)",
+      },
+      fields: {
+        appId: "App ID",
+        appSecret: "App Secret",
+        verificationToken: "Verification Token",
+        encryptKey: "Encrypt Key",
+        clientId: "Client ID",
+        clientSecret: "Client Secret",
+        robotCode: "Robot Code",
+        proxyMode: "Proxy Mode",
+        webhookUrl: "Webhook URL",
+        signingSecret: "Signing Secret",
+        botToken: "Bot Token",
+        allowedUsers: "Allowed Users",
+        secretToken: "Secret Token",
+      },
+      hints: {
+        pairingGuide:
+          'Successful connection only means the channel is reachable. Next: ask the user to send any message, then approve it in "Pending Pair Requests" below.',
+        larkVerificationToken: "Required for webhook challenge verification.",
+        larkEncryptKey: "Optional encryption key for Lark event payloads.",
+        dingtalkRobotCode: "Required when DingTalk stream mode uses robot-code routing.",
+        dingtalkProxyMode: "Controls how the runtime resolves outbound network access.",
+        dingtalkWebhookUrl: "Webhook URL issued by DingTalk for callback mode.",
+      },
+      actions: {
+        setupDocs: "Setup Docs",
+        testConnection: "Test Connection",
+        saveAndApply: "Save & Apply",
+        goToPairing: "Go to Pairing & Authorization",
+        refresh: "Refresh",
+        approve: "Approve",
+        reject: "Reject",
+        revoke: "Revoke",
+        cancel: "Cancel",
+      },
+      runtime: {
+        statusTitle: "Runtime Status",
+        statusDescription:
+          "This card shows runtime health and operator-visible status that should stay aligned with the running connector.",
+        activeUsersLabel: "Active users",
+        runningLabel: "Running",
+        stoppedLabel: "Stopped",
+        connectedLabel: "Connected",
+        disconnectedLabel: "Disconnected",
+        connectionFailedLabel: "Connection failed",
+        noStatus: "No runtime status",
+      },
+      pairing: {
+        sectionTitle: "Pairing & Authorization",
+        sectionDescription:
+          "Generate a temporary pair code, approve inbound pairing requests, and manage authorized users.",
+        code: {
+          title: "Pair Code",
+          description:
+            "Recommend users sending any message first. `/pair 123456` is available as a manual fallback.",
+          expireMinutes: "minutes to expire",
+          generateAction: "Generate",
+          activeCode: "Active pair code",
+          noCodeGenerated: "No pair code generated",
+          copiedToast: "Pair command copied",
+          generatedToast: "Pair code generated: {code}",
+          generateFailed: "Failed to generate pair code",
+          expiresAtPrefix: "Expires at",
+          slotHint: "A 6-digit pair code will be shown here after generation",
+        },
+        pending: {
+          title: "Pending Pair Requests",
+          empty: "No pending requests",
+          approvedToast: "Approved and authorized",
+          rejectedToast: "Rejected",
+        },
+      },
+      authorization: {
+        title: "Authorized Users",
+        empty: "No authorized users",
+        sessionOverrideBadge: "Session Override",
+        sessionOverrideAction: "Session Override",
+        revokeConfirmTemplate:
+          'Revoke channel authorization for "{name}"? The user will need to pair again.',
+        revokedToast: "Authorization revoked",
+      },
+      session: {
+        defaultsTitle: "Session Defaults",
+        defaultsDescription:
+          "Configure default session parameters for this channel. Only explicitly filled fields are sent to runtime.",
+        assistantIdLabel: "Assistant ID",
+        assistantIdPlaceholder: "Leave empty to inherit",
+        recursionLimitLabel: "Recursion Limit",
+        recursionLimitPlaceholder: "Leave empty to inherit",
+        thinkingLabel: "Thinking",
+        planModeLabel: "Plan Mode",
+        subagentLabel: "Subagent",
+        inheritOption: "Inherit",
+        enabledOption: "Enabled",
+        disabledOption: "Disabled",
+        inheritLabel: "Inherit current defaults",
+        overrideDialogTitle: "Edit Session Override",
+        overrideDialogDescription:
+          "Configure higher-priority session parameters for an authorized user. Leave empty or choose inherit to fall back to channel defaults.",
+        overrideCurrentLabel: "Current override",
+        resetAction: "Reset to inherit",
+        savedToast: "Session override saved",
+      },
+      conversationTypes: {
+        conversation: "Conversation",
+        group: "Group",
+        direct: "Direct",
+      },
+      errors: {
+        fillRequiredFieldsFirst: "Please fill required fields first: {fields}",
+        fillConnectionFieldsFirst:
+          "Please fill required fields for connection test: {fields}",
+        saveConfigFailed: "Failed to save configuration",
+        connectionTestFailed: "Connection test failed",
+        platformConfigSaved: "{platform} configuration saved",
+        platformConnectionSuccess: "{platform} connection test succeeded",
+        missingRequiredFieldsPrefix: "Missing required fields for current mode: ",
+        approveFailed: "Approve failed",
+        rejectFailed: "Reject failed",
+        revokeFailed: "Revoke failed",
+        sessionOverrideSaveFailed: "Failed to save session override",
+      },
     },
     skills: {
       title: "Agent Skills",
