@@ -337,6 +337,18 @@ export const enUS: Translations = {
         "Nion automatically learns from your conversations in the background. These memories help Nion understand you better and deliver a more personalized experience.",
       empty: "No memory data to display.",
       rawJson: "Raw JSON",
+      recall: {
+        title: "Recall",
+        description:
+          "Search transcript recall separately from structured memory.",
+        placeholder: "Search transcript recall",
+        searchButton: "Search",
+        idle: "Enter a query to search transcript recall.",
+        empty: "No recall results found.",
+        loadFailed: "Failed to load recall results.",
+        threadLabel: "Thread",
+        agentLabel: "Agent",
+      },
       markdown: {
         overview: "Overview",
         userContext: "User context",

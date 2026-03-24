@@ -269,6 +269,17 @@ export interface Translations {
       description: string;
       empty: string;
       rawJson: string;
+      recall: {
+        title: string;
+        description: string;
+        placeholder: string;
+        searchButton: string;
+        idle: string;
+        empty: string;
+        loadFailed: string;
+        threadLabel: string;
+        agentLabel: string;
+      };
       markdown: {
         overview: string;
         userContext: string;

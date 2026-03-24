@@ -6,8 +6,10 @@ from langchain_core.runnables import RunnableConfig
 
 from nion.agents.lead_agent.prompt import apply_prompt_template
 from nion.agents.middlewares.clarification_middleware import ClarificationMiddleware
+from nion.agents.middlewares.continuity_middleware import ContinuityMiddleware
 from nion.agents.middlewares.loop_detection_middleware import LoopDetectionMiddleware
 from nion.agents.middlewares.memory_middleware import MemoryMiddleware
+from nion.agents.middlewares.recall_capture_middleware import RecallCaptureMiddleware
 from nion.agents.middlewares.subagent_limit_middleware import SubagentLimitMiddleware
 from nion.agents.middlewares.title_middleware import TitleMiddleware
 from nion.agents.middlewares.todo_middleware import TodoMiddleware
@@ -201,6 +203,8 @@ Being proactive with task management demonstrates thoroughness and ensures all r
 # TodoListMiddleware should be before ClarificationMiddleware to allow todo management
 # TitleMiddleware generates title after first exchange
 # MemoryMiddleware queues conversation for memory update (after TitleMiddleware)
+# RecallCaptureMiddleware archives the latest recallable exchange after each run
+# ContinuityMiddleware injects thread-scoped recall before the next model call
 # ViewImageMiddleware should be before ClarificationMiddleware to inject image details before LLM
 # ToolErrorHandlingMiddleware should be before ClarificationMiddleware to convert tool exceptions to ToolMessages
 # ClarificationMiddleware should be last to intercept clarification requests after model calls
@@ -232,6 +236,8 @@ def _build_middlewares(config: RunnableConfig, model_name: str | None, agent_nam
 
     # Add MemoryMiddleware (after TitleMiddleware)
     middlewares.append(MemoryMiddleware(agent_name=agent_name))
+    middlewares.append(RecallCaptureMiddleware(agent_name=agent_name or "lead_agent"))
+    middlewares.append(ContinuityMiddleware())
 
     # Add ViewImageMiddleware only if the current model supports vision.
     # Use the resolved runtime model_name from make_lead_agent to avoid stale config values.
