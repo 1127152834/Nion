@@ -25,229 +25,30 @@ import { useI18n } from "@/core/i18n/hooks";
 import { ConfigValidationErrors } from "./config-validation-errors";
 import { ConfigSaveBar } from "./configuration/config-save-bar";
 import { asArray, asNumber, asString, cloneConfig, type ConfigDraft } from "./configuration/shared";
+import {
+  buildSearchSettingsCopy,
+  type SearchCapability,
+  type SearchCapabilityMeta,
+  type SearchProviderCatalog,
+  type SearchProviderCatalogItem,
+  type SearchProviderField,
+  type SearchSettingsPageCopy,
+} from "./search-settings-page.copy";
 import { SettingsSection } from "./settings-section";
 import { useConfigEditor } from "./use-config-editor";
-
-type SearchCapability = "web_search" | "web_fetch" | "image_search";
-type SearchFieldType = "string" | "secret" | "number";
-
-type SearchProviderField = {
-  id: string;
-  type: SearchFieldType;
-  label: string;
-  help?: string;
-  placeholder?: string;
-  min?: number;
-  max?: number;
-  defaultValue?: string | number;
-};
-
-type SearchProviderCatalogItem = {
-  id: string;
-  capability: SearchCapability;
-  title: string;
-  description: string;
-  use: string;
-  docsUrl?: string;
-  fields: SearchProviderField[];
-};
 
 type SearchCapabilityState = {
   capability: SearchCapability;
   enabled: boolean;
-  toolIndex: number;
   currentUse: string;
   provider: SearchProviderCatalogItem | null;
   tool: Record<string, unknown> | null;
 };
 
-const FALLBACK_COPY = {
-  title: "Search",
-  description:
-    "Configure only the search and fetch providers that are actually wired into the current web runtime.",
-  loadConfigFailed: "Failed to load search settings",
-  capabilityHint:
-    "The current runtime supports one provider per capability. Donor-style provider fallback chains are intentionally not exposed until the backend supports them.",
-  unsupportedProviderPrefix:
-    "This capability is currently backed by an unsupported provider for the web settings UI:",
-  unsupportedProviderHint:
-    "You can keep the current runtime value, or switch to one of the supported providers below.",
-  selectProvider: "Provider",
-  providerPlaceholder: "Select a provider",
-  enableLabel: "Enabled",
-  runtimeBound: "Runtime-bound",
-  supportedBadge: "Supported",
-  unsupportedBadge: "Unsupported",
-  docsAction: "Docs",
-  searchCapabilityTitle: "Web Search",
-  fetchCapabilityTitle: "Web Fetch",
-  imageCapabilityTitle: "Image Search",
-  searchCapabilityDescription:
-    "Search the web and return structured results that can be cited in chat.",
-  fetchCapabilityDescription:
-    "Fetch and simplify page contents from URLs already discovered by the runtime.",
-  imageCapabilityDescription:
-    "Search reference images for image generation and visual grounding tasks.",
-  providerTitle: "Provider",
-  fieldApiKey: "API Key",
-  fieldMaxResults: "Max results",
-  fieldTimeout: "Timeout (seconds)",
-  fieldApiKeyPlaceholder: "Leave empty to use environment credentials if supported",
-  fieldMaxResultsPlaceholder: "5",
-  fieldTimeoutPlaceholder: "10",
-  noProviderFields: "This provider has no extra config fields in the current runtime.",
-} as const;
-
-type SearchPageCopy = {
-  [K in keyof typeof FALLBACK_COPY]: string;
-};
-
-const SEARCH_PROVIDER_CATALOG: SearchProviderCatalogItem[] = [
-  {
-    id: "tavily",
-    capability: "web_search",
-    title: "Tavily",
-    description: "Agent-oriented web search with configurable result count.",
-    use: "nion.community.tavily.tools:web_search_tool",
-    docsUrl: "https://tavily.com/",
-    fields: [
-      {
-        id: "api_key",
-        type: "secret",
-        label: FALLBACK_COPY.fieldApiKey,
-        placeholder: FALLBACK_COPY.fieldApiKeyPlaceholder,
-      },
-      {
-        id: "max_results",
-        type: "number",
-        label: FALLBACK_COPY.fieldMaxResults,
-        min: 1,
-        max: 20,
-        defaultValue: 5,
-        placeholder: FALLBACK_COPY.fieldMaxResultsPlaceholder,
-      },
-    ],
-  },
-  {
-    id: "firecrawl",
-    capability: "web_search",
-    title: "Firecrawl",
-    description: "Use Firecrawl search as the runtime web search provider.",
-    use: "nion.community.firecrawl.tools:web_search_tool",
-    docsUrl: "https://www.firecrawl.dev/",
-    fields: [
-      {
-        id: "api_key",
-        type: "secret",
-        label: FALLBACK_COPY.fieldApiKey,
-        placeholder: FALLBACK_COPY.fieldApiKeyPlaceholder,
-      },
-      {
-        id: "max_results",
-        type: "number",
-        label: FALLBACK_COPY.fieldMaxResults,
-        min: 1,
-        max: 20,
-        defaultValue: 5,
-        placeholder: FALLBACK_COPY.fieldMaxResultsPlaceholder,
-      },
-    ],
-  },
-  {
-    id: "jina_ai",
-    capability: "web_fetch",
-    title: "Jina Reader",
-    description: "Read and simplify webpage contents through Jina Reader.",
-    use: "nion.community.jina_ai.tools:web_fetch_tool",
-    docsUrl: "https://jina.ai/reader/",
-    fields: [
-      {
-        id: "timeout",
-        type: "number",
-        label: FALLBACK_COPY.fieldTimeout,
-        min: 1,
-        max: 60,
-        defaultValue: 10,
-        placeholder: FALLBACK_COPY.fieldTimeoutPlaceholder,
-      },
-    ],
-  },
-  {
-    id: "tavily",
-    capability: "web_fetch",
-    title: "Tavily Extract",
-    description: "Fetch page content through Tavily extract.",
-    use: "nion.community.tavily.tools:web_fetch_tool",
-    docsUrl: "https://tavily.com/",
-    fields: [
-      {
-        id: "api_key",
-        type: "secret",
-        label: FALLBACK_COPY.fieldApiKey,
-        placeholder: FALLBACK_COPY.fieldApiKeyPlaceholder,
-      },
-    ],
-  },
-  {
-    id: "firecrawl",
-    capability: "web_fetch",
-    title: "Firecrawl Scrape",
-    description: "Fetch page content through Firecrawl scrape.",
-    use: "nion.community.firecrawl.tools:web_fetch_tool",
-    docsUrl: "https://www.firecrawl.dev/",
-    fields: [
-      {
-        id: "api_key",
-        type: "secret",
-        label: FALLBACK_COPY.fieldApiKey,
-        placeholder: FALLBACK_COPY.fieldApiKeyPlaceholder,
-      },
-    ],
-  },
-  {
-    id: "duckduckgo",
-    capability: "image_search",
-    title: "DuckDuckGo Images",
-    description: "Reference image search through DuckDuckGo.",
-    use: "nion.community.image_search.tools:image_search_tool",
-    docsUrl: "https://duckduckgo.com/",
-    fields: [
-      {
-        id: "max_results",
-        type: "number",
-        label: FALLBACK_COPY.fieldMaxResults,
-        min: 1,
-        max: 20,
-        defaultValue: 5,
-        placeholder: FALLBACK_COPY.fieldMaxResultsPlaceholder,
-      },
-    ],
-  },
-];
-
-const CAPABILITY_META: Record<
-  SearchCapability,
-  {
-    title: string;
-    description: string;
-    icon: typeof SearchIcon;
-  }
-> = {
-  web_search: {
-    title: FALLBACK_COPY.searchCapabilityTitle,
-    description: FALLBACK_COPY.searchCapabilityDescription,
-    icon: SearchIcon,
-  },
-  web_fetch: {
-    title: FALLBACK_COPY.fetchCapabilityTitle,
-    description: FALLBACK_COPY.fetchCapabilityDescription,
-    icon: GlobeIcon,
-  },
-  image_search: {
-    title: FALLBACK_COPY.imageCapabilityTitle,
-    description: FALLBACK_COPY.imageCapabilityDescription,
-    icon: ImageIcon,
-  },
+const CAPABILITY_ICONS: Record<SearchCapability, typeof SearchIcon> = {
+  web_search: SearchIcon,
+  web_fetch: GlobeIcon,
+  image_search: ImageIcon,
 };
 
 const CAPABILITY_ORDER: SearchCapability[] = [
@@ -257,9 +58,10 @@ const CAPABILITY_ORDER: SearchCapability[] = [
 ];
 
 function catalogForCapability(
+  providerCatalog: SearchProviderCatalog,
   capability: SearchCapability,
 ): SearchProviderCatalogItem[] {
-  return SEARCH_PROVIDER_CATALOG.filter((item) => item.capability === capability);
+  return providerCatalog[capability];
 }
 
 function findToolIndex(
@@ -270,11 +72,12 @@ function findToolIndex(
 }
 
 function findProviderByUse(
+  providerCatalog: SearchProviderCatalog,
   capability: SearchCapability,
   usePath: string,
 ): SearchProviderCatalogItem | null {
   return (
-    catalogForCapability(capability).find(
+    catalogForCapability(providerCatalog, capability).find(
       (item) => item.use === usePath.trim(),
     ) ?? null
   );
@@ -299,16 +102,18 @@ function normalizeToolGroups(
 function buildCapabilityState(
   capability: SearchCapability,
   tools: Record<string, unknown>[],
+  providerCatalog: SearchProviderCatalog,
 ): SearchCapabilityState {
-  const index = findToolIndex(tools, capability);
-  const tool = index >= 0 ? (tools[index] ?? null) : null;
+  const toolIndex = findToolIndex(tools, capability);
+  const tool = toolIndex >= 0 ? (tools[toolIndex] ?? null) : null;
   const currentUse = tool ? asString(tool.use).trim() : "";
   return {
     capability,
     enabled: tool !== null,
-    toolIndex: index,
     currentUse,
-    provider: currentUse ? findProviderByUse(capability, currentUse) : null,
+    provider: currentUse
+      ? findProviderByUse(providerCatalog, capability, currentUse)
+      : null,
     tool,
   };
 }
@@ -423,19 +228,23 @@ function currentFieldValue(
 function CapabilityCard({
   state,
   copy,
+  capabilityMeta,
+  providerCatalog,
   config,
   disabled,
   onChange,
 }: {
   state: SearchCapabilityState;
-  copy: SearchPageCopy;
+  copy: SearchSettingsPageCopy;
+  capabilityMeta: SearchCapabilityMeta;
+  providerCatalog: SearchProviderCatalog;
   config: ConfigDraft;
   disabled?: boolean;
   onChange: (next: ConfigDraft) => void;
 }) {
-  const meta = CAPABILITY_META[state.capability];
-  const providers = catalogForCapability(state.capability);
-  const Icon = meta.icon;
+  const meta = capabilityMeta[state.capability];
+  const providers = catalogForCapability(providerCatalog, state.capability);
+  const Icon = CAPABILITY_ICONS[state.capability];
 
   return (
     <section className="space-y-4 rounded-xl border p-4">
@@ -591,19 +400,19 @@ export function SearchSettingsPage() {
     onSave,
   } = useConfigEditor();
 
-  const copy: SearchPageCopy = useMemo(
-    () => ({
-      ...FALLBACK_COPY,
-      title: t.settings.search?.title ?? FALLBACK_COPY.title,
-      description: t.settings.search?.description ?? FALLBACK_COPY.description,
-    }),
+  const localizedCopy = useMemo(
+    () => buildSearchSettingsCopy(t.settings.search),
     [t.settings.search],
   );
+  const copy = localizedCopy.page;
 
   const tools = useMemo(() => asArray(draftConfig.tools), [draftConfig.tools]);
   const states = useMemo(
-    () => CAPABILITY_ORDER.map((capability) => buildCapabilityState(capability, tools)),
-    [tools],
+    () =>
+      CAPABILITY_ORDER.map((capability) =>
+        buildCapabilityState(capability, tools, localizedCopy.providerCatalog),
+      ),
+    [localizedCopy.providerCatalog, tools],
   );
 
   return (
@@ -611,9 +420,7 @@ export function SearchSettingsPage() {
       {isLoading ? (
         <div className="text-muted-foreground text-sm">{t.common.loading}</div>
       ) : error ? (
-        <div className="text-destructive text-sm">
-          {error instanceof Error ? error.message : copy.loadConfigFailed}
-        </div>
+        <div className="text-destructive text-sm">{copy.loadConfigFailed}</div>
       ) : (
         <div className="space-y-4">
           {states.map((state) => (
@@ -621,6 +428,8 @@ export function SearchSettingsPage() {
               key={state.capability}
               state={state}
               copy={copy}
+              capabilityMeta={localizedCopy.capabilityMeta}
+              providerCatalog={localizedCopy.providerCatalog}
               config={draftConfig}
               disabled={disabled}
               onChange={onConfigChange}
