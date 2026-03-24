@@ -386,7 +386,7 @@ export const enUS: Translations = {
     },
     tools: {
       title: "Tools",
-      description: "Manage the configuration and enabled status of MCP tools.",
+      description: "Manage built-in tool groups and runtime-visible tool presets.",
     },
     skills: {
       title: "Agent Skills",
@@ -422,6 +422,31 @@ export const enUS: Translations = {
         discard: "Discard",
         save: "Save",
         saving: "Saving...",
+      },
+      tools: {
+        title: "Tools",
+        subtitle: "Configure built-in tools.",
+        customInfoTemplate: "{count} custom tools configured",
+        presetTitles: {
+          web_search: "Web Search",
+          web_fetch: "Web Fetch",
+          image_search: "Image Search",
+          ls: "List Directory",
+          read_file: "Read File",
+          write_file: "Write File",
+          str_replace: "String Replace",
+          bash: "Bash",
+        },
+        presetDescriptions: {
+          web_search: "Allow agent to search the web.",
+          web_fetch: "Fetch webpage content.",
+          image_search: "Search images for references.",
+          ls: "List workspace directory tree.",
+          read_file: "Read file content.",
+          write_file: "Create or overwrite files.",
+          str_replace: "Replace text in files.",
+          bash: "Execute shell commands in sandbox.",
+        },
       },
       title: {
         title: "Thread title",
@@ -531,6 +556,18 @@ export const enUS: Translations = {
       notSet: "Not set",
       unnamedModel: "Unnamed model",
       loadConfigFailed: "Failed to load config",
+    },
+    toolPage: {
+      builtInTitle: "Built-in tools",
+      builtInDesc: "Manage built-in tool presets.",
+      loadConfigFailed: "Failed to load tool config",
+      runtimeTitle: "Runtime config status",
+      runtimeSource: "Source",
+      runtimeVersion: "Version",
+      runtimeInSync: "In sync with storage",
+      runtimeOutOfSync: "Not synced to latest storage version",
+      runtimeWarnings: "Runtime warnings",
+      runtimeProcesses: "Processes",
     },
     aboutPage: {
       brand: {

@@ -370,7 +370,7 @@ export const zhCN: Translations = {
     },
     tools: {
       title: "工具",
-      description: "管理 MCP 工具的配置和启用状态。",
+      description: "管理内置工具组和运行时可见的工具预设。",
     },
     skills: {
       title: "技能",
@@ -405,6 +405,31 @@ export const zhCN: Translations = {
         discard: "放弃修改",
         save: "保存",
         saving: "保存中...",
+      },
+      tools: {
+        title: "工具",
+        subtitle: "配置内置工具。",
+        customInfoTemplate: "已配置 {count} 个自定义工具",
+        presetTitles: {
+          web_search: "网页搜索",
+          web_fetch: "网页抓取",
+          image_search: "图片搜索",
+          ls: "列出目录",
+          read_file: "读取文件",
+          write_file: "写入文件",
+          str_replace: "字符串替换",
+          bash: "Bash",
+        },
+        presetDescriptions: {
+          web_search: "允许智能体搜索网页。",
+          web_fetch: "抓取网页内容。",
+          image_search: "搜索参考图片。",
+          ls: "列出工作区目录树。",
+          read_file: "读取文件内容。",
+          write_file: "创建或覆盖文件。",
+          str_replace: "替换文件中的文本。",
+          bash: "在沙箱中执行 shell 命令。",
+        },
       },
       title: {
         title: "会话标题",
@@ -512,6 +537,18 @@ export const zhCN: Translations = {
       notSet: "未设置",
       unnamedModel: "未命名模型",
       loadConfigFailed: "配置加载失败",
+    },
+    toolPage: {
+      builtInTitle: "内置工具",
+      builtInDesc: "管理内置工具预设。",
+      loadConfigFailed: "加载工具配置失败",
+      runtimeTitle: "运行时配置状态",
+      runtimeSource: "生效来源",
+      runtimeVersion: "版本",
+      runtimeInSync: "已与存储版本同步",
+      runtimeOutOfSync: "尚未同步到最新存储版本",
+      runtimeWarnings: "运行时警告",
+      runtimeProcesses: "进程状态",
     },
     aboutPage: {
       brand: {

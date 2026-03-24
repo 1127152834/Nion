@@ -348,6 +348,13 @@ export interface Translations {
         save: string;
         saving: string;
       };
+      tools: {
+        title: string;
+        subtitle: string;
+        customInfoTemplate: string;
+        presetTitles: Record<string, string>;
+        presetDescriptions: Record<string, string>;
+      };
       title: Record<string, string>;
       suggestions: Record<string, string>;
       summarization: Record<string, string>;
@@ -364,6 +371,18 @@ export interface Translations {
       notSet: string;
       unnamedModel: string;
       loadConfigFailed: string;
+    };
+    toolPage: {
+      builtInTitle: string;
+      builtInDesc: string;
+      loadConfigFailed: string;
+      runtimeTitle: string;
+      runtimeSource: string;
+      runtimeVersion: string;
+      runtimeInSync: string;
+      runtimeOutOfSync: string;
+      runtimeWarnings: string;
+      runtimeProcesses: string;
     };
     aboutPage: {
       brand: {
