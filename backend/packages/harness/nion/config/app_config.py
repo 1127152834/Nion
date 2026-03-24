@@ -10,6 +10,7 @@ import yaml
 from dotenv import load_dotenv
 from pydantic import BaseModel, ConfigDict, Field
 
+from nion.config.automation_config import AutomationConfig, load_automation_config_from_dict
 from nion.config.checkpointer_config import CheckpointerConfig, load_checkpointer_config_from_dict
 from nion.config.config_store import (
     DEFAULT_CHECKPOINTER_CONFIG,
@@ -60,6 +61,10 @@ class AppConfig(BaseModel):
         default_factory=SuggestionsConfig,
         description="Follow-up suggestion generation policy",
     )
+    automation: AutomationConfig = Field(
+        default_factory=AutomationConfig,
+        description="Automation runtime configuration",
+    )
     sandbox: SandboxConfig = Field(description="Sandbox configuration")
     tools: list[ToolConfig] = Field(default_factory=list, description="Available tools")
     tool_groups: list[ToolGroupConfig] = Field(default_factory=list, description="Available tool groups")
@@ -105,6 +110,8 @@ class AppConfig(BaseModel):
         load_summarization_config_from_dict(config_data.get("summarization") or {})
         if "memory" in config_data:
             load_memory_config_from_dict(config_data["memory"])
+        if "automation" in config_data:
+            load_automation_config_from_dict(config_data["automation"])
         load_subagents_config_from_dict(config_data.get("subagents") or {})
         load_suggestions_config_from_dict(config_data.get("suggestions") or {})
         if "tool_search" in config_data:

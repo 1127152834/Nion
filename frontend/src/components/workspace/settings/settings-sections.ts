@@ -4,6 +4,7 @@ export const SETTINGS_SECTIONS = [
   "sessionPolicy",
   "notification",
   "memory",
+  "automation",
   "tools",
   "mcpServers",
   "skills",

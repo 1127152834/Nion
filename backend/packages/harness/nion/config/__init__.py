@@ -1,3 +1,4 @@
+from .automation_config import AutomationConfig, get_automation_config
 from .app_config import (
     ensure_latest_app_config,
     get_app_config,
@@ -19,6 +20,8 @@ __all__ = [
     "reset_app_config",
     "ensure_latest_app_config",
     "get_app_config_runtime_status",
+    "AutomationConfig",
+    "get_automation_config",
     "ConfigRepository",
     "ConfigValidationError",
     "VersionConflictError",

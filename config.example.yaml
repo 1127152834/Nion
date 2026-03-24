@@ -12,7 +12,7 @@
 # ============================================================================
 # Bump this number when the config schema changes.
 # Run `make config-upgrade` to merge new fields into your local config.yaml.
-config_version: 3
+config_version: 4
 
 # ============================================================================
 # Models Configuration
@@ -418,6 +418,24 @@ memory:
   fact_confidence_threshold: 0.7 # Minimum confidence for storing facts
   injection_enabled: true # Whether to inject memory into system prompt
   max_injection_tokens: 2000 # Maximum tokens for memory injection
+
+# ============================================================================
+# Automation Configuration
+# ============================================================================
+automation:
+  enabled: false
+  storage_path: automation.db
+  scheduler_enabled: true
+  tick_interval_seconds: 30
+  lock_timeout_seconds: 300
+  max_runs_per_tick: 10
+  default_toolset_profile: automation
+  default_session_policy:
+    session_mode: automation
+    memory_read: true
+    memory_write: false
+    subagent_enabled: false
+    thinking_enabled: true
 
 # ============================================================================
 # Checkpointer Configuration

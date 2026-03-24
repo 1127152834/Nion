@@ -8,6 +8,7 @@ from app.gateway.config import get_gateway_config
 from app.gateway.routers import (
     agents,
     artifacts,
+    automation,
     channels,
     cli,
     config,
@@ -136,6 +137,10 @@ This gateway provides custom endpoints for models, MCP configuration, skills, an
                 "description": "Access and manage global memory data for personalized conversations",
             },
             {
+                "name": "automation",
+                "description": "Manage scheduled and manual automation jobs and their execution state",
+            },
+            {
                 "name": "skills",
                 "description": "Manage skills and their configurations",
             },
@@ -189,6 +194,9 @@ This gateway provides custom endpoints for models, MCP configuration, skills, an
 
     # Memory API is mounted at /api/memory
     app.include_router(memory.router)
+
+    # Automation API is mounted at /api/automation
+    app.include_router(automation.router)
 
     # Skills API is mounted at /api/skills
     app.include_router(skills.router)

@@ -255,6 +255,7 @@ export interface Translations {
       models: string;
       sessionPolicy: string;
       memory: string;
+      automation: string;
       tools: string;
       mcpServers: string;
       skills: string;
@@ -368,6 +369,76 @@ export interface Translations {
       testBody: string;
       notSupported: string;
       disableNotification: string;
+    };
+    automation: {
+      title: string;
+      description: string;
+      scheduler: string;
+      schedulerRunning: string;
+      schedulerIdle: string;
+      jobs: string;
+      runs: string;
+      diagnostics: string;
+      failedRuns: string;
+      lastTick: string;
+      notRecordedYet: string;
+      futureHooks: string;
+      futureHookLabels: {
+        openvikingArchive: string;
+        relationshipAwareRoutines: string;
+        selfGrowthSuggestions: string;
+      };
+      createJobTitle: string;
+      createJobDescription: string;
+      create: string;
+      nameLabel: string;
+      namePlaceholder: string;
+      deliveryModeLabel: string;
+      deliveryModes: {
+        local: string;
+        thread: string;
+        channel: string;
+        multi: string;
+      };
+      promptLabel: string;
+      promptPlaceholder: string;
+      scheduleKindLabel: string;
+      scheduleKinds: {
+        once: string;
+        interval: string;
+        cron: string;
+      };
+      scheduleValueLabel: string;
+      scheduleHelp: {
+        once: string;
+        interval: string;
+        cron: string;
+      };
+      attachedSkillsLabel: string;
+      attachedSkillsPlaceholder: string;
+      jobsTitle: string;
+      jobsDescription: string;
+      emptyJobs: string;
+      recentRunsTitle: string;
+      recentRunsDescription: string;
+      emptyRuns: string;
+      stateLabels: {
+        scheduled: string;
+        paused: string;
+        error: string;
+        succeeded: string;
+        failed: string;
+      };
+      schedulePrefix: string;
+      deliveryPrefix: string;
+      nextRunPrefix: string;
+      notScheduled: string;
+      lastResult: string;
+      noSummary: string;
+      pause: string;
+      resume: string;
+      runNow: string;
+      remove: string;
     };
     validation: {
       rootLabel: string;
