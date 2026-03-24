@@ -12,7 +12,7 @@
 # ============================================================================
 # Bump this number when the config schema changes.
 # Run `make config-upgrade` to merge new fields into your local config.yaml.
-config_version: 4
+config_version: 5
 
 # ============================================================================
 # Models Configuration
@@ -167,6 +167,22 @@ tool_groups:
   - name: file:read
   - name: file:write
   - name: bash
+
+# ============================================================================
+# Surface Policy Configuration
+# ============================================================================
+# Optional per-surface filtering for configured tools.
+# This V1 layer governs tools declared under the `tools:` section only.
+
+surface_policy:
+  rules:
+    workspace:
+      allowed_groups: [web, file:read, file:write, bash]
+    channel:
+      allowed_groups: [web, file:read]
+      denied_tools: [bash, write_file, str_replace]
+    automation:
+      allowed_groups: [web, file:read, bash]
 
 # ============================================================================
 # Tools Configuration

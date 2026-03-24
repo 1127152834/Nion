@@ -170,6 +170,26 @@ tools:
 - `str_replace` - String replacement in files
 - `bash` - Execute bash commands
 
+### Surface Policy
+
+Optionally filter configured tools by runtime surface:
+
+```yaml
+surface_policy:
+  rules:
+    workspace:
+      allowed_groups: [web, file:read, file:write, bash]
+    channel:
+      allowed_groups: [web, file:read]
+      denied_tools: [bash, write_file, str_replace]
+    automation:
+      allowed_groups: [web, file:read, bash]
+```
+
+This V1 policy composes on top of `tool_groups` and only governs tools declared
+under the `tools:` section. Built-in tools, vision-only tools, tool-search, and
+MCP tools keep their current behavior unless a later catalog unifies them.
+
 ### Sandbox
 
 Nion supports multiple sandbox execution modes. Configure your preferred mode in `config.yaml`:

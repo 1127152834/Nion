@@ -36,6 +36,7 @@ from nion.config.summarization_config import (
     SummarizationConfig,
     load_summarization_config_from_dict,
 )
+from nion.config.surface_policy_config import SurfacePolicyConfig
 from nion.config.title_config import TitleConfig, load_title_config_from_dict
 from nion.config.tool_config import ToolConfig, ToolGroupConfig
 from nion.config.tool_search_config import ToolSearchConfig, load_tool_search_config_from_dict
@@ -73,6 +74,10 @@ class AppConfig(BaseModel):
     sandbox: SandboxConfig = Field(description="Sandbox configuration")
     tools: list[ToolConfig] = Field(default_factory=list, description="Available tools")
     tool_groups: list[ToolGroupConfig] = Field(default_factory=list, description="Available tool groups")
+    surface_policy: SurfacePolicyConfig = Field(
+        default_factory=SurfacePolicyConfig,
+        description="Per-surface policy for configured tool exposure",
+    )
     skills: SkillsConfig = Field(default_factory=SkillsConfig, description="Skills configuration")
     extensions: ExtensionsConfig = Field(default_factory=ExtensionsConfig, description="Extensions configuration (MCP servers and skills state)")
     tool_search: ToolSearchConfig = Field(default_factory=ToolSearchConfig, description="Tool search / deferred loading configuration")
