@@ -10,6 +10,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from app.channels.message_bus import InboundMessage, InboundMessageType, MessageBus, OutboundMessage, ResolvedAttachment
+from app.channels.pairing_service import PairingService
 from app.channels.runtime_state import ChannelRuntimeState
 from app.channels.store import ChannelStore
 
@@ -32,6 +33,10 @@ CHANNEL_CAPABILITIES = {
     "slack": {"supports_streaming": False},
     "telegram": {"supports_streaming": False},
 }
+
+PAIRING_REQUIRED_NOTICE = (
+    "Pairing approval is required before this channel can invoke the runtime."
+)
 
 
 def _as_dict(value: Any) -> dict[str, Any]:
@@ -335,6 +340,7 @@ class ChannelManager:
         default_session: dict[str, Any] | None = None,
         channel_sessions: dict[str, Any] | None = None,
         runtime_state: ChannelRuntimeState | None = None,
+        pairing_service: PairingService | None = None,
     ) -> None:
         self.bus = bus
         self.store = store
@@ -345,6 +351,7 @@ class ChannelManager:
         self._default_session = _as_dict(default_session)
         self._channel_sessions = dict(channel_sessions or {})
         self._runtime_state = runtime_state
+        self._pairing_service = pairing_service
         self._client = None  # lazy init — langgraph_sdk async client
         self._semaphore: asyncio.Semaphore | None = None
         self._running = False
@@ -448,9 +455,30 @@ class ChannelManager:
         if exc:
             logger.error("[Manager] unhandled error in message task: %s", exc, exc_info=exc)
 
+    @staticmethod
+    def _command_name(text: str) -> str:
+        return text.strip().split(maxsplit=1)[0].lower().lstrip("/")
+
+    def _command_bypasses_pairing(self, msg: InboundMessage) -> bool:
+        return msg.msg_type == InboundMessageType.COMMAND and self._command_name(msg.text) == "help"
+
+    def _is_authorized(self, msg: InboundMessage) -> bool:
+        if self._pairing_service is None:
+            return True
+        if self._command_bypasses_pairing(msg):
+            return True
+        return self._pairing_service.is_authorized(
+            msg.channel_name,
+            msg.chat_id,
+            msg.user_id,
+        )
+
     async def _handle_message(self, msg: InboundMessage) -> None:
         async with self._semaphore:
             try:
+                if not self._is_authorized(msg):
+                    await self._send_error(msg, PAIRING_REQUIRED_NOTICE)
+                    return
                 if self._runtime_state is not None:
                     self._runtime_state.mark_heartbeat(msg.channel_name)
                 if msg.msg_type == InboundMessageType.COMMAND:

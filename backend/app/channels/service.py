@@ -7,6 +7,7 @@ from typing import Any
 
 from app.channels.manager import CHANNEL_CAPABILITIES, ChannelManager
 from app.channels.message_bus import MessageBus
+from app.channels.pairing_service import PairingService
 from app.channels.runtime_state import ChannelRuntimeState
 from app.channels.store import ChannelStore
 
@@ -27,10 +28,15 @@ class ChannelService:
     instantiates enabled channels, and starts the ChannelManager dispatcher.
     """
 
-    def __init__(self, channels_config: dict[str, Any] | None = None) -> None:
+    def __init__(
+        self,
+        channels_config: dict[str, Any] | None = None,
+        pairing_service: PairingService | None = None,
+    ) -> None:
         self.bus = MessageBus()
         self.store = ChannelStore()
         self.runtime_state = ChannelRuntimeState()
+        self.pairing_service = pairing_service or PairingService()
         config = dict(channels_config or {})
         langgraph_url = config.pop("langgraph_url", None) or "http://localhost:2024"
         gateway_url = config.pop("gateway_url", None) or "http://localhost:8001"
@@ -44,6 +50,7 @@ class ChannelService:
             default_session=default_session if isinstance(default_session, dict) else None,
             channel_sessions=channel_sessions,
             runtime_state=self.runtime_state,
+            pairing_service=self.pairing_service,
         )
         self._channels: dict[str, Any] = {}  # name -> Channel instance
         self._config = config
@@ -163,13 +170,12 @@ class ChannelService:
                 "capabilities": capabilities,
                 "last_heartbeat": runtime_snapshot.get("last_heartbeat"),
                 "last_error": runtime_snapshot.get("last_error"),
-                "authorized_user_count": 0,
-                "pending_pair_request_count": 0,
+                **self.pairing_service.get_channel_counts(name),
                 "can_restart": enabled,
             }
         return {
             "service_running": self._running,
-            "pending_pair_requests": 0,
+            "pending_pair_requests": self.pairing_service.get_pending_request_count(),
             "channels": channels_status,
         }
 
