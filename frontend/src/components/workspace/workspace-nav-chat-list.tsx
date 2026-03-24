@@ -1,6 +1,6 @@
 "use client";
 
-import { BotIcon, MessagesSquare } from "lucide-react";
+import { BotIcon, Clock3Icon, MessagesSquare } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -10,6 +10,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { isAutomationPath } from "@/core/automation/routing";
 import { useI18n } from "@/core/i18n/hooks";
 
 export function WorkspaceNavChatList() {
@@ -34,6 +35,14 @@ export function WorkspaceNavChatList() {
             <Link className="text-muted-foreground" href="/workspace/agents">
               <BotIcon />
               <span>{t.sidebar.agents}</span>
+            </Link>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+        <SidebarMenuItem>
+          <SidebarMenuButton isActive={isAutomationPath(pathname)} asChild>
+            <Link className="text-muted-foreground" href="/workspace/automation">
+              <Clock3Icon />
+              <span>{t.sidebar.automation}</span>
             </Link>
           </SidebarMenuButton>
         </SidebarMenuItem>

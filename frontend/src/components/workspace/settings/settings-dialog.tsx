@@ -4,7 +4,6 @@ import {
   BellIcon,
   BrainIcon,
   BotIcon,
-  Clock3Icon,
   PaletteIcon,
   PlugIcon,
   SearchIcon,
@@ -23,7 +22,6 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { SidebarGroupLabel } from "@/components/ui/sidebar";
 import { AppearanceSettingsPage } from "@/components/workspace/settings/appearance-settings-page";
-import { AutomationSettingsPage } from "@/components/workspace/settings/automation-settings-page";
 import { ChannelSettingsPage } from "@/components/workspace/settings/channel-settings-page";
 import { MCPServersPage } from "@/components/workspace/settings/mcp-servers-page";
 import { MemorySettingsPage } from "@/components/workspace/settings/memory-settings-page";
@@ -115,11 +113,6 @@ export function SettingsDialog(props: SettingsDialogProps) {
           label: t.settings.sections.memory,
           icon: BrainIcon,
         },
-        automation: {
-          id: "automation",
-          label: t.settings.sections.automation,
-          icon: Clock3Icon,
-        },
         tools: {
           id: "tools",
           label: t.settings.sections.tools,
@@ -171,7 +164,7 @@ export function SettingsDialog(props: SettingsDialogProps) {
         {
           id: "capabilities",
           title: t.settings.navGroups.capabilities,
-          items: [items.automation, items.tools, items.search, items.mcpServers, items.channels, items.skills],
+          items: [items.tools, items.search, items.mcpServers, items.channels, items.skills],
         },
         {
           id: "system",
@@ -186,7 +179,6 @@ export function SettingsDialog(props: SettingsDialogProps) {
       t.settings.sections.models,
       t.settings.sections.sessionPolicy,
       t.settings.sections.memory,
-      t.settings.sections.automation,
       t.settings.sections.tools,
       t.settings.sections.search,
       t.settings.sections.mcpServers,
@@ -273,7 +265,6 @@ export function SettingsDialog(props: SettingsDialogProps) {
                   <SessionPolicySettingsPage />
                 )}
                 {activeSection === "memory" && <MemorySettingsPage />}
-                {activeSection === "automation" && <AutomationSettingsPage />}
                 {activeSection === "tools" && <ToolSettingsPage />}
                 {activeSection === "search" && <SearchSettingsPage />}
                 {activeSection === "mcpServers" && <MCPServersPage />}
