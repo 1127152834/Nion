@@ -55,9 +55,11 @@ class FakeAutomationService:
         job = _job("job-2")
         job.name = payload["name"]
         job.job_kind = payload.get("job_kind", job.job_kind)
-        job.schedule_preset = payload.get("schedule_preset", job.schedule_preset)
-        job.schedule_timezone = payload.get("schedule_timezone", job.schedule_timezone)
-        if "schedule_metadata" in payload:
+        if payload.get("schedule_preset") is not None:
+            job.schedule_preset = payload["schedule_preset"]
+        if payload.get("schedule_timezone") is not None:
+            job.schedule_timezone = payload["schedule_timezone"]
+        if payload.get("schedule_metadata") is not None:
             job.schedule_metadata = payload["schedule_metadata"]
         self.jobs[job.id] = job
         return job
@@ -94,8 +96,13 @@ class FakeAutomationService:
     def get_status(self):
         return {
             "scheduler_running": True,
-            "job_count": len(self.jobs),
+            "total_jobs_count": len(self.jobs),
+            "active_jobs_count": 1,
+            "paused_jobs_count": 0,
+            "error_jobs_count": 0,
             "run_count": len(self.runs),
+            "failed_runs_count": 0,
+            "last_success_at": "2026-03-24T01:01:00Z",
         }
 
 
@@ -139,6 +146,27 @@ def test_create_automation_job():
     assert service.calls[0][1]["job_kind"] == "reminder"
     assert service.calls[0][1]["schedule_preset"] == "daily"
     assert service.calls[0][0] == "create"
+
+
+def test_create_automation_job_keeps_low_level_schedule_contract():
+    service = FakeAutomationService()
+    with _client(service) as client:
+        response = client.post(
+            "/api/automation/jobs",
+            json={
+                "name": "Low-level interval job",
+                "prompt": "Summarize updates",
+                "schedule_kind": "interval",
+                "schedule_value": "900",
+                "delivery_mode": "local",
+                "delivery_targets": [],
+            },
+        )
+
+    assert response.status_code == 201
+    assert response.json()["job"]["schedule_preset"] == "interval"
+    assert service.calls[0][1]["schedule_kind"] == "interval"
+    assert service.calls[0][1]["schedule_value"] == "900"
 
 
 def test_pause_resume_run_and_delete_actions():
