@@ -11,6 +11,7 @@ from . import (
     runtime_profile,
     skills,
     suggestions,
+    threads,
     tool_policy,
     uploads,
 )
@@ -28,6 +29,7 @@ __all__ = [
     "runtime_profile",
     "skills",
     "suggestions",
+    "threads",
     "tool_policy",
     "uploads",
 ]

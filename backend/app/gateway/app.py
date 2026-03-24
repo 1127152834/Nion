@@ -21,6 +21,7 @@ from app.gateway.routers import (
     runtime_profile,
     skills,
     suggestions,
+    threads,
     tool_policy,
     uploads,
 )
@@ -172,6 +173,10 @@ This gateway provides custom endpoints for models, MCP configuration, skills, an
                 "description": "Generate follow-up question suggestions for conversations",
             },
             {
+                "name": "threads",
+                "description": "Manage desktop-local thread metadata and streaming runtime access",
+            },
+            {
                 "name": "channels",
                 "description": "Manage IM channel integrations (Feishu, Slack, Telegram)",
             },
@@ -233,6 +238,9 @@ This gateway provides custom endpoints for models, MCP configuration, skills, an
 
     # Suggestions API is mounted at /api/threads/{thread_id}/suggestions
     app.include_router(suggestions.router)
+
+    # Desktop thread API is mounted at /api/threads/*
+    app.include_router(threads.router)
 
     # Channels API is mounted at /api/channels
     app.include_router(channels.router)
