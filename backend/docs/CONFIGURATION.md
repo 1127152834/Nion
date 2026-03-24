@@ -161,6 +161,10 @@ tools:
     # api_key: $TAVILY_API_KEY  # Optional
 ```
 
+At runtime, the active tool list is usually loaded through the Config Center /
+SQLite-backed `AppConfig`, with YAML serving as schema documentation, bootstrap,
+and fallback input when needed.
+
 **Built-in Tools**:
 - `web_search` - Search the web (Tavily)
 - `web_fetch` - Fetch web pages (Jina AI)
@@ -186,9 +190,11 @@ surface_policy:
       allowed_groups: [web, file:read, bash]
 ```
 
-This V1 policy composes on top of `tool_groups` and only governs tools declared
-under the `tools:` section. Built-in tools, vision-only tools, tool-search, and
-MCP tools keep their current behavior unless a later catalog unifies them.
+This V1 policy composes on top of `tool_groups` and governs the current
+`AppConfig.tools` payload, which is typically managed through the Config Center
+UI rather than handwritten YAML. Built-in tools, vision-only tools,
+tool-search, and MCP tools keep their current behavior unless a later catalog
+unifies them.
 
 ### Sandbox
 

@@ -11,6 +11,10 @@ class ToolCatalogEntry:
 
 def build_configured_tool_catalog(config) -> dict[str, ToolCatalogEntry]:
     return {
-        tool.name: ToolCatalogEntry(name=tool.name, group=tool.group, source="config")
+        tool.name: ToolCatalogEntry(
+            name=tool.name,
+            group=tool.group,
+            source="app-config",
+        )
         for tool in config.tools
     }

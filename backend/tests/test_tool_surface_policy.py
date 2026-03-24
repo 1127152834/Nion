@@ -20,13 +20,13 @@ def test_channel_surface_drops_bash_from_policy_managed_tools():
         "bash": ToolCatalogEntry(
             name="bash",
             group="bash",
-            source="config",
+            source="app-config",
             policy_managed=True,
         ),
         "web_search": ToolCatalogEntry(
             name="web_search",
             group="web",
-            source="config",
+            source="app-config",
             policy_managed=True,
         ),
     }

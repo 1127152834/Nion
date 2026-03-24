@@ -873,14 +873,14 @@ export const enUS: Translations = {
   toolPolicyPage: {
     title: "Tool Policy",
     description:
-      "Inspect the configured-tool surface policy that shapes workspace, channel, and automation runs in this V1 lane.",
+      "Inspect the surface policy applied to the current AppConfig tool set, which is usually driven by Config Center settings for workspace, channel, and automation runs in this V1 lane.",
     scopeTitle: "Scope",
     scopeLabel: "Active catalog scope:",
     scopeUnknown: "Unavailable",
     outOfScopeNotice:
-      "Built-in tools, vision-only tools, tool-search, and MCP tools are outside this page's governance scope in configured-tools-v1.",
+      "This page reflects the current AppConfig tool catalog. Built-in tools, vision-only tools, tool-search, and MCP tools are outside configured-tools-v1 governance.",
     rulesTitle: "Surface rules",
-    catalogTitle: "Configured tool catalog",
+    catalogTitle: "Current AppConfig tool catalog",
     loading: "Loading tool policy…",
     loadFailed: "Failed to load tool policy.",
     emptyRules: "No surface rules are configured.",
