@@ -601,4 +601,35 @@ export interface Translations {
       emptyDescription: string;
     };
   };
+
+  toolPolicyPage: {
+    title: string;
+    description: string;
+    scopeTitle: string;
+    scopeLabel: string;
+    scopeUnknown: string;
+    outOfScopeNotice: string;
+    rulesTitle: string;
+    catalogTitle: string;
+    loading: string;
+    loadFailed: string;
+    emptyRules: string;
+    emptyCatalog: string;
+    yes: string;
+    no: string;
+    table: {
+      surface: string;
+      allowedGroups: string;
+      deniedGroups: string;
+      allowedTools: string;
+      deniedTools: string;
+      empty: string;
+    };
+    catalogTable: {
+      name: string;
+      group: string;
+      source: string;
+      policyManaged: string;
+    };
+  };
 }

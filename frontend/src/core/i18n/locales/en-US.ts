@@ -869,4 +869,37 @@ export const enUS: Translations = {
       emptyDescription: "Credits and acknowledgements will show here.",
     },
   },
+
+  toolPolicyPage: {
+    title: "Tool Policy",
+    description:
+      "Inspect the configured-tool surface policy that shapes workspace, channel, and automation runs in this V1 lane.",
+    scopeTitle: "Scope",
+    scopeLabel: "Active catalog scope:",
+    scopeUnknown: "Unavailable",
+    outOfScopeNotice:
+      "Built-in tools, vision-only tools, tool-search, and MCP tools are outside this page's governance scope in configured-tools-v1.",
+    rulesTitle: "Surface rules",
+    catalogTitle: "Configured tool catalog",
+    loading: "Loading tool policy…",
+    loadFailed: "Failed to load tool policy.",
+    emptyRules: "No surface rules are configured.",
+    emptyCatalog: "No configured tools are available.",
+    yes: "Yes",
+    no: "No",
+    table: {
+      surface: "Surface",
+      allowedGroups: "Allowed groups",
+      deniedGroups: "Denied groups",
+      allowedTools: "Allowed tools",
+      deniedTools: "Denied tools",
+      empty: "(none)",
+    },
+    catalogTable: {
+      name: "Tool",
+      group: "Group",
+      source: "Source",
+      policyManaged: "Policy managed",
+    },
+  },
 };

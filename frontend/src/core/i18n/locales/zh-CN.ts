@@ -824,4 +824,37 @@ export const zhCN: Translations = {
       emptyDescription: "相关的致谢信息会展示在这里。",
     },
   },
+
+  toolPolicyPage: {
+    title: "工具策略",
+    description:
+      "查看 configured-tools-v1 中对 workspace、channel 和 automation 生效的已配置工具 surface policy。",
+    scopeTitle: "范围",
+    scopeLabel: "当前 catalog 范围：",
+    scopeUnknown: "不可用",
+    outOfScopeNotice:
+      "内建工具、仅视觉工具、tool-search 和 MCP 工具当前不在这个 configured-tools-v1 页面治理范围内。",
+    rulesTitle: "Surface 规则",
+    catalogTitle: "已配置工具目录",
+    loading: "正在加载工具策略…",
+    loadFailed: "加载工具策略失败。",
+    emptyRules: "当前没有配置 surface 规则。",
+    emptyCatalog: "当前没有可展示的已配置工具。",
+    yes: "是",
+    no: "否",
+    table: {
+      surface: "Surface",
+      allowedGroups: "允许的组",
+      deniedGroups: "禁止的组",
+      allowedTools: "允许的工具",
+      deniedTools: "禁止的工具",
+      empty: "（无）",
+    },
+    catalogTable: {
+      name: "工具",
+      group: "分组",
+      source: "来源",
+      policyManaged: "受策略管理",
+    },
+  },
 };

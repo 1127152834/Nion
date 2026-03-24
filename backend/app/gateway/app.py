@@ -20,6 +20,7 @@ from app.gateway.routers import (
     runtime_profile,
     skills,
     suggestions,
+    tool_policy,
     uploads,
 )
 from nion.config.app_config import get_app_config
@@ -146,6 +147,10 @@ This gateway provides custom endpoints for models, MCP configuration, skills, an
                 "description": "Manage scheduled and manual automation jobs and their execution state",
             },
             {
+                "name": "tool-policy",
+                "description": "Inspect configured-tool surface policy and catalog metadata",
+            },
+            {
                 "name": "skills",
                 "description": "Manage skills and their configurations",
             },
@@ -205,6 +210,9 @@ This gateway provides custom endpoints for models, MCP configuration, skills, an
 
     # Automation API is mounted at /api/automation
     app.include_router(automation.router)
+
+    # Tool policy API is mounted at /api/tool-policy
+    app.include_router(tool_policy.router)
 
     # Skills API is mounted at /api/skills
     app.include_router(skills.router)
