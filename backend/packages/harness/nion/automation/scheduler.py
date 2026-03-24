@@ -1,5 +1,6 @@
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
+from zoneinfo import ZoneInfo
 
 from croniter import croniter
 
@@ -26,7 +27,12 @@ def compute_next_run_at(job: AutomationJob, *, now: datetime) -> str | None:
         return format_automation_datetime(now + timedelta(seconds=int(job.schedule_value)))
 
     if job.schedule_kind == "cron":
-        return format_automation_datetime(croniter(job.schedule_value, now).get_next(datetime))
+        local_timezone = ZoneInfo(job.schedule_timezone or "UTC")
+        local_now = now.astimezone(local_timezone)
+        next_local = croniter(job.schedule_value, local_now).get_next(datetime)
+        if next_local.tzinfo is None:
+            next_local = next_local.replace(tzinfo=local_timezone)
+        return format_automation_datetime(next_local.astimezone(UTC))
 
     raise ValueError(f"Unsupported schedule kind: {job.schedule_kind}")
 

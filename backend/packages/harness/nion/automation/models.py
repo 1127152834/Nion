@@ -3,6 +3,8 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field
 
 AutomationScheduleKind = Literal["once", "interval", "cron"]
+AutomationSchedulePreset = Literal["once", "daily", "weekdays", "weekly", "interval", "cron"]
+AutomationJobKind = Literal["reminder", "scheduled_task"]
 AutomationJobState = Literal["scheduled", "paused", "running", "error"]
 AutomationDeliveryMode = Literal["local", "thread", "channel", "multi"]
 AutomationRunStatus = Literal["running", "succeeded", "failed", "skipped"]
@@ -12,8 +14,12 @@ class AutomationJob(BaseModel):
     id: str
     name: str
     prompt: str
+    job_kind: AutomationJobKind = "scheduled_task"
     schedule_kind: AutomationScheduleKind
     schedule_value: str
+    schedule_preset: AutomationSchedulePreset = "interval"
+    schedule_timezone: str = "UTC"
+    schedule_metadata: dict[str, Any] = Field(default_factory=dict)
     enabled: bool = True
     state: AutomationJobState = "scheduled"
     delivery_mode: AutomationDeliveryMode = "local"

@@ -14,6 +14,8 @@ def _job(
     *,
     schedule_kind: str = "interval",
     schedule_value: str = "900",
+    schedule_preset: str = "interval",
+    schedule_timezone: str = "UTC",
     state: str = "scheduled",
     enabled: bool = True,
     next_run_at: str | None = "2026-03-24T01:00:00Z",
@@ -22,8 +24,12 @@ def _job(
         id=job_id,
         name=f"Job {job_id}",
         prompt="Summarize updates",
+        job_kind="scheduled_task",
         schedule_kind=schedule_kind,
         schedule_value=schedule_value,
+        schedule_preset=schedule_preset,
+        schedule_timezone=schedule_timezone,
+        schedule_metadata={},
         enabled=enabled,
         state=state,
         delivery_mode="local",
@@ -109,3 +115,26 @@ def test_mark_run_finished_updates_interval_job_schedule(tmp_path):
     assert updated.last_status == "succeeded"
     assert updated.last_result_summary == "Delivered update"
     assert updated.next_run_at == "2026-03-24T01:32:00Z"
+
+
+def test_resume_job_uses_schedule_timezone_for_cron_jobs(tmp_path):
+    repo = AutomationRepository(tmp_path / "automation.db")
+    repo.save_job(
+        _job(
+            "job-1",
+            schedule_kind="cron",
+            schedule_value="30 9 * * *",
+            schedule_preset="daily",
+            schedule_timezone="Asia/Shanghai",
+            state="paused",
+            enabled=False,
+            next_run_at=None,
+        )
+    )
+    scheduler = AutomationScheduler(repo, lock_timeout_seconds=300)
+
+    resumed = scheduler.resume_job("job-1", now=_dt("2026-03-24T01:07:00Z"))
+
+    assert resumed.state == "scheduled"
+    assert resumed.enabled is True
+    assert resumed.next_run_at == "2026-03-24T01:30:00Z"

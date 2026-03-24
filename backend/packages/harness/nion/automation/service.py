@@ -8,6 +8,7 @@ from nion.automation.executor import AutomationExecutor, LangGraphAutomationRunn
 from nion.automation.models import AutomationJob, AutomationRun
 from nion.automation.policies import build_automation_session_policy
 from nion.automation.repository import AutomationRepository
+from nion.automation.schedule_presets import build_schedule_fields, infer_schedule_preset
 from nion.automation.scheduler import AutomationScheduler, compute_next_run_at, format_automation_datetime
 from nion.config.app_config import get_app_config
 from nion.config.automation_config import get_automation_config
@@ -34,15 +35,41 @@ class AutomationService:
     def create_job(self, payload: Mapping[str, Any]) -> AutomationJob:
         now = self._clock()
         enabled = bool(payload.get("enabled", True))
-        schedule_kind = payload["schedule_kind"]
-        schedule_value = payload["schedule_value"]
+        schedule_timezone = str(payload.get("schedule_timezone") or "UTC")
+        schedule_preset = str(
+            payload.get("schedule_preset") or infer_schedule_preset(payload.get("schedule_kind"))
+        )
+        schedule_metadata = self._coerce_schedule_metadata(payload.get("schedule_metadata"))
+        schedule_kind = payload.get("schedule_kind")
+        schedule_value = payload.get("schedule_value")
+
+        if schedule_kind is None or schedule_value is None:
+            schedule_fields = build_schedule_fields(
+                preset=schedule_preset,
+                timezone=schedule_timezone,
+                time_of_day=_maybe_str(schedule_metadata.get("time_of_day")),
+                interval_minutes=_maybe_int(schedule_metadata.get("interval_minutes")),
+                weekdays=_maybe_int_list(schedule_metadata.get("weekdays")),
+                day_of_week=_maybe_int(schedule_metadata.get("day_of_week")),
+                run_at=_maybe_str(schedule_metadata.get("run_at")),
+                cron_expression=_maybe_str(schedule_metadata.get("cron_expression")),
+            )
+            schedule_kind = schedule_fields.schedule_kind
+            schedule_value = schedule_fields.schedule_value
+            schedule_timezone = schedule_fields.schedule_timezone
+            if not schedule_metadata:
+                schedule_metadata = schedule_fields.schedule_metadata
 
         draft = AutomationJob(
             id=str(payload.get("id") or f"job-{uuid4().hex[:8]}"),
             name=str(payload["name"]),
             prompt=str(payload["prompt"]),
+            job_kind=str(payload.get("job_kind") or "scheduled_task"),
             schedule_kind=schedule_kind,
             schedule_value=str(schedule_value),
+            schedule_preset=schedule_preset,
+            schedule_timezone=schedule_timezone,
+            schedule_metadata=schedule_metadata,
             enabled=enabled,
             state=str(payload.get("state") or ("scheduled" if enabled else "paused")),
             delivery_mode=payload.get("delivery_mode") or "local",
@@ -119,6 +146,12 @@ class AutomationService:
             },
         }
 
+    @staticmethod
+    def _coerce_schedule_metadata(raw_metadata: Any) -> dict[str, Any]:
+        if isinstance(raw_metadata, Mapping):
+            return dict(raw_metadata)
+        return {}
+
 
 def create_default_automation_service(
     *,
@@ -150,3 +183,21 @@ def _resolve_langgraph_url_from_config() -> str:
         if isinstance(langgraph_url, str) and langgraph_url.strip():
             return langgraph_url
     return "http://localhost:2024"
+
+
+def _maybe_str(value: Any) -> str | None:
+    if value is None:
+        return None
+    return str(value)
+
+
+def _maybe_int(value: Any) -> int | None:
+    if value is None:
+        return None
+    return int(value)
+
+
+def _maybe_int_list(value: Any) -> list[int] | None:
+    if value is None:
+        return None
+    return [int(item) for item in value]
