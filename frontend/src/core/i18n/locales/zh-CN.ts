@@ -311,6 +311,7 @@ export const zhCN: Translations = {
       memory: "记忆",
       automation: "自动化",
       tools: "工具",
+      search: "搜索",
       mcpServers: "MCP 服务器",
       skills: "技能",
       sandbox: "沙箱",
@@ -388,6 +389,10 @@ export const zhCN: Translations = {
     tools: {
       title: "工具",
       description: "管理内置工具组和运行时可见的工具预设。",
+    },
+    search: {
+      title: "搜索",
+      description: "仅暴露当前 web 运行时已经真实接通的搜索与抓取 provider 配置。",
     },
     mcpServers: {
       title: "MCP 服务器",

@@ -325,6 +325,7 @@ export const enUS: Translations = {
       memory: "Memory",
       automation: "Automation",
       tools: "Tools",
+      search: "Search",
       mcpServers: "MCP servers",
       skills: "Skills",
       sandbox: "Sandbox",
@@ -405,6 +406,11 @@ export const enUS: Translations = {
     tools: {
       title: "Tools",
       description: "Manage built-in tool groups and runtime-visible tool presets.",
+    },
+    search: {
+      title: "Search",
+      description:
+        "Configure only the search and fetch providers that are actually wired into the current web runtime.",
     },
     mcpServers: {
       title: "MCP servers",

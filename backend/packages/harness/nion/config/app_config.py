@@ -38,7 +38,13 @@ from nion.config.summarization_config import (
 )
 from nion.config.surface_policy_config import SurfacePolicyConfig
 from nion.config.title_config import TitleConfig, load_title_config_from_dict
-from nion.config.tool_config import ToolConfig, ToolGroupConfig
+from nion.config.tool_config import (
+    SearchCapability,
+    ToolConfig,
+    ToolGroupConfig,
+    list_search_provider_definitions,
+    resolve_search_provider_definition,
+)
 from nion.config.tool_search_config import ToolSearchConfig, load_tool_search_config_from_dict
 
 load_dotenv()
@@ -319,6 +325,54 @@ class AppConfig(BaseModel):
             The tool group config if found, otherwise None.
         """
         return next((group for group in self.tool_groups if group.name == name), None)
+
+    def list_supported_search_providers(
+        self,
+        capability: SearchCapability,
+    ) -> list[dict[str, Any]]:
+        return [
+            definition.model_dump()
+            for definition in list_search_provider_definitions(capability)
+        ]
+
+    def get_search_tool_state(
+        self,
+        capability: SearchCapability,
+    ) -> dict[str, Any]:
+        tool = self.get_tool_config(capability)
+        if tool is None:
+            return {
+                "capability": capability,
+                "enabled": False,
+                "supported": False,
+                "provider_id": None,
+                "provider_title": None,
+                "use": None,
+                "config": {},
+                "available_providers": self.list_supported_search_providers(capability),
+            }
+
+        provider = resolve_search_provider_definition(capability, tool.use)
+        tool_extra = dict(tool.model_extra or {})
+        if provider is None:
+            config = tool_extra
+        else:
+            config = {
+                field_name: tool_extra[field_name]
+                for field_name in provider.config_fields
+                if field_name in tool_extra
+            }
+
+        return {
+            "capability": capability,
+            "enabled": True,
+            "supported": provider is not None,
+            "provider_id": provider.id if provider is not None else None,
+            "provider_title": provider.title if provider is not None else None,
+            "use": tool.use,
+            "config": config,
+            "available_providers": self.list_supported_search_providers(capability),
+        }
 
 
 _app_config: AppConfig | None = None

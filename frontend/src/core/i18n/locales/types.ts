@@ -258,6 +258,7 @@ export interface Translations {
       memory: string;
       automation: string;
       tools: string;
+      search: string;
       mcpServers: string;
       skills: string;
       sandbox: string;
@@ -331,6 +332,10 @@ export interface Translations {
       description: string;
     };
     tools: {
+      title: string;
+      description: string;
+    };
+    search: {
       title: string;
       description: string;
     };

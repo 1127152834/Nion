@@ -7,6 +7,7 @@ import {
   Clock3Icon,
   PaletteIcon,
   PlugIcon,
+  SearchIcon,
   SparklesIcon,
   ShieldIcon,
   WrenchIcon,
@@ -29,6 +30,7 @@ import { MemorySettingsPage } from "@/components/workspace/settings/memory-setti
 import { ModelSettingsPage } from "@/components/workspace/settings/model-settings-page";
 import { NotificationSettingsPage } from "@/components/workspace/settings/notification-settings-page";
 import { SandboxSettingsPage } from "@/components/workspace/settings/sandbox-settings-page";
+import { SearchSettingsPage } from "@/components/workspace/settings/search-settings-page";
 import { SessionPolicySettingsPage } from "@/components/workspace/settings/session-policy-settings-page";
 import { SkillSettingsPage } from "@/components/workspace/settings/skill-settings-page";
 import { ToolSettingsPage } from "@/components/workspace/settings/tool-settings-page";
@@ -123,6 +125,11 @@ export function SettingsDialog(props: SettingsDialogProps) {
           label: t.settings.sections.tools,
           icon: WrenchIcon,
         },
+        search: {
+          id: "search",
+          label: t.settings.sections.search,
+          icon: SearchIcon,
+        },
         mcpServers: {
           id: "mcpServers",
           label: t.settings.sections.mcpServers,
@@ -164,7 +171,7 @@ export function SettingsDialog(props: SettingsDialogProps) {
         {
           id: "capabilities",
           title: t.settings.navGroups.capabilities,
-          items: [items.automation, items.tools, items.mcpServers, items.channels, items.skills],
+          items: [items.automation, items.tools, items.search, items.mcpServers, items.channels, items.skills],
         },
         {
           id: "system",
@@ -181,6 +188,7 @@ export function SettingsDialog(props: SettingsDialogProps) {
       t.settings.sections.memory,
       t.settings.sections.automation,
       t.settings.sections.tools,
+      t.settings.sections.search,
       t.settings.sections.mcpServers,
       t.settings.sections.skills,
       t.settings.sections.sandbox,
@@ -267,6 +275,7 @@ export function SettingsDialog(props: SettingsDialogProps) {
                 {activeSection === "memory" && <MemorySettingsPage />}
                 {activeSection === "automation" && <AutomationSettingsPage />}
                 {activeSection === "tools" && <ToolSettingsPage />}
+                {activeSection === "search" && <SearchSettingsPage />}
                 {activeSection === "mcpServers" && <MCPServersPage />}
                 {activeSection === "channels" && <ChannelSettingsPage />}
                 {activeSection === "skills" && (
