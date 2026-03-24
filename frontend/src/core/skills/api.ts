@@ -24,6 +24,32 @@ export async function enableSkill(skillName: string, enabled: boolean) {
   return response.json();
 }
 
+export interface DeleteSkillResponse {
+  success: boolean;
+  skill_name: string;
+  message: string;
+}
+
+export async function deleteSkill(
+  skillName: string,
+): Promise<DeleteSkillResponse> {
+  const response = await fetch(
+    `${getBackendBaseURL()}/api/skills/${skillName}`,
+    {
+      method: "DELETE",
+    },
+  );
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    const errorMessage =
+      errorData.detail ?? `HTTP ${response.status}: ${response.statusText}`;
+    throw new Error(errorMessage);
+  }
+
+  return response.json();
+}
+
 export interface InstallSkillRequest {
   thread_id: string;
   path: string;

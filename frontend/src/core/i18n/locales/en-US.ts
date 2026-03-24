@@ -403,6 +403,30 @@ export const enUS: Translations = {
         "Put your agent skill folders under the `/skills/custom` folder under the root folder of Nion.",
       emptyButton: "Create Your First Skill",
     },
+    skillImportDialog: {
+      title: "Import skill",
+      description:
+        "Install a .skill artifact by providing its source thread ID and virtual artifact path.",
+      threadId: "Thread ID",
+      threadIdPlaceholder: "thread-id",
+      path: "Artifact path",
+      pathPlaceholder: "/mnt/user-data/outputs/my-skill.skill",
+      install: "Install",
+      installing: "Installing...",
+      close: "Close",
+      success: 'Skill "{name}" installed',
+    },
+    skillPage: {
+      createViaChat: "Create via chat",
+      importFromAgents: "Import from agents",
+      skillDeleted: "Skill deleted",
+      deleteFailed: "Failed to delete skill",
+      deleteConfirmTitle: "Delete skill",
+      deleteConfirmDescription:
+        'Delete skill "{name}"? This action cannot be undone.',
+      cancelAction: "Cancel",
+      confirmDeleteAction: "Delete",
+    },
     notification: {
       title: "Notification",
       description:

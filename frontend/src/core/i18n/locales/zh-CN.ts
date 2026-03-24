@@ -386,6 +386,28 @@ export const zhCN: Translations = {
         "将你的 Agent Skill 文件夹放在 Nion 根目录下的 `/skills/custom` 文件夹中。",
       emptyButton: "创建你的第一个技能",
     },
+    skillImportDialog: {
+      title: "导入技能",
+      description: "通过来源线程 ID 和产物路径安装一个 .skill 产物。",
+      threadId: "线程 ID",
+      threadIdPlaceholder: "thread-id",
+      path: "产物路径",
+      pathPlaceholder: "/mnt/user-data/outputs/my-skill.skill",
+      install: "安装",
+      installing: "安装中...",
+      close: "关闭",
+      success: '技能 "{name}" 已安装',
+    },
+    skillPage: {
+      createViaChat: "通过对话创建",
+      importFromAgents: "从智能体产物导入",
+      skillDeleted: "技能已删除",
+      deleteFailed: "删除技能失败",
+      deleteConfirmTitle: "删除技能",
+      deleteConfirmDescription: '删除技能 "{name}"？此操作不可撤销。',
+      cancelAction: "取消",
+      confirmDeleteAction: "删除",
+    },
     notification: {
       title: "通知",
       description:

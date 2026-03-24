@@ -126,6 +126,14 @@ class SkillInstallResponse(BaseModel):
     message: str = Field(..., description="Installation result message")
 
 
+class SkillDeleteResponse(BaseModel):
+    """Response model for deleting a custom skill."""
+
+    success: bool = Field(..., description="Whether deletion succeeded")
+    skill_name: str = Field(..., description="Deleted skill name")
+    message: str = Field(..., description="Deletion result message")
+
+
 def _should_ignore_archive_entry(path: Path) -> bool:
     return path.name.startswith(".") or path.name == "__MACOSX"
 
@@ -436,3 +444,55 @@ async def install_skill(request: SkillInstallRequest) -> SkillInstallResponse:
     except Exception as e:
         logger.error(f"Failed to install skill: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Failed to install skill: {str(e)}")
+
+
+@router.delete(
+    "/skills/{skill_name}",
+    response_model=SkillDeleteResponse,
+    summary="Delete Skill",
+    description="Delete a custom skill and remove its persisted enabled-state override.",
+)
+async def delete_skill(skill_name: str) -> SkillDeleteResponse:
+    try:
+        skills = load_skills(enabled_only=False)
+        skill = next((s for s in skills if s.name == skill_name), None)
+        if skill is None:
+            raise HTTPException(status_code=404, detail=f"Skill '{skill_name}' not found")
+        if skill.category != "custom":
+            raise HTTPException(status_code=400, detail="Only custom skills can be deleted")
+
+        target_dir = skill.skill_dir
+        if not target_dir.exists():
+            raise HTTPException(status_code=404, detail=f"Skill directory not found for '{skill_name}'")
+
+        shutil.rmtree(target_dir)
+
+        config_path = ExtensionsConfig.resolve_config_path()
+        if config_path is not None:
+            extensions_config = get_extensions_config()
+            extensions_config.skills.pop(skill_name, None)
+            config_data = {
+                "mcpServers": {
+                    name: server.model_dump()
+                    for name, server in extensions_config.mcp_servers.items()
+                },
+                "skills": {
+                    name: {"enabled": skill_config.enabled}
+                    for name, skill_config in extensions_config.skills.items()
+                },
+            }
+            with open(config_path, "w", encoding="utf-8") as f:
+                json.dump(config_data, f, indent=2)
+            reload_extensions_config()
+
+        logger.info("Skill '%s' deleted successfully", skill_name)
+        return SkillDeleteResponse(
+            success=True,
+            skill_name=skill_name,
+            message=f"Skill '{skill_name}' deleted successfully",
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to delete skill {skill_name}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to delete skill: {str(e)}")

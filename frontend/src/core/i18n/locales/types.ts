@@ -330,6 +330,28 @@ export interface Translations {
       emptyDescription: string;
       emptyButton: string;
     };
+    skillImportDialog: {
+      title: string;
+      description: string;
+      threadId: string;
+      threadIdPlaceholder: string;
+      path: string;
+      pathPlaceholder: string;
+      install: string;
+      installing: string;
+      close: string;
+      success: string;
+    };
+    skillPage: {
+      createViaChat: string;
+      importFromAgents: string;
+      skillDeleted: string;
+      deleteFailed: string;
+      deleteConfirmTitle: string;
+      deleteConfirmDescription: string;
+      cancelAction: string;
+      confirmDeleteAction: string;
+    };
     notification: {
       title: string;
       description: string;

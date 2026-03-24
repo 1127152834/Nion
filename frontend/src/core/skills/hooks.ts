@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { enableSkill } from "./api";
+import { deleteSkill, enableSkill, installSkill } from "./api";
 
 import { loadSkills } from ".";
 
@@ -24,6 +24,27 @@ export function useEnableSkill() {
     }) => {
       await enableSkill(skillName, enabled);
     },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["skills"] });
+    },
+  });
+}
+
+export function useDeleteSkill() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ skillName }: { skillName: string }) =>
+      deleteSkill(skillName),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["skills"] });
+    },
+  });
+}
+
+export function useInstallSkillFromArtifact() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: installSkill,
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["skills"] });
     },
