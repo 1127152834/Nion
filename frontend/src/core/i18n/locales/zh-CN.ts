@@ -206,6 +206,7 @@ export const zhCN: Translations = {
     reportIssue: "报告问题",
     contactUs: "联系我们",
     about: "关于 Nion",
+    manageChannels: "通道运营面板",
     singleWorkspaceLabel: "工作区",
     singleWorkspacePath: "~/.nion-data/workspace",
     singleWorkspaceHint:
@@ -221,6 +222,42 @@ export const zhCN: Translations = {
       locked: "当前运行时配置已锁定。",
       lockedTip: "线程一旦绑定主机目录，就不能改绑到其他目录。",
       modeSaveFailed: "保存运行时模式失败。",
+    },
+  },
+
+  channelOps: {
+    title: "通道运营面板",
+    description: "查看各通道的运行状态、能力标记、审批计数与重启动作。",
+    loading: "正在加载通道运营数据…",
+    errorState: "无法加载通道运营数据。",
+    serviceDown: "当前通道服务未运行，请先启动网关运行时后再查看运营状态。",
+    summary: {
+      service: "服务状态",
+      running: "运行中",
+      down: "未运行",
+      pending: "待审批请求",
+      channels: "通道数",
+    },
+    badges: {
+      enabled: "已启用",
+      disabled: "未启用",
+      running: "运行中",
+      stopped: "已停止",
+    },
+    capabilities: {
+      streaming: "支持流式响应",
+      nonStreaming: "最终响应模式",
+    },
+    fields: {
+      lastHeartbeat: "最近心跳",
+      lastError: "最近错误",
+      authorizedUsers: "已授权用户",
+      pendingRequests: "待处理请求",
+      none: "无",
+    },
+    restart: {
+      action: "重启通道",
+      inProgress: "正在重启…",
     },
   },
 

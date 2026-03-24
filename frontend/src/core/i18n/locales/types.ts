@@ -155,6 +155,7 @@ export interface Translations {
     reportIssue: string;
     contactUs: string;
     about: string;
+    manageChannels: string;
     singleWorkspaceLabel: string;
     singleWorkspacePath: string;
     singleWorkspaceHint: string;
@@ -167,6 +168,42 @@ export interface Translations {
       locked: string;
       lockedTip: string;
       modeSaveFailed: string;
+    };
+  };
+
+  channelOps: {
+    title: string;
+    description: string;
+    loading: string;
+    errorState: string;
+    serviceDown: string;
+    summary: {
+      service: string;
+      running: string;
+      down: string;
+      pending: string;
+      channels: string;
+    };
+    badges: {
+      enabled: string;
+      disabled: string;
+      running: string;
+      stopped: string;
+    };
+    capabilities: {
+      streaming: string;
+      nonStreaming: string;
+    };
+    fields: {
+      lastHeartbeat: string;
+      lastError: string;
+      authorizedUsers: string;
+      pendingRequests: string;
+      none: string;
+    };
+    restart: {
+      action: string;
+      inProgress: string;
     };
   };
 

@@ -217,6 +217,7 @@ export const enUS: Translations = {
     reportIssue: "Report a issue",
     contactUs: "Contact us",
     about: "About Nion",
+    manageChannels: "Manage channels",
     singleWorkspaceLabel: "Workspace",
     singleWorkspacePath: "~/.nion-data/workspace",
     singleWorkspaceHint:
@@ -232,6 +233,44 @@ export const enUS: Translations = {
       locked: "This runtime profile is locked.",
       lockedTip: "Once a host directory is bound, the profile cannot be rebound for this thread.",
       modeSaveFailed: "Failed to save runtime mode.",
+    },
+  },
+
+  channelOps: {
+    title: "Channel operations",
+    description:
+      "Inspect runtime health, capability flags, approvals, and restart actions for each channel.",
+    loading: "Loading channel operations…",
+    errorState: "Channel operations could not be loaded.",
+    serviceDown:
+      "Channel service is currently down. Start the gateway runtime to inspect operator status.",
+    summary: {
+      service: "Service",
+      running: "Running",
+      down: "Down",
+      pending: "Pending approvals",
+      channels: "Channels",
+    },
+    badges: {
+      enabled: "Enabled",
+      disabled: "Disabled",
+      running: "Running",
+      stopped: "Stopped",
+    },
+    capabilities: {
+      streaming: "Streaming responses enabled",
+      nonStreaming: "Final-response mode",
+    },
+    fields: {
+      lastHeartbeat: "Last heartbeat",
+      lastError: "Last error",
+      authorizedUsers: "Authorized users",
+      pendingRequests: "Pending requests",
+      none: "None",
+    },
+    restart: {
+      action: "Restart channel",
+      inProgress: "Restarting…",
     },
   },
 

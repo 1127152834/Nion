@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  ActivityIcon,
   KeyboardIcon,
   MessageSquarePlusIcon,
   SettingsIcon,
@@ -51,6 +52,11 @@ export function CommandPalette() {
     setShortcutsOpen(true);
   }, []);
 
+  const handleOpenChannelOps = useCallback(() => {
+    router.push("/workspace/manage/channels");
+    setOpen(false);
+  }, [router]);
+
   const shortcuts = useMemo(
     () => [
       { key: "k", meta: true, action: () => setOpen((o) => !o) },
@@ -86,6 +92,10 @@ export function CommandPalette() {
               {t.common.settings}
               <CommandShortcut>{metaKey},</CommandShortcut>
             </CommandItem>
+            <CommandItem onSelect={handleOpenChannelOps}>
+              <ActivityIcon className="mr-2 h-4 w-4" />
+              {t.workspace.manageChannels}
+            </CommandItem>
             <CommandItem onSelect={handleShowShortcuts}>
               <KeyboardIcon className="mr-2 h-4 w-4" />
               {t.shortcuts.keyboardShortcuts}
@@ -109,6 +119,7 @@ export function CommandPalette() {
               { keys: `${metaKey}${shiftKey}N`, label: t.sidebar.newChat },
               { keys: `${metaKey}B`, label: t.shortcuts.toggleSidebar },
               { keys: `${metaKey},`, label: t.common.settings },
+              { keys: "Palette", label: t.workspace.manageChannels },
               {
                 keys: `${metaKey}/`,
                 label: t.shortcuts.keyboardShortcuts,
