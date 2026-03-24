@@ -4,9 +4,9 @@ from langchain.tools import BaseTool
 
 from nion.config import get_app_config
 from nion.reflection import resolve_variable
-from nion.tools.catalog import ToolCatalogEntry, build_configured_tool_catalog
 from nion.tools.builtins import ask_clarification_tool, present_file_tool, task_tool, view_image_tool
 from nion.tools.builtins.tool_search import reset_deferred_registry
+from nion.tools.catalog import ToolCatalogEntry, build_configured_tool_catalog
 
 logger = logging.getLogger(__name__)
 
