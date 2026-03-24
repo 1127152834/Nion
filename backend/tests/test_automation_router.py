@@ -196,6 +196,23 @@ def test_list_runs_and_status():
     assert status_response.json()["scheduler_running"] is True
 
 
+def test_status_response_uses_product_facing_metrics():
+    service = FakeAutomationService()
+    with _client(service) as client:
+        status_response = client.get("/api/automation/status")
+
+    payload = status_response.json()
+
+    assert status_response.status_code == 200
+    assert "future_hooks" not in payload
+    assert payload["total_jobs_count"] == 1
+    assert payload["active_jobs_count"] == 1
+    assert payload["paused_jobs_count"] == 0
+    assert payload["error_jobs_count"] == 0
+    assert payload["failed_runs_count"] == 0
+    assert payload["last_success_at"] == "2026-03-24T01:01:00Z"
+
+
 def test_create_automation_job_rejects_invalid_schedule_kind():
     service = FakeAutomationService()
     with _client(service) as client:
