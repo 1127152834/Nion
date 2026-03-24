@@ -11,8 +11,8 @@ from dotenv import load_dotenv
 from pydantic import BaseModel, ConfigDict, Field
 
 from nion.config.automation_config import AutomationConfig, load_automation_config_from_dict
-from nion.config.checkpointer_config import CheckpointerConfig, load_checkpointer_config_from_dict
 from nion.config.channels_config import ChannelsAppConfig, load_channels_config_from_dict
+from nion.config.checkpointer_config import CheckpointerConfig, load_checkpointer_config_from_dict
 from nion.config.config_store import (
     DEFAULT_CHECKPOINTER_CONFIG,
     ConfigStoreNotInitializedError,
