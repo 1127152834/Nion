@@ -1,6 +1,10 @@
 import { getBackendBaseURL } from "@/core/config";
 
-import type { CLIConfig, CLIStateConfig } from "./types";
+import type {
+  CLIConfig,
+  CLIStateConfig,
+  CLIStateConfigUpdatePayload,
+} from "./types";
 
 export async function loadCLIConfig(): Promise<CLIConfig> {
   const response = await fetch(`${getBackendBaseURL()}/api/cli/catalog`);
@@ -13,3 +17,20 @@ export async function loadCLIConfig(): Promise<CLIConfig> {
   };
 }
 
+export async function updateCLIConfigItem(
+  cliId: string,
+  payload: CLIStateConfigUpdatePayload,
+): Promise<CLIStateConfig> {
+  const response = await fetch(
+    `${getBackendBaseURL()}/api/cli/catalog/${encodeURIComponent(cliId)}`,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    },
+  );
+  if (!response.ok) {
+    throw new Error(`Failed to update CLI catalog item (${response.status})`);
+  }
+  return (await response.json()) as CLIStateConfig;
+}

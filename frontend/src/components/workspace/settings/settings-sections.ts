@@ -6,6 +6,7 @@ export const SETTINGS_SECTIONS = [
   "memory",
   "tools",
   "search",
+  "cliTools",
   "mcpServers",
   "skills",
   "sandbox",

@@ -327,6 +327,7 @@ export const enUS: Translations = {
       automation: "Automation",
       tools: "Tools",
       search: "Search",
+      cliTools: "CLI Tools",
       mcpServers: "MCP servers",
       skills: "Skills",
       sandbox: "Sandbox",
@@ -412,6 +413,11 @@ export const enUS: Translations = {
       title: "Search",
       description:
         "Configure only the search and fetch providers that are actually wired into the current web runtime.",
+    },
+    cliTools: {
+      title: "CLI Tools",
+      description:
+        "Manage the runtime-visible CLI catalog that powers the composer CLI lane.",
     },
     mcpServers: {
       title: "MCP servers",

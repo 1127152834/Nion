@@ -313,6 +313,7 @@ export const zhCN: Translations = {
       automation: "自动化",
       tools: "工具",
       search: "搜索",
+      cliTools: "CLI 工具",
       mcpServers: "MCP 服务器",
       skills: "技能",
       sandbox: "沙箱",
@@ -394,6 +395,10 @@ export const zhCN: Translations = {
     search: {
       title: "搜索",
       description: "仅暴露当前 web 运行时已经真实接通的搜索与抓取 provider 配置。",
+    },
+    cliTools: {
+      title: "CLI 工具",
+      description: "管理驱动聊天页 CLI lane 的运行时可见 CLI 目录。",
     },
     mcpServers: {
       title: "MCP 服务器",

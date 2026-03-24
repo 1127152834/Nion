@@ -260,6 +260,7 @@ export interface Translations {
       automation: string;
       tools: string;
       search: string;
+      cliTools: string;
       mcpServers: string;
       skills: string;
       sandbox: string;
@@ -337,6 +338,10 @@ export interface Translations {
       description: string;
     };
     search: {
+      title: string;
+      description: string;
+    };
+    cliTools: {
       title: string;
       description: string;
     };
