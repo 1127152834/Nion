@@ -12,12 +12,4 @@ export function registerPreloadBridge(): void {
   });
 }
 
-declare global {
-  interface Window {
-    nionDesktop: {
-      getRuntimeInfo: () => Promise<unknown>;
-      checkForUpdates: () => Promise<unknown>;
-      quitAndInstallUpdate: () => Promise<unknown>;
-    };
-  }
-}
+registerPreloadBridge();

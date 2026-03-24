@@ -44,6 +44,7 @@ log/
 
 # pnpm
 .pnpm-store
+node_modules/
 sandbox_image_cache.tar
 
 # ignore the legacy `web` folder
@@ -52,3 +53,4 @@ web/
 # Deployment artifacts
 backend/Dockerfile.langgraph
 config.yaml.bak
+desktop/dist/

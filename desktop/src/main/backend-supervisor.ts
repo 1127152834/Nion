@@ -1,4 +1,4 @@
-import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
+import { spawn, type ChildProcess } from "node:child_process";
 import { setTimeout as delay } from "node:timers/promises";
 
 import { resolveDesktopEnvironment, type SupportedDesktopPlatform } from "./config.js";
@@ -77,7 +77,7 @@ export async function waitForBackendHealthy(
 
 export class BackendSupervisor {
   private readonly command: BackendCommand;
-  private child: ChildProcessWithoutNullStreams | null = null;
+  private child: ChildProcess | null = null;
 
   constructor(command: BackendCommand) {
     this.command = command;
@@ -91,10 +91,27 @@ export class BackendSupervisor {
     this.child = spawn(this.command.executable, this.command.args, {
       cwd: this.command.cwd,
       env: this.command.env,
-      stdio: "pipe",
+      stdio: "ignore",
     });
 
-    await waitForBackendHealthy(this.command.urls.health);
+    const child = this.child;
+    const startupFailure = new Promise<never>((_, reject) => {
+      child.once("error", (error) => {
+        reject(error);
+      });
+      child.once("exit", (code, signal) => {
+        reject(
+          new Error(
+            `Backend helper exited before becoming healthy (code=${code ?? "null"}, signal=${signal ?? "null"})`,
+          ),
+        );
+      });
+    });
+
+    await Promise.race([
+      waitForBackendHealthy(this.command.urls.health),
+      startupFailure,
+    ]);
     return this.getRuntimeInfo();
   }
 

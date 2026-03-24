@@ -1,27 +1,50 @@
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+import { app, ipcMain } from "electron";
+
 import { createBackendSupervisor } from "./backend-supervisor.js";
-import { getMainWindowOptions } from "./window.js";
-import { bootstrapDesktopProtocol } from "./protocol.js";
-import { initializeUpdater } from "./updater.js";
+import { resolveDesktopEnvironment } from "./config.js";
+import { registerDesktopProtocol } from "./protocol.js";
+import { createDesktopUpdater, registerUpdaterHandlers } from "./updater.js";
+import { createMainWindow } from "./window.js";
 
-export function startDesktopMain(resourcesPath = process.cwd()): void {
-  const protocol = bootstrapDesktopProtocol();
-  const supervisor = createBackendSupervisor({
-    resourcesPath,
-    platform: process.platform as "darwin" | "win32" | "linux"
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+export async function startDesktopMain(): Promise<void> {
+  await app.whenReady();
+
+  const environment = resolveDesktopEnvironment({
+    resourcesPath: process.resourcesPath,
+    userDataPath: app.getPath("userData"),
+    platform: process.platform,
   });
-  const windowOptions = getMainWindowOptions("desktop-preload");
-  const updater = initializeUpdater();
 
-  console.log(
-    JSON.stringify({
-      protocol,
-      supervisor,
-      windowOptions,
-      updater
-    }),
-  );
+  await registerDesktopProtocol();
+
+  const supervisor = createBackendSupervisor({
+    resourcesPath: environment.resourcesPath,
+    userDataPath: environment.userDataPath,
+    platform: environment.platform,
+  });
+
+  await supervisor.start();
+
+  const updater = createDesktopUpdater();
+  registerUpdaterHandlers(ipcMain, updater, () => supervisor.getRuntimeInfo());
+
+  const preloadPath = path.join(__dirname, "..", "preload", "index.js");
+  await createMainWindow({
+    preloadPath,
+    rendererUrl: "nion://app/index.html",
+  });
+
+  app.on("before-quit", () => {
+    void supervisor.stop();
+  });
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  startDesktopMain();
+  void startDesktopMain();
 }
