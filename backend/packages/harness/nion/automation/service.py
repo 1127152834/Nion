@@ -1,18 +1,25 @@
 from collections.abc import Callable, Mapping
 from datetime import UTC, datetime
+import os
 from typing import Any
 from uuid import uuid4
 
 from nion.automation.delivery import AutomationDeliveryService
-from nion.automation.executor import AutomationExecutor, LangGraphAutomationRunner
+from nion.automation.executor import (
+    AutomationExecutor,
+    EmbeddedAutomationRunner,
+    LangGraphAutomationRunner,
+)
 from nion.automation.models import AutomationJob, AutomationRun
 from nion.automation.policies import build_automation_session_policy
 from nion.automation.repository import AutomationRepository
 from nion.automation.schedule_presets import build_schedule_fields, infer_schedule_preset
 from nion.automation.scheduler import AutomationScheduler, compute_next_run_at, format_automation_datetime
+from nion.client import NionClient
 from nion.config.app_config import get_app_config
 from nion.config.automation_config import get_automation_config
 from nion.config.paths import resolve_path
+from nion.threads.repository import ThreadRepository
 
 
 class AutomationService:
@@ -160,6 +167,15 @@ class AutomationService:
         return {}
 
 
+class LocalThreadStateClient:
+    def __init__(self, repository: ThreadRepository | None = None):
+        self._repository = repository or ThreadRepository()
+
+    def update_state(self, thread_id: str, values: dict, *, as_node: str | None = None):
+        del as_node
+        self._repository.update_state(thread_id, values)
+
+
 def create_default_automation_service(
     *,
     langgraph_url: str | None = None,
@@ -168,9 +184,14 @@ def create_default_automation_service(
     config = get_automation_config()
     repository = AutomationRepository(resolve_path(config.storage_path))
     scheduler = AutomationScheduler(repository, lock_timeout_seconds=config.lock_timeout_seconds)
-    runner = LangGraphAutomationRunner(langgraph_url=langgraph_url or _resolve_langgraph_url_from_config())
+    if os.getenv("NION_DESKTOP_HELPER_MODE") == "1":
+        runner = EmbeddedAutomationRunner(client=NionClient())
+        thread_client = LocalThreadStateClient()
+    else:
+        runner = LangGraphAutomationRunner(langgraph_url=langgraph_url or _resolve_langgraph_url_from_config())
+        thread_client = runner.client.threads
     delivery_service = AutomationDeliveryService(
-        thread_client=runner.client.threads,
+        thread_client=thread_client,
         channel_publisher=channel_publisher,
     )
     executor = AutomationExecutor(runtime_runner=runner, delivery_service=delivery_service)

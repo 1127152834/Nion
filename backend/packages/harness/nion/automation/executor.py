@@ -3,6 +3,7 @@ from typing import Any, Protocol
 from uuid import uuid4
 
 from langgraph_sdk import get_sync_client
+from nion.client import NionClient
 
 from nion.automation.delivery import AutomationDeliveryService
 from nion.automation.models import AutomationDeliveryMode, AutomationExecutionOutput, AutomationJob, AutomationRun
@@ -30,6 +31,38 @@ class LangGraphAutomationRunner:
         return AutomationExecutionOutput(
             response_text=_extract_response_text(result),
             artifacts=_extract_artifacts(result),
+            isolated_thread_id=thread_id,
+        )
+
+
+class EmbeddedAutomationRunner:
+    def __init__(self, *, client: NionClient):
+        self.client = client
+
+    def run(self, *, prompt: str, thread_id: str, context: dict[str, Any], config: dict[str, Any]) -> AutomationExecutionOutput:
+        latest_values: dict[str, Any] | None = None
+
+        for event in self.client.stream(
+            prompt,
+            thread_id=thread_id,
+            model_name=context.get("model_name"),
+            thinking_enabled=bool(context.get("thinking_enabled", True)),
+            plan_mode=bool(context.get("is_plan_mode", False)),
+            subagent_enabled=bool(context.get("subagent_enabled", False)),
+            agent_name=context.get("agent_name"),
+            recursion_limit=config.get("recursion_limit", 100),
+            surface=context.get("surface", "automation"),
+        ):
+            if event.type == "values":
+                latest_values = event.data
+
+        latest_values = latest_values or {}
+        result = {
+            "messages": latest_values.get("messages", []),
+        }
+        return AutomationExecutionOutput(
+            response_text=_extract_response_text(result),
+            artifacts=list(latest_values.get("artifacts", [])),
             isolated_thread_id=thread_id,
         )
 

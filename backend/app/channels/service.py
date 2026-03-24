@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from typing import Any
 
 from app.channels.manager import CHANNEL_CAPABILITIES, ChannelManager
@@ -10,6 +11,7 @@ from app.channels.message_bus import MessageBus
 from app.channels.pairing_service import PairingService
 from app.channels.runtime_state import ChannelRuntimeState
 from app.channels.store import ChannelStore
+from nion.client import NionClient
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +34,8 @@ class ChannelService:
         self,
         channels_config: dict[str, Any] | None = None,
         pairing_service: PairingService | None = None,
+        runtime_mode: str | None = None,
+        embedded_client: NionClient | None = None,
     ) -> None:
         self.bus = MessageBus()
         self.store = ChannelStore()
@@ -40,6 +44,9 @@ class ChannelService:
         config = dict(channels_config or {})
         langgraph_url = config.pop("langgraph_url", None) or "http://localhost:2024"
         gateway_url = config.pop("gateway_url", None) or "http://localhost:8001"
+        resolved_runtime_mode = runtime_mode or (
+            "embedded" if os.getenv("NION_DESKTOP_HELPER_MODE") == "1" else "remote"
+        )
         default_session = config.pop("session", None)
         channel_sessions = {name: channel_config.get("session") for name, channel_config in config.items() if isinstance(channel_config, dict)}
         self.manager = ChannelManager(
@@ -47,6 +54,8 @@ class ChannelService:
             store=self.store,
             langgraph_url=langgraph_url,
             gateway_url=gateway_url,
+            runtime_mode=resolved_runtime_mode,
+            embedded_client=embedded_client,
             default_session=default_session if isinstance(default_session, dict) else None,
             channel_sessions=channel_sessions,
             runtime_state=self.runtime_state,

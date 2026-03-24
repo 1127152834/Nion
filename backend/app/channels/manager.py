@@ -7,18 +7,22 @@ import logging
 import mimetypes
 import time
 from collections.abc import Mapping
+from types import SimpleNamespace
 from typing import Any
+from uuid import uuid4
 
 from app.channels.message_bus import InboundMessage, InboundMessageType, MessageBus, OutboundMessage, ResolvedAttachment
 from app.channels.pairing_service import PairingService
 from app.channels.runtime_state import ChannelRuntimeState
 from app.channels.store import ChannelStore
+from nion.client import NionClient
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_LANGGRAPH_URL = "http://localhost:2024"
 DEFAULT_GATEWAY_URL = "http://localhost:8001"
 DEFAULT_ASSISTANT_ID = "lead_agent"
+DEFAULT_RUNTIME_MODE = "remote"
 
 DEFAULT_RUN_CONFIG: dict[str, Any] = {"recursion_limit": 100}
 DEFAULT_RUN_CONTEXT: dict[str, Any] = {
@@ -146,6 +150,57 @@ def _merge_stream_text(existing: str, chunk: str) -> str:
     return existing + chunk
 
 
+def _merge_message_snapshots(existing: list[dict[str, Any]], incoming: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    if not incoming:
+        return existing
+
+    merged = list(existing)
+    index_by_id: dict[str, int] = {}
+    for index, message in enumerate(merged):
+        message_id = message.get("id")
+        if isinstance(message_id, str) and message_id:
+            index_by_id[message_id] = index
+
+    for message in incoming:
+        message_id = message.get("id")
+        if isinstance(message_id, str) and message_id in index_by_id:
+            merged[index_by_id[message_id]] = message
+        else:
+            if isinstance(message_id, str) and message_id:
+                index_by_id[message_id] = len(merged)
+            merged.append(message)
+
+    return merged
+
+
+def _extract_human_text(input_payload: Any) -> str:
+    if not isinstance(input_payload, Mapping):
+        return ""
+
+    messages = input_payload.get("messages", [])
+    if not isinstance(messages, list) or not messages:
+        return ""
+
+    message = messages[0]
+    if not isinstance(message, Mapping):
+        return ""
+
+    content = message.get("content", "")
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts: list[str] = []
+        for block in content:
+            if isinstance(block, Mapping) and block.get("type") == "text":
+                text = block.get("text")
+                if isinstance(text, str):
+                    parts.append(text)
+            elif isinstance(block, str):
+                parts.append(block)
+        return "".join(parts)
+    return str(content)
+
+
 def _extract_stream_message_id(payload: Any, metadata: Any) -> str | None:
     """Best-effort extraction of the streamed AI message identifier."""
     candidates = [payload, metadata]
@@ -160,6 +215,89 @@ def _extract_stream_message_id(payload: Any, metadata: Any) -> str | None:
             if isinstance(value, str) and value:
                 return value
     return None
+
+
+class EmbeddedRunsClient:
+    def __init__(self, client: NionClient):
+        self._client = client
+
+    async def wait(
+        self,
+        thread_id: str,
+        assistant_id: str,
+        *,
+        input: dict[str, Any],
+        config: dict[str, Any],
+        context: dict[str, Any],
+        if_not_exists: str | None = None,
+    ) -> dict[str, Any]:
+        del assistant_id, if_not_exists
+        message = _extract_human_text(input)
+        messages: list[dict[str, Any]] = []
+        title: str | None = None
+        artifacts: list[str] = []
+
+        for event in self._client.stream(
+            message,
+            thread_id=thread_id,
+            model_name=context.get("model_name"),
+            thinking_enabled=bool(context.get("thinking_enabled", True)),
+            plan_mode=bool(context.get("is_plan_mode", False)),
+            subagent_enabled=bool(context.get("subagent_enabled", False)),
+            agent_name=context.get("agent_name"),
+            recursion_limit=config.get("recursion_limit", 100),
+            surface=context.get("surface", "channel"),
+        ):
+            if event.type != "values":
+                continue
+            title = event.data.get("title") or title
+            artifacts = list(event.data.get("artifacts", artifacts))
+            snapshot_messages = event.data.get("messages", [])
+            if isinstance(snapshot_messages, list):
+                messages = _merge_message_snapshots(messages, snapshot_messages)
+
+        return {
+            "title": title,
+            "messages": messages,
+            "artifacts": artifacts,
+        }
+
+    async def stream(
+        self,
+        thread_id: str,
+        assistant_id: str,
+        *,
+        input: dict[str, Any],
+        config: dict[str, Any],
+        context: dict[str, Any],
+        stream_mode: list[str] | None = None,
+    ):
+        del assistant_id, stream_mode
+        message = _extract_human_text(input)
+
+        for event in self._client.stream(
+            message,
+            thread_id=thread_id,
+            model_name=context.get("model_name"),
+            thinking_enabled=bool(context.get("thinking_enabled", True)),
+            plan_mode=bool(context.get("is_plan_mode", False)),
+            subagent_enabled=bool(context.get("subagent_enabled", False)),
+            agent_name=context.get("agent_name"),
+            recursion_limit=config.get("recursion_limit", 100),
+            surface=context.get("surface", "channel"),
+        ):
+            yield SimpleNamespace(event=event.type, data=event.data)
+
+
+class EmbeddedThreadsClient:
+    async def create(self) -> dict[str, str]:
+        return {"thread_id": str(uuid4())}
+
+
+class EmbeddedRuntimeClient:
+    def __init__(self, client: NionClient):
+        self.runs = EmbeddedRunsClient(client)
+        self.threads = EmbeddedThreadsClient()
 
 
 def _accumulate_stream_text(
@@ -338,6 +476,8 @@ class ChannelManager:
         langgraph_url: str = DEFAULT_LANGGRAPH_URL,
         gateway_url: str = DEFAULT_GATEWAY_URL,
         assistant_id: str = DEFAULT_ASSISTANT_ID,
+        runtime_mode: str = DEFAULT_RUNTIME_MODE,
+        embedded_client: NionClient | None = None,
         default_session: dict[str, Any] | None = None,
         channel_sessions: dict[str, Any] | None = None,
         runtime_state: ChannelRuntimeState | None = None,
@@ -349,6 +489,8 @@ class ChannelManager:
         self._langgraph_url = langgraph_url
         self._gateway_url = gateway_url
         self._assistant_id = assistant_id
+        self.runtime_mode = runtime_mode
+        self._embedded_client = embedded_client
         self._default_session = _as_dict(default_session)
         self._channel_sessions = dict(channel_sessions or {})
         self._runtime_state = runtime_state
@@ -395,11 +537,14 @@ class ChannelManager:
     # -- LangGraph SDK client (lazy) ----------------------------------------
 
     def _get_client(self):
-        """Return the ``langgraph_sdk`` async client, creating it on first use."""
+        """Return the runtime client, creating it on first use."""
         if self._client is None:
-            from langgraph_sdk import get_client
+            if self.runtime_mode == "embedded":
+                self._client = EmbeddedRuntimeClient(self._embedded_client or NionClient())
+            else:
+                from langgraph_sdk import get_client
 
-            self._client = get_client(url=self._langgraph_url)
+                self._client = get_client(url=self._langgraph_url)
         return self._client
 
     # -- lifecycle ---------------------------------------------------------
