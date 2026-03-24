@@ -1,0 +1,11 @@
+{
+  "name": "nion-workspace",
+  "private": true,
+  "packageManager": "pnpm@10.26.2",
+  "scripts": {
+    "desktop:install": "pnpm --dir desktop install",
+    "desktop:build": "pnpm --dir desktop build",
+    "desktop:test": "pnpm --dir desktop test",
+    "frontend:check": "pnpm --dir frontend check"
+  }
+}

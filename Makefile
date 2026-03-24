@@ -1,11 +1,16 @@
 # Nion - Unified Development Environment
 
-.PHONY: help config config-upgrade check check-branding install dev dev-daemon start stop up down clean docker-init docker-start docker-stop docker-logs docker-logs-frontend docker-logs-gateway
+.PHONY: help config config-upgrade check check-branding install dev dev-daemon start stop up down clean docker-init docker-start docker-stop docker-logs docker-logs-frontend docker-logs-gateway desktop-install desktop-dev package-desktop package-desktop-builder package-desktop-forge
 
 PYTHON ?= python
 
 help:
 	@echo "Nion Development Commands:"
+	@echo "  make desktop-install  - Install desktop workspace dependencies"
+	@echo "  make desktop-dev      - Build the desktop shell scaffold"
+	@echo "  make package-desktop  - Run the canonical desktop packaging placeholder"
+	@echo "  make package-desktop-builder - Run the electron-builder packaging placeholder"
+	@echo "  make package-desktop-forge   - Run the electron-forge packaging placeholder"
 	@echo "  make config          - Generate local config files (aborts if config already exists)"
 	@echo "  make config-upgrade  - Merge new fields from config.example.yaml into config.yaml"
 	@echo "  make check           - Check if all required tools are installed"
@@ -49,6 +54,8 @@ install:
 	@cd backend && uv sync
 	@echo "Installing frontend dependencies..."
 	@cd frontend && pnpm install
+	@echo "Installing desktop dependencies..."
+	@pnpm --dir desktop install
 	@echo "✓ All dependencies installed"
 	@echo ""
 	@echo "=========================================="
@@ -165,3 +172,18 @@ up:
 # Stop and remove production containers
 down:
 	@./scripts/deploy.sh down
+
+desktop-install:
+	@pnpm --dir desktop install
+
+desktop-dev:
+	@pnpm --dir desktop build
+
+package-desktop:
+	@pnpm --dir desktop package:builder
+
+package-desktop-builder:
+	@pnpm --dir desktop package:builder
+
+package-desktop-forge:
+	@pnpm --dir desktop package:forge
