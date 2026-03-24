@@ -5,6 +5,7 @@ export const SETTINGS_SECTIONS = [
   "notification",
   "memory",
   "tools",
+  "mcpServers",
   "skills",
 ] as const;
 

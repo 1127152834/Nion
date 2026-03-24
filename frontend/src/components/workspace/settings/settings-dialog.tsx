@@ -5,6 +5,7 @@ import {
   BrainIcon,
   BotIcon,
   PaletteIcon,
+  PlugIcon,
   SparklesIcon,
   WrenchIcon,
 } from "lucide-react";
@@ -19,6 +20,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { SidebarGroupLabel } from "@/components/ui/sidebar";
 import { AppearanceSettingsPage } from "@/components/workspace/settings/appearance-settings-page";
+import { MCPServersPage } from "@/components/workspace/settings/mcp-servers-page";
 import { MemorySettingsPage } from "@/components/workspace/settings/memory-settings-page";
 import { ModelSettingsPage } from "@/components/workspace/settings/model-settings-page";
 import { NotificationSettingsPage } from "@/components/workspace/settings/notification-settings-page";
@@ -111,6 +113,11 @@ export function SettingsDialog(props: SettingsDialogProps) {
           label: t.settings.sections.tools,
           icon: WrenchIcon,
         },
+        mcpServers: {
+          id: "mcpServers",
+          label: t.settings.sections.mcpServers,
+          icon: PlugIcon,
+        },
         skills: {
           id: "skills",
           label: t.settings.sections.skills,
@@ -137,7 +144,7 @@ export function SettingsDialog(props: SettingsDialogProps) {
         {
           id: "capabilities",
           title: t.settings.navGroups.capabilities,
-          items: [items.tools, items.skills],
+          items: [items.tools, items.mcpServers, items.skills],
         },
       ];
     },
@@ -148,6 +155,7 @@ export function SettingsDialog(props: SettingsDialogProps) {
       t.settings.sections.sessionPolicy,
       t.settings.sections.memory,
       t.settings.sections.tools,
+      t.settings.sections.mcpServers,
       t.settings.sections.skills,
       t.settings.navGroups.experience,
       t.settings.navGroups.conversation,
@@ -229,6 +237,7 @@ export function SettingsDialog(props: SettingsDialogProps) {
                 )}
                 {activeSection === "memory" && <MemorySettingsPage />}
                 {activeSection === "tools" && <ToolSettingsPage />}
+                {activeSection === "mcpServers" && <MCPServersPage />}
                 {activeSection === "skills" && (
                   <SkillSettingsPage
                     onClose={() => props.onOpenChange?.(false)}

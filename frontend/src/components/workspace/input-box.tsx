@@ -574,7 +574,7 @@ export function InputBox({
           label: serverName,
           value: serverName,
           kind: "mcp" as const,
-          description: server.description?.trim() || "MCP tool",
+          description: server.description?.trim() ?? "MCP tool",
         })),
     [mcpConfig?.mcp_servers],
   );

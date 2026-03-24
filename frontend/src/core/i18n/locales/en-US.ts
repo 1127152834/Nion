@@ -322,6 +322,7 @@ export const enUS: Translations = {
       sessionPolicy: "Session Policy",
       memory: "Memory",
       tools: "Tools",
+      mcpServers: "MCP servers",
       skills: "Skills",
       notification: "Notification",
       about: "About",
@@ -387,6 +388,10 @@ export const enUS: Translations = {
     tools: {
       title: "Tools",
       description: "Manage built-in tool groups and runtime-visible tool presets.",
+    },
+    mcpServers: {
+      title: "MCP servers",
+      description: "Manage MCP server connections and available tools.",
     },
     skills: {
       title: "Agent Skills",

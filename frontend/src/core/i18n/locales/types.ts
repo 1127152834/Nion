@@ -255,6 +255,7 @@ export interface Translations {
       sessionPolicy: string;
       memory: string;
       tools: string;
+      mcpServers: string;
       skills: string;
       notification: string;
       about: string;
@@ -314,6 +315,10 @@ export interface Translations {
       description: string;
     };
     tools: {
+      title: string;
+      description: string;
+    };
+    mcpServers: {
       title: string;
       description: string;
     };

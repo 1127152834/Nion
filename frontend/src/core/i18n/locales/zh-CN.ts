@@ -308,6 +308,7 @@ export const zhCN: Translations = {
       sessionPolicy: "会话策略",
       memory: "记忆",
       tools: "工具",
+      mcpServers: "MCP 服务器",
       skills: "技能",
       notification: "通知",
       about: "关于",
@@ -371,6 +372,10 @@ export const zhCN: Translations = {
     tools: {
       title: "工具",
       description: "管理内置工具组和运行时可见的工具预设。",
+    },
+    mcpServers: {
+      title: "MCP 服务器",
+      description: "管理 MCP 服务器连接和可用工具。",
     },
     skills: {
       title: "技能",

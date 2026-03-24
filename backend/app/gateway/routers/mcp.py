@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from nion.config.extensions_config import ExtensionsConfig, get_extensions_config, reload_extensions_config
+from nion.mcp.client import build_server_params
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["mcp"])
@@ -61,6 +62,65 @@ class McpConfigUpdateRequest(BaseModel):
         ...,
         description="Map of MCP server name to configuration",
     )
+
+
+class McpServerProbeResponse(BaseModel):
+    """Probe result for a single MCP server."""
+
+    success: bool = Field(..., description="Whether the probe succeeded")
+    message: str = Field(..., description="Probe result message")
+    tool_count: int = Field(default=0, description="Number of discovered tools")
+    tools: list[str] = Field(default_factory=list, description="Discovered tool names")
+
+
+async def _probe_single_server(
+    server_name: str,
+    server_config: McpServerConfigResponse,
+) -> McpServerProbeResponse:
+    if not server_config.enabled:
+        return McpServerProbeResponse(
+            success=False,
+            message="Server is disabled",
+            tool_count=0,
+            tools=[],
+        )
+
+    try:
+        from langchain_mcp_adapters.client import MultiServerMCPClient
+    except ImportError:
+        return McpServerProbeResponse(
+            success=False,
+            message="langchain-mcp-adapters is not installed",
+            tool_count=0,
+            tools=[],
+        )
+
+    try:
+        params = build_server_params(
+            server_name,
+            ExtensionsConfig.model_validate(
+                {"mcpServers": {server_name: server_config.model_dump()}},
+            ).mcp_servers[server_name],
+        )
+        client = MultiServerMCPClient({server_name: params}, tool_name_prefix=True)
+        tools = await client.get_tools()
+        tool_names = sorted(
+            [tool.name for tool in tools if getattr(tool, "name", None)],
+        )
+        return McpServerProbeResponse(
+            success=True,
+            message="Connected",
+            tool_count=len(tool_names),
+            tools=tool_names,
+        )
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Failed to probe MCP server %s: %s", server_name, exc)
+        return McpServerProbeResponse(
+            success=False,
+            message=str(exc),
+            tool_count=0,
+            tools=[],
+        )
 
 
 @router.get(
@@ -167,3 +227,20 @@ async def update_mcp_configuration(request: McpConfigUpdateRequest) -> McpConfig
     except Exception as e:
         logger.error(f"Failed to update MCP configuration: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Failed to update MCP configuration: {str(e)}")
+
+
+@router.get(
+    "/mcp/servers/{server_name}/probe",
+    response_model=McpServerProbeResponse,
+    summary="Probe MCP Server",
+    description="Attempt to connect to a single MCP server and list discovered tools.",
+)
+async def probe_mcp_server(server_name: str) -> McpServerProbeResponse:
+    config = ExtensionsConfig.from_file()
+    server = config.mcp_servers.get(server_name)
+    if server is None:
+        raise HTTPException(status_code=404, detail=f"MCP server '{server_name}' not found")
+    return await _probe_single_server(
+        server_name,
+        McpServerConfigResponse(**server.model_dump()),
+    )
