@@ -319,6 +319,7 @@ export const enUS: Translations = {
     sections: {
       appearance: "Appearance",
       models: "Models",
+      sessionPolicy: "Session Policy",
       memory: "Memory",
       tools: "Tools",
       skills: "Skills",
@@ -378,6 +379,11 @@ export const enUS: Translations = {
       description:
         "Configure providers and runnable models, then expose the saved default model to chat.",
     },
+    sessionPolicy: {
+      title: "Session Policy",
+      description:
+        "Configure follow-up suggestions, title generation, summarization, and subagent timeout policies.",
+    },
     tools: {
       title: "Tools",
       description: "Manage the configuration and enabled status of MCP tools.",
@@ -416,6 +422,53 @@ export const enUS: Translations = {
         discard: "Discard",
         save: "Save",
         saving: "Saving...",
+      },
+      title: {
+        title: "Thread title",
+        subtitle: "Configure automatic thread title generation.",
+        enabled: "Enable title generation",
+        model: "Model",
+        useDefaultModel: "Use default model",
+        maxChars: "Max characters",
+        maxWords: "Max words",
+        advanced: "Advanced",
+      },
+      suggestions: {
+        title: "Follow-up suggestions",
+        subtitle:
+          "Configure the model used for follow-up question suggestions.",
+        model: "Model",
+        followCurrent: "Follow current chat model (default)",
+        current: "Current: {model}",
+      },
+      summarization: {
+        title: "Summarization",
+        subtitle: "Configure automatic summarization behavior.",
+        enabled: "Enable summarization",
+        model: "Model",
+        useDefaultModel: "Use default model",
+        triggers: "Triggers",
+        noTrigger: "No triggers configured",
+        addTrigger: "Add trigger",
+        remove: "Remove",
+        triggerType: "Trigger type",
+        triggerValue: "Trigger value",
+        messagesLabel: "Messages",
+        tokensLabel: "Tokens",
+        fractionLabel: "Fraction",
+        keepType: "Keep type",
+        keepValue: "Keep value",
+        advanced: "Advanced",
+      },
+      subagents: {
+        title: "Subagents",
+        subtitle: "Manage per-agent and default timeout policy.",
+        hint: "Only listed agents receive explicit timeout overrides.",
+        empty: "No subagents configured",
+        add: "Add subagent",
+        remove: "Remove",
+        perAgent: "Per-agent timeout (seconds)",
+        defaultTimeout: "Default timeout (seconds)",
       },
       models: {
         providersTitle: "Providers",

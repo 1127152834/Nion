@@ -22,6 +22,7 @@ import { AppearanceSettingsPage } from "@/components/workspace/settings/appearan
 import { MemorySettingsPage } from "@/components/workspace/settings/memory-settings-page";
 import { ModelSettingsPage } from "@/components/workspace/settings/model-settings-page";
 import { NotificationSettingsPage } from "@/components/workspace/settings/notification-settings-page";
+import { SessionPolicySettingsPage } from "@/components/workspace/settings/session-policy-settings-page";
 import { SkillSettingsPage } from "@/components/workspace/settings/skill-settings-page";
 import { ToolSettingsPage } from "@/components/workspace/settings/tool-settings-page";
 import { useConfigCenter } from "@/core/config-center";
@@ -95,6 +96,11 @@ export function SettingsDialog(props: SettingsDialogProps) {
           label: t.settings.sections.models,
           icon: BotIcon,
         },
+        sessionPolicy: {
+          id: "sessionPolicy",
+          label: t.settings.sections.sessionPolicy,
+          icon: SparklesIcon,
+        },
         memory: {
           id: "memory",
           label: t.settings.sections.memory,
@@ -121,7 +127,7 @@ export function SettingsDialog(props: SettingsDialogProps) {
         {
           id: "conversation",
           title: t.settings.navGroups.conversation,
-          items: [items.models],
+          items: [items.models, items.sessionPolicy],
         },
         {
           id: "knowledge",
@@ -139,6 +145,7 @@ export function SettingsDialog(props: SettingsDialogProps) {
       t.settings.sections.appearance,
       t.settings.sections.notification,
       t.settings.sections.models,
+      t.settings.sections.sessionPolicy,
       t.settings.sections.memory,
       t.settings.sections.tools,
       t.settings.sections.skills,
@@ -217,6 +224,9 @@ export function SettingsDialog(props: SettingsDialogProps) {
               <div className="space-y-8 p-6">
                 {activeSection === "appearance" && <AppearanceSettingsPage />}
                 {activeSection === "models" && <ModelSettingsPage />}
+                {activeSection === "sessionPolicy" && (
+                  <SessionPolicySettingsPage />
+                )}
                 {activeSection === "memory" && <MemorySettingsPage />}
                 {activeSection === "tools" && <ToolSettingsPage />}
                 {activeSection === "skills" && (

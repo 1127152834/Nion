@@ -1,6 +1,7 @@
 export const SETTINGS_SECTIONS = [
   "appearance",
   "models",
+  "sessionPolicy",
   "notification",
   "memory",
   "tools",

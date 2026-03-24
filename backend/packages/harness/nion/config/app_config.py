@@ -22,9 +22,19 @@ from nion.config.memory_config import load_memory_config_from_dict
 from nion.config.model_config import ModelConfig
 from nion.config.sandbox_config import SandboxConfig
 from nion.config.skills_config import SkillsConfig
-from nion.config.subagents_config import load_subagents_config_from_dict
-from nion.config.summarization_config import load_summarization_config_from_dict
-from nion.config.title_config import load_title_config_from_dict
+from nion.config.subagents_config import (
+    SubagentsAppConfig,
+    load_subagents_config_from_dict,
+)
+from nion.config.suggestions_config import (
+    SuggestionsConfig,
+    load_suggestions_config_from_dict,
+)
+from nion.config.summarization_config import (
+    SummarizationConfig,
+    load_summarization_config_from_dict,
+)
+from nion.config.title_config import TitleConfig, load_title_config_from_dict
 from nion.config.tool_config import ToolConfig, ToolGroupConfig
 from nion.config.tool_search_config import ToolSearchConfig, load_tool_search_config_from_dict
 
@@ -37,6 +47,19 @@ class AppConfig(BaseModel):
     """Config for the Nion application"""
 
     models: list[ModelConfig] = Field(default_factory=list, description="Available models")
+    title: TitleConfig = Field(default_factory=TitleConfig, description="Thread title generation policy")
+    summarization: SummarizationConfig = Field(
+        default_factory=SummarizationConfig,
+        description="Conversation summarization policy",
+    )
+    subagents: SubagentsAppConfig = Field(
+        default_factory=SubagentsAppConfig,
+        description="Subagent timeout policy",
+    )
+    suggestions: SuggestionsConfig = Field(
+        default_factory=SuggestionsConfig,
+        description="Follow-up suggestion generation policy",
+    )
     sandbox: SandboxConfig = Field(description="Sandbox configuration")
     tools: list[ToolConfig] = Field(default_factory=list, description="Available tools")
     tool_groups: list[ToolGroupConfig] = Field(default_factory=list, description="Available tool groups")
@@ -78,14 +101,12 @@ class AppConfig(BaseModel):
     @classmethod
     def _hydrate_auxiliary_configs(cls, config_data: dict[str, Any]) -> None:
         """Load singleton sub-configs from the config payload."""
-        if "title" in config_data:
-            load_title_config_from_dict(config_data["title"])
-        if "summarization" in config_data:
-            load_summarization_config_from_dict(config_data["summarization"])
+        load_title_config_from_dict(config_data.get("title") or {})
+        load_summarization_config_from_dict(config_data.get("summarization") or {})
         if "memory" in config_data:
             load_memory_config_from_dict(config_data["memory"])
-        if "subagents" in config_data:
-            load_subagents_config_from_dict(config_data["subagents"])
+        load_subagents_config_from_dict(config_data.get("subagents") or {})
+        load_suggestions_config_from_dict(config_data.get("suggestions") or {})
         if "tool_search" in config_data:
             load_tool_search_config_from_dict(config_data["tool_search"])
         if "guardrails" in config_data:

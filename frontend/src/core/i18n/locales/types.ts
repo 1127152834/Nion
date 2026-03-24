@@ -252,6 +252,7 @@ export interface Translations {
     sections: {
       appearance: string;
       models: string;
+      sessionPolicy: string;
       memory: string;
       tools: string;
       skills: string;
@@ -308,6 +309,10 @@ export interface Translations {
       title: string;
       description: string;
     };
+    sessionPolicy: {
+      title: string;
+      description: string;
+    };
     tools: {
       title: string;
       description: string;
@@ -343,6 +348,10 @@ export interface Translations {
         save: string;
         saving: string;
       };
+      title: Record<string, string>;
+      suggestions: Record<string, string>;
+      summarization: Record<string, string>;
+      subagents: Record<string, string>;
       models: Record<string, string>;
     };
     modelPage: {
