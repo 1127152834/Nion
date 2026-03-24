@@ -7,6 +7,7 @@ export const SETTINGS_SECTIONS = [
   "tools",
   "mcpServers",
   "skills",
+  "sandbox",
 ] as const;
 
 export type SettingsSection = (typeof SETTINGS_SECTIONS)[number];

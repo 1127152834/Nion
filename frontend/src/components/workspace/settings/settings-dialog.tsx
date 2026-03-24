@@ -7,6 +7,7 @@ import {
   PaletteIcon,
   PlugIcon,
   SparklesIcon,
+  ShieldIcon,
   WrenchIcon,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -24,6 +25,7 @@ import { MCPServersPage } from "@/components/workspace/settings/mcp-servers-page
 import { MemorySettingsPage } from "@/components/workspace/settings/memory-settings-page";
 import { ModelSettingsPage } from "@/components/workspace/settings/model-settings-page";
 import { NotificationSettingsPage } from "@/components/workspace/settings/notification-settings-page";
+import { SandboxSettingsPage } from "@/components/workspace/settings/sandbox-settings-page";
 import { SessionPolicySettingsPage } from "@/components/workspace/settings/session-policy-settings-page";
 import { SkillSettingsPage } from "@/components/workspace/settings/skill-settings-page";
 import { ToolSettingsPage } from "@/components/workspace/settings/tool-settings-page";
@@ -118,6 +120,11 @@ export function SettingsDialog(props: SettingsDialogProps) {
           label: t.settings.sections.mcpServers,
           icon: PlugIcon,
         },
+        sandbox: {
+          id: "sandbox",
+          label: t.settings.sections.sandbox,
+          icon: ShieldIcon,
+        },
         skills: {
           id: "skills",
           label: t.settings.sections.skills,
@@ -146,6 +153,11 @@ export function SettingsDialog(props: SettingsDialogProps) {
           title: t.settings.navGroups.capabilities,
           items: [items.tools, items.mcpServers, items.skills],
         },
+        {
+          id: "system",
+          title: t.settings.navGroups.system,
+          items: [items.sandbox],
+        },
       ];
     },
     [
@@ -157,10 +169,12 @@ export function SettingsDialog(props: SettingsDialogProps) {
       t.settings.sections.tools,
       t.settings.sections.mcpServers,
       t.settings.sections.skills,
+      t.settings.sections.sandbox,
       t.settings.navGroups.experience,
       t.settings.navGroups.conversation,
       t.settings.navGroups.knowledge,
       t.settings.navGroups.capabilities,
+      t.settings.navGroups.system,
     ],
   );
   return (
@@ -243,6 +257,7 @@ export function SettingsDialog(props: SettingsDialogProps) {
                     onClose={() => props.onOpenChange?.(false)}
                   />
                 )}
+                {activeSection === "sandbox" && <SandboxSettingsPage />}
                 {activeSection === "notification" && (
                   <NotificationSettingsPage />
                 )}

@@ -248,6 +248,7 @@ export interface Translations {
       conversation: string;
       knowledge: string;
       capabilities: string;
+      system: string;
     };
     sections: {
       appearance: string;
@@ -257,6 +258,7 @@ export interface Translations {
       tools: string;
       mcpServers: string;
       skills: string;
+      sandbox: string;
       notification: string;
       about: string;
     };
@@ -322,6 +324,10 @@ export interface Translations {
       title: string;
       description: string;
     };
+    sandbox: {
+      title: string;
+      description: string;
+    };
     skills: {
       title: string;
       description: string;
@@ -375,6 +381,7 @@ export interface Translations {
         save: string;
         saving: string;
       };
+      fieldTip?: Record<string, string>;
       tools: {
         title: string;
         subtitle: string;
@@ -382,6 +389,8 @@ export interface Translations {
         presetTitles: Record<string, string>;
         presetDescriptions: Record<string, string>;
       };
+      sandbox: Record<string, string>;
+      checkpointer: Record<string, string>;
       title: Record<string, string>;
       suggestions: Record<string, string>;
       summarization: Record<string, string>;

@@ -2,7 +2,7 @@
 
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 CheckpointerType = Literal["memory", "sqlite", "postgres"]
 
@@ -23,6 +23,14 @@ class CheckpointerConfig(BaseModel):
         "For sqlite, use a file path like '.nion/checkpoints.db' or ':memory:' for in-memory. "
         "For postgres, use a DSN like 'postgresql://user:pass@localhost:5432/db'.",
     )
+
+    @model_validator(mode="after")
+    def validate_connection_string(self) -> "CheckpointerConfig":
+        if self.type in {"sqlite", "postgres"} and not (self.connection_string or "").strip():
+            raise ValueError(
+                "checkpointer.connection_string is required for sqlite and postgres backends",
+            )
+        return self
 
 
 # Global configuration instance — None means no checkpointer is configured.

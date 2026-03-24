@@ -315,6 +315,7 @@ export const enUS: Translations = {
       conversation: "Conversation",
       knowledge: "Knowledge & Memory",
       capabilities: "Tools & Skills",
+      system: "System",
     },
     sections: {
       appearance: "Appearance",
@@ -324,6 +325,7 @@ export const enUS: Translations = {
       tools: "Tools",
       mcpServers: "MCP servers",
       skills: "Skills",
+      sandbox: "Sandbox",
       notification: "Notification",
       about: "About",
     },
@@ -393,6 +395,11 @@ export const enUS: Translations = {
       title: "MCP servers",
       description: "Manage MCP server connections and available tools.",
     },
+    sandbox: {
+      title: "Sandbox",
+      description:
+        "Configure sandbox execution and thread persistence in a way that matches the chat runtime toggle semantics.",
+    },
     skills: {
       title: "Agent Skills",
       description:
@@ -451,6 +458,61 @@ export const enUS: Translations = {
         discard: "Discard",
         save: "Save",
         saving: "Saving...",
+      },
+      fieldTip: {
+        ariaLabel: "Field hint",
+        recommendedEn: "Recommended",
+        recommendedZh: "Recommended",
+        riskEn: "Risk",
+        riskZh: "Risk",
+      },
+      sandbox: {
+        title: "Sandbox",
+        subtitle: "Configure runtime sandbox mode and remote endpoint.",
+        mode: "Mode",
+        local: "Local",
+        aio: "AIO",
+        custom: "Custom",
+        modeTipEn: "Pick the sandbox mode for command execution.",
+        modeTipZh: "Pick the sandbox mode for command execution.",
+        strictMode: "Strict mode",
+        strictModeTipEn:
+          "When enabled, host execution is blocked and Nion will force the AIO sandbox provider. This must stay consistent with the chat-page sandbox/host toggle in web deployments.",
+        strictModeTipZh:
+          "When enabled, host execution is blocked and Nion will force the AIO sandbox provider. This must stay consistent with the chat-page sandbox/host toggle in web deployments.",
+        baseUrl: "Base URL",
+        baseUrlPlaceholder: "https://your-sandbox.example.com",
+        image: "Image",
+        imagePlaceholder: "ghcr.io/...",
+        containerPrefix: "Container prefix",
+        port: "Port",
+        idleTimeout: "Idle timeout (seconds)",
+        autoStart: "Auto start",
+        aioDefaultsHint:
+          "AIO sandbox uses built-in defaults for image/port in most cases. Open Advanced to override.",
+        customConfiguredHint: "Custom sandbox endpoint is configured.",
+        usePath: "Use path",
+        usePathPlaceholder: "nion.community.custom:Provider",
+        advanced: "Advanced",
+      },
+      checkpointer: {
+        title: "Thread persistence",
+        subtitle: "Configure how chat thread checkpoints are stored.",
+        backend: "Backend",
+        typeSqlite: "SQLite (Recommended)",
+        typeMemory: "Memory",
+        backendTipZh:
+          "SQLite is recommended for desktop single-user runtime and avoids thread state errors.",
+        backendTipEn:
+          "SQLite is recommended for desktop single-user runtime and avoids thread state errors.",
+        backendRecommended:
+          "Use SQLite so thread state survives restarts locally.",
+        backendRisk: "Memory loses state after restart.",
+        connectionString: "Default path",
+        sqlitePlaceholder: "checkpoints.db",
+        sqliteHint: "Defaults to the local checkpoints.db file.",
+        memoryHint:
+          "State lives only in the current process and is lost after restart.",
       },
       tools: {
         title: "Tools",

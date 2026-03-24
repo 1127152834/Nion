@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class VolumeMountConfig(BaseModel):
@@ -49,6 +49,18 @@ class SandboxConfig(BaseModel):
         default=None,
         description="Idle timeout in seconds before sandbox is released (default: 600 = 10 minutes). Set to 0 to disable.",
     )
+    base_url: str | None = Field(
+        default=None,
+        description="Optional explicit sandbox endpoint base URL",
+    )
+    auto_start: bool | None = Field(
+        default=None,
+        description="Whether the AIO sandbox should be auto-started when needed",
+    )
+    strict_mode: bool = Field(
+        default=False,
+        description="Whether strict sandbox mode is enabled",
+    )
     mounts: list[VolumeMountConfig] = Field(
         default_factory=list,
         description="List of volume mounts to share directories between host and container",
@@ -59,3 +71,11 @@ class SandboxConfig(BaseModel):
     )
 
     model_config = ConfigDict(extra="allow")
+
+    @model_validator(mode="after")
+    def validate_strict_mode_provider(self) -> "SandboxConfig":
+        if self.strict_mode and "AioSandboxProvider" not in self.use:
+            raise ValueError(
+                "sandbox.strict_mode requires an AIO sandbox provider",
+            )
+        return self
