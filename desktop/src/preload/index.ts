@@ -1,8 +1,3 @@
-import { PRELOAD_ENTRY } from "../shared/ipc.js";
-
-export function describePreloadBridge() {
-  return {
-    process: "preload",
-    channel: PRELOAD_ENTRY,
-  };
+export function registerPreloadBridge(): void {
+  // Placeholder until the Electron preload bridge is wired in Task 3.
 }
