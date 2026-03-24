@@ -12,6 +12,7 @@ from app.gateway.routers import (
     channels,
     cli,
     config,
+    desktop_system,
     files,
     mcp,
     memory,
@@ -175,6 +176,10 @@ This gateway provides custom endpoints for models, MCP configuration, skills, an
                 "description": "Manage IM channel integrations (Feishu, Slack, Telegram)",
             },
             {
+                "name": "desktop-system",
+                "description": "Desktop helper health and runtime control endpoints",
+            },
+            {
                 "name": "health",
                 "description": "Health check and system status endpoints",
             },
@@ -231,6 +236,9 @@ This gateway provides custom endpoints for models, MCP configuration, skills, an
 
     # Channels API is mounted at /api/channels
     app.include_router(channels.router)
+
+    # Desktop helper system API is mounted at /api/desktop/*
+    app.include_router(desktop_system.router)
 
     @app.get("/health", tags=["health"])
     async def health_check() -> dict:
