@@ -304,9 +304,11 @@ Bridges external messaging platforms (Feishu, Slack, Telegram) to the Nion agent
 **Components**:
 - `message_bus.py` - Async pub/sub hub (`InboundMessage` → queue → dispatcher; `OutboundMessage` → callbacks → channels)
 - `store.py` - JSON-file persistence mapping `channel_name:chat_id[:topic_id]` → `thread_id` (keys are `channel:chat` for root conversations and `channel:chat:topic` for threaded conversations)
+- `pairing_repository.py` / `pairing_service.py` - JSON persistence and service-layer policy for per-user-per-chat authorization and pending approval counts
 - `manager.py` - Core dispatcher: creates threads via `client.threads.create()`, routes commands, keeps Slack/Telegram on `client.runs.wait()`, and uses `client.runs.stream(["messages-tuple", "values"])` for Feishu incremental outbound updates
+- `runtime_state.py` - Observational runtime metadata (`capabilities`, `last_heartbeat`, `last_error`) used for operator-facing status without owning config or routing state
 - `base.py` - Abstract `Channel` base class (start/stop/send lifecycle)
-- `service.py` - Manages lifecycle of all configured channels from `config.yaml`
+- `service.py` - Manages lifecycle of all configured channels from `config.yaml` and aggregates the outward-facing `/api/channels` status contract
 - `slack.py` / `feishu.py` / `telegram.py` - Platform-specific implementations (`feishu.py` tracks the running card `message_id` in memory and patches the same card in place)
 
 **Message Flow**:
@@ -316,8 +318,16 @@ Bridges external messaging platforms (Feishu, Slack, Telegram) to the Nion agent
 4. Feishu chat: `runs.stream()` → accumulate AI text → publish multiple outbound updates (`is_final=False`) → publish final outbound (`is_final=True`)
 5. Slack/Telegram chat: `runs.wait()` → extract final response → publish outbound
 6. Feishu channel sends one running reply card up front, then patches the same card for each outbound update (card JSON sets `config.update_multi=true` for Feishu's patch API requirement)
-7. For commands (`/new`, `/status`, `/models`, `/memory`, `/help`): handle locally or query Gateway API
-8. Outbound → channel callbacks → platform reply
+7. Before runtime entry, pairing policy is checked per `channel_name + chat_id + user_id`; only `/help` bypasses pairing
+8. For commands (`/new`, `/status`, `/models`, `/memory`, `/help`): handle locally or query Gateway API when authorized
+9. Outbound → channel callbacks → platform reply
+
+**Operator status contract**:
+- `GET /api/channels` returns `service_running`, `pending_pair_requests`, and a `channels` map
+- Each channel entry now includes `enabled`, `running`, `capabilities`, `last_heartbeat`, `last_error`, `authorized_user_count`, `pending_pair_request_count`, and `can_restart`
+- The gateway router models this contract with nested Pydantic response types so operator payload shape stays explicit in code
+- `ChannelRuntimeState` remains observational; `ChannelService` is still the outward-facing owner
+- Pairing counts are backed by `PairingService`; `ChannelStore` remains thread-mapping-only
 
 **Configuration** (`config.yaml` -> `channels`):
 - `langgraph_url` - LangGraph Server URL (default: `http://localhost:2024`)

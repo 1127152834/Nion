@@ -155,6 +155,7 @@ export interface Translations {
     reportIssue: string;
     contactUs: string;
     about: string;
+    manageChannels: string;
     singleWorkspaceLabel: string;
     singleWorkspacePath: string;
     singleWorkspaceHint: string;

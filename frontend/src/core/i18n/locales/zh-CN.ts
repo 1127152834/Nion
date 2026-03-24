@@ -206,6 +206,7 @@ export const zhCN: Translations = {
     reportIssue: "报告问题",
     contactUs: "联系我们",
     about: "关于 Nion",
+    manageChannels: "通道运营面板",
     singleWorkspaceLabel: "工作区",
     singleWorkspacePath: "~/.nion-data/workspace",
     singleWorkspaceHint:

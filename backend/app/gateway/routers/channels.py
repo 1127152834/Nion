@@ -208,9 +208,25 @@ def _load_channel_config(platform: ChannelPlatform) -> ChannelConfigResponse:
     )
 
 
+class ChannelCapabilitiesResponse(BaseModel):
+    supports_streaming: bool
+
+
+class ChannelOpsItemResponse(BaseModel):
+    enabled: bool
+    running: bool
+    capabilities: ChannelCapabilitiesResponse
+    last_heartbeat: float | None = None
+    last_error: str | None = None
+    authorized_user_count: int = 0
+    pending_pair_request_count: int = 0
+    can_restart: bool = False
+
+
 class ChannelStatusResponse(BaseModel):
     service_running: bool
-    channels: dict[str, dict]
+    pending_pair_requests: int = 0
+    channels: dict[str, ChannelOpsItemResponse]
 
 
 class ChannelRestartResponse(BaseModel):
@@ -225,7 +241,11 @@ async def get_channels_status() -> ChannelStatusResponse:
 
     service = get_channel_service()
     if service is None:
-        return ChannelStatusResponse(service_running=False, channels={})
+        return ChannelStatusResponse(
+            service_running=False,
+            pending_pair_requests=0,
+            channels={},
+        )
     status = service.get_status()
     return ChannelStatusResponse(**status)
 

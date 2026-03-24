@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  ActivityIcon,
   ChevronsUpDown,
   InfoIcon,
   Settings2Icon,
@@ -97,6 +98,15 @@ export function WorkspaceNavMenu() {
                   </DropdownMenuItem>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => {
+                    setSettingsOpen(false);
+                    router.push("/workspace/manage/channels");
+                  }}
+                >
+                  <ActivityIcon />
+                  {t.workspace.manageChannels}
+                </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => {
                     setSettingsOpen(false);

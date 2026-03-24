@@ -217,6 +217,7 @@ export const enUS: Translations = {
     reportIssue: "Report a issue",
     contactUs: "Contact us",
     about: "About Nion",
+    manageChannels: "Manage channels",
     singleWorkspaceLabel: "Workspace",
     singleWorkspacePath: "~/.nion-data/workspace",
     singleWorkspaceHint:
