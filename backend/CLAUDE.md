@@ -325,6 +325,7 @@ Bridges external messaging platforms (Feishu, Slack, Telegram) to the Nion agent
 **Operator status contract**:
 - `GET /api/channels` returns `service_running`, `pending_pair_requests`, and a `channels` map
 - Each channel entry now includes `enabled`, `running`, `capabilities`, `last_heartbeat`, `last_error`, `authorized_user_count`, `pending_pair_request_count`, and `can_restart`
+- The gateway router models this contract with nested Pydantic response types so operator payload shape stays explicit in code
 - `ChannelRuntimeState` remains observational; `ChannelService` is still the outward-facing owner
 - Pairing counts are backed by `PairingService`; `ChannelStore` remains thread-mapping-only
 

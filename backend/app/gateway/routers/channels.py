@@ -12,10 +12,25 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/channels", tags=["channels"])
 
 
+class ChannelCapabilitiesResponse(BaseModel):
+    supports_streaming: bool
+
+
+class ChannelOpsItemResponse(BaseModel):
+    enabled: bool
+    running: bool
+    capabilities: ChannelCapabilitiesResponse
+    last_heartbeat: float | None = None
+    last_error: str | None = None
+    authorized_user_count: int = 0
+    pending_pair_request_count: int = 0
+    can_restart: bool = False
+
+
 class ChannelStatusResponse(BaseModel):
     service_running: bool
     pending_pair_requests: int = 0
-    channels: dict[str, dict]
+    channels: dict[str, ChannelOpsItemResponse]
 
 
 class ChannelRestartResponse(BaseModel):

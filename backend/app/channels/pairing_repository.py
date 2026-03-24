@@ -25,6 +25,9 @@ class PairingRepository:
         self._lock = threading.Lock()
         self._data: dict[str, dict[str, Any]] = self._load()
 
+    def _requests(self) -> dict[str, Any]:
+        return self._data.setdefault("requests", {})
+
     def _load(self) -> dict[str, dict[str, Any]]:
         if self._path.exists():
             try:
@@ -55,12 +58,12 @@ class PairingRepository:
             payload = asdict(request)
             payload.setdefault("created_at", now)
             payload["updated_at"] = now
-            self._data.setdefault("requests", {})[request.request_id] = payload
+            self._requests()[request.request_id] = payload
             self._save()
 
     def approve(self, request_id: str) -> None:
         with self._lock:
-            request = self._data.setdefault("requests", {}).get(request_id)
+            request = self._requests().get(request_id)
             if request is None:
                 raise KeyError(request_id)
             request["status"] = "approved"
@@ -69,7 +72,7 @@ class PairingRepository:
 
     def revoke(self, request_id: str) -> None:
         with self._lock:
-            request = self._data.setdefault("requests", {}).get(request_id)
+            request = self._requests().get(request_id)
             if request is None:
                 raise KeyError(request_id)
             request["status"] = "revoked"
@@ -77,7 +80,7 @@ class PairingRepository:
             self._save()
 
     def is_authorized(self, channel_name: str, chat_id: str, user_id: str) -> bool:
-        for request in self._data.get("requests", {}).values():
+        for request in self._requests().values():
             if (
                 request.get("status") == "approved"
                 and request.get("channel_name") == channel_name
@@ -90,14 +93,14 @@ class PairingRepository:
     def get_pending_request_count(self) -> int:
         return sum(
             1
-            for request in self._data.get("requests", {}).values()
+            for request in self._requests().values()
             if request.get("status") == "pending"
         )
 
     def get_channel_counts(self, channel_name: str) -> dict[str, int]:
         approved_subjects = set()
         pending_count = 0
-        for request in self._data.get("requests", {}).values():
+        for request in self._requests().values():
             if request.get("channel_name") != channel_name:
                 continue
             if request.get("status") == "approved":

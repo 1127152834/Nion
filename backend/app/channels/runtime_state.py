@@ -26,23 +26,26 @@ class ChannelRuntimeState:
     def __init__(self) -> None:
         self._channels: dict[str, ChannelRuntimeRecord] = {}
 
+    def _record(self, name: str) -> ChannelRuntimeRecord:
+        return self._channels.setdefault(name, ChannelRuntimeRecord())
+
     def mark_started(self, name: str, capabilities: dict[str, Any] | None = None) -> None:
-        record = self._channels.setdefault(name, ChannelRuntimeRecord())
+        record = self._record(name)
         record.running = True
         record.capabilities = dict(capabilities or {})
         record.last_heartbeat = time.time()
         record.last_error = None
 
     def mark_stopped(self, name: str) -> None:
-        record = self._channels.setdefault(name, ChannelRuntimeRecord())
+        record = self._record(name)
         record.running = False
 
     def mark_heartbeat(self, name: str) -> None:
-        record = self._channels.setdefault(name, ChannelRuntimeRecord())
+        record = self._record(name)
         record.last_heartbeat = time.time()
 
     def mark_error(self, name: str, error: str) -> None:
-        record = self._channels.setdefault(name, ChannelRuntimeRecord())
+        record = self._record(name)
         record.last_error = error
 
     def get_channel(self, name: str) -> dict[str, Any]:

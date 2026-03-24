@@ -28,6 +28,15 @@ function formatHeartbeat(value: number | null) {
   return new Date(value * 1000).toLocaleString();
 }
 
+function capabilityLabel(
+  supportsStreaming: boolean,
+  t: ReturnType<typeof useI18n>["t"],
+) {
+  return supportsStreaming
+    ? t.channelOps.capabilities.streaming
+    : t.channelOps.capabilities.nonStreaming;
+}
+
 export function ChannelOpsPage() {
   const { t } = useI18n();
   const { channelOps, isLoading, error } = useChannelOps();
@@ -115,9 +124,10 @@ export function ChannelOpsPage() {
                 <div className="space-y-1">
                   <CardTitle className="capitalize">{name}</CardTitle>
                   <CardDescription>
-                    {channel.capabilities.supports_streaming
-                      ? t.channelOps.capabilities.streaming
-                      : t.channelOps.capabilities.nonStreaming}
+                    {capabilityLabel(
+                      channel.capabilities.supports_streaming,
+                      t,
+                    )}
                   </CardDescription>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -174,9 +184,7 @@ export function ChannelOpsPage() {
             </CardContent>
             <CardFooter className="justify-between border-t">
               <span className="text-muted-foreground text-xs">
-                {channel.capabilities.supports_streaming
-                  ? t.channelOps.capabilities.streaming
-                  : t.channelOps.capabilities.nonStreaming}
+                {capabilityLabel(channel.capabilities.supports_streaming, t)}
               </span>
               <Button
                 variant="outline"
