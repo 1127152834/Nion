@@ -20,8 +20,11 @@ class FakeSubagentStatus(Enum):
     TIMED_OUT = "timed_out"
 
 
-def _make_runtime() -> SimpleNamespace:
+def _make_runtime(surface: str | None = None) -> SimpleNamespace:
     # Minimal ToolRuntime-like object; task_tool only reads these three attributes.
+    context = {"thread_id": "thread-1"}
+    if surface is not None:
+        context["surface"] = surface
     return SimpleNamespace(
         state={
             "sandbox": {"sandbox_id": "local"},
@@ -31,7 +34,7 @@ def _make_runtime() -> SimpleNamespace:
                 "outputs_path": "/tmp/outputs",
             },
         },
-        context={"thread_id": "thread-1"},
+        context=context,
         config={"metadata": {"model_name": "ark-model", "trace_id": "trace-1"}},
     )
 
@@ -77,7 +80,7 @@ def test_task_tool_returns_error_for_unknown_subagent(monkeypatch):
 
 def test_task_tool_emits_running_and_completed_events(monkeypatch):
     config = _make_subagent_config()
-    runtime = _make_runtime()
+    runtime = _make_runtime(surface="channel")
     events = []
     captured = {}
     get_available_tools = MagicMock(return_value=["tool-a", "tool-b"])
@@ -130,7 +133,11 @@ def test_task_tool_emits_running_and_completed_events(monkeypatch):
     assert captured["executor_kwargs"]["config"].max_turns == 7
     assert "Skills Appendix" in captured["executor_kwargs"]["config"].system_prompt
 
-    get_available_tools.assert_called_once_with(model_name="ark-model", subagent_enabled=False)
+    get_available_tools.assert_called_once_with(
+        model_name="ark-model",
+        subagent_enabled=False,
+        surface="channel",
+    )
 
     event_types = [e["type"] for e in events]
     assert event_types == ["task_started", "task_running", "task_running", "task_completed"]

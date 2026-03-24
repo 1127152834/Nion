@@ -4,6 +4,7 @@ from langchain.tools import BaseTool
 
 from nion.config import get_app_config
 from nion.reflection import resolve_variable
+from nion.tools.catalog import ToolCatalogEntry, build_configured_tool_catalog
 from nion.tools.builtins import ask_clarification_tool, present_file_tool, task_tool, view_image_tool
 from nion.tools.builtins.tool_search import reset_deferred_registry
 
@@ -25,6 +26,7 @@ def get_available_tools(
     include_mcp: bool = True,
     model_name: str | None = None,
     subagent_enabled: bool = False,
+    surface: str = "workspace",
 ) -> list[BaseTool]:
     """Get all available tools from config.
 
@@ -36,12 +38,15 @@ def get_available_tools(
         include_mcp: Whether to include tools from MCP servers (default: True).
         model_name: Optional model name to determine if vision tools should be included.
         subagent_enabled: Whether to include subagent tools (task, task_status).
+        surface: Runtime surface used for configured-tool filtering.
 
     Returns:
         List of available tools.
     """
     config = get_app_config()
     loaded_tools = [resolve_variable(tool.use, BaseTool) for tool in config.tools if groups is None or tool.group in groups]
+    configured_catalog = build_configured_tool_catalog(config)
+    loaded_tools = _apply_surface_policy(config, surface, loaded_tools, configured_catalog)
 
     # Conditionally add tools based on config
     builtin_tools = BUILTIN_TOOLS.copy()
@@ -99,3 +104,31 @@ def get_available_tools(
 
     logger.info(f"Total tools loaded: {len(loaded_tools)}, built-in tools: {len(builtin_tools)}, MCP tools: {len(mcp_tools)}")
     return loaded_tools + builtin_tools + mcp_tools
+
+
+def _apply_surface_policy(
+    config,
+    surface: str,
+    loaded_tools: list[BaseTool],
+    catalog: dict[str, ToolCatalogEntry],
+) -> list[BaseTool]:
+    rule = config.surface_policy.get_rule(surface)
+    allowed_groups = set(rule.allowed_groups or [])
+    denied_groups = set(rule.denied_groups or [])
+    allowed_tools = set(rule.allowed_tools or [])
+    denied_tools = set(rule.denied_tools or [])
+
+    filtered = []
+    for tool in loaded_tools:
+        entry = catalog.get(tool.name)
+        if entry is None or not entry.policy_managed:
+            filtered.append(tool)
+            continue
+        if tool.name in denied_tools or entry.group in denied_groups:
+            continue
+        if allowed_tools and tool.name not in allowed_tools:
+            continue
+        if allowed_groups and entry.group not in allowed_groups:
+            continue
+        filtered.append(tool)
+    return filtered

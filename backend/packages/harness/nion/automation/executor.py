@@ -39,6 +39,7 @@ def build_automation_runtime_config(job: AutomationJob, *, run_id: str, isolated
     context.update(
         {
             "thread_id": isolated_thread_id,
+            "surface": "automation",
             "automation_job_id": job.id,
             "automation_run_id": run_id,
             "toolset_profile": job.toolset_profile,

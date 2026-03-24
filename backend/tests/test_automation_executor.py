@@ -44,6 +44,7 @@ def test_executor_builds_fresh_runtime_config():
 
     assert runtime_config["thread_id"] == "automation-job-1-run-1"
     assert runtime_config["context"]["session_mode"] == "automation"
+    assert runtime_config["context"]["surface"] == "automation"
     assert runtime_config["context"]["memory_write"] is False
     assert runtime_config["context"]["subagent_enabled"] is False
     assert runtime_config["context"]["automation_run_id"] == "run-1"

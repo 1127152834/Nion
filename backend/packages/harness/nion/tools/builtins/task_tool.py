@@ -80,12 +80,14 @@ def task_tool(
     thread_data = None
     thread_id = None
     parent_model = None
+    surface = "workspace"
     trace_id = None
 
     if runtime is not None:
         sandbox_state = runtime.state.get("sandbox")
         thread_data = runtime.state.get("thread_data")
         thread_id = runtime.context.get("thread_id")
+        surface = runtime.context.get("surface", "workspace")
 
         # Try to get parent model from configurable
         metadata = runtime.config.get("metadata", {})
@@ -99,7 +101,11 @@ def task_tool(
     from nion.tools import get_available_tools
 
     # Subagents should not have subagent tools enabled (prevent recursive nesting)
-    tools = get_available_tools(model_name=parent_model, subagent_enabled=False)
+    tools = get_available_tools(
+        model_name=parent_model,
+        subagent_enabled=False,
+        surface=surface,
+    )
 
     # Create executor
     executor = SubagentExecutor(

@@ -182,6 +182,7 @@ class NionClient:
             "thinking_enabled": overrides.get("thinking_enabled", self._thinking_enabled),
             "is_plan_mode": overrides.get("plan_mode", self._plan_mode),
             "subagent_enabled": overrides.get("subagent_enabled", self._subagent_enabled),
+            "surface": overrides.get("surface", "workspace"),
         }
         return RunnableConfig(
             configurable=configurable,
@@ -196,6 +197,7 @@ class NionClient:
             cfg.get("thinking_enabled"),
             cfg.get("is_plan_mode"),
             cfg.get("subagent_enabled"),
+            cfg.get("surface"),
         )
 
         if self._agent is not None and self._agent_config_key == key:
@@ -204,11 +206,16 @@ class NionClient:
         thinking_enabled = cfg.get("thinking_enabled", True)
         model_name = cfg.get("model_name")
         subagent_enabled = cfg.get("subagent_enabled", False)
+        surface = cfg.get("surface", "workspace")
         max_concurrent_subagents = cfg.get("max_concurrent_subagents", 3)
 
         kwargs: dict[str, Any] = {
             "model": create_chat_model(name=model_name, thinking_enabled=thinking_enabled),
-            "tools": self._get_tools(model_name=model_name, subagent_enabled=subagent_enabled),
+            "tools": self._get_tools(
+                model_name=model_name,
+                subagent_enabled=subagent_enabled,
+                surface=surface,
+            ),
             "middleware": _build_middlewares(config, model_name=model_name, agent_name=self._agent_name),
             "system_prompt": apply_prompt_template(
                 subagent_enabled=subagent_enabled,
@@ -230,11 +237,20 @@ class NionClient:
         logger.info("Agent created: agent_name=%s, model=%s, thinking=%s", self._agent_name, model_name, thinking_enabled)
 
     @staticmethod
-    def _get_tools(*, model_name: str | None, subagent_enabled: bool):
+    def _get_tools(
+        *,
+        model_name: str | None,
+        subagent_enabled: bool,
+        surface: str = "workspace",
+    ):
         """Lazy import to avoid circular dependency at module level."""
         from nion.tools import get_available_tools
 
-        return get_available_tools(model_name=model_name, subagent_enabled=subagent_enabled)
+        return get_available_tools(
+            model_name=model_name,
+            subagent_enabled=subagent_enabled,
+            surface=surface,
+        )
 
     @staticmethod
     def _serialize_message(msg) -> dict:
