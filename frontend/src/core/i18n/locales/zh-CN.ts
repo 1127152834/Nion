@@ -728,6 +728,72 @@ export const zhCN: Translations = {
       runtimeWarnings: "运行时警告",
       runtimeProcesses: "进程状态",
     },
+    automationWorkspace: {
+      title: "自动化",
+      description:
+        "把重复工作整理成清晰的提醒事项和定时任务，不再需要先钻进设置页才能管理。",
+      tabs: {
+        overview: "概览",
+        reminders: "提醒事项",
+        tasks: "定时任务",
+        history: "执行记录",
+      },
+      overview: {
+        scheduler: "调度器",
+        schedulerRunning: "运行中",
+        schedulerIdle: "空闲",
+        active: "活跃自动化",
+        runs: "累计运行",
+        attention: "需要关注",
+        lastSuccess: "最近成功",
+        notRecordedYet: "尚未记录",
+      },
+      forms: {
+        reminderTitle: "新建提醒事项",
+        reminderDescription:
+          "只填写名称、提示词、重复方式和时间，就能快速创建一个日常提醒。",
+        taskTitle: "新建定时任务",
+        taskDescription:
+          "先把任务本身建好，只有确实需要投递方式或附加技能时再展开高级选项。",
+        cadenceLabel: "重复方式",
+        timeLabel: "时间",
+        cadenceOptions: {
+          daily: "每天",
+          weekdays: "工作日",
+          weekly: "每周",
+        },
+        createReminder: "创建提醒事项",
+        createTask: "创建定时任务",
+        advancedOptions: "高级选项",
+      },
+      sections: {
+        remindersTitle: "提醒事项",
+        remindersDescription: "适合轻量提醒、固定节奏的日常提示和个人例行事项。",
+        tasksTitle: "定时任务",
+        tasksDescription:
+          "适合需要固定执行、支持手动触发和后续扩展能力的周期任务。",
+        historyTitle: "执行记录",
+        historyDescription:
+          "直接查看最近运行结果、时间和状态，不再暴露未来钩子之类的内部信息。",
+        emptyReminders: "还没有提醒事项。",
+        emptyTasks: "还没有定时任务。",
+        emptyHistory: "还没有自动化运行记录。",
+        scheduleLabel: "调度",
+        nextRunLabel: "下次运行",
+        lastResultLabel: "最近结果",
+        notScheduled: "未安排",
+        noSummary: "暂无摘要。",
+        startedLabel: "开始时间",
+        finishedLabel: "结束时间",
+        jobLabel: "任务",
+        runningLabel: "运行中",
+        dailyPrefix: "每天",
+        weekdaysPrefix: "工作日",
+        weeklyPrefix: "每周",
+        oncePrefix: "单次",
+        everyMinutesTemplate: "每 {minutes} 分钟",
+      },
+    },
     aboutPage: {
       brand: {
         eyebrow: "个人智能工作系统",

@@ -759,6 +759,73 @@ export const enUS: Translations = {
       runtimeWarnings: "Runtime warnings",
       runtimeProcesses: "Processes",
     },
+    automationWorkspace: {
+      title: "Automation",
+      description:
+        "Organize recurring work into clear reminders and scheduled tasks without hunting through settings.",
+      tabs: {
+        overview: "Overview",
+        reminders: "Reminders",
+        tasks: "Scheduled tasks",
+        history: "History",
+      },
+      overview: {
+        scheduler: "Scheduler",
+        schedulerRunning: "Running",
+        schedulerIdle: "Idle",
+        active: "Active automations",
+        runs: "Recorded runs",
+        attention: "Needs attention",
+        lastSuccess: "Last success",
+        notRecordedYet: "Not recorded yet",
+      },
+      forms: {
+        reminderTitle: "New reminder",
+        reminderDescription:
+          "Create a simple reminder with a name, a prompt, a repeat rule, and a time.",
+        taskTitle: "New scheduled task",
+        taskDescription:
+          "Create a recurring task first, then open advanced options only if you need delivery routing or attached skills.",
+        cadenceLabel: "Repeats",
+        timeLabel: "Time",
+        cadenceOptions: {
+          daily: "Every day",
+          weekdays: "Weekdays",
+          weekly: "Weekly",
+        },
+        createReminder: "Create reminder",
+        createTask: "Create scheduled task",
+        advancedOptions: "Advanced options",
+      },
+      sections: {
+        remindersTitle: "Reminders",
+        remindersDescription:
+          "Lightweight routines and nudges that should stay easy to scan and edit.",
+        tasksTitle: "Scheduled tasks",
+        tasksDescription:
+          "Recurring jobs that may use delivery modes, attached skills, or manual run controls.",
+        historyTitle: "Execution history",
+        historyDescription:
+          "See recent automation runs, outcomes, and timing without digging through raw diagnostics.",
+        emptyReminders: "No reminders yet.",
+        emptyTasks: "No scheduled tasks yet.",
+        emptyHistory: "No automation runs yet.",
+        scheduleLabel: "Schedule",
+        nextRunLabel: "Next run",
+        lastResultLabel: "Last result",
+        notScheduled: "Not scheduled",
+        noSummary: "No summary yet.",
+        startedLabel: "Started",
+        finishedLabel: "Finished",
+        jobLabel: "Job",
+        runningLabel: "Running",
+        dailyPrefix: "Daily at",
+        weekdaysPrefix: "Weekdays at",
+        weeklyPrefix: "Weekly at",
+        oncePrefix: "Once at",
+        everyMinutesTemplate: "Every {minutes} min",
+      },
+    },
     aboutPage: {
       brand: {
         eyebrow: "Personal intelligent work system",

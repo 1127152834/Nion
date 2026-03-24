@@ -514,6 +514,67 @@ export interface Translations {
       runtimeWarnings: string;
       runtimeProcesses: string;
     };
+    automationWorkspace: {
+      title: string;
+      description: string;
+      tabs: {
+        overview: string;
+        reminders: string;
+        tasks: string;
+        history: string;
+      };
+      overview: {
+        scheduler: string;
+        schedulerRunning: string;
+        schedulerIdle: string;
+        active: string;
+        runs: string;
+        attention: string;
+        lastSuccess: string;
+        notRecordedYet: string;
+      };
+      forms: {
+        reminderTitle: string;
+        reminderDescription: string;
+        taskTitle: string;
+        taskDescription: string;
+        cadenceLabel: string;
+        timeLabel: string;
+        cadenceOptions: {
+          daily: string;
+          weekdays: string;
+          weekly: string;
+        };
+        createReminder: string;
+        createTask: string;
+        advancedOptions: string;
+      };
+      sections: {
+        remindersTitle: string;
+        remindersDescription: string;
+        tasksTitle: string;
+        tasksDescription: string;
+        historyTitle: string;
+        historyDescription: string;
+        emptyReminders: string;
+        emptyTasks: string;
+        emptyHistory: string;
+        scheduleLabel: string;
+        nextRunLabel: string;
+        lastResultLabel: string;
+        notScheduled: string;
+        noSummary: string;
+        startedLabel: string;
+        finishedLabel: string;
+        jobLabel: string;
+        runningLabel: string;
+        dailyPrefix: string;
+        weekdaysPrefix: string;
+        weeklyPrefix: string;
+        oncePrefix: string;
+        everyMinutesTemplate: string;
+      };
+    };
     aboutPage: {
       brand: {
         eyebrow: string;

@@ -7,6 +7,14 @@ type AutomationOverviewInput = {
 
 type AutomationOverviewCardTone = "default" | "warning";
 
+type ScheduleLabelCopy = {
+  dailyPrefix: string;
+  weekdaysPrefix: string;
+  weeklyPrefix: string;
+  oncePrefix: string;
+  everyMinutesTemplate: string;
+};
+
 export function splitJobsByKind(jobs: AutomationJob[]) {
   return {
     reminders: jobs.filter((job) => job.job_kind === "reminder"),
@@ -14,25 +22,34 @@ export function splitJobsByKind(jobs: AutomationJob[]) {
   };
 }
 
-export function formatScheduleLabel(job: AutomationJob) {
+export function formatScheduleLabel(
+  job: AutomationJob,
+  copy: ScheduleLabelCopy = {
+    dailyPrefix: "Daily at",
+    weekdaysPrefix: "Weekdays at",
+    weeklyPrefix: "Weekly at",
+    oncePrefix: "Once at",
+    everyMinutesTemplate: "Every {minutes} min",
+  },
+) {
   const timeOfDay = readString(job.schedule_metadata.time_of_day);
 
   if (job.schedule_preset === "daily" && timeOfDay) {
-    return `Daily at ${timeOfDay}`;
+    return `${copy.dailyPrefix} ${timeOfDay}`;
   }
   if (job.schedule_preset === "weekdays" && timeOfDay) {
-    return `Weekdays at ${timeOfDay}`;
+    return `${copy.weekdaysPrefix} ${timeOfDay}`;
   }
   if (job.schedule_preset === "weekly" && timeOfDay) {
-    return `Weekly at ${timeOfDay}`;
+    return `${copy.weeklyPrefix} ${timeOfDay}`;
   }
   if (job.schedule_preset === "once") {
-    return `Once at ${job.schedule_value}`;
+    return `${copy.oncePrefix} ${job.schedule_value}`;
   }
   if (job.schedule_preset === "interval") {
     const everyMinutes = Number.parseInt(job.schedule_value, 10) / 60;
     return Number.isFinite(everyMinutes) && everyMinutes > 0
-      ? `Every ${everyMinutes} min`
+      ? copy.everyMinutesTemplate.replace("{minutes}", String(everyMinutes))
       : job.schedule_value;
   }
   return job.schedule_value;
