@@ -1,0 +1,24 @@
+appId: ai.nion.desktop
+productName: Nion
+directories:
+  output: release
+files:
+  - dist/**
+  - package.json
+extraResources:
+  - from: ../backend/dist/nion-backend
+    to: backend
+mac:
+  target:
+    - dmg
+    - zip
+win:
+  target:
+    - nsis
+    - zip
+publish:
+  - provider: github
+    owner: zhangtiancheng
+    repo: nion
+  - provider: generic
+    url: ${NION_UPDATE_BASE_URL}

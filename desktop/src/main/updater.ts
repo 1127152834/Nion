@@ -2,6 +2,7 @@ import type { IpcMain } from "electron";
 
 import type { BackendRuntimeInfo } from "./backend-supervisor.js";
 import { DESKTOP_IPC_CHANNELS, type DesktopUpdateResult } from "../shared/ipc.js";
+import { idleUpdateStatus, resolveUpdateFeed } from "./update-feed.js";
 
 export type DesktopUpdater = {
   checkForUpdates: () => Promise<DesktopUpdateResult>;
@@ -9,13 +10,11 @@ export type DesktopUpdater = {
 };
 
 export function createDesktopUpdater(): DesktopUpdater {
+  const feed = resolveUpdateFeed();
+
   return {
     async checkForUpdates() {
-      return {
-        provider: "github",
-        status: "idle",
-        message: "Auto-update wiring will be added in a later task.",
-      };
+      return idleUpdateStatus(feed);
     },
     async quitAndInstall() {
       return false;

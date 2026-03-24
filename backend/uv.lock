@@ -2033,6 +2033,7 @@ requires-dist = [
     { name = "sse-starlette", specifier = ">=2.1.0" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.34.0" },
 ]
+provides-extras = ["desktop"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -2051,7 +2052,6 @@ dependencies = [
     { name = "duckdb" },
     { name = "firecrawl-py" },
     { name = "httpx" },
-    { name = "kubernetes" },
     { name = "langchain" },
     { name = "langchain-anthropic" },
     { name = "langchain-deepseek" },
@@ -2059,9 +2059,7 @@ dependencies = [
     { name = "langchain-mcp-adapters" },
     { name = "langchain-openai" },
     { name = "langgraph" },
-    { name = "langgraph-api" },
     { name = "langgraph-checkpoint-sqlite" },
-    { name = "langgraph-cli" },
     { name = "langgraph-runtime-inmem" },
     { name = "langgraph-sdk" },
     { name = "markdownify" },
@@ -2073,6 +2071,13 @@ dependencies = [
     { name = "tiktoken" },
 ]
 
+[package.optional-dependencies]
+server = [
+    { name = "kubernetes" },
+    { name = "langgraph-api" },
+    { name = "langgraph-cli" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "agent-sandbox", specifier = ">=0.0.19" },
@@ -2081,7 +2086,7 @@ requires-dist = [
     { name = "duckdb", specifier = ">=1.4.4" },
     { name = "firecrawl-py", specifier = ">=1.15.0" },
     { name = "httpx", specifier = ">=0.28.0" },
-    { name = "kubernetes", specifier = ">=30.0.0" },
+    { name = "kubernetes", marker = "extra == 'server'", specifier = ">=30.0.0" },
     { name = "langchain", specifier = ">=1.2.3" },
     { name = "langchain-anthropic", specifier = ">=1.3.4" },
     { name = "langchain-deepseek", specifier = ">=1.0.1" },
@@ -2089,9 +2094,9 @@ requires-dist = [
     { name = "langchain-mcp-adapters", specifier = ">=0.1.0" },
     { name = "langchain-openai", specifier = ">=1.1.7" },
     { name = "langgraph", specifier = ">=1.0.6" },
-    { name = "langgraph-api", specifier = ">=0.7.0,<0.8.0" },
+    { name = "langgraph-api", marker = "extra == 'server'", specifier = ">=0.7.0,<0.8.0" },
     { name = "langgraph-checkpoint-sqlite", specifier = ">=3.0.3" },
-    { name = "langgraph-cli", specifier = ">=0.4.14" },
+    { name = "langgraph-cli", marker = "extra == 'server'", specifier = ">=0.4.14" },
     { name = "langgraph-runtime-inmem", specifier = ">=0.22.1" },
     { name = "langgraph-sdk", specifier = ">=0.1.51" },
     { name = "markdownify", specifier = ">=1.2.2" },
@@ -2102,6 +2107,7 @@ requires-dist = [
     { name = "tavily-python", specifier = ">=0.7.17" },
     { name = "tiktoken", specifier = ">=0.8.0" },
 ]
+provides-extras = ["server"]
 
 [[package]]
 name = "numpy"
