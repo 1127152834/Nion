@@ -1,15 +1,29 @@
+import { BrowserWindow } from "electron";
+
 export type MainWindowOptions = {
-  title: string;
-  width: number;
-  height: number;
-  preloadEntry: string;
+  preloadPath: string;
+  rendererUrl: string;
 };
 
-export function getMainWindowOptions(preloadEntry: string): MainWindowOptions {
-  return {
-    title: "Nion",
+export async function createMainWindow(options: MainWindowOptions): Promise<BrowserWindow> {
+  const window = new BrowserWindow({
     width: 1440,
     height: 960,
-    preloadEntry
-  };
+    minWidth: 1180,
+    minHeight: 760,
+    show: false,
+    webPreferences: {
+      preload: options.preloadPath,
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true,
+    },
+  });
+
+  await window.loadURL(options.rendererUrl);
+  window.once("ready-to-show", () => {
+    window.show();
+  });
+
+  return window;
 }
