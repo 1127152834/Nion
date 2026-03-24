@@ -322,6 +322,17 @@ export const zhCN: Translations = {
         "Nion 会在后台不断从你的对话中自动学习。这些记忆能帮助 Nion 更好地理解你，并提供更个性化的体验。",
       empty: "暂无可展示的记忆数据。",
       rawJson: "原始 JSON",
+      recall: {
+        title: "Recall",
+        description: "单独搜索 transcript recall，不和 structured memory 混合。",
+        placeholder: "搜索 transcript recall",
+        searchButton: "搜索",
+        idle: "输入查询词后开始搜索 transcript recall。",
+        empty: "没有找到 recall 结果。",
+        loadFailed: "加载 recall 结果失败。",
+        threadLabel: "线程",
+        agentLabel: "智能体",
+      },
       markdown: {
         overview: "概览",
         userContext: "用户上下文",

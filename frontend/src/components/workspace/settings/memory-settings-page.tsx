@@ -1,10 +1,14 @@
 "use client";
 
+import { type FormEvent, useState } from "react";
 import { Streamdown } from "streamdown";
 
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useI18n } from "@/core/i18n/hooks";
 import { useMemory } from "@/core/memory/hooks";
 import type { UserMemory } from "@/core/memory/types";
+import { useRecallSearch } from "@/core/recall/hooks";
 import { streamdownPlugins } from "@/core/streamdown/plugins";
 import { pathOfThread } from "@/core/threads/utils";
 import { formatTimeAgo } from "@/core/utils/datetime";
@@ -158,6 +162,15 @@ function memoryToMarkdown(
 export function MemorySettingsPage() {
   const { t } = useI18n();
   const { memory, isLoading, error } = useMemory();
+  const [draftQuery, setDraftQuery] = useState("");
+  const [submittedQuery, setSubmittedQuery] = useState("");
+  const recall = useRecallSearch(submittedQuery, 5);
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSubmittedQuery(draftQuery.trim());
+  }
+
   return (
     <SettingsSection
       title={t.settings.memory.title}
@@ -181,6 +194,58 @@ export function MemorySettingsPage() {
           </Streamdown>
         </div>
       )}
+      <div className="mt-6 rounded-lg border p-4">
+        <div className="space-y-1">
+          <h3 className="text-base font-medium">
+            {t.settings.memory.recall.title}
+          </h3>
+          <p className="text-muted-foreground text-sm">
+            {t.settings.memory.recall.description}
+          </p>
+        </div>
+        <form className="mt-4 flex gap-2" onSubmit={handleSubmit}>
+          <Input
+            placeholder={t.settings.memory.recall.placeholder}
+            value={draftQuery}
+            onChange={(event) => setDraftQuery(event.target.value)}
+          />
+          <Button type="submit">{t.settings.memory.recall.searchButton}</Button>
+        </form>
+        <div className="mt-4">
+          {!submittedQuery ? (
+            <div className="text-muted-foreground text-sm">
+              {t.settings.memory.recall.idle}
+            </div>
+          ) : recall.isLoading || recall.isFetching ? (
+            <div className="text-muted-foreground text-sm">{t.common.loading}</div>
+          ) : recall.error ? (
+            <div className="text-destructive text-sm">
+              {t.settings.memory.recall.loadFailed}
+            </div>
+          ) : recall.results.length === 0 ? (
+            <div className="text-muted-foreground text-sm">
+              {t.settings.memory.recall.empty}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {recall.results.map((result, index) => (
+                <div key={`${result.thread_id}-${result.agent_name}-${index}`} className="rounded-md border p-3">
+                  <div className="text-muted-foreground mb-2 flex flex-wrap gap-x-3 gap-y-1 text-xs">
+                    <span>
+                      {t.settings.memory.recall.threadLabel}: {result.thread_id}
+                    </span>
+                    <span>
+                      {t.settings.memory.recall.agentLabel}: {result.agent_name}
+                    </span>
+                    <span>{formatTimeAgo(result.created_at)}</span>
+                  </div>
+                  <p className="text-sm leading-6">{result.snippet}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
     </SettingsSection>
   );
 }
