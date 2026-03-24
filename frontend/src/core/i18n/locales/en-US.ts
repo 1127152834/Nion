@@ -217,6 +217,22 @@ export const enUS: Translations = {
     reportIssue: "Report a issue",
     contactUs: "Contact us",
     about: "About Nion",
+    singleWorkspaceLabel: "Workspace",
+    singleWorkspacePath: "~/.nion-data/workspace",
+    singleWorkspaceHint:
+      "Nion currently uses a single app workspace rooted at ~/.nion-data/workspace.",
+    runtimeMode: {
+      sandboxLabel: "Sandbox",
+      hostLabel: "Host",
+      sandboxTip:
+        "Run inside the thread sandbox. Outputs stay under the thread workdir by default.",
+      hostTip:
+        "Allow backend host execution. On web, host mode does not require a directory up front and still defaults to sandbox storage unless a host folder is explicitly bound.",
+      hostBoundDirectory: "Bound host directory",
+      locked: "This runtime profile is locked.",
+      lockedTip: "Once a host directory is bound, the profile cannot be rebound for this thread.",
+      modeSaveFailed: "Failed to save runtime mode.",
+    },
   },
 
   // Conversation

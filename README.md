@@ -13,6 +13,8 @@
 - 沙箱与文件系统：支持安全执行命令、读写文件、产物沉淀与回溯
 - 技能系统：支持按需加载技能（SKILL）与工具扩展（含 MCP）
 - 配置中心：运行时可视化配置，配置持久化到本地 SQLite
+- 聊天运行时：支持线程级 sandbox/host 模式、工作目录面板与单工作区展示
+- 快捷入口合同：聊天输入框支持 Context / Skill / MCP / CLI 四类选择入口
 - 上传与产物链路：文件上传、解析、产物访问与下载能力完整闭环
 - 上下文存储：支持 workspace/thread 级上下文沉淀与召回
 - 临时会话保护：`temporary_chat` 默认允许读取长期记忆但禁止写回，避免污染长期记忆文件
@@ -50,6 +52,7 @@ cp frontend/.env.example frontend/.env
 - 可通过 `NION_HOME` 或 `NION_CONFIG_DB_PATH` 覆盖
 - `config.yaml` 不再是启动必需项；即使本地没有 YAML，`make dev` 也会以 Config Center 默认值启动
 - 如果你还保留旧的 `config.yaml`，当前脚本会继续兼容并自动补齐缺失字段，但新的设置写入路径应统一走应用内设置页
+- 线程工作目录根现在映射到 `~/.nion-data/threads/{thread_id}/user-data/workdir`
 
 可选（自定义数据库位置）：
 
@@ -75,6 +78,9 @@ make dev
 - Gateway API：`http://localhost:2026/api/*`
 - LangGraph：`http://localhost:2026/api/langgraph/*`
 - Config Center API：`http://localhost:2026/api/config*`
+- Runtime Profile API：`http://localhost:2026/api/threads/{thread_id}/runtime-profile`
+- Thread Files API：`http://localhost:2026/api/threads/{thread_id}/files/*`
+- CLI Catalog API：`http://localhost:2026/api/cli/catalog`
 
 ---
 

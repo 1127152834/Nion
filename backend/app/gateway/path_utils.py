@@ -5,6 +5,7 @@ from pathlib import Path
 from fastapi import HTTPException
 
 from nion.config.paths import get_paths
+from nion.runtime_profile import RuntimeProfileRepository, RuntimeProfileValidationError
 
 
 def resolve_thread_virtual_path(thread_id: str, virtual_path: str) -> Path:
@@ -22,7 +23,13 @@ def resolve_thread_virtual_path(thread_id: str, virtual_path: str) -> Path:
         HTTPException: If the path is invalid or outside allowed directories.
     """
     try:
+        profile = RuntimeProfileRepository().read(thread_id)
+        if profile["host_workdir"] is not None:
+            return RuntimeProfileRepository.resolve_host_virtual_path(
+                virtual_path,
+                profile["host_workdir"],
+            )
         return get_paths().resolve_virtual_path(thread_id, virtual_path)
-    except ValueError as e:
+    except (ValueError, RuntimeProfileValidationError) as e:
         status = 403 if "traversal" in str(e) else 400
         raise HTTPException(status_code=status, detail=str(e))

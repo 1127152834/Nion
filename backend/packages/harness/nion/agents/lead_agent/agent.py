@@ -15,7 +15,7 @@ from nion.agents.middlewares.tool_error_handling_middleware import build_lead_ru
 from nion.agents.middlewares.view_image_middleware import ViewImageMiddleware
 from nion.agents.thread_state import ThreadState
 from nion.config.agents_config import load_agent_config
-from nion.config.app_config import get_app_config
+from nion.config.app_config import ensure_latest_app_config
 from nion.config.summarization_config import get_summarization_config
 from nion.models import create_chat_model
 
@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 def _resolve_model_name(requested_model_name: str | None = None) -> str:
     """Resolve a runtime model name safely, falling back to default if invalid. Returns None if no models are configured."""
-    app_config = get_app_config()
+    app_config = ensure_latest_app_config(process_name="langgraph")
     default_model_name = app_config.models[0].name if app_config.models else None
     if default_model_name is None:
         raise ValueError("No chat models are configured. Please configure at least one model in config.yaml.")
@@ -235,7 +235,7 @@ def _build_middlewares(config: RunnableConfig, model_name: str | None, agent_nam
 
     # Add ViewImageMiddleware only if the current model supports vision.
     # Use the resolved runtime model_name from make_lead_agent to avoid stale config values.
-    app_config = get_app_config()
+    app_config = ensure_latest_app_config(process_name="langgraph")
     model_config = app_config.get_model_config(model_name) if model_name else None
     if model_config is not None and model_config.supports_vision:
         middlewares.append(ViewImageMiddleware())
@@ -282,7 +282,7 @@ def make_lead_agent(config: RunnableConfig):
     # Final model name resolution with request override, then agent config, then global default
     model_name = requested_model_name or agent_model_name
 
-    app_config = get_app_config()
+    app_config = ensure_latest_app_config(process_name="langgraph")
     model_config = app_config.get_model_config(model_name) if model_name else None
 
     if model_config is None:

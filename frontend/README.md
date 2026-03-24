@@ -8,6 +8,7 @@ Like the original Nion 1.0, we would love to give the community a minimalistic a
 - **UI**: [React 19](https://react.dev/), [Tailwind CSS 4](https://tailwindcss.com/), [Shadcn UI](https://ui.shadcn.com/), [MagicUI](https://magicui.design/) and [React Bits](https://reactbits.dev/)
 - **AI Integration**: [LangGraph SDK](https://www.npmjs.com/package/@langchain/langgraph-sdk) and [Vercel AI Elements](https://vercel.com/ai-sdk/ai-elements)
 - **Config Center**: TanStack Query client for `/api/config*` plus grouped settings shell scaffolding
+- **Runtime Shell**: thread-level runtime toggle, workdir browser, and four shortcut lanes in the chat composer
 
 ## Quick Start
 
@@ -75,6 +76,7 @@ NEXT_PUBLIC_LANGGRAPH_BASE_URL="http://localhost:2024"
 ```
 
 When running behind the local nginx entrypoint (`http://localhost:2026`), the frontend can use relative `/api/*` requests. The settings shell now expects `/api/config`, `/api/config/schema`, and `/api/config/runtime-status` to be proxied to the gateway.
+The chat runtime shell also expects `/api/threads/{thread_id}/runtime-profile`, `/api/threads/{thread_id}/files/*`, and `/api/cli/catalog`.
 
 ## Project Structure
 
@@ -92,7 +94,10 @@ src/
 ├── core/                   # Core business logic
 │   ├── api/                # API client & data fetching
 │   ├── artifacts/          # Artifact management
+│   ├── cli/                # Runtime-visible CLI catalog client
 │   ├── config/              # App configuration
+│   ├── config-center/      # Config Center API client
+│   ├── files/              # Thread workdir meta/tree client
 │   ├── i18n/               # Internationalization
 │   ├── mcp/                # MCP integration
 │   ├── messages/           # Message handling
@@ -128,6 +133,7 @@ src/
 - Environment validation can be skipped with `SKIP_ENV_VALIDATION=1` (useful for Docker)
 - Backend API URLs are optional; nginx proxy is used by default in development
 - The settings dialog shell is grouped into Experience / Knowledge & Memory / Tools & Skills and preloads Config Center state when opened
+- The chat page now exposes a runtime toggle plus Context / Skill / MCP / CLI shortcut lanes
 
 ## License
 

@@ -206,6 +206,22 @@ export const zhCN: Translations = {
     reportIssue: "报告问题",
     contactUs: "联系我们",
     about: "关于 Nion",
+    singleWorkspaceLabel: "工作区",
+    singleWorkspacePath: "~/.nion-data/workspace",
+    singleWorkspaceHint:
+      "当前版本的 Nion 使用单工作区模型，应用工作区根目录固定为 ~/.nion-data/workspace。",
+    runtimeMode: {
+      sandboxLabel: "沙箱",
+      hostLabel: "主机",
+      sandboxTip:
+        "在当前线程沙箱中执行，默认产物都留在该线程的工作目录里。",
+      hostTip:
+        "允许后端主机执行。Web 端的 host mode 不要求预先选目录；除非显式绑定主机目录，否则产物仍默认写入线程沙箱。",
+      hostBoundDirectory: "已绑定主机目录",
+      locked: "当前运行时配置已锁定。",
+      lockedTip: "线程一旦绑定主机目录，就不能改绑到其他目录。",
+      modeSaveFailed: "保存运行时模式失败。",
+    },
   },
 
   // Conversation

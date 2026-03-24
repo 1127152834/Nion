@@ -9,10 +9,13 @@ from app.gateway.routers import (
     agents,
     artifacts,
     channels,
+    cli,
     config,
+    files,
     mcp,
     memory,
     models,
+    runtime_profile,
     skills,
     suggestions,
     uploads,
@@ -109,6 +112,18 @@ This gateway provides custom endpoints for models, MCP configuration, skills, an
                 "description": "Manage configuration through the Config Center API",
             },
             {
+                "name": "runtime-profile",
+                "description": "Manage per-thread sandbox/host runtime profiles",
+            },
+            {
+                "name": "files",
+                "description": "Browse thread workdir files and related runtime roots",
+            },
+            {
+                "name": "cli",
+                "description": "Inspect runtime-visible CLI catalog metadata",
+            },
+            {
                 "name": "models",
                 "description": "Operations for querying available AI models and their configurations",
             },
@@ -159,6 +174,15 @@ This gateway provides custom endpoints for models, MCP configuration, skills, an
 
     # Config Center API is mounted at /api/config*
     app.include_router(config.router)
+
+    # Runtime profile API is mounted at /api/threads/{thread_id}/runtime-profile
+    app.include_router(runtime_profile.router)
+
+    # Files API is mounted at /api/threads/{thread_id}/files/*
+    app.include_router(files.router)
+
+    # CLI catalog API is mounted at /api/cli/*
+    app.include_router(cli.router)
 
     # MCP API is mounted at /api/mcp
     app.include_router(mcp.router)

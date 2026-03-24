@@ -44,7 +44,9 @@ The frontend is a stateful chat application. Users create **threads** (conversat
   - `threads/` — Thread creation, streaming, state management (hooks + types)
   - `api/` — LangGraph client singleton
   - `artifacts/` — Artifact loading and caching
+  - `cli/` — runtime-visible CLI catalog client
   - `config-center/` — `/api/config*` client, hooks, and validation error types
+  - `files/` — thread workdir meta/tree client
   - `i18n/` — Internationalization (en-US, zh-CN)
   - `settings/` — User preferences in localStorage
   - `memory/` — Persistent user memory system
@@ -88,5 +90,6 @@ NEXT_PUBLIC_LANGGRAPH_BASE_URL=http://localhost:2024
 ```
 
 The grouped settings shell also expects `/api/config`, `/api/config/schema`, and `/api/config/runtime-status` to be reachable through the gateway or nginx proxy.
+The chat runtime shell expects `/api/threads/{thread_id}/runtime-profile`, `/api/threads/{thread_id}/files/meta`, `/api/threads/{thread_id}/files/tree`, and `/api/cli/catalog`.
 
 Requires Node.js 22+ and pnpm 10.26.2+.

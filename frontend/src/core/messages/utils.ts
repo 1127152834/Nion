@@ -325,6 +325,72 @@ export interface FileInMessage {
   status?: "uploading" | "uploaded";
 }
 
+export interface ShortcutSelectionsInMessage {
+  contexts: Array<{ value: string; kind: "file" | "directory" }>;
+  skills: string[];
+  mcpTools: string[];
+  cliTools: string[];
+}
+
+export function extractShortcutSelectionsFromMessage(
+  message: Message,
+): ShortcutSelectionsInMessage | null {
+  const source = message.additional_kwargs?.shortcut_selections;
+  if (!source || typeof source !== "object") {
+    return null;
+  }
+
+  const payload = source as {
+    contexts?: unknown;
+    skills?: unknown;
+    mcpTools?: unknown;
+    cliTools?: unknown;
+  };
+
+  const contexts = Array.isArray(payload.contexts)
+    ? payload.contexts
+        .map((item) => {
+          if (!item || typeof item !== "object") {
+            return null;
+          }
+          const value = (item as { value?: unknown }).value;
+          const kind = (item as { kind?: unknown }).kind;
+          if (
+            typeof value !== "string" ||
+            (kind !== "file" && kind !== "directory")
+          ) {
+            return null;
+          }
+          return { value, kind } as { value: string; kind: "file" | "directory" };
+        })
+        .filter(
+          (item): item is { value: string; kind: "file" | "directory" } =>
+            item !== null,
+        )
+    : [];
+
+  const skills = Array.isArray(payload.skills)
+    ? payload.skills.filter((item): item is string => typeof item === "string")
+    : [];
+  const mcpTools = Array.isArray(payload.mcpTools)
+    ? payload.mcpTools.filter((item): item is string => typeof item === "string")
+    : [];
+  const cliTools = Array.isArray(payload.cliTools)
+    ? payload.cliTools.filter((item): item is string => typeof item === "string")
+    : [];
+
+  if (
+    contexts.length === 0 &&
+    skills.length === 0 &&
+    mcpTools.length === 0 &&
+    cliTools.length === 0
+  ) {
+    return null;
+  }
+
+  return { contexts, skills, mcpTools, cliTools };
+}
+
 /**
  * Strip <uploaded_files> tag from message content.
  * Returns the content with the tag removed.

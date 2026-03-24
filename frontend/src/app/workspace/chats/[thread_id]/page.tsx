@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { type PromptInputMessage } from "@/components/ai-elements/prompt-input";
 import {
@@ -17,11 +18,14 @@ import { InputBox } from "@/components/workspace/input-box";
 import { MessageList } from "@/components/workspace/messages";
 import { ThreadContext } from "@/components/workspace/messages/context";
 import { NewChatStage } from "@/components/workspace/new-chat-stage";
+import { RuntimeModeToggle } from "@/components/workspace/runtime-mode-toggle";
 import { ThreadTitle } from "@/components/workspace/thread-title";
 import { TodoList } from "@/components/workspace/todo-list";
 import { Welcome } from "@/components/workspace/welcome";
+import { loadThreadFilesTree } from "@/core/files";
 import { useI18n } from "@/core/i18n/hooks";
 import { useNotification } from "@/core/notification/hooks";
+import { type RuntimeProfile, fetchRuntimeProfile, updateRuntimeProfile } from "@/core/runtime";
 import { useLocalSettings } from "@/core/settings";
 import { useThreadStream } from "@/core/threads/hooks";
 import {
@@ -39,10 +43,75 @@ export default function ChatPage() {
   useSpecificChatMode();
 
   const { showNotification } = useNotification();
+  const [runtimeProfile, setRuntimeProfile] = useState<RuntimeProfile>({
+    execution_mode: "sandbox",
+    host_workdir: null,
+    locked: false,
+    updated_at: null,
+  });
+  const [runtimeProfileLoading, setRuntimeProfileLoading] = useState(false);
+  const [runtimeProfileSaving, setRuntimeProfileSaving] = useState(false);
+
+  useEffect(() => {
+    if (isMock) {
+      return;
+    }
+    let cancelled = false;
+    setRuntimeProfileLoading(true);
+    void fetchRuntimeProfile(threadId)
+      .then((profile) => {
+        if (!cancelled) {
+          setRuntimeProfile(profile);
+        }
+      })
+      .catch((error) => {
+        console.warn("Failed to load runtime profile:", error);
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setRuntimeProfileLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isMock, threadId]);
+
+  const threadRuntimeContext = useMemo(
+    () => ({
+      execution_mode: runtimeProfile.execution_mode,
+      host_workdir: runtimeProfile.host_workdir ?? undefined,
+    }),
+    [runtimeProfile.execution_mode, runtimeProfile.host_workdir],
+  );
+
+  const { data: workingDirectoryTree } = useQuery({
+    queryKey: ["threadFiles", "tree", threadId, "composer"],
+    queryFn: () =>
+      loadThreadFilesTree(threadId, {
+        root: "/mnt/user-data/workspace",
+        depth: 6,
+        includeHidden: false,
+        maxNodes: 2000,
+      }),
+    enabled: !isMock,
+    staleTime: 5_000,
+  });
+
+  const workspacePaths = useMemo(
+    () => [
+      ...(workingDirectoryTree?.directories.map((item) => `${item.path}/`) ?? []),
+      ...(workingDirectoryTree?.files.map((item) => item.path) ?? []),
+    ],
+    [workingDirectoryTree],
+  );
 
   const [thread, sendMessage, isUploading] = useThreadStream({
     threadId: isNewThread ? undefined : threadId,
-    context: settings.context,
+    context: {
+      ...settings.context,
+      ...threadRuntimeContext,
+    },
     isMock,
     onStart: (startedThreadId) => {
       setIsNewThread(false);
@@ -85,9 +154,35 @@ export default function ChatPage() {
       : "ready";
 
   const inputDisabled =
-    env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY === "true" || isUploading;
+    env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY === "true" ||
+    isUploading ||
+    runtimeProfileLoading ||
+    runtimeProfileSaving;
 
   const currentMode = settings.context.mode ?? "flash";
+  const runtimeModeCopy = t.workspace.runtimeMode;
+
+  const handleSwitchMode = useCallback(
+    async (mode: "sandbox" | "host") => {
+      if (runtimeProfile.locked || mode === runtimeProfile.execution_mode || isMock) {
+        return;
+      }
+
+      setRuntimeProfileSaving(true);
+      try {
+        const updated = await updateRuntimeProfile(threadId, {
+          execution_mode: mode,
+          host_workdir: runtimeProfile.host_workdir ?? null,
+        });
+        setRuntimeProfile(updated);
+      } catch (error) {
+        console.error("Failed to update runtime profile:", error);
+      } finally {
+        setRuntimeProfileSaving(false);
+      }
+    },
+    [isMock, runtimeProfile.execution_mode, runtimeProfile.host_workdir, runtimeProfile.locked, threadId],
+  );
 
   return (
     <ThreadContext.Provider value={{ thread, isMock }}>
@@ -119,6 +214,16 @@ export default function ChatPage() {
             <main className="flex min-h-0 flex-1 items-center overflow-y-auto px-4 pb-10 pt-20">
               <NewChatStage
                 hero={<Welcome className="sm:pb-1" mode={currentMode} />}
+                controls={
+                  <RuntimeModeToggle
+                    mode={runtimeProfile.execution_mode}
+                    locked={runtimeProfile.locked}
+                    saving={runtimeProfileSaving}
+                    hostDirPath={runtimeProfile.host_workdir}
+                    copy={runtimeModeCopy}
+                    onSwitch={handleSwitchMode}
+                  />
+                }
                 composer={
                   <div className="relative w-full">
                     <div className="absolute -top-4 right-0 left-0 z-0">
@@ -141,6 +246,7 @@ export default function ChatPage() {
                       status={inputStatus}
                       context={settings.context}
                       disabled={inputDisabled}
+                      workspacePaths={workspacePaths}
                       onContextChange={(context) =>
                         setSettings("context", context)
                       }
@@ -188,6 +294,17 @@ export default function ChatPage() {
                     status={inputStatus}
                     context={settings.context}
                     disabled={inputDisabled}
+                    extraHeader={
+                      <RuntimeModeToggle
+                        mode={runtimeProfile.execution_mode}
+                        locked={runtimeProfile.locked}
+                        saving={runtimeProfileSaving}
+                        hostDirPath={runtimeProfile.host_workdir}
+                        copy={runtimeModeCopy}
+                        onSwitch={handleSwitchMode}
+                      />
+                    }
+                    workspacePaths={workspacePaths}
                     onContextChange={(context) =>
                       setSettings("context", context)
                     }

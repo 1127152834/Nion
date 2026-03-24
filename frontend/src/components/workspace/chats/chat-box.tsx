@@ -1,3 +1,4 @@
+import { useQuery } from "@tanstack/react-query";
 import { FilesIcon, FolderIcon, XIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { GroupImperativeHandle } from "react-resizable-panels";
@@ -9,6 +10,7 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
+import { loadThreadFilesMeta, loadThreadFilesTree } from "@/core/files";
 import { useI18n } from "@/core/i18n/hooks";
 import { env } from "@/env";
 import { cn } from "@/lib/utils";
@@ -102,6 +104,37 @@ const ChatBox: React.FC<{ children: React.ReactNode; threadId: string }> = ({
       ? t.common.workingDirectory
       : t.common.artifacts;
 
+  const { data: workingDirectoryMeta } = useQuery({
+    queryKey: ["threadFiles", "meta", threadId],
+    queryFn: () =>
+      loadThreadFilesMeta(threadId, { root: "/mnt/user-data/workspace" }),
+    enabled: artifactPanelOpen && panelType === "working-directory",
+    staleTime: 5_000,
+  });
+
+  const { data: workingDirectoryTree } = useQuery({
+    queryKey: ["threadFiles", "tree", threadId],
+    queryFn: () =>
+      loadThreadFilesTree(threadId, {
+        root: "/mnt/user-data/workspace",
+        depth: 6,
+        includeHidden: false,
+        maxNodes: 2000,
+      }),
+    enabled: artifactPanelOpen && panelType === "working-directory",
+    staleTime: 5_000,
+  });
+
+  const workingDirectoryFiles = useMemo(
+    () => workingDirectoryTree?.files.map((item) => item.path) ?? [],
+    [workingDirectoryTree],
+  );
+
+  const displayedFiles =
+    panelType === "working-directory"
+      ? workingDirectoryFiles
+      : (thread.values.artifacts ?? []);
+
   return (
     <ResizablePanelGroup
       orientation="horizontal"
@@ -134,6 +167,7 @@ const ChatBox: React.FC<{ children: React.ReactNode; threadId: string }> = ({
             <ArtifactFileDetail
               className="size-full"
               filepath={selectedArtifact}
+              files={displayedFiles}
               threadId={threadId}
             />
           ) : (
@@ -149,7 +183,7 @@ const ChatBox: React.FC<{ children: React.ReactNode; threadId: string }> = ({
                   <XIcon />
                 </Button>
               </div>
-              {thread.values.artifacts?.length === 0 ? (
+              {displayedFiles.length === 0 ? (
                 <ConversationEmptyState
                   icon={
                     panelType === "working-directory" ? (
@@ -161,7 +195,7 @@ const ChatBox: React.FC<{ children: React.ReactNode; threadId: string }> = ({
                   title={panelTitle}
                   description={
                     panelType === "working-directory"
-                      ? t.common.browseWorkspace
+                      ? workingDirectoryMeta?.actual_root ?? t.common.browseWorkspace
                       : "Select an artifact to view its details"
                   }
                 />
@@ -170,15 +204,20 @@ const ChatBox: React.FC<{ children: React.ReactNode; threadId: string }> = ({
                   <header className="shrink-0">
                     <h2 className="text-lg font-medium">{panelTitle}</h2>
                     {panelType === "working-directory" ? (
-                      <p className="text-muted-foreground mt-1 text-sm">
-                        {t.common.browseWorkspace}
-                      </p>
+                      <div className="text-muted-foreground mt-1 space-y-1 text-sm">
+                        <p>{t.common.browseWorkspace}</p>
+                        {workingDirectoryMeta?.actual_root ? (
+                          <p className="truncate font-mono text-xs">
+                            {workingDirectoryMeta.actual_root}
+                          </p>
+                        ) : null}
+                      </div>
                     ) : null}
                   </header>
                   <main className="min-h-0 grow">
                     <ArtifactFileList
                       className="max-w-(--container-width-sm) p-4 pt-12"
-                      files={thread.values.artifacts ?? []}
+                      files={displayedFiles}
                       threadId={threadId}
                     />
                   </main>

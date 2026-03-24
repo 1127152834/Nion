@@ -90,7 +90,7 @@ async def get_mcp_configuration() -> McpConfigResponse:
         }
         ```
     """
-    config = get_extensions_config()
+    config = ExtensionsConfig.from_file()
 
     return McpConfigResponse(mcp_servers={name: McpServerConfigResponse(**server.model_dump()) for name, server in config.mcp_servers.items()})
 

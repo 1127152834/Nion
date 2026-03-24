@@ -155,6 +155,19 @@ export interface Translations {
     reportIssue: string;
     contactUs: string;
     about: string;
+    singleWorkspaceLabel: string;
+    singleWorkspacePath: string;
+    singleWorkspaceHint: string;
+    runtimeMode: {
+      sandboxLabel: string;
+      hostLabel: string;
+      sandboxTip: string;
+      hostTip: string;
+      hostBoundDirectory: string;
+      locked: string;
+      lockedTip: string;
+      modeSaveFailed: string;
+    };
   };
 
   // Conversation

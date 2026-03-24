@@ -433,6 +433,17 @@ export const PromptInputActionAddAttachments = ({
 export type PromptInputMessage = {
   text: string;
   files: FileUIPart[];
+  implicitMentions?: Array<{
+    kind: "context" | "skill" | "mcp" | "cli";
+    value: string;
+    mention: string;
+  }>;
+  shortcutSelections?: {
+    contexts?: Array<{ value: string; kind: "file" | "directory" }>;
+    skills?: string[];
+    mcpTools?: string[];
+    cliTools?: string[];
+  };
 };
 
 export type PromptInputProps = Omit<

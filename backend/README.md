@@ -120,6 +120,10 @@ FastAPI application providing REST endpoints for frontend integration:
 | `POST /api/config/validate` | Validate config payload |
 | `PUT /api/config` | Persist config with version conflict detection |
 | `GET /api/config/runtime-status` | Inspect store/runtime version alignment |
+| `GET/PUT /api/threads/{id}/runtime-profile` | Read/update thread runtime mode |
+| `GET /api/threads/{id}/files/meta` | Inspect current thread workdir root |
+| `GET /api/threads/{id}/files/tree` | Browse current thread workdir tree |
+| `GET /api/cli/catalog` | Inspect runtime-visible CLI catalog |
 | `GET /api/models` | List available LLM models |
 | `GET/PUT /api/mcp/config` | Manage MCP server configurations |
 | `GET/PUT /api/skills` | List and manage skills |
@@ -201,6 +205,11 @@ make dev  # Starts LangGraph + Gateway + Frontend + Nginx
 Access at: http://localhost:2026
 
 When no `config.yaml` exists, Nion boots with Config Center defaults and stores runtime config in SQLite instead of failing startup.
+
+Runtime/workdir semantics:
+- app workspace root: `~/.nion-data/workspace`
+- thread sandbox workdir: `~/.nion-data/threads/{thread_id}/user-data/workdir`
+- web `host` mode is valid and can be enabled without pre-binding a host directory
 
 **Backend Only** (from backend directory):
 

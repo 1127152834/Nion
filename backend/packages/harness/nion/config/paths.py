@@ -16,6 +16,7 @@ class Paths:
         {base_dir}/
         ├── memory.json
         ├── USER.md          <-- global user profile (injected into all agents)
+        ├── workspace/       <-- single app workspace root
         ├── agents/
         │   └── {agent_name}/
         │       ├── config.yaml
@@ -24,15 +25,14 @@ class Paths:
         └── threads/
             └── {thread_id}/
                 └── user-data/         <-- mounted as /mnt/user-data/ inside sandbox
-                    ├── workspace/     <-- /mnt/user-data/workspace/
+                    ├── workdir/       <-- host sandbox workdir backing /mnt/user-data/workspace/
                     ├── uploads/       <-- /mnt/user-data/uploads/
                     └── outputs/       <-- /mnt/user-data/outputs/
 
     BaseDir resolution (in priority order):
         1. Constructor argument `base_dir`
         2. NION_HOME environment variable
-        3. Local dev fallback: cwd/.nion  (when cwd is the backend/ dir)
-        4. Default: $HOME/.nion
+        3. Default: $HOME/.nion-data
     """
 
     def __init__(self, base_dir: str | Path | None = None) -> None:
@@ -62,11 +62,12 @@ class Paths:
         if env_home := os.getenv("NION_HOME"):
             return Path(env_home).resolve()
 
-        cwd = Path.cwd()
-        if cwd.name == "backend" or (cwd / "pyproject.toml").exists():
-            return cwd / ".nion"
+        return Path.home() / ".nion-data"
 
-        return Path.home() / ".nion"
+    @property
+    def app_workspace_dir(self) -> Path:
+        """Single app-level workspace root."""
+        return self.base_dir / "workspace"
 
     @property
     def memory_file(self) -> Path:
@@ -108,11 +109,19 @@ class Paths:
 
     def sandbox_work_dir(self, thread_id: str) -> Path:
         """
-        Host path for the agent's workspace directory.
-        Host: `{base_dir}/threads/{thread_id}/user-data/workspace/`
+        Host path for the agent's sandbox workdir.
+        Host: `{base_dir}/threads/{thread_id}/user-data/workdir/`
         Sandbox: `/mnt/user-data/workspace/`
+
+        Backward compatibility:
+        - Older threads may still have `user-data/workspace/`. If the legacy path
+          exists but `workdir/` does not, return the legacy directory.
         """
-        return self.thread_dir(thread_id) / "user-data" / "workspace"
+        workdir = self.thread_dir(thread_id) / "user-data" / "workdir"
+        legacy = self.thread_dir(thread_id) / "user-data" / "workspace"
+        if legacy.exists() and not workdir.exists():
+            return legacy
+        return workdir
 
     def sandbox_uploads_dir(self, thread_id: str) -> Path:
         """
@@ -147,8 +156,20 @@ class Paths:
         The explicit chmod() call is necessary because Path.mkdir(mode=...) is
         subject to the process umask and may not yield the intended permissions.
         """
+        user_data = self.sandbox_user_data_dir(thread_id)
+        workdir = user_data / "workdir"
+        legacy = user_data / "workspace"
+
+        if legacy.exists() and not workdir.exists():
+            try:
+                legacy.rename(workdir)
+            except Exception:
+                workdir.mkdir(parents=True, exist_ok=True)
+        else:
+            workdir.mkdir(parents=True, exist_ok=True)
+            workdir.chmod(0o777)
+
         for d in [
-            self.sandbox_work_dir(thread_id),
             self.sandbox_uploads_dir(thread_id),
             self.sandbox_outputs_dir(thread_id),
         ]:
@@ -181,7 +202,23 @@ class Paths:
 
         relative = stripped[len(prefix) :].lstrip("/")
         base = self.sandbox_user_data_dir(thread_id).resolve()
-        actual = (base / relative).resolve()
+
+        if relative == "workspace" or relative.startswith("workspace/"):
+            suffix = relative[len("workspace") :].lstrip("/")
+            actual = (
+                self.sandbox_work_dir(thread_id).resolve() / suffix
+                if suffix
+                else self.sandbox_work_dir(thread_id).resolve()
+            )
+        elif relative == "workdir" or relative.startswith("workdir/"):
+            suffix = relative[len("workdir") :].lstrip("/")
+            actual = (
+                self.sandbox_work_dir(thread_id).resolve() / suffix
+                if suffix
+                else self.sandbox_work_dir(thread_id).resolve()
+            )
+        else:
+            actual = (base / relative).resolve()
 
         try:
             actual.relative_to(base)

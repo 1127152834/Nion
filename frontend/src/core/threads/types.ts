@@ -19,4 +19,15 @@ export interface AgentThreadContext extends Record<string, unknown> {
   subagent_enabled: boolean;
   reasoning_effort?: "minimal" | "low" | "medium" | "high";
   agent_name?: string;
+  execution_mode?: "sandbox" | "host";
+  host_workdir?: string;
+  requested_skills?: string[];
+  selected_contexts?: Array<{ value: string; kind: "file" | "directory" }>;
+  selected_mcp_tools?: string[];
+  selected_cli_tools?: string[];
+  implicit_mentions?: Array<{
+    kind: "context" | "skill" | "mcp" | "cli";
+    value: string;
+    mention: string;
+  }>;
 }

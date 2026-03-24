@@ -10,12 +10,11 @@ import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
 import { getAPIClient } from "../api";
 import { useI18n } from "../i18n/hooks";
 import type { FileInMessage } from "../messages/utils";
-import type { LocalSettings } from "../settings";
 import { useUpdateSubtask } from "../tasks/context";
 import type { UploadedFileInfo } from "../uploads";
 import { uploadFiles } from "../uploads";
 
-import type { AgentThread, AgentThreadState } from "./types";
+import type { AgentThread, AgentThreadContext, AgentThreadState } from "./types";
 
 export type ToolEndEvent = {
   name: string;
@@ -24,7 +23,13 @@ export type ToolEndEvent = {
 
 export type ThreadStreamOptions = {
   threadId?: string | null | undefined;
-  context: LocalSettings["context"];
+  context: Omit<
+    AgentThreadContext,
+    "thread_id" | "is_plan_mode" | "thinking_enabled" | "subagent_enabled"
+  > & {
+    mode: "flash" | "thinking" | "pro" | "ultra" | undefined;
+    reasoning_effort?: "minimal" | "low" | "medium" | "high";
+  };
   isMock?: boolean;
   onStart?: (threadId: string) => void;
   onFinish?: (state: AgentThreadState) => void;
@@ -343,6 +348,19 @@ export function useThreadStream({
           }),
         );
 
+        const shortcutSelections = message.shortcutSelections;
+        const implicitMentions = message.implicitMentions;
+        const messageAdditionalKwargs: Record<string, unknown> = {};
+        if (filesForSubmit.length > 0) {
+          messageAdditionalKwargs.files = filesForSubmit;
+        }
+        if (shortcutSelections) {
+          messageAdditionalKwargs.shortcut_selections = shortcutSelections;
+        }
+        if (implicitMentions && implicitMentions.length > 0) {
+          messageAdditionalKwargs.implicit_mentions = implicitMentions;
+        }
+
         await thread.submit(
           {
             messages: [
@@ -354,8 +372,7 @@ export function useThreadStream({
                     text,
                   },
                 ],
-                additional_kwargs:
-                  filesForSubmit.length > 0 ? { files: filesForSubmit } : {},
+                additional_kwargs: messageAdditionalKwargs,
               },
             ],
           },
@@ -369,6 +386,11 @@ export function useThreadStream({
             context: {
               ...extraContext,
               ...context,
+              requested_skills: shortcutSelections?.skills ?? [],
+              selected_contexts: shortcutSelections?.contexts ?? [],
+              selected_mcp_tools: shortcutSelections?.mcpTools ?? [],
+              selected_cli_tools: shortcutSelections?.cliTools ?? [],
+              implicit_mentions: implicitMentions ?? [],
               thinking_enabled: context.mode !== "flash",
               is_plan_mode: context.mode === "pro" || context.mode === "ultra",
               subagent_enabled: context.mode === "ultra",

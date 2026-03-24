@@ -171,6 +171,11 @@ Middlewares execute in strict order in `packages/harness/nion/agents/lead_agent/
 
 Runtime configuration is now loaded from the Config Center SQLite store by default. The store lives at `config.db` under the resolved app data root and is versioned for optimistic writes.
 
+Paths / runtime semantics now distinguish:
+- app workspace root: `~/.nion-data/workspace`
+- thread sandbox workdir: `~/.nion-data/threads/{thread_id}/user-data/workdir`
+- optional thread host directory binding through `runtime_profile.json`
+
 Config DB priority:
 1. `NION_CONFIG_DB_PATH`
 2. `NION_HOME` + `config.db`
@@ -205,6 +210,9 @@ FastAPI application on port 8001 with health check at `GET /health`.
 | Router | Endpoints |
 |--------|-----------|
 | **Config** (`/api/config`) | `GET /` - read config; `GET /schema` - section metadata; `POST /validate` - validate payload; `PUT /` - update config; `GET /runtime-status` - runtime/store status |
+| **Runtime Profile** (`/api/threads/{id}/runtime-profile`) | thread-scoped `sandbox` / `host` execution mode and optional host workdir binding |
+| **Files** (`/api/threads/{id}/files`) | workdir root metadata and tree listing for the current thread |
+| **CLI** (`/api/cli/catalog`) | runtime-visible CLI catalog for composer/runtime surfaces |
 | **Models** (`/api/models`) | `GET /` - list models; `GET /{name}` - model details |
 | **MCP** (`/api/mcp`) | `GET /config` - get config; `PUT /config` - update config (saves to extensions_config.json) |
 | **Skills** (`/api/skills`) | `GET /` - list skills; `GET /{name}` - details; `PUT /{name}` - update enabled; `POST /install` - install from .skill archive (accepts standard optional frontmatter like `version`, `author`, `compatibility`) |

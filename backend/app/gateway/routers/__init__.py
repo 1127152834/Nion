@@ -1,3 +1,3 @@
-from . import artifacts, config, mcp, models, skills, suggestions, uploads
+from . import artifacts, cli, config, files, mcp, models, runtime_profile, skills, suggestions, uploads
 
-__all__ = ["artifacts", "config", "mcp", "models", "skills", "suggestions", "uploads"]
+__all__ = ["artifacts", "cli", "config", "files", "mcp", "models", "runtime_profile", "skills", "suggestions", "uploads"]

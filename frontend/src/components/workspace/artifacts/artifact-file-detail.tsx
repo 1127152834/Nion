@@ -48,10 +48,12 @@ export function ArtifactFileDetail({
   className,
   filepath: filepathFromProps,
   threadId,
+  files,
 }: {
   className?: string;
   filepath: string;
   threadId: string;
+  files?: string[];
 }) {
   const { t } = useI18n();
   const { artifacts, setOpen, select } = useArtifacts();
@@ -137,7 +139,7 @@ export function ArtifactFileDetail({
                 </SelectTrigger>
                 <SelectContent className="select-none">
                   <SelectGroup>
-                    {(artifacts ?? []).map((filepath) => (
+                    {(files ?? artifacts ?? []).map((filepath) => (
                       <SelectItem key={filepath} value={filepath}>
                         {getFileName(filepath)}
                       </SelectItem>

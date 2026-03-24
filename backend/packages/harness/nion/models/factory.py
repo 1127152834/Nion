@@ -2,7 +2,11 @@ import logging
 
 from langchain.chat_models import BaseChatModel
 
-from nion.config import get_app_config, get_tracing_config, is_tracing_enabled
+from nion.config import (
+    ensure_latest_app_config,
+    get_tracing_config,
+    is_tracing_enabled,
+)
 from nion.reflection import resolve_class
 
 logger = logging.getLogger(__name__)
@@ -17,7 +21,7 @@ def create_chat_model(name: str | None = None, thinking_enabled: bool = False, *
     Returns:
         A chat model instance.
     """
-    config = get_app_config()
+    config = ensure_latest_app_config(process_name="langgraph")
     if name is None:
         name = config.models[0].name
     model_config = config.get_model_config(name)

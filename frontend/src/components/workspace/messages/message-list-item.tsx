@@ -23,6 +23,7 @@ import { useI18n } from "@/core/i18n/hooks";
 import {
   extractContentFromMessage,
   extractReasoningContentFromMessage,
+  extractShortcutSelectionsFromMessage,
   parseUploadedFiles,
   stripUploadedFilesTag,
   type FileInMessage,
@@ -154,6 +155,33 @@ function MessageContent_({
     files && files.length > 0 && thread_id ? (
       <RichFilesList files={files} threadId={thread_id} />
     ) : null;
+  const shortcutSelections = extractShortcutSelectionsFromMessage(message);
+
+  const shortcutBadges =
+    isHuman && shortcutSelections ? (
+      <div className="flex flex-wrap items-center gap-1.5">
+        {shortcutSelections.contexts.map((context) => (
+          <Badge key={`context:${context.value}`} variant="secondary">
+            @{context.value}
+          </Badge>
+        ))}
+        {shortcutSelections.skills.map((skill) => (
+          <Badge key={`skill:${skill}`} variant="secondary">
+            /{skill}
+          </Badge>
+        ))}
+        {shortcutSelections.mcpTools.map((tool) => (
+          <Badge key={`mcp:${tool}`} variant="secondary">
+            MCP {tool}
+          </Badge>
+        ))}
+        {shortcutSelections.cliTools.map((tool) => (
+          <Badge key={`cli:${tool}`} variant="secondary">
+            CLI {tool}
+          </Badge>
+        ))}
+      </div>
+    ) : null;
 
   // Uploading state: mock AI message shown while files upload
   if (message.additional_kwargs?.element === "task") {
@@ -195,6 +223,7 @@ function MessageContent_({
     ) : null;
     return (
       <div className={cn("ml-auto flex flex-col gap-2", className)}>
+        {shortcutBadges}
         {filesList}
         {messageResponse && (
           <AIElementMessageContent className="w-fit">
