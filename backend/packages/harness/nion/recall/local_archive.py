@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import re
 import sqlite3
 from pathlib import Path
 
@@ -93,7 +94,11 @@ class LocalRecallArchive:
         limit: int,
         thread_id: str | None = None,
     ) -> list[RecallSearchResult]:
-        params: list[object] = [query]
+        normalized_query = self._normalize_query(query)
+        if not normalized_query:
+            return []
+
+        params: list[object] = [normalized_query]
         where = ["recall_fts MATCH ?"]
         if thread_id is not None:
             where.append("recall_turns.thread_id = ?")
@@ -113,3 +118,9 @@ class LocalRecallArchive:
         with self._connect() as conn:
             rows = conn.execute(sql, tuple(params)).fetchall()
         return [RecallSearchResult(**dict(row)) for row in rows]
+
+    def _normalize_query(self, query: str) -> str:
+        tokens = [token for token in re.findall(r"[A-Za-z0-9_]+", query.lower()) if len(token) >= 2]
+        if not tokens:
+            return ""
+        return " AND ".join(dict.fromkeys(tokens))
