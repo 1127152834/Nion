@@ -1,8 +1,7 @@
-import type { BaseStream } from "@langchain/langgraph-sdk";
 import { useEffect } from "react";
 
 import { useI18n } from "@/core/i18n/hooks";
-import type { AgentThreadState } from "@/core/threads";
+import type { AgentThreadState, BaseStream } from "@/core/threads";
 
 import { useThreadChat } from "./chats";
 import { FlipDisplay } from "./flip-display";

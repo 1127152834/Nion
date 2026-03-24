@@ -1,4 +1,4 @@
-import type { AIMessage, Message } from "@langchain/langgraph-sdk";
+import type { AIMessage, Message } from "../threads";
 
 interface GenericMessageGroup<T = string> {
   type: T;
@@ -131,7 +131,9 @@ export function extractTextFromMessage(message: Message) {
   }
   if (Array.isArray(message.content)) {
     return message.content
-      .map((content) => (content.type === "text" ? content.text : ""))
+      .map((content) =>
+        content.type === "text" && "text" in content ? content.text : "",
+      )
       .join("\n")
       .trim();
   }
@@ -172,15 +174,14 @@ export function extractContentFromMessage(message: Message) {
   if (Array.isArray(message.content)) {
     return message.content
       .map((content) => {
-        switch (content.type) {
-          case "text":
-            return content.text;
-          case "image_url":
-            const imageURL = extractURLFromImageURLContent(content.image_url);
-            return `![image](${imageURL})`;
-          default:
-            return "";
+        if (content.type === "text" && "text" in content) {
+          return content.text;
         }
+        if (content.type === "image_url" && "image_url" in content) {
+          const imageURL = extractURLFromImageURLContent(content.image_url);
+          return `![image](${imageURL})`;
+        }
+        return "";
       })
       .join("\n")
       .trim();
@@ -293,7 +294,10 @@ export function extractPresentFilesFromMessage(message: Message) {
   return files;
 }
 
-export function hasSubagent(message: AIMessage) {
+export function hasSubagent(message: Message) {
+  if (message.type !== "ai") {
+    return false;
+  }
   for (const toolCall of message.tool_calls ?? []) {
     if (toolCall.name === "task") {
       return true;

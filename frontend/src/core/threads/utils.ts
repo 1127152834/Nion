@@ -1,6 +1,5 @@
-import type { Message } from "@langchain/langgraph-sdk";
-
 import type { AgentThread } from "./types";
+import type { Message } from "./types";
 
 export function pathOfThread(threadId: string) {
   return `/workspace/chats/${threadId}`;
@@ -15,7 +14,7 @@ export function textOfMessage(message: Message) {
     return message.content;
   } else if (Array.isArray(message.content)) {
     for (const part of message.content) {
-      if (part.type === "text") {
+      if (part.type === "text" && "text" in part) {
         return part.text;
       }
     }

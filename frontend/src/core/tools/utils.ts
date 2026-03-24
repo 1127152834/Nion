@@ -1,8 +1,8 @@
 import type { ToolCall } from "@langchain/core/messages";
-import type { AIMessage } from "@langchain/langgraph-sdk";
 
 import type { Translations } from "../i18n";
 import { hasToolCalls } from "../messages/utils";
+import type { AIMessage } from "../threads";
 
 export function explainLastToolCall(message: AIMessage, t: Translations) {
   if (hasToolCalls(message)) {

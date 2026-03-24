@@ -1,20 +1,27 @@
-import type { AIMessage, Message } from "@langchain/langgraph-sdk";
-import type { ThreadsClient } from "@langchain/langgraph-sdk/client";
-import { useStream } from "@langchain/langgraph-sdk/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
 
 import { getAPIClient } from "../api";
+import type { DesktopThreadSearchParams } from "../api/desktop-client";
 import { useI18n } from "../i18n/hooks";
 import type { FileInMessage } from "../messages/utils";
 import { useUpdateSubtask } from "../tasks/context";
 import type { UploadedFileInfo } from "../uploads";
 import { uploadFiles } from "../uploads";
 
-import type { AgentThread, AgentThreadContext, AgentThreadState } from "./types";
+import type {
+  AIMessage,
+  AgentThread,
+  AgentThreadContext,
+  AgentThreadState,
+  BaseStream,
+  Message,
+  ThreadSubmitOptions,
+  ThreadSubmitPayload,
+} from "./types";
 
 export type ToolEndEvent = {
   name: string;
@@ -35,6 +42,41 @@ export type ThreadStreamOptions = {
   onFinish?: (state: AgentThreadState) => void;
   onToolEnd?: (event: ToolEndEvent) => void;
 };
+
+const EMPTY_THREAD_STATE: AgentThreadState = {
+  title: "Untitled",
+  messages: [],
+  artifacts: [],
+  todos: [],
+};
+
+function mergeMessages(existing: Message[], incoming: Message[]): Message[] {
+  if (incoming.length === 0) {
+    return existing;
+  }
+
+  const merged = [...existing];
+  const indexById = new Map<string, number>();
+
+  for (const [index, message] of merged.entries()) {
+    if (message.id) {
+      indexById.set(message.id, index);
+    }
+  }
+
+  for (const message of incoming) {
+    if (message.id && indexById.has(message.id)) {
+      merged[indexById.get(message.id)!] = message;
+      continue;
+    }
+    if (message.id) {
+      indexById.set(message.id, merged.length);
+    }
+    merged.push(message);
+  }
+
+  return merged;
+}
 
 function getStreamErrorMessage(error: unknown): string {
   if (typeof error === "string" && error.trim()) {
@@ -113,78 +155,191 @@ export function useThreadStream({
 
   const queryClient = useQueryClient();
   const updateSubtask = useUpdateSubtask();
+  const apiClient = useMemo(() => getAPIClient(isMock), [isMock]);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [values, setValues] = useState<AgentThreadState>(EMPTY_THREAD_STATE);
+  const [error, setError] = useState<unknown>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isThreadLoading, setIsThreadLoading] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const valuesRef = useRef(values);
+  const messagesRef = useRef(messages);
 
-  const thread = useStream<AgentThreadState>({
-    client: getAPIClient(isMock),
-    assistantId: "lead_agent",
-    threadId: onStreamThreadId,
-    reconnectOnMount: true,
-    fetchStateHistory: { limit: 1 },
-    onCreated(meta) {
-      handleStreamStart(meta.thread_id);
-      setOnStreamThreadId(meta.thread_id);
-    },
-    onLangChainEvent(event) {
-      if (event.event === "on_tool_end") {
-        listeners.current.onToolEnd?.({
-          name: event.name,
-          data: event.data,
-        });
-      }
-    },
-    onUpdateEvent(data) {
-      const updates: Array<Partial<AgentThreadState> | null> = Object.values(
-        data || {},
-      );
-      for (const update of updates) {
-        if (update && "title" in update && update.title) {
-          void queryClient.setQueriesData(
-            {
-              queryKey: ["threads", "search"],
-              exact: false,
-            },
-            (oldData: Array<AgentThread> | undefined) => {
-              return oldData?.map((t) => {
-                if (t.thread_id === threadIdRef.current) {
-                  return {
-                    ...t,
-                    values: {
-                      ...t.values,
-                      title: update.title,
-                    },
-                  };
-                }
-                return t;
-              });
-            },
-          );
+  useEffect(() => {
+    valuesRef.current = values;
+  }, [values]);
+
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
+
+  useEffect(() => {
+    const currentThreadId = onStreamThreadId;
+    if (!currentThreadId) {
+      setMessages([]);
+      setValues(EMPTY_THREAD_STATE);
+      setError(null);
+      setIsThreadLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    setIsThreadLoading(true);
+    void apiClient
+      .getState<AgentThreadState>(currentThreadId)
+      .then((state) => {
+        if (cancelled) {
+          return;
         }
-      }
-    },
-    onCustomEvent(event: unknown) {
-      if (
-        typeof event === "object" &&
-        event !== null &&
-        "type" in event &&
-        event.type === "task_running"
-      ) {
-        const e = event as {
-          type: "task_running";
-          task_id: string;
-          message: AIMessage;
+        const incomingMessages = state.values?.messages ?? [];
+        const mergedMessages = mergeMessages(messagesRef.current, incomingMessages);
+        const nextValues = {
+          ...EMPTY_THREAD_STATE,
+          ...(state.values ?? {}),
+          messages: mergedMessages,
         };
-        updateSubtask({ id: e.task_id, latestMessage: e.message });
+        setValues(nextValues);
+        setMessages(mergedMessages);
+      })
+      .catch((loadError) => {
+        if (!cancelled) {
+          setError(loadError);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsThreadLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [apiClient, onStreamThreadId]);
+
+  const stop = useCallback(async () => {
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = null;
+    setIsLoading(false);
+  }, []);
+
+  const submit = useCallback(
+    async (payload: ThreadSubmitPayload, options: ThreadSubmitOptions) => {
+      const abortController = new AbortController();
+      abortControllerRef.current = abortController;
+      setError(null);
+      setIsLoading(true);
+
+      try {
+        await apiClient.streamRun(options.threadId, payload, options, {
+          signal: abortController.signal,
+          onCreated: (createdThreadId) => {
+            handleStreamStart(createdThreadId);
+            setOnStreamThreadId(createdThreadId);
+          },
+          onEvent: (eventType, eventData) => {
+            if (eventType === "messages-tuple") {
+              const nextMessage = eventData as Message;
+              setMessages((current) => mergeMessages(current, [nextMessage]));
+              if (nextMessage.type === "tool" && nextMessage.name) {
+                listeners.current.onToolEnd?.({
+                  name: nextMessage.name,
+                  data: nextMessage,
+                });
+              }
+              if (
+                nextMessage.type === "ai" &&
+                nextMessage.tool_calls?.some((toolCall) => toolCall.name === "task")
+              ) {
+                for (const toolCall of nextMessage.tool_calls ?? []) {
+                  if (toolCall.name !== "task" || !toolCall.id) {
+                    continue;
+                  }
+                  updateSubtask({
+                    id: toolCall.id,
+                    latestMessage: nextMessage as AIMessage,
+                  });
+                }
+              }
+            }
+
+            if (eventType === "values") {
+              const snapshot = eventData as Partial<AgentThreadState>;
+              const snapshotMessages = Array.isArray(snapshot.messages)
+                ? (snapshot.messages as Message[])
+                : [];
+              const mergedMessages = mergeMessages(messagesRef.current, snapshotMessages);
+              setMessages(mergedMessages);
+              setValues((current) => ({
+                ...current,
+                ...snapshot,
+                messages: mergedMessages,
+              }));
+
+              if (snapshot.title) {
+                void queryClient.setQueriesData(
+                  {
+                    queryKey: ["threads", "search"],
+                    exact: false,
+                  },
+                  (oldData: Array<AgentThread> | undefined) =>
+                    oldData?.map((thread) =>
+                      thread.thread_id === threadIdRef.current
+                        ? {
+                            ...thread,
+                            values: {
+                              ...thread.values,
+                              title: snapshot.title as string,
+                            },
+                          }
+                        : thread,
+                    ),
+                );
+              }
+            }
+
+            if (eventType === "end") {
+              listeners.current.onFinish?.({
+                ...valuesRef.current,
+                messages: messagesRef.current,
+              });
+            }
+          },
+        });
+      } catch (streamError) {
+        if (!abortController.signal.aborted) {
+          setError(streamError);
+          setOptimisticMessages([]);
+          toast.error(getStreamErrorMessage(streamError));
+        }
+      } finally {
+        if (abortControllerRef.current === abortController) {
+          abortControllerRef.current = null;
+        }
+        setIsLoading(false);
+        void queryClient.invalidateQueries({ queryKey: ["threads", "search"] });
       }
     },
-    onError(error) {
-      setOptimisticMessages([]);
-      toast.error(getStreamErrorMessage(error));
-    },
-    onFinish(state) {
-      listeners.current.onFinish?.(state.values);
-      void queryClient.invalidateQueries({ queryKey: ["threads", "search"] });
-    },
-  });
+    [apiClient, handleStreamStart, queryClient, updateSubtask],
+  );
+
+  const thread: BaseStream<AgentThreadState> = useMemo(
+    () => ({
+      threadId: onStreamThreadId ?? null,
+      messages,
+      values: {
+        ...values,
+        messages,
+      },
+      error,
+      isLoading,
+      isThreadLoading,
+      stop,
+      submit,
+    }),
+    [error, isLoading, isThreadLoading, messages, onStreamThreadId, stop, submit, values],
+  );
 
   // Optimistic messages shown before the server stream responds
   const [optimisticMessages, setOptimisticMessages] = useState<Message[]>([]);
@@ -432,7 +587,7 @@ export function useThreadStream({
 }
 
 export function useThreads(
-  params: Parameters<ThreadsClient["search"]>[0] = {
+  params: DesktopThreadSearchParams = {
     limit: 50,
     sortBy: "updated_at",
     sortOrder: "desc",
@@ -450,7 +605,7 @@ export function useThreads(
       // Preserve prior semantics: if a non-positive limit is explicitly provided,
       // delegate to a single search call with the original parameters.
       if (maxResults !== undefined && maxResults <= 0) {
-        const response = await apiClient.threads.search<AgentThreadState>(params);
+        const response = await apiClient.search<AgentThreadState>(params);
         return response as AgentThread[];
       }
 
@@ -476,7 +631,7 @@ export function useThreads(
           break;
         }
 
-        const response = (await apiClient.threads.search<AgentThreadState>({
+        const response = (await apiClient.search<AgentThreadState>({
           ...params,
           limit: currentLimit,
           offset,
@@ -502,7 +657,7 @@ export function useDeleteThread() {
   const apiClient = getAPIClient();
   return useMutation({
     mutationFn: async ({ threadId }: { threadId: string }) => {
-      await apiClient.threads.delete(threadId);
+      await apiClient.deleteThread(threadId);
     },
     onSuccess(_, { threadId }) {
       queryClient.setQueriesData(
@@ -529,7 +684,7 @@ export function useRenameThread() {
       threadId: string;
       title: string;
     }) => {
-      await apiClient.threads.updateState(threadId, {
+      await apiClient.updateState(threadId, {
         values: { title },
       });
     },

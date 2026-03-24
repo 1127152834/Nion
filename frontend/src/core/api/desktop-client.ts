@@ -1,0 +1,325 @@
+"use client";
+
+import type {
+  AgentThreadState,
+  ThreadSubmitOptions,
+  ThreadSubmitPayload,
+} from "../threads/types";
+
+export type DesktopThreadSearchParams = {
+  limit?: number;
+  offset?: number;
+  sortBy?: "updated_at" | "created_at";
+  sortOrder?: "asc" | "desc";
+  select?: string[];
+};
+
+type StreamHandlers = {
+  signal?: AbortSignal;
+  onCreated?: (threadId: string) => void;
+  onEvent?: (event: string, data: any) => void;
+};
+
+export type DesktopThreadRecord<TState extends Record<string, unknown> = AgentThreadState> = {
+  thread_id: string;
+  created_at?: string;
+  updated_at?: string;
+  values: TState;
+};
+
+export type DesktopThreadClient = {
+  search<TState extends Record<string, unknown> = AgentThreadState>(
+    params: DesktopThreadSearchParams,
+  ): Promise<Array<DesktopThreadRecord<TState>>>;
+  getState<TState extends Record<string, unknown> = AgentThreadState>(
+    threadId: string,
+  ): Promise<DesktopThreadRecord<TState>>;
+  updateState(
+    threadId: string,
+    payload: { values: Record<string, unknown> },
+  ): Promise<DesktopThreadRecord>;
+  deleteThread(threadId: string): Promise<void>;
+  streamRun(
+    threadId: string,
+    payload: ThreadSubmitPayload,
+    options: ThreadSubmitOptions,
+    handlers?: StreamHandlers,
+  ): Promise<void>;
+};
+
+function getDesktopBackendBaseURL(): string {
+  if (
+    typeof process !== "undefined" &&
+    typeof process.env?.NEXT_PUBLIC_BACKEND_BASE_URL === "string" &&
+    process.env.NEXT_PUBLIC_BACKEND_BASE_URL.length > 0
+  ) {
+    return process.env.NEXT_PUBLIC_BACKEND_BASE_URL;
+  }
+
+  if (
+    typeof window !== "undefined" &&
+    typeof (window as Window & { __NION_BACKEND_BASE_URL__?: string })
+      .__NION_BACKEND_BASE_URL__ === "string" &&
+    (window as Window & { __NION_BACKEND_BASE_URL__?: string })
+      .__NION_BACKEND_BASE_URL__!.length > 0
+  ) {
+    return (window as Window & { __NION_BACKEND_BASE_URL__?: string })
+      .__NION_BACKEND_BASE_URL__!;
+  }
+
+  return "";
+}
+
+let runtimeInfoBaseUrlPromise: Promise<string> | null = null;
+
+async function getDesktopBackendBaseURLAsync(): Promise<string> {
+  const configured = getDesktopBackendBaseURL();
+  if (configured) {
+    return configured;
+  }
+
+  const desktopBridge =
+    typeof window !== "undefined"
+      ? (window as Window & {
+          nionDesktop?: {
+            getRuntimeInfo: () => Promise<{ baseUrl?: string | null }>;
+          };
+        }).nionDesktop
+      : undefined;
+
+  if (desktopBridge?.getRuntimeInfo) {
+    runtimeInfoBaseUrlPromise ??= desktopBridge
+      .getRuntimeInfo()
+      .then((runtimeInfo) => runtimeInfo.baseUrl ?? "");
+    return runtimeInfoBaseUrlPromise;
+  }
+
+  return "";
+}
+
+function getThreadsBaseURL(isMock?: boolean): string {
+  if (isMock) {
+    if (typeof window !== "undefined") {
+      return `${window.location.origin}/mock/api/threads`;
+    }
+    return "http://localhost:3000/mock/api/threads";
+  }
+
+  const backendBaseUrl = getDesktopBackendBaseURL();
+  return backendBaseUrl ? `${backendBaseUrl}/api/threads` : "/api/threads";
+}
+
+async function resolveThreadsBaseURL(
+  isMock: boolean,
+  getBaseURL: ((isMock?: boolean) => string | Promise<string>) | undefined,
+): Promise<string> {
+  if (getBaseURL) {
+    return await getBaseURL(isMock);
+  }
+
+  if (isMock) {
+    return getThreadsBaseURL(true);
+  }
+
+  const backendBaseUrl = await getDesktopBackendBaseURLAsync();
+  return backendBaseUrl ? `${backendBaseUrl}/api/threads` : "/api/threads";
+}
+
+async function requestJSON<T>(
+  url: string,
+  init?: RequestInit,
+): Promise<T> {
+  const response = await fetch(url, {
+    ...init,
+    headers: {
+      "Content-Type": "application/json",
+      ...(init?.headers ?? {}),
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Request failed with status ${response.status}`);
+  }
+
+  return (await response.json()) as T;
+}
+
+function normalizeThreadRecord<TState extends Record<string, unknown>>(
+  record: Partial<DesktopThreadRecord<TState>> & Record<string, unknown>,
+  threadId?: string,
+): DesktopThreadRecord<TState> {
+  const values = (record.values ?? {}) as TState;
+
+  return {
+    thread_id: (record.thread_id as string | undefined) ?? threadId ?? "",
+    created_at: record.created_at as string | undefined,
+    updated_at: record.updated_at as string | undefined,
+    values,
+  };
+}
+
+function parseSSEEvent(part: string): { event: string; data: string } {
+  const lines = part.split("\n");
+  const event = lines
+    .find((line) => line.startsWith("event:"))
+    ?.slice("event:".length)
+    .trim();
+  const data = lines
+    .filter((line) => line.startsWith("data:"))
+    .map((line) => line.slice("data:".length).trim())
+    .join("\n");
+
+  return {
+    event: event ?? "message",
+    data,
+  };
+}
+
+async function consumeSSE(
+  response: Response,
+  handlers: StreamHandlers | undefined,
+): Promise<void> {
+  if (!response.body) {
+    throw new Error("Streaming response body is missing");
+  }
+
+  const reader = response.body
+    .pipeThrough(new TextDecoderStream())
+    .getReader();
+  let buffer = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) {
+      break;
+    }
+
+    buffer += value;
+    let separatorIndex = buffer.indexOf("\n\n");
+
+    while (separatorIndex !== -1) {
+      const rawEvent = buffer.slice(0, separatorIndex).trim();
+      buffer = buffer.slice(separatorIndex + 2);
+
+      if (!rawEvent) {
+        separatorIndex = buffer.indexOf("\n\n");
+        continue;
+      }
+
+      const event = parseSSEEvent(rawEvent);
+      const parsed = event.data ? JSON.parse(event.data) : {};
+      if (event.event === "created" && typeof parsed.thread_id === "string") {
+        handlers?.onCreated?.(parsed.thread_id);
+      }
+      handlers?.onEvent?.(event.event, parsed);
+
+      separatorIndex = buffer.indexOf("\n\n");
+    }
+  }
+}
+
+async function getMockState<TState extends Record<string, unknown>>(
+  threadId: string,
+): Promise<DesktopThreadRecord<TState>> {
+  const baseUrl = getThreadsBaseURL(true);
+  const data = await requestJSON<any>(`${baseUrl}/${threadId}/history`, {
+    method: "POST",
+  });
+
+  if (Array.isArray(data)) {
+    return normalizeThreadRecord<TState>(data[0] ?? {}, threadId);
+  }
+
+  return normalizeThreadRecord<TState>(data ?? {}, threadId);
+}
+
+export function createDesktopThreadClient(
+  options:
+    | {
+        getBaseURL?: (isMock?: boolean) => string | Promise<string>;
+        isMock?: boolean;
+      }
+    | undefined = undefined,
+): DesktopThreadClient {
+  const isMock = options?.isMock ?? false;
+  return {
+    async search<TState extends Record<string, unknown> = AgentThreadState>(
+      params: DesktopThreadSearchParams,
+    ) {
+      const baseUrl = await resolveThreadsBaseURL(isMock, options?.getBaseURL);
+      const result = await requestJSON<Array<Record<string, unknown>>>(
+        `${baseUrl}/search`,
+        {
+          method: "POST",
+          body: JSON.stringify(params),
+        },
+      );
+
+      return result.map((item) => normalizeThreadRecord<TState>(item as any));
+    },
+
+    async getState<TState extends Record<string, unknown> = AgentThreadState>(
+      threadId: string,
+    ) {
+      if (isMock) {
+        return getMockState<TState>(threadId);
+      }
+
+      const baseUrl = await resolveThreadsBaseURL(false, options?.getBaseURL);
+      const result = await requestJSON<Record<string, unknown>>(
+        `${baseUrl}/${threadId}/state`,
+      );
+      return normalizeThreadRecord<TState>(result as any, threadId);
+    },
+
+    async updateState(threadId: string, payload: { values: Record<string, unknown> }) {
+      const baseUrl = await resolveThreadsBaseURL(false, options?.getBaseURL);
+      const result = await requestJSON<Record<string, unknown>>(
+        `${baseUrl}/${threadId}/state`,
+        {
+          method: "PATCH",
+          body: JSON.stringify(payload),
+        },
+      );
+      return normalizeThreadRecord(result as any, threadId);
+    },
+
+    async deleteThread(threadId: string) {
+      const baseUrl = await resolveThreadsBaseURL(false, options?.getBaseURL);
+      const response = await fetch(`${baseUrl}/${threadId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error(`Delete failed with status ${response.status}`);
+      }
+    },
+
+    async streamRun(
+      threadId: string,
+      payload: ThreadSubmitPayload,
+      submitOptions: ThreadSubmitOptions,
+      handlers?: StreamHandlers,
+    ) {
+      const baseUrl = await resolveThreadsBaseURL(false, options?.getBaseURL);
+      const response = await fetch(`${baseUrl}/${threadId}/stream`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ...payload,
+          context: submitOptions.context ?? {},
+          config: submitOptions.config ?? {},
+        }),
+        signal: handlers?.signal,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Stream failed with status ${response.status}`);
+      }
+
+      await consumeSSE(response, handlers);
+    },
+  };
+}

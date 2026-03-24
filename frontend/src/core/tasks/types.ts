@@ -1,4 +1,4 @@
-import type { AIMessage } from "@langchain/langgraph-sdk";
+import type { AIMessage } from "../threads";
 
 export interface Subtask {
   id: string;

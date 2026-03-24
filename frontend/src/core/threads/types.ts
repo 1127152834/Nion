@@ -1,12 +1,71 @@
-import type { Message, Thread } from "@langchain/langgraph-sdk";
-
 import type { Todo } from "../todos";
+
+export type ToolCall = {
+  id?: string;
+  name: string;
+  args: Record<string, any>;
+};
+
+export type MessageContentPart =
+  | { type: "text"; text: string }
+  | { type: "image_url"; image_url: string | { url: string } }
+  | { type: "thinking"; thinking?: string; text?: string }
+  | Record<string, any>;
+
+export interface Message {
+  type: "human" | "ai" | "tool";
+  id?: string;
+  content: string | MessageContentPart[];
+  additional_kwargs?: Record<string, any>;
+  tool_calls?: ToolCall[];
+  name?: string;
+  tool_call_id?: string;
+}
+
+export interface AIMessage extends Message {
+  type: "ai";
+  tool_calls?: ToolCall[];
+}
 
 export interface AgentThreadState extends Record<string, unknown> {
   title: string;
   messages: Message[];
   artifacts: string[];
   todos?: Todo[];
+}
+
+export interface Thread<TState extends Record<string, unknown>> {
+  thread_id: string;
+  created_at?: string;
+  updated_at?: string;
+  values: TState;
+}
+
+export interface ThreadSubmitPayload {
+  messages: Array<{
+    type: "human";
+    content: Array<{ type: "text"; text: string }> | string;
+    additional_kwargs?: Record<string, unknown>;
+  }>;
+}
+
+export interface ThreadSubmitOptions {
+  threadId: string;
+  streamSubgraphs?: boolean;
+  streamResumable?: boolean;
+  config?: Record<string, unknown>;
+  context?: Record<string, unknown>;
+}
+
+export interface BaseStream<TState extends Record<string, unknown>> {
+  threadId?: string | null;
+  messages: Message[];
+  values: TState;
+  error: unknown;
+  isLoading: boolean;
+  isThreadLoading: boolean;
+  stop(): Promise<void>;
+  submit(payload: ThreadSubmitPayload, options: ThreadSubmitOptions): Promise<void>;
 }
 
 export interface AgentThread extends Thread<AgentThreadState> {}

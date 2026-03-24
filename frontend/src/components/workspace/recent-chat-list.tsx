@@ -132,7 +132,7 @@ export function RecentChatList() {
     async (thread: AgentThread, format: "markdown" | "json") => {
       try {
         const apiClient = getAPIClient();
-        const state = await apiClient.threads.getState<AgentThreadState>(
+        const state = await apiClient.getState<AgentThreadState>(
           thread.thread_id,
         );
         const messages = state.values?.messages ?? [];

@@ -1,7 +1,6 @@
-import type { BaseStream } from "@langchain/langgraph-sdk/react";
 import { createContext, useContext } from "react";
 
-import type { AgentThreadState } from "@/core/threads";
+import type { AgentThreadState, BaseStream } from "@/core/threads";
 
 export interface ThreadContextType {
   thread: BaseStream<AgentThreadState>;

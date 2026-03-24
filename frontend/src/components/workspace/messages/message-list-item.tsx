@@ -1,4 +1,3 @@
-import type { Message } from "@langchain/langgraph-sdk";
 import { FileIcon, Loader2Icon } from "lucide-react";
 import { useParams } from "next/navigation";
 import { memo, useMemo, type ImgHTMLAttributes } from "react";
@@ -30,6 +29,7 @@ import {
 } from "@/core/messages/utils";
 import { useRehypeSplitWordsIntoSpans } from "@/core/rehype";
 import { humanMessagePlugins } from "@/core/streamdown";
+import type { Message } from "@/core/threads";
 import { cn } from "@/lib/utils";
 
 import { CopyButton } from "../copy-button";

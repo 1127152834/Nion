@@ -1,4 +1,3 @@
-import type { Message } from "@langchain/langgraph-sdk";
 import {
   BookOpenTextIcon,
   ChevronUp,
@@ -29,6 +28,7 @@ import {
   findToolCallResult,
 } from "@/core/messages/utils";
 import { useRehypeSplitWordsIntoSpans } from "@/core/rehype";
+import type { Message } from "@/core/threads";
 import { extractTitleFromMarkdown } from "@/core/utils/markdown";
 import { env } from "@/env";
 import { cn } from "@/lib/utils";
