@@ -1,0 +1,100 @@
+browser-use open http://localhost:2026/workspace/chats/new
+browser-use state
+browser-use screenshot artifacts/e2e/settings/module-03/00-entry.png
+browser-use click 182
+browser-use state
+browser-use click 633
+browser-use state
+browser-use click 913
+browser-use state
+browser-use screenshot artifacts/e2e/settings/module-03/01-model-settings-open.png
+browser-use click 972
+browser-use state
+browser-use screenshot artifacts/e2e/settings/module-03/02-models-section.png
+browser-use click 1257
+browser-use state
+browser-use screenshot artifacts/e2e/settings/module-03/03-models-list.png
+browser-use click 1946
+browser-use state
+browser-use click 2005
+browser-use state
+browser-use click 2289
+browser-use state
+browser-use screenshot artifacts/e2e/settings/module-03/03-models-list.png
+browser-use click 2299
+browser-use state
+browser-use screenshot artifacts/e2e/settings/module-03/04-model-added-draft.png
+browser-use input 2360 "E2E Anthropic"
+browser-use input 2590 "claude-3-5-sonnet-latest"
+browser-use click 2315
+browser-use state
+browser-use screenshot artifacts/e2e/settings/module-03/05-model-saved.png
+browser-use click 2662
+browser-use click 2315
+browser-use click 2177
+browser-use state
+browser-use screenshot artifacts/e2e/settings/module-03/06-chat-updated-model.png
+browser-use open http://localhost:2026/workspace/chats/new
+browser-use state
+browser-use screenshot artifacts/e2e/settings/module-03/07-new-chat-after-save.png
+browser-use click 2814
+browser-use state
+browser-use screenshot artifacts/e2e/settings/module-03/08-composer-model-picker.png
+browser-use eval "(() => { const buttons=[...document.querySelectorAll('button')]; const btn=buttons.find(b => b.textContent?.includes('Claude 3.5 Sonnet') && b.textContent?.includes('claude-3-5-sonnet-20241022')); if (btn) { btn.click(); return true; } return false; })()"
+browser-use state
+browser-use screenshot artifacts/e2e/settings/module-03/09-composer-model-picker-open.png
+browser-use click 3670
+browser-use state
+browser-use click 3364
+browser-use click 3912
+browser-use click 3364
+browser-use state
+browser-use click 3749
+browser-use click 3862
+browser-use click 4146
+browser-use input 4217 "E2E Anthropic Updated"
+browser-use click 4165
+browser-use state
+browser-use screenshot artifacts/e2e/settings/module-03/10-model-edited.png
+browser-use click 3809
+browser-use click 4093
+browser-use click 4161
+browser-use input 4245 "E2E Anthropic Updated"
+browser-use click 4119
+browser-use click 3981
+browser-use open http://localhost:2026/workspace/chats/new
+browser-use eval "(() => { const buttons=[...document.querySelectorAll(\"button\")]; const btn=buttons.find(b => b.textContent?.includes(\"Claude 3.5 Sonnet\") && b.textContent?.includes(\"claude-3-5-sonnet-20241022\")); if (btn) { btn.click(); return true; } return false; })()"
+browser-use state
+browser-use screenshot artifacts/e2e/settings/module-03/10-model-edited.png
+browser-use click 4093
+browser-use state
+browser-use input 4164 "E2E Anthropic Updated"
+browser-use click 4119
+browser-use click 3981
+browser-use open http://localhost:2026/workspace/chats/new
+browser-use eval "(() => { const buttons=[...document.querySelectorAll(\"button\")]; const btn=buttons.find(b => b.textContent?.includes(\"Claude 3.5 Sonnet\") && b.textContent?.includes(\"claude-3-5-sonnet-20241022\")); if (btn) { btn.click(); return true; } return false; })()"
+browser-use state
+browser-use screenshot artifacts/e2e/settings/module-03/10-model-edited.png
+browser-use click 4603
+browser-use state
+browser-use click 4693
+browser-use state
+browser-use click 5017
+browser-use state
+browser-use eval "(() => { const menuButton=[...document.querySelectorAll('button')].find(b => b.textContent?.includes('设置和更多')); menuButton?.click(); const menuItem=[...document.querySelectorAll('[role=menuitem]')].find(el => el.textContent?.includes('设置')); if (menuItem) { (menuItem as HTMLElement).click(); return 'opened'; } return 'failed'; })()"
+browser-use state
+browser-use eval "(async () => { const menuButton=[...document.querySelectorAll('button')].find(b => b.textContent?.includes('设置和更多')); if (!menuButton) return 'no-menu'; menuButton.click(); await new Promise(r => setTimeout(r, 300)); const item=[...document.querySelectorAll('[role=menuitem]')].find(el => el.textContent?.includes('设置')); if (!item) return 'no-item'; item.click(); return 'opened'; })()"
+browser-use state
+browser-use click 5056
+browser-use state
+browser-use click 6182
+browser-use click 5819
+browser-use click 5682
+browser-use open http://localhost:2026/workspace/chats/new
+browser-use eval "(() => { const btn=[...document.querySelectorAll(\"button\")].find(b => b.textContent?.includes(\"Claude 3.5 Sonnet\") && b.textContent?.includes(\"claude-3-5-sonnet-20241022\")); if (!btn) return false; btn.click(); return true; })()"
+browser-use state
+browser-use screenshot artifacts/e2e/settings/module-03/11-model-removed.png
+browser-use open http://localhost:2026/workspace/chats/new
+browser-use eval "(() => { const btn=[...document.querySelectorAll(\"button\")].find(b => b.textContent?.includes(\"Claude 3.5 Sonnet\") && b.textContent?.includes(\"claude-3-5-sonnet-20241022\")); if (!btn) return false; btn.click(); return true; })()"
+browser-use state
+browser-use screenshot artifacts/e2e/settings/module-03/11-model-removed.png

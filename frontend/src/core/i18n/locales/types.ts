@@ -245,11 +245,13 @@ export interface Translations {
     configCenterError: string;
     navGroups: {
       experience: string;
+      conversation: string;
       knowledge: string;
       capabilities: string;
     };
     sections: {
       appearance: string;
+      models: string;
       memory: string;
       tools: string;
       skills: string;
@@ -302,6 +304,10 @@ export interface Translations {
       languageTitle: string;
       languageDescription: string;
     };
+    models: {
+      title: string;
+      description: string;
+    };
     tools: {
       title: string;
       description: string;
@@ -324,6 +330,31 @@ export interface Translations {
       testBody: string;
       notSupported: string;
       disableNotification: string;
+    };
+    validation: {
+      rootLabel: string;
+      validationFailed: string;
+    };
+    configSections: {
+      saveBar: {
+        clean: string;
+        dirty: string;
+        discard: string;
+        save: string;
+        saving: string;
+      };
+      models: Record<string, string>;
+    };
+    modelPage: {
+      providersLabel: string;
+      providersSubtitle: string;
+      modelsLabel: string;
+      modelsSubtitle: string;
+      defaultModelLabel: string;
+      helperText: string;
+      notSet: string;
+      unnamedModel: string;
+      loadConfigFailed: string;
     };
     aboutPage: {
       brand: {

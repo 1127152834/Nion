@@ -1,5 +1,6 @@
 export const SETTINGS_SECTIONS = [
   "appearance",
+  "models",
   "notification",
   "memory",
   "tools",
@@ -18,4 +19,3 @@ export function parseSettingsSection(
   }
   return SETTINGS_SECTION_SET.has(section) ? (section as SettingsSection) : null;
 }
-

@@ -3,6 +3,7 @@
 import {
   BellIcon,
   BrainIcon,
+  BotIcon,
   PaletteIcon,
   SparklesIcon,
   WrenchIcon,
@@ -19,6 +20,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { SidebarGroupLabel } from "@/components/ui/sidebar";
 import { AppearanceSettingsPage } from "@/components/workspace/settings/appearance-settings-page";
 import { MemorySettingsPage } from "@/components/workspace/settings/memory-settings-page";
+import { ModelSettingsPage } from "@/components/workspace/settings/model-settings-page";
 import { NotificationSettingsPage } from "@/components/workspace/settings/notification-settings-page";
 import { SkillSettingsPage } from "@/components/workspace/settings/skill-settings-page";
 import { ToolSettingsPage } from "@/components/workspace/settings/tool-settings-page";
@@ -88,6 +90,11 @@ export function SettingsDialog(props: SettingsDialogProps) {
           label: t.settings.sections.notification,
           icon: BellIcon,
         },
+        models: {
+          id: "models",
+          label: t.settings.sections.models,
+          icon: BotIcon,
+        },
         memory: {
           id: "memory",
           label: t.settings.sections.memory,
@@ -112,6 +119,11 @@ export function SettingsDialog(props: SettingsDialogProps) {
           items: [items.appearance, items.notification],
         },
         {
+          id: "conversation",
+          title: t.settings.navGroups.conversation,
+          items: [items.models],
+        },
+        {
           id: "knowledge",
           title: t.settings.navGroups.knowledge,
           items: [items.memory],
@@ -126,10 +138,12 @@ export function SettingsDialog(props: SettingsDialogProps) {
     [
       t.settings.sections.appearance,
       t.settings.sections.notification,
+      t.settings.sections.models,
       t.settings.sections.memory,
       t.settings.sections.tools,
       t.settings.sections.skills,
       t.settings.navGroups.experience,
+      t.settings.navGroups.conversation,
       t.settings.navGroups.knowledge,
       t.settings.navGroups.capabilities,
     ],
@@ -202,6 +216,7 @@ export function SettingsDialog(props: SettingsDialogProps) {
             <ScrollArea className="h-full min-h-0 rounded-lg border">
               <div className="space-y-8 p-6">
                 {activeSection === "appearance" && <AppearanceSettingsPage />}
+                {activeSection === "models" && <ModelSettingsPage />}
                 {activeSection === "memory" && <MemorySettingsPage />}
                 {activeSection === "tools" && <ToolSettingsPage />}
                 {activeSection === "skills" && (

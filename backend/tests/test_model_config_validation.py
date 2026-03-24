@@ -34,6 +34,8 @@ def _extended_model_payload() -> dict:
         "description": "Config-center managed model",
         "use": "langchain_openai:ChatOpenAI",
         "model": "gpt-4.1",
+        "api_key": "$OPENAI_API_KEY",
+        "api_base": "https://api.openai.com/v1",
         "use_responses_api": True,
         "output_version": "responses/v1",
         "supports_thinking": True,
@@ -69,11 +71,15 @@ def test_config_repository_round_trips_extended_model_fields(monkeypatch, tmp_pa
         assert persisted["models"][0]["output_version"] == "responses/v1"
         assert persisted["models"][0]["supports_vision"] is True
         assert persisted["models"][0]["thinking"]["budget_tokens"] == 4000
+        assert persisted["models"][0]["api_key"] == "$OPENAI_API_KEY"
+        assert persisted["models"][0]["api_base"] == "https://api.openai.com/v1"
         assert persisted["models"][0]["temperature"] == 0.2
         assert dumped["use_responses_api"] is True
         assert dumped["output_version"] == "responses/v1"
         assert dumped["supports_reasoning_effort"] is True
         assert dumped["supports_vision"] is True
+        assert dumped["api_key"] == "$OPENAI_API_KEY"
+        assert dumped["api_base"] == "https://api.openai.com/v1"
         assert dumped["temperature"] == 0.2
     finally:
         reset_app_config()
