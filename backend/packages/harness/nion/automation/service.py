@@ -132,18 +132,25 @@ class AutomationService:
         return self._repository.list_runs()
 
     def get_status(self) -> dict[str, Any]:
+        jobs = self._repository.list_jobs()
         runs = self._repository.list_runs()
         return {
             "scheduler_running": True,
-            "job_count": len(self._repository.list_jobs()),
+            "total_jobs_count": len(jobs),
+            "active_jobs_count": sum(1 for job in jobs if job.enabled and job.state in {"scheduled", "running"}),
+            "paused_jobs_count": sum(1 for job in jobs if job.state == "paused" or not job.enabled),
+            "error_jobs_count": sum(1 for job in jobs if job.state == "error"),
             "run_count": len(runs),
             "failed_runs_count": sum(1 for run in runs if run.status == "failed"),
             "last_tick_at": self._scheduler.last_tick_at,
-            "future_hooks": {
-                "openviking_archive": "deferred",
-                "relationship_aware_routines": "deferred",
-                "self_growth_suggestions": "deferred",
-            },
+            "last_success_at": next(
+                (
+                    run.finished_at or run.started_at
+                    for run in runs
+                    if run.status == "succeeded"
+                ),
+                None,
+            ),
         }
 
     @staticmethod

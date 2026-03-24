@@ -49,15 +49,6 @@ export function AutomationSettingsPage() {
     [copy.scheduleHelp, scheduleKind],
   );
 
-  const futureHookLabels = useMemo(
-    () => ({
-      openviking_archive: copy.futureHookLabels.openvikingArchive,
-      relationship_aware_routines: copy.futureHookLabels.relationshipAwareRoutines,
-      self_growth_suggestions: copy.futureHookLabels.selfGrowthSuggestions,
-    }),
-    [copy.futureHookLabels],
-  );
-
   const stateLabels = copy.stateLabels;
 
   async function handleCreate() {
@@ -101,7 +92,7 @@ export function AutomationSettingsPage() {
           <StatusCard
             icon={Clock3Icon}
             label={copy.jobs}
-            value={String(status?.job_count ?? jobs.length)}
+            value={String(status?.total_jobs_count ?? jobs.length)}
           />
           <StatusCard
             icon={ZapIcon}
@@ -114,18 +105,13 @@ export function AutomationSettingsPage() {
             <div className="rounded-xl border p-4 text-sm">
               <div className="font-medium">{copy.diagnostics}</div>
               <div className="text-muted-foreground mt-2 space-y-1">
+                <div>{copy.jobs}: {status.total_jobs_count}</div>
+                <div>{copy.scheduler}: {status.active_jobs_count}</div>
+                <div>{copy.pause}: {status.paused_jobs_count}</div>
+                <div>{copy.stateLabels.error}: {status.error_jobs_count}</div>
                 <div>{copy.failedRuns}: {status.failed_runs_count}</div>
                 <div>{copy.lastTick}: {status.last_tick_at ?? copy.notRecordedYet}</div>
-              </div>
-            </div>
-            <div className="rounded-xl border p-4 text-sm">
-              <div className="font-medium">{copy.futureHooks}</div>
-              <div className="text-muted-foreground mt-2 space-y-1">
-                {Object.entries(status.future_hooks).map(([key, value]) => (
-                  <div key={key}>
-                    {futureHookLabels[key as keyof typeof futureHookLabels] ?? key}: {value}
-                  </div>
-                ))}
+                <div>{copy.lastResult}: {status.last_success_at ?? copy.notRecordedYet}</div>
               </div>
             </div>
           </div>

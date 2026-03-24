@@ -56,11 +56,14 @@ class AutomationRunsListResponse(BaseModel):
 
 class AutomationStatusResponse(BaseModel):
     scheduler_running: bool
-    job_count: int
+    total_jobs_count: int
+    active_jobs_count: int
+    paused_jobs_count: int
+    error_jobs_count: int
     run_count: int
     failed_runs_count: int = 0
     last_tick_at: str | None = None
-    future_hooks: dict[str, str] = Field(default_factory=dict)
+    last_success_at: str | None = None
 
 
 _automation_service: AutomationService | None = None
