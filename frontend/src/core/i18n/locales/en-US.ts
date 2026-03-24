@@ -327,6 +327,7 @@ export const enUS: Translations = {
       mcpServers: "MCP servers",
       skills: "Skills",
       sandbox: "Sandbox",
+      channels: "Channels",
       notification: "Notification",
       about: "About",
     },
@@ -400,6 +401,10 @@ export const enUS: Translations = {
       title: "Sandbox",
       description:
         "Configure sandbox execution and thread persistence in a way that matches the chat runtime toggle semantics.",
+    },
+    channels: {
+      title: "Channels",
+      description: "Manage channel credentials, modes, and runtime status.",
     },
     skills: {
       title: "Agent Skills",

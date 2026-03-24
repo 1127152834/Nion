@@ -12,6 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from nion.config.automation_config import AutomationConfig, load_automation_config_from_dict
 from nion.config.checkpointer_config import CheckpointerConfig, load_checkpointer_config_from_dict
+from nion.config.channels_config import ChannelsAppConfig, load_channels_config_from_dict
 from nion.config.config_store import (
     DEFAULT_CHECKPOINTER_CONFIG,
     ConfigStoreNotInitializedError,
@@ -65,6 +66,10 @@ class AppConfig(BaseModel):
         default_factory=AutomationConfig,
         description="Automation runtime configuration",
     )
+    channels: ChannelsAppConfig = Field(
+        default_factory=ChannelsAppConfig,
+        description="Channel control-plane defaults and credentials",
+    )
     sandbox: SandboxConfig = Field(description="Sandbox configuration")
     tools: list[ToolConfig] = Field(default_factory=list, description="Available tools")
     tool_groups: list[ToolGroupConfig] = Field(default_factory=list, description="Available tool groups")
@@ -114,6 +119,7 @@ class AppConfig(BaseModel):
             load_automation_config_from_dict(config_data["automation"])
         load_subagents_config_from_dict(config_data.get("subagents") or {})
         load_suggestions_config_from_dict(config_data.get("suggestions") or {})
+        load_channels_config_from_dict(config_data.get("channels") or {})
         if "tool_search" in config_data:
             load_tool_search_config_from_dict(config_data["tool_search"])
         if "guardrails" in config_data:

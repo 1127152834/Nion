@@ -52,11 +52,10 @@ class ChannelService:
         from nion.config.app_config import get_app_config
 
         config = get_app_config()
-        channels_config = {}
-        # extra fields are allowed by AppConfig (extra="allow")
-        extra = config.model_extra or {}
-        if "channels" in extra:
-            channels_config = extra["channels"]
+        channels_config = config.channels.model_dump(
+            by_alias=True,
+            exclude_none=True,
+        )
         return cls(channels_config=channels_config)
 
     async def start(self) -> None:

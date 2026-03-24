@@ -313,6 +313,7 @@ export const zhCN: Translations = {
       mcpServers: "MCP 服务器",
       skills: "技能",
       sandbox: "沙箱",
+      channels: "通道",
       notification: "通知",
       about: "关于",
     },
@@ -383,6 +384,10 @@ export const zhCN: Translations = {
     sandbox: {
       title: "沙箱",
       description: "配置沙箱执行和线程持久化，并与聊天页的 sandbox/host 语义保持一致。",
+    },
+    channels: {
+      title: "通道",
+      description: "管理通道凭证、接入模式和运行状态。",
     },
     skills: {
       title: "技能",

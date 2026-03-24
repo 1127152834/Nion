@@ -260,6 +260,7 @@ export interface Translations {
       mcpServers: string;
       skills: string;
       sandbox: string;
+      channels: string;
       notification: string;
       about: string;
     };
@@ -326,6 +327,10 @@ export interface Translations {
       description: string;
     };
     sandbox: {
+      title: string;
+      description: string;
+    };
+    channels: {
       title: string;
       description: string;
     };
