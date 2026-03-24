@@ -1,7 +1,7 @@
 "use client";
 
 import { BotIcon, PlusSquare } from "lucide-react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useCallback } from "react";
 
 import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
@@ -21,7 +21,11 @@ import { useI18n } from "@/core/i18n/hooks";
 import { useNotification } from "@/core/notification/hooks";
 import { useLocalSettings } from "@/core/settings";
 import { useThreadStream } from "@/core/threads/hooks";
-import { textOfMessage } from "@/core/threads/utils";
+import {
+  pathOfAgentThread,
+  pathOfNewAgentThread,
+  textOfMessage,
+} from "@/core/threads/utils";
 import { env } from "@/env";
 import { cn } from "@/lib/utils";
 
@@ -29,27 +33,21 @@ export default function AgentChatPage() {
   const { t } = useI18n();
   const [settings, setSettings] = useLocalSettings();
   const router = useRouter();
+  const params = useParams<{ agent_name?: string }>();
+  const searchParams = useSearchParams();
 
-  const { agent_name } = useParams<{
-    agent_name: string;
-  }>();
-
-  const { agent } = useAgent(agent_name);
+  const agentName = searchParams.get("agent") ?? params.agent_name ?? "";
+  const { agent } = useAgent(agentName);
 
   const { threadId, isNewThread, setIsNewThread } = useThreadChat();
 
   const { showNotification } = useNotification();
   const [thread, sendMessage] = useThreadStream({
     threadId: isNewThread ? undefined : threadId,
-    context: { ...settings.context, agent_name: agent_name },
+    context: { ...settings.context, agent_name: agentName },
     onStart: () => {
       setIsNewThread(false);
-      // ! Important: Never use next.js router for navigation in this case, otherwise it will cause the thread to re-mount and lose all states. Use native history API instead.
-      history.replaceState(
-        null,
-        "",
-        `/workspace/agents/${agent_name}/chats/${threadId}`,
-      );
+      history.replaceState(null, "", pathOfAgentThread(agentName, threadId));
     },
     onFinish: (state) => {
       if (document.hidden || !document.hasFocus()) {
@@ -60,7 +58,7 @@ export default function AgentChatPage() {
           if (textContent) {
             body =
               textContent.length > 200
-                ? textContent.substring(0, 200) + "..."
+                ? `${textContent.substring(0, 200)}...`
                 : textContent;
           }
         }
@@ -71,9 +69,9 @@ export default function AgentChatPage() {
 
   const handleSubmit = useCallback(
     (message: PromptInputMessage) => {
-      void sendMessage(threadId, message, { agent_name });
+      void sendMessage(threadId, message, { agent_name: agentName });
     },
-    [sendMessage, threadId, agent_name],
+    [agentName, sendMessage, threadId],
   );
 
   const handleStop = useCallback(async () => {
@@ -92,11 +90,10 @@ export default function AgentChatPage() {
                 : "bg-background/80 shadow-xs backdrop-blur",
             )}
           >
-            {/* Agent badge */}
             <div className="flex shrink-0 items-center gap-1.5 rounded-md border px-2 py-1">
               <BotIcon className="text-primary h-3.5 w-3.5" />
               <span className="text-xs font-medium">
-                {agent?.name ?? agent_name}
+                {agent?.name ?? agentName}
               </span>
             </div>
 
@@ -109,7 +106,7 @@ export default function AgentChatPage() {
                   size="sm"
                   variant="secondary"
                   onClick={() => {
-                    router.push(`/workspace/agents/${agent_name}/chats/new`);
+                    router.push(pathOfNewAgentThread(agentName));
                   }}
                 >
                   <PlusSquare /> {t.agents.newChat}
@@ -166,7 +163,7 @@ export default function AgentChatPage() {
                   context={settings.context}
                   extraHeader={
                     isNewThread && (
-                      <AgentWelcome agent={agent} agentName={agent_name} />
+                      <AgentWelcome agent={agent} agentName={agentName} />
                     )
                   }
                   disabled={env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY === "true"}

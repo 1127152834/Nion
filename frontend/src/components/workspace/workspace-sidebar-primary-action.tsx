@@ -2,7 +2,7 @@
 
 import { MessageSquarePlus } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -19,10 +19,12 @@ import { Tooltip } from "./tooltip";
 export function WorkspaceSidebarPrimaryAction() {
   const { t } = useI18n();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { state } = useSidebar();
   const isCollapsed = state === "collapsed";
   const href = pathOfNewThread();
-  const isActive = pathname === href;
+  const isActive =
+    pathname === "/workspace/chats" && searchParams.get("thread") === "new";
 
   const actionButton = (
     <Button

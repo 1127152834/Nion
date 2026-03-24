@@ -1,13 +1,11 @@
 import type { AgentThread } from "./types";
 import type { Message } from "./types";
-
-export function pathOfThread(threadId: string) {
-  return `/workspace/chats/${threadId}`;
-}
-
-export function pathOfNewThread() {
-  return "/workspace/chats/new";
-}
+export {
+  pathOfAgentThread,
+  pathOfNewAgentThread,
+  pathOfNewThread,
+  pathOfThread,
+} from "../navigation/desktop-routes";
 
 export function textOfMessage(message: Message) {
   if (typeof message.content === "string") {

@@ -8,11 +8,7 @@ import {
   ArtifactTrigger,
   WorkingDirectoryTrigger,
 } from "@/components/workspace/artifacts";
-import {
-  ChatBox,
-  useSpecificChatMode,
-  useThreadChat,
-} from "@/components/workspace/chats";
+import { ChatBox, useSpecificChatMode, useThreadChat } from "@/components/workspace/chats";
 import { ExportTrigger } from "@/components/workspace/export-trigger";
 import { InputBox } from "@/components/workspace/input-box";
 import { MessageList } from "@/components/workspace/messages";
@@ -25,17 +21,18 @@ import { Welcome } from "@/components/workspace/welcome";
 import { loadThreadFilesTree } from "@/core/files";
 import { useI18n } from "@/core/i18n/hooks";
 import { useNotification } from "@/core/notification/hooks";
-import { type RuntimeProfile, fetchRuntimeProfile, updateRuntimeProfile } from "@/core/runtime";
+import {
+  type RuntimeProfile,
+  fetchRuntimeProfile,
+  updateRuntimeProfile,
+} from "@/core/runtime";
 import { useLocalSettings } from "@/core/settings";
 import { useThreadStream } from "@/core/threads/hooks";
-import {
-  pathOfThread,
-  textOfMessage,
-} from "@/core/threads/utils";
+import { pathOfThread, textOfMessage } from "@/core/threads/utils";
 import { env } from "@/env";
 import { cn } from "@/lib/utils";
 
-export default function ChatPage() {
+export default function ChatThreadPage() {
   const { t } = useI18n();
   const [settings, setSettings] = useLocalSettings();
 
@@ -115,7 +112,6 @@ export default function ChatPage() {
     isMock,
     onStart: (startedThreadId) => {
       setIsNewThread(false);
-      // Use the history API here so the thread stream keeps its mounted state.
       history.replaceState(null, "", pathOfThread(startedThreadId));
     },
     onFinish: (state) => {
@@ -127,7 +123,7 @@ export default function ChatPage() {
           if (textContent) {
             body =
               textContent.length > 200
-                ? textContent.substring(0, 200) + "..."
+                ? `${textContent.substring(0, 200)}...`
                 : textContent;
           }
         }
@@ -160,7 +156,6 @@ export default function ChatPage() {
     runtimeProfileSaving;
 
   const currentMode = settings.context.mode ?? "flash";
-  const runtimeModeCopy = t.workspace.runtimeMode;
 
   const handleSwitchMode = useCallback(
     async (mode: "sandbox" | "host") => {
@@ -181,7 +176,13 @@ export default function ChatPage() {
         setRuntimeProfileSaving(false);
       }
     },
-    [isMock, runtimeProfile.execution_mode, runtimeProfile.host_workdir, runtimeProfile.locked, threadId],
+    [
+      isMock,
+      runtimeProfile.execution_mode,
+      runtimeProfile.host_workdir,
+      runtimeProfile.locked,
+      threadId,
+    ],
   );
 
   return (
@@ -219,65 +220,38 @@ export default function ChatPage() {
                     mode={runtimeProfile.execution_mode}
                     locked={runtimeProfile.locked}
                     saving={runtimeProfileSaving}
-                    hostDirPath={runtimeProfile.host_workdir}
-                    copy={runtimeModeCopy}
                     onSwitch={handleSwitchMode}
+                    copy={t.workspace.runtimeMode}
                   />
                 }
                 composer={
-                  <div className="relative w-full">
-                    <div className="absolute -top-4 right-0 left-0 z-0">
-                      <div className="absolute right-0 bottom-0 left-0">
-                        <TodoList
-                          className="bg-background/10"
-                          todos={thread.values.todos ?? []}
-                          hidden={
-                            !thread.values.todos ||
-                            thread.values.todos.length === 0
-                          }
-                        />
-                      </div>
-                    </div>
-                    <InputBox
-                      className="w-full bg-background/72 shadow-[0_34px_80px_-52px_rgba(70,60,41,0.4)] ring-1 ring-black/6 backdrop-blur-xl"
-                      isNewThread={isNewThread}
-                      threadId={threadId}
-                      autoFocus
-                      status={inputStatus}
-                      context={settings.context}
-                      disabled={inputDisabled}
-                      workspacePaths={workspacePaths}
-                      onContextChange={(context) =>
-                        setSettings("context", context)
-                      }
-                      onSubmit={handleSubmit}
-                      onStop={handleStop}
-                    />
-                    {env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY === "true" ? (
-                      <div className="text-muted-foreground/67 w-full pt-4 text-center text-xs">
-                        {t.common.notAvailableInDemoMode}
-                      </div>
-                    ) : null}
-                  </div>
+                  <InputBox
+                    className="w-full"
+                    isNewThread={isNewThread}
+                    threadId={threadId}
+                    autoFocus
+                    status={inputStatus}
+                    disabled={inputDisabled}
+                    workspacePaths={workspacePaths}
+                    context={settings.context}
+                    onContextChange={(context) => setSettings("context", context)}
+                    onSubmit={handleSubmit}
+                    onStop={handleStop}
+                  />
                 }
               />
             </main>
           ) : (
             <main className="flex min-h-0 flex-1 flex-col">
-              <div className="flex size-full justify-center">
-                <MessageList
-                  className="size-full pt-12 pb-52"
-                  threadId={threadId}
-                  thread={thread}
-                />
+              <div className="flex min-h-0 flex-1 justify-center pt-14">
+                <MessageList className="size-full" threadId={threadId} thread={thread} />
               </div>
-
-              <div className="absolute right-0 bottom-0 left-0 z-30 flex justify-center px-4 pb-4">
+              <div className="absolute right-0 bottom-0 left-0 z-30 flex justify-center px-4">
                 <div className="relative w-full max-w-(--container-width-md)">
                   <div className="absolute -top-4 right-0 left-0 z-0">
                     <div className="absolute right-0 bottom-0 left-0">
                       <TodoList
-                        className="bg-background/10"
+                        className="bg-background/5"
                         todos={thread.values.todos ?? []}
                         hidden={
                           !thread.values.todos ||
@@ -286,28 +260,16 @@ export default function ChatPage() {
                       />
                     </div>
                   </div>
+
                   <InputBox
-                    className="w-full bg-background/72 shadow-[0_34px_80px_-52px_rgba(70,60,41,0.4)] ring-1 ring-black/6 backdrop-blur-xl"
+                    className="bg-background/5 w-full -translate-y-4"
                     isNewThread={isNewThread}
                     threadId={threadId}
-                    autoFocus={false}
                     status={inputStatus}
-                    context={settings.context}
                     disabled={inputDisabled}
-                    extraHeader={
-                      <RuntimeModeToggle
-                        mode={runtimeProfile.execution_mode}
-                        locked={runtimeProfile.locked}
-                        saving={runtimeProfileSaving}
-                        hostDirPath={runtimeProfile.host_workdir}
-                        copy={runtimeModeCopy}
-                        onSwitch={handleSwitchMode}
-                      />
-                    }
                     workspacePaths={workspacePaths}
-                    onContextChange={(context) =>
-                      setSettings("context", context)
-                    }
+                    context={settings.context}
+                    onContextChange={(context) => setSettings("context", context)}
                     onSubmit={handleSubmit}
                     onStop={handleStop}
                   />

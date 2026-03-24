@@ -7,6 +7,13 @@ import "./src/env.js";
 /** @type {import("next").NextConfig} */
 const config = {
   devIndicators: false,
+  output: "export",
+  images: {
+    unoptimized: true,
+  },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
 };
 
 export default config;

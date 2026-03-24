@@ -26,6 +26,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useI18n } from "@/core/i18n/hooks";
+import { pathOfNewThread } from "@/core/threads/utils";
 import { useGlobalShortcuts } from "@/hooks/use-global-shortcuts";
 
 import { SettingsDialog } from "./settings";
@@ -38,7 +39,7 @@ export function CommandPalette() {
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   const handleNewChat = useCallback(() => {
-    router.push("/workspace/chats/new");
+    router.push(pathOfNewThread());
     setOpen(false);
   }, [router]);
 

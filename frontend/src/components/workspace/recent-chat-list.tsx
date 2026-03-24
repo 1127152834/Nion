@@ -10,7 +10,7 @@ import {
   Trash2,
 } from "lucide-react";
 import Link from "next/link";
-import { useParams, usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
 
@@ -61,7 +61,8 @@ export function RecentChatList() {
   const { t } = useI18n();
   const router = useRouter();
   const pathname = usePathname();
-  const { thread_id: threadIdFromPath } = useParams<{ thread_id: string }>();
+  const searchParams = useSearchParams();
+  const threadIdFromPath = searchParams.get("thread");
   const { data: threads = [] } = useThreads();
   const { mutate: deleteThread } = useDeleteThread();
   const { mutate: renameThread } = useRenameThread();
@@ -84,7 +85,7 @@ export function RecentChatList() {
             nextThreadId = threads[threadIndex - 1]!.thread_id;
           }
         }
-        void router.push(`/workspace/chats/${nextThreadId}`);
+        void router.push(pathOfThread(nextThreadId));
       }
     },
     [deleteThread, router, threadIdFromPath, threads],
@@ -117,7 +118,7 @@ export function RecentChatList() {
         window.location.hostname === "127.0.0.1";
       // On localhost: use Vercel URL; On production: use current origin
       const baseUrl = isLocalhost ? VERCEL_URL : window.location.origin;
-      const shareUrl = `${baseUrl}/workspace/chats/${threadId}`;
+      const shareUrl = `${baseUrl}${pathOfThread(threadId)}`;
       try {
         await navigator.clipboard.writeText(shareUrl);
         toast.success(t.clipboard.linkCopied);
@@ -168,7 +169,9 @@ export function RecentChatList() {
           <SidebarMenu>
             <div className="flex w-full flex-col gap-1">
               {threads.map((thread) => {
-                const isActive = pathOfThread(thread.thread_id) === pathname;
+                const isActive =
+                  pathname === "/workspace/chats" &&
+                  searchParams.get("thread") === thread.thread_id;
                 return (
                   <SidebarMenuItem
                     key={thread.thread_id}

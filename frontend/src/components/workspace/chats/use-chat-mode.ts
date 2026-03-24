@@ -9,15 +9,16 @@ import { useI18n } from "@/core/i18n/hooks";
  */
 export function useSpecificChatMode() {
   const { t } = useI18n();
-  const { thread_id: threadIdFromPath } = useParams<{ thread_id: string }>();
+  const { thread_id: threadIdFromPath } = useParams<{ thread_id?: string }>();
   const searchParams = useSearchParams();
+  const threadId = searchParams.get("thread") ?? threadIdFromPath;
   const promptInputController = usePromptInputController();
   const inputInitialValue = useMemo(() => {
-    if (threadIdFromPath !== "new" || searchParams.get("mode") !== "skill") {
+    if (threadId !== "new" || searchParams.get("mode") !== "skill") {
       return undefined;
     }
     return t.inputBox.createSkillPrompt;
-  }, [threadIdFromPath, searchParams, t.inputBox.createSkillPrompt]);
+  }, [threadId, searchParams, t.inputBox.createSkillPrompt]);
   const lastInitialValueRef = useRef<string | undefined>(undefined);
   const setInputRef = useRef(promptInputController.textInput.setInput);
   setInputRef.current = promptInputController.textInput.setInput;

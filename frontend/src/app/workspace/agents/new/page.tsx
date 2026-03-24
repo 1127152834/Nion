@@ -18,6 +18,7 @@ import { ThreadContext } from "@/components/workspace/messages/context";
 import type { Agent } from "@/core/agents";
 import { checkAgentName, getAgent } from "@/core/agents/api";
 import { useI18n } from "@/core/i18n/hooks";
+import { pathOfNewAgentThread } from "@/core/threads/utils";
 import { useThreadStream } from "@/core/threads/hooks";
 import { uuid } from "@/core/utils/uuid";
 import { cn } from "@/lib/utils";
@@ -212,9 +213,7 @@ export default function NewAgentPage() {
                     <div className="flex gap-2">
                       <Button
                         onClick={() =>
-                          router.push(
-                            `/workspace/agents/${agentName}/chats/new`,
-                          )
+                          router.push(pathOfNewAgentThread(agentName))
                         }
                       >
                         {t.agents.startChatting}

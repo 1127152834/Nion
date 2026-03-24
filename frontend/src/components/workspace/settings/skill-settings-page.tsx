@@ -94,7 +94,7 @@ function SkillSettingsList({
 
   const handleCreateSkill = () => {
     onClose?.();
-    router.push(`${pathOfNewThread()}?mode=skill`);
+    router.push(pathOfNewThread({ mode: "skill" }));
   };
 
   const handleConfirmDeleteSkill = () => {

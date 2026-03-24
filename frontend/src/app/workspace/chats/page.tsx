@@ -1,6 +1,9 @@
 "use client";
 
+import { PromptInputProvider } from "@/components/ai-elements/prompt-input";
+import { ArtifactsProvider } from "@/components/workspace/artifacts";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 import { Input } from "@/components/ui/input";
@@ -11,14 +14,31 @@ import {
   WorkspaceHeader,
 } from "@/components/workspace/workspace-container";
 import { useI18n } from "@/core/i18n/hooks";
+import { SubtasksProvider } from "@/core/tasks/context";
 import { useThreads } from "@/core/threads/hooks";
 import { pathOfThread, titleOfThread } from "@/core/threads/utils";
 import { formatTimeAgo } from "@/core/utils/datetime";
 
+import ChatThreadPage from "./chat-thread-page";
+
 export default function ChatsPage() {
   const { t } = useI18n();
+  const searchParams = useSearchParams();
   const { data: threads } = useThreads();
   const [search, setSearch] = useState("");
+  const selectedThread = searchParams.get("thread");
+
+  if (selectedThread) {
+    return (
+      <SubtasksProvider>
+        <ArtifactsProvider>
+          <PromptInputProvider>
+            <ChatThreadPage />
+          </PromptInputProvider>
+        </ArtifactsProvider>
+      </SubtasksProvider>
+    );
+  }
 
   useEffect(() => {
     document.title = `${t.pages.chats} - ${t.pages.appName}`;

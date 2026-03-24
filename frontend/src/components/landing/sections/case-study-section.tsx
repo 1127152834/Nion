@@ -55,7 +55,7 @@ export function CaseStudySection({ className }: { className?: string }) {
         {caseStudies.map((caseStudy) => (
           <Link
             key={caseStudy.title}
-            href={pathOfThread(caseStudy.threadId) + "?mock=true"}
+            href={pathOfThread(caseStudy.threadId)}
             target="_blank"
           >
             <Card className="group/card relative h-64 overflow-hidden">
