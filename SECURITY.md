@@ -2,10 +2,7 @@
 
 ## Supported Versions
 
-As nion doesn't provide an offical release yet, please use the latest version for the security updates.
-Current we have two branches to maintain:
-* main branch for nion 2.x
-* main-1.x branch for nion 1.x
+Desktop release builds published through GitHub Releases are the supported distribution channel for this branch. Use the latest desktop release for security updates.
 
 ## Reporting a Vulnerability
 

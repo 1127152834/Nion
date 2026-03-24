@@ -24,6 +24,10 @@
 
 ---
 
+## 桌面端优先
+
+当前分支将 Nion 作为桌面应用来交付：Electron 壳 + 本机 Python helper。浏览器部署与独立 LangGraph/Nginx 拓扑不再是默认产品路径。
+
 ## 快速开始
 
 ### 1) 准备环境

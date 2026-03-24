@@ -1,0 +1,53 @@
+name: Desktop Release
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "desktop-v*"
+
+jobs:
+  build-desktop:
+    strategy:
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+
+      - name: Install frontend and desktop dependencies
+        run: |
+          cd frontend && pnpm install
+          cd ../desktop && pnpm install
+
+      - name: Install backend dependencies
+        run: |
+          cd backend && uv sync --group dev
+
+      - name: Build desktop helper
+        run: ./scripts/build-python-helper.sh
+
+      - name: Build desktop shell
+        run: |
+          cd desktop && pnpm build
+
+      - name: Package desktop app
+        run: ./scripts/package-desktop.sh builder
+
+      - name: Publish GitHub Releases metadata
+        run: node ./scripts/publish-desktop-release.mjs

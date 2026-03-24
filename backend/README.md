@@ -1,6 +1,6 @@
-# Nion Backend
+# Nion Desktop Helper Backend
 
-Nion is a LangGraph-based AI super agent with sandbox execution, persistent memory, and extensible tool integration. The backend enables AI agents to execute code, browse the web, manage files, delegate tasks to subagents, and retain context across conversations - all in isolated, per-thread environments.
+Nion Desktop Helper is the local Python runtime bundled into the Electron application. It preserves agent execution, memory, artifacts, automation, and channel integrations without requiring the standalone browser/server deployment topology.
 
 ---
 

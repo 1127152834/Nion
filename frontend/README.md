@@ -1,4 +1,4 @@
-# Nion Frontend
+# Nion Desktop Renderer
 
 Like the original Nion 1.0, we would love to give the community a minimalistic and easy-to-use web interface with a more modern and flexible architecture.
 
@@ -6,7 +6,7 @@ Like the original Nion 1.0, we would love to give the community a minimalistic a
 
 - **Framework**: [Next.js 16](https://nextjs.org/) with [App Router](https://nextjs.org/docs/app)
 - **UI**: [React 19](https://react.dev/), [Tailwind CSS 4](https://tailwindcss.com/), [Shadcn UI](https://ui.shadcn.com/), [MagicUI](https://magicui.design/) and [React Bits](https://reactbits.dev/)
-- **AI Integration**: [LangGraph SDK](https://www.npmjs.com/package/@langchain/langgraph-sdk) and [Vercel AI Elements](https://vercel.com/ai-sdk/ai-elements)
+- **AI Integration**: Desktop runtime client and [Vercel AI Elements](https://vercel.com/ai-sdk/ai-elements)
 - **Config Center**: TanStack Query client for `/api/config*` plus grouped settings shell scaffolding
 - **Runtime Shell**: thread-level runtime toggle, workdir browser, and four shortcut lanes in the chat composer
 
