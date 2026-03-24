@@ -4,8 +4,8 @@ import asyncio
 from unittest.mock import AsyncMock
 
 from app.channels.message_bus import InboundMessage, InboundMessageType, MessageBus
-from app.channels.store import ChannelStore
 from app.channels.service import ChannelService
+from app.channels.store import ChannelStore
 
 
 def _run(coro):
