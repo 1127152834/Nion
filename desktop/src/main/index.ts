@@ -1,7 +1,8 @@
-export function startDesktopMain(): void {
-  console.log("Nion desktop shell bootstrap placeholder");
-}
+import { PRELOAD_ENTRY } from "../shared/ipc.js";
 
-if (import.meta.url === `file://${process.argv[1]}`) {
-  startDesktopMain();
+export function describeDesktopShell() {
+  return {
+    process: "main",
+    preloadEntry: PRELOAD_ENTRY,
+  };
 }
