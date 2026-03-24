@@ -10,6 +10,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from app.channels.message_bus import InboundMessage, InboundMessageType, MessageBus, OutboundMessage, ResolvedAttachment
+from app.channels.runtime_state import ChannelRuntimeState
 from app.channels.store import ChannelStore
 
 logger = logging.getLogger(__name__)
@@ -333,6 +334,7 @@ class ChannelManager:
         assistant_id: str = DEFAULT_ASSISTANT_ID,
         default_session: dict[str, Any] | None = None,
         channel_sessions: dict[str, Any] | None = None,
+        runtime_state: ChannelRuntimeState | None = None,
     ) -> None:
         self.bus = bus
         self.store = store
@@ -342,6 +344,7 @@ class ChannelManager:
         self._assistant_id = assistant_id
         self._default_session = _as_dict(default_session)
         self._channel_sessions = dict(channel_sessions or {})
+        self._runtime_state = runtime_state
         self._client = None  # lazy init — langgraph_sdk async client
         self._semaphore: asyncio.Semaphore | None = None
         self._running = False
@@ -448,11 +451,18 @@ class ChannelManager:
     async def _handle_message(self, msg: InboundMessage) -> None:
         async with self._semaphore:
             try:
+                if self._runtime_state is not None:
+                    self._runtime_state.mark_heartbeat(msg.channel_name)
                 if msg.msg_type == InboundMessageType.COMMAND:
                     await self._handle_command(msg)
                 else:
                     await self._handle_chat(msg)
             except Exception:
+                if self._runtime_state is not None:
+                    self._runtime_state.mark_error(
+                        msg.channel_name,
+                        "message dispatch failed",
+                    )
                 logger.exception(
                     "Error handling message from %s (chat=%s)",
                     msg.channel_name,

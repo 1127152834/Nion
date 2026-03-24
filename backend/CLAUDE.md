@@ -305,8 +305,9 @@ Bridges external messaging platforms (Feishu, Slack, Telegram) to the Nion agent
 - `message_bus.py` - Async pub/sub hub (`InboundMessage` → queue → dispatcher; `OutboundMessage` → callbacks → channels)
 - `store.py` - JSON-file persistence mapping `channel_name:chat_id[:topic_id]` → `thread_id` (keys are `channel:chat` for root conversations and `channel:chat:topic` for threaded conversations)
 - `manager.py` - Core dispatcher: creates threads via `client.threads.create()`, routes commands, keeps Slack/Telegram on `client.runs.wait()`, and uses `client.runs.stream(["messages-tuple", "values"])` for Feishu incremental outbound updates
+- `runtime_state.py` - Observational runtime metadata (`capabilities`, `last_heartbeat`, `last_error`) used for operator-facing status without owning config or routing state
 - `base.py` - Abstract `Channel` base class (start/stop/send lifecycle)
-- `service.py` - Manages lifecycle of all configured channels from `config.yaml`
+- `service.py` - Manages lifecycle of all configured channels from `config.yaml` and aggregates the outward-facing `/api/channels` status contract
 - `slack.py` / `feishu.py` / `telegram.py` - Platform-specific implementations (`feishu.py` tracks the running card `message_id` in memory and patches the same card in place)
 
 **Message Flow**:
@@ -318,6 +319,11 @@ Bridges external messaging platforms (Feishu, Slack, Telegram) to the Nion agent
 6. Feishu channel sends one running reply card up front, then patches the same card for each outbound update (card JSON sets `config.update_multi=true` for Feishu's patch API requirement)
 7. For commands (`/new`, `/status`, `/models`, `/memory`, `/help`): handle locally or query Gateway API
 8. Outbound → channel callbacks → platform reply
+
+**Operator status contract**:
+- `GET /api/channels` returns `service_running`, `pending_pair_requests`, and a `channels` map
+- Each channel entry now includes `enabled`, `running`, `capabilities`, `last_heartbeat`, `last_error`, `authorized_user_count`, `pending_pair_request_count`, and `can_restart`
+- `ChannelRuntimeState` remains observational; `ChannelService` is still the outward-facing owner
 
 **Configuration** (`config.yaml` -> `channels`):
 - `langgraph_url` - LangGraph Server URL (default: `http://localhost:2024`)

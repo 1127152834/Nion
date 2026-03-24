@@ -142,6 +142,8 @@ The IM bridge supports Feishu, Slack, and Telegram. Slack and Telegram still use
 
 For Feishu card updates, Nion stores the running card's `message_id` per inbound message and patches that same card until the run finishes, preserving the existing `OK` / `DONE` reaction flow.
 
+The operator surface for channels is exposed through `GET /api/channels`. The status contract now includes top-level `service_running` and `pending_pair_requests`, plus per-channel `enabled`, `running`, `capabilities`, `last_heartbeat`, `last_error`, `authorized_user_count`, `pending_pair_request_count`, and `can_restart` fields. This route is observational only; it does not replace the existing channel runtime ownership in `ChannelService` / `ChannelManager`.
+
 ---
 
 ## Quick Start

@@ -14,6 +14,7 @@ router = APIRouter(prefix="/api/channels", tags=["channels"])
 
 class ChannelStatusResponse(BaseModel):
     service_running: bool
+    pending_pair_requests: int = 0
     channels: dict[str, dict]
 
 
@@ -29,7 +30,11 @@ async def get_channels_status() -> ChannelStatusResponse:
 
     service = get_channel_service()
     if service is None:
-        return ChannelStatusResponse(service_running=False, channels={})
+        return ChannelStatusResponse(
+            service_running=False,
+            pending_pair_requests=0,
+            channels={},
+        )
     status = service.get_status()
     return ChannelStatusResponse(**status)
 

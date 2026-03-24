@@ -5,8 +5,9 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from app.channels.manager import ChannelManager
+from app.channels.manager import CHANNEL_CAPABILITIES, ChannelManager
 from app.channels.message_bus import MessageBus
+from app.channels.runtime_state import ChannelRuntimeState
 from app.channels.store import ChannelStore
 
 logger = logging.getLogger(__name__)
@@ -29,6 +30,7 @@ class ChannelService:
     def __init__(self, channels_config: dict[str, Any] | None = None) -> None:
         self.bus = MessageBus()
         self.store = ChannelStore()
+        self.runtime_state = ChannelRuntimeState()
         config = dict(channels_config or {})
         langgraph_url = config.pop("langgraph_url", None) or "http://localhost:2024"
         gateway_url = config.pop("gateway_url", None) or "http://localhost:8001"
@@ -41,6 +43,7 @@ class ChannelService:
             gateway_url=gateway_url,
             default_session=default_session if isinstance(default_session, dict) else None,
             channel_sessions=channel_sessions,
+            runtime_state=self.runtime_state,
         )
         self._channels: dict[str, Any] = {}  # name -> Channel instance
         self._config = config
@@ -83,8 +86,10 @@ class ChannelService:
         for name, channel in list(self._channels.items()):
             try:
                 await channel.stop()
+                self.runtime_state.mark_stopped(name)
                 logger.info("Channel %s stopped", name)
             except Exception:
+                self.runtime_state.mark_error(name, "stop failed")
                 logger.exception("Error stopping channel %s", name)
         self._channels.clear()
 
@@ -97,7 +102,9 @@ class ChannelService:
         if name in self._channels:
             try:
                 await self._channels[name].stop()
+                self.runtime_state.mark_stopped(name)
             except Exception:
+                self.runtime_state.mark_error(name, "restart stop failed")
                 logger.exception("Error stopping channel %s for restart", name)
             del self._channels[name]
 
@@ -127,9 +134,15 @@ class ChannelService:
             channel = channel_cls(bus=self.bus, config=config)
             await channel.start()
             self._channels[name] = channel
+            self.runtime_state.mark_started(
+                name,
+                getattr(channel, "capabilities", None)
+                or CHANNEL_CAPABILITIES.get(name, {}),
+            )
             logger.info("Channel %s started", name)
             return True
-        except Exception:
+        except Exception as exc:
+            self.runtime_state.mark_error(name, str(exc))
             logger.exception("Failed to start channel %s", name)
             return False
 
@@ -140,12 +153,23 @@ class ChannelService:
             config = self._config.get(name, {})
             enabled = isinstance(config, dict) and config.get("enabled", False)
             running = name in self._channels and self._channels[name].is_running
+            runtime_snapshot = self.runtime_state.get_channel(name)
+            capabilities = runtime_snapshot.get("capabilities") or {}
+            if not capabilities:
+                capabilities = CHANNEL_CAPABILITIES.get(name, {})
             channels_status[name] = {
                 "enabled": enabled,
                 "running": running,
+                "capabilities": capabilities,
+                "last_heartbeat": runtime_snapshot.get("last_heartbeat"),
+                "last_error": runtime_snapshot.get("last_error"),
+                "authorized_user_count": 0,
+                "pending_pair_request_count": 0,
+                "can_restart": enabled,
             }
         return {
             "service_running": self._running,
+            "pending_pair_requests": 0,
             "channels": channels_status,
         }
 
