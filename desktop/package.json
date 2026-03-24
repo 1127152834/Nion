@@ -7,13 +7,17 @@
     "build": "tsc -p tsconfig.json",
     "dev": "node dist/main/index.js",
     "test": "node --test tests/*.test.mjs",
-    "package:builder": "node -e \"console.log('electron-builder packaging is configured; release wiring is pending renderer packaging readiness')\"",
-    "package:forge": "node -e \"console.log('electron-forge packaging will be wired in a later task')\"",
-    "build:helper": "node -e \"console.log('python helper build will be wired in a later task')\""
+    "package:builder": "../scripts/package-desktop.sh builder",
+    "package:forge": "../scripts/package-desktop.sh forge",
+    "build:helper": "../scripts/build-python-helper.sh"
   },
   "devDependencies": {
+    "@electron-forge/cli": "^7.8.1",
+    "@electron-forge/maker-squirrel": "^7.8.1",
+    "@electron-forge/maker-zip": "^7.8.1",
     "@types/node": "^20.14.10",
     "electron": "^35.0.0",
+    "electron-builder": "^26.0.12",
     "electron-updater": "^6.6.2",
     "typescript": "^5.8.2",
     "yaml": "^2.8.1"

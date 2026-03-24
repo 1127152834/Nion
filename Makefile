@@ -7,10 +7,10 @@ PYTHON ?= python
 help:
 	@echo "Nion Development Commands:"
 	@echo "  make desktop-install  - Install desktop workspace dependencies"
-	@echo "  make desktop-dev      - Build the desktop shell scaffold"
-	@echo "  make package-desktop  - Run the canonical desktop packaging placeholder"
-	@echo "  make package-desktop-builder - Run the electron-builder packaging placeholder"
-	@echo "  make package-desktop-forge   - Run the electron-forge packaging placeholder"
+	@echo "  make desktop-dev      - Build the desktop shell and helper"
+	@echo "  make package-desktop  - Build the desktop app with electron-builder"
+	@echo "  make package-desktop-builder - Build the desktop app with electron-builder"
+	@echo "  make package-desktop-forge   - Build the desktop app with electron-forge"
 	@echo "  make config          - Generate local config files (aborts if config already exists)"
 	@echo "  make config-upgrade  - Merge new fields from config.example.yaml into config.yaml"
 	@echo "  make check           - Check if all required tools are installed"
@@ -177,13 +177,14 @@ desktop-install:
 	@pnpm --dir desktop install
 
 desktop-dev:
+	@./scripts/build-python-helper.sh
 	@pnpm --dir desktop build
 
 package-desktop:
-	@pnpm --dir desktop package:builder
+	@./scripts/package-desktop.sh builder
 
 package-desktop-builder:
-	@pnpm --dir desktop package:builder
+	@./scripts/package-desktop.sh builder
 
 package-desktop-forge:
-	@pnpm --dir desktop package:forge
+	@./scripts/package-desktop.sh forge
