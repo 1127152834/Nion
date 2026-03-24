@@ -6,10 +6,15 @@ import type {
   CLIStateConfigUpdatePayload,
 } from "./types";
 
+const CLI_TOOLS_ERROR_KEYS = {
+  loadFailed: "settings.cliTools.errors.loadFailed",
+  saveFailed: "settings.cliTools.errors.saveFailed",
+} as const;
+
 export async function loadCLIConfig(): Promise<CLIConfig> {
   const response = await fetch(`${getBackendBaseURL()}/api/cli/catalog`);
   if (!response.ok) {
-    throw new Error(`Failed to load CLI catalog (${response.status})`);
+    throw new Error(`${CLI_TOOLS_ERROR_KEYS.loadFailed}::${response.status}`);
   }
   const payload = (await response.json()) as { clis?: Record<string, CLIStateConfig> };
   return {
@@ -30,7 +35,7 @@ export async function updateCLIConfigItem(
     },
   );
   if (!response.ok) {
-    throw new Error(`Failed to update CLI catalog item (${response.status})`);
+    throw new Error(`${CLI_TOOLS_ERROR_KEYS.saveFailed}::${response.status}`);
   }
   return (await response.json()) as CLIStateConfig;
 }
