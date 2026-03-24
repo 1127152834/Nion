@@ -7,7 +7,14 @@ from fastapi import APIRouter, Depends, HTTPException, Response
 from pydantic import BaseModel, Field
 
 from nion.automation.delivery import AutomationChannelDeliveryRequest
-from nion.automation.models import AutomationDeliveryMode, AutomationJob, AutomationRun, AutomationScheduleKind
+from nion.automation.models import (
+    AutomationDeliveryMode,
+    AutomationJob,
+    AutomationJobKind,
+    AutomationRun,
+    AutomationScheduleKind,
+    AutomationSchedulePreset,
+)
 from nion.automation.service import AutomationService, create_default_automation_service
 from nion.config.app_config import get_app_config
 
@@ -17,8 +24,12 @@ router = APIRouter(prefix="/api/automation", tags=["automation"])
 class AutomationJobCreateRequest(BaseModel):
     name: str
     prompt: str
-    schedule_kind: AutomationScheduleKind
-    schedule_value: str
+    job_kind: AutomationJobKind = "scheduled_task"
+    schedule_kind: AutomationScheduleKind | None = None
+    schedule_value: str | None = None
+    schedule_preset: AutomationSchedulePreset | None = None
+    schedule_timezone: str = "UTC"
+    schedule_metadata: dict = Field(default_factory=dict)
     enabled: bool = True
     delivery_mode: AutomationDeliveryMode = "local"
     delivery_targets: list[dict] = Field(default_factory=list)

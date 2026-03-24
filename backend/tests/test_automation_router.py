@@ -17,8 +17,12 @@ def _job(job_id: str) -> AutomationJob:
         id=job_id,
         name="Morning summary",
         prompt="Summarize updates",
+        job_kind="scheduled_task",
         schedule_kind="interval",
         schedule_value="900",
+        schedule_preset="interval",
+        schedule_timezone="UTC",
+        schedule_metadata={},
         delivery_mode="local",
         delivery_targets=[],
         created_at="2026-03-24T00:00:00Z",
@@ -50,6 +54,11 @@ class FakeAutomationService:
         self.calls.append(("create", payload))
         job = _job("job-2")
         job.name = payload["name"]
+        job.job_kind = payload.get("job_kind", job.job_kind)
+        job.schedule_preset = payload.get("schedule_preset", job.schedule_preset)
+        job.schedule_timezone = payload.get("schedule_timezone", job.schedule_timezone)
+        if "schedule_metadata" in payload:
+            job.schedule_metadata = payload["schedule_metadata"]
         self.jobs[job.id] = job
         return job
 
@@ -111,8 +120,12 @@ def test_create_automation_job():
             json={
                 "name": "Nightly digest",
                 "prompt": "Summarize updates",
-                "schedule_kind": "interval",
-                "schedule_value": "900",
+                "job_kind": "reminder",
+                "schedule_preset": "daily",
+                "schedule_timezone": "Asia/Shanghai",
+                "schedule_metadata": {
+                    "time_of_day": "09:30",
+                },
                 "delivery_mode": "local",
                 "delivery_targets": [],
             },
@@ -120,6 +133,11 @@ def test_create_automation_job():
 
     assert response.status_code == 201
     assert response.json()["job"]["name"] == "Nightly digest"
+    assert response.json()["job"]["job_kind"] == "reminder"
+    assert response.json()["job"]["schedule_preset"] == "daily"
+    assert response.json()["job"]["schedule_timezone"] == "Asia/Shanghai"
+    assert service.calls[0][1]["job_kind"] == "reminder"
+    assert service.calls[0][1]["schedule_preset"] == "daily"
     assert service.calls[0][0] == "create"
 
 
