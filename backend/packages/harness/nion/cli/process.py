@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import subprocess
 import sys
+import time
 
 import httpx
 
@@ -27,4 +28,11 @@ def ensure_daemon_running(base_url: str = DEFAULT_DAEMON_BASE_URL) -> str:
         stdin=subprocess.DEVNULL,
         start_new_session=True,
     )
-    return base_url
+
+    started_at = time.monotonic()
+    while time.monotonic() - started_at < 10:
+        if is_daemon_alive(base_url):
+            return base_url
+        time.sleep(0.2)
+
+    raise RuntimeError(f"Timed out waiting for daemon at {base_url}")

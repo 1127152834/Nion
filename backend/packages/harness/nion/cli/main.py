@@ -37,8 +37,15 @@ def main(argv: list[str] | None = None) -> int:
             return 0
 
     if args.command == "tui":
-        # Program 02 Task 3 will replace this stub with the real TUI app.
+        from .tui.app import NionTuiApp
+
+        base_url = ensure_daemon_running()
+        NionTuiApp(base_url).run()
         return 0
 
     parser.error("unknown command")
     return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
