@@ -1,4 +1,8 @@
-import { net, protocol } from "electron";
+import fs from "node:fs";
+import path from "node:path";
+import { pathToFileURL } from "node:url";
+
+import { app, net, protocol } from "electron";
 
 export const DESKTOP_APP_PROTOCOL = "nion";
 
@@ -21,7 +25,27 @@ export async function registerDesktopProtocol(): Promise<void> {
     return;
   }
 
-  protocol.handle(DESKTOP_APP_PROTOCOL, async () =>
-    net.fetch(`data:text/html;charset=utf-8,${encodeURIComponent(PLACEHOLDER_HTML)}`),
-  );
+  protocol.handle(DESKTOP_APP_PROTOCOL, async (request) => {
+    const requestUrl = new URL(request.url);
+    const requestPath = requestUrl.pathname === "/"
+      ? "/index.html"
+      : requestUrl.pathname;
+
+    const rendererRoot = app.isPackaged
+      ? path.join(process.resourcesPath, "renderer-dist")
+      : path.join(process.cwd(), "renderer-dist");
+
+    const resolvedPath = path.join(rendererRoot, requestPath);
+    const filePath = fs.existsSync(resolvedPath)
+      ? resolvedPath
+      : path.join(rendererRoot, "index.html");
+
+    if (!fs.existsSync(filePath)) {
+      return net.fetch(
+        `data:text/html;charset=utf-8,${encodeURIComponent(PLACEHOLDER_HTML)}`,
+      );
+    }
+
+    return net.fetch(pathToFileURL(filePath).toString());
+  });
 }

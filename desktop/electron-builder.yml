@@ -4,6 +4,7 @@ directories:
   output: release
 files:
   - dist/**
+  - renderer-dist/**
   - package.json
 extraResources:
   - from: ../backend/dist/nion-backend
