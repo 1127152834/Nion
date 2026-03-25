@@ -80,7 +80,7 @@ def test_repository_round_trips_minimal_model_management_records(tmp_path):
     assert loaded_binding.provider_model_id == model.id
 
 
-def test_provider_template_upsert_reuses_existing_row_for_same_code(tmp_path):
+def test_upsert_provider_template_updates_existing_row_by_code(tmp_path):
     repo = ModelManagementRepository(tmp_path / "config.db")
 
     original = ProviderTemplate(
@@ -96,35 +96,42 @@ def test_provider_template_upsert_reuses_existing_row_for_same_code(tmp_path):
         name="OpenAI Updated",
         category="aggregator",
         protocol="openai-compatible",
+        sort_order=7,
     )
     saved = repo.upsert_provider_template(replacement)
 
     templates = repo.list_provider_templates()
 
     assert saved.id == original.id
-    assert len(templates) == 1
+    assert [item.code for item in templates] == ["openai"]
     assert templates[0].id == original.id
     assert templates[0].name == "OpenAI Updated"
     assert templates[0].category == "aggregator"
+    assert templates[0].sort_order == 7
 
 
-def test_save_binding_reuses_existing_row_for_same_binding_key(tmp_path):
+def test_save_binding_updates_existing_row_by_binding_key(tmp_path):
     repo = ModelManagementRepository(tmp_path / "config.db")
 
     original = ModelBinding(
         binding_key="chat.default",
-        provider_model_id="model-a",
+        provider_model_id="model-1",
     )
     repo.save_binding(original)
 
     replacement = ModelBinding(
         binding_key="chat.default",
-        provider_model_id="model-b",
+        provider_model_id="model-2",
+        fallback_provider_model_id="model-3",
+        status="disabled",
     )
     saved = repo.save_binding(replacement)
-    loaded_binding = repo.get_binding("chat.default")
 
+    binding = repo.get_binding("chat.default")
+
+    assert binding is not None
     assert saved.id == original.id
-    assert loaded_binding is not None
-    assert loaded_binding.id == original.id
-    assert loaded_binding.provider_model_id == "model-b"
+    assert binding.id == original.id
+    assert binding.provider_model_id == "model-2"
+    assert binding.fallback_provider_model_id == "model-3"
+    assert binding.status == "disabled"

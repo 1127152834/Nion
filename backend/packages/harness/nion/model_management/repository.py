@@ -165,15 +165,13 @@ class ModelManagementRepository:
                     is_builtin, created_at, updated_at, payload
                 )
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT(id) DO UPDATE SET
-                    code = excluded.code,
+                ON CONFLICT(code) DO UPDATE SET
                     name = excluded.name,
                     category = excluded.category,
                     protocol = excluded.protocol,
                     status = excluded.status,
                     sort_order = excluded.sort_order,
                     is_builtin = excluded.is_builtin,
-                    created_at = excluded.created_at,
                     updated_at = excluded.updated_at,
                     payload = excluded.payload
                 """,
@@ -377,12 +375,10 @@ class ModelManagementRepository:
                     status, created_at, updated_at, payload
                 )
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT(id) DO UPDATE SET
-                    binding_key = excluded.binding_key,
+                ON CONFLICT(binding_key) DO UPDATE SET
                     provider_model_id = excluded.provider_model_id,
                     fallback_provider_model_id = excluded.fallback_provider_model_id,
                     status = excluded.status,
-                    created_at = excluded.created_at,
                     updated_at = excluded.updated_at,
                     payload = excluded.payload
                 """,
