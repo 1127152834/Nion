@@ -7,5 +7,6 @@ def test_desktop_contract_declares_builder_and_forge() -> None:
     ).read_text(encoding="utf-8")
     assert "electron-builder" in contract
     assert "electron-forge" in contract
-    assert "GitHub Releases" in contract
-    assert "generic CDN" in contract
+    assert "single local daemon" in contract
+    assert "Electron single-window client" in contract
+    assert "allow_background_running" in contract

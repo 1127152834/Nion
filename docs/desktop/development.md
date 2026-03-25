@@ -2,7 +2,7 @@
 
 ## Goal
 
-Nion Desktop is the only supported product surface in this branch. The application is packaged as an Electron shell plus a bundled Python helper.
+Nion Desktop is the only supported product surface in this branch. The application is packaged as an Electron single-window client plus a bundled local daemon.
 
 ## Local Workflow
 
@@ -13,7 +13,7 @@ make install
 make desktop-install
 ```
 
-2. Build the helper and shell:
+2. Build the daemon runtime and shell:
 
 ```bash
 make build-desktop
@@ -50,6 +50,14 @@ cd backend && UV_LINK_MODE=copy uv run pytest -q
 
 - Canonical release lane: `electron-builder`
 - Secondary verification lane: `electron-forge`
+
+## Runtime Notes
+
+- Electron starts the local daemon immediately on launch.
+- The daemon binds to `127.0.0.1` only in Phase 01.
+- `allow_background_running` is stored in Config Center and governs whether the daemon stays alive after Electron closes.
+- When `allow_background_running` is disabled, the daemon exits after a short 2–3 second grace period once the Electron client detaches.
+- Electron is single-window. A second app launch should focus the existing window instead of opening another one.
 
 ## Known Blocker
 

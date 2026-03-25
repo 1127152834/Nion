@@ -26,7 +26,7 @@
 
 ## 桌面端优先
 
-当前分支将 Nion 作为桌面应用来交付：Electron 壳 + 本机 Python helper。浏览器部署与独立 LangGraph/Nginx 拓扑不再是默认产品路径。
+当前分支将 Nion 作为桌面应用来交付：Electron 单窗口客户端 + 本机单 daemon 运行时。浏览器部署与独立 LangGraph/Nginx 拓扑不再是默认产品路径。
 
 - 桌面 renderer 通过特权 `nion://app` 协议加载静态资源
 - preload 会向前端同步注入本地 helper base URL，前端不再假设 `/api/*` 由浏览器同源反代提供
@@ -130,7 +130,8 @@ make docker-start
 
 当前版本将以 Electron 作为桌面端优先路线，目标是实现“安装即用”的前后端一体桌面体验：
 
-- 内置后端运行时
+- 单本地 daemon 运行时
+- Electron 单窗口客户端
 - 本地 SQLite 持久化
 - 用户目录统一数据管理
 - 沙箱与文件路径在桌面端可控、可诊断、可恢复

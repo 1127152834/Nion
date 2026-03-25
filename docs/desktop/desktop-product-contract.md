@@ -2,7 +2,7 @@
 
 ## Runtime
 
-Nion Desktop is a desktop-only product. The shipped application consists of an Electron shell and a bundled Python helper service running on the local machine for a single signed-in desktop user. Production runtime must not require `nginx`, standalone `langgraph dev`, Docker, Kubernetes, or a browser-based deployment surface.
+Nion Desktop is a desktop-only product. The shipped application now consists of an Electron single-window client and one single local daemon running on the local machine for a single signed-in desktop user. Production runtime must not require `nginx`, standalone `langgraph dev`, Docker, Kubernetes, or a browser-based deployment surface.
 
 ## Supported Platforms
 
@@ -14,7 +14,7 @@ Nion Desktop is a desktop-only product. The shipped application consists of an E
 - Chat threads, agent conversations, and streaming responses
 - Local workspace, uploads, artifacts, exports, and runtime profile controls
 - Automation jobs and scheduled execution
-- Channels and IM integrations that can run from the desktop helper
+- Channels and IM integrations that can run from the single local daemon
 - Remote search and scrape tools exposed through the local runtime
 - Cloud model providers and local OpenAI-compatible model endpoints
 - Skills, MCP-backed extensions, recall, and OpenViking-backed memory
@@ -32,9 +32,9 @@ Nion Desktop is a desktop-only product. The shipped application consists of an E
 - Canonical release packaging: `electron-builder`
 - Secondary verification/fallback packaging: `electron-forge`
 
-## Python Helper Strategy
+## Daemon Strategy
 
-The bundled Python helper is frozen with `PyInstaller --onedir` and shipped as an unpacked resource next to the Electron application. The helper must execute outside ASAR and own the local API, streaming, automation, and background runtime surfaces.
+The bundled Python runtime is frozen with `PyInstaller --onedir` and shipped as an unpacked resource next to the Electron application, but it now boots the local daemon entrypoint rather than an Electron-owned helper wrapper. The daemon owns the local API, streaming, automation, and background runtime surfaces, and `allow_background_running` determines whether it survives Electron shutdown after the configured short grace period.
 
 ## Update Providers
 

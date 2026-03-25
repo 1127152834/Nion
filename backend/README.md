@@ -1,6 +1,6 @@
-# Nion Desktop Helper Backend
+# Nion Local Daemon Backend
 
-Nion Desktop Helper is the local Python runtime bundled into the Electron application. It preserves agent execution, memory, artifacts, automation, and channel integrations without requiring the standalone browser/server deployment topology.
+Nion Local Daemon is the local Python runtime bundled into the Electron application. In Program 01, Electron is a single-window client of this daemon rather than the owner of a helper child process. The daemon preserves agent execution, memory, artifacts, automation, and channel integrations without requiring the standalone browser/server deployment topology.
 
 ---
 
