@@ -7,10 +7,10 @@ from typing import Any
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.daemon.routers import clients, runtime
+from app.daemon.routers import clients, control, runtime
 from app.daemon.service import LocalDaemonService
 from app.gateway.config import get_gateway_config
-from app.gateway.routers import config, threads
+from app.gateway.routers import cli, config, files, models, skills, threads
 
 
 @asynccontextmanager
@@ -48,6 +48,11 @@ def create_app(
 
     app.include_router(runtime.router)
     app.include_router(clients.router)
+    app.include_router(control.router)
     app.include_router(config.router)
     app.include_router(threads.router)
+    app.include_router(models.router)
+    app.include_router(skills.router)
+    app.include_router(files.router)
+    app.include_router(cli.router)
     return app
