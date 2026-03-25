@@ -621,7 +621,9 @@ async def inspect_model_metadata(request: ModelMetadataRequest) -> ModelMetadata
     summary="Test Model Provider Connection",
     description="Test provider connectivity with a lightweight model invocation or model-list probe.",
 )
-async def test_model_connection(request: ModelConnectionTestRequest) -> ModelConnectionTestResponse:
+async def execute_model_connection_test(
+    request: ModelConnectionTestRequest,
+) -> ModelConnectionTestResponse:
     use = request.use.strip()
     probe_model = _strip_optional(request.model)
     raw_api_key = _strip_optional(request.api_key)
@@ -723,13 +725,19 @@ async def test_model_connection(request: ModelConnectionTestRequest) -> ModelCon
     )
 
 
+async def test_model_connection(request: ModelConnectionTestRequest) -> ModelConnectionTestResponse:
+    return await execute_model_connection_test(request)
+
+
 @router.post(
     "/models/provider-models",
     response_model=ProviderModelsResponse,
     summary="List Provider Models",
     description="Fetch model list from provider API and enrich capabilities with models.dev metadata.",
 )
-async def list_provider_models(request: ProviderModelsRequest) -> ProviderModelsResponse:
+async def execute_provider_model_discovery(
+    request: ProviderModelsRequest,
+) -> ProviderModelsResponse:
     provider_type = _detect_provider_type(
         request.use.strip(),
         request.api_base,
@@ -816,6 +824,10 @@ async def list_provider_models(request: ProviderModelsRequest) -> ProviderModels
         provider_type=provider_type,
         models=merged_models,
     )
+
+
+async def list_provider_models(request: ProviderModelsRequest) -> ProviderModelsResponse:
+    return await execute_provider_model_discovery(request)
 
 
 @router.get(

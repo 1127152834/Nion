@@ -19,10 +19,10 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useI18n } from "@/core/i18n/hooks";
+import { useModels } from "@/core/models/hooks";
 import { cn } from "@/lib/utils";
 
 import {
-  asArray,
   asBoolean,
   asObject,
   asString,
@@ -82,16 +82,20 @@ export function SummarizationSection({
   const keep = asObject(summarization.keep);
   const keepType = (asString(keep.type) || "messages") as ContextSizeType;
   const selectedModel = asString(summarization.model_name).trim();
-  const models = asArray(config.models);
+  const { models } = useModels();
   const [advancedOpen, setAdvancedOpen] = useState(false);
 
   const modelOptions = useMemo(
     () =>
       models
         .map((item) => ({
-          name: asString(item.name).trim(),
-          label:
-            asString(item.display_name).trim() || asString(item.name).trim(),
+          name: item.name.trim(),
+          label: (() => {
+            const displayName = item.display_name?.trim();
+            return displayName && displayName.length > 0
+              ? displayName
+              : item.name.trim();
+          })(),
         }))
         .filter((item) => item.name.length > 0),
     [models],

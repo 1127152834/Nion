@@ -987,15 +987,53 @@ export const zhCN: Translations = {
       },
     },
     modelPage: {
-      providersLabel: "Providers",
-      providersSubtitle: "连接与鉴权",
-      modelsLabel: "Models",
-      modelsSubtitle: "目录与能力",
-      defaultModelLabel: "默认模型",
-      helperText: "先连接 provider，再从目录或手动方式添加模型。",
-      notSet: "未设置",
-      unnamedModel: "未命名模型",
       loadConfigFailed: "配置加载失败",
+      createFailed: "创建 provider 失败",
+      addProvider: "添加 Provider",
+      providerListTitle: "已添加的 Provider",
+      providerListDescription:
+        "已经保存的 provider 实例会固定显示在左侧，方便随时回到连接信息和模型管理。",
+      emptyProvidersTitle: "还没有添加 Provider",
+      emptyProvidersDescription:
+        "先从右侧 marketplace 选择一个 provider，再继续完成模型配置。",
+      categories: {
+        domestic: "国内",
+        aggregator: "聚合",
+        global: "海外",
+        local: "本地",
+      },
+      marketplaceTitle: "Provider Marketplace",
+      marketplaceDescription:
+        "先选择内置 provider 模板，或者直接创建一个自定义 endpoint。内置 provider 会隐藏多余技术字段，只保留真正需要填写的内容。",
+      emptyMarketplaceTitle: "当前分类暂无模板",
+      emptyMarketplaceDescription:
+        "当前运行时还没有为这个分类暴露可选 provider 模板。",
+      addProviderCta: "打开 Provider",
+      alreadyAdded: "已添加",
+      globalNoticeLabel: "网络提醒",
+      providerDetail: {
+        backToMarketplace: "返回 Marketplace",
+        providerSummary:
+          "先补齐凭据并测试连接，再在下方把这个 provider 的可运行模型整理出来。",
+        credentialsTitle: "连接凭据",
+        credentialsDescription:
+          "内置 provider 会继承模板里的稳定元数据；自定义 provider 会在下一步展开完整连接表单。",
+        modelsTitle: "该 Provider 下的模型",
+        modelsDescription:
+          "连接成功后，这里会成为这个 provider 实例的运行时模型目录。",
+        emptyModelsTitle: "还没有添加模型",
+        emptyModelsDescription:
+          "先测试 provider，再尝试发现模型，或者直接手动输入模型 ID。",
+        customCreateTitle: "创建自定义 Provider",
+        customCreateDescription:
+          "适用于不在内置 marketplace 里的 OpenAI-compatible 或 Anthropic-compatible endpoint。",
+        customCreateAction: "创建自定义 Provider",
+      },
+      statusLabels: {
+        untested: "未测试",
+        success: "正常",
+        failed: "需要关注",
+      },
     },
     toolPage: {
       loadConfigFailed: "加载工具配置失败",

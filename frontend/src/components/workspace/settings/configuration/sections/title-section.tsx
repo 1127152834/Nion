@@ -18,10 +18,10 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useI18n } from "@/core/i18n/hooks";
+import { useModels } from "@/core/models/hooks";
 import { cn } from "@/lib/utils";
 
 import {
-  asArray,
   asBoolean,
   asObject,
   asString,
@@ -56,7 +56,7 @@ export function TitleSection({
   };
   const copy = settingsLike.configSections?.title ?? {};
   const title = asObject(config.title);
-  const models = asArray(config.models);
+  const { models } = useModels();
   const [advancedOpen, setAdvancedOpen] = useState(false);
 
   const modelOptions = useMemo(

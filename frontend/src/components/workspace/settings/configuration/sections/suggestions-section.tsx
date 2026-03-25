@@ -10,9 +10,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useI18n } from "@/core/i18n/hooks";
+import { useModels } from "@/core/models/hooks";
 
 import {
-  asArray,
   asObject,
   asString,
   cloneConfig,
@@ -40,17 +40,22 @@ export function SuggestionsSection({
   const suggestions = asObject(config.suggestions);
   const selectedModel = asString(suggestions.model_name).trim();
   const selectedValue = selectedModel || FOLLOW_CURRENT_CHAT_MODEL;
+  const { models } = useModels();
 
   const modelOptions = useMemo(
     () =>
-      asArray(config.models)
+      models
         .map((item) => ({
-          name: asString(item.name).trim(),
-          label:
-            asString(item.display_name).trim() || asString(item.name).trim(),
+          name: item.name.trim(),
+          label: (() => {
+            const displayName = item.display_name?.trim();
+            return displayName && displayName.length > 0
+              ? displayName
+              : item.name.trim();
+          })(),
         }))
         .filter((item) => item.name.length > 0),
-    [config.models],
+    [models],
   );
 
   const selectedLabel = useMemo(() => {

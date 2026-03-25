@@ -1,4 +1,4 @@
-import { env } from "@/env";
+import { env } from "../../env.js";
 
 export function getBackendBaseURL() {
   if (env.NEXT_PUBLIC_BACKEND_BASE_URL) {

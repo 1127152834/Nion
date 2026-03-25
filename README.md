@@ -88,7 +88,8 @@ make dev
 - Gateway API：`http://localhost:2026/api/*`
 - LangGraph：`http://localhost:2026/api/langgraph/*`
 - Config Center API：`http://localhost:2026/api/config*`
-- Models API：`http://localhost:2026/api/models*`
+- Model Admin API：`http://localhost:2026/api/model-admin/*`
+- Models API：`http://localhost:2026/api/models*`（运行时兼容目录，默认模型解析已改为 registry/database-backed flow）
 - Runtime Profile API：`http://localhost:2026/api/threads/{thread_id}/runtime-profile`
 - Thread Files API：`http://localhost:2026/api/threads/{thread_id}/files/*`
 - CLI Catalog API：`http://localhost:2026/api/cli/catalog`

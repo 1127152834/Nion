@@ -213,7 +213,8 @@ FastAPI application on port 8001 with health check at `GET /health`.
 | **Runtime Profile** (`/api/threads/{id}/runtime-profile`) | thread-scoped `sandbox` / `host` execution mode and optional host workdir binding |
 | **Files** (`/api/threads/{id}/files`) | workdir root metadata and tree listing for the current thread |
 | **CLI** (`/api/cli/catalog`) | runtime-visible CLI catalog for composer/runtime surfaces |
-| **Models** (`/api/models`) | `GET /` - list models; `GET /{name}` - model details; `POST /test-connection` - probe provider connectivity; `POST /provider-models` - fetch provider catalog; `POST /model-metadata` - resolve models.dev metadata |
+| **Model Admin** (`/api/model-admin`) | `GET /templates`; `GET /providers`; `POST/PATCH/DELETE /providers/*`; `POST /providers/{id}/test`; `POST /providers/{id}/discover-models`; `POST /providers/{id}/models`; `PATCH/DELETE /models/{id}`; `POST /models/{id}/test`; `GET /bindings`; `PUT /bindings/{binding_key}` |
+| **Models** (`/api/models`) | Runtime-catalog compatibility surface backed by the model registry: `GET /` - list runtime models; `GET /{name}` - model details. Probe helpers remain at `POST /test-connection`, `POST /provider-models`, and `POST /model-metadata`. |
 | **MCP** (`/api/mcp`) | `GET /config` - get config; `PUT /config` - update config (saves to extensions_config.json) |
 | **Skills** (`/api/skills`) | `GET /` - list skills; `GET /{name}` - details; `PUT /{name}` - update enabled; `POST /install` - install from .skill archive (accepts standard optional frontmatter like `version`, `author`, `compatibility`) |
 | **Memory** (`/api/memory`) | `GET /` - memory data; `POST /reload` - force reload; `GET /config` - config; `GET /status` - config + data |

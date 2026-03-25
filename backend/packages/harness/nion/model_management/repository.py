@@ -505,3 +505,51 @@ class ModelManagementRepository:
         if row is None:
             return None
         return self._deserialize_binding(row["payload"])
+
+    def list_bindings(self) -> list[ModelBinding]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT payload
+                FROM model_bindings
+                ORDER BY binding_key ASC, created_at ASC, id ASC
+                """
+            ).fetchall()
+        return [self._deserialize_binding(row["payload"]) for row in rows]
+
+    def delete_binding(self, binding_key: str) -> None:
+        with self._connect() as connection:
+            connection.execute(
+                """
+                DELETE FROM model_bindings
+                WHERE binding_key = ?
+                """,
+                (binding_key,),
+            )
+
+    def delete_provider_model(self, provider_model_id: str) -> None:
+        with self._connect() as connection:
+            connection.execute(
+                """
+                DELETE FROM provider_models
+                WHERE id = ?
+                """,
+                (provider_model_id,),
+            )
+
+    def delete_provider_instance(self, provider_instance_id: str) -> None:
+        with self._connect() as connection:
+            connection.execute(
+                """
+                DELETE FROM provider_models
+                WHERE provider_instance_id = ?
+                """,
+                (provider_instance_id,),
+            )
+            connection.execute(
+                """
+                DELETE FROM provider_instances
+                WHERE id = ?
+                """,
+                (provider_instance_id,),
+            )

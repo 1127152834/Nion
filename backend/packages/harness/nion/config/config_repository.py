@@ -39,6 +39,25 @@ class ConfigRepository:
     def read(self) -> tuple[dict[str, Any], str, Path]:
         return self._store.read()
 
+    def read_legacy_model_management_payload(
+        self,
+    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+        config_dict, _, _ = self.read()
+        raw_providers = config_dict.get("model_providers")
+        raw_models = config_dict.get("models")
+
+        providers = [
+            dict(item)
+            for item in (raw_providers if isinstance(raw_providers, list) else [])
+            if isinstance(item, dict)
+        ]
+        models = [
+            dict(item)
+            for item in (raw_models if isinstance(raw_models, list) else [])
+            if isinstance(item, dict)
+        ]
+        return providers, models
+
     @staticmethod
     def _normalize_validation_error(error: dict[str, Any]) -> dict[str, Any]:
         return {
@@ -94,4 +113,3 @@ __all__ = [
     "ConfigValidationError",
     "VersionConflictError",
 ]
-

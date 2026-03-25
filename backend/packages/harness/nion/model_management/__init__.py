@@ -1,3 +1,4 @@
+from .import_legacy import LegacyImportResult, LegacyModelConfigImporter
 from .models import (
     ModelBinding,
     ModelBindingStatus,
@@ -42,6 +43,8 @@ __all__ = [
     "ProviderTestStatus",
     "ResolvedRuntimeModel",
     "DEFAULT_CHAT_BINDING",
+    "LegacyImportResult",
+    "LegacyModelConfigImporter",
     "get_model_registry_service",
     "utc_now_iso",
 ]

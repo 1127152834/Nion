@@ -16,6 +16,7 @@ from app.gateway.routers import (
     desktop_system,
     files,
     mcp,
+    model_admin,
     memory,
     models,
     recall,
@@ -130,6 +131,10 @@ This gateway provides custom endpoints for models, MCP configuration, skills, an
                 "description": "Inspect runtime-visible CLI catalog metadata",
             },
             {
+                "name": "model-admin",
+                "description": "Manage provider templates, provider instances, provider models, and runtime bindings",
+            },
+            {
                 "name": "models",
                 "description": "Operations for querying available AI models and their configurations",
             },
@@ -205,6 +210,9 @@ This gateway provides custom endpoints for models, MCP configuration, skills, an
     # Include routers
     # Models API is mounted at /api/models
     app.include_router(models.router)
+
+    # Model management admin API is mounted at /api/model-admin/*
+    app.include_router(model_admin.router)
 
     # Config Center API is mounted at /api/config*
     app.include_router(config.router)

@@ -10,6 +10,7 @@ from nion.config import get_app_config
 from nion.config.config_store import resolve_config_db_path
 from nion.config.model_config import ModelConfig
 from nion.model_management.crypto import decrypt_provider_secret, get_model_management_secret
+from nion.model_management.import_legacy import LegacyModelConfigImporter
 from nion.model_management.models import (
     ModelBinding,
     ProviderInstance,
@@ -78,10 +79,14 @@ class ModelRegistryService:
     ):
         self._secret_provider = secret_provider or get_model_management_secret
         self._app_config_provider = app_config_provider or get_app_config
-        self._repo = repo or ModelManagementRepository(
-            resolve_config_db_path(),
-            secret_provider=self._secret_provider,
-        )
+        if repo is None:
+            self._repo = ModelManagementRepository(
+                resolve_config_db_path(),
+                secret_provider=self._secret_provider,
+            )
+            LegacyModelConfigImporter(repo=self._repo).import_if_needed()
+        else:
+            self._repo = repo
 
     def list_runtime_models(self) -> list[ResolvedRuntimeModel]:
         database_models = self._list_database_runtime_models()

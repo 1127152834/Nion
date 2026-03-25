@@ -158,7 +158,9 @@ Base URL: `/api`
 
 #### List Models
 
-Get all available LLM models from configuration.
+Get the runtime model catalog resolved through the model registry. This endpoint
+remains the compatibility surface for chat/runtime consumers even after model
+management moved to database-backed provider records.
 
 ```http
 GET /api/models
@@ -170,21 +172,10 @@ GET /api/models
   "models": [
     {
       "name": "gpt-4",
+      "model": "gpt-4",
       "display_name": "GPT-4",
       "supports_thinking": false,
       "supports_vision": true
-    },
-    {
-      "name": "claude-3-opus",
-      "display_name": "Claude 3 Opus",
-      "supports_thinking": false,
-      "supports_vision": true
-    },
-    {
-      "name": "deepseek-v3",
-      "display_name": "DeepSeek V3",
-      "supports_thinking": true,
-      "supports_vision": false
     }
   ]
 }
@@ -202,10 +193,45 @@ GET /api/models/{model_name}
   "name": "gpt-4",
   "display_name": "GPT-4",
   "model": "gpt-4",
-  "max_tokens": 4096,
   "supports_thinking": false,
   "supports_vision": true
 }
+```
+
+### Model Management
+
+Settings/admin flows now use the dedicated model-management surface.
+
+#### List Provider Templates
+
+```http
+GET /api/model-admin/templates?category=domestic
+```
+
+#### List Provider Instances
+
+```http
+GET /api/model-admin/providers
+```
+
+#### Create or Update Provider Instances
+
+```http
+POST /api/model-admin/providers
+PATCH /api/model-admin/providers/{provider_id}
+```
+
+#### Provider and Model Actions
+
+```http
+POST /api/model-admin/providers/{provider_id}/test
+POST /api/model-admin/providers/{provider_id}/discover-models
+POST /api/model-admin/providers/{provider_id}/models
+PATCH /api/model-admin/models/{model_id}
+DELETE /api/model-admin/models/{model_id}
+POST /api/model-admin/models/{model_id}/test
+GET /api/model-admin/bindings
+PUT /api/model-admin/bindings/{binding_key}
 ```
 
 ### MCP Configuration
