@@ -60,6 +60,9 @@ class SessionRegistry:
     def set_allow_background_running(self, enabled: bool) -> None:
         self._allow_background_running = enabled
 
+    def set_shutdown_grace_period_seconds(self, seconds: int) -> None:
+        self._grace = seconds
+
     def snapshot(self) -> dict[str, int]:
         electron = 0
         cli = 0

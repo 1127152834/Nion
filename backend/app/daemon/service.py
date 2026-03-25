@@ -85,6 +85,17 @@ class LocalDaemonService:
     ) -> None:
         self._shutdown_callback = callback
 
+    def refresh_from_app_config(self) -> None:
+        config = get_app_config()
+        self.host = config.daemon.host
+        self.port = config.daemon.port
+        self.allow_background_running = config.daemon.allow_background_running
+        self.shutdown_grace_period_seconds = config.daemon.shutdown_grace_period_seconds
+        self.registry.set_allow_background_running(self.allow_background_running)
+        self.registry.set_shutdown_grace_period_seconds(
+            self.shutdown_grace_period_seconds
+        )
+
     async def start(self) -> None:
         if self._shutdown_task is not None:
             return

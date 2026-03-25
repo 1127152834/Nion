@@ -6,7 +6,7 @@ import logging
 from typing import Any
 
 import yaml
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field
 
 from nion.config.config_repository import (
@@ -210,14 +210,20 @@ async def validate_config(request: ConfigValidateRequest) -> ConfigValidateRespo
 
 
 @router.put("/config", response_model=ConfigUpdateResponse)
-async def update_config(request: ConfigUpdateRequest) -> ConfigUpdateResponse:
+async def update_config(
+    request: Request,
+    payload: ConfigUpdateRequest,
+) -> ConfigUpdateResponse:
     repo = ConfigRepository()
-    payload = _resolve_config_payload(request.config, request.yaml_text)
+    config_payload = _resolve_config_payload(payload.config, payload.yaml_text)
 
     try:
         new_version, warnings_raw = repo.write_with_warnings(
-            config_dict=payload, expected_version=request.version
+            config_dict=config_payload, expected_version=payload.version
         )
+        daemon_service = getattr(request.app.state, "daemon_service", None)
+        if daemon_service is not None:
+            daemon_service.refresh_from_app_config()
         warnings = [ConfigValidateWarningItem(**item) for item in warnings_raw]
         config, _, source_path = repo.read()
         return ConfigUpdateResponse(
