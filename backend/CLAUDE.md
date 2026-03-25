@@ -224,6 +224,19 @@ FastAPI application on port 8001 with health check at `GET /health`.
 
 Proxied through nginx: `/api/langgraph/*` → LangGraph, all other `/api/*` → Gateway.
 
+### Local Daemon Surface
+
+The desktop local daemon reuses the gateway router modules directly. Keep its
+route surface aligned with the renderer expectations, including:
+
+- `/api/model-admin/*`
+- `/api/threads/{thread_id}/runtime-profile`
+- `/api/models`, `/api/config`, `/api/skills`, `/api/files`, `/api/cli/catalog`
+
+If a gateway route is added and the Electron renderer consumes it, update
+`app/daemon/app.py` too or the desktop shell will return 404 while the web/gateway
+path keeps working.
+
 ### Sandbox System (`packages/harness/nion/sandbox/`)
 
 **Interface**: Abstract `Sandbox` with `execute_command`, `read_file`, `write_file`, `list_dir`

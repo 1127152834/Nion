@@ -11,6 +11,11 @@ Nion backend exposes two sets of APIs:
 
 All APIs are accessed through the Nginx reverse proxy at port 2026.
 
+For the Electron desktop app, the local daemon mirrors the renderer-facing
+gateway routes directly on its own base URL (for example
+`http://127.0.0.1:43115/api/*`). New renderer-facing routes must be mounted in
+both `app/gateway/app.py` and `app/daemon/app.py`.
+
 ## LangGraph API
 
 Base URL: `/api/langgraph`

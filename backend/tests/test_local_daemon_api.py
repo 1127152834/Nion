@@ -18,6 +18,20 @@ def test_local_daemon_exposes_runtime_and_threads_routes() -> None:
         assert threads.status_code == 200
 
 
+def test_local_daemon_exposes_runtime_profile_and_model_admin_routes() -> None:
+    with TestClient(create_app()) as client:
+        runtime_profile = client.get("/api/threads/test-thread/runtime-profile")
+        templates = client.get("/api/model-admin/templates?category=domestic")
+
+        assert runtime_profile.status_code == 200
+        assert runtime_profile.json()["execution_mode"] == "sandbox"
+        assert templates.status_code == 200
+        assert any(
+            item["code"] == "minimax-cn"
+            for item in templates.json()["templates"]
+        )
+
+
 def test_local_daemon_wires_shutdown_callback_when_provided() -> None:
     async def shutdown_callback() -> None:
         return None
