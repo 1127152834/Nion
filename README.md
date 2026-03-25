@@ -33,6 +33,8 @@
 - `electron-builder` 默认发布到 GitHub Releases；只有设置 `NION_UPDATE_BASE_URL` 时才会额外写入 generic/CDN 更新源
 - `make build-desktop` 只做桌面编译；`make desktop-dev` 会在编译后直接拉起 Electron
 - `make desktop-start` 会直接启动已编译好的桌面端，不再重复编译
+- `nion daemon status` 与 `nion daemon stop` 提供本地 daemon 管理入口
+- `nion tui` 提供与 Electron 共用同一 daemon 的终端交互壳
 
 ## 快速开始
 
