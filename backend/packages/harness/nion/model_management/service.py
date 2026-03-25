@@ -217,6 +217,8 @@ class ModelRegistryService:
             payload["api_base"] = api_base
         if model.max_output_tokens is not None and "max_tokens" not in payload:
             payload["max_tokens"] = model.max_output_tokens
+        if model.context_window is not None and "context_window" not in payload:
+            payload["context_window"] = model.context_window
 
         return ResolvedRuntimeModel(
             runtime_name=runtime_name,
@@ -261,9 +263,10 @@ class ModelRegistryService:
                     exclude={
                         "name",
                         "display_name",
-                        "description",
                         "use",
                         "model",
+                        "api_key",
+                        "api_base",
                         "supports_thinking",
                         "supports_reasoning_effort",
                         "supports_vision",
@@ -273,6 +276,7 @@ class ModelRegistryService:
             resolved.append(
                 ResolvedRuntimeModel(
                     runtime_name=model_config.name,
+                    binding_key=DEFAULT_CHAT_BINDING if not resolved else None,
                     source_kind="legacy",
                     provider=provider,
                     template=None,
@@ -284,49 +288,8 @@ class ModelRegistryService:
             )
         return resolved
 
-    def _normalize_legacy_model_config(self, raw_model_config: Any) -> ModelConfig:
-        payload: dict[str, Any] = {}
-        if isinstance(raw_model_config, ModelConfig):
-            payload = raw_model_config.model_dump(exclude_none=True)
-        elif hasattr(raw_model_config, "model_dump") and callable(raw_model_config.model_dump):
-            dumped = raw_model_config.model_dump(exclude_none=True)
-            if isinstance(dumped, dict):
-                payload = dict(dumped)
-
-        name = _safe_required_str(getattr(raw_model_config, "name", None), "legacy-model")
-        display_name = _safe_optional_str(getattr(raw_model_config, "display_name", None)) or name
-        model_name = _safe_required_str(getattr(raw_model_config, "model", None), name)
-        use = _safe_required_str(
-            getattr(raw_model_config, "use", None),
-            "langchain_openai:ChatOpenAI",
-        )
-
-        payload.update(
-            {
-                "name": name,
-                "display_name": display_name,
-                "description": _safe_optional_str(getattr(raw_model_config, "description", None)),
-                "use": use,
-                "model": model_name,
-                "supports_thinking": _safe_bool(getattr(raw_model_config, "supports_thinking", None)),
-                "supports_reasoning_effort": _safe_bool(
-                    getattr(raw_model_config, "supports_reasoning_effort", None)
-                ),
-                "supports_vision": _safe_bool(getattr(raw_model_config, "supports_vision", None)),
-            }
-        )
-
-        api_key = _safe_optional_str(getattr(raw_model_config, "api_key", None))
-        api_base = _safe_optional_str(getattr(raw_model_config, "api_base", None))
-        if api_key is not None:
-            payload["api_key"] = api_key
-        if api_base is not None:
-            payload["api_base"] = api_base
-
-        return ModelConfig.model_validate(payload)
-
-    @staticmethod
     def _pick_database_default(
+        self,
         models: list[ResolvedRuntimeModel],
     ) -> ResolvedRuntimeModel:
         for item in models:
@@ -336,9 +299,18 @@ class ModelRegistryService:
 
     @staticmethod
     def _protocol_from_use(use: str) -> ProviderProtocol:
-        if "anthropic" in use.lower():
-            return "anthropic-compatible"
-        return "openai-compatible"
+        return "anthropic-compatible" if "anthropic" in use.lower() else "openai-compatible"
+
+    @staticmethod
+    def _normalize_legacy_model_config(raw_model_config: Any) -> ModelConfig:
+        if isinstance(raw_model_config, ModelConfig):
+            return raw_model_config
+        if isinstance(raw_model_config, dict):
+            return ModelConfig.model_validate(raw_model_config)
+        return ModelConfig.model_validate(raw_model_config.model_dump())
+
+
+_model_registry_service: ModelRegistryService | None = None
 
 
 def get_model_registry_service(
@@ -347,6 +319,11 @@ def get_model_registry_service(
     secret_provider: Callable[[], bytes] | None = None,
     app_config_provider: Callable[[], object] | None = None,
 ) -> ModelRegistryService:
+    global _model_registry_service
+    if repo is None and secret_provider is None and app_config_provider is None:
+        if _model_registry_service is None:
+            _model_registry_service = ModelRegistryService()
+        return _model_registry_service
     return ModelRegistryService(
         repo=repo,
         secret_provider=secret_provider,

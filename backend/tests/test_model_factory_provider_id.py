@@ -1,131 +1,129 @@
 from __future__ import annotations
 
-from langchain.chat_models import BaseChatModel
+from unittest.mock import MagicMock
 
-from nion.config.model_config import ModelConfig
-from nion.models import factory as factory_module
+import pytest
 
-
-class CapturingChatModel(BaseChatModel):
-    captured_kwargs: dict[str, object] = {}
-
-    def __init__(self, **kwargs):
-        CapturingChatModel.captured_kwargs = dict(kwargs)
-        super().__init__(**kwargs)
-
-    @property
-    def _llm_type(self) -> str:
-        return "capturing"
-
-    def _generate(self, *args, **kwargs):  # type: ignore[override]
-        raise NotImplementedError
-
-    def _stream(self, *args, **kwargs):  # type: ignore[override]
-        raise NotImplementedError
+from nion.model_management.models import (
+    ModelBinding,
+    ProviderInstance,
+    ProviderModel,
+    ProviderTemplate,
+)
+from nion.model_management.repository import ModelManagementRepository
+from nion.model_management.service import DEFAULT_CHAT_BINDING, get_model_registry_service
 
 
-class FakeResolvedRuntimeModel:
-    def __init__(self, **extra_model_kwargs: object) -> None:
-        payload = {
-            "name": "gpt-4.1",
-            "display_name": "GPT-4.1",
-            "description": "Registry-backed model",
-            "use": "langchain_openai:ChatOpenAI",
-            "model": "gpt-4.1",
-            "api_key": "sk-registry-123",
-            "api_base": "https://api.openai.com/v1",
-            "supports_thinking": True,
-            "supports_reasoning_effort": True,
-            "supports_vision": True,
-            **extra_model_kwargs,
-        }
-        self.runtime_name = str(payload["name"])
-        self.runtime_model_config = ModelConfig(**payload)
+def _make_repository(tmp_path):
+    return ModelManagementRepository(tmp_path / "config.db")
 
 
-class FakeRegistry:
-    def __init__(self, **extra_model_kwargs: object) -> None:
-        self._extra_model_kwargs = extra_model_kwargs
+def test_model_registry_exposes_provider_prefixed_runtime_names_for_duplicate_models(tmp_path):
+    repo = _make_repository(tmp_path)
 
-    def get_default_model(self) -> FakeResolvedRuntimeModel:
-        return FakeResolvedRuntimeModel(**self._extra_model_kwargs)
-
-    def resolve_model(self, identity: str) -> FakeResolvedRuntimeModel:
-        assert identity == str(self._extra_model_kwargs.get("name", "gpt-4.1"))
-        return FakeResolvedRuntimeModel(**self._extra_model_kwargs)
-
-
-def test_provider_id_is_not_forwarded_to_model_constructor(monkeypatch):
-    monkeypatch.setattr(
-        factory_module,
-        "get_model_registry_service",
-        lambda **kwargs: FakeRegistry(
-            name="provider-bound",
-            display_name="provider-bound",
-            description=None,
-            use="langchain_anthropic:ChatAnthropic",
-            model="claude-3-5-sonnet-20241022",
-            api_key="test-key",
-            api_base="https://api.anthropic.com",
-            provider_id="anthropic-default",
-            supports_thinking=False,
-            supports_reasoning_effort=False,
-            supports_vision=False,
-        ),
+    openrouter = ProviderTemplate(
+        code="openrouter",
+        name="OpenRouter",
+        category="global",
+        protocol="openai-compatible",
     )
-    monkeypatch.setattr(
-        factory_module,
-        "resolve_class",
-        lambda path, base: CapturingChatModel,
+    custom = ProviderTemplate(
+        code="models-dev",
+        name="Models.dev",
+        category="global",
+        protocol="openai-compatible",
     )
-    monkeypatch.setattr(factory_module, "is_tracing_enabled", lambda: False)
+    repo.upsert_provider_template(openrouter)
+    repo.upsert_provider_template(custom)
 
-    factory_module.create_chat_model(name="provider-bound", thinking_enabled=False)
-
-    assert "provider_id" not in CapturingChatModel.captured_kwargs
-
-
-def test_create_chat_model_uses_registry_default_binding(monkeypatch):
-    CapturingChatModel.captured_kwargs = {}
-
-    monkeypatch.setattr(
-        factory_module,
-        "get_model_registry_service",
-        lambda **kwargs: FakeRegistry(),
+    provider_a = ProviderInstance(
+        provider_template_id=openrouter.id,
+        kind="custom",
+        display_name="OpenRouter Prod",
     )
-    monkeypatch.setattr(
-        factory_module,
-        "resolve_class",
-        lambda path, base: CapturingChatModel,
+    provider_b = ProviderInstance(
+        provider_template_id=custom.id,
+        kind="custom",
+        display_name="Models Dev",
     )
-    monkeypatch.setattr(factory_module, "is_tracing_enabled", lambda: False)
+    repo.save_provider_instance(provider_a)
+    repo.save_provider_instance(provider_b)
 
-    factory_module.create_chat_model(name=None)
-
-    assert CapturingChatModel.captured_kwargs["model"] == "gpt-4.1"
-    assert CapturingChatModel.captured_kwargs["api_key"] == "sk-registry-123"
-    assert (
-        CapturingChatModel.captured_kwargs["base_url"]
-        == "https://api.openai.com/v1"
+    model_a = ProviderModel(
+        provider_instance_id=provider_a.id,
+        model_id="shared-model",
+        display_name="Shared Model A",
+        source="manual",
+        is_primary=True,
+        priority_order=0,
     )
-    assert "api_base" not in CapturingChatModel.captured_kwargs
-
-
-def test_create_chat_model_does_not_forward_context_window_metadata(monkeypatch):
-    CapturingChatModel.captured_kwargs = {}
-
-    monkeypatch.setattr(
-        factory_module,
-        "get_model_registry_service",
-        lambda **kwargs: FakeRegistry(context_window=256000),
+    model_b = ProviderModel(
+        provider_instance_id=provider_b.id,
+        model_id="shared-model",
+        display_name="Shared Model B",
+        source="manual",
+        priority_order=1,
     )
-    monkeypatch.setattr(
-        factory_module,
-        "resolve_class",
-        lambda path, base: CapturingChatModel,
+    repo.save_provider_model(model_a)
+    repo.save_provider_model(model_b)
+    repo.save_binding(
+        ModelBinding(
+            binding_key=DEFAULT_CHAT_BINDING,
+            provider_model_id=model_a.id,
+        )
     )
-    monkeypatch.setattr(factory_module, "is_tracing_enabled", lambda: False)
 
-    factory_module.create_chat_model(name=None)
+    service = get_model_registry_service(repo=repo)
+    runtime_names = {item.runtime_name for item in service.list_runtime_models()}
 
-    assert "context_window" not in CapturingChatModel.captured_kwargs
+    assert runtime_names == {"openrouter:shared-model", "models-dev:shared-model"}
+
+
+def test_default_binding_prefers_database_primary_model(tmp_path):
+    repo = _make_repository(tmp_path)
+
+    template = ProviderTemplate(
+        code="openrouter",
+        name="OpenRouter",
+        category="global",
+        protocol="openai-compatible",
+    )
+    repo.upsert_provider_template(template)
+    provider = ProviderInstance(
+        provider_template_id=template.id,
+        kind="custom",
+        display_name="OpenRouter Prod",
+    )
+    repo.save_provider_instance(provider)
+
+    primary = ProviderModel(
+        provider_instance_id=provider.id,
+        model_id="primary-model",
+        display_name="Primary Model",
+        source="manual",
+        is_primary=True,
+        priority_order=0,
+    )
+    fallback = ProviderModel(
+        provider_instance_id=provider.id,
+        model_id="fallback-model",
+        display_name="Fallback Model",
+        source="manual",
+        is_primary=False,
+        priority_order=1,
+    )
+    repo.save_provider_model(primary)
+    repo.save_provider_model(fallback)
+
+    service = get_model_registry_service(repo=repo)
+    default_model = service.get_default_model()
+
+    assert default_model.runtime_name == "primary-model"
+
+
+def test_resolve_model_raises_for_unknown_runtime_identity(tmp_path):
+    repo = _make_repository(tmp_path)
+    service = get_model_registry_service(repo=repo)
+
+    with pytest.raises(ValueError, match="not found"):
+        service.resolve_model("missing-model")
