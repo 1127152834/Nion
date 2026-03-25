@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, Response
@@ -10,6 +11,7 @@ from nion.threads.models import ThreadSearchParams, ThreadStreamRequest
 from nion.threads.service import ThreadService, create_default_thread_service
 
 router = APIRouter(prefix="/api/threads", tags=["threads"])
+logger = logging.getLogger(__name__)
 
 
 class ThreadsSearchRequest(ThreadSearchParams):
@@ -75,7 +77,14 @@ async def stream_thread(
 ) -> EventSourceResponse:
     def event_stream():
         yield {"event": "created", "data": json.dumps({"thread_id": thread_id})}
-        for event in service.stream(thread_id, payload):
-            yield {"event": event.type, "data": json.dumps(event.data)}
+        try:
+            for event in service.stream(thread_id, payload):
+                yield {"event": event.type, "data": json.dumps(event.data)}
+        except Exception as error:
+            logger.exception("Thread stream failed for %s", thread_id)
+            yield {
+                "event": "error",
+                "data": json.dumps({"message": str(error) or "Thread stream failed"}),
+            }
 
     return EventSourceResponse(event_stream())

@@ -9,16 +9,16 @@ import { SettingsSection } from "./settings-section";
 import { useConfigEditor } from "./use-config-editor";
 
 const DEFAULT_TOOL_PAGE_COPY = {
-  builtInTitle: "Built-in tools",
-  builtInDesc: "Manage built-in tool presets.",
   loadConfigFailed: "Failed to load tool config",
-  runtimeTitle: "Runtime config status",
-  runtimeSource: "Source",
-  runtimeVersion: "Version",
-  runtimeInSync: "In sync with storage",
-  runtimeOutOfSync: "Not synced to latest storage version",
-  runtimeWarnings: "Runtime warnings",
-  runtimeProcesses: "Processes",
+  runtimeTitle: "Tool status",
+  runtimeSummary:
+    "Shows whether your latest setup is active and whether the tool runtime looks healthy.",
+  runtimeStateLabel: "Status",
+  runtimeToolsLabel: "Available tools",
+  runtimeAttentionLabel: "Attention",
+  runtimeHealthy: "None",
+  runtimeInSync: "Up to date",
+  runtimeOutOfSync: "Needs apply",
 } as const;
 
 export function ToolSettingsPage() {
@@ -45,6 +45,17 @@ export function ToolSettingsPage() {
     onDiscard,
     onSave,
   } = useConfigEditor();
+  const runtimeProcesses = Object.values(runtimeStatus?.runtime_processes ?? {});
+  const readyProcessCount = runtimeProcesses.filter(
+    (info) => (info.status ?? "").toLowerCase() === "ok",
+  ).length;
+  const runtimeIssueCount =
+    runtimeProcesses.filter(
+      (info) =>
+        (info.status ?? "").toLowerCase() !== "ok" || Boolean(info.reason),
+    ).length +
+    (runtimeStatus?.warnings?.length ?? 0) +
+    (runtimeStatus?.last_error ? 1 : 0);
 
   return (
     <SettingsSection
@@ -60,49 +71,51 @@ export function ToolSettingsPage() {
       ) : (
         <div className="space-y-4">
           {runtimeStatus && (
-            <div className="space-y-2 rounded-md border bg-muted/30 p-3 text-xs">
-              <div className="text-sm font-medium">{copy.runtimeTitle}</div>
-              <div className="grid gap-1">
-                <div>
-                  {copy.runtimeSource}: {runtimeStatus.loaded_source_path ?? "-"}
-                </div>
-                <div>
-                  {copy.runtimeVersion}: {runtimeStatus.loaded_version ?? "-"} /{" "}
-                  {runtimeStatus.store_version ?? "-"}
-                </div>
-                <div
-                  className={
-                    runtimeStatus.is_in_sync ? "text-emerald-700" : "text-amber-700"
-                  }
-                >
-                  {runtimeStatus.is_in_sync
-                    ? copy.runtimeInSync
-                    : copy.runtimeOutOfSync}
+            <div className="rounded-lg border bg-muted/20 p-4">
+              <div className="space-y-1">
+                <div className="text-sm font-medium">{copy.runtimeTitle}</div>
+                <div className="text-muted-foreground text-xs">
+                  {copy.runtimeSummary}
                 </div>
               </div>
-
-              {Object.keys(runtimeStatus.runtime_processes ?? {}).length > 0 && (
-                <div className="space-y-1">
-                  <div className="font-medium">{copy.runtimeProcesses}</div>
-                  {Object.entries(runtimeStatus.runtime_processes ?? {}).map(
-                    ([name, info]) => (
-                      <div key={name}>
-                        {name}: {info.loaded_version ?? "-"} ({info.status})
-                        {info.reason ? ` - ${info.reason}` : ""}
-                      </div>
-                    ),
-                  )}
+              <div className="mt-3 grid gap-2 text-xs sm:grid-cols-3">
+                <div className="rounded-md border bg-background/80 p-3">
+                  <div className="text-muted-foreground">
+                    {copy.runtimeStateLabel}
+                  </div>
+                  <div
+                    className={
+                      runtimeStatus.is_in_sync
+                        ? "mt-1 font-medium text-emerald-700"
+                        : "mt-1 font-medium text-amber-700"
+                    }
+                  >
+                    {runtimeStatus.is_in_sync
+                      ? copy.runtimeInSync
+                      : copy.runtimeOutOfSync}
+                  </div>
                 </div>
-              )}
-
-              {(runtimeStatus.warnings ?? []).length > 0 && (
-                <div className="space-y-1 text-amber-800">
-                  <div className="font-medium">{copy.runtimeWarnings}</div>
-                  {(runtimeStatus.warnings ?? []).map((warning, index) => (
-                    <div key={`runtime-warning-${index}`}>{warning}</div>
-                  ))}
+                <div className="rounded-md border bg-background/80 p-3">
+                  <div className="text-muted-foreground">
+                    {copy.runtimeToolsLabel}
+                  </div>
+                  <div className="mt-1 font-medium text-foreground">
+                    {runtimeStatus.tools_count ??
+                      runtimeStatus.loaded_tools?.length ??
+                      readyProcessCount}
+                  </div>
                 </div>
-              )}
+                <div className="rounded-md border bg-background/80 p-3">
+                  <div className="text-muted-foreground">
+                    {copy.runtimeAttentionLabel}
+                  </div>
+                  <div className="mt-1 font-medium text-foreground">
+                    {runtimeIssueCount > 0
+                      ? String(runtimeIssueCount)
+                      : copy.runtimeHealthy}
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 

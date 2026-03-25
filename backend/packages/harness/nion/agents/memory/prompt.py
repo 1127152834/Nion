@@ -110,6 +110,11 @@ Important Rules:
 - For history sections, integrate new information chronologically into appropriate time period
 - Preserve technical accuracy - keep exact names of technologies, companies, projects
 - Focus on information useful for future interactions and personalization
+- Do NOT emit relationship-control state as facts. The following belong to the
+  relationship layer, not structured memory facts:
+  `relationship_type`, `familiarity_level`, `address_style`, `initiative_level`,
+  `humor_tolerance`, `emotional_warmth`, `emotional_intensity_cap`,
+  consent flags like `allow_custom_nickname`, and nickname/consent policy.
 - IMPORTANT: Do NOT record file upload events in memory. Uploaded files are
   session-specific and ephemeral — they will not be accessible in future sessions.
   Recording upload events causes confusion in subsequent conversations.

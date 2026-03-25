@@ -17,6 +17,7 @@ import { NewChatStage } from "@/components/workspace/new-chat-stage";
 import { RuntimeModeToggle } from "@/components/workspace/runtime-mode-toggle";
 import { ThreadTitle } from "@/components/workspace/thread-title";
 import { TodoList } from "@/components/workspace/todo-list";
+import { ThreadRequestErrorAlert } from "@/components/workspace/thread-request-error-alert";
 import { Welcome } from "@/components/workspace/welcome";
 import { loadThreadFilesTree } from "@/core/files";
 import { useI18n } from "@/core/i18n/hooks";
@@ -27,6 +28,7 @@ import {
   updateRuntimeProfile,
 } from "@/core/runtime";
 import { useLocalSettings } from "@/core/settings";
+import { getThreadRequestErrorCopy } from "@/core/threads/error-copy";
 import { useThreadStream } from "@/core/threads/hooks";
 import { pathOfThread, textOfMessage } from "@/core/threads/utils";
 import { env } from "@/env";
@@ -156,6 +158,10 @@ export default function ChatThreadPage() {
     runtimeProfileSaving;
 
   const currentMode = settings.context.mode ?? "flash";
+  const threadError = useMemo(
+    () => getThreadRequestErrorCopy(thread.error, t.workspace.requestError),
+    [thread.error, t],
+  );
 
   const handleSwitchMode = useCallback(
     async (mode: "sandbox" | "host") => {
@@ -225,19 +231,22 @@ export default function ChatThreadPage() {
                   />
                 }
                 composer={
-                  <InputBox
-                    className="w-full"
-                    isNewThread={isNewThread}
-                    threadId={threadId}
-                    autoFocus
-                    status={inputStatus}
-                    disabled={inputDisabled}
-                    workspacePaths={workspacePaths}
-                    context={settings.context}
-                    onContextChange={(context) => setSettings("context", context)}
-                    onSubmit={handleSubmit}
-                    onStop={handleStop}
-                  />
+                  <div className="flex w-full flex-col gap-3">
+                    {threadError ? <ThreadRequestErrorAlert error={threadError} /> : null}
+                    <InputBox
+                      className="w-full"
+                      isNewThread={isNewThread}
+                      threadId={threadId}
+                      autoFocus
+                      status={inputStatus}
+                      disabled={inputDisabled}
+                      workspacePaths={workspacePaths}
+                      context={settings.context}
+                      onContextChange={(context) => setSettings("context", context)}
+                      onSubmit={handleSubmit}
+                      onStop={handleStop}
+                    />
+                  </div>
                 }
               />
             </main>
@@ -261,18 +270,21 @@ export default function ChatThreadPage() {
                     </div>
                   </div>
 
-                  <InputBox
-                    className="bg-background/5 w-full -translate-y-4"
-                    isNewThread={isNewThread}
-                    threadId={threadId}
-                    status={inputStatus}
-                    disabled={inputDisabled}
-                    workspacePaths={workspacePaths}
-                    context={settings.context}
-                    onContextChange={(context) => setSettings("context", context)}
-                    onSubmit={handleSubmit}
-                    onStop={handleStop}
-                  />
+                  <div className="flex w-full -translate-y-4 flex-col gap-3">
+                    {threadError ? <ThreadRequestErrorAlert error={threadError} /> : null}
+                    <InputBox
+                      className="bg-background/5 w-full"
+                      isNewThread={isNewThread}
+                      threadId={threadId}
+                      status={inputStatus}
+                      disabled={inputDisabled}
+                      workspacePaths={workspacePaths}
+                      context={settings.context}
+                      onContextChange={(context) => setSettings("context", context)}
+                      onSubmit={handleSubmit}
+                      onStop={handleStop}
+                    />
+                  </div>
                 </div>
               </div>
             </main>

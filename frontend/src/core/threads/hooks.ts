@@ -9,6 +9,7 @@ import type { DesktopThreadSearchParams } from "../api/desktop-client";
 import { useI18n } from "../i18n/hooks";
 import type { FileInMessage } from "../messages/utils";
 import { useUpdateSubtask } from "../tasks/context";
+import { getThreadRequestErrorCopy, getThreadRequestErrorMessage } from "./error-copy";
 import type { UploadedFileInfo } from "../uploads";
 import { uploadFiles } from "../uploads";
 
@@ -76,29 +77,6 @@ function mergeMessages(existing: Message[], incoming: Message[]): Message[] {
   }
 
   return merged;
-}
-
-function getStreamErrorMessage(error: unknown): string {
-  if (typeof error === "string" && error.trim()) {
-    return error;
-  }
-  if (error instanceof Error && error.message.trim()) {
-    return error.message;
-  }
-  if (typeof error === "object" && error !== null) {
-    const message = Reflect.get(error, "message");
-    if (typeof message === "string" && message.trim()) {
-      return message;
-    }
-    const nestedError = Reflect.get(error, "error");
-    if (nestedError instanceof Error && nestedError.message.trim()) {
-      return nestedError.message;
-    }
-    if (typeof nestedError === "string" && nestedError.trim()) {
-      return nestedError;
-    }
-  }
-  return "Request failed.";
 }
 
 export function useThreadStream({
@@ -311,7 +289,16 @@ export function useThreadStream({
         if (!abortController.signal.aborted) {
           setError(streamError);
           setOptimisticMessages([]);
-          toast.error(getStreamErrorMessage(streamError));
+          const errorCopy = getThreadRequestErrorCopy(
+            streamError,
+            t.workspace.requestError,
+          );
+          toast.error(errorCopy?.title ?? "Request failed.", {
+            description:
+              errorCopy?.description ??
+              getThreadRequestErrorMessage(streamError) ??
+              "Request failed.",
+          });
         }
       } finally {
         if (abortControllerRef.current === abortController) {

@@ -6,6 +6,18 @@ import { app, net, protocol } from "electron";
 
 export const DESKTOP_APP_PROTOCOL = "nion";
 
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: DESKTOP_APP_PROTOCOL,
+    privileges: {
+      standard: true,
+      secure: true,
+      supportFetchAPI: true,
+      corsEnabled: true,
+    },
+  },
+]);
+
 const PLACEHOLDER_HTML = `<!DOCTYPE html>
 <html lang="en">
   <head>

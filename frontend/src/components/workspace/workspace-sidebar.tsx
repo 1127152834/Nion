@@ -15,7 +15,6 @@ import { WorkspaceHeader } from "./workspace-header";
 import { WorkspaceNavChatList } from "./workspace-nav-chat-list";
 import { WorkspaceNavMenu } from "./workspace-nav-menu";
 import { WorkspaceSidebarPrimaryAction } from "./workspace-sidebar-primary-action";
-import { WorkspaceSwitcher } from "./workspace-switcher";
 
 export function WorkspaceSidebar({
   ...props
@@ -31,14 +30,6 @@ export function WorkspaceSidebar({
       <SidebarContent>
         <WorkspaceSidebarPrimaryAction />
         <SidebarSeparator />
-        {isSidebarOpen ? (
-          <>
-            <div className="px-3 py-2">
-              <WorkspaceSwitcher />
-            </div>
-            <SidebarSeparator />
-          </>
-        ) : null}
         <WorkspaceNavChatList />
         {isSidebarOpen ? (
           <>

@@ -16,16 +16,35 @@ make desktop-install
 2. Build the helper and shell:
 
 ```bash
+make build-desktop
+```
+
+3. Launch the desktop app:
+
+```bash
 make desktop-dev
 ```
 
-3. Run focused checks:
+If the desktop shell and helper are already built, you can skip rebuilding:
+
+```bash
+make desktop-start
+```
+
+4. Run focused checks:
 
 ```bash
 cd frontend && pnpm typecheck
 cd desktop && pnpm test
 cd backend && UV_LINK_MODE=copy uv run pytest -q
 ```
+
+## Desktop Runtime Contract
+
+- The Electron renderer is served from the privileged `nion://app` scheme, not `http://localhost`.
+- The Python helper must accept CORS requests from `nion://app` because there is no nginx layer in desktop mode.
+- `desktop/postcss.config.js` is required so Vite processes the shared Tailwind v4 stylesheet; without it the renderer falls back to mostly unstyled HTML.
+- `make package-desktop-builder` publishes GitHub metadata by default; set `NION_UPDATE_BASE_URL` only when you want the optional generic/CDN update feed baked into the build.
 
 ## Packaging Lanes
 

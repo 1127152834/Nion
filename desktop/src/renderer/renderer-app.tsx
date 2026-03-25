@@ -21,10 +21,10 @@ function WorkspaceRoute({ children }: { children: React.ReactNode }) {
 
 export function DesktopRendererApp() {
   return (
-    <ThemeProvider attribute="class" enableSystem disableTransitionOnChange>
-      <I18nProvider initialLocale={detectLocale()}>
-        <DesktopImageProvider>
-          <HashRouter>
+    <HashRouter>
+      <ThemeProvider attribute="class" enableSystem disableTransitionOnChange>
+        <I18nProvider initialLocale={detectLocale()}>
+          <DesktopImageProvider>
             <Routes>
               <Route path="/" element={<Navigate to="/workspace" replace />} />
               <Route path="/workspace" element={<WorkspacePage />} />
@@ -77,9 +77,9 @@ export function DesktopRendererApp() {
                 }
               />
             </Routes>
-          </HashRouter>
-        </DesktopImageProvider>
-      </I18nProvider>
-    </ThemeProvider>
+          </DesktopImageProvider>
+        </I18nProvider>
+      </ThemeProvider>
+    </HashRouter>
   );
 }

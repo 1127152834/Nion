@@ -189,6 +189,15 @@ _UPLOAD_SENTENCE_RE = re.compile(
     re.IGNORECASE,
 )
 
+_RELATIONSHIP_CONTROL_FACT_RE = re.compile(
+    r"^\s*(?:"
+    r"relationship_type|familiarity_level|address_style|initiative_level|"
+    r"humor_tolerance|emotional_warmth|emotional_intensity_cap|"
+    r"allow_[a-z_]+|preferred_boundaries|disallowed_modes"
+    r")\s*[:=]",
+    re.IGNORECASE,
+)
+
 
 def _strip_upload_mentions_from_memory(memory_data: dict[str, Any]) -> dict[str, Any]:
     """Remove sentences about file uploads from all memory summaries and facts.
@@ -220,6 +229,12 @@ def _fact_content_key(content: Any) -> str | None:
     if not stripped:
         return None
     return stripped
+
+
+def _is_relationship_control_fact(content: Any) -> bool:
+    if not isinstance(content, str):
+        return False
+    return bool(_RELATIONSHIP_CONTROL_FACT_RE.match(content.strip()))
 
 
 def _save_memory_to_file(memory_data: dict[str, Any], agent_name: str | None = None) -> bool:
@@ -405,6 +420,8 @@ class MemoryUpdater:
             confidence = fact.get("confidence", 0.5)
             if confidence >= config.fact_confidence_threshold:
                 raw_content = fact.get("content", "")
+                if _is_relationship_control_fact(raw_content):
+                    continue
                 normalized_content = raw_content.strip()
                 fact_key = _fact_content_key(normalized_content)
                 if fact_key is not None and fact_key in existing_fact_keys:

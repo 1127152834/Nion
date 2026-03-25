@@ -3,6 +3,12 @@ import { env } from "@/env";
 export function getBackendBaseURL() {
   if (env.NEXT_PUBLIC_BACKEND_BASE_URL) {
     return env.NEXT_PUBLIC_BACKEND_BASE_URL;
+  } else if (
+    typeof window !== "undefined" &&
+    typeof window.__NION_BACKEND_BASE_URL__ === "string" &&
+    window.__NION_BACKEND_BASE_URL__.length > 0
+  ) {
+    return window.__NION_BACKEND_BASE_URL__;
   } else {
     return "";
   }

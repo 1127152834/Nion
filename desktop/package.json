@@ -2,7 +2,10 @@
   "name": "nion-desktop",
   "version": "0.1.0",
   "private": true,
+  "description": "Desktop-first Nion application shell with bundled local helper runtime",
+  "author": "zhangtiancheng",
   "type": "module",
+  "main": "dist/main/index.js",
   "scripts": {
     "build": "pnpm run build:main && pnpm run build:renderer",
     "build:main": "tsc -p tsconfig.json",

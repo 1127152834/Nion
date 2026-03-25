@@ -13,6 +13,7 @@ import { ExportTrigger } from "@/components/workspace/export-trigger";
 import { InputBox } from "@/components/workspace/input-box";
 import { MessageList } from "@/components/workspace/messages";
 import { ThreadContext } from "@/components/workspace/messages/context";
+import { ThreadRequestErrorAlert } from "@/components/workspace/thread-request-error-alert";
 import { ThreadTitle } from "@/components/workspace/thread-title";
 import { TodoList } from "@/components/workspace/todo-list";
 import { Tooltip } from "@/components/workspace/tooltip";
@@ -20,6 +21,7 @@ import { useAgent } from "@/core/agents";
 import { useI18n } from "@/core/i18n/hooks";
 import { useNotification } from "@/core/notification/hooks";
 import { useLocalSettings } from "@/core/settings";
+import { getThreadRequestErrorCopy } from "@/core/threads/error-copy";
 import { useThreadStream } from "@/core/threads/hooks";
 import {
   pathOfAgentThread,
@@ -77,6 +79,11 @@ export default function AgentChatPage() {
   const handleStop = useCallback(async () => {
     await thread.stop();
   }, [thread]);
+
+  const threadError = getThreadRequestErrorCopy(
+    thread.error,
+    t.workspace.requestError,
+  );
 
   return (
     <ThreadContext.Provider value={{ thread }}>
@@ -148,29 +155,32 @@ export default function AgentChatPage() {
                   </div>
                 </div>
 
-                <InputBox
-                  className={cn("bg-background/5 w-full -translate-y-4")}
-                  isNewThread={isNewThread}
-                  threadId={threadId}
-                  autoFocus={isNewThread}
-                  status={
-                    thread.error
-                      ? "error"
-                      : thread.isLoading
-                        ? "streaming"
-                        : "ready"
-                  }
-                  context={settings.context}
-                  extraHeader={
-                    isNewThread && (
-                      <AgentWelcome agent={agent} agentName={agentName} />
-                    )
-                  }
-                  disabled={env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY === "true"}
-                  onContextChange={(context) => setSettings("context", context)}
-                  onSubmit={handleSubmit}
-                  onStop={handleStop}
-                />
+                <div className="flex w-full -translate-y-4 flex-col gap-3">
+                  {threadError ? <ThreadRequestErrorAlert error={threadError} /> : null}
+                  <InputBox
+                    className={cn("bg-background/5 w-full")}
+                    isNewThread={isNewThread}
+                    threadId={threadId}
+                    autoFocus={isNewThread}
+                    status={
+                      thread.error
+                        ? "error"
+                        : thread.isLoading
+                          ? "streaming"
+                          : "ready"
+                    }
+                    context={settings.context}
+                    extraHeader={
+                      isNewThread && (
+                        <AgentWelcome agent={agent} agentName={agentName} />
+                      )
+                    }
+                    disabled={env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY === "true"}
+                    onContextChange={(context) => setSettings("context", context)}
+                    onSubmit={handleSubmit}
+                    onStop={handleStop}
+                  />
+                </div>
                 {env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY === "true" && (
                   <div className="text-muted-foreground/67 w-full translate-y-12 text-center text-xs">
                     {t.common.notAvailableInDemoMode}

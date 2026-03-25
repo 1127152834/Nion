@@ -222,7 +222,7 @@ export const enUS: Translations = {
     singleWorkspaceLabel: "Workspace",
     singleWorkspacePath: "~/.nion-data/workspace",
     singleWorkspaceHint:
-      "Nion currently uses a single app workspace rooted at ~/.nion-data/workspace.",
+      "Files stay in this app's working area by default.",
     runtimeMode: {
       sandboxLabel: "Sandbox",
       hostLabel: "Host",
@@ -234,6 +234,18 @@ export const enUS: Translations = {
       locked: "This runtime profile is locked.",
       lockedTip: "Once a host directory is bound, the profile cannot be rebound for this thread.",
       modeSaveFailed: "Failed to save runtime mode.",
+    },
+    requestError: {
+      title: "Couldn't get a reply",
+      modelUnavailable:
+        "The selected model is unavailable right now. Try another model or try again later.",
+      authenticationFailed:
+        "The model provider rejected the current credentials. Check the provider settings and try again.",
+      runtimeUnavailable:
+        "Nion couldn't reach the runtime service. Restart the desktop app or refresh the page, then try again.",
+      generic:
+        "This request didn't finish successfully. Try again, or switch to another model if the problem continues.",
+      detailsLabel: "Technical details",
     },
   },
 
@@ -531,17 +543,16 @@ export const enUS: Translations = {
     },
     sandbox: {
       title: "Sandbox",
-      description:
-        "Configure sandbox execution and thread persistence in a way that matches the chat runtime toggle semantics.",
+      description: "Configure the sandbox provider and file-access boundary.",
     },
     channels: {
       title: "Channels",
       description:
-        "Manage channel credentials, modes, pairing, authorization, and runtime status.",
+        "Connect chat apps and manage who can use Nion through them.",
       workspace: {
-        title: "Single Workspace",
+        title: "This App",
         description:
-          "Nion uses a single app workspace. Channel authorization binds to the current app workspace instead of letting operators choose between multiple workspaces.",
+          "Channel authorization applies to this Nion app.",
       },
       platforms: {
         lark: "Lark",
@@ -551,7 +562,7 @@ export const enUS: Translations = {
       configuration: {
         title: "Channel Configuration",
         description:
-          "Fill credentials, verify connectivity, then handle pairing and authorization from the same control surface.",
+          "Add the connection details, confirm connectivity, then finish setup for users from the same page.",
       },
       labels: {
         enabled: "Enabled",
@@ -590,7 +601,7 @@ export const enUS: Translations = {
       },
       hints: {
         pairingGuide:
-          'Successful connection only means the channel is reachable. Next: ask the user to send any message, then approve it in "Pending Pair Requests" below.',
+          "The channel is reachable. Ask the user to send any message, then approve the request below.",
         larkVerificationToken: "Required for webhook challenge verification.",
         larkEncryptKey: "Optional encryption key for Lark event payloads.",
         dingtalkRobotCode: "Required when DingTalk stream mode uses robot-code routing.",
@@ -611,7 +622,7 @@ export const enUS: Translations = {
       runtime: {
         statusTitle: "Runtime Status",
         statusDescription:
-          "This card shows runtime health and operator-visible status that should stay aligned with the running connector.",
+          "See whether this channel is online, connected, and if anything needs attention.",
         activeUsersLabel: "Active users",
         runningLabel: "Running",
         stoppedLabel: "Stopped",
@@ -621,43 +632,43 @@ export const enUS: Translations = {
         noStatus: "No runtime status",
       },
       pairing: {
-        sectionTitle: "Pairing & Authorization",
+        sectionTitle: "User Connections",
         sectionDescription:
-          "Generate a temporary pair code, approve inbound pairing requests, and manage authorized users.",
+          "Create a temporary code, review incoming requests, and manage connected users.",
         code: {
-          title: "Pair Code",
+          title: "Connect Code",
           description:
-            "Recommend users sending any message first. `/pair 123456` is available as a manual fallback.",
+            "Ask the user to send any message first. If needed, `/pair 123456` is available as a manual fallback.",
           expireMinutes: "minutes to expire",
           generateAction: "Generate",
-          activeCode: "Active pair code",
-          noCodeGenerated: "No pair code generated",
-          copiedToast: "Pair command copied",
-          generatedToast: "Pair code generated: {code}",
-          generateFailed: "Failed to generate pair code",
+          activeCode: "Active connect code",
+          noCodeGenerated: "No connect code generated",
+          copiedToast: "Connect command copied",
+          generatedToast: "Connect code generated: {code}",
+          generateFailed: "Failed to generate connect code",
           expiresAtPrefix: "Expires at",
-          slotHint: "A 6-digit pair code will be shown here after generation",
+          slotHint: "A 6-digit connect code will be shown here after generation",
         },
         pending: {
-          title: "Pending Pair Requests",
-          empty: "No pending requests",
-          approvedToast: "Approved and authorized",
+          title: "Pending Connection Requests",
+          empty: "No pending connection requests",
+          approvedToast: "Connection approved",
           rejectedToast: "Rejected",
         },
       },
       authorization: {
-        title: "Authorized Users",
-        empty: "No authorized users",
+        title: "Connected Users",
+        empty: "No connected users",
         sessionOverrideBadge: "Session Override",
         sessionOverrideAction: "Session Override",
         revokeConfirmTemplate:
-          'Revoke channel authorization for "{name}"? The user will need to pair again.',
-        revokedToast: "Authorization revoked",
+          'Remove the channel connection for "{name}"? They will need to connect again later.',
+        revokedToast: "Connection removed",
       },
       session: {
         defaultsTitle: "Session Defaults",
         defaultsDescription:
-          "Configure default session parameters for this channel. Only explicitly filled fields are sent to runtime.",
+          "Set default session options for this channel. Leave fields empty to keep the app defaults.",
         assistantIdLabel: "Assistant ID",
         assistantIdPlaceholder: "Leave empty to inherit",
         recursionLimitLabel: "Recursion Limit",
@@ -837,18 +848,18 @@ export const enUS: Translations = {
       },
       sandbox: {
         title: "Sandbox",
-        subtitle: "Configure runtime sandbox mode and remote endpoint.",
-        mode: "Mode",
-        local: "Local",
-        aio: "AIO",
-        custom: "Custom",
-        modeTipEn: "Pick the sandbox mode for command execution.",
-        modeTipZh: "Pick the sandbox mode for command execution.",
+        subtitle: "Choose the sandbox provider and file-access boundary for command execution.",
+        mode: "Provider",
+        local: "Local provider",
+        aio: "AIO provider",
+        custom: "Custom provider",
+        modeTipEn: "This setting selects the sandbox provider for command execution, not the chat-page Host / Sandbox runtime mode.",
+        modeTipZh: "This setting selects the sandbox provider for command execution, not the chat-page Host / Sandbox runtime mode.",
         strictMode: "Strict mode",
         strictModeTipEn:
-          "When enabled, host execution is blocked and Nion will force the AIO sandbox provider. This must stay consistent with the chat-page sandbox/host toggle in web deployments.",
+          "When enabled, the sandbox can access only sandbox files and cannot reach host files. When disabled, it may still read host files but cannot create or modify files on the host. Strict mode applies only to the AIO provider and does not change the chat-page Host mode.",
         strictModeTipZh:
-          "When enabled, host execution is blocked and Nion will force the AIO sandbox provider. This must stay consistent with the chat-page sandbox/host toggle in web deployments.",
+          "When enabled, the sandbox can access only sandbox files and cannot reach host files. When disabled, it may still read host files but cannot create or modify files on the host. Strict mode applies only to the AIO provider and does not change the chat-page Host mode.",
         baseUrl: "Base URL",
         baseUrlPlaceholder: "https://your-sandbox.example.com",
         image: "Image",
@@ -860,6 +871,10 @@ export const enUS: Translations = {
         aioDefaultsHint:
           "AIO sandbox uses built-in defaults for image/port in most cases. Open Advanced to override.",
         customConfiguredHint: "Custom sandbox endpoint is configured.",
+        desktopUnsupportedCurrent: "Current provider is unsupported on desktop",
+        desktopUnsupportedTitle: "AIO provider is hidden in desktop settings",
+        desktopUnsupportedHint:
+          "The current config still points at the AIO provider. Desktop settings no longer expose AIO because the desktop runtime must not depend on Docker, Kubernetes, or the provisioner. Switch to Local or Custom to save a desktop-compatible provider.",
         usePath: "Use path",
         usePathPlaceholder: "nion.community.custom:Provider",
         advanced: "Advanced",
@@ -1018,16 +1033,16 @@ export const enUS: Translations = {
       loadConfigFailed: "Failed to load config",
     },
     toolPage: {
-      builtInTitle: "Built-in tools",
-      builtInDesc: "Manage built-in tool presets.",
       loadConfigFailed: "Failed to load tool config",
-      runtimeTitle: "Runtime config status",
-      runtimeSource: "Source",
-      runtimeVersion: "Version",
-      runtimeInSync: "In sync with storage",
-      runtimeOutOfSync: "Not synced to latest storage version",
-      runtimeWarnings: "Runtime warnings",
-      runtimeProcesses: "Processes",
+      runtimeTitle: "Tool status",
+      runtimeSummary:
+        "Shows whether your latest setup is active and whether the tools are ready to use.",
+      runtimeStateLabel: "Status",
+      runtimeToolsLabel: "Available tools",
+      runtimeAttentionLabel: "Needs attention",
+      runtimeHealthy: "None",
+      runtimeInSync: "Up to date",
+      runtimeOutOfSync: "Needs apply",
     },
     automationWorkspace: {
       title: "Automation",

@@ -1,4 +1,5 @@
 import { spawn, type ChildProcess } from "node:child_process";
+import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 
 import { resolveDesktopEnvironment, type SupportedDesktopPlatform } from "./config.js";
@@ -39,6 +40,31 @@ export function buildBackendCommand(options: BuildBackendCommandOptions): Backen
     packaged: options.packaged,
     helperPort: options.helperPort,
   });
+
+  if (!options.packaged && process.env.NION_DESKTOP_DEV_USE_BINARY !== "1") {
+    const backendSourceDir = path.join(options.appRoot, "backend");
+
+    return {
+      executable: process.env.NION_DESKTOP_DEV_HELPER_EXECUTABLE ?? "uv",
+      args: ["run", "python", "-m", "app.desktop_helper"],
+      cwd: backendSourceDir,
+      env: {
+        ...process.env,
+        PYTHONPATH: [".", "packages/harness", process.env.PYTHONPATH]
+          .filter(Boolean)
+          .join(path.delimiter),
+        NION_DESKTOP_HELPER_MODE: "1",
+        NION_DESKTOP_HELPER_HOST: "127.0.0.1",
+        NION_DESKTOP_HELPER_PORT: String(options.helperPort ?? 43115),
+        NION_DESKTOP_HELPER_URL: environment.backendUrl,
+        NION_DESKTOP_HELPER_USER_DATA: environment.userDataPath,
+      },
+      urls: {
+        base: environment.backendUrl,
+        health: environment.healthUrl,
+      },
+    };
+  }
 
   return {
     executable: environment.backendExecutable,

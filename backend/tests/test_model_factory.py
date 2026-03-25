@@ -415,6 +415,44 @@ def test_thinking_shortcut_not_leaked_into_model_when_disabled(monkeypatch):
     assert captured.get("thinking") == {"type": "disabled"}
 
 
+def test_provider_id_is_not_forwarded_to_model_constructor(monkeypatch):
+    cfg = _make_app_config([_make_model("provider-bound")])
+    cfg.models[0].provider_id = "anthropic-default"
+    _patch_factory(monkeypatch, cfg)
+
+    captured: dict = {}
+
+    class CapturingModel(FakeChatModel):
+        def __init__(self, **kwargs):
+            captured.update(kwargs)
+            BaseChatModel.__init__(self, **kwargs)
+
+    monkeypatch.setattr(factory_module, "resolve_class", lambda path, base: CapturingModel)
+
+    factory_module.create_chat_model(name="provider-bound", thinking_enabled=False)
+
+    assert "provider_id" not in captured
+
+
+def test_supports_video_is_not_forwarded_to_model_constructor(monkeypatch):
+    cfg = _make_app_config([_make_model("video-model")])
+    cfg.models[0].supports_video = False
+    _patch_factory(monkeypatch, cfg)
+
+    captured: dict = {}
+
+    class CapturingModel(FakeChatModel):
+        def __init__(self, **kwargs):
+            captured.update(kwargs)
+            BaseChatModel.__init__(self, **kwargs)
+
+    monkeypatch.setattr(factory_module, "resolve_class", lambda path, base: CapturingModel)
+
+    factory_module.create_chat_model(name="video-model", thinking_enabled=False)
+
+    assert "supports_video" not in captured
+
+
 # ---------------------------------------------------------------------------
 # OpenAI-compatible providers (MiniMax, Novita, etc.)
 # ---------------------------------------------------------------------------

@@ -6,6 +6,10 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0"
     />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self' nion: data: blob:; img-src 'self' nion: data: blob: http://127.0.0.1:43115; style-src 'self' 'unsafe-inline'; font-src 'self' data:; script-src 'self'; connect-src 'self' http://127.0.0.1:43115 ws://127.0.0.1:43115; media-src 'self' data: blob:; object-src 'none'; base-uri 'self';"
+    />
     <title>Nion Desktop</title>
   </head>
   <body>

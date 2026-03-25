@@ -13,3 +13,43 @@ test("desktop thread client exposes search/getState/update/delete/stream", () =>
   assert.equal(typeof client.deleteThread, "function");
   assert.equal(typeof client.streamRun, "function");
 });
+
+test("desktop thread client surfaces SSE error events", async () => {
+  const originalFetch = globalThis.fetch;
+
+  globalThis.fetch = async () =>
+    new Response(
+      new ReadableStream({
+        start(controller) {
+          controller.enqueue(
+            new TextEncoder().encode(
+              'event: error\ndata: {"message":"upstream unavailable"}\n\n',
+            ),
+          );
+          controller.close();
+        },
+      }),
+      {
+        status: 200,
+        headers: {
+          "Content-Type": "text/event-stream",
+        },
+      },
+    );
+
+  const client = createDesktopThreadClient({
+    getBaseURL: () => "http://127.0.0.1:43115/api/threads",
+  });
+
+  await assert.rejects(
+    () =>
+      client.streamRun(
+        "new",
+        { messages: [] },
+        { threadId: "new", context: {}, config: {} },
+      ),
+    /upstream unavailable/,
+  );
+
+  globalThis.fetch = originalFetch;
+});

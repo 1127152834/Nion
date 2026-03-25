@@ -22,6 +22,7 @@ mkdir -p "$DIST_DIR" "$BUILD_DIR"
 
 cd "$BACKEND_DIR"
 uv run --with pyinstaller pyinstaller \
+  --noconfirm \
   "$SPEC_FILE" \
   --distpath "$DIST_DIR" \
   --workpath "$BUILD_DIR"

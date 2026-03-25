@@ -138,6 +138,27 @@ def test_apply_updates_preserves_threshold_and_max_facts_trimming() -> None:
     assert result["facts"][1]["source"] == "thread-9"
 
 
+def test_apply_updates_filters_relationship_control_state_from_facts() -> None:
+    updater = MemoryUpdater()
+    current_memory = _make_memory()
+    update_data = {
+        "newFacts": [
+            {"content": "relationship_type: friend", "category": "context", "confidence": 0.95},
+            {"content": "familiarity_level: close", "category": "context", "confidence": 0.95},
+            {"content": "allow_custom_nickname: true", "category": "context", "confidence": 0.95},
+            {"content": "User prefers concise responses", "category": "preference", "confidence": 0.95},
+        ],
+    }
+
+    with patch(
+        "nion.agents.memory.updater.get_memory_config",
+        return_value=_memory_config(max_facts=100, fact_confidence_threshold=0.7),
+    ):
+        result = updater._apply_updates(current_memory, update_data, thread_id="thread-relationship")
+
+    assert [fact["content"] for fact in result["facts"]] == ["User prefers concise responses"]
+
+
 # ---------------------------------------------------------------------------
 # _extract_text — LLM response content normalization
 # ---------------------------------------------------------------------------

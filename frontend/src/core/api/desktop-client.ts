@@ -208,6 +208,13 @@ async function consumeSSE(
 
       const event = parseSSEEvent(rawEvent);
       const parsed = event.data ? JSON.parse(event.data) : {};
+      if (event.event === "error") {
+        const message =
+          (typeof parsed?.message === "string" && parsed.message.trim()) ||
+          (typeof parsed?.error === "string" && parsed.error.trim()) ||
+          "Thread stream failed";
+        throw new Error(message);
+      }
       if (event.event === "created" && typeof parsed.thread_id === "string") {
         handlers?.onCreated?.(parsed.thread_id);
       }

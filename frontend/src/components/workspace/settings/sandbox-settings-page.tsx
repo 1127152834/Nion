@@ -1,6 +1,7 @@
 "use client";
 
 import { useI18n } from "@/core/i18n/hooks";
+import { useIsDesktopShell } from "@/core/runtime";
 
 import { ConfigValidationErrors } from "./config-validation-errors";
 import { ConfigSaveBar } from "./configuration/config-save-bar";
@@ -11,6 +12,7 @@ import { useConfigEditor } from "./use-config-editor";
 
 export function SandboxSettingsPage() {
   const { t } = useI18n();
+  const isDesktopShell = useIsDesktopShell();
   const {
     draftConfig,
     validationErrors,
@@ -42,6 +44,7 @@ export function SandboxSettingsPage() {
             config={draftConfig}
             onChange={onConfigChange}
             disabled={disabled}
+            isDesktopShell={isDesktopShell}
           />
           <CheckpointerSection
             config={draftConfig}

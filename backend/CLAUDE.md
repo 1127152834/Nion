@@ -291,7 +291,7 @@ Proxied through nginx: `/api/langgraph/*` → LangGraph, all other `/api/*` → 
 
 - `create_chat_model(name, thinking_enabled)` instantiates LLM from config via reflection
 - Supports `thinking_enabled` flag with per-model `when_thinking_enabled` overrides
-- Supports `supports_vision` flag for image understanding models
+- Supports `supports_vision` for image understanding models, but capability metadata such as `supports_video` stays out of runtime constructor kwargs
 - Config values starting with `$` resolved as environment variables
 - Missing provider modules surface actionable install hints from reflection resolvers (for example `uv add langchain-google-genai`)
 
@@ -475,6 +475,10 @@ Direct access (without nginx):
 The frontend uses environment variables to connect to backend services:
 - `NEXT_PUBLIC_LANGGRAPH_BASE_URL` - Defaults to `/api/langgraph` (through nginx)
 - `NEXT_PUBLIC_BACKEND_BASE_URL` - Defaults to empty string (through nginx)
+
+Desktop branch note:
+- The Electron renderer runs on the privileged `nion://app` origin and talks directly to the bundled helper.
+- Gateway therefore installs FastAPI CORS middleware for `nion://app` in addition to web origins; do not remove it unless desktop traffic is re-proxied through an HTTP origin again.
 
 When using `make dev` from root, the frontend automatically connects through nginx.
 

@@ -95,16 +95,13 @@ const DEFAULT_SESSION_FORM_STATE: ChannelSessionFormState = {
 
 const FALLBACK_COPY = {
   title: "Channels",
-  description: "Manage channel credentials, modes, pairing, authorization, and runtime status.",
-  workspaceTitle: "Single Workspace",
-  workspaceDescription:
-    "Nion uses a single app workspace. Channel authorization binds to the current app workspace instead of letting operators choose between multiple workspaces.",
+  description: "Manage channel access, pairing, and authorization.",
   platformLark: "Lark",
   platformDingTalk: "DingTalk",
   platformTelegram: "Telegram",
   configurationTitle: "Channel Configuration",
   configurationDescription:
-    "Fill credentials, verify connectivity, then handle pairing and authorization from the same control surface.",
+    "Fill credentials, verify connectivity, then handle pairing and authorization in one place.",
   setupDocsAction: "Setup Docs",
   enabledLabel: "Enabled",
   disabledLabel: "Disabled",
@@ -118,7 +115,7 @@ const FALLBACK_COPY = {
   proxyModeSystem: "system (system proxy)",
   sessionDefaultsTitle: "Session Defaults",
   sessionDefaultsDescription:
-    "Configure default session parameters for this channel. Only explicitly filled fields are sent to runtime.",
+    "Set default session options for this channel. Leave fields empty to keep the app defaults.",
   sessionAssistantIdLabel: "Assistant ID",
   sessionAssistantIdPlaceholder: "Leave empty to inherit",
   sessionRecursionLimitLabel: "Recursion Limit",
@@ -143,11 +140,11 @@ const FALLBACK_COPY = {
   platformConnectionSuccess: "{platform} connection test succeeded",
   missingRequiredFieldsPrefix: "Missing required fields for current mode: ",
   pairingGuideText:
-    'Successful connection only means the channel is reachable. Next: ask the user to send any message, then approve it in "Pending Pair Requests" below.',
+    "The channel is reachable. Ask the user to send any message, then approve the request below.",
   goToPairingAction: "Go to Pairing & Authorization",
   runtimeStatusTitle: "Runtime Status",
   runtimeStatusDescription:
-    "This card shows runtime health and operator-visible status that should stay aligned with the running connector.",
+    "See whether the channel is online and how many users are currently active.",
   refreshAction: "Refresh",
   activeUsersLabel: "Active users",
   runningLabel: "Running",
@@ -155,7 +152,7 @@ const FALLBACK_COPY = {
   noRuntimeStatus: "No runtime status",
   pairSectionTitle: "Pairing & Authorization",
   pairSectionDescription:
-    "Generate a temporary pair code, approve inbound pairing requests, and manage authorized users.",
+    "Create a temporary code, handle new requests, and manage authorized users.",
   pairCodeTitle: "Pair Code",
   pairCodeDescription:
     "Recommend users sending any message first. `/pair 123456` is available as a manual fallback.",
@@ -200,6 +197,19 @@ const FALLBACK_COPY = {
   requestedAtLabel: "Requested at",
   grantedAtLabel: "Granted at",
   unknownTimeLabel: "Unknown time",
+  appIdLabel: "App ID",
+  appSecretLabel: "App Secret",
+  verificationTokenLabel: "Verification Token",
+  encryptKeyLabel: "Encrypt Key",
+  clientIdLabel: "Client ID",
+  clientSecretLabel: "Client Secret",
+  robotCodeLabel: "Robot Code",
+  proxyModeLabel: "Proxy Mode",
+  webhookUrlLabel: "Webhook URL",
+  signingSecretLabel: "Signing Secret",
+  botTokenLabel: "Bot Token",
+  allowedUsersLabel: "Allowed Users",
+  secretTokenLabel: "Secret Token",
   larkVerificationTokenHint: "Required for webhook challenge verification.",
   larkEncryptKeyHint: "Optional encryption key for Lark event payloads.",
   dingtalkRobotCodeHint: "Required when DingTalk stream mode uses robot-code routing.",
@@ -211,76 +221,91 @@ type ChannelCopy = {
   [K in keyof typeof FALLBACK_COPY]: string;
 };
 
-const PLATFORM_FIELDS: Record<ChannelPlatform, CredentialFieldSpec[]> = {
-  lark: [
-    { key: "app_id", label: "App ID", requiredModes: ["webhook", "stream"] },
-    {
-      key: "app_secret",
-      label: "App Secret",
-      sensitive: true,
-      requiredModes: ["webhook", "stream"],
-    },
-    {
-      key: "verification_token",
-      label: "Verification Token",
-      sensitive: true,
-      modes: ["webhook"],
-      hint: FALLBACK_COPY.larkVerificationTokenHint,
-    },
-    {
-      key: "encrypt_key",
-      label: "Encrypt Key",
-      sensitive: true,
-      modes: ["webhook"],
-      hint: FALLBACK_COPY.larkEncryptKeyHint,
-    },
-  ],
-  dingtalk: [
-    { key: "client_id", label: "Client ID", requiredModes: ["webhook", "stream"] },
-    {
-      key: "client_secret",
-      label: "Client Secret",
-      sensitive: true,
-      requiredModes: ["webhook", "stream"],
-    },
-    {
-      key: "robot_code",
-      label: "Robot Code",
-      modes: ["stream"],
-      hint: FALLBACK_COPY.dingtalkRobotCodeHint,
-    },
-    {
-      key: "proxy_mode",
-      label: "Proxy Mode",
-      modes: ["stream"],
-      kind: "proxy-mode",
-      hint: FALLBACK_COPY.dingtalkProxyModeHint,
-    },
-    {
-      key: "webhook_url",
-      label: "Webhook URL",
-      modes: ["webhook"],
-      requiredModes: ["webhook"],
-      hint: FALLBACK_COPY.dingtalkWebhookUrlHint,
-    },
-    {
-      key: "signing_secret",
-      label: "Signing Secret",
-      sensitive: true,
-      modes: ["webhook"],
-    },
-  ],
-  telegram: [
-    {
-      key: "bot_token",
-      label: "Bot Token",
-      sensitive: true,
-      requiredModes: ["webhook", "stream"],
-    },
-    { key: "allowed_users", label: "Allowed Users" },
-    { key: "secret_token", label: "Secret Token", sensitive: true, modes: ["webhook"] },
-  ],
-};
+function buildPlatformFields(copy: ChannelCopy): Record<ChannelPlatform, CredentialFieldSpec[]> {
+  return {
+    lark: [
+      {
+        key: "app_id",
+        label: copy.appIdLabel,
+        requiredModes: ["webhook", "stream"],
+      },
+      {
+        key: "app_secret",
+        label: copy.appSecretLabel,
+        sensitive: true,
+        requiredModes: ["webhook", "stream"],
+      },
+      {
+        key: "verification_token",
+        label: copy.verificationTokenLabel,
+        sensitive: true,
+        modes: ["webhook"],
+        hint: copy.larkVerificationTokenHint,
+      },
+      {
+        key: "encrypt_key",
+        label: copy.encryptKeyLabel,
+        sensitive: true,
+        modes: ["webhook"],
+        hint: copy.larkEncryptKeyHint,
+      },
+    ],
+    dingtalk: [
+      {
+        key: "client_id",
+        label: copy.clientIdLabel,
+        requiredModes: ["webhook", "stream"],
+      },
+      {
+        key: "client_secret",
+        label: copy.clientSecretLabel,
+        sensitive: true,
+        requiredModes: ["webhook", "stream"],
+      },
+      {
+        key: "robot_code",
+        label: copy.robotCodeLabel,
+        modes: ["stream"],
+        hint: copy.dingtalkRobotCodeHint,
+      },
+      {
+        key: "proxy_mode",
+        label: copy.proxyModeLabel,
+        modes: ["stream"],
+        kind: "proxy-mode",
+        hint: copy.dingtalkProxyModeHint,
+      },
+      {
+        key: "webhook_url",
+        label: copy.webhookUrlLabel,
+        modes: ["webhook"],
+        requiredModes: ["webhook"],
+        hint: copy.dingtalkWebhookUrlHint,
+      },
+      {
+        key: "signing_secret",
+        label: copy.signingSecretLabel,
+        sensitive: true,
+        modes: ["webhook"],
+      },
+    ],
+    telegram: [
+      {
+        key: "bot_token",
+        label: copy.botTokenLabel,
+        sensitive: true,
+        requiredModes: ["webhook", "stream"],
+      },
+      { key: "allowed_users", label: copy.allowedUsersLabel },
+      {
+        key: "secret_token",
+        label: copy.secretTokenLabel,
+        sensitive: true,
+        modes: ["webhook"],
+      },
+    ],
+  };
+}
 
 function stringifyError(error: unknown): string {
   return error instanceof Error ? error.message : "";
@@ -382,13 +407,31 @@ function describeSessionConfig(
     items.push(`${copy.sessionRecursionLimitLabel}: ${session.config.recursion_limit}`);
   }
   if (typeof session.context?.thinking_enabled === "boolean") {
-    items.push(`${copy.sessionThinkingLabel}: ${session.context.thinking_enabled ? "On" : "Off"}`);
+    items.push(
+      `${copy.sessionThinkingLabel}: ${
+        session.context.thinking_enabled
+          ? copy.sessionEnabledOption
+          : copy.sessionDisabledOption
+      }`,
+    );
   }
   if (typeof session.context?.is_plan_mode === "boolean") {
-    items.push(`${copy.sessionPlanModeLabel}: ${session.context.is_plan_mode ? "On" : "Off"}`);
+    items.push(
+      `${copy.sessionPlanModeLabel}: ${
+        session.context.is_plan_mode
+          ? copy.sessionEnabledOption
+          : copy.sessionDisabledOption
+      }`,
+    );
   }
   if (typeof session.context?.subagent_enabled === "boolean") {
-    items.push(`${copy.sessionSubagentLabel}: ${session.context.subagent_enabled ? "On" : "Off"}`);
+    items.push(
+      `${copy.sessionSubagentLabel}: ${
+        session.context.subagent_enabled
+          ? copy.sessionEnabledOption
+          : copy.sessionDisabledOption
+      }`,
+    );
   }
 
   return items.length > 0 ? items : [copy.sessionInheritLabel];
@@ -618,7 +661,7 @@ function ChannelPlatformPanel({
   copy: ChannelCopy;
 }) {
   const { locale } = useI18n();
-  const fields = PLATFORM_FIELDS[platform];
+  const fields = useMemo(() => buildPlatformFields(copy)[platform], [copy, platform]);
 
   const {
     data: config,
@@ -1437,26 +1480,290 @@ export function ChannelSettingsPage() {
       ...FALLBACK_COPY,
       title: t.settings.channels?.title ?? FALLBACK_COPY.title,
       description: t.settings.channels?.description ?? FALLBACK_COPY.description,
-      workspaceDescription:
-        t.workspace.singleWorkspaceHint ?? FALLBACK_COPY.workspaceDescription,
+      platformLark:
+        t.settings.channels?.platforms?.lark ?? FALLBACK_COPY.platformLark,
+      platformDingTalk:
+        t.settings.channels?.platforms?.dingtalk ?? FALLBACK_COPY.platformDingTalk,
+      platformTelegram:
+        t.settings.channels?.platforms?.telegram ?? FALLBACK_COPY.platformTelegram,
+      configurationTitle:
+        t.settings.channels?.configuration?.title ?? FALLBACK_COPY.configurationTitle,
+      configurationDescription:
+        t.settings.channels?.configuration?.description
+        ?? FALLBACK_COPY.configurationDescription,
+      setupDocsAction:
+        t.settings.channels?.actions?.setupDocs ?? FALLBACK_COPY.setupDocsAction,
+      enabledLabel:
+        t.settings.channels?.labels?.enabled ?? FALLBACK_COPY.enabledLabel,
+      disabledLabel:
+        t.settings.channels?.labels?.disabled ?? FALLBACK_COPY.disabledLabel,
+      accessModeLabel:
+        t.settings.channels?.labels?.accessMode ?? FALLBACK_COPY.accessModeLabel,
+      webhookOption:
+        t.settings.channels?.modes?.webhook ?? FALLBACK_COPY.webhookOption,
+      streamOption:
+        t.settings.channels?.modes?.stream ?? FALLBACK_COPY.streamOption,
+      requiredLabel:
+        t.settings.channels?.labels?.required ?? FALLBACK_COPY.requiredLabel,
+      optionalLabel:
+        t.settings.channels?.labels?.optional ?? FALLBACK_COPY.optionalLabel,
+      proxyModeAuto:
+        t.settings.channels?.proxyModes?.auto ?? FALLBACK_COPY.proxyModeAuto,
+      proxyModeDirect:
+        t.settings.channels?.proxyModes?.direct ?? FALLBACK_COPY.proxyModeDirect,
+      proxyModeSystem:
+        t.settings.channels?.proxyModes?.system ?? FALLBACK_COPY.proxyModeSystem,
+      sessionDefaultsTitle:
+        t.settings.channels?.session?.defaultsTitle
+        ?? FALLBACK_COPY.sessionDefaultsTitle,
+      sessionDefaultsDescription:
+        t.settings.channels?.session?.defaultsDescription
+        ?? FALLBACK_COPY.sessionDefaultsDescription,
+      sessionAssistantIdLabel:
+        t.settings.channels?.session?.assistantIdLabel
+        ?? FALLBACK_COPY.sessionAssistantIdLabel,
+      sessionAssistantIdPlaceholder:
+        t.settings.channels?.session?.assistantIdPlaceholder
+        ?? FALLBACK_COPY.sessionAssistantIdPlaceholder,
+      sessionRecursionLimitLabel:
+        t.settings.channels?.session?.recursionLimitLabel
+        ?? FALLBACK_COPY.sessionRecursionLimitLabel,
+      sessionRecursionLimitPlaceholder:
+        t.settings.channels?.session?.recursionLimitPlaceholder
+        ?? FALLBACK_COPY.sessionRecursionLimitPlaceholder,
+      sessionThinkingLabel:
+        t.settings.channels?.session?.thinkingLabel
+        ?? FALLBACK_COPY.sessionThinkingLabel,
+      sessionPlanModeLabel:
+        t.settings.channels?.session?.planModeLabel
+        ?? FALLBACK_COPY.sessionPlanModeLabel,
+      sessionSubagentLabel:
+        t.settings.channels?.session?.subagentLabel
+        ?? FALLBACK_COPY.sessionSubagentLabel,
+      sessionInheritOption:
+        t.settings.channels?.session?.inheritOption
+        ?? FALLBACK_COPY.sessionInheritOption,
+      sessionEnabledOption:
+        t.settings.channels?.session?.enabledOption
+        ?? FALLBACK_COPY.sessionEnabledOption,
+      sessionDisabledOption:
+        t.settings.channels?.session?.disabledOption
+        ?? FALLBACK_COPY.sessionDisabledOption,
+      sessionInheritLabel:
+        t.settings.channels?.session?.inheritLabel
+        ?? FALLBACK_COPY.sessionInheritLabel,
+      testConnectionAction:
+        t.settings.channels?.actions?.testConnection
+        ?? FALLBACK_COPY.testConnectionAction,
+      saveAndApplyAction:
+        t.settings.channels?.actions?.saveAndApply ?? FALLBACK_COPY.saveAndApplyAction,
+      connectedLabel:
+        t.settings.channels?.runtime?.connectedLabel ?? FALLBACK_COPY.connectedLabel,
+      disconnectedLabel:
+        t.settings.channels?.runtime?.disconnectedLabel
+        ?? FALLBACK_COPY.disconnectedLabel,
+      connectionFailedLabel:
+        t.settings.channels?.runtime?.connectionFailedLabel
+        ?? FALLBACK_COPY.connectionFailedLabel,
+      fillRequiredFieldsFirst:
+        t.settings.channels?.errors?.fillRequiredFieldsFirst
+        ?? FALLBACK_COPY.fillRequiredFieldsFirst,
+      fillConnectionFieldsFirst:
+        t.settings.channels?.errors?.fillConnectionFieldsFirst
+        ?? FALLBACK_COPY.fillConnectionFieldsFirst,
+      saveConfigFailed:
+        t.settings.channels?.errors?.saveConfigFailed ?? FALLBACK_COPY.saveConfigFailed,
+      connectionTestFailed:
+        t.settings.channels?.errors?.connectionTestFailed
+        ?? FALLBACK_COPY.connectionTestFailed,
+      platformConfigSaved:
+        t.settings.channels?.errors?.platformConfigSaved
+        ?? FALLBACK_COPY.platformConfigSaved,
+      platformConnectionSuccess:
+        t.settings.channels?.errors?.platformConnectionSuccess
+        ?? FALLBACK_COPY.platformConnectionSuccess,
+      missingRequiredFieldsPrefix:
+        t.settings.channels?.errors?.missingRequiredFieldsPrefix
+        ?? FALLBACK_COPY.missingRequiredFieldsPrefix,
+      pairingGuideText:
+        t.settings.channels?.hints?.pairingGuide ?? FALLBACK_COPY.pairingGuideText,
+      goToPairingAction:
+        t.settings.channels?.actions?.goToPairing ?? FALLBACK_COPY.goToPairingAction,
+      runtimeStatusTitle:
+        t.settings.channels?.runtime?.statusTitle ?? FALLBACK_COPY.runtimeStatusTitle,
+      runtimeStatusDescription:
+        t.settings.channels?.runtime?.statusDescription
+        ?? FALLBACK_COPY.runtimeStatusDescription,
+      refreshAction:
+        t.settings.channels?.actions?.refresh ?? FALLBACK_COPY.refreshAction,
+      activeUsersLabel:
+        t.settings.channels?.runtime?.activeUsersLabel
+        ?? FALLBACK_COPY.activeUsersLabel,
+      runningLabel:
+        t.settings.channels?.runtime?.runningLabel ?? FALLBACK_COPY.runningLabel,
+      stoppedLabel:
+        t.settings.channels?.runtime?.stoppedLabel ?? FALLBACK_COPY.stoppedLabel,
+      noRuntimeStatus:
+        t.settings.channels?.runtime?.noStatus ?? FALLBACK_COPY.noRuntimeStatus,
+      pairSectionTitle:
+        t.settings.channels?.pairing?.sectionTitle ?? FALLBACK_COPY.pairSectionTitle,
+      pairSectionDescription:
+        t.settings.channels?.pairing?.sectionDescription
+        ?? FALLBACK_COPY.pairSectionDescription,
+      pairCodeTitle:
+        t.settings.channels?.pairing?.code?.title ?? FALLBACK_COPY.pairCodeTitle,
+      pairCodeDescription:
+        t.settings.channels?.pairing?.code?.description
+        ?? FALLBACK_COPY.pairCodeDescription,
+      pairCodeExpireMinutes:
+        t.settings.channels?.pairing?.code?.expireMinutes
+        ?? FALLBACK_COPY.pairCodeExpireMinutes,
+      generateAction:
+        t.settings.channels?.pairing?.code?.generateAction
+        ?? FALLBACK_COPY.generateAction,
+      activePairCode:
+        t.settings.channels?.pairing?.code?.activeCode ?? FALLBACK_COPY.activePairCode,
+      noPairCodeGenerated:
+        t.settings.channels?.pairing?.code?.noCodeGenerated
+        ?? FALLBACK_COPY.noPairCodeGenerated,
+      pairCommandCopied:
+        t.settings.channels?.pairing?.code?.copiedToast ?? FALLBACK_COPY.pairCommandCopied,
+      pairCodeGenerated:
+        t.settings.channels?.pairing?.code?.generatedToast
+        ?? FALLBACK_COPY.pairCodeGenerated,
+      pairCodeGenerateFailed:
+        t.settings.channels?.pairing?.code?.generateFailed
+        ?? FALLBACK_COPY.pairCodeGenerateFailed,
+      expiresAtPrefix:
+        t.settings.channels?.pairing?.code?.expiresAtPrefix
+        ?? FALLBACK_COPY.expiresAtPrefix,
+      pairCodeSlotHint:
+        t.settings.channels?.pairing?.code?.slotHint ?? FALLBACK_COPY.pairCodeSlotHint,
+      pendingPairRequestsTitle:
+        t.settings.channels?.pairing?.pending?.title
+        ?? FALLBACK_COPY.pendingPairRequestsTitle,
+      noPendingRequests:
+        t.settings.channels?.pairing?.pending?.empty ?? FALLBACK_COPY.noPendingRequests,
+      approveAction:
+        t.settings.channels?.actions?.approve ?? FALLBACK_COPY.approveAction,
+      rejectAction:
+        t.settings.channels?.actions?.reject ?? FALLBACK_COPY.rejectAction,
+      approvedToast:
+        t.settings.channels?.pairing?.pending?.approvedToast
+        ?? FALLBACK_COPY.approvedToast,
+      rejectedToast:
+        t.settings.channels?.pairing?.pending?.rejectedToast
+        ?? FALLBACK_COPY.rejectedToast,
+      approveFailedToast:
+        t.settings.channels?.errors?.approveFailed ?? FALLBACK_COPY.approveFailedToast,
+      rejectFailedToast:
+        t.settings.channels?.errors?.rejectFailed ?? FALLBACK_COPY.rejectFailedToast,
+      authorizedUsersTitle:
+        t.settings.channels?.authorization?.title ?? FALLBACK_COPY.authorizedUsersTitle,
+      noAuthorizedUsers:
+        t.settings.channels?.authorization?.empty ?? FALLBACK_COPY.noAuthorizedUsers,
+      sessionOverrideBadge:
+        t.settings.channels?.authorization?.sessionOverrideBadge
+        ?? FALLBACK_COPY.sessionOverrideBadge,
+      sessionOverrideAction:
+        t.settings.channels?.authorization?.sessionOverrideAction
+        ?? FALLBACK_COPY.sessionOverrideAction,
+      revokeAction:
+        t.settings.channels?.actions?.revoke ?? FALLBACK_COPY.revokeAction,
+      revokeConfirmTemplate:
+        t.settings.channels?.authorization?.revokeConfirmTemplate
+        ?? FALLBACK_COPY.revokeConfirmTemplate,
+      authorizationRevokedToast:
+        t.settings.channels?.authorization?.revokedToast
+        ?? FALLBACK_COPY.authorizationRevokedToast,
+      revokeFailedToast:
+        t.settings.channels?.errors?.revokeFailed ?? FALLBACK_COPY.revokeFailedToast,
+      sessionOverrideDialogTitle:
+        t.settings.channels?.session?.overrideDialogTitle
+        ?? FALLBACK_COPY.sessionOverrideDialogTitle,
+      sessionOverrideDialogDescription:
+        t.settings.channels?.session?.overrideDialogDescription
+        ?? FALLBACK_COPY.sessionOverrideDialogDescription,
+      sessionOverrideCurrentLabel:
+        t.settings.channels?.session?.overrideCurrentLabel
+        ?? FALLBACK_COPY.sessionOverrideCurrentLabel,
+      sessionResetAction:
+        t.settings.channels?.session?.resetAction ?? FALLBACK_COPY.sessionResetAction,
+      cancelAction:
+        t.settings.channels?.actions?.cancel ?? FALLBACK_COPY.cancelAction,
+      sessionOverrideSavedToast:
+        t.settings.channels?.session?.savedToast
+        ?? FALLBACK_COPY.sessionOverrideSavedToast,
+      sessionOverrideSaveFailedToast:
+        t.settings.channels?.errors?.sessionOverrideSaveFailed
+        ?? FALLBACK_COPY.sessionOverrideSaveFailedToast,
+      loadingLabel:
+        t.settings.channels?.labels?.loading ?? FALLBACK_COPY.loadingLabel,
+      conversationTypeConversation:
+        t.settings.channels?.conversationTypes?.conversation
+        ?? FALLBACK_COPY.conversationTypeConversation,
+      conversationTypeGroup:
+        t.settings.channels?.conversationTypes?.group
+        ?? FALLBACK_COPY.conversationTypeGroup,
+      conversationTypeDirect:
+        t.settings.channels?.conversationTypes?.direct
+        ?? FALLBACK_COPY.conversationTypeDirect,
+      requestedAtLabel:
+        t.settings.channels?.labels?.requestedAt ?? FALLBACK_COPY.requestedAtLabel,
+      grantedAtLabel:
+        t.settings.channels?.labels?.grantedAt ?? FALLBACK_COPY.grantedAtLabel,
+      unknownTimeLabel:
+        t.settings.channels?.labels?.unknownTime ?? FALLBACK_COPY.unknownTimeLabel,
+      appIdLabel:
+        t.settings.channels?.fields?.appId ?? FALLBACK_COPY.appIdLabel,
+      appSecretLabel:
+        t.settings.channels?.fields?.appSecret ?? FALLBACK_COPY.appSecretLabel,
+      verificationTokenLabel:
+        t.settings.channels?.fields?.verificationToken
+        ?? FALLBACK_COPY.verificationTokenLabel,
+      encryptKeyLabel:
+        t.settings.channels?.fields?.encryptKey ?? FALLBACK_COPY.encryptKeyLabel,
+      clientIdLabel:
+        t.settings.channels?.fields?.clientId ?? FALLBACK_COPY.clientIdLabel,
+      clientSecretLabel:
+        t.settings.channels?.fields?.clientSecret ?? FALLBACK_COPY.clientSecretLabel,
+      robotCodeLabel:
+        t.settings.channels?.fields?.robotCode ?? FALLBACK_COPY.robotCodeLabel,
+      proxyModeLabel:
+        t.settings.channels?.fields?.proxyMode ?? FALLBACK_COPY.proxyModeLabel,
+      webhookUrlLabel:
+        t.settings.channels?.fields?.webhookUrl ?? FALLBACK_COPY.webhookUrlLabel,
+      signingSecretLabel:
+        t.settings.channels?.fields?.signingSecret
+        ?? FALLBACK_COPY.signingSecretLabel,
+      botTokenLabel:
+        t.settings.channels?.fields?.botToken ?? FALLBACK_COPY.botTokenLabel,
+      allowedUsersLabel:
+        t.settings.channels?.fields?.allowedUsers ?? FALLBACK_COPY.allowedUsersLabel,
+      secretTokenLabel:
+        t.settings.channels?.fields?.secretToken ?? FALLBACK_COPY.secretTokenLabel,
+      larkVerificationTokenHint:
+        t.settings.channels?.hints?.larkVerificationToken
+        ?? FALLBACK_COPY.larkVerificationTokenHint,
+      larkEncryptKeyHint:
+        t.settings.channels?.hints?.larkEncryptKey
+        ?? FALLBACK_COPY.larkEncryptKeyHint,
+      dingtalkRobotCodeHint:
+        t.settings.channels?.hints?.dingtalkRobotCode
+        ?? FALLBACK_COPY.dingtalkRobotCodeHint,
+      dingtalkProxyModeHint:
+        t.settings.channels?.hints?.dingtalkProxyMode
+        ?? FALLBACK_COPY.dingtalkProxyModeHint,
+      dingtalkWebhookUrlHint:
+        t.settings.channels?.hints?.dingtalkWebhookUrl
+        ?? FALLBACK_COPY.dingtalkWebhookUrlHint,
     }),
-    [t.settings.channels, t.workspace.singleWorkspaceHint],
+    [t.settings.channels],
   );
 
   return (
     <SettingsSection title={copy.title} description={copy.description}>
       <div className="space-y-4">
-        <div className="rounded-lg border border-dashed bg-muted/20 p-4">
-          <div className="text-sm font-medium">{copy.workspaceTitle}</div>
-          <div className="text-muted-foreground mt-1 text-xs leading-5">
-            {copy.workspaceDescription}
-          </div>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            <Badge variant="secondary">{t.workspace.singleWorkspaceLabel}</Badge>
-            <Badge variant="outline">{t.workspace.singleWorkspacePath}</Badge>
-          </div>
-        </div>
-
         <Tabs
           value={platform}
           onValueChange={(value) => setPlatform(value as ChannelPlatform)}

@@ -1,13 +1,15 @@
 # Nion - Unified Development Environment
 
-.PHONY: help config config-upgrade check check-branding install dev dev-daemon start stop up down clean docker-init docker-start docker-stop docker-logs docker-logs-frontend docker-logs-gateway desktop-install desktop-dev package-desktop package-desktop-builder package-desktop-forge
+.PHONY: help config config-upgrade check check-branding install dev dev-daemon start stop up down clean docker-init docker-start docker-stop docker-logs docker-logs-frontend docker-logs-gateway desktop-install build-desktop desktop-build desktop-start desktop-dev package-desktop package-desktop-builder package-desktop-forge
 
 PYTHON ?= python
 
 help:
 	@echo "Nion Development Commands:"
 	@echo "  make desktop-install  - Install desktop workspace dependencies"
-	@echo "  make desktop-dev      - Build the desktop shell and helper"
+	@echo "  make build-desktop    - Build the desktop shell and helper"
+	@echo "  make desktop-start    - Launch the desktop app without rebuilding"
+	@echo "  make desktop-dev      - Build and launch the desktop app"
 	@echo "  make package-desktop  - Build the desktop app with electron-builder"
 	@echo "  make package-desktop-builder - Build the desktop app with electron-builder"
 	@echo "  make package-desktop-forge   - Build the desktop app with electron-forge"
@@ -176,15 +178,23 @@ down:
 desktop-install:
 	@pnpm --dir desktop install
 
-desktop-dev:
-	@./scripts/build-python-helper.sh
+build-desktop:
+	@bash ./scripts/build-python-helper.sh
 	@pnpm --dir desktop build
 
+desktop-build: build-desktop
+
+desktop-start:
+	@cd desktop && pnpm exec electron dist/main/index.js
+
+desktop-dev: build-desktop
+	@cd desktop && pnpm exec electron dist/main/index.js
+
 package-desktop:
-	@./scripts/package-desktop.sh builder
+	@bash ./scripts/package-desktop.sh builder
 
 package-desktop-builder:
-	@./scripts/package-desktop.sh builder
+	@bash ./scripts/package-desktop.sh builder
 
 package-desktop-forge:
-	@./scripts/package-desktop.sh forge
+	@bash ./scripts/package-desktop.sh forge

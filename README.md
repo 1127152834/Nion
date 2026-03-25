@@ -28,6 +28,12 @@
 
 当前分支将 Nion 作为桌面应用来交付：Electron 壳 + 本机 Python helper。浏览器部署与独立 LangGraph/Nginx 拓扑不再是默认产品路径。
 
+- 桌面 renderer 通过特权 `nion://app` 协议加载静态资源
+- preload 会向前端同步注入本地 helper base URL，前端不再假设 `/api/*` 由浏览器同源反代提供
+- `electron-builder` 默认发布到 GitHub Releases；只有设置 `NION_UPDATE_BASE_URL` 时才会额外写入 generic/CDN 更新源
+- `make build-desktop` 只做桌面编译；`make desktop-dev` 会在编译后直接拉起 Electron
+- `make desktop-start` 会直接启动已编译好的桌面端，不再重复编译
+
 ## 快速开始
 
 ### 1) 准备环境

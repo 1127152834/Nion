@@ -55,3 +55,7 @@ backend/Dockerfile.langgraph
 config.yaml.bak
 desktop/dist/
 desktop/renderer-dist/
+
+
+.omc/
+.worktrees/

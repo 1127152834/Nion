@@ -16,14 +16,39 @@ export async function createMainWindow(options: MainWindowOptions): Promise<Brow
       preload: options.preloadPath,
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: true,
+      sandbox: false,
     },
   });
+  const isDev = !process.mainModule?.filename.includes("app.asar");
 
+  if (isDev) {
+    window.webContents.on("console-message", (_event, level, message, line, sourceId) => {
+      console.log(`[renderer:${level}] ${sourceId}:${line} ${message}`);
+    });
+    window.webContents.on("did-finish-load", () => {
+      console.log(`[renderer] loaded ${options.rendererUrl}`);
+    });
+    window.webContents.on("did-fail-load", (_event, errorCode, errorDescription, validatedUrl) => {
+      console.error(
+        `[renderer] failed to load ${validatedUrl} (${errorCode} ${errorDescription})`,
+      );
+    });
+    window.webContents.on("render-process-gone", (_event, details) => {
+      console.error(`[renderer] process gone: ${details.reason}`);
+    });
+  }
+
+  const showWindow = () => {
+    if (!window.isDestroyed()) {
+      window.show();
+    }
+  };
+
+  window.once("ready-to-show", showWindow);
   await window.loadURL(options.rendererUrl);
-  window.once("ready-to-show", () => {
-    window.show();
-  });
+  if (!window.isVisible()) {
+    showWindow();
+  }
 
   return window;
 }

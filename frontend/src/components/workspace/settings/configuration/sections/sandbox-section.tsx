@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronDownIcon } from "lucide-react";
-import { useRef, useState } from "react";
+import { useState } from "react";
 
 import {
   Collapsible,
@@ -51,10 +51,12 @@ export function SandboxSection({
   config,
   onChange,
   disabled,
+  isDesktopShell = false,
 }: {
   config: ConfigDraft;
   onChange: (next: ConfigDraft) => void;
   disabled?: boolean;
+  isDesktopShell?: boolean;
 }) {
   const { t, locale } = useI18n();
   const settingsLike = t.settings as {
@@ -70,7 +72,9 @@ export function SandboxSection({
   const sandbox = asObject(config.sandbox);
   const sandboxUse = asString(sandbox.use);
   const sandboxMode = getSandboxMode(sandboxUse);
-  const sandboxUseBeforeStrictModeRef = useRef<string | null>(null);
+  const currentProviderIsAio = sandboxMode === "aio";
+  const showDesktopAioWarning = isDesktopShell && currentProviderIsAio;
+  const selectedMode = showDesktopAioWarning ? "unsupported" : sandboxMode;
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const strictModeEnabled = asBoolean(sandbox.strict_mode, false);
   const strictModeTip =
@@ -110,22 +114,29 @@ export function SandboxSection({
     updateSandbox(key, parseOptionalNumber(raw));
   };
 
-  const switchSandboxMode = (mode: "local" | "aio" | "custom") => {
+  const switchSandboxMode = (
+    mode: "local" | "aio" | "custom" | "unsupported",
+  ) => {
     if (mode === "local") {
       updateSandboxBatch({
         use: "nion.sandbox.local:LocalSandboxProvider",
-        strict_mode: strictModeEnabled ? false : undefined,
+        strict_mode: undefined,
       });
       return;
     }
     if (mode === "aio") {
+      if (isDesktopShell) {
+        return;
+      }
       updateSandbox("use", "nion.community.aio_sandbox:AioSandboxProvider");
       return;
     }
-    updateSandboxBatch({
-      use: "",
-      strict_mode: strictModeEnabled ? false : undefined,
-    });
+    if (mode === "custom") {
+      updateSandboxBatch({
+        use: "",
+        strict_mode: undefined,
+      });
+    }
   };
 
   return (
@@ -137,18 +148,21 @@ export function SandboxSection({
         </div>
         <div className="space-y-1">
           <div className="text-xs font-medium">{copy.mode}</div>
-          <Select value={sandboxMode} onValueChange={switchSandboxMode}>
+          <Select value={selectedMode} onValueChange={switchSandboxMode}>
             <SelectTrigger disabled={disabled} className="w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="local" disabled={strictModeEnabled}>
-                {copy.local}
-              </SelectItem>
-              <SelectItem value="aio">{copy.aio}</SelectItem>
-              <SelectItem value="custom" disabled={strictModeEnabled}>
-                {copy.custom}
-              </SelectItem>
+              <SelectItem value="local">{copy.local}</SelectItem>
+              {!isDesktopShell ? (
+                <SelectItem value="aio">{copy.aio}</SelectItem>
+              ) : null}
+              <SelectItem value="custom">{copy.custom}</SelectItem>
+              {showDesktopAioWarning ? (
+                <SelectItem value="unsupported" disabled>
+                  {copy.desktopUnsupportedCurrent}
+                </SelectItem>
+              ) : null}
             </SelectContent>
           </Select>
         </div>
@@ -156,48 +170,48 @@ export function SandboxSection({
 
       <FieldTip zh={copy.modeTipZh ?? ""} en={copy.modeTipEn ?? ""} />
 
-      <div className="rounded-md border bg-muted/30 p-3">
-        <div className="grid gap-3 md:grid-cols-[1fr_220px] md:items-start">
-          <div className="space-y-1">
-            <div className="text-sm font-medium">{copy.strictMode}</div>
-            {strictModeTip ? (
-              <div className="text-muted-foreground text-xs leading-relaxed">
-                {strictModeTip}
-              </div>
-            ) : null}
-          </div>
-          <div className="flex justify-end">
-            <Switch
-              checked={strictModeEnabled}
-              onCheckedChange={(checked) => {
-                if (checked) {
-                  sandboxUseBeforeStrictModeRef.current = sandboxUse;
-                  setAdvancedOpen(false);
-                  updateSandboxBatch({
-                    strict_mode: true,
-                    use: "nion.community.aio_sandbox:AioSandboxProvider",
-                  });
-                  return;
-                }
-                setAdvancedOpen(false);
-                const restoreUse = sandboxUseBeforeStrictModeRef.current;
-                sandboxUseBeforeStrictModeRef.current = null;
-                updateSandboxBatch({
-                  strict_mode: undefined,
-                  use:
-                    restoreUse ??
-                    (sandboxMode === "aio"
-                      ? "nion.sandbox.local:LocalSandboxProvider"
-                      : sandboxUse),
-                });
-              }}
-              disabled={disabled}
-            />
+      {showDesktopAioWarning ? (
+        <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900">
+          <div className="font-medium">{copy.desktopUnsupportedTitle}</div>
+          <div className="mt-1 leading-relaxed">
+            {copy.desktopUnsupportedHint}
           </div>
         </div>
-      </div>
+      ) : null}
 
-      {sandboxMode === "custom" && (
+      {!isDesktopShell ? (
+        <div className="rounded-md border bg-muted/30 p-3">
+          <div className="grid gap-3 md:grid-cols-[1fr_220px] md:items-start">
+            <div className="space-y-1">
+              <div className="text-sm font-medium">{copy.strictMode}</div>
+              {strictModeTip ? (
+                <div className="text-muted-foreground text-xs leading-relaxed">
+                  {strictModeTip}
+                </div>
+              ) : null}
+            </div>
+            <div className="flex justify-end">
+              <Switch
+                checked={strictModeEnabled}
+                onCheckedChange={(checked) => {
+                  setAdvancedOpen(false);
+                  if (checked) {
+                    updateSandboxBatch({
+                      strict_mode: true,
+                      use: "nion.community.aio_sandbox:AioSandboxProvider",
+                    });
+                    return;
+                  }
+                  updateSandbox("strict_mode", undefined);
+                }}
+                disabled={disabled}
+              />
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {selectedMode === "custom" && (
         <div className="space-y-1.5">
           <div className="text-xs font-medium">{copy.usePath}</div>
           <Input
@@ -209,7 +223,7 @@ export function SandboxSection({
         </div>
       )}
 
-      {sandboxMode === "aio" && (
+      {selectedMode === "aio" && !isDesktopShell && (
         <>
           {copy.aioDefaultsHint ? (
             <div className="text-muted-foreground text-xs leading-relaxed">
@@ -298,7 +312,7 @@ export function SandboxSection({
         </>
       )}
 
-      {sandboxMode === "custom" && (
+      {selectedMode === "custom" && (
         <div className="text-muted-foreground text-xs">
           {copy.customConfiguredHint}
         </div>

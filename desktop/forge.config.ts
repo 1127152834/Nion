@@ -5,7 +5,18 @@ import { MakerZIP } from "@electron-forge/maker-zip";
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
-    icon: "assets/icon",
+    ignore: [
+      /^\/out($|\/)/,
+      /^\/release($|\/)/,
+      /^\/src($|\/)/,
+      /^\/tests($|\/)/,
+      /^\/electron-builder\.yml$/,
+      /^\/forge\.config\.ts$/,
+      /^\/postcss\.config\.js$/,
+      /^\/bundle-budget\.json$/,
+      /^\/scripts($|\/)/,
+    ],
+    extraResource: ["../backend/dist/nion-backend"],
   },
   rebuildConfig: {},
   makers: [

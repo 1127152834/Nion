@@ -1,5 +1,6 @@
 appId: ai.nion.desktop
 productName: Nion
+electronVersion: 35.7.5
 directories:
   output: release
 files:

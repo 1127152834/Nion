@@ -430,6 +430,14 @@ export interface Translations {
       lockedTip: string;
       modeSaveFailed: string;
     };
+    requestError: {
+      title: string;
+      modelUnavailable: string;
+      authenticationFailed: string;
+      runtimeUnavailable: string;
+      generic: string;
+      detailsLabel: string;
+    };
   };
 
   // Conversation
@@ -759,16 +767,15 @@ export interface Translations {
       loadConfigFailed: string;
     };
     toolPage: {
-      builtInTitle: string;
-      builtInDesc: string;
       loadConfigFailed: string;
       runtimeTitle: string;
-      runtimeSource: string;
-      runtimeVersion: string;
+      runtimeSummary: string;
+      runtimeStateLabel: string;
+      runtimeToolsLabel: string;
+      runtimeAttentionLabel: string;
+      runtimeHealthy: string;
       runtimeInSync: string;
       runtimeOutOfSync: string;
-      runtimeWarnings: string;
-      runtimeProcesses: string;
     };
     automationWorkspace: {
       title: string;

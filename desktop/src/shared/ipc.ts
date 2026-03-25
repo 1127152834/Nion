@@ -19,7 +19,9 @@ export type DesktopUpdateResult = {
 
 declare global {
   interface Window {
+    __NION_BACKEND_BASE_URL__?: string;
     nionDesktop: {
+      backendBaseUrl: string;
       getRuntimeInfo: () => Promise<DesktopRuntimeInfo>;
       checkForUpdates: () => Promise<DesktopUpdateResult>;
       quitAndInstallUpdate: () => Promise<boolean>;

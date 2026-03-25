@@ -7,7 +7,6 @@ from typing import Literal
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from nion.config.app_config import ensure_latest_app_config
 from nion.runtime_profile import (
     RuntimeProfileLockedError,
     RuntimeProfileRepository,
@@ -28,18 +27,6 @@ class RuntimeProfileUpdateRequest(BaseModel):
     execution_mode: Literal["sandbox", "host"] = Field(default="sandbox")
     host_workdir: str | None = Field(default=None)
 
-
-def _ensure_host_mode_allowed(execution_mode: str) -> None:
-    if execution_mode != "host":
-        return
-    app_config = ensure_latest_app_config(process_name="gateway")
-    if bool(getattr(app_config.sandbox, "strict_mode", False)):
-        raise HTTPException(
-            status_code=403,
-            detail="Host mode is disabled when strict sandbox mode is enabled",
-        )
-
-
 @router.get("", response_model=RuntimeProfileResponse)
 async def get_runtime_profile(thread_id: str) -> RuntimeProfileResponse:
     profile = RuntimeProfileRepository().read(thread_id)
@@ -50,7 +37,6 @@ async def get_runtime_profile(thread_id: str) -> RuntimeProfileResponse:
 async def update_runtime_profile(
     thread_id: str, payload: RuntimeProfileUpdateRequest
 ) -> RuntimeProfileResponse:
-    _ensure_host_mode_allowed(payload.execution_mode)
     repository = RuntimeProfileRepository()
 
     try:
@@ -67,4 +53,3 @@ async def update_runtime_profile(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     return RuntimeProfileResponse(**updated)
-

@@ -1,6 +1,12 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+@source "../app";
+@source "../components";
+@source "../core";
+@source "../hooks";
+@source "../lib";
+@source "../../../desktop/src";
 @source "../node_modules/streamdown/dist/index.js";
 
 /* Heading */
