@@ -43,6 +43,11 @@ docs/*
 !docs/test/**
 !docs/project/
 !docs/project/**
+!docs/superpowers/
+!docs/superpowers/specs/
+!docs/superpowers/specs/**
+!docs/superpowers/plans/
+!docs/superpowers/plans/**
 logs/
 log/
 
