@@ -8,4 +8,4 @@ class DaemonConfig(BaseModel):
     )
     host: str = Field(default="127.0.0.1")
     port: int = Field(default=43115)
-    startup_timeout_seconds: int = Field(default=20, ge=1, le=120)
+    shutdown_grace_period_seconds: int = Field(default=3, ge=1, le=10)

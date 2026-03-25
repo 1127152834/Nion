@@ -51,6 +51,7 @@ def test_gateway_config_api_round_trip(monkeypatch, tmp_path):
             assert schema_response.status_code == 200
             schema_payload = schema_response.json()
             assert "daemon" in schema_payload["sections"]
+            assert "daemon" in schema_payload["order"]
             assert "models" in schema_payload["sections"]
             assert "sandbox" in schema_payload["order"]
 
