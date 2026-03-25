@@ -18,6 +18,7 @@ from nion.config.config_store import (
     ConfigStoreNotInitializedError,
     create_config_store,
 )
+from nion.config.daemon_config import DaemonConfig
 from nion.config.extensions_config import ExtensionsConfig
 from nion.config.guardrails_config import load_guardrails_config_from_dict
 from nion.config.memory_config import load_memory_config_from_dict
@@ -76,6 +77,10 @@ class AppConfig(BaseModel):
     channels: ChannelsAppConfig = Field(
         default_factory=ChannelsAppConfig,
         description="Channel control-plane defaults and credentials",
+    )
+    daemon: DaemonConfig = Field(
+        default_factory=DaemonConfig,
+        description="Local daemon lifecycle and listening configuration",
     )
     sandbox: SandboxConfig = Field(description="Sandbox configuration")
     tools: list[ToolConfig] = Field(default_factory=list, description="Available tools")

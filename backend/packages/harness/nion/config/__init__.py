@@ -6,6 +6,7 @@ from .app_config import (
     reload_app_config,
     reset_app_config,
 )
+from .daemon_config import DaemonConfig
 from .config_repository import ConfigRepository, ConfigValidationError, VersionConflictError
 from .config_store import ConfigStoreNotInitializedError, create_config_store
 from .extensions_config import ExtensionsConfig, get_extensions_config
@@ -22,6 +23,7 @@ __all__ = [
     "get_app_config_runtime_status",
     "AutomationConfig",
     "get_automation_config",
+    "DaemonConfig",
     "ConfigRepository",
     "ConfigValidationError",
     "VersionConflictError",

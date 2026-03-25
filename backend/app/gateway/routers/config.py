@@ -122,6 +122,10 @@ def _build_schema() -> ConfigSchemaResponse:
             title="Sandbox",
             description="Configure sandbox provider and runtime options.",
         ),
+        "daemon": ConfigSectionSchema(
+            title="Daemon",
+            description="Configure local daemon lifecycle and background behavior.",
+        ),
         "notification": ConfigSectionSchema(
             title="Notification",
             description="Configure notification preferences.",
@@ -139,6 +143,7 @@ def _build_schema() -> ConfigSchemaResponse:
         "mcp",
         "skills",
         "sandbox",
+        "daemon",
         "notification",
         "advanced_yaml",
     ]
@@ -266,4 +271,3 @@ async def get_runtime_status() -> ConfigRuntimeStatusResponse:
 
     status_payload["warnings"] = runtime_warnings
     return ConfigRuntimeStatusResponse(**status_payload)
-
