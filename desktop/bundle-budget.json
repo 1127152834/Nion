@@ -1,5 +1,5 @@
 {
   "macos_zip_max_mb": 350,
   "windows_nsis_max_mb": 350,
-  "python_helper_max_mb": 180
+  "python_helper_max_mb": 200
 }

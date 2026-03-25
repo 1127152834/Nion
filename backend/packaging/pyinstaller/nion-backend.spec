@@ -20,6 +20,13 @@ a = Analysis(
         "tests",
         "docker",
         ".github",
+        "speech_recognition",
+        "pydub",
+        "youtube_transcript_api",
+        "azure",
+        "azure.ai.documentintelligence",
+        "azure.identity",
+        "grpc_tools",
     ],
     noarchive=False,
 )
