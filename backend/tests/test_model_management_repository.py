@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from nion.model_management.crypto import build_model_management_secret
 from nion.model_management.models import (
     ModelBinding,
     ProviderInstance,
@@ -135,3 +136,89 @@ def test_save_binding_updates_existing_row_by_binding_key(tmp_path):
     assert binding.provider_model_id == "model-2"
     assert binding.fallback_provider_model_id == "model-3"
     assert binding.status == "disabled"
+
+
+def test_save_provider_instance_encrypts_plaintext_api_key(tmp_path):
+    repo = ModelManagementRepository(
+        tmp_path / "config.db",
+        secret_provider=lambda: build_model_management_secret("test-secret"),
+    )
+
+    instance = ProviderInstance(
+        kind="custom",
+        display_name="Custom Provider",
+    )
+
+    saved = repo.save_provider_instance(
+        instance,
+        api_key_plaintext="sk-live-12345678",
+    )
+    loaded = repo.list_provider_instances()
+
+    assert saved.api_key_encrypted is not None
+    assert saved.api_key_encrypted != "sk-live-12345678"
+    assert saved.api_key_masked == "••••5678"
+    assert [item.api_key_masked for item in loaded] == ["••••5678"]
+    assert loaded[0].api_key_encrypted == saved.api_key_encrypted
+
+    with repo._connect() as connection:
+        row = connection.execute(
+            "SELECT payload FROM provider_instances WHERE id = ?",
+            (saved.id,),
+        ).fetchone()
+
+    assert row is not None
+    assert "sk-live-12345678" not in row["payload"]
+
+
+def test_save_provider_instance_can_clear_saved_api_key(tmp_path):
+    repo = ModelManagementRepository(
+        tmp_path / "config.db",
+        secret_provider=lambda: build_model_management_secret("test-secret"),
+    )
+
+    instance = ProviderInstance(
+        kind="custom",
+        display_name="Custom Provider",
+    )
+    saved = repo.save_provider_instance(
+        instance,
+        api_key_plaintext="sk-live-12345678",
+    )
+
+    cleared = repo.save_provider_instance(
+        saved,
+        api_key_plaintext="",
+    )
+
+    assert cleared.api_key_encrypted is None
+    assert cleared.api_key_masked is None
+
+
+def test_save_provider_instance_preserves_existing_api_key_when_plaintext_is_omitted(tmp_path):
+    repo = ModelManagementRepository(
+        tmp_path / "config.db",
+        secret_provider=lambda: build_model_management_secret("test-secret"),
+    )
+
+    instance = ProviderInstance(
+        kind="custom",
+        display_name="Custom Provider",
+    )
+    saved = repo.save_provider_instance(
+        instance,
+        api_key_plaintext="sk-live-12345678",
+    )
+
+    updated = repo.save_provider_instance(
+        saved.model_copy(update={"display_name": "Renamed Provider"}),
+    )
+    loaded = repo.list_provider_instances()
+
+    assert updated.display_name == "Renamed Provider"
+    assert updated.api_key_encrypted == saved.api_key_encrypted
+    assert updated.api_key_masked == saved.api_key_masked
+    assert len(loaded) == 1
+    assert loaded[0].display_name == "Renamed Provider"
+    assert loaded[0].api_key_encrypted == saved.api_key_encrypted
+    assert loaded[0].api_key_masked == saved.api_key_masked

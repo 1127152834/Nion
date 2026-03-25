@@ -1,8 +1,14 @@
 from __future__ import annotations
 
 import sqlite3
+from collections.abc import Callable
 from pathlib import Path
 
+from nion.model_management.crypto import (
+    encrypt_provider_secret,
+    get_model_management_secret,
+    mask_provider_secret,
+)
 from nion.model_management.models import (
     ModelBinding,
     ProviderInstance,
@@ -13,9 +19,15 @@ from nion.model_management.models import (
 
 
 class ModelManagementRepository:
-    def __init__(self, db_path: str | Path):
+    def __init__(
+        self,
+        db_path: str | Path,
+        *,
+        secret_provider: Callable[[], bytes] | None = None,
+    ):
         self._db_path = Path(db_path)
         self._db_path.parent.mkdir(parents=True, exist_ok=True)
+        self._secret_provider = secret_provider or get_model_management_secret
         self._initialize()
 
     @property
@@ -205,6 +217,20 @@ class ModelManagementRepository:
             return None
         return self._deserialize_template(row["payload"])
 
+    def get_provider_instance(self, instance_id: str) -> ProviderInstance | None:
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT payload
+                FROM provider_instances
+                WHERE id = ?
+                """,
+                (instance_id,),
+            ).fetchone()
+        if row is None:
+            return None
+        return self._deserialize_instance(row["payload"])
+
     def save_category_membership(
         self,
         membership: ProviderTemplateCategoryMembership,
@@ -264,7 +290,39 @@ class ModelManagementRepository:
     def save_provider_instance(
         self,
         instance: ProviderInstance,
+        *,
+        api_key_plaintext: str | None = None,
     ) -> ProviderInstance:
+        persisted = instance
+        if api_key_plaintext is None:
+            existing = self.get_provider_instance(instance.id)
+            if existing is not None:
+                persisted = instance.model_copy(
+                    update={
+                        "api_key_encrypted": existing.api_key_encrypted,
+                        "api_key_masked": existing.api_key_masked,
+                    }
+                )
+        else:
+            normalized = api_key_plaintext.strip()
+            if normalized:
+                secret = self._secret_provider()
+                persisted = instance.model_copy(
+                    update={
+                        "api_key_encrypted": encrypt_provider_secret(
+                            normalized,
+                            secret,
+                        ),
+                        "api_key_masked": mask_provider_secret(normalized),
+                    }
+                )
+            else:
+                persisted = instance.model_copy(
+                    update={
+                        "api_key_encrypted": None,
+                        "api_key_masked": None,
+                    }
+                )
         with self._connect() as connection:
             connection.execute(
                 """
@@ -284,18 +342,18 @@ class ModelManagementRepository:
                     payload = excluded.payload
                 """,
                 (
-                    instance.id,
-                    instance.provider_template_id,
-                    instance.kind,
-                    instance.display_name,
-                    instance.status,
-                    instance.provider_test_status,
-                    instance.created_at,
-                    instance.updated_at,
-                    self._serialize(instance),
+                    persisted.id,
+                    persisted.provider_template_id,
+                    persisted.kind,
+                    persisted.display_name,
+                    persisted.status,
+                    persisted.provider_test_status,
+                    persisted.created_at,
+                    persisted.updated_at,
+                    self._serialize(persisted),
                 ),
             )
-        return instance
+        return persisted
 
     def list_provider_instances(self) -> list[ProviderInstance]:
         with self._connect() as connection:
