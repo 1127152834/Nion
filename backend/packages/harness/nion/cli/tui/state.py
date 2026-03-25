@@ -13,17 +13,22 @@ class DraftReference:
 @dataclass
 class TuiState:
     selected_thread_id: str | None = None
+    selected_thread_label: str | None = None
     draft_text: str = ""
     command_query: str = ""
     mention_query: str = ""
     streaming: bool = False
     thread_ids: list[str] = field(default_factory=list)
+    thread_items: list[dict[str, str]] = field(default_factory=list)
     command_suggestions: list[str] = field(default_factory=list)
     reference_suggestions: list[str] = field(default_factory=list)
     references: list[DraftReference] = field(default_factory=list)
 
     def set_selected_thread(self, thread_id: str | None) -> None:
         self.selected_thread_id = thread_id
+
+    def set_selected_thread_label(self, label: str | None) -> None:
+        self.selected_thread_label = label
 
     def set_draft(self, text: str) -> None:
         self.draft_text = text
