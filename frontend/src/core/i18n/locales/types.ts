@@ -534,7 +534,14 @@ export interface Translations {
       sandbox: string;
       channels: string;
       notification: string;
+      daemon: string;
       about: string;
+    };
+    daemon: {
+      title: string;
+      description: string;
+      allowBackgroundRunningLabel: string;
+      allowBackgroundRunningHint: string;
     };
     memory: {
       title: string;

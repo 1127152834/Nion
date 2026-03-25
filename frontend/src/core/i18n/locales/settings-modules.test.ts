@@ -145,6 +145,13 @@ const EXPECTED_CLI_TOOLS_SHAPE = {
   },
 } as const;
 
+const EXPECTED_DAEMON_SHAPE = {
+  title: true,
+  description: true,
+  allowBackgroundRunningLabel: true,
+  allowBackgroundRunningHint: true,
+} as const;
+
 const EXPECTED_CHANNELS_SHAPE = {
   title: true,
   description: true,
@@ -317,7 +324,7 @@ function assertSectionShape(
   assert.deepEqual(shapeOf(value), expected, `${label} shape mismatch`);
 }
 
-void test("search, cliTools, and channels expose the full settings i18n contract", () => {
+void test("search, cliTools, daemon, and channels expose the full settings i18n contract", () => {
   assertSectionShape("enUS.settings.search", enUS.settings.search, EXPECTED_SEARCH_SHAPE);
   assertSectionShape("zhCN.settings.search", zhCN.settings.search, EXPECTED_SEARCH_SHAPE);
   assertSectionShape(
@@ -329,6 +336,16 @@ void test("search, cliTools, and channels expose the full settings i18n contract
     "zhCN.settings.cliTools",
     zhCN.settings.cliTools,
     EXPECTED_CLI_TOOLS_SHAPE,
+  );
+  assertSectionShape(
+    "enUS.settings.daemon",
+    enUS.settings.daemon,
+    EXPECTED_DAEMON_SHAPE,
+  );
+  assertSectionShape(
+    "zhCN.settings.daemon",
+    zhCN.settings.daemon,
+    EXPECTED_DAEMON_SHAPE,
   );
   assertSectionShape(
     "enUS.settings.channels",

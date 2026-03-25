@@ -345,7 +345,16 @@ export const enUS: Translations = {
       sandbox: "Sandbox",
       channels: "Channels",
       notification: "Notification",
+      daemon: "Daemon",
       about: "About",
+    },
+    daemon: {
+      title: "Daemon",
+      description:
+        "Control whether the local runtime stays alive after the desktop window closes.",
+      allowBackgroundRunningLabel: "Allow background running",
+      allowBackgroundRunningHint:
+        "When enabled, closing the Electron window keeps the local daemon alive. When disabled, the daemon exits shortly after the desktop client detaches.",
     },
     memory: {
       title: "Memory",

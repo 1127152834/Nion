@@ -3,6 +3,7 @@ export const SETTINGS_SECTIONS = [
   "models",
   "sessionPolicy",
   "notification",
+  "daemon",
   "memory",
   "tools",
   "search",

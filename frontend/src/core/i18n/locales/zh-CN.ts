@@ -331,7 +331,15 @@ export const zhCN: Translations = {
       sandbox: "沙箱",
       channels: "通道",
       notification: "通知",
+      daemon: "守护进程",
       about: "关于",
+    },
+    daemon: {
+      title: "守护进程",
+      description: "控制桌面窗口关闭后，本地运行时是否继续保持存活。",
+      allowBackgroundRunningLabel: "允许后台运行",
+      allowBackgroundRunningHint:
+        "开启后，关闭 Electron 窗口不会停止本地 daemon。关闭后，桌面客户端断开后 daemon 会在短暂延迟后退出。",
     },
     memory: {
       title: "记忆",

@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  ActivityIcon,
   BellIcon,
   BrainIcon,
   BotIcon,
@@ -25,6 +26,7 @@ import { SidebarGroupLabel } from "@/components/ui/sidebar";
 import { AppearanceSettingsPage } from "@/components/workspace/settings/appearance-settings-page";
 import { ChannelSettingsPage } from "@/components/workspace/settings/channel-settings-page";
 import { CLIToolsPage } from "@/components/workspace/settings/cli-tools-page";
+import { DaemonSettingsPage } from "@/components/workspace/settings/daemon-settings-page";
 import { MCPServersPage } from "@/components/workspace/settings/mcp-servers-page";
 import { MemorySettingsPage } from "@/components/workspace/settings/memory-settings-page";
 import { ModelSettingsPage } from "@/components/workspace/settings/model-settings-page";
@@ -99,6 +101,11 @@ export function SettingsDialog(props: SettingsDialogProps) {
           id: "notification",
           label: t.settings.sections.notification,
           icon: BellIcon,
+        },
+        daemon: {
+          id: "daemon",
+          label: t.settings.sections.daemon,
+          icon: ActivityIcon,
         },
         models: {
           id: "models",
@@ -176,13 +183,14 @@ export function SettingsDialog(props: SettingsDialogProps) {
         {
           id: "system",
           title: t.settings.navGroups.system,
-          items: [items.sandbox],
+          items: [items.daemon, items.sandbox],
         },
       ];
     },
     [
       t.settings.sections.appearance,
       t.settings.sections.notification,
+      t.settings.sections.daemon,
       t.settings.sections.models,
       t.settings.sections.sessionPolicy,
       t.settings.sections.memory,
@@ -273,6 +281,7 @@ export function SettingsDialog(props: SettingsDialogProps) {
                   <SessionPolicySettingsPage />
                 )}
                 {activeSection === "memory" && <MemorySettingsPage />}
+                {activeSection === "daemon" && <DaemonSettingsPage />}
                 {activeSection === "tools" && <ToolSettingsPage />}
                 {activeSection === "search" && <SearchSettingsPage />}
                 {activeSection === "cliTools" && <CLIToolsPage />}
