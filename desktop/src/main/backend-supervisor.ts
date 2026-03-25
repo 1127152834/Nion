@@ -4,9 +4,11 @@ import { setTimeout as delay } from "node:timers/promises";
 import { resolveDesktopEnvironment, type SupportedDesktopPlatform } from "./config.js";
 
 export type BuildBackendCommandOptions = {
+  appRoot: string;
   resourcesPath: string;
   userDataPath?: string;
   platform: NodeJS.Platform | SupportedDesktopPlatform;
+  packaged?: boolean;
   helperPort?: number;
 };
 
@@ -30,9 +32,11 @@ export type BackendRuntimeInfo = {
 
 export function buildBackendCommand(options: BuildBackendCommandOptions): BackendCommand {
   const environment = resolveDesktopEnvironment({
+    appRoot: options.appRoot,
     resourcesPath: options.resourcesPath,
     userDataPath: options.userDataPath ?? process.cwd(),
     platform: options.platform,
+    packaged: options.packaged,
     helperPort: options.helperPort,
   });
 

@@ -15,18 +15,26 @@ const __dirname = path.dirname(__filename);
 export async function startDesktopMain(): Promise<void> {
   await app.whenReady();
 
+  const appRoot = app.isPackaged
+    ? process.resourcesPath
+    : path.resolve(__dirname, "..", "..", "..");
+
   const environment = resolveDesktopEnvironment({
+    appRoot,
     resourcesPath: process.resourcesPath,
     userDataPath: app.getPath("userData"),
     platform: process.platform,
+    packaged: app.isPackaged,
   });
 
   await registerDesktopProtocol();
 
   const supervisor = createBackendSupervisor({
+    appRoot: environment.appRoot,
     resourcesPath: environment.resourcesPath,
     userDataPath: environment.userDataPath,
     platform: environment.platform,
+    packaged: app.isPackaged,
   });
 
   await supervisor.start();

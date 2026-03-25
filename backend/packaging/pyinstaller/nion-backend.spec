@@ -3,8 +3,7 @@
 from pathlib import Path
 
 
-project_root = Path(__file__).resolve().parents[2]
-backend_root = project_root / "backend"
+backend_root = Path.cwd().resolve()
 
 block_cipher = None
 
