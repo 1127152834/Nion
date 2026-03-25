@@ -14,23 +14,24 @@ class SuggestionStubClient:
     def list_cli_tools(self):
         return ["git", "uv"]
 
-    def list_thread_files(self, thread_id, depth=3):
+    def list_thread_paths(self, thread_id, depth=3):
         return ["/mnt/user-data/workspace/notes.md"]
 
 
-def test_reference_suggestions_match_skill_prefix() -> None:
+def test_reference_suggestions_match_file_prefix() -> None:
     app = NionTuiApp("http://127.0.0.1:43115", daemon_client=SuggestionStubClient())
-    app._available_skills = ["research-helper"]
+    app._available_files = ["/mnt/user-data/workspace/notes.md"]
 
-    suggestions = app.get_reference_suggestions("Use @skill:res")
+    suggestions = app.get_reference_suggestions("Use @/mnt/user-data/workspace/no")
 
-    assert suggestions == ["research-helper"]
+    assert suggestions == ["/mnt/user-data/workspace/notes.md"]
 
 
-def test_command_suggestions_are_stored_in_state() -> None:
+def test_palette_items_are_stored_in_state() -> None:
     app = NionTuiApp("http://127.0.0.1:43115", daemon_client=SuggestionStubClient())
 
-    suggestions = app.get_command_suggestions("/st")
+    items = app.get_palette_items("/st")
 
-    assert suggestions == ["/status", "/stop"]
-    assert app.state.command_suggestions == suggestions
+    labels = [item["label"] for item in items]
+    assert labels == ["/status", "/stop"]
+    assert app.state.palette_items == items

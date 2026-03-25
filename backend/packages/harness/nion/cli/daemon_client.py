@@ -85,6 +85,23 @@ class DaemonApiClient:
         files = payload.get("files", []) if isinstance(payload, dict) else []
         return [item.get("path", "") for item in files if isinstance(item, dict) and item.get("path")]
 
+    def list_thread_paths(self, thread_id: str, *, depth: int = 3) -> list[str]:
+        response = httpx.get(
+            f"{self.base_url}/api/threads/{thread_id}/files/tree",
+            params={"depth": depth},
+            timeout=5.0,
+        )
+        response.raise_for_status()
+        payload = response.json() if response.content else {}
+        directories = payload.get("directories", []) if isinstance(payload, dict) else []
+        files = payload.get("files", []) if isinstance(payload, dict) else []
+        paths = [
+            item.get("path", "")
+            for item in [*directories, *files]
+            if isinstance(item, dict) and item.get("path")
+        ]
+        return paths
+
     def stream_thread(
         self,
         thread_id: str,

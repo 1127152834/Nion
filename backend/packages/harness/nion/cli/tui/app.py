@@ -6,8 +6,8 @@ from textual.widgets import Footer, Header, Label, ListItem, ListView, RichLog, 
 
 from nion.cli.daemon_client import DaemonApiClient
 
-from .commands import complete_command
-from .references import parse_reference_trigger
+from .commands import COMMANDS, build_palette_items
+from .references import parse_file_reference_trigger
 from .state import TuiState
 
 
@@ -50,7 +50,7 @@ class NionTuiApp(App[None]):
         background: #0d1320;
     }
 
-    #command-panel, #reference-panel {
+    #palette {
         height: auto;
         max-height: 5;
         border: round $surface;
@@ -76,8 +76,7 @@ class NionTuiApp(App[None]):
             with Vertical():
                 yield Static("Conversation", id="conversation-title")
                 yield RichLog(id="conversation", wrap=True, highlight=True)
-                yield Static("", id="command-panel")
-                yield Static("", id="reference-panel")
+                yield Static("", id="palette")
                 yield TextArea(id="composer")
                 yield Static("daemon: connecting", id="status")
         yield Footer()
@@ -118,7 +117,7 @@ class NionTuiApp(App[None]):
         ]
         self._available_tools = self.daemon_client.list_cli_tools()
         if self.state.selected_thread_id:
-            self._available_files = self.daemon_client.list_thread_files(
+            self._available_files = self.daemon_client.list_thread_paths(
                 self.state.selected_thread_id,
             )
 
@@ -178,53 +177,68 @@ class NionTuiApp(App[None]):
         for line in self._rendered_history_lines:
             conversation.write(line)
 
-    def get_command_suggestions(self, query: str) -> list[str]:
-        suggestions = complete_command(query)
-        self.state.set_command_suggestions(suggestions)
+    def get_palette_items(self, query: str) -> list[dict[str, str]]:
+        normalized = query.removeprefix("/").strip().lower()
+        items = build_palette_items(
+            commands=COMMANDS,
+            skills=self.daemon_client.list_skills(),
+        )
+        if normalized:
+            items = [
+                item
+                for item in items
+                if normalized in item["label"].lower()
+                or normalized in item["description"].lower()
+            ]
+        self.state.set_palette_items(items)
         self._refresh_suggestion_panels()
-        return suggestions
+        return items
+
+    def get_command_suggestions(self, query: str) -> list[str]:
+        return [item["label"] for item in self.get_palette_items(query)]
 
     def get_reference_suggestions(self, text: str) -> list[str]:
-        trigger = parse_reference_trigger(text)
+        trigger = parse_file_reference_trigger(text)
         if trigger is None:
             self.state.set_reference_suggestions([])
             self._refresh_suggestion_panels()
             return []
 
-        source: list[str]
-        if trigger.kind == "skill":
-            source = self._available_skills
-        elif trigger.kind == "tool":
-            source = self._available_tools
-        elif trigger.kind == "file":
-            source = self._available_files
-        elif trigger.kind == "thread":
-            source = self.state.thread_ids
-        else:
-            source = []
-
-        suggestions = [item for item in source if item.startswith(trigger.query)]
+        suggestions = [item for item in self._available_files if item.startswith(trigger.query)]
         self.state.set_reference_suggestions(suggestions)
         self._refresh_suggestion_panels()
         return suggestions
 
     def _refresh_suggestion_panels(self) -> None:
         try:
-            command_panel = self.query_one("#command-panel", Static)
-            reference_panel = self.query_one("#reference-panel", Static)
+            palette = self.query_one("#palette", Static)
         except Exception:
             return
 
-        command_panel.update(
-            "Commands: " + ", ".join(self.state.command_suggestions)
-            if self.state.command_suggestions
-            else ""
-        )
-        reference_panel.update(
-            "References: " + ", ".join(self.state.reference_suggestions)
+        if self.state.palette_visible and self.state.palette_items:
+            lines = []
+            for item in self.state.palette_items[:6]:
+                description = item["description"] or item["kind"]
+                lines.append(f"{item['label']}    {description}")
+            palette.update("\n".join(lines))
+            return
+
+        palette.update(
+            "Files: " + ", ".join(self.state.reference_suggestions)
             if self.state.reference_suggestions
             else ""
         )
+
+    def _insert_skill_token(self, skill_name: str) -> None:
+        token = f"/{skill_name}"
+        draft = self.state.draft_text.rstrip()
+        next_text = f"{draft} {token}".strip()
+        self.state.set_draft(next_text)
+
+    def _insert_file_token(self, path: str) -> None:
+        draft = self.state.draft_text.rstrip()
+        next_text = f"{draft} @{path}".strip()
+        self.state.set_draft(next_text)
 
     def _build_submit_payload(self) -> dict:
         references = [
@@ -300,8 +314,8 @@ class NionTuiApp(App[None]):
         self.state.set_draft(event.text_area.text)
         draft = event.text_area.text
         if draft.startswith("/"):
-            self.get_command_suggestions(draft.strip())
+            self.get_palette_items(draft.strip())
         else:
-            self.state.set_command_suggestions([])
+            self.state.set_palette_items([])
             self.get_reference_suggestions(draft)
         self._refresh_suggestion_panels()
