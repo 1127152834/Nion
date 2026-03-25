@@ -17,6 +17,7 @@ except Exception:  # pragma: no cover - compatibility fallback
     from langchain.chat_models import BaseChatModel  # type: ignore
 
 from nion.config import get_app_config
+from nion.model_management.service import get_model_registry_service
 from nion.reflection import resolve_class
 
 router = APIRouter(prefix="/api", tags=["models"])
@@ -824,18 +825,18 @@ async def list_provider_models(request: ProviderModelsRequest) -> ProviderModels
     description="Retrieve a list of all available AI models configured in the system.",
 )
 async def list_models() -> ModelsListResponse:
-    config = get_app_config()
+    registry = get_model_registry_service(app_config_provider=get_app_config)
     models = [
         ModelResponse(
-            name=model.name,
-            model=model.model,
-            display_name=model.display_name,
-            description=model.description,
-            supports_thinking=model.supports_thinking,
-            supports_reasoning_effort=model.supports_reasoning_effort,
-            supports_vision=model.supports_vision,
+            name=model.runtime_name,
+            model=model.model.model_id,
+            display_name=model.model.display_name,
+            description=model.runtime_model_config.description,
+            supports_thinking=model.runtime_model_config.supports_thinking,
+            supports_reasoning_effort=model.runtime_model_config.supports_reasoning_effort,
+            supports_vision=model.runtime_model_config.supports_vision,
         )
-        for model in config.models
+        for model in registry.list_runtime_models()
     ]
     return ModelsListResponse(models=models)
 
@@ -847,17 +848,18 @@ async def list_models() -> ModelsListResponse:
     description="Retrieve detailed information about a specific AI model by its name.",
 )
 async def get_model(model_name: str) -> ModelResponse:
-    config = get_app_config()
-    model = config.get_model_config(model_name)
-    if model is None:
+    registry = get_model_registry_service(app_config_provider=get_app_config)
+    try:
+        model = registry.resolve_model(model_name)
+    except ValueError:
         raise HTTPException(status_code=404, detail=f"Model '{model_name}' not found")
 
     return ModelResponse(
-        name=model.name,
-        model=model.model,
-        display_name=model.display_name,
-        description=model.description,
-        supports_thinking=model.supports_thinking,
-        supports_reasoning_effort=model.supports_reasoning_effort,
-        supports_vision=model.supports_vision,
+        name=model.runtime_name,
+        model=model.model.model_id,
+        display_name=model.model.display_name,
+        description=model.runtime_model_config.description,
+        supports_thinking=model.runtime_model_config.supports_thinking,
+        supports_reasoning_effort=model.runtime_model_config.supports_reasoning_effort,
+        supports_vision=model.runtime_model_config.supports_vision,
     )

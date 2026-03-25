@@ -217,6 +217,20 @@ class ModelManagementRepository:
             return None
         return self._deserialize_template(row["payload"])
 
+    def get_provider_template(self, template_id: str) -> ProviderTemplate | None:
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT payload
+                FROM provider_templates
+                WHERE id = ?
+                """,
+                (template_id,),
+            ).fetchone()
+        if row is None:
+            return None
+        return self._deserialize_template(row["payload"])
+
     def get_provider_instance(self, instance_id: str) -> ProviderInstance | None:
         with self._connect() as connection:
             row = connection.execute(
@@ -415,6 +429,31 @@ class ModelManagementRepository:
                 (provider_instance_id,),
             ).fetchall()
         return [self._deserialize_model(row["payload"]) for row in rows]
+
+    def list_all_provider_models(self) -> list[ProviderModel]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT payload
+                FROM provider_models
+                ORDER BY priority_order ASC, created_at ASC, model_id ASC, id ASC
+                """
+            ).fetchall()
+        return [self._deserialize_model(row["payload"]) for row in rows]
+
+    def get_provider_model(self, provider_model_id: str) -> ProviderModel | None:
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT payload
+                FROM provider_models
+                WHERE id = ?
+                """,
+                (provider_model_id,),
+            ).fetchone()
+        if row is None:
+            return None
+        return self._deserialize_model(row["payload"])
 
     def save_binding(self, binding: ModelBinding) -> ModelBinding:
         existing = self.get_binding(binding.binding_key)

@@ -41,6 +41,7 @@ from nion.config.agents_config import AGENT_NAME_PATTERN
 from nion.config.app_config import get_app_config, reload_app_config
 from nion.config.extensions_config import ExtensionsConfig, SkillStateConfig, get_extensions_config, reload_extensions_config
 from nion.config.paths import get_paths
+from nion.model_management.service import get_model_registry_service
 from nion.models import create_chat_model
 
 logger = logging.getLogger(__name__)
@@ -461,23 +462,25 @@ class NionClient:
     # ------------------------------------------------------------------
 
     def list_models(self) -> dict:
-        """List available models from configuration.
+        """List available runtime models from the registry.
 
         Returns:
             Dict with "models" key containing list of model info dicts,
             matching the Gateway API ``ModelsListResponse`` schema.
         """
+        registry = get_model_registry_service(app_config_provider=lambda: self._app_config)
         return {
             "models": [
                 {
-                    "name": model.name,
-                    "model": getattr(model, "model", None),
-                    "display_name": getattr(model, "display_name", None),
-                    "description": getattr(model, "description", None),
-                    "supports_thinking": getattr(model, "supports_thinking", False),
-                    "supports_reasoning_effort": getattr(model, "supports_reasoning_effort", False),
+                    "name": model.runtime_name,
+                    "model": model.model.model_id,
+                    "display_name": model.model.display_name,
+                    "description": model.runtime_model_config.description,
+                    "supports_thinking": model.runtime_model_config.supports_thinking,
+                    "supports_reasoning_effort": model.runtime_model_config.supports_reasoning_effort,
+                    "supports_vision": model.runtime_model_config.supports_vision,
                 }
-                for model in self._app_config.models
+                for model in registry.list_runtime_models()
             ]
         }
 
@@ -517,7 +520,7 @@ class NionClient:
         return get_memory_data()
 
     def get_model(self, name: str) -> dict | None:
-        """Get a specific model's configuration by name.
+        """Get a specific runtime model configuration by name.
 
         Args:
             name: Model name.
@@ -526,16 +529,19 @@ class NionClient:
             Model info dict matching the Gateway API ``ModelResponse``
             schema, or None if not found.
         """
-        model = self._app_config.get_model_config(name)
-        if model is None:
+        registry = get_model_registry_service(app_config_provider=lambda: self._app_config)
+        try:
+            model = registry.resolve_model(name)
+        except ValueError:
             return None
         return {
-            "name": model.name,
-            "model": getattr(model, "model", None),
-            "display_name": getattr(model, "display_name", None),
-            "description": getattr(model, "description", None),
-            "supports_thinking": getattr(model, "supports_thinking", False),
-            "supports_reasoning_effort": getattr(model, "supports_reasoning_effort", False),
+            "name": model.runtime_name,
+            "model": model.model.model_id,
+            "display_name": model.model.display_name,
+            "description": model.runtime_model_config.description,
+            "supports_thinking": model.runtime_model_config.supports_thinking,
+            "supports_reasoning_effort": model.runtime_model_config.supports_reasoning_effort,
+            "supports_vision": model.runtime_model_config.supports_vision,
         }
 
     # ------------------------------------------------------------------

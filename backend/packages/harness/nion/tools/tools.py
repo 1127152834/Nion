@@ -3,6 +3,7 @@ import logging
 from langchain.tools import BaseTool
 
 from nion.config import get_app_config
+from nion.model_management.service import get_model_registry_service
 from nion.reflection import resolve_variable
 from nion.tools.builtins import ask_clarification_tool, present_file_tool, task_tool, view_image_tool
 from nion.tools.builtins.tool_search import reset_deferred_registry
@@ -56,13 +57,21 @@ def get_available_tools(
         builtin_tools.extend(SUBAGENT_TOOLS)
         logger.info("Including subagent tools (task)")
 
-    # If no model_name specified, use the first model (default)
-    if model_name is None and config.models:
-        model_name = config.models[0].name
+    registry = get_model_registry_service(app_config_provider=get_app_config)
+    resolved_model = None
+    if model_name is None:
+        try:
+            resolved_model = registry.get_default_model()
+            model_name = resolved_model.runtime_name
+        except ValueError:
+            resolved_model = None
+    elif model_name:
+        try:
+            resolved_model = registry.resolve_model(model_name)
+        except ValueError:
+            resolved_model = None
 
-    # Add view_image_tool only if the model supports vision
-    model_config = config.get_model_config(model_name) if model_name else None
-    if model_config is not None and model_config.supports_vision:
+    if resolved_model is not None and resolved_model.runtime_model_config.supports_vision:
         builtin_tools.append(view_image_tool)
         logger.info(f"Including view_image_tool for model '{model_name}' (supports_vision=True)")
 

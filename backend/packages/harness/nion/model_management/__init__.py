@@ -16,11 +16,18 @@ from .models import (
     utc_now_iso,
 )
 from .repository import ModelManagementRepository
+from .service import (
+    DEFAULT_CHAT_BINDING,
+    ModelRegistryService,
+    ResolvedRuntimeModel,
+    get_model_registry_service,
+)
 
 __all__ = [
     "ModelBinding",
     "ModelBindingStatus",
     "ModelManagementRepository",
+    "ModelRegistryService",
     "ProviderBaseUrlMode",
     "ProviderCategory",
     "ProviderDiscoveryMode",
@@ -33,5 +40,8 @@ __all__ = [
     "ProviderTemplate",
     "ProviderTemplateCategoryMembership",
     "ProviderTestStatus",
+    "ResolvedRuntimeModel",
+    "DEFAULT_CHAT_BINDING",
+    "get_model_registry_service",
     "utc_now_iso",
 ]

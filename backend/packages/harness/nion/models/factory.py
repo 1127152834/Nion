@@ -3,30 +3,33 @@ import logging
 from langchain.chat_models import BaseChatModel
 
 from nion.config import (
-    ensure_latest_app_config,
     get_tracing_config,
     is_tracing_enabled,
 )
+from nion.config.app_config import ensure_latest_app_config
+from nion.model_management.service import get_model_registry_service
 from nion.reflection import resolve_class
 
 logger = logging.getLogger(__name__)
 
 
+def get_app_config():
+    return ensure_latest_app_config(process_name="langgraph")
+
+
 def create_chat_model(name: str | None = None, thinking_enabled: bool = False, **kwargs) -> BaseChatModel:
-    """Create a chat model instance from the config.
+    """Create a chat model instance from the runtime model registry.
 
     Args:
-        name: The name of the model to create. If None, the first model in the config will be used.
+        name: The runtime model name to create. If None, the default binding is used.
 
     Returns:
         A chat model instance.
     """
-    config = ensure_latest_app_config(process_name="langgraph")
-    if name is None:
-        name = config.models[0].name
-    model_config = config.get_model_config(name)
-    if model_config is None:
-        raise ValueError(f"Model {name} not found in config") from None
+    registry = get_model_registry_service(app_config_provider=get_app_config)
+    resolved = registry.resolve_model(name) if name is not None else registry.get_default_model()
+    name = resolved.runtime_name
+    model_config = resolved.runtime_model_config
     model_class = resolve_class(model_config.use, BaseChatModel)
     model_settings_from_config = model_config.model_dump(
         exclude_none=True,

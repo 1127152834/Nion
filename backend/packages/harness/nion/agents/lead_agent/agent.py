@@ -19,23 +19,37 @@ from nion.agents.thread_state import ThreadState
 from nion.config.agents_config import load_agent_config
 from nion.config.app_config import ensure_latest_app_config
 from nion.config.summarization_config import get_summarization_config
+from nion.model_management.service import get_model_registry_service
 from nion.models import create_chat_model
 
 logger = logging.getLogger(__name__)
 
 
+def get_app_config():
+    return ensure_latest_app_config(process_name="langgraph")
+
+
 def _resolve_model_name(requested_model_name: str | None = None) -> str:
-    """Resolve a runtime model name safely, falling back to default if invalid. Returns None if no models are configured."""
-    app_config = ensure_latest_app_config(process_name="langgraph")
-    default_model_name = app_config.models[0].name if app_config.models else None
-    if default_model_name is None:
-        raise ValueError("No chat models are configured. Please configure at least one model in config.yaml.")
+    """Resolve a runtime model name safely, falling back to default if invalid."""
+    registry = get_model_registry_service(app_config_provider=get_app_config)
+    try:
+        default_model = registry.get_default_model()
+    except ValueError as exc:
+        raise ValueError(
+            "No chat models are configured. Please configure at least one runtime model."
+        ) from exc
+    default_model_name = default_model.runtime_name
 
-    if requested_model_name and app_config.get_model_config(requested_model_name):
-        return requested_model_name
-
-    if requested_model_name and requested_model_name != default_model_name:
-        logger.warning(f"Model '{requested_model_name}' not found in config; fallback to default model '{default_model_name}'.")
+    if requested_model_name:
+        try:
+            return registry.resolve_model(requested_model_name).runtime_name
+        except ValueError:
+            if requested_model_name != default_model_name:
+                logger.warning(
+                    "Model '%s' not found in runtime registry; fallback to default model '%s'.",
+                    requested_model_name,
+                    default_model_name,
+                )
     return default_model_name
 
 
@@ -241,9 +255,14 @@ def _build_middlewares(config: RunnableConfig, model_name: str | None, agent_nam
 
     # Add ViewImageMiddleware only if the current model supports vision.
     # Use the resolved runtime model_name from make_lead_agent to avoid stale config values.
-    app_config = ensure_latest_app_config(process_name="langgraph")
-    model_config = app_config.get_model_config(model_name) if model_name else None
-    if model_config is not None and model_config.supports_vision:
+    app_config = get_app_config()
+    registry = get_model_registry_service(app_config_provider=get_app_config)
+    resolved_model = None
+    try:
+        resolved_model = registry.resolve_model(model_name) if model_name else registry.get_default_model()
+    except ValueError:
+        resolved_model = None
+    if resolved_model is not None and resolved_model.runtime_model_config.supports_vision:
         middlewares.append(ViewImageMiddleware())
 
     # Add DeferredToolFilterMiddleware to hide deferred tool schemas from model binding
@@ -289,12 +308,17 @@ def make_lead_agent(config: RunnableConfig):
     # Final model name resolution with request override, then agent config, then global default
     model_name = requested_model_name or agent_model_name
 
-    app_config = ensure_latest_app_config(process_name="langgraph")
-    model_config = app_config.get_model_config(model_name) if model_name else None
+    app_config = get_app_config()
+    registry = get_model_registry_service(app_config_provider=get_app_config)
+    try:
+        resolved_model = registry.resolve_model(model_name) if model_name else registry.get_default_model()
+    except ValueError as exc:
+        raise ValueError(
+            "No chat model could be resolved. Please configure at least one runtime model or provide a valid 'model_name'/'model' in the request."
+        ) from exc
+    model_name = resolved_model.runtime_name
 
-    if model_config is None:
-        raise ValueError("No chat model could be resolved. Please configure at least one model in config.yaml or provide a valid 'model_name'/'model' in the request.")
-    if thinking_enabled and not model_config.supports_thinking:
+    if thinking_enabled and not resolved_model.runtime_model_config.supports_thinking:
         logger.warning(f"Thinking mode is enabled but model '{model_name}' does not support it; fallback to non-thinking mode.")
         thinking_enabled = False
 
