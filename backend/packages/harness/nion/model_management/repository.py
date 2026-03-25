@@ -149,6 +149,14 @@ class ModelManagementRepository:
             )
 
     def upsert_provider_template(self, template: ProviderTemplate) -> ProviderTemplate:
+        existing = self.get_provider_template_by_code(template.code)
+        if existing is not None:
+            template = template.model_copy(
+                update={
+                    "id": existing.id,
+                    "created_at": existing.created_at,
+                }
+            )
         with self._connect() as connection:
             connection.execute(
                 """
@@ -184,6 +192,20 @@ class ModelManagementRepository:
                 ),
             )
         return template
+
+    def get_provider_template_by_code(self, code: str) -> ProviderTemplate | None:
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT payload
+                FROM provider_templates
+                WHERE code = ?
+                """,
+                (code,),
+            ).fetchone()
+        if row is None:
+            return None
+        return self._deserialize_template(row["payload"])
 
     def save_category_membership(
         self,
@@ -339,6 +361,14 @@ class ModelManagementRepository:
         return [self._deserialize_model(row["payload"]) for row in rows]
 
     def save_binding(self, binding: ModelBinding) -> ModelBinding:
+        existing = self.get_binding(binding.binding_key)
+        if existing is not None:
+            binding = binding.model_copy(
+                update={
+                    "id": existing.id,
+                    "created_at": existing.created_at,
+                }
+            )
         with self._connect() as connection:
             connection.execute(
                 """
