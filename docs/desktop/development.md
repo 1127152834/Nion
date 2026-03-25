@@ -59,7 +59,6 @@ cd backend && UV_LINK_MODE=copy uv run pytest -q
 - When `allow_background_running` is disabled, the daemon exits after a short 2–3 second grace period once the Electron client detaches.
 - Electron is single-window. A second app launch should focus the existing window instead of opening another one.
 - `nion daemon status` and `nion daemon stop` talk to the same daemon that Electron uses.
-- `nion tui` is the terminal shell for the same daemon. Active CLI sessions are intentionally outside the Electron-only background-running toggle semantics.
 
 ## Known Blocker
 

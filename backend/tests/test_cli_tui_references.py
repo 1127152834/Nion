@@ -1,8 +1,0 @@
-from nion.cli.tui.references import parse_file_reference_trigger
-
-
-def test_parse_file_reference_trigger_detects_plain_at_prefix() -> None:
-    parsed = parse_file_reference_trigger("Use @src/app.py now")
-
-    assert parsed is not None
-    assert parsed.query == "src/app.py"

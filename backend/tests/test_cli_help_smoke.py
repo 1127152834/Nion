@@ -12,4 +12,4 @@ def test_nion_cli_help_smoke() -> None:
 
     assert result.returncode == 0
     assert "daemon" in result.stdout
-    assert "tui" in result.stdout
+    assert "tui" not in result.stdout
