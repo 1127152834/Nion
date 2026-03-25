@@ -8,7 +8,7 @@ backend_root = Path.cwd().resolve()
 block_cipher = None
 
 a = Analysis(
-    [str(backend_root / "app" / "desktop_helper.py")],
+    [str(backend_root / "app" / "daemon" / "main.py")],
     pathex=[str(backend_root)],
     binaries=[],
     datas=[],

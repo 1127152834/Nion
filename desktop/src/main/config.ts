@@ -2,6 +2,26 @@ import path from "node:path";
 
 export type SupportedDesktopPlatform = "darwin" | "win32" | "linux";
 
+export type BuildDaemonCommandOptions = {
+  appRoot: string;
+  resourcesPath: string;
+  userDataPath: string;
+  platform: NodeJS.Platform | SupportedDesktopPlatform;
+  packaged?: boolean;
+  helperPort?: number;
+};
+
+export type DaemonCommand = {
+  executable: string;
+  args: string[];
+  cwd: string;
+  env: NodeJS.ProcessEnv;
+  urls: {
+    base: string;
+    health: string;
+  };
+};
+
 export type DesktopEnvironment = {
   appRoot: string;
   resourcesPath: string;
@@ -50,6 +70,45 @@ export function resolveDesktopEnvironment(options: {
     backendDir,
     backendExecutable,
     backendUrl,
-    healthUrl: `${backendUrl}/api/desktop/health`,
+    healthUrl: `${backendUrl}/health`,
+  };
+}
+
+export function buildDaemonCommand(options: BuildDaemonCommandOptions): DaemonCommand {
+  const environment = resolveDesktopEnvironment({
+    appRoot: options.appRoot,
+    resourcesPath: options.resourcesPath,
+    userDataPath: options.userDataPath,
+    platform: options.platform,
+    packaged: options.packaged,
+    helperPort: options.helperPort,
+  });
+
+  if (!options.packaged && process.env.NION_DESKTOP_DEV_USE_BINARY !== "1") {
+    return {
+      executable: process.env.NION_DESKTOP_DEV_HELPER_EXECUTABLE ?? "uv",
+      args: ["run", "python", "-m", "app.daemon.main"],
+      cwd: path.join(options.appRoot, "backend"),
+      env: {
+        ...process.env,
+      },
+      urls: {
+        base: environment.backendUrl,
+        health: environment.healthUrl,
+      },
+    };
+  }
+
+  return {
+    executable: environment.backendExecutable,
+    args: [],
+    cwd: environment.backendDir,
+    env: {
+      ...process.env,
+    },
+    urls: {
+      base: environment.backendUrl,
+      health: environment.healthUrl,
+    },
   };
 }
