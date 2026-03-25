@@ -52,3 +52,14 @@ export async function createMainWindow(options: MainWindowOptions): Promise<Brow
 
   return window;
 }
+
+export function focusMainWindow(window: BrowserWindow | null): void {
+  if (!window || window.isDestroyed()) {
+    return;
+  }
+
+  if (window.isMinimized()) {
+    window.restore();
+  }
+  window.focus();
+}

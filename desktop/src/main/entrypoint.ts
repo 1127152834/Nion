@@ -1,7 +1,10 @@
 import fs from "node:fs";
 import path from "node:path";
 
-export function shouldAutoStartDesktopMain(moduleFilename: string, argvEntry = process.argv[1]): boolean {
+export function shouldAutoStartDesktopMain(
+  moduleFilename: string,
+  argvEntry = process.argv[1],
+): boolean {
   if (!argvEntry) {
     return false;
   }

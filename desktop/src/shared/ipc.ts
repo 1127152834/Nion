@@ -5,10 +5,11 @@ export const DESKTOP_IPC_CHANNELS = {
 } as const;
 
 export type DesktopRuntimeInfo = {
-  running: boolean;
-  pid: number | null;
+  mode: "local-daemon";
   baseUrl: string;
   healthUrl: string;
+  clientId: string | null;
+  allowBackgroundRunning: boolean;
 };
 
 export type DesktopUpdateResult = {

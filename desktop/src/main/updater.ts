@@ -1,7 +1,6 @@
 import type { IpcMain } from "electron";
 
-import type { BackendRuntimeInfo } from "./backend-supervisor.js";
-import { DESKTOP_IPC_CHANNELS, type DesktopUpdateResult } from "../shared/ipc.js";
+import { DESKTOP_IPC_CHANNELS, type DesktopRuntimeInfo, type DesktopUpdateResult } from "../shared/ipc.js";
 import { idleUpdateStatus, resolveUpdateFeed } from "./update-feed.js";
 
 export type DesktopUpdater = {
@@ -25,7 +24,7 @@ export function createDesktopUpdater(): DesktopUpdater {
 export function registerUpdaterHandlers(
   ipcMain: IpcMain,
   updater: DesktopUpdater,
-  getRuntimeInfo: () => BackendRuntimeInfo,
+  getRuntimeInfo: () => DesktopRuntimeInfo,
 ): void {
   ipcMain.handle(DESKTOP_IPC_CHANNELS.runtimeInfo, async () => getRuntimeInfo());
   ipcMain.handle(DESKTOP_IPC_CHANNELS.checkForUpdates, async () => updater.checkForUpdates());

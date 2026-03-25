@@ -30,3 +30,11 @@ test("auto-start rejects unrelated entry arguments", () => {
     false,
   );
 });
+
+test("desktop main source no longer imports backend-supervisor", () => {
+  const source = fs.readFileSync(
+    new URL("../src/main/index.ts", import.meta.url),
+    "utf8",
+  );
+  assert.equal(source.includes("backend-supervisor"), false);
+});
