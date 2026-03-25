@@ -1,8 +1,4 @@
-"""NionClient — Embedded Python client for Nion agent system.
-
-Provides direct programmatic access to Nion's agent capabilities
-without requiring LangGraph Server or Gateway API processes.
-"""
+"""NionClient — Embedded Python client for Nion agent system."""
 
 import asyncio
 import json
@@ -217,12 +213,6 @@ class NionClient:
                 "surface": surface,
             },
         )
-        logger.info(
-            "Agent created: agent_name=%s, model=%s, thinking=%s",
-            self._agent_name,
-            model_name,
-            thinking_enabled,
-        )
 
     @staticmethod
     def _get_tools(
@@ -240,72 +230,3 @@ class NionClient:
             cli_tools_enabled=cli_tools_enabled,
             surface=surface,
         )
-
-    @staticmethod
-    def _serialize_message(msg) -> dict:
-        if isinstance(msg, AIMessage):
-            d: dict[str, Any] = {
-                "type": "ai",
-                "content": msg.content,
-                "id": getattr(msg, "id", None),
-            }
-            if msg.tool_calls:
-                d["tool_calls"] = [
-                    {"name": tc["name"], "args": tc["args"], "id": tc.get("id")}
-                    for tc in msg.tool_calls
-                ]
-            if getattr(msg, "usage_metadata", None):
-                d["usage_metadata"] = msg.usage_metadata
-            return d
-        if isinstance(msg, ToolMessage):
-            payload = {
-                "type": "tool",
-                "content": NionClient._extract_text(msg.content),
-                "name": getattr(msg, "name", None),
-                "tool_call_id": getattr(msg, "tool_call_id", None),
-                "id": getattr(msg, "id", None),
-            }
-            additional_kwargs = getattr(msg, "additional_kwargs", None)
-            if additional_kwargs:
-                payload["additional_kwargs"] = additional_kwargs
-            return payload
-        if isinstance(msg, HumanMessage):
-            return {"type": "human", "content": msg.content, "id": getattr(msg, "id", None)}
-        if isinstance(msg, SystemMessage):
-            return {"type": "system", "content": msg.content, "id": getattr(msg, "id", None)}
-        return {"type": "unknown", "content": str(msg), "id": getattr(msg, "id", None)}
-
-    @staticmethod
-    def _extract_text(content) -> str:
-        if isinstance(content, str):
-            return content
-        if isinstance(content, list):
-            if content and all(isinstance(block, str) for block in content):
-                chunk_like = len(content) > 1 and all(
-                    isinstance(block, str)
-                    and len(block) <= 20
-                    and any(ch in block for ch in '{}[]":,')
-                    for block in content
-                )
-                return "".join(content) if chunk_like else "\n".join(content)
-
-            pieces: list[str] = []
-            pending_str_parts: list[str] = []
-
-            def flush_pending_str_parts() -> None:
-                if pending_str_parts:
-                    pieces.append("".join(pending_str_parts))
-                    pending_str_parts.clear()
-
-            for block in content:
-                if isinstance(block, str):
-                    pending_str_parts.append(block)
-                elif isinstance(block, dict):
-                    flush_pending_str_parts()
-                    text_val = block.get("text")
-                    if isinstance(text_val, str):
-                        pieces.append(text_val)
-
-            flush_pending_str_parts()
-            return "\n".join(pieces) if pieces else ""
-        return str(content)

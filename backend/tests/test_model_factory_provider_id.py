@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from unittest.mock import MagicMock
-
 import pytest
 
 from nion.model_management.models import (
@@ -62,6 +60,7 @@ def test_model_registry_exposes_provider_prefixed_runtime_names_for_duplicate_mo
         model_id="shared-model",
         display_name="Shared Model B",
         source="manual",
+        is_primary=False,
         priority_order=1,
     )
     repo.save_provider_model(model_a)

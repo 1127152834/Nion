@@ -52,14 +52,6 @@ def _create_todo_list_middleware(is_plan_mode: bool):
     return TodoListMiddleware()
 
 
-# TodoListMiddleware should be before ClarificationMiddleware to allow todo management
-# Title generation now happens out-of-band after the first exchange is persisted
-# MemoryMiddleware queues conversation for memory update after the main reply
-# RecallCaptureMiddleware archives the latest recallable exchange after each run
-# ContinuityMiddleware injects thread-scoped recall before the next model call
-# ViewImageMiddleware should be before ClarificationMiddleware to inject image details before LLM
-# ToolErrorHandlingMiddleware should be before ClarificationMiddleware to convert tool exceptions to ToolMessages
-# ClarificationMiddleware should be last to intercept clarification requests after model calls
 def _build_middlewares(
     config: RunnableConfig,
     model_name: str | None,
@@ -85,9 +77,11 @@ def _build_middlewares(
     registry = get_model_registry_service(app_config_provider=get_app_config)
     resolved_model = None
     try:
-      resolved_model = registry.resolve_model(model_name) if model_name else registry.get_default_model()
+        resolved_model = (
+            registry.resolve_model(model_name) if model_name else registry.get_default_model()
+        )
     except ValueError:
-      resolved_model = None
+        resolved_model = None
     if resolved_model is not None and resolved_model.runtime_model_config.supports_vision:
         middlewares.append(ViewImageMiddleware())
 
@@ -104,7 +98,9 @@ def _build_middlewares(
             "max_concurrent_subagents",
             3,
         )
-        middlewares.append(SubagentLimitMiddleware(max_concurrent=max_concurrent_subagents))
+        middlewares.append(
+            SubagentLimitMiddleware(max_concurrent=max_concurrent_subagents)
+        )
 
     middlewares.append(LoopDetectionMiddleware())
     middlewares.append(ClarificationMiddleware())
