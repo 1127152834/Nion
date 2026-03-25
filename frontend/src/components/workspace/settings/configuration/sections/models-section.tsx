@@ -1908,6 +1908,8 @@ export function ModelsSection({
     const providerId = asString(selectedProvider.id).trim();
     const providerName = asString(selectedProvider.name).trim() || providerId;
     const protocol = getProviderProtocol(selectedProvider);
+    const feedback = providerFeedback[providerId];
+    const isTesting = testingProviderKey === providerId;
     const providerModelEntries = models
       .map((model, index) => ({ model, index }))
       .filter(({ model }) => asString(model.provider_id).trim() === providerId);
@@ -2052,7 +2054,6 @@ export function ModelsSection({
     const providerName = asString(selectedProvider.name).trim() || providerId;
     const feedback = providerFeedback[providerId];
     const isTesting = testingProviderKey === providerId;
-
     return (
       <section className="space-y-4 rounded-xl border bg-card p-4">
         <Button
