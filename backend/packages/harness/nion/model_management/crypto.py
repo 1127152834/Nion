@@ -3,8 +3,15 @@ from __future__ import annotations
 import base64
 import hashlib
 import os
+import secrets
+from pathlib import Path
 
 from cryptography.fernet import Fernet
+
+from nion.config.paths import get_paths
+
+
+LOCAL_MODEL_MANAGEMENT_SECRET_FILE = ".model_management_secret"
 
 
 def build_model_management_secret(raw_secret: str) -> bytes:
@@ -15,10 +22,27 @@ def build_model_management_secret(raw_secret: str) -> bytes:
     return base64.urlsafe_b64encode(digest)
 
 
+def _load_or_create_local_model_management_secret(secret_file: Path) -> str:
+    secret_file.parent.mkdir(parents=True, exist_ok=True)
+    if secret_file.exists():
+        existing = secret_file.read_text(encoding="utf-8").strip()
+        if existing:
+            return existing
+
+    generated = secrets.token_urlsafe(32)
+    secret_file.write_text(generated, encoding="utf-8")
+    try:
+        secret_file.chmod(0o600)
+    except OSError:
+        pass
+    return generated
+
+
 def get_model_management_secret() -> bytes:
     raw_secret = os.getenv("NION_MODEL_MANAGEMENT_SECRET", "").strip()
     if not raw_secret:
-        raise RuntimeError("NION_MODEL_MANAGEMENT_SECRET is required")
+        secret_file = get_paths().base_dir / LOCAL_MODEL_MANAGEMENT_SECRET_FILE
+        raw_secret = _load_or_create_local_model_management_secret(secret_file)
     return build_model_management_secret(raw_secret)
 
 
