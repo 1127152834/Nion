@@ -372,6 +372,7 @@ export interface Translations {
     demoChats: string;
     agents: string;
     automation: string;
+    notebook: string;
   };
 
   // Agents
@@ -456,7 +457,54 @@ export interface Translations {
     appName: string;
     chats: string;
     newChat: string;
+    notebook: string;
     untitled: string;
+  };
+
+  notebookPage: {
+    title: string;
+    description: string;
+    emptyTitle: string;
+    emptyDescription: string;
+    createNote: string;
+    noteTitlePlaceholder: string;
+    noteDirectoryPlaceholder: string;
+    save: string;
+    saving: string;
+    saved: string;
+    unsaved: string;
+    rename: string;
+    move: string;
+    history: string;
+    restore: string;
+    delete: string;
+    selectNote: string;
+    noSelectionTitle: string;
+    noSelectionDescription: string;
+    noteListTitle: string;
+    noteListDescription: string;
+    historyTitle: string;
+    historyDescription: string;
+    deleteConfirmTitle: string;
+    deleteConfirmDescription: string;
+    deleteConfirmAction: string;
+    movePlaceholder: string;
+    renamePlaceholder: string;
+    createDialogTitle: string;
+    createDialogDescription: string;
+    assistTitle: string;
+    assistDescription: string;
+    assistSummarize: string;
+    assistRewrite: string;
+    assistExpand: string;
+    assistChecklist: string;
+    assistActionItems: string;
+    saveFromChat: string;
+    saveLastReply: string;
+    trashTitle: string;
+    trashDescription: string;
+    trashEmpty: string;
+    restoreDeleted: string;
   };
 
   // Tool calls

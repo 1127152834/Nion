@@ -19,6 +19,7 @@ from app.gateway.routers import (
     memory,
     model_admin,
     models,
+    notebook,
     recall,
     runtime_profile,
     skills,
@@ -89,5 +90,6 @@ def create_app(
     app.include_router(files.router)
     app.include_router(cli.router)
     app.include_router(memory.router)
+    app.include_router(notebook.router)
     app.include_router(recall.router)
     return app

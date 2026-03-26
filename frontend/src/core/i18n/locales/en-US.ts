@@ -167,6 +167,7 @@ export const enUS: Translations = {
     demoChats: "Demo chats",
     agents: "Agents",
     automation: "Automation",
+    notebook: "Notebook",
   },
 
   // Agents
@@ -265,7 +266,62 @@ export const enUS: Translations = {
     appName: "Nion",
     chats: "Chats",
     newChat: "New chat",
+    notebook: "Notebook",
     untitled: "Untitled",
+  },
+
+  notebookPage: {
+    title: "Notebook",
+    description:
+      "Write in Markdown, organize your documents freely, and let Nion help with editing while keeping full history.",
+    emptyTitle: "No notes yet",
+    emptyDescription:
+      "Create your first note to start building your personal desktop knowledge base.",
+    createNote: "New note",
+    noteTitlePlaceholder: "Note title",
+    noteDirectoryPlaceholder: "Directory, e.g. projects/alpha",
+    save: "Save",
+    saving: "Saving...",
+    saved: "Saved",
+    unsaved: "Unsaved changes",
+    rename: "Rename",
+    move: "Move",
+    history: "History",
+    restore: "Restore",
+    delete: "Delete",
+    selectNote: "Select note",
+    noSelectionTitle: "Choose a note",
+    noSelectionDescription:
+      "Pick a note from the list or create a new one to start writing.",
+    noteListTitle: "Notes",
+    noteListDescription: "Browse the notebook folders and open a Markdown note.",
+    historyTitle: "Version history",
+    historyDescription:
+      "Review changes over time and restore an earlier version if needed.",
+    deleteConfirmTitle: "Delete note",
+    deleteConfirmDescription:
+      'Delete "{title}"? The note can be recovered from notebook trash later.',
+    deleteConfirmAction: "Delete note",
+    movePlaceholder: "New directory, e.g. archive/2026",
+    renamePlaceholder: "New note title",
+    createDialogTitle: "Create note",
+    createDialogDescription:
+      "Create a Markdown note in your notebook. You can change the folder later.",
+    assistTitle: "Ask Nion to help",
+    assistDescription:
+      "Open a new chat with this note prefilled as context for rewriting, summarizing, or extracting actions.",
+    assistSummarize: "Summarize",
+    assistRewrite: "Rewrite",
+    assistExpand: "Expand",
+    assistChecklist: "Checklist",
+    assistActionItems: "Action items",
+    saveFromChat: "Save to notebook",
+    saveLastReply: "Save last reply",
+    trashTitle: "Notebook trash",
+    trashDescription:
+      "Recover deleted notes before they are permanently purged in a later workflow.",
+    trashEmpty: "No deleted notes yet.",
+    restoreDeleted: "Restore deleted note",
   },
 
   // Tool calls

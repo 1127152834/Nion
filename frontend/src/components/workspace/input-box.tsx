@@ -503,11 +503,23 @@ export function InputBox({
   const [followupsLoading, setFollowupsLoading] = useState(false);
   const lastGeneratedForAiIdRef = useRef<string | null>(null);
   const wasStreamingRef = useRef(false);
+  const initialValueAppliedRef = useRef<string | null>(null);
 
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingSuggestion, setPendingSuggestion] = useState<string | null>(
     null,
   );
+
+  useEffect(() => {
+    if (!initialValue || initialValueAppliedRef.current === initialValue) {
+      return;
+    }
+    if ((textInput.value ?? "").trim().length > 0) {
+      return;
+    }
+    textInput.setInput(initialValue);
+    initialValueAppliedRef.current = initialValue;
+  }, [initialValue, textInput]);
 
   useEffect(() => {
     if (models.length === 0) {

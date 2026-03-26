@@ -19,6 +19,7 @@ from app.gateway.routers import (
     model_admin,
     memory,
     models,
+    notebook,
     recall,
     runtime_profile,
     skills,
@@ -147,6 +148,10 @@ This gateway provides custom endpoints for models, MCP configuration, skills, an
                 "description": "Access and manage global memory data for personalized conversations",
             },
             {
+                "name": "notebook",
+                "description": "Manage the personal desktop notebook knowledge base",
+            },
+            {
                 "name": "recall",
                 "description": "Search transcript recall results independently from structured memory",
             },
@@ -231,6 +236,9 @@ This gateway provides custom endpoints for models, MCP configuration, skills, an
 
     # Memory API is mounted at /api/memory
     app.include_router(memory.router)
+
+    # Notebook API is mounted at /api/notebook
+    app.include_router(notebook.router)
 
     # Recall API is mounted at /api/recall
     app.include_router(recall.router)

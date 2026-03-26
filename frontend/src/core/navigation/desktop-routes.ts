@@ -19,6 +19,31 @@ export function pathOfThread(
   return withQuery("/workspace/chats", { thread: threadId, ...extra });
 }
 
+export function pathOfNotebook(
+  extra: Record<string, string | undefined> = {},
+) {
+  return withQuery("/workspace/notebook", extra);
+}
+
+export function pathOfNotebookTrash(
+  extra: Record<string, string | undefined> = {},
+) {
+  return pathOfNotebook({ view: "trash", ...extra });
+}
+
+export function pathOfNotebookSeededCreate(input: {
+  title?: string;
+  body?: string;
+  directory?: string;
+}) {
+  return pathOfNotebook({
+    create: "1",
+    title: input.title,
+    body: input.body,
+    directory: input.directory,
+  });
+}
+
 export function pathOfNewThread(
   extra: Record<string, string | undefined> = {},
 ) {

@@ -8,6 +8,8 @@ import ChatsPage from "@/app/workspace/chats/page";
 import AgentsPage from "@/app/workspace/agents/page";
 import AboutPage from "@/app/workspace/about/page";
 import AutomationPage from "@/app/workspace/automation/page";
+import NotebookPage from "@/app/workspace/notebook/page";
+import NotebookTrashPage from "@/app/workspace/notebook/trash/page";
 import ToolPolicyPage from "@/app/workspace/tool-policy/page";
 import ChannelOpsPage from "@/app/workspace/manage/channels/page";
 import { I18nProvider } from "@/core/i18n/context";
@@ -57,6 +59,22 @@ export function DesktopRendererApp() {
                 element={
                   <WorkspaceRoute>
                     <AutomationPage />
+                  </WorkspaceRoute>
+                }
+              />
+              <Route
+                path="/workspace/notebook"
+                element={
+                  <WorkspaceRoute>
+                    <NotebookPage />
+                  </WorkspaceRoute>
+                }
+              />
+              <Route
+                path="/workspace/notebook/trash"
+                element={
+                  <WorkspaceRoute>
+                    <NotebookTrashPage />
                   </WorkspaceRoute>
                 }
               />

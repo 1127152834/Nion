@@ -17,6 +17,8 @@ class Paths:
         {base_dir}/
         ├── memory.json
         ├── USER.md          <-- global user profile (injected into all agents)
+        ├── notebook/        <-- user-owned notebook knowledge base root
+        │   └── .nion/       <-- notebook operational metadata (history/trash/index)
         ├── workspace/       <-- single app workspace root
         ├── agents/
         │   └── {agent_name}/
@@ -69,6 +71,31 @@ class Paths:
     def app_workspace_dir(self) -> Path:
         """Single app-level workspace root."""
         return self.base_dir / "workspace"
+
+    @property
+    def notebook_root_dir(self) -> Path:
+        """User-owned notebook root: `{base_dir}/notebook`."""
+        return self.base_dir / "notebook"
+
+    @property
+    def notebook_meta_dir(self) -> Path:
+        """Notebook internal metadata root: `{base_dir}/notebook/.nion`."""
+        return self.notebook_root_dir / ".nion"
+
+    @property
+    def notebook_history_dir(self) -> Path:
+        """Notebook history payload root: `{base_dir}/notebook/.nion/history`."""
+        return self.notebook_meta_dir / "history"
+
+    @property
+    def notebook_trash_dir(self) -> Path:
+        """Notebook recoverable delete root: `{base_dir}/notebook/.nion/trash`."""
+        return self.notebook_meta_dir / "trash"
+
+    @property
+    def notebook_index_dir(self) -> Path:
+        """Notebook index/cache root: `{base_dir}/notebook/.nion/index`."""
+        return self.notebook_meta_dir / "index"
 
     @property
     def memory_file(self) -> Path:
@@ -193,6 +220,17 @@ class Paths:
         if thread_dir.exists():
             shutil.rmtree(thread_dir)
 
+    def ensure_notebook_dirs(self) -> None:
+        """Create standard notebook directories under the user-owned notebook root."""
+        for directory in [
+            self.notebook_root_dir,
+            self.notebook_meta_dir,
+            self.notebook_history_dir,
+            self.notebook_trash_dir,
+            self.notebook_index_dir,
+        ]:
+            directory.mkdir(parents=True, exist_ok=True)
+
     def resolve_virtual_path(self, thread_id: str, virtual_path: str) -> Path:
         """Resolve a sandbox virtual path to the actual host filesystem path.
 
@@ -256,6 +294,15 @@ def get_paths() -> Paths:
     if _paths is None:
         _paths = Paths()
     return _paths
+
+
+def reset_paths() -> None:
+    """Reset the global Paths singleton.
+
+    Useful for tests that manipulate `NION_HOME`.
+    """
+    global _paths
+    _paths = None
 
 
 def resolve_path(path: str) -> Path:

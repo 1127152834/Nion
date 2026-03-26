@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { type PromptInputMessage } from "@/components/ai-elements/prompt-input";
@@ -15,10 +16,11 @@ import { MessageList } from "@/components/workspace/messages";
 import { ThreadContext } from "@/components/workspace/messages/context";
 import { NewChatStage } from "@/components/workspace/new-chat-stage";
 import { RuntimeModeToggle } from "@/components/workspace/runtime-mode-toggle";
-import { TokenUsageIndicator } from "@/components/workspace/token-usage-indicator";
+import { SaveToNotebookTrigger } from "@/components/workspace/save-to-notebook-trigger";
+import { ThreadRequestErrorAlert } from "@/components/workspace/thread-request-error-alert";
 import { ThreadTitle } from "@/components/workspace/thread-title";
 import { TodoList } from "@/components/workspace/todo-list";
-import { ThreadRequestErrorAlert } from "@/components/workspace/thread-request-error-alert";
+import { TokenUsageIndicator } from "@/components/workspace/token-usage-indicator";
 import { Welcome } from "@/components/workspace/welcome";
 import { loadThreadFilesTree } from "@/core/files";
 import { useI18n } from "@/core/i18n/hooks";
@@ -37,6 +39,7 @@ import { cn } from "@/lib/utils";
 
 export default function ChatThreadPage() {
   const { t } = useI18n();
+  const searchParams = useSearchParams();
   const [settings, setSettings] = useLocalSettings();
 
   const { threadId, isNewThread, setIsNewThread, isMock } = useThreadChat();
@@ -159,6 +162,7 @@ export default function ChatThreadPage() {
     runtimeProfileSaving;
 
   const currentMode = settings.context.mode ?? "flash";
+  const seededDraft = searchParams.get("draft") ?? "";
   const threadError = useMemo(
     () => getThreadRequestErrorCopy(thread.error, t.workspace.requestError),
     [thread.error, t],
@@ -217,6 +221,7 @@ export default function ChatThreadPage() {
               ) : null}
               <WorkingDirectoryTrigger />
               {!isNewThread ? <ExportTrigger threadId={threadId} /> : null}
+              {!isNewThread ? <SaveToNotebookTrigger threadId={threadId} /> : null}
               {!isNewThread ? <ArtifactTrigger /> : null}
             </div>
           </header>
@@ -241,6 +246,7 @@ export default function ChatThreadPage() {
                       className="w-full"
                       isNewThread={isNewThread}
                       threadId={threadId}
+                      initialValue={seededDraft}
                       autoFocus
                       status={inputStatus}
                       disabled={inputDisabled}
@@ -280,6 +286,7 @@ export default function ChatThreadPage() {
                       className="bg-background/5 w-full"
                       isNewThread={isNewThread}
                       threadId={threadId}
+                      initialValue={seededDraft}
                       status={inputStatus}
                       disabled={inputDisabled}
                       workspacePaths={workspacePaths}
