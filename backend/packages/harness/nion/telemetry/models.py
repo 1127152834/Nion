@@ -30,3 +30,24 @@ class DiagnosticSnapshot:
     summary: str
     updated_at: str | None = None
     details: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(slots=True)
+class IncidentRecord:
+    incident_id: str
+    source: Literal["chat", "desktop_button", "automatic"]
+    incident_type: str
+    severity: Literal["info", "warning", "error"]
+    status: Literal["open", "resolved", "dismissed"]
+    summary: str
+    user_visible_explanation: str
+    root_cause_hypothesis: str | None = None
+    confidence: float | None = None
+    thread_id: str | None = None
+    run_id: str | None = None
+    created_at: str | None = None
+    updated_at: str | None = None
+    recommended_actions: list[dict[str, Any]] = field(default_factory=list)
+    executed_actions: list[dict[str, Any]] = field(default_factory=list)
+    evidence: dict[str, Any] = field(default_factory=dict)
+    resolution_note: str | None = None
