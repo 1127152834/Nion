@@ -303,6 +303,25 @@ class TestStream:
         msg_events = _ai_events(events)
         assert len(msg_events) == 1
 
+    def test_same_id_ai_updates_are_reemitted_when_content_changes(self, client):
+        """Streaming updates with the same id should still surface when content changes."""
+        ai_partial = AIMessage(content="Hel", id="ai-1")
+        ai_full = AIMessage(content="Hello!", id="ai-1")
+        chunks = [
+            {"messages": [HumanMessage(content="hi", id="h-1"), ai_partial]},
+            {"messages": [HumanMessage(content="hi", id="h-1"), ai_full]},
+        ]
+        agent = _make_agent_mock(chunks)
+
+        with (
+            patch.object(client, "_ensure_agent"),
+            patch.object(client, "_agent", agent),
+        ):
+            events = list(client.stream("hi", thread_id="t4-stream"))
+
+        msg_events = _ai_events(events)
+        assert [event.data["content"] for event in msg_events] == ["Hel", "Hello!"]
+
     def test_auto_thread_id(self, client):
         """stream() auto-generates a thread_id if not provided."""
         agent = _make_agent_mock([{"messages": [AIMessage(content="ok", id="ai-1")]}])

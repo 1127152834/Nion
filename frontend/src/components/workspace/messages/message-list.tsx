@@ -16,12 +16,17 @@ import {
 import { useRehypeSplitWordsIntoSpans } from "@/core/rehype";
 import type { Subtask } from "@/core/tasks";
 import { useUpdateSubtask } from "@/core/tasks/context";
-import type { AgentThreadState, BaseStream } from "@/core/threads";
+import type {
+  AgentThreadState,
+  BaseStream,
+  PendingClarification,
+} from "@/core/threads";
 import { cn } from "@/lib/utils";
 
 import { ArtifactFileList } from "../artifacts/artifact-file-list";
 import { StreamingIndicator } from "../streaming-indicator";
 
+import { ClarificationCard } from "./clarification-card";
 import { MarkdownContent } from "./markdown-content";
 import { MessageGroup } from "./message-group";
 import { MessageListItem } from "./message-list-item";
@@ -32,11 +37,15 @@ export function MessageList({
   className,
   threadId,
   thread,
+  pendingClarification = null,
+  onClarificationSelect,
   paddingBottom = 160,
 }: {
   className?: string;
   threadId: string;
   thread: BaseStream<AgentThreadState>;
+  pendingClarification?: PendingClarification | null;
+  onClarificationSelect?: (option: string) => void;
   paddingBottom?: number;
 }) {
   const { t } = useI18n();
@@ -64,6 +73,18 @@ export function MessageList({
             });
           } else if (group.type === "assistant:clarification") {
             const message = group.messages[0];
+            if (
+              pendingClarification &&
+              message?.id === pendingClarification.toolMessageId
+            ) {
+              return (
+                <ClarificationCard
+                  key={group.id}
+                  clarification={pendingClarification}
+                  onSelect={onClarificationSelect}
+                />
+              );
+            }
             if (message && hasContent(message)) {
               return (
                 <MarkdownContent

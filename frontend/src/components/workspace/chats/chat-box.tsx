@@ -110,7 +110,7 @@ const ChatBox: React.FC<{ children: React.ReactNode; threadId: string }> = ({
   const { data: workingDirectoryMeta } = useQuery({
     queryKey: ["threadFiles", "meta", threadId],
     queryFn: () =>
-      loadThreadFilesMeta(threadId, { root: "/mnt/user-data/workspace" }),
+      loadThreadFilesMeta(threadId, { root: "/mnt/user-data" }),
     enabled: artifactPanelOpen && panelType === "working-directory",
     staleTime: 5_000,
   });
@@ -119,7 +119,7 @@ const ChatBox: React.FC<{ children: React.ReactNode; threadId: string }> = ({
     queryKey: ["threadFiles", "tree", threadId],
     queryFn: () =>
       loadThreadFilesTree(threadId, {
-        root: "/mnt/user-data/workspace",
+        root: "/mnt/user-data",
         depth: 6,
         includeHidden: false,
         maxNodes: 2000,
@@ -128,15 +128,49 @@ const ChatBox: React.FC<{ children: React.ReactNode; threadId: string }> = ({
     staleTime: 5_000,
   });
 
+  const { data: outputArtifactsTree } = useQuery({
+    queryKey: ["threadFiles", "tree", threadId, "outputs"],
+    queryFn: () =>
+      loadThreadFilesTree(threadId, {
+        root: "/mnt/user-data/outputs",
+        depth: 6,
+        includeHidden: false,
+        maxNodes: 2000,
+      }),
+    enabled: artifactPanelOpen && panelType === "artifacts",
+    staleTime: 5_000,
+  });
+
   const workingDirectoryFiles = useMemo(
     () => workingDirectoryTree?.files.map((item) => item.path) ?? [],
     [workingDirectoryTree],
   );
+  const outputArtifactFiles = useMemo(
+    () => outputArtifactsTree?.files.map((item) => item.path) ?? [],
+    [outputArtifactsTree],
+  );
+
+  useEffect(() => {
+    if (
+      panelType === "artifacts" &&
+      selectedArtifact &&
+      outputArtifactsTree &&
+      !outputArtifactFiles.includes(selectedArtifact)
+    ) {
+      deselect();
+    }
+  }, [
+    deselect,
+    outputArtifactFiles,
+    outputArtifactsTree,
+    panelType,
+    selectedArtifact,
+  ]);
 
   const displayedFiles =
     panelType === "working-directory"
       ? workingDirectoryFiles
-      : (thread.values.artifacts ?? []);
+      : outputArtifactFiles;
   const panelIds = useMemo(() => buildChatPanelIds(pathname), [pathname]);
 
   return (

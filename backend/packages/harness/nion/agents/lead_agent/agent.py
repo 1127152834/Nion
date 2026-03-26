@@ -18,7 +18,10 @@ from nion.agents.middlewares.view_image_middleware import ViewImageMiddleware
 from nion.agents.thread_state import ThreadState
 from nion.config.agents_config import load_agent_config
 from nion.config.app_config import ensure_latest_app_config
-from nion.config.summarization_config import get_summarization_config
+from nion.config.summarization_config import (
+    DEFAULT_SUMMARY_PROMPT,
+    get_summarization_config,
+)
 from nion.model_management.service import get_model_registry_service
 from nion.models import create_chat_model
 from nion.models.factory import resolve_model_name_with_fallback
@@ -90,8 +93,7 @@ def _create_summarization_middleware() -> SummarizationMiddleware | None:
     if config.trim_tokens_to_summarize is not None:
         kwargs["trim_tokens_to_summarize"] = config.trim_tokens_to_summarize
 
-    if config.summary_prompt is not None:
-        kwargs["summary_prompt"] = config.summary_prompt
+    kwargs["summary_prompt"] = config.summary_prompt or DEFAULT_SUMMARY_PROMPT
 
     return SummarizationMiddleware(**kwargs)
 

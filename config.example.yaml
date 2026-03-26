@@ -389,9 +389,9 @@ summarization:
   # Summarization runs when ANY threshold is met (OR logic)
   # You can specify a single trigger or a list of triggers
   trigger:
-    # Trigger when token count reaches 15564
+    # Trigger when token count reaches 20480
     - type: tokens
-      value: 15564
+      value: 20480
     # Uncomment to also trigger when message count reaches 50
     # - type: messages
     #   value: 50
@@ -414,9 +414,9 @@ summarization:
 
   # Maximum tokens to keep when preparing messages for summarization
   # Set to null to skip trimming (not recommended for very long conversations)
-  trim_tokens_to_summarize: 15564
+  trim_tokens_to_summarize: 20480
 
-  # Custom summary prompt template (null = use default LangChain prompt)
+  # Custom summary prompt template (null = use the built-in Nion prompt)
   # The prompt should guide the model to extract important context
   summary_prompt: null
 

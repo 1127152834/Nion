@@ -73,6 +73,11 @@ export const zhCN: Translations = {
   // Input Box
   inputBox: {
     placeholder: "今天我能为你做些什么？",
+    clarificationPlaceholder: "选择一个选项，或直接输入你的回答",
+    clarificationReplying: "正在回复",
+    clarificationHelper: "回复后将继续当前任务",
+    clarificationChooseOption: "选择一个选项",
+    clarificationSubmitChoice: "发送选择",
     createSkillPrompt:
       "我们一起用 skill-creator 技能来创建一个技能吧。先问问我希望这个技能能做什么。",
     addAttachments: "添加附件",
@@ -159,6 +164,7 @@ export const zhCN: Translations = {
     chats: "对话",
     recentChats: "最近的对话",
     demoChats: "演示对话",
+    pendingReply: "待回复",
     agents: "智能体",
     automation: "自动化",
     notebook: "笔记",

@@ -6,7 +6,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { type PromptInputMessage } from "@/components/ai-elements/prompt-input";
 import {
-  ArtifactTrigger,
   WorkingDirectoryTrigger,
 } from "@/components/workspace/artifacts";
 import { ChatBox, useSpecificChatMode, useThreadChat } from "@/components/workspace/chats";
@@ -31,6 +30,7 @@ import {
   updateRuntimeProfile,
 } from "@/core/runtime";
 import { useLocalSettings } from "@/core/settings";
+import { derivePendingClarification } from "@/core/threads";
 import { getThreadRequestErrorCopy } from "@/core/threads/error-copy";
 import { useThreadStream } from "@/core/threads/hooks";
 import { pathOfThread, textOfMessage } from "@/core/threads/utils";
@@ -167,6 +167,10 @@ export default function ChatThreadPage() {
     () => getThreadRequestErrorCopy(thread.error, t.workspace.requestError),
     [thread.error, t],
   );
+  const pendingClarification = useMemo(
+    () => derivePendingClarification(thread.messages),
+    [thread.messages],
+  );
 
   const handleSwitchMode = useCallback(
     async (mode: "sandbox" | "host") => {
@@ -196,6 +200,16 @@ export default function ChatThreadPage() {
     ],
   );
 
+  const handleClarificationSelect = useCallback(
+    (option: string) => {
+      handleSubmit({
+        text: option,
+        files: [],
+      });
+    },
+    [handleSubmit],
+  );
+
   return (
     <ThreadContext.Provider value={{ thread, isMock }}>
       <ChatBox threadId={threadId}>
@@ -222,7 +236,6 @@ export default function ChatThreadPage() {
               <WorkingDirectoryTrigger />
               {!isNewThread ? <ExportTrigger threadId={threadId} /> : null}
               {!isNewThread ? <SaveToNotebookTrigger threadId={threadId} /> : null}
-              {!isNewThread ? <ArtifactTrigger /> : null}
             </div>
           </header>
 
@@ -250,6 +263,7 @@ export default function ChatThreadPage() {
                       autoFocus
                       status={inputStatus}
                       disabled={inputDisabled}
+                      pendingClarification={pendingClarification}
                       workspacePaths={workspacePaths}
                       context={settings.context}
                       onContextChange={(context) => setSettings("context", context)}
@@ -263,7 +277,13 @@ export default function ChatThreadPage() {
           ) : (
             <main className="flex min-h-0 flex-1 flex-col">
               <div className="flex min-h-0 flex-1 justify-center pt-14">
-                <MessageList className="size-full" threadId={threadId} thread={thread} />
+                <MessageList
+                  className="size-full"
+                  threadId={threadId}
+                  thread={thread}
+                  pendingClarification={pendingClarification}
+                  onClarificationSelect={handleClarificationSelect}
+                />
               </div>
               <div className="absolute right-0 bottom-0 left-0 z-30 flex justify-center px-4">
                 <div className="relative w-full max-w-(--container-width-md)">
@@ -289,6 +309,7 @@ export default function ChatThreadPage() {
                       initialValue={seededDraft}
                       status={inputStatus}
                       disabled={inputDisabled}
+                      pendingClarification={pendingClarification}
                       workspacePaths={workspacePaths}
                       context={settings.context}
                       onContextChange={(context) => setSettings("context", context)}

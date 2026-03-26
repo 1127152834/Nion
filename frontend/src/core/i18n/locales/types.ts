@@ -303,6 +303,11 @@ export interface Translations {
   // Input Box
   inputBox: {
     placeholder: string;
+    clarificationPlaceholder: string;
+    clarificationReplying: string;
+    clarificationHelper: string;
+    clarificationChooseOption: string;
+    clarificationSubmitChoice: string;
     createSkillPrompt: string;
     addAttachments: string;
     mode: string;
@@ -354,6 +359,7 @@ export interface Translations {
     newChat: string;
     chats: string;
     demoChats: string;
+    pendingReply: string;
     agents: string;
     automation: string;
     notebook: string;

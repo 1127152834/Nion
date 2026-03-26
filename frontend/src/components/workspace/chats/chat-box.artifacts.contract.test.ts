@@ -1,0 +1,10 @@
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+import test from "node:test";
+
+void test("chat box browses thread user-data root and outputs for artifact/runtime panels", async () => {
+  const source = await readFile(new URL("./chat-box.tsx", import.meta.url), "utf8");
+
+  assert.match(source, /root: "\/mnt\/user-data"/);
+  assert.match(source, /root: "\/mnt\/user-data\/outputs"/);
+});

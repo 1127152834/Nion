@@ -1,5 +1,6 @@
 import type { AgentThread } from "./types";
 import type { Message } from "./types";
+import { isInternalSummaryMessage } from "../messages/utils";
 export {
   pathOfAgentThread,
   pathOfNewAgentThread,
@@ -8,6 +9,9 @@ export {
 } from "../navigation/desktop-routes";
 
 export function textOfMessage(message: Message) {
+  if (isInternalSummaryMessage(message)) {
+    return null;
+  }
   if (typeof message.content === "string") {
     return message.content;
   } else if (Array.isArray(message.content)) {

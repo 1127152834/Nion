@@ -434,7 +434,7 @@ class NionClient:
         if self._agent_name:
             context["agent_name"] = self._agent_name
 
-        seen_ids: set[str] = set()
+        seen_signatures: dict[str, str] = {}
         cumulative_usage: dict[str, int] = {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0}
 
         try:
@@ -444,10 +444,15 @@ class NionClient:
 
                 for msg in messages:
                     msg_id = getattr(msg, "id", None)
-                    if msg_id and msg_id in seen_ids:
-                        continue
                     if msg_id:
-                        seen_ids.add(msg_id)
+                        signature = json.dumps(
+                            self._serialize_message(msg),
+                            sort_keys=True,
+                            ensure_ascii=False,
+                        )
+                        if seen_signatures.get(msg_id) == signature:
+                            continue
+                        seen_signatures[msg_id] = signature
 
                     if isinstance(msg, AIMessage):
                         ai_message_count += 1

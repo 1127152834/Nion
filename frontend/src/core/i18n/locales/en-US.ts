@@ -73,6 +73,11 @@ export const enUS: Translations = {
   // Input Box
   inputBox: {
     placeholder: "How can I assist you today?",
+    clarificationPlaceholder: "Choose an option, or type your answer",
+    clarificationReplying: "Replying to",
+    clarificationHelper: "Replying will continue the current task",
+    clarificationChooseOption: "Choose an option",
+    clarificationSubmitChoice: "Send choice",
     createSkillPrompt:
       "We're going to build a new skill step by step with `skill-creator`. To start, what do you want this skill to do?",
     addAttachments: "Add attachments",
@@ -165,6 +170,7 @@ export const enUS: Translations = {
     chats: "Chats",
     recentChats: "Recent chats",
     demoChats: "Demo chats",
+    pendingReply: "Pending reply",
     agents: "Agents",
     automation: "Automation",
     notebook: "Notebook",
