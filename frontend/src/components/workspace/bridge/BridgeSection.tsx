@@ -11,6 +11,7 @@ import {
   getBridgeClient,
   type BridgeStatus,
 } from "@/core/bridge/client";
+import { BridgeIncidentsPanel } from "./BridgeIncidentsPanel";
 
 type BridgeSettings = {
   bridge_telegram_enabled: string;
@@ -203,6 +204,8 @@ export function BridgeSection() {
           ))}
         </div>
       </section>
+
+      <BridgeIncidentsPanel bridgeAvailable={Boolean(client)} />
     </div>
   );
 }

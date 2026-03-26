@@ -27,6 +27,85 @@ export type BridgeProbeResult = {
   message: string;
 };
 
+export type BridgeRecommendedAction = {
+  actionId: string;
+  actionType: string;
+  label: string;
+  reason: string;
+  riskLevel: "low" | "medium" | "high";
+  requiresConfirmation: boolean;
+  executableNow: boolean;
+  scope: "global" | "adapter" | "binding";
+  platform: string | null;
+  bindingId: string | null;
+  ipcChannel: string | null;
+  ipcArgs: Record<string, unknown>;
+  expectedOutcome: string;
+};
+
+export type BridgeExecutedAction = {
+  actionId: string;
+  executedAt: string;
+  status: "completed" | "failed";
+  resultSummary: string;
+};
+
+export type BridgeIncidentRecord = {
+  incidentId: string;
+  createdAt: string;
+  updatedAt: string;
+  source: "bridge_page" | "chat" | "automatic";
+  incidentType:
+    | "bridge_manager_down"
+    | "adapter_start_failure"
+    | "adapter_runtime_failure"
+    | "bridge_delivery_failure"
+    | "binding_resolution_error"
+    | "permission_workflow_stuck";
+  severity: "info" | "warning" | "error";
+  status: "open" | "resolved" | "dismissed";
+  adapterPlatform: string | null;
+  bindingId: string | null;
+  threadId: string | null;
+  summary: string;
+  userVisibleExplanation: string;
+  rootCauseHypothesis: string | null;
+  confidence: number | null;
+  recommendedActions: BridgeRecommendedAction[];
+  executedActions: BridgeExecutedAction[];
+  evidence: Record<string, unknown>;
+  resolutionNote: string | null;
+};
+
+export type BridgeIncidentFilters = {
+  status?: "open" | "resolved" | "dismissed";
+  severity?: "info" | "warning" | "error";
+  adapterPlatform?: string;
+  incidentType?: BridgeIncidentRecord["incidentType"];
+  limit?: number;
+};
+
+export type BridgeDiagnoseRequest = {
+  source: "bridge_page" | "chat" | "automatic";
+  adapterPlatform?: string | null;
+  bindingId?: string | null;
+  threadId?: string | null;
+};
+
+export type BridgeRunActionRequest = {
+  incidentId: string;
+  actionId: string;
+};
+
+export type BridgeRunActionResult = {
+  ok: boolean;
+  actionId: string;
+  status: "completed" | "failed" | "rejected";
+  resultSummary: string;
+  incident: BridgeIncidentRecord | null;
+  payload?: Record<string, unknown>;
+};
+
 export type WeixinBridgeAccount = {
   accountId: string;
   userId: string;
@@ -50,6 +129,11 @@ export type BridgeClient = {
   saveSettings(updates: Record<string, string>): Promise<void>;
   getStatus(): Promise<BridgeStatus>;
   listBindings(): Promise<BridgeBinding[]>;
+  listIncidents(filters?: BridgeIncidentFilters): Promise<BridgeIncidentRecord[]>;
+  getIncident(incidentId: string): Promise<BridgeIncidentRecord | null>;
+  diagnose(request: BridgeDiagnoseRequest): Promise<BridgeIncidentRecord>;
+  dismissIncident(incidentId: string): Promise<BridgeIncidentRecord | null>;
+  runAction(request: BridgeRunActionRequest): Promise<BridgeRunActionResult>;
   start(): Promise<void>;
   stop(): Promise<void>;
   probe(platform: string): Promise<BridgeProbeResult>;
@@ -71,6 +155,11 @@ function resolveDesktopBridge() {
                 saveSettings: (updates: Record<string, string>) => Promise<void>;
                 getStatus: () => Promise<BridgeStatus>;
                 listBindings: () => Promise<BridgeBinding[]>;
+                listIncidents: (filters?: BridgeIncidentFilters) => Promise<BridgeIncidentRecord[]>;
+                getIncident: (incidentId: string) => Promise<BridgeIncidentRecord | null>;
+                diagnose: (request: BridgeDiagnoseRequest) => Promise<BridgeIncidentRecord>;
+                dismissIncident: (incidentId: string) => Promise<BridgeIncidentRecord | null>;
+                runAction: (request: BridgeRunActionRequest) => Promise<BridgeRunActionResult>;
                 start: () => Promise<void>;
                 stop: () => Promise<void>;
                 probe: (platform: string) => Promise<BridgeProbeResult>;
@@ -99,6 +188,11 @@ export function getBridgeClient(): BridgeClient | null {
     saveSettings: (updates) => bridge.saveSettings(updates),
     getStatus: () => bridge.getStatus(),
     listBindings: () => bridge.listBindings(),
+    listIncidents: (filters) => bridge.listIncidents(filters),
+    getIncident: (incidentId) => bridge.getIncident(incidentId),
+    diagnose: (request) => bridge.diagnose(request),
+    dismissIncident: (incidentId) => bridge.dismissIncident(incidentId),
+    runAction: (request) => bridge.runAction(request),
     start: () => bridge.start(),
     stop: () => bridge.stop(),
     probe: (platform) => bridge.probe(platform),

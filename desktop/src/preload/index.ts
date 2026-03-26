@@ -18,6 +18,16 @@ export function registerPreloadBridge(): void {
         ipcRenderer.invoke(DESKTOP_BRIDGE_IPC_CHANNELS.saveSettings, updates),
       getStatus: () => ipcRenderer.invoke(DESKTOP_BRIDGE_IPC_CHANNELS.getStatus),
       listBindings: () => ipcRenderer.invoke(DESKTOP_BRIDGE_IPC_CHANNELS.listBindings),
+      listIncidents: (filters?: Record<string, unknown>) =>
+        ipcRenderer.invoke(DESKTOP_BRIDGE_IPC_CHANNELS.listIncidents, filters),
+      getIncident: (incidentId: string) =>
+        ipcRenderer.invoke(DESKTOP_BRIDGE_IPC_CHANNELS.getIncident, incidentId),
+      diagnose: (request: Record<string, unknown>) =>
+        ipcRenderer.invoke(DESKTOP_BRIDGE_IPC_CHANNELS.diagnose, request),
+      dismissIncident: (incidentId: string) =>
+        ipcRenderer.invoke(DESKTOP_BRIDGE_IPC_CHANNELS.dismissIncident, incidentId),
+      runAction: (request: Record<string, unknown>) =>
+        ipcRenderer.invoke(DESKTOP_BRIDGE_IPC_CHANNELS.runAction, request),
       start: () => ipcRenderer.invoke(DESKTOP_BRIDGE_IPC_CHANNELS.start),
       stop: () => ipcRenderer.invoke(DESKTOP_BRIDGE_IPC_CHANNELS.stop),
       probe: (platform: string) =>
