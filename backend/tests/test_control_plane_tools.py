@@ -1,5 +1,7 @@
 import json
 
+import httpx
+
 from nion.config.app_config import reset_app_config
 from nion.config.extensions_config import reset_extensions_config
 from nion.config.paths import get_paths
@@ -359,3 +361,38 @@ def test_revoke_channel_authorized_user_tool_returns_result(monkeypatch, tmp_pat
         )
     )
     assert payload["revoked"] is True
+
+
+def test_get_channels_status_tool_returns_http_error_payload(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    import nion.config.paths as paths_module
+
+    paths_module._paths = None
+    request = httpx.Request("GET", "http://127.0.0.1:43115/api/daemon/channels")
+    response = httpx.Response(503, request=request)
+
+    def fake_get(path: str, *, params=None):
+        assert path == "/api/daemon/channels"
+        raise httpx.HTTPStatusError("503 Service Unavailable", request=request, response=response)
+
+    monkeypatch.setattr("nion.tools.builtins.control_plane_tools._daemon_get", fake_get)
+    payload = json.loads(get_channels_status_tool.invoke({}))
+    assert payload["error_type"] == "HTTPStatusError"
+    assert "503 Service Unavailable" in payload["error"]
+
+
+def test_restart_channel_control_plane_tool_returns_connect_error_payload(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    import nion.config.paths as paths_module
+
+    paths_module._paths = None
+    request = httpx.Request("POST", "http://127.0.0.1:43115/api/daemon/channels/feishu/restart")
+
+    def fake_post(path: str, *, payload=None):
+        assert path == "/api/daemon/channels/feishu/restart"
+        raise httpx.ConnectError("Connection refused", request=request)
+
+    monkeypatch.setattr("nion.tools.builtins.control_plane_tools._daemon_post", fake_post)
+    result = json.loads(restart_channel_control_plane_tool.invoke({"channel_name": "feishu"}))
+    assert result["error_type"] == "ConnectError"
+    assert "Connection refused" in result["error"]

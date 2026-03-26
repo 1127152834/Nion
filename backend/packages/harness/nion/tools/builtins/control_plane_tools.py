@@ -41,8 +41,11 @@ def _daemon_post(path: str, *, payload: dict[str, Any] | None = None) -> dict[st
 def _json_result(fn) -> str:
     try:
         payload = fn()
-    except Exception as exc:  # noqa: BLE001
-        payload = {"error": str(exc)}
+    except (httpx.HTTPError, ValueError) as exc:
+        payload = {
+            "error": str(exc),
+            "error_type": type(exc).__name__,
+        }
     return json.dumps(payload, ensure_ascii=False, indent=2)
 
 
