@@ -116,6 +116,7 @@ class ClarificationMiddleware(AgentMiddleware[ClarificationMiddlewareState]):
             content=formatted_message,
             tool_call_id=tool_call_id,
             name="ask_clarification",
+            additional_kwargs={"clarification": args},
         )
 
         # Return a Command that:

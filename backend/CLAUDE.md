@@ -109,7 +109,7 @@ CI runs these regression tests for every pull request via [.github/workflows/bac
 The backend is split into two layers with a strict dependency direction:
 
 - **Harness** (`packages/harness/nion/`): Publishable agent framework package (`nion-harness`). Import prefix: `nion.*`. Contains agent orchestration, tools, sandbox, models, MCP, skills, config — everything needed to build and run agents.
-- **App** (`app/`): Unpublished application code. Import prefix: `app.*`. Contains the FastAPI Gateway API and IM channel integrations (Feishu, Slack, Telegram).
+- **App** (`app/`): Unpublished application code. Import prefix: `app.*`. Contains the FastAPI Gateway API and runtime integration surfaces.
 
 **Dependency rule**: App imports nion, but nion never imports app. This boundary is enforced by `tests/test_harness_boundary.py` which runs in CI.
 
@@ -121,7 +121,6 @@ from nion.models import create_chat_model
 
 # App internal
 from app.gateway.app import app
-from app.channels.service import start_channel_service
 
 # App → Harness (allowed)
 from nion.config import get_app_config
@@ -334,7 +333,7 @@ Program 03C extends the daemon control plane to channels:
 
 ### IM Channels System (`app/channels/`)
 
-Bridges external messaging platforms (Feishu, Slack, Telegram) to the Nion agent via the LangGraph Server.
+Legacy IM channel runtime references below describe a removed subsystem. This branch is migrating to a desktop-first Bridge replacement instead.
 
 **Architecture**: Channels communicate with the LangGraph Server through `langgraph-sdk` HTTP client (same as the frontend), ensuring threads are created and managed server-side.
 
@@ -345,8 +344,7 @@ Bridges external messaging platforms (Feishu, Slack, Telegram) to the Nion agent
 - `manager.py` - Core dispatcher: creates threads via `client.threads.create()`, routes commands, keeps Slack/Telegram on `client.runs.wait()`, and uses `client.runs.stream(["messages-tuple", "values"])` for Feishu incremental outbound updates
 - `runtime_state.py` - Observational runtime metadata (`capabilities`, `last_heartbeat`, `last_error`) used for operator-facing status without owning config or routing state
 - `base.py` - Abstract `Channel` base class (start/stop/send lifecycle)
-- `service.py` - Manages lifecycle of all configured channels from `config.yaml` and aggregates the outward-facing `/api/channels` status contract
-- `slack.py` / `feishu.py` / `telegram.py` - Platform-specific implementations (`feishu.py` tracks the running card `message_id` in memory and patches the same card in place)
+- Historical channel runtime files in this section have been removed from the active codebase.
 
 **Message Flow**:
 1. External platform -> Channel impl -> `MessageBus.publish_inbound()`
@@ -360,16 +358,8 @@ Bridges external messaging platforms (Feishu, Slack, Telegram) to the Nion agent
 9. Outbound → channel callbacks → platform reply
 
 **Operator status contract**:
-- `GET /api/channels` returns `service_running`, `pending_pair_requests`, and a `channels` map
-- Each channel entry now includes `enabled`, `running`, `capabilities`, `last_heartbeat`, `last_error`, `authorized_user_count`, `pending_pair_request_count`, and `can_restart`
-- The gateway router models this contract with nested Pydantic response types so operator payload shape stays explicit in code
-- `ChannelRuntimeState` remains observational; `ChannelService` is still the outward-facing owner
-- Pairing counts are backed by `PairingService`; `ChannelStore` remains thread-mapping-only
-
-**Configuration** (`config.yaml` -> `channels`):
-- `langgraph_url` - LangGraph Server URL (default: `http://localhost:2024`)
-- `gateway_url` - Gateway API URL for auxiliary commands (default: `http://localhost:8001`)
-- Per-channel configs: `feishu` (app_id, app_secret), `slack` (bot_token, app_token), `telegram` (bot_token)
+- The old `/api/channels` contract has been removed from active code.
+- A new Bridge contract is being introduced in the desktop shell.
 
 ### Memory System (`packages/harness/nion/agents/memory/`)
 

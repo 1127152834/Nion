@@ -162,15 +162,9 @@ FastAPI application providing REST endpoints for frontend integration:
 | `GET /api/threads/{id}/uploads/list` | List uploaded files |
 | `GET /api/threads/{id}/artifacts/{path}` | Serve generated artifacts |
 
-### IM Channels
+### Bridge Transition
 
-The IM bridge supports Feishu, Slack, and Telegram. Slack and Telegram still use the final `runs.wait()` response path, while Feishu now streams through `runs.stream(["messages-tuple", "values"])` and updates a single in-thread card in place.
-
-For Feishu card updates, Nion stores the running card's `message_id` per inbound message and patches that same card until the run finishes, preserving the existing `OK` / `DONE` reaction flow.
-
-The operator surface for channels is exposed through `GET /api/channels`. The status contract now includes top-level `service_running` and `pending_pair_requests`, plus per-channel `enabled`, `running`, `capabilities`, `last_heartbeat`, `last_error`, `authorized_user_count`, `pending_pair_request_count`, and `can_restart` fields. The gateway keeps this payload explicit with nested typed response models. This route is observational only; it does not replace the existing channel runtime ownership in `ChannelService` / `ChannelManager`.
-
-Channel authorization is now governed per `channel_name + chat_id + user_id`. Only `/help` bypasses pairing checks; chat messages and the other built-in channel commands must be authorized before they can enter the runtime path or create new threads.
+The legacy IM channel runtime has been removed from this branch. A new desktop-first Bridge subsystem is replacing it, with current work focused on desktop-backed bridge state, adapter lifecycles, settings, and external messaging integration.
 
 ---
 

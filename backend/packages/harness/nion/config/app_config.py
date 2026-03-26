@@ -11,7 +11,6 @@ from dotenv import load_dotenv
 from pydantic import BaseModel, ConfigDict, Field
 
 from nion.config.automation_config import AutomationConfig, load_automation_config_from_dict
-from nion.config.channels_config import ChannelsAppConfig, load_channels_config_from_dict
 from nion.config.checkpointer_config import CheckpointerConfig, load_checkpointer_config_from_dict
 from nion.config.config_store import (
     DEFAULT_CHECKPOINTER_CONFIG,
@@ -74,10 +73,6 @@ class AppConfig(BaseModel):
         default_factory=AutomationConfig,
         description="Automation runtime configuration",
     )
-    channels: ChannelsAppConfig = Field(
-        default_factory=ChannelsAppConfig,
-        description="Channel control-plane defaults and credentials",
-    )
     daemon: DaemonConfig = Field(
         default_factory=DaemonConfig,
         description="Local daemon lifecycle and listening configuration",
@@ -135,7 +130,6 @@ class AppConfig(BaseModel):
             load_automation_config_from_dict(config_data["automation"])
         load_subagents_config_from_dict(config_data.get("subagents") or {})
         load_suggestions_config_from_dict(config_data.get("suggestions") or {})
-        load_channels_config_from_dict(config_data.get("channels") or {})
         if "tool_search" in config_data:
             load_tool_search_config_from_dict(config_data["tool_search"])
         if "guardrails" in config_data:

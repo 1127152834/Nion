@@ -446,6 +446,7 @@ class SubagentExecutor:
         sandbox_state: SandboxState | None = None,
         thread_data: ThreadDataState | None = None,
         thread_id: str | None = None,
+        surface: str = "workspace",
         trace_id: str | None = None,
     ):
         """Initialize the executor.
@@ -457,6 +458,7 @@ class SubagentExecutor:
             sandbox_state: Sandbox state from parent agent.
             thread_data: Thread data from parent agent.
             thread_id: Thread ID for sandbox operations.
+            surface: Runtime surface inherited from parent agent.
             trace_id: Trace ID from parent for distributed tracing.
         """
         self.config = config
@@ -464,6 +466,7 @@ class SubagentExecutor:
         self.sandbox_state = sandbox_state
         self.thread_data = thread_data
         self.thread_id = thread_id
+        self.surface = surface
         # Generate trace_id if not provided (for top-level calls)
         self.trace_id = trace_id or str(uuid.uuid4())[:8]
 
@@ -490,7 +493,7 @@ class SubagentExecutor:
         from nion.agents.middlewares.tool_error_handling_middleware import build_subagent_runtime_middlewares
 
         # Reuse shared middleware composition with lead agent.
-        middlewares = build_subagent_runtime_middlewares(lazy_init=True)
+        middlewares = build_subagent_runtime_middlewares(surface=self.surface, lazy_init=True)
 
         return create_agent(
             model=model,

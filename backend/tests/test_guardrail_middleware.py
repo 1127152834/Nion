@@ -6,6 +6,7 @@ import asyncio
 from unittest.mock import MagicMock
 
 import pytest
+from langchain_core.messages import HumanMessage
 from langgraph.errors import GraphBubbleUp
 
 from nion.guardrails.builtin import AllowlistProvider
@@ -19,6 +20,8 @@ def _make_tool_call_request(name: str = "bash", args: dict | None = None, call_i
     """Create a mock ToolCallRequest."""
     req = MagicMock()
     req.tool_call = {"name": name, "args": args or {}, "id": call_id}
+    req.context = {}
+    req.state = {}
     return req
 
 
@@ -40,6 +43,20 @@ class _DenyAllProvider:
             allow=False,
             reasons=[GuardrailReason(code="oap.denied", message="all tools blocked")],
             policy_id="test.deny.v1",
+        )
+
+    async def aevaluate(self, request: GuardrailRequest) -> GuardrailDecision:
+        return self.evaluate(request)
+
+
+class _ApprovalProvider:
+    name = "approval"
+
+    def evaluate(self, request: GuardrailRequest) -> GuardrailDecision:
+        return GuardrailDecision(
+            allow=False,
+            reasons=[GuardrailReason(code="oap.approval_required", message="approval required")],
+            metadata={"bridge_behavior": "request_approval"},
         )
 
     async def aevaluate(self, request: GuardrailRequest) -> GuardrailDecision:
@@ -257,6 +274,18 @@ class TestGuardrailMiddleware:
 
         result = asyncio.run(run())
         assert result is expected
+
+    def test_bridge_surface_denial_can_become_permission_request(self):
+        mw = GuardrailMiddleware(_ApprovalProvider())
+        req = _make_tool_call_request("bash", {"command": "rm -rf /tmp/test"})
+        req.context = {"thread_id": "t-bridge", "surface": "bridge"}
+        req.state = {"messages": [HumanMessage(content="delete temp files", id="h-1")]}
+
+        result = mw.wrap_tool_call(req, MagicMock())
+        assert hasattr(result, "goto")
+        tool_message = result.update["messages"][0]
+        assert tool_message.name == "permission_request"
+        assert tool_message.additional_kwargs["permission_request"]["tool_name"] == "bash"
 
     def test_graph_bubble_up_not_swallowed(self):
         """GraphBubbleUp (LangGraph interrupt/pause) must propagate, not be caught."""

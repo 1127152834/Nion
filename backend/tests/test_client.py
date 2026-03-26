@@ -175,6 +175,10 @@ def _tool_result_events(events):
     return [e for e in events if e.type == "messages-tuple" and e.data.get("type") == "tool"]
 
 
+def _custom_events(events):
+    return [e for e in events if e.type == "custom"]
+
+
 class TestStream:
     def test_basic_message(self, client):
         """stream() emits messages-tuple + values + end for a simple AI reply."""
@@ -257,6 +261,37 @@ class TestStream:
         assert len(values_events) >= 1
         assert values_events[-1].data["title"] == "Greeting"
         assert "messages" in values_events[-1].data
+
+    def test_clarification_tool_emits_custom_event(self, client):
+        tool = ToolMessage(
+            content="❓ Which option do you want?",
+            id="tm-clarify",
+            tool_call_id="tc-clarify",
+            name="ask_clarification",
+            additional_kwargs={
+                "clarification": {
+                    "question": "Which option do you want?",
+                    "clarification_type": "approach_choice",
+                    "options": ["A", "B"],
+                }
+            },
+        )
+        chunks = [
+            {"messages": [HumanMessage(content="choose", id="h-1"), tool]},
+        ]
+        agent = _make_agent_mock(chunks)
+
+        with (
+            patch.object(client, "_ensure_agent"),
+            patch.object(client, "_agent", agent),
+        ):
+            events = list(client.stream("choose", thread_id="t-clarify"))
+
+        custom_events = _custom_events(events)
+        assert len(custom_events) == 1
+        assert custom_events[0].data["type"] == "clarification_request"
+        assert custom_events[0].data["question"] == "Which option do you want?"
+        assert custom_events[0].data["options"] == ["A", "B"]
 
     def test_deduplication(self, client):
         """Messages with the same id are not emitted twice."""

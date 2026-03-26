@@ -152,158 +152,6 @@ const EXPECTED_DAEMON_SHAPE = {
   allowBackgroundRunningHint: true,
 } as const;
 
-const EXPECTED_CHANNELS_SHAPE = {
-  title: true,
-  description: true,
-  workspace: {
-    title: true,
-    description: true,
-  },
-  platforms: {
-    lark: true,
-    dingtalk: true,
-    telegram: true,
-  },
-  configuration: {
-    title: true,
-    description: true,
-  },
-  labels: {
-    enabled: true,
-    disabled: true,
-    accessMode: true,
-    required: true,
-    optional: true,
-    loading: true,
-    requestedAt: true,
-    grantedAt: true,
-    unknownTime: true,
-  },
-  modes: {
-    webhook: true,
-    stream: true,
-  },
-  proxyModes: {
-    auto: true,
-    direct: true,
-    system: true,
-  },
-  fields: {
-    appId: true,
-    appSecret: true,
-    verificationToken: true,
-    encryptKey: true,
-    clientId: true,
-    clientSecret: true,
-    robotCode: true,
-    proxyMode: true,
-    webhookUrl: true,
-    signingSecret: true,
-    botToken: true,
-    allowedUsers: true,
-    secretToken: true,
-  },
-  hints: {
-    pairingGuide: true,
-    larkVerificationToken: true,
-    larkEncryptKey: true,
-    dingtalkRobotCode: true,
-    dingtalkProxyMode: true,
-    dingtalkWebhookUrl: true,
-  },
-  actions: {
-    setupDocs: true,
-    testConnection: true,
-    saveAndApply: true,
-    goToPairing: true,
-    refresh: true,
-    approve: true,
-    reject: true,
-    revoke: true,
-    cancel: true,
-  },
-  runtime: {
-    statusTitle: true,
-    statusDescription: true,
-    activeUsersLabel: true,
-    runningLabel: true,
-    stoppedLabel: true,
-    connectedLabel: true,
-    disconnectedLabel: true,
-    connectionFailedLabel: true,
-    noStatus: true,
-  },
-  pairing: {
-    sectionTitle: true,
-    sectionDescription: true,
-    code: {
-      title: true,
-      description: true,
-      expireMinutes: true,
-      generateAction: true,
-      activeCode: true,
-      noCodeGenerated: true,
-      copiedToast: true,
-      generatedToast: true,
-      generateFailed: true,
-      expiresAtPrefix: true,
-      slotHint: true,
-    },
-    pending: {
-      title: true,
-      empty: true,
-      approvedToast: true,
-      rejectedToast: true,
-    },
-  },
-  authorization: {
-    title: true,
-    empty: true,
-    sessionOverrideBadge: true,
-    sessionOverrideAction: true,
-    revokeConfirmTemplate: true,
-    revokedToast: true,
-  },
-  session: {
-    defaultsTitle: true,
-    defaultsDescription: true,
-    assistantIdLabel: true,
-    assistantIdPlaceholder: true,
-    recursionLimitLabel: true,
-    recursionLimitPlaceholder: true,
-    thinkingLabel: true,
-    planModeLabel: true,
-    subagentLabel: true,
-    inheritOption: true,
-    enabledOption: true,
-    disabledOption: true,
-    inheritLabel: true,
-    overrideDialogTitle: true,
-    overrideDialogDescription: true,
-    overrideCurrentLabel: true,
-    resetAction: true,
-    savedToast: true,
-  },
-  conversationTypes: {
-    conversation: true,
-    group: true,
-    direct: true,
-  },
-  errors: {
-    fillRequiredFieldsFirst: true,
-    fillConnectionFieldsFirst: true,
-    saveConfigFailed: true,
-    connectionTestFailed: true,
-    platformConfigSaved: true,
-    platformConnectionSuccess: true,
-    missingRequiredFieldsPrefix: true,
-    approveFailed: true,
-    rejectFailed: true,
-    revokeFailed: true,
-    sessionOverrideSaveFailed: true,
-  },
-} as const;
-
 function shapeOf(value: unknown): true | Record<string, true | Record<string, unknown>> {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return true;
@@ -324,7 +172,7 @@ function assertSectionShape(
   assert.deepEqual(shapeOf(value), expected, `${label} shape mismatch`);
 }
 
-void test("search, cliTools, daemon, and channels expose the full settings i18n contract", () => {
+void test("search, cliTools, and daemon expose the full settings i18n contract", () => {
   assertSectionShape("enUS.settings.search", enUS.settings.search, EXPECTED_SEARCH_SHAPE);
   assertSectionShape("zhCN.settings.search", zhCN.settings.search, EXPECTED_SEARCH_SHAPE);
   assertSectionShape(
@@ -346,15 +194,5 @@ void test("search, cliTools, daemon, and channels expose the full settings i18n 
     "zhCN.settings.daemon",
     zhCN.settings.daemon,
     EXPECTED_DAEMON_SHAPE,
-  );
-  assertSectionShape(
-    "enUS.settings.channels",
-    enUS.settings.channels,
-    EXPECTED_CHANNELS_SHAPE,
-  );
-  assertSectionShape(
-    "zhCN.settings.channels",
-    zhCN.settings.channels,
-    EXPECTED_CHANNELS_SHAPE,
   );
 });

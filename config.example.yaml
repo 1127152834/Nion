@@ -557,6 +557,7 @@ checkpointer:
 #     use: nion.guardrails.builtin:AllowlistProvider
 #     config:
 #       denied_tools: ["bash", "write_file"]
+#       approval_tools: ["bash", "write_file", "str_replace"]  # optional: bridge surface can ask for approval instead of hard deny
 
 # --- Option 2: OAP passport provider (open standard, any implementation) ---
 #   The Open Agent Passport (OAP) spec defines passport format and decision codes.

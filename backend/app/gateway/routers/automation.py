@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Response
@@ -71,32 +70,16 @@ _automation_service: AutomationService | None = None
 
 class GatewayChannelPublisher:
     def publish(self, request: AutomationChannelDeliveryRequest) -> None:
-        from app.channels.message_bus import OutboundMessage
-        from app.channels.service import get_channel_service
-
-        service = get_channel_service()
-        if service is None:
-            raise RuntimeError("Channel service is not running")
-
-        asyncio.run(
-            service.bus.publish_outbound(
-                OutboundMessage(
-                    channel_name=request.platform,
-                    chat_id=request.chat_id,
-                    thread_id=request.metadata.get("isolated_thread_id") if request.metadata else "automation",
-                    text=request.text,
-                    artifacts=list(request.artifacts),
-                )
-            )
-        )
+        del request
+        raise RuntimeError("Legacy channel delivery has been removed")
 
 
 def _resolve_langgraph_url() -> str:
     config = get_app_config()
     extra = config.model_extra or {}
-    channels = extra.get("channels") if isinstance(extra, dict) else None
-    if isinstance(channels, dict):
-        langgraph_url = channels.get("langgraph_url")
+    bridge = extra.get("bridge") if isinstance(extra, dict) else None
+    if isinstance(bridge, dict):
+        langgraph_url = bridge.get("langgraph_url")
         if isinstance(langgraph_url, str) and langgraph_url.strip():
             return langgraph_url
     return "http://localhost:2024"

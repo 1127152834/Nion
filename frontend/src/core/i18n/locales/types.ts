@@ -108,155 +108,123 @@ type SettingsCliToolsTranslations = {
   };
 };
 
-type SettingsChannelsTranslations = {
-  title: string;
-  description: string;
-  workspace: {
-    title: string;
-    description: string;
-  };
-  platforms: {
-    lark: string;
-    dingtalk: string;
+type BridgeTranslations = {
+  menuLabel: string;
+  desktopOnly: string;
+  nav: {
+    overview: string;
     telegram: string;
+    feishu: string;
+    discord: string;
+    qq: string;
+    weixin: string;
   };
-  configuration: {
+  overview: {
     title: string;
     description: string;
-  };
-  labels: {
-    enabled: string;
-    disabled: string;
-    accessMode: string;
-    required: string;
-    optional: string;
-    loading: string;
-    requestedAt: string;
-    grantedAt: string;
-    unknownTime: string;
-  };
-  modes: {
-    webhook: string;
-    stream: string;
-  };
-  proxyModes: {
-    auto: string;
-    direct: string;
-    system: string;
-  };
-  fields: {
-    appId: string;
-    appSecret: string;
-    verificationToken: string;
-    encryptKey: string;
-    clientId: string;
-    clientSecret: string;
-    robotCode: string;
-    proxyMode: string;
-    webhookUrl: string;
-    signingSecret: string;
-    botToken: string;
-    allowedUsers: string;
-    secretToken: string;
-  };
-  hints: {
-    pairingGuide: string;
-    larkVerificationToken: string;
-    larkEncryptKey: string;
-    dingtalkRobotCode: string;
-    dingtalkProxyMode: string;
-    dingtalkWebhookUrl: string;
-  };
-  actions: {
-    setupDocs: string;
-    testConnection: string;
-    saveAndApply: string;
-    goToPairing: string;
-    refresh: string;
-    approve: string;
-    reject: string;
-    revoke: string;
-    cancel: string;
-  };
-  runtime: {
+    enableTitle: string;
+    enableDescription: string;
+    autoStartTitle: string;
+    autoStartDescription: string;
     statusTitle: string;
     statusDescription: string;
-    activeUsersLabel: string;
-    runningLabel: string;
-    stoppedLabel: string;
-    connectedLabel: string;
-    disconnectedLabel: string;
-    connectionFailedLabel: string;
-    noStatus: string;
+    runtimeLabel: string;
+    running: string;
+    stopped: string;
+    enabledPlatformsLabel: string;
+    activePlatformsLabel: string;
+    currentBindingsTitle: string;
+    currentBindingsDescription: string;
+    noBindings: string;
+    platformLabel: string;
+    chatLabel: string;
+    threadLabel: string;
+    workingDirectoryLabel: string;
+    defaultWorkspaceTitle: string;
+    defaultWorkspaceDescription: string;
+    workingDirectoryTitle: string;
+    defaultModelTitle: string;
+    defaultProviderTitle: string;
+    channelsTitle: string;
+    channelsDescription: string;
+    saveDefaultsAction: string;
+    startAction: string;
+    stopAction: string;
   };
-  pairing: {
-    sectionTitle: string;
-    sectionDescription: string;
-    code: {
-      title: string;
-      description: string;
-      expireMinutes: string;
-      generateAction: string;
-      activeCode: string;
-      noCodeGenerated: string;
-      copiedToast: string;
-      generatedToast: string;
-      generateFailed: string;
-      expiresAtPrefix: string;
-      slotHint: string;
-    };
-    pending: {
-      title: string;
-      empty: string;
-      approvedToast: string;
-      rejectedToast: string;
-    };
-  };
-  authorization: {
+  telegram: {
     title: string;
-    empty: string;
-    sessionOverrideBadge: string;
-    sessionOverrideAction: string;
-    revokeConfirmTemplate: string;
-    revokedToast: string;
+    description: string;
+    saveAction: string;
+    testAction: string;
+    botTokenPlaceholder: string;
+    chatIdPlaceholder: string;
+    allowedUsersPlaceholder: string;
   };
-  session: {
-    defaultsTitle: string;
-    defaultsDescription: string;
-    assistantIdLabel: string;
-    assistantIdPlaceholder: string;
-    recursionLimitLabel: string;
-    recursionLimitPlaceholder: string;
-    thinkingLabel: string;
-    planModeLabel: string;
-    subagentLabel: string;
-    inheritOption: string;
-    enabledOption: string;
-    disabledOption: string;
-    inheritLabel: string;
-    overrideDialogTitle: string;
-    overrideDialogDescription: string;
-    overrideCurrentLabel: string;
-    resetAction: string;
-    savedToast: string;
+  feishu: {
+    title: string;
+    description: string;
+    saveAction: string;
+    testAction: string;
+    appIdPlaceholder: string;
+    appSecretPlaceholder: string;
+    allowFromPlaceholder: string;
+    groupAllowFromPlaceholder: string;
+    domainFeishu: string;
+    domainLark: string;
+    dmPolicyOpen: string;
+    dmPolicyPairing: string;
+    dmPolicyAllowlist: string;
+    dmPolicyDisabled: string;
+    groupPolicyOpen: string;
+    groupPolicyAllowlist: string;
+    groupPolicyDisabled: string;
+    threadSession: string;
+    requireMention: string;
   };
-  conversationTypes: {
-    conversation: string;
-    group: string;
-    direct: string;
+  discord: {
+    title: string;
+    description: string;
+    saveAction: string;
+    testAction: string;
+    botTokenPlaceholder: string;
+    allowedUsersPlaceholder: string;
+    allowedChannelsPlaceholder: string;
+    allowedGuildsPlaceholder: string;
+    groupPolicyOpen: string;
+    groupPolicyDisabled: string;
+    requireMention: string;
+    streamPreview: string;
+    maxAttachmentPlaceholder: string;
+    imageHandling: string;
   };
-  errors: {
-    fillRequiredFieldsFirst: string;
-    fillConnectionFieldsFirst: string;
-    saveConfigFailed: string;
-    connectionTestFailed: string;
-    platformConfigSaved: string;
-    platformConnectionSuccess: string;
-    missingRequiredFieldsPrefix: string;
-    approveFailed: string;
-    rejectFailed: string;
-    revokeFailed: string;
-    sessionOverrideSaveFailed: string;
+  qq: {
+    title: string;
+    description: string;
+    saveAction: string;
+    testAction: string;
+    appIdPlaceholder: string;
+    appSecretPlaceholder: string;
+    allowedUsersPlaceholder: string;
+    imageHandling: string;
+    maxImageSizePlaceholder: string;
+  };
+  weixin: {
+    title: string;
+    description: string;
+    accounts: string;
+    accountsDesc: string;
+    addAccount: string;
+    qrLogin: string;
+    qrWaiting: string;
+    qrScanned: string;
+    qrConfirmed: string;
+    qrExpired: string;
+    qrFailed: string;
+    currentBindings: string;
+    noAccounts: string;
+    accountActive: string;
+    accountPaused: string;
+    accountExpired: string;
   };
 };
 
@@ -417,7 +385,6 @@ export interface Translations {
     reportIssue: string;
     contactUs: string;
     about: string;
-    manageChannels: string;
     singleWorkspaceLabel: string;
     singleWorkspacePath: string;
     singleWorkspaceHint: string;
@@ -451,6 +418,8 @@ export interface Translations {
   chats: {
     searchChats: string;
   };
+
+  bridge: BridgeTranslations;
 
   // Page titles (document title)
   pages: {
@@ -587,7 +556,6 @@ export interface Translations {
       mcpServers: string;
       skills: string;
       sandbox: string;
-      channels: string;
       notification: string;
       daemon: string;
       about: string;
@@ -683,7 +651,6 @@ export interface Translations {
       title: string;
       description: string;
     };
-    channels: SettingsChannelsTranslations;
     skills: {
       title: string;
       description: string;

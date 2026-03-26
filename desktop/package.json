@@ -16,6 +16,9 @@
     "package:forge": "../scripts/package-desktop.sh forge",
     "build:helper": "../scripts/build-python-helper.sh"
   },
+  "dependencies": {
+    "@larksuiteoapi/node-sdk": "^1.59.0"
+  },
   "devDependencies": {
     "@electron-forge/cli": "^7.8.1",
     "@electron-forge/maker-squirrel": "^7.8.1",

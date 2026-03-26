@@ -232,7 +232,8 @@ def _build_middlewares(config: RunnableConfig, model_name: str | None, agent_nam
     Returns:
         List of middleware instances.
     """
-    middlewares = build_lead_runtime_middlewares(lazy_init=True)
+    surface = config.get("configurable", {}).get("surface", "workspace")
+    middlewares = build_lead_runtime_middlewares(surface=surface, lazy_init=True)
 
     # Add summarization middleware if enabled
     summarization_middleware = _create_summarization_middleware()
