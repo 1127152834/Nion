@@ -5,6 +5,8 @@ import { app, BrowserWindow, ipcMain } from "electron";
 
 import { createBridgeManager } from "./bridge/bridge-manager.js";
 import { createBridgeBindingsStore } from "./bridge/bindings-store.js";
+import { createBridgeIncidentController } from "./bridge/incident-playbooks.js";
+import { createBridgeIncidentsStore } from "./bridge/incidents-store.js";
 import { createBridgeObservationsStore } from "./bridge/observations-store.js";
 import { createBridgeOffsetStore } from "./bridge/offset-store.js";
 import { createBridgeSettingsStore } from "./bridge/settings-store.js";
@@ -89,6 +91,9 @@ export async function startDesktopMain(): Promise<void> {
   const bridgeObservationsStore = createBridgeObservationsStore(
     path.join(environment.userDataPath, "bridge", "observations.json"),
   );
+  const bridgeIncidentsStore = createBridgeIncidentsStore(
+    path.join(environment.userDataPath, "bridge", "incidents.json"),
+  );
   const weixinBridgeStore = createWeixinBridgeStore(
     path.join(environment.userDataPath, "bridge", "weixin.json"),
   );
@@ -105,6 +110,23 @@ export async function startDesktopMain(): Promise<void> {
     offsetStore: bridgeOffsetStore,
     weixinStore: weixinBridgeStore,
     recordObservation: (observation) => bridgeObservationsStore.appendObservation(observation),
+  });
+  const bridgeIncidentController = createBridgeIncidentController({
+    getStatus: () => bridgeManager.getStatus(),
+    loadSettings: () => bridgeSettingsStore.loadSettings(),
+    listBindings: () => bridgeBindingsStore.listBindings(),
+    listWeixinAccounts: () =>
+      weixinBridgeStore.listAccounts().map((account) => ({
+        accountId: account.accountId,
+        userId: account.userId,
+        name: account.name,
+        enabled: account.enabled,
+        hasToken: Boolean(account.token),
+        lastLoginAt: account.lastLoginAt,
+        createdAt: account.createdAt,
+      })),
+    listObservations: (filters) => bridgeObservationsStore.listObservations(filters),
+    incidentStore: bridgeIncidentsStore,
   });
   const restartBridgeIfRunning = async () => {
     if (!bridgeManager.getStatus().running) {
@@ -129,6 +151,18 @@ export async function startDesktopMain(): Promise<void> {
   });
   ipcMain.handle(DESKTOP_BRIDGE_IPC_CHANNELS.listBindings, () => {
     return bridgeBindingsStore.listBindings();
+  });
+  ipcMain.handle(DESKTOP_BRIDGE_IPC_CHANNELS.listIncidents, (_event, filters) => {
+    return bridgeIncidentController.listIncidents(filters);
+  });
+  ipcMain.handle(DESKTOP_BRIDGE_IPC_CHANNELS.getIncident, (_event, incidentId: string) => {
+    return bridgeIncidentController.getIncident(incidentId);
+  });
+  ipcMain.handle(DESKTOP_BRIDGE_IPC_CHANNELS.diagnose, (_event, request) => {
+    return bridgeIncidentController.diagnose(request);
+  });
+  ipcMain.handle(DESKTOP_BRIDGE_IPC_CHANNELS.dismissIncident, (_event, incidentId: string) => {
+    return bridgeIncidentController.dismissIncident(incidentId);
   });
   ipcMain.handle(DESKTOP_BRIDGE_IPC_CHANNELS.start, async () => {
     await bridgeManager.start();

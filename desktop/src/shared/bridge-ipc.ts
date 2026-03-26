@@ -139,3 +139,18 @@ export type DesktopBridgeIncidentRecord = {
   evidence: Record<string, unknown>;
   resolutionNote: string | null;
 };
+
+export type DesktopBridgeIncidentFilters = {
+  status?: DesktopBridgeIncidentStatus;
+  severity?: DesktopBridgeIncidentSeverity;
+  adapterPlatform?: string;
+  incidentType?: DesktopBridgeIncidentType;
+  limit?: number;
+};
+
+export type DesktopBridgeDiagnoseRequest = {
+  source: DesktopBridgeIncidentSource;
+  adapterPlatform?: string | null;
+  bindingId?: string | null;
+  threadId?: string | null;
+};
