@@ -20,6 +20,7 @@ import {
   ArtifactHeader,
   ArtifactTitle,
 } from "@/components/ai-elements/artifact";
+import { ConversationEmptyState } from "@/components/ai-elements/conversation";
 import { Select, SelectItem } from "@/components/ui/select";
 import {
   SelectContent,
@@ -85,7 +86,7 @@ export function ArtifactFileDetail({
   const isSupportPreview = useMemo(() => {
     return language === "html" || language === "markdown";
   }, [language]);
-  const { content } = useArtifactContent({
+  const { content, isLoading, error } = useArtifactContent({
     threadId,
     filepath: filepathFromProps,
     enabled: isCodeFile && !isWriteFile,
@@ -237,7 +238,27 @@ export function ArtifactFileDetail({
         </div>
       </ArtifactHeader>
       <ArtifactContent className="p-0">
+        {!isWriteFile && isLoading ? (
+          <ConversationEmptyState
+            icon={<LoaderIcon className="size-5 animate-spin" />}
+            title="Loading file"
+            description="Reading artifact content..."
+          />
+        ) : null}
+        {!isWriteFile && error ? (
+          <ConversationEmptyState
+            icon={<XIcon className="size-5" />}
+            title="Unable to open file"
+            description={
+              error instanceof Error
+                ? error.message
+                : "Artifact content could not be loaded."
+            }
+          />
+        ) : null}
         {isSupportPreview &&
+          !isLoading &&
+          !error &&
           viewMode === "preview" &&
           (language === "markdown" || language === "html") && (
             <ArtifactFilePreview
@@ -245,14 +266,14 @@ export function ArtifactFileDetail({
               language={language ?? "text"}
             />
           )}
-        {isCodeFile && viewMode === "code" && (
+        {isCodeFile && !isLoading && !error && viewMode === "code" && (
           <CodeEditor
             className="size-full resize-none rounded-none border-none"
             value={displayContent ?? ""}
             readonly
           />
         )}
-        {!isCodeFile && (
+        {!isCodeFile && !error && (
           <iframe
             className="size-full"
             src={urlOfArtifact({ filepath, threadId, isMock })}

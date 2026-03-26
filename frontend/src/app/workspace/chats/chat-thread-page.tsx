@@ -6,7 +6,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { type PromptInputMessage } from "@/components/ai-elements/prompt-input";
 import {
-  ArtifactTrigger,
   WorkingDirectoryTrigger,
 } from "@/components/workspace/artifacts";
 import { ChatBox, useSpecificChatMode, useThreadChat } from "@/components/workspace/chats";
@@ -237,7 +236,6 @@ export default function ChatThreadPage() {
               <WorkingDirectoryTrigger />
               {!isNewThread ? <ExportTrigger threadId={threadId} /> : null}
               {!isNewThread ? <SaveToNotebookTrigger threadId={threadId} /> : null}
-              {!isNewThread ? <ArtifactTrigger /> : null}
             </div>
           </header>
 
