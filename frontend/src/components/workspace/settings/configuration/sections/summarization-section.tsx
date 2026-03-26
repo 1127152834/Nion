@@ -35,6 +35,7 @@ import {
 } from "../../session-policy-model-selection";
 
 type ContextSizeType = "tokens" | "messages" | "fraction";
+const DEFAULT_SUMMARIZATION_TOKEN_LIMIT = 20480;
 
 function normalizeTriggerList(value: unknown): Record<string, unknown>[] {
   if (Array.isArray(value)) {
@@ -152,7 +153,7 @@ export function SummarizationSection({
     const next = cloneConfig(config);
     const target = asObject(next.summarization);
     const list = normalizeTriggerList(target.trigger);
-    list.push({ type: "tokens", value: 4096 });
+    list.push({ type: "tokens", value: DEFAULT_SUMMARIZATION_TOKEN_LIMIT });
     target.trigger = list;
     next.summarization = target;
     onChange(next);
@@ -286,7 +287,11 @@ export function SummarizationSection({
                 <Input
                   type="number"
                   step={triggerType === "fraction" ? "0.1" : "1"}
-                  placeholder={triggerType === "fraction" ? "0.8" : "4096"}
+                  placeholder={
+                    triggerType === "fraction"
+                      ? "0.8"
+                      : String(DEFAULT_SUMMARIZATION_TOKEN_LIMIT)
+                  }
                   value={asString(trigger.value)}
                   onChange={(event) =>
                     updateTrigger(

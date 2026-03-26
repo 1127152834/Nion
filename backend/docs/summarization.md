@@ -117,20 +117,20 @@ keep:
 
 #### `trim_tokens_to_summarize`
 - **Type**: Integer or null
-- **Default**: `4000`
+- **Default**: `20480`
 - **Description**: Maximum tokens to include when preparing messages for the summarization call itself. Set to `null` to skip trimming (not recommended for very long conversations).
 
 #### `summary_prompt`
 - **Type**: String or null
-- **Default**: `null` (uses LangChain's default prompt)
-- **Description**: Custom prompt template for generating summaries. The prompt should guide the model to extract the most important context.
+- **Default**: built-in Nion prompt
+- **Description**: Custom prompt template for generating summaries. The default Nion prompt emphasizes confirmed user choices, durable constraints, completed work, and remaining open questions.
 
 **Default Prompt Behavior:**
-The default LangChain prompt instructs the model to:
-- Extract highest quality/most relevant context
-- Focus on information critical to the overall goal
-- Avoid repeating completed actions
-- Return only the extracted context
+The built-in Nion prompt instructs the model to:
+- Preserve confirmed user decisions exactly
+- Preserve constraints, chosen technologies, and acceptance criteria
+- Preserve completed work and unresolved open questions
+- Avoid inventing requirements or claiming it covers newer preserved messages
 
 ## How It Works
 
@@ -229,7 +229,7 @@ The middleware intelligently preserves message context:
 
 3. **Trim strategically**: Limit tokens sent to summarization model
    ```yaml
-   trim_tokens_to_summarize: 4000  # Prevents expensive summarization calls
+   trim_tokens_to_summarize: 20480  # Larger compression window for higher-fidelity summaries
    ```
 
 4. **Monitor and iterate**: Track summary quality and adjust configuration

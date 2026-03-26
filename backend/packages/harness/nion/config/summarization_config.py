@@ -5,6 +5,36 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 ContextSizeType = Literal["fraction", "tokens", "messages"]
+DEFAULT_SUMMARIZATION_TOKENS = 20480
+DEFAULT_SUMMARY_PROMPT = """<role>
+Conversation Compression Assistant
+</role>
+
+<primary_objective>
+Compress older conversation history without losing user decisions, durable preferences, active constraints, or unresolved questions.
+</primary_objective>
+
+<critical_rules>
+- Treat explicit user choices as authoritative facts and preserve them exactly.
+- Preserve implementation constraints, chosen technologies, file targets, acceptance criteria, and anything the assistant has already completed.
+- Preserve unresolved ambiguities and pending decisions in a short checklist.
+- Do not claim the summary covers the most recent messages if they may still be preserved separately outside this summary.
+- Do not invent preferences, requirements, or completed work.
+</critical_rules>
+
+<output_format>
+Return only concise Markdown with these sections when relevant:
+- Goal
+- Confirmed decisions
+- Constraints
+- Completed work
+- Remaining open questions
+</output_format>
+
+<messages>
+Messages to summarize:
+{messages}
+</messages>"""
 
 
 class ContextSize(BaseModel):
@@ -30,7 +60,10 @@ class SummarizationConfig(BaseModel):
         description="Model name to use for summarization (None = use a lightweight model)",
     )
     trigger: ContextSize | list[ContextSize] | None = Field(
-        default=None,
+        default_factory=lambda: ContextSize(
+            type="tokens",
+            value=DEFAULT_SUMMARIZATION_TOKENS,
+        ),
         description="One or more thresholds that trigger summarization. When any threshold is met, summarization runs. "
         "Examples: {'type': 'messages', 'value': 50} triggers at 50 messages, "
         "{'type': 'tokens', 'value': 4000} triggers at 4000 tokens, "
@@ -44,12 +77,12 @@ class SummarizationConfig(BaseModel):
         "{'type': 'fraction', 'value': 0.3} keeps 30% of model's max input tokens",
     )
     trim_tokens_to_summarize: int | None = Field(
-        default=4000,
+        default=DEFAULT_SUMMARIZATION_TOKENS,
         description="Maximum tokens to keep when preparing messages for summarization. Pass null to skip trimming.",
     )
     summary_prompt: str | None = Field(
-        default=None,
-        description="Custom prompt template for generating summaries. If not provided, uses the default LangChain prompt.",
+        default=DEFAULT_SUMMARY_PROMPT,
+        description="Custom prompt template for generating summaries. If not provided, uses the default Nion prompt.",
     )
 
 
