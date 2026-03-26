@@ -15,6 +15,7 @@ from nion.agents.memory.prompt import (
 from nion.config.memory_config import get_memory_config
 from nion.config.paths import get_paths
 from nion.models import create_chat_model
+from nion.models.factory import resolve_model_name_with_fallback
 
 logger = logging.getLogger(__name__)
 
@@ -293,7 +294,9 @@ class MemoryUpdater:
     def _get_model(self):
         """Get the model for memory updates."""
         config = get_memory_config()
-        model_name = self._model_name or config.model_name
+        model_name = resolve_model_name_with_fallback(
+            self._model_name or config.model_name,
+        )
         return create_chat_model(name=model_name, thinking_enabled=False)
 
     def update_memory(self, messages: list[Any], thread_id: str | None = None, agent_name: str | None = None) -> bool:

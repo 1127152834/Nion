@@ -1017,7 +1017,7 @@ export const enUS: Translations = {
         subtitle:
           "Configure the model used for follow-up question suggestions.",
         model: "Model",
-        followCurrent: "Follow current chat model (default)",
+        useDefaultModel: "Use default model",
         current: "Current: {model}",
       },
       summarization: {

@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 class FeishuChannel(Channel):
     """Feishu/Lark IM channel using the ``lark-oapi`` WebSocket client.
 
-    Configuration keys (in ``config.yaml`` under ``channels.feishu``):
+    Configuration keys (in the Config Center ``channels.feishu`` section):
         - ``app_id``: Feishu app ID.
         - ``app_secret``: Feishu app secret.
         - ``verification_token``: (optional) Event verification token.

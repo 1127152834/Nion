@@ -969,7 +969,7 @@ export const zhCN: Translations = {
         title: "追问建议",
         subtitle: "配置聊天页追问建议的生成模型。",
         model: "模型",
-        followCurrent: "跟随当前会话模型（默认）",
+        useDefaultModel: "使用默认模型",
         current: "当前：{model}",
       },
       summarization: {

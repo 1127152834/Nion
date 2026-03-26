@@ -38,7 +38,7 @@ from nion.agents.lead_agent.agent import _build_middlewares
 from nion.agents.lead_agent.prompt import apply_prompt_template
 from nion.agents.thread_state import ThreadState
 from nion.config.agents_config import AGENT_NAME_PATTERN
-from nion.config.app_config import get_app_config, reload_app_config
+from nion.config.app_config import get_app_config
 from nion.config.extensions_config import ExtensionsConfig, SkillStateConfig, get_extensions_config, reload_extensions_config
 from nion.config.paths import get_paths
 from nion.model_management.service import get_model_registry_service
@@ -135,7 +135,6 @@ class NionClient:
 
     def __init__(
         self,
-        config_path: str | None = None,
         checkpointer=None,
         *,
         model_name: str | None = None,
@@ -149,7 +148,6 @@ class NionClient:
         Loads configuration but defers agent creation to first use.
 
         Args:
-            config_path: Path to config.yaml. Uses default resolution if None.
             checkpointer: LangGraph checkpointer instance for state persistence.
                 Required for multi-turn conversations on the same thread_id.
                 Without a checkpointer, each call is stateless.
@@ -159,8 +157,6 @@ class NionClient:
             plan_mode: Enable TodoList middleware for plan mode.
             agent_name: Name of the agent to use.
         """
-        if config_path is not None:
-            reload_app_config(config_path)
         self._app_config = get_app_config()
 
         if agent_name is not None and not AGENT_NAME_PATTERN.match(agent_name):

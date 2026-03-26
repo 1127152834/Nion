@@ -21,6 +21,7 @@ from nion.config.app_config import ensure_latest_app_config
 from nion.config.summarization_config import get_summarization_config
 from nion.model_management.service import get_model_registry_service
 from nion.models import create_chat_model
+from nion.models.factory import resolve_model_name_with_fallback
 
 logger = logging.getLogger(__name__)
 
@@ -73,7 +74,7 @@ def _create_summarization_middleware() -> SummarizationMiddleware | None:
 
     # Prepare model parameter
     if config.model_name:
-        model = config.model_name
+        model = resolve_model_name_with_fallback(config.model_name)
     else:
         # Use a lightweight model for summarization to save costs
         # Falls back to default model if not explicitly specified
@@ -252,10 +253,10 @@ def _build_middlewares(config: RunnableConfig, model_name: str | None, agent_nam
     middlewares.append(MemoryMiddleware(agent_name=agent_name))
     middlewares.append(RecallCaptureMiddleware(agent_name=agent_name or "lead_agent"))
     middlewares.append(ContinuityMiddleware())
+    app_config = get_app_config()
 
     # Add ViewImageMiddleware only if the current model supports vision.
     # Use the resolved runtime model_name from make_lead_agent to avoid stale config values.
-    app_config = get_app_config()
     registry = get_model_registry_service(app_config_provider=get_app_config)
     resolved_model = None
     try:
@@ -308,7 +309,6 @@ def make_lead_agent(config: RunnableConfig):
     # Final model name resolution with request override, then agent config, then global default
     model_name = requested_model_name or agent_model_name
 
-    app_config = get_app_config()
     registry = get_model_registry_service(app_config_provider=get_app_config)
     try:
         resolved_model = registry.resolve_model(model_name) if model_name else registry.get_default_model()

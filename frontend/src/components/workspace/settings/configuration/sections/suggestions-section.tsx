@@ -18,8 +18,10 @@ import {
   cloneConfig,
   type ConfigDraft,
 } from "../shared";
-
-const FOLLOW_CURRENT_CHAT_MODEL = "__follow_current_chat_model__";
+import {
+  DEFAULT_POLICY_MODEL_VALUE,
+  getPolicyModelSelectValue,
+} from "../../session-policy-model-selection";
 
 export function SuggestionsSection({
   config,
@@ -39,7 +41,6 @@ export function SuggestionsSection({
   const copy = settingsLike.configSections?.suggestions ?? {};
   const suggestions = asObject(config.suggestions);
   const selectedModel = asString(suggestions.model_name).trim();
-  const selectedValue = selectedModel || FOLLOW_CURRENT_CHAT_MODEL;
   const { models } = useModels();
 
   const modelOptions = useMemo(
@@ -57,19 +58,24 @@ export function SuggestionsSection({
         .filter((item) => item.name.length > 0),
     [models],
   );
+  const availableModelNames = modelOptions.map((item) => item.name);
+  const selectedValue = getPolicyModelSelectValue(
+    selectedModel,
+    availableModelNames,
+  );
 
   const selectedLabel = useMemo(() => {
-    if (selectedValue === FOLLOW_CURRENT_CHAT_MODEL) {
-      return copy.followCurrent ?? "Follow current chat model";
+    if (selectedValue === DEFAULT_POLICY_MODEL_VALUE) {
+      return copy.useDefaultModel ?? "Use default model";
     }
     const matched = modelOptions.find((item) => item.name === selectedValue);
     return matched?.label ?? selectedValue;
-  }, [copy.followCurrent, modelOptions, selectedValue]);
+  }, [copy.useDefaultModel, modelOptions, selectedValue]);
 
   const updateSuggestionsModel = (value: string) => {
     const next = cloneConfig(config);
     const target = asObject(next.suggestions);
-    if (value === FOLLOW_CURRENT_CHAT_MODEL) {
+    if (value === DEFAULT_POLICY_MODEL_VALUE) {
       delete target.model_name;
     } else {
       target.model_name = value;
@@ -96,8 +102,8 @@ export function SuggestionsSection({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={FOLLOW_CURRENT_CHAT_MODEL}>
-              {copy.followCurrent}
+            <SelectItem value={DEFAULT_POLICY_MODEL_VALUE}>
+              {copy.useDefaultModel}
             </SelectItem>
             {modelOptions.map((model) => (
               <SelectItem key={model.name} value={model.name}>

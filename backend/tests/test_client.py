@@ -82,14 +82,6 @@ class TestClientInit:
             with pytest.raises(ValueError, match="Invalid agent name"):
                 NionClient(agent_name="../path/traversal")
 
-    def test_custom_config_path(self, mock_app_config):
-        with (
-            patch("nion.client.reload_app_config") as mock_reload,
-            patch("nion.client.get_app_config", return_value=mock_app_config),
-        ):
-            NionClient(config_path="/tmp/custom.yaml")
-            mock_reload.assert_called_once_with("/tmp/custom.yaml")
-
     def test_checkpointer_stored(self, mock_app_config):
         cp = MagicMock()
         with patch("nion.client.get_app_config", return_value=mock_app_config):
@@ -437,7 +429,7 @@ class TestEnsureAgent:
         """_ensure_agent does not recreate if config key unchanged."""
         mock_agent = MagicMock()
         client._agent = mock_agent
-        client._agent_config_key = (None, True, False, False)
+        client._agent_config_key = (None, True, False, False, "workspace")
 
         config = client._get_runnable_config("t1")
         client._ensure_agent(config)
@@ -453,16 +445,20 @@ class TestEnsureAgent:
 
 class TestGetModel:
     def test_found(self, client):
-        model_cfg = MagicMock()
-        model_cfg.name = "test-model"
-        model_cfg.model = "test-model"
-        model_cfg.display_name = "Test Model"
-        model_cfg.description = "A test model"
-        model_cfg.supports_thinking = True
-        model_cfg.supports_reasoning_effort = True
-        client._app_config.get_model_config.return_value = model_cfg
+        resolved = MagicMock()
+        resolved.runtime_name = "test-model"
+        resolved.model.model_id = "test-model"
+        resolved.model.display_name = "Test Model"
+        resolved.runtime_model_config.description = "A test model"
+        resolved.runtime_model_config.supports_thinking = True
+        resolved.runtime_model_config.supports_reasoning_effort = True
+        resolved.runtime_model_config.supports_vision = False
+        registry = MagicMock()
+        registry.resolve_model.return_value = resolved
 
-        result = client.get_model("test-model")
+        with patch("nion.client.get_model_registry_service", return_value=registry):
+            result = client.get_model("test-model")
+
         assert result == {
             "name": "test-model",
             "model": "test-model",
@@ -470,11 +466,15 @@ class TestGetModel:
             "description": "A test model",
             "supports_thinking": True,
             "supports_reasoning_effort": True,
+            "supports_vision": False,
         }
 
     def test_not_found(self, client):
-        client._app_config.get_model_config.return_value = None
-        assert client.get_model("nonexistent") is None
+        registry = MagicMock()
+        registry.resolve_model.side_effect = ValueError("missing")
+
+        with patch("nion.client.get_model_registry_service", return_value=registry):
+            assert client.get_model("nonexistent") is None
 
 
 # ---------------------------------------------------------------------------

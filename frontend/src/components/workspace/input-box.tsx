@@ -1082,7 +1082,6 @@ export function InputBox({
       body: JSON.stringify({
         messages: recent,
         n: 3,
-        model_name: context.model_name ?? undefined,
       }),
       signal: controller.signal,
     })

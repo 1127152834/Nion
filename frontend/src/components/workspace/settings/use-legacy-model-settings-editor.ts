@@ -1,5 +1,6 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { cloneConfig, type ConfigDraft } from "./configuration/shared";
@@ -20,6 +21,7 @@ export function useLegacyModelSettingsEditor(
   options: UseLegacyModelSettingsEditorOptions = {},
 ) {
   const { prepareConfig } = options;
+  const queryClient = useQueryClient();
   const [initialConfig, setInitialConfig] = useState<ConfigDraft>({});
   const [draftConfig, setDraftConfig] = useState<ConfigDraft>({});
   const [isLoading, setIsLoading] = useState(true);
@@ -63,6 +65,11 @@ export function useLegacyModelSettingsEditor(
     setSaving(true);
     try {
       await saveLegacyModelSettingsDraft(prepared);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["model-admin", "providers"] }),
+        queryClient.invalidateQueries({ queryKey: ["model-admin", "bindings"] }),
+        queryClient.invalidateQueries({ queryKey: ["models"] }),
+      ]);
       const reloaded = await loadLegacyModelSettingsDraft();
       setInitialConfig(cloneConfig(reloaded));
       setDraftConfig(cloneConfig(reloaded));
@@ -73,7 +80,7 @@ export function useLegacyModelSettingsEditor(
     } finally {
       setSaving(false);
     }
-  }, [draftConfig, prepareConfig]);
+  }, [draftConfig, prepareConfig, queryClient]);
 
   return {
     draftConfig,

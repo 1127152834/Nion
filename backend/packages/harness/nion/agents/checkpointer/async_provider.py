@@ -94,7 +94,7 @@ async def make_checkpointer() -> AsyncIterator[Checkpointer]:
         async with make_checkpointer() as checkpointer:
             app.state.checkpointer = checkpointer
 
-    Yields an ``InMemorySaver`` when no checkpointer is configured in *config.yaml*.
+    Yields an ``InMemorySaver`` when no checkpointer is configured in the Config Center.
     """
 
     config = get_app_config()

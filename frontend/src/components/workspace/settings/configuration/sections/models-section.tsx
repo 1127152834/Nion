@@ -484,6 +484,7 @@ function mapProviderModelOptionToConfig(
 type ProviderPanelView = "list" | "create" | "edit";
 type ModelPanelView = "list" | "create" | "edit";
 type ProviderDetailView = "details" | "models";
+type ModelViewContext = "global" | "provider";
 
 type ProviderDraft = {
   name: string;
@@ -630,6 +631,7 @@ export function ModelsSection({
   const [loadingCatalogProviderId, setLoadingCatalogProviderId] = useState<string | null>(null);
 
   const [providerDetailView, setProviderDetailView] = useState<ProviderDetailView>("details");
+  const [modelViewContext, setModelViewContext] = useState<ModelViewContext>("global");
   const [modelAdvancedOpen, setModelAdvancedOpen] = useState<Record<number, boolean>>({});
   const [modelIdPickerOpen, setModelIdPickerOpen] = useState<Record<number, boolean>>({});
   const [modelIdSearch, setModelIdSearch] = useState<Record<number, string>>({});
@@ -957,8 +959,18 @@ export function ModelsSection({
 
   useEffect(() => {
     setProviderDetailView("details");
+    setModelViewContext("global");
     setProviderModelDialogOpen(false);
-  }, [providerPanelView, selectedProviderId, view]);
+  }, [providerPanelView, selectedProviderId]);
+
+  useEffect(() => {
+    if (view !== "providers" || modelViewContext !== "provider") {
+      return;
+    }
+    setProviderDetailView("details");
+    setModelViewContext("global");
+    setProviderModelDialogOpen(false);
+  }, [modelViewContext, view]);
 
   useEffect(() => {
     if (providerPanelView === "create") {
@@ -1884,7 +1896,7 @@ export function ModelsSection({
     );
   };
 
-  const renderEditProviderDetail = () => {
+  const renderSelectedProviderModelsPanel = () => {
     if (!selectedProvider || selectedProviderIndex < 0) {
       return (
         <section className="rounded-xl border bg-card p-4 text-sm text-muted-foreground">
@@ -1896,8 +1908,6 @@ export function ModelsSection({
     const providerId = asString(selectedProvider.id).trim();
     const providerName = asString(selectedProvider.name).trim() || providerId;
     const protocol = getProviderProtocol(selectedProvider);
-    const feedback = providerFeedback[providerId];
-    const isTesting = testingProviderKey === providerId;
     const providerModelEntries = models
       .map((model, index) => ({ model, index }))
       .filter(({ model }) => asString(model.provider_id).trim() === providerId);
@@ -1993,35 +2003,55 @@ export function ModelsSection({
       </section>
     );
 
-    if (providerDetailView === "models") {
-      return (
-        <section className="space-y-4 rounded-xl border bg-card p-4">
-          <Button
-            size="sm"
-            variant="ghost"
-            className="w-fit"
-            onClick={() => {
-              setProviderDetailView("details");
-              setProviderModelDialogOpen(false);
-            }}
-            disabled={disabled}
-          >
-            <ArrowLeftIcon className="size-4" />
-            {copy.backToProviderDetail}
-          </Button>
+    return (
+      <section className="space-y-4 rounded-xl border bg-card p-4">
+        <Button
+          size="sm"
+          variant="ghost"
+          className="w-fit"
+          onClick={() => {
+            setProviderDetailView("details");
+            setModelViewContext("global");
+            setProviderModelDialogOpen(false);
+            onViewChange?.("providers");
+          }}
+          disabled={disabled}
+        >
+          <ArrowLeftIcon className="size-4" />
+          {copy.backToProviderDetail}
+        </Button>
 
-          <div className="flex items-center justify-between gap-2">
-            <div className="space-y-1">
-              <div className="text-sm font-semibold">{copy.providerModelsTitle}</div>
-              <div className="text-muted-foreground text-xs">{providerName}</div>
-            </div>
-            <Badge variant="outline">{protocolLabel(protocol, isZh)}</Badge>
+        <div className="flex items-center justify-between gap-2">
+          <div className="space-y-1">
+            <div className="text-sm font-semibold">{copy.providerModelsTitle}</div>
+            <div className="text-muted-foreground text-xs">{providerName}</div>
           </div>
+          <Badge variant="outline">{protocolLabel(protocol, isZh)}</Badge>
+        </div>
 
-          {renderProviderModelsLayer()}
+        {renderProviderModelsLayer()}
+      </section>
+    );
+  };
+
+  const renderEditProviderDetail = () => {
+    if (!selectedProvider || selectedProviderIndex < 0) {
+      return (
+        <section className="rounded-xl border bg-card p-4 text-sm text-muted-foreground">
+          {copy.noProvider}
         </section>
       );
     }
+
+    if (providerDetailView === "models") {
+      return renderSelectedProviderModelsPanel();
+    }
+
+    const protocol = getProviderProtocol(selectedProvider);
+    const providerId = asString(selectedProvider.id).trim();
+    const providerName = asString(selectedProvider.name).trim() || providerId;
+    const feedback = providerFeedback[providerId];
+    const isTesting = testingProviderKey === providerId;
 
     return (
       <section className="space-y-4 rounded-xl border bg-card p-4">
@@ -2185,10 +2215,12 @@ export function ModelsSection({
             variant="outline"
             onClick={() => {
               setProviderDetailView("models");
+              setModelViewContext("provider");
               setProviderModelDialogOpen(false);
               setCatalogSelectedProviderId(providerId);
               setCatalogSelectedModelIds([]);
               setCatalogSearch("");
+              onViewChange?.("models");
             }}
             disabled={disabled}
           >
@@ -2996,10 +3028,20 @@ export function ModelsSection({
     </section>
   );
 
+  const shouldRenderProviderModelContext =
+    view === "models"
+    && modelViewContext === "provider"
+    && providerPanelView === "edit"
+    && selectedProvider !== null;
+
   return (
     <div className="space-y-6">
       {view === "providers" ? renderProviderSection() : null}
-      {view === "models" ? renderModelSection() : null}
+      {view === "models"
+        ? shouldRenderProviderModelContext
+          ? renderSelectedProviderModelsPanel()
+          : renderModelSection()
+        : null}
       <ConfirmActionDialog
         open={pendingDeleteAction !== null}
         onOpenChange={(open) => {

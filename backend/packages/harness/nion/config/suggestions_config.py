@@ -8,7 +8,7 @@ class SuggestionsConfig(BaseModel):
 
     model_name: str | None = Field(
         default=None,
-        description="Global model override for follow-up suggestions (None = use request fallback)",
+        description="Global model override for follow-up suggestions (None = use default model)",
     )
 
 

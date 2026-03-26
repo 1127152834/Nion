@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 class TelegramChannel(Channel):
     """Telegram bot channel using long-polling.
 
-    Configuration keys (in ``config.yaml`` under ``channels.telegram``):
+    Configuration keys (in the Config Center ``channels.telegram`` section):
         - ``bot_token``: Telegram Bot API token (from @BotFather).
         - ``allowed_users``: (optional) List of allowed Telegram user IDs. Empty = allow all.
     """

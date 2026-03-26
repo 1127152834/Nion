@@ -1,81 +1,72 @@
 from __future__ import annotations
 
 import json
-import os
-from pathlib import Path
 
-import yaml
+import pytest
 
-from nion.config.app_config import get_app_config, reset_app_config
-
-
-def _write_config(path: Path, *, model_name: str, supports_thinking: bool) -> None:
-    path.write_text(
-        yaml.safe_dump(
-            {
-                "sandbox": {"use": "nion.sandbox.local:LocalSandboxProvider"},
-                "models": [
-                    {
-                        "name": model_name,
-                        "use": "langchain_openai:ChatOpenAI",
-                        "model": "gpt-test",
-                        "supports_thinking": supports_thinking,
-                    }
-                ],
-            }
-        ),
-        encoding="utf-8",
-    )
+from nion.config.app_config import ensure_latest_app_config, reload_app_config, reset_app_config
+from nion.config.config_repository import ConfigRepository
+from nion.config.extensions_config import reset_extensions_config
 
 
-def _write_extensions_config(path: Path) -> None:
+def _write_extensions_config(path) -> None:
     path.write_text(json.dumps({"mcpServers": {}, "skills": {}}), encoding="utf-8")
 
 
-def test_get_app_config_reloads_when_file_changes(tmp_path, monkeypatch):
-    config_path = tmp_path / "config.yaml"
+def test_get_app_config_reloads_when_store_changes(tmp_path, monkeypatch):
+    db_path = tmp_path / "config.db"
     extensions_path = tmp_path / "extensions_config.json"
     _write_extensions_config(extensions_path)
-    _write_config(config_path, model_name="first-model", supports_thinking=False)
 
-    monkeypatch.setenv("NION_CONFIG_PATH", str(config_path))
+    monkeypatch.setenv("NION_CONFIG_DB_PATH", str(db_path))
     monkeypatch.setenv("NION_EXTENSIONS_CONFIG_PATH", str(extensions_path))
     reset_app_config()
+    reset_extensions_config()
 
     try:
-        initial = get_app_config()
+        repository = ConfigRepository()
+        config, version, _ = repository.read()
+        config["models"] = [
+            {
+                "name": "first-model",
+                "use": "langchain_openai:ChatOpenAI",
+                "model": "gpt-test",
+                "supports_thinking": False,
+            }
+        ]
+        repository.write(config, version)
+
+        initial = ensure_latest_app_config()
         assert initial.models[0].supports_thinking is False
 
-        _write_config(config_path, model_name="first-model", supports_thinking=True)
-        next_mtime = config_path.stat().st_mtime + 5
-        os.utime(config_path, (next_mtime, next_mtime))
+        config, version, _ = repository.read()
+        config["models"][0]["supports_thinking"] = True
+        repository.write(config, version)
 
-        reloaded = get_app_config()
+        reloaded = ensure_latest_app_config()
         assert reloaded.models[0].supports_thinking is True
         assert reloaded is not initial
     finally:
         reset_app_config()
+        reset_extensions_config()
 
 
-def test_get_app_config_reloads_when_config_path_changes(tmp_path, monkeypatch):
-    config_a = tmp_path / "config-a.yaml"
-    config_b = tmp_path / "config-b.yaml"
+def test_reload_app_config_rejects_legacy_config_path(tmp_path, monkeypatch):
+    db_path = tmp_path / "config.db"
     extensions_path = tmp_path / "extensions_config.json"
     _write_extensions_config(extensions_path)
-    _write_config(config_a, model_name="model-a", supports_thinking=False)
-    _write_config(config_b, model_name="model-b", supports_thinking=True)
 
+    monkeypatch.setenv("NION_CONFIG_DB_PATH", str(db_path))
     monkeypatch.setenv("NION_EXTENSIONS_CONFIG_PATH", str(extensions_path))
-    monkeypatch.setenv("NION_CONFIG_PATH", str(config_a))
     reset_app_config()
+    reset_extensions_config()
 
     try:
-        first = get_app_config()
-        assert first.models[0].name == "model-a"
-
-        monkeypatch.setenv("NION_CONFIG_PATH", str(config_b))
-        second = get_app_config()
-        assert second.models[0].name == "model-b"
-        assert second is not first
+        with pytest.raises(
+            ValueError,
+            match="config_path is no longer supported",
+        ):
+            reload_app_config("/tmp/config.yaml")
     finally:
         reset_app_config()
+        reset_extensions_config()

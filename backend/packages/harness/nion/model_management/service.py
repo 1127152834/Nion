@@ -12,7 +12,6 @@ from nion.config.model_config import ModelConfig
 from nion.model_management.crypto import decrypt_provider_secret, get_model_management_secret
 from nion.model_management.import_legacy import LegacyModelConfigImporter
 from nion.model_management.models import (
-    ModelBinding,
     ProviderInstance,
     ProviderModel,
     ProviderProtocol,
@@ -218,8 +217,6 @@ class ModelRegistryService:
             payload["api_base"] = api_base
         if model.max_output_tokens is not None and "max_tokens" not in payload:
             payload["max_tokens"] = model.max_output_tokens
-        if model.context_window is not None and "context_window" not in payload:
-            payload["context_window"] = model.context_window
 
         return ResolvedRuntimeModel(
             runtime_name=runtime_name,

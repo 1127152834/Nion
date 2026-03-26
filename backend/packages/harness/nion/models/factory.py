@@ -12,9 +12,61 @@ from nion.reflection import resolve_class
 
 logger = logging.getLogger(__name__)
 
+RUNTIME_METADATA_FIELDS = {
+    "context_window",
+}
+
 
 def get_app_config():
     return ensure_latest_app_config(process_name="langgraph")
+
+
+def resolve_model_name_with_fallback(
+    requested_name: str | None = None,
+    fallback_name: str | None = None,
+) -> str:
+    """Resolve a runtime model name, falling back to a valid default when stale."""
+    registry = get_model_registry_service(app_config_provider=get_app_config)
+    default_name = registry.get_default_model().runtime_name
+
+    def _normalize(value: str | None) -> str | None:
+        if value is None:
+            return None
+        stripped = value.strip()
+        return stripped or None
+
+    def _resolve(value: str | None) -> str | None:
+        normalized = _normalize(value)
+        if normalized is None:
+            return None
+        try:
+            return registry.resolve_model(normalized).runtime_name
+        except ValueError:
+            return None
+
+    normalized_requested = _normalize(requested_name)
+    resolved_requested = _resolve(normalized_requested)
+    if resolved_requested is not None:
+        return resolved_requested
+
+    normalized_fallback = _normalize(fallback_name)
+    resolved_fallback = _resolve(normalized_fallback)
+    if resolved_fallback is not None:
+        if normalized_requested is not None and normalized_requested != resolved_fallback:
+            logger.warning(
+                "Runtime model '%s' not found; falling back to '%s'.",
+                normalized_requested,
+                resolved_fallback,
+            )
+        return resolved_fallback
+
+    if normalized_requested is not None and normalized_requested != default_name:
+        logger.warning(
+            "Runtime model '%s' not found; falling back to default model '%s'.",
+            normalized_requested,
+            default_name,
+        )
+    return default_name
 
 
 def create_chat_model(name: str | None = None, thinking_enabled: bool = False, **kwargs) -> BaseChatModel:
@@ -47,6 +99,13 @@ def create_chat_model(name: str | None = None, thinking_enabled: bool = False, *
             "supports_video",
         },
     )
+    if "api_base" in model_settings_from_config:
+        api_base = model_settings_from_config.pop("api_base")
+        if "base_url" not in model_settings_from_config:
+            model_settings_from_config["base_url"] = api_base
+    for field_name in RUNTIME_METADATA_FIELDS:
+        model_settings_from_config.pop(field_name, None)
+
     # Compute effective when_thinking_enabled by merging in the `thinking` shortcut field.
     # The `thinking` shortcut is equivalent to setting when_thinking_enabled["thinking"].
     has_thinking_settings = (model_config.when_thinking_enabled is not None) or (model_config.thinking is not None)
@@ -56,7 +115,9 @@ def create_chat_model(name: str | None = None, thinking_enabled: bool = False, *
         effective_wte = {**effective_wte, "thinking": merged_thinking}
     if thinking_enabled and has_thinking_settings:
         if not model_config.supports_thinking:
-            raise ValueError(f"Model {name} does not support thinking. Set `supports_thinking` to true in the `config.yaml` to enable thinking.") from None
+            raise ValueError(
+                f"Model {name} does not support thinking. Enable `supports_thinking` in the Config Center model settings."
+            ) from None
         if effective_wte:
             model_settings_from_config.update(effective_wte)
     if not thinking_enabled and has_thinking_settings:

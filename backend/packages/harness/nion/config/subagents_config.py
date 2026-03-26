@@ -1,4 +1,4 @@
-"""Configuration for the subagent system loaded from config.yaml."""
+"""Configuration for the subagent system loaded from the Config Center."""
 
 import logging
 

@@ -37,7 +37,7 @@ _CHANNEL_REGISTRY: dict[str, str] = {
 class ChannelService:
     """Manages the lifecycle of all configured IM channels.
 
-    Reads configuration from ``config.yaml`` under the ``channels`` key,
+    Reads configuration from the Config Center ``channels`` section,
     instantiates enabled channels, and starts the ChannelManager dispatcher.
     """
 

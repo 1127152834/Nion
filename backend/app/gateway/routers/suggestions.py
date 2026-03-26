@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 
 from nion.config.suggestions_config import get_suggestions_config
 from nion.models import create_chat_model
+from nion.models.factory import resolve_model_name_with_fallback
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +21,7 @@ class SuggestionMessage(BaseModel):
 class SuggestionsRequest(BaseModel):
     messages: list[SuggestionMessage] = Field(..., description="Recent conversation messages")
     n: int = Field(default=3, ge=1, le=5, description="Number of suggestions to generate")
-    model_name: str | None = Field(default=None, description="Optional model override")
+    model_name: str | None = Field(default=None, description="Deprecated request override")
 
 
 class SuggestionsResponse(BaseModel):
@@ -122,7 +123,7 @@ async def generate_suggestions(thread_id: str, request: SuggestionsRequest) -> S
 
     try:
         configured_model_name = (get_suggestions_config().model_name or "").strip()
-        model_name = configured_model_name or request.model_name
+        model_name = resolve_model_name_with_fallback(configured_model_name or None)
         model = create_chat_model(name=model_name, thinking_enabled=False)
         response = model.invoke(prompt)
         raw = _extract_response_text(response.content)

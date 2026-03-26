@@ -1,6 +1,7 @@
 "use client";
 
 import { useI18n } from "@/core/i18n/hooks";
+import { useModels } from "@/core/models/hooks";
 
 import { ConfigValidationErrors } from "./config-validation-errors";
 import { ConfigSaveBar } from "./configuration/config-save-bar";
@@ -8,11 +9,14 @@ import { SubagentsSection } from "./configuration/sections/subagents-section";
 import { SuggestionsSection } from "./configuration/sections/suggestions-section";
 import { SummarizationSection } from "./configuration/sections/summarization-section";
 import { TitleSection } from "./configuration/sections/title-section";
+import { normalizeSessionPolicyConfig } from "./session-policy-model-selection";
 import { SettingsSection } from "./settings-section";
 import { useConfigEditor } from "./use-config-editor";
 
 export function SessionPolicySettingsPage() {
   const { t } = useI18n();
+  const { models } = useModels();
+  const availableModelNames = models.map((model) => model.name.trim());
   const {
     draftConfig,
     validationErrors,
@@ -25,7 +29,10 @@ export function SessionPolicySettingsPage() {
     onConfigChange,
     onDiscard,
     onSave,
-  } = useConfigEditor();
+  } = useConfigEditor({
+    prepareConfig: (config) =>
+      normalizeSessionPolicyConfig(config, availableModelNames),
+  });
 
   return (
     <SettingsSection

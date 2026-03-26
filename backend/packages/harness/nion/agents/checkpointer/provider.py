@@ -114,7 +114,7 @@ _checkpointer_ctx = None  # open context manager keeping the connection alive
 def get_checkpointer() -> Checkpointer:
     """Return the global sync checkpointer singleton, creating it on first call.
 
-    Returns an ``InMemorySaver`` when no checkpointer is configured in *config.yaml*.
+    Returns an ``InMemorySaver`` when no checkpointer is configured in the Config Center.
 
     Raises:
         ImportError: If the required package for the configured backend is not installed.
@@ -126,8 +126,8 @@ def get_checkpointer() -> Checkpointer:
         return _checkpointer
 
     # Ensure app config is loaded before checking checkpointer config
-    # This prevents returning InMemorySaver when config.yaml actually has a checkpointer section
-    # but hasn't been loaded yet
+    # This prevents returning InMemorySaver when the Config Center already has a
+    # checkpointer section but the singleton has not been hydrated yet.
     from nion.config.app_config import _app_config
     from nion.config.checkpointer_config import get_checkpointer_config
 
@@ -135,14 +135,8 @@ def get_checkpointer() -> Checkpointer:
 
     if config is None and _app_config is None:
         # Only load app config lazily when neither the app config nor an explicit
-        # checkpointer config has been initialized yet. This keeps tests that
-        # intentionally set the global checkpointer config isolated from any
-        # ambient config.yaml on disk.
-        try:
-            get_app_config()
-        except FileNotFoundError:
-            # In test environments without config.yaml, this is expected.
-            pass
+        # checkpointer config has been initialized yet.
+        get_app_config()
         config = get_checkpointer_config()
     if config is None:
         from langgraph.checkpoint.memory import InMemorySaver

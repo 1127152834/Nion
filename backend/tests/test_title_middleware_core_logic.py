@@ -78,6 +78,10 @@ class TestTitleMiddlewareCoreLogic:
         middleware = TitleMiddleware()
         fake_model = MagicMock()
         fake_model.ainvoke = AsyncMock(return_value=MagicMock(content='"A very long generated title"'))
+        monkeypatch.setattr(
+            "nion.agents.middlewares.title_middleware.resolve_model_name_with_fallback",
+            lambda model_name=None: "default-model",
+        )
         monkeypatch.setattr("nion.agents.middlewares.title_middleware.create_chat_model", lambda **kwargs: fake_model)
 
         state = {
@@ -99,6 +103,10 @@ class TestTitleMiddlewareCoreLogic:
         fake_model = MagicMock()
         fake_model.ainvoke = AsyncMock(
             return_value=MagicMock(content=[{"type": "text", "text": '"结构总结"'}]),
+        )
+        monkeypatch.setattr(
+            "nion.agents.middlewares.title_middleware.resolve_model_name_with_fallback",
+            lambda model_name=None: "default-model",
         )
         monkeypatch.setattr(
             "nion.agents.middlewares.title_middleware.create_chat_model",
@@ -129,6 +137,10 @@ class TestTitleMiddlewareCoreLogic:
         middleware = TitleMiddleware()
         fake_model = MagicMock()
         fake_model.ainvoke = AsyncMock(side_effect=RuntimeError("LLM unavailable"))
+        monkeypatch.setattr(
+            "nion.agents.middlewares.title_middleware.resolve_model_name_with_fallback",
+            lambda model_name=None: "default-model",
+        )
         monkeypatch.setattr("nion.agents.middlewares.title_middleware.create_chat_model", lambda **kwargs: fake_model)
 
         state = {
@@ -143,6 +155,25 @@ class TestTitleMiddlewareCoreLogic:
         # Assert behavior (truncated fallback + ellipsis) without overfitting exact text.
         assert title.endswith("...")
         assert title.startswith("这是一个非常长的问题描述")
+
+    def test_generate_title_fallback_when_policy_model_name_is_stale(self, monkeypatch):
+        _set_test_title_config(max_chars=24, model_name="missing-model")
+        middleware = TitleMiddleware()
+        monkeypatch.setattr(
+            "nion.agents.middlewares.title_middleware.resolve_model_name_with_fallback",
+            MagicMock(side_effect=ValueError("missing-model")),
+        )
+
+        state = {
+            "messages": [
+                HumanMessage(content="标题模型失效也要回退默认标题"),
+                AIMessage(content="主回复已经成功"),
+            ]
+        }
+        result = asyncio.run(middleware._agenerate_title_result(state))
+        title = result["title"]
+
+        assert title.startswith("标题模型失效也要回退默认标题")
 
     def test_aafter_model_delegates_to_async_helper(self, monkeypatch):
         middleware = TitleMiddleware()
@@ -170,6 +201,10 @@ class TestTitleMiddlewareCoreLogic:
         middleware = TitleMiddleware()
         fake_model = MagicMock()
         fake_model.invoke = MagicMock(return_value=MagicMock(content='"同步生成的标题"'))
+        monkeypatch.setattr(
+            "nion.agents.middlewares.title_middleware.resolve_model_name_with_fallback",
+            lambda model_name=None: "default-model",
+        )
         monkeypatch.setattr("nion.agents.middlewares.title_middleware.create_chat_model", lambda **kwargs: fake_model)
 
         state = {
@@ -188,6 +223,10 @@ class TestTitleMiddlewareCoreLogic:
         middleware = TitleMiddleware()
         fake_model = MagicMock()
         fake_model.invoke = MagicMock(return_value=MagicMock(content="   "))
+        monkeypatch.setattr(
+            "nion.agents.middlewares.title_middleware.resolve_model_name_with_fallback",
+            lambda model_name=None: "default-model",
+        )
         monkeypatch.setattr("nion.agents.middlewares.title_middleware.create_chat_model", lambda **kwargs: fake_model)
 
         state = {

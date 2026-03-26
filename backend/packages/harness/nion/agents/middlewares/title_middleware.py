@@ -9,6 +9,7 @@ from langgraph.runtime import Runtime
 
 from nion.config.title_config import get_title_config
 from nion.models import create_chat_model
+from nion.models.factory import resolve_model_name_with_fallback
 
 logger = logging.getLogger(__name__)
 
@@ -107,9 +108,10 @@ class TitleMiddleware(AgentMiddleware[TitleMiddlewareState]):
 
         prompt, user_msg = self._build_title_prompt(state)
         config = get_title_config()
-        model = create_chat_model(name=config.model_name, thinking_enabled=False)
 
         try:
+            model_name = resolve_model_name_with_fallback(config.model_name)
+            model = create_chat_model(name=model_name, thinking_enabled=False)
             response = model.invoke(prompt)
             title = self._parse_title(response.content)
             if not title:
@@ -127,9 +129,10 @@ class TitleMiddleware(AgentMiddleware[TitleMiddlewareState]):
 
         prompt, user_msg = self._build_title_prompt(state)
         config = get_title_config()
-        model = create_chat_model(name=config.model_name, thinking_enabled=False)
 
         try:
+            model_name = resolve_model_name_with_fallback(config.model_name)
+            model = create_chat_model(name=model_name, thinking_enabled=False)
             response = await model.ainvoke(prompt)
             title = self._parse_title(response.content)
             if not title:

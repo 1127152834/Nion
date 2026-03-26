@@ -29,9 +29,12 @@ import {
   cloneConfig,
   type ConfigDraft,
 } from "../shared";
+import {
+  DEFAULT_POLICY_MODEL_VALUE,
+  getPolicyModelSelectValue,
+} from "../../session-policy-model-selection";
 
 type ContextSizeType = "tokens" | "messages" | "fraction";
-const DEFAULT_MODEL_VALUE = "__default_model__";
 
 function normalizeTriggerList(value: unknown): Record<string, unknown>[] {
   if (Array.isArray(value)) {
@@ -99,6 +102,11 @@ export function SummarizationSection({
         }))
         .filter((item) => item.name.length > 0),
     [models],
+  );
+  const availableModelNames = modelOptions.map((item) => item.name);
+  const selectedValue = getPolicyModelSelectValue(
+    selectedModel,
+    availableModelNames,
   );
 
   const triggerTypeLabel: Record<ContextSizeType, string> = {
@@ -200,11 +208,11 @@ export function SummarizationSection({
       <div className="space-y-1.5">
         <div className="text-xs font-medium">{copy.model}</div>
         <Select
-          value={selectedModel || DEFAULT_MODEL_VALUE}
+          value={selectedValue}
           onValueChange={(value) =>
             updateSummarization(
               "model_name",
-              value === DEFAULT_MODEL_VALUE ? "" : value,
+              value === DEFAULT_POLICY_MODEL_VALUE ? "" : value,
             )
           }
         >
@@ -212,7 +220,7 @@ export function SummarizationSection({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={DEFAULT_MODEL_VALUE}>
+            <SelectItem value={DEFAULT_POLICY_MODEL_VALUE}>
               {copy.useDefaultModel}
             </SelectItem>
             {modelOptions.map((model) => (

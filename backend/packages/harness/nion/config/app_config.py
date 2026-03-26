@@ -6,7 +6,6 @@ import time
 from pathlib import Path
 from typing import Any, Self
 
-import yaml
 from dotenv import load_dotenv
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -96,35 +95,6 @@ class AppConfig(BaseModel):
     checkpointer: CheckpointerConfig | None = Field(default=None, description="Checkpointer configuration")
 
     @classmethod
-    def resolve_config_path(cls, config_path: str | None = None) -> Path:
-        """Resolve the config file path.
-
-        Priority:
-        1. If provided `config_path` argument, use it.
-        2. If provided `NION_CONFIG_PATH` environment variable, use it.
-        3. Otherwise, first check the `config.yaml` in the current directory, then fallback to `config.yaml` in the parent directory.
-        """
-        if config_path:
-            path = Path(config_path)
-            if not Path.exists(path):
-                raise FileNotFoundError(f"Config file specified by param `config_path` not found at {path}")
-            return path
-        elif os.getenv("NION_CONFIG_PATH"):
-            path = Path(os.getenv("NION_CONFIG_PATH"))
-            if not Path.exists(path):
-                raise FileNotFoundError(f"Config file specified by environment variable `NION_CONFIG_PATH` not found at {path}")
-            return path
-        else:
-            # Check if the config.yaml is in the current directory
-            path = Path(os.getcwd()) / "config.yaml"
-            if not path.exists():
-                # Check if the config.yaml is in the parent directory of CWD
-                path = Path(os.getcwd()).parent / "config.yaml"
-                if not path.exists():
-                    raise FileNotFoundError("`config.yaml` file not found at the current directory nor its parent directory")
-            return path
-
-    @classmethod
     def _hydrate_auxiliary_configs(cls, config_data: dict[str, Any]) -> None:
         """Load singleton sub-configs from the config payload."""
         load_title_config_from_dict(config_data.get("title") or {})
@@ -165,19 +135,6 @@ class AppConfig(BaseModel):
         return cls.model_validate(resolved_payload)
 
     @classmethod
-    def from_file(cls, config_path: str | None = None, *, strict_env: bool = False) -> Self:
-        """Load config directly from YAML (legacy escape hatch)."""
-        resolved_path = cls.resolve_config_path(config_path)
-        with open(resolved_path, encoding="utf-8") as f:
-            config_data = yaml.safe_load(f) or {}
-
-        if not isinstance(config_data, dict):
-            raise ValueError("Config file root must be a mapping object")
-
-        cls._check_config_version(config_data, resolved_path)
-        return cls._validate_payload(config_data, strict_env=strict_env)
-
-    @classmethod
     def from_store_with_meta(cls, *, strict_env: bool = False) -> tuple[Self, str, Path]:
         """Load config from the SQLite config center."""
         store = create_config_store()
@@ -191,83 +148,6 @@ class AppConfig(BaseModel):
     def from_store(cls, *, strict_env: bool = False) -> Self:
         config, _, _ = cls.from_store_with_meta(strict_env=strict_env)
         return config
-
-    @classmethod
-    def from_store_or_file_with_meta(
-        cls,
-        config_path: str | None = None,
-        *,
-        strict_env: bool = False,
-    ) -> tuple[Self, str | None, Path | None, str]:
-        """Load config from store first, with minimal legacy fallback."""
-        store = create_config_store()
-
-        if store.exists():
-            try:
-                config, version, source_path = cls.from_store_with_meta(
-                    strict_env=strict_env
-                )
-                return config, version, source_path, "sqlite"
-            except Exception as exc:  # noqa: BLE001
-                raise RuntimeError(f"Config store exists but failed to load: {exc}") from exc
-
-        config, version, source_path = cls.from_store_with_meta(strict_env=strict_env)
-        return config, version, source_path, "sqlite"
-
-    @classmethod
-    def from_store_or_file(
-        cls, config_path: str | None = None, *, strict_env: bool = False
-    ) -> Self:
-        config, _, _, _ = cls.from_store_or_file_with_meta(
-            config_path, strict_env=strict_env
-        )
-        return config
-
-    @classmethod
-    def _check_config_version(cls, config_data: dict, config_path: Path) -> None:
-        """Check if the user's config.yaml is outdated compared to config.example.yaml.
-
-        Emits a warning if the user's config_version is lower than the example's.
-        Missing config_version is treated as version 0 (pre-versioning).
-        """
-        try:
-            user_version = int(config_data.get("config_version", 0))
-        except (TypeError, ValueError):
-            user_version = 0
-
-        # Find config.example.yaml by searching config.yaml's directory and its parents
-        example_path = None
-        search_dir = config_path.parent
-        for _ in range(5):  # search up to 5 levels
-            candidate = search_dir / "config.example.yaml"
-            if candidate.exists():
-                example_path = candidate
-                break
-            parent = search_dir.parent
-            if parent == search_dir:
-                break
-            search_dir = parent
-        if example_path is None:
-            return
-
-        try:
-            with open(example_path, encoding="utf-8") as f:
-                example_data = yaml.safe_load(f)
-            raw = example_data.get("config_version", 0) if example_data else 0
-            try:
-                example_version = int(raw)
-            except (TypeError, ValueError):
-                example_version = 0
-        except Exception:
-            return
-
-        if user_version < example_version:
-            logger.warning(
-                "Your config.yaml (version %d) is outdated — the latest version is %d. "
-                "Run `make config-upgrade` to merge new fields into your config.",
-                user_version,
-                example_version,
-            )
 
     @classmethod
     def resolve_env_variables(cls, config: Any, *, strict: bool = True) -> Any:
@@ -462,17 +342,20 @@ def _set_cached_config(
 def _load_and_cache(
     config_path: str | None = None, *, process_name: str | None = None
 ) -> AppConfig:
+    if config_path is not None:
+        raise ValueError(
+            "config_path is no longer supported; main app config loads from SQLite Config Center only"
+        )
     process = _detect_process_name(process_name)
     try:
-        config, version, source_path, source_kind = AppConfig.from_store_or_file_with_meta(
-            config_path,
-            strict_env=False,
+        config, version, source_path = AppConfig.from_store_with_meta(
+            strict_env=False
         )
         return _set_cached_config(
             config,
             version=version,
             source_path=source_path,
-            source_kind=source_kind,
+            source_kind="sqlite",
             process_name=process,
         )
     except Exception as exc:  # noqa: BLE001

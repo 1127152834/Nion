@@ -19,7 +19,7 @@ _slack_md_converter = SlackMarkdownConverter()
 class SlackChannel(Channel):
     """Slack IM channel using Socket Mode (WebSocket, no public IP).
 
-    Configuration keys (in ``config.yaml`` under ``channels.slack``):
+    Configuration keys (in the Config Center ``channels.slack`` section):
         - ``bot_token``: Slack Bot User OAuth Token (xoxb-...).
         - ``app_token``: Slack App-Level Token (xapp-...) for Socket Mode.
         - ``allowed_users``: (optional) List of allowed Slack user IDs. Empty = allow all.

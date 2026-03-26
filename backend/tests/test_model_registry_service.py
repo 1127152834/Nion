@@ -5,8 +5,8 @@ from types import SimpleNamespace
 from nion.config.model_config import ModelConfig
 from nion.model_management import (
     ModelBinding,
-    ModelRegistryService,
     ModelManagementRepository,
+    ModelRegistryService,
     ProviderInstance,
     ProviderModel,
     get_model_registry_service,
@@ -76,6 +76,48 @@ def test_registry_resolves_default_chat_binding_from_database(tmp_path):
     assert resolved.runtime_model_config.supports_vision is True
     assert resolved.api_key == "sk-test-1234"
     assert by_identity.model.id == provider_model.id
+
+
+def test_registry_keeps_context_window_on_provider_model_but_not_runtime_config(tmp_path):
+    repo = ModelManagementRepository(
+        tmp_path / "config.db",
+        secret_provider=lambda: build_model_management_secret("test-secret"),
+    )
+    seed_builtin_provider_templates(repo)
+    template = repo.get_provider_template_by_code("openrouter")
+    assert template is not None
+
+    provider = repo.save_provider_instance(
+        ProviderInstance(
+            provider_template_id=template.id,
+            kind="builtin",
+            display_name="OpenRouter Main",
+        ),
+        api_key_plaintext="sk-test-1234",
+    )
+    provider_model = repo.save_provider_model(
+        ProviderModel(
+            provider_instance_id=provider.id,
+            model_id="gpt-4.1",
+            display_name="GPT-4.1",
+            source="manual",
+            is_primary=True,
+            context_window=256000,
+        )
+    )
+
+    service = ModelRegistryService(
+        repo=repo,
+        secret_provider=lambda: build_model_management_secret("test-secret"),
+        app_config_provider=lambda: SimpleNamespace(models=[]),
+    )
+
+    resolved = service.resolve_model("gpt-4.1")
+    runtime_payload = resolved.runtime_model_config.model_dump(exclude_none=True)
+
+    assert resolved.model.id == provider_model.id
+    assert resolved.model.context_window == 256000
+    assert "context_window" not in runtime_payload
 
 
 def test_registry_uses_prefixed_runtime_name_when_model_ids_collide(tmp_path):

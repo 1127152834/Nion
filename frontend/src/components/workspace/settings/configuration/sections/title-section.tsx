@@ -28,6 +28,10 @@ import {
   cloneConfig,
   type ConfigDraft,
 } from "../shared";
+import {
+  DEFAULT_POLICY_MODEL_VALUE,
+  getPolicyModelSelectValue,
+} from "../../session-policy-model-selection";
 
 function parseOptionalInteger(value: string): number | undefined {
   if (!value.trim()) {
@@ -36,8 +40,6 @@ function parseOptionalInteger(value: string): number | undefined {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? Math.trunc(parsed) : undefined;
 }
-
-const DEFAULT_MODEL_VALUE = "__default_model__";
 
 export function TitleSection({
   config,
@@ -72,6 +74,12 @@ export function TitleSection({
   );
 
   const selectedModel = asString(title.model_name).trim();
+
+  const availableModelNames = modelOptions.map((item) => item.name);
+  const selectedValue = getPolicyModelSelectValue(
+    selectedModel,
+    availableModelNames,
+  );
 
   const updateTitle = (key: string, value: unknown) => {
     const next = cloneConfig(config);
@@ -109,11 +117,11 @@ export function TitleSection({
       <div className="space-y-1.5">
         <div className="text-xs font-medium">{copy.model}</div>
         <Select
-          value={selectedModel || DEFAULT_MODEL_VALUE}
+          value={selectedValue}
           onValueChange={(value) =>
             updateTitle(
               "model_name",
-              value === DEFAULT_MODEL_VALUE ? "" : value,
+              value === DEFAULT_POLICY_MODEL_VALUE ? "" : value,
             )
           }
         >
@@ -121,7 +129,7 @@ export function TitleSection({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={DEFAULT_MODEL_VALUE}>
+            <SelectItem value={DEFAULT_POLICY_MODEL_VALUE}>
               {copy.useDefaultModel}
             </SelectItem>
             {modelOptions.map((model) => (
