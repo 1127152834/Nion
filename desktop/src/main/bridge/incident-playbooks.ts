@@ -1,6 +1,7 @@
 import type {
   DesktopBridgeAdapterStatus,
   DesktopBridgeDiagnoseRequest,
+  DesktopBridgeExecutedAction,
   DesktopBridgeIncidentFilters,
   DesktopBridgeIncidentRecord,
   DesktopBridgeIncidentSeverity,
@@ -38,6 +39,10 @@ type BridgeIncidentControllerDependencies = {
     listIncidents: (filters?: DesktopBridgeIncidentFilters) => BridgeIncidentRecord[];
     getIncident: (incidentId: string) => BridgeIncidentRecord | null;
     dismissIncident: (incidentId: string) => BridgeIncidentRecord | null;
+    appendExecutedAction?: (
+      incidentId: string,
+      action: DesktopBridgeExecutedAction,
+    ) => BridgeIncidentRecord | null;
   };
 };
 
@@ -94,7 +99,7 @@ function boundedActions(
     reason: config.reason,
     riskLevel: "low",
     requiresConfirmation: true,
-    executableNow: false,
+    executableNow: config.ipcChannel === "bridge:run-action",
     scope: config.scope,
     platform: adapterPlatform,
     bindingId,

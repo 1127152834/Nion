@@ -154,3 +154,17 @@ export type DesktopBridgeDiagnoseRequest = {
   bindingId?: string | null;
   threadId?: string | null;
 };
+
+export type DesktopBridgeRunActionRequest = {
+  incidentId: string;
+  actionId: string;
+};
+
+export type DesktopBridgeRunActionResult = {
+  ok: boolean;
+  actionId: string;
+  status: "completed" | "failed" | "rejected";
+  resultSummary: string;
+  incident: DesktopBridgeIncidentRecord | null;
+  payload?: Record<string, unknown>;
+};

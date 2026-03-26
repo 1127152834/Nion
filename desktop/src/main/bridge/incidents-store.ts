@@ -118,10 +118,29 @@ export function createBridgeIncidentsStore(filePath: string) {
     return document.incidents[index];
   };
 
+  const appendExecutedAction = (
+    incidentId: string,
+    action: DesktopBridgeExecutedAction,
+  ): BridgeIncidentRecord | null => {
+    const document = readDocument();
+    const index = document.incidents.findIndex((incident) => incident.incidentId === incidentId);
+    if (index < 0) {
+      return null;
+    }
+    document.incidents[index] = {
+      ...document.incidents[index],
+      executedActions: [...document.incidents[index].executedActions, action],
+      updatedAt: new Date().toISOString(),
+    };
+    writeDocument(document);
+    return document.incidents[index];
+  };
+
   return {
     recordIncident,
     listIncidents,
     getIncident,
     dismissIncident,
+    appendExecutedAction,
   };
 }

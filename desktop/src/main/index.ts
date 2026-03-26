@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 
 import { app, BrowserWindow, ipcMain } from "electron";
 
+import { createBridgeActionRunner } from "./bridge/action-runner.js";
 import { createBridgeManager } from "./bridge/bridge-manager.js";
 import { createBridgeBindingsStore } from "./bridge/bindings-store.js";
 import { createBridgeIncidentController } from "./bridge/incident-playbooks.js";
@@ -128,6 +129,15 @@ export async function startDesktopMain(): Promise<void> {
     listObservations: (filters) => bridgeObservationsStore.listObservations(filters),
     incidentStore: bridgeIncidentsStore,
   });
+  const bridgeActionRunner = createBridgeActionRunner({
+    incidentStore: bridgeIncidentsStore,
+    restartBridgeRuntime: async () => {
+      await bridgeManager.stop();
+      await bridgeManager.start();
+    },
+    probePlatform: (platform) => bridgeManager.probePlatform(platform),
+    startWeixinLogin: () => weixinAuthManager.startLogin(),
+  });
   const restartBridgeIfRunning = async () => {
     if (!bridgeManager.getStatus().running) {
       return;
@@ -163,6 +173,9 @@ export async function startDesktopMain(): Promise<void> {
   });
   ipcMain.handle(DESKTOP_BRIDGE_IPC_CHANNELS.dismissIncident, (_event, incidentId: string) => {
     return bridgeIncidentController.dismissIncident(incidentId);
+  });
+  ipcMain.handle(DESKTOP_BRIDGE_IPC_CHANNELS.runAction, (_event, request) => {
+    return bridgeActionRunner.runAction(request);
   });
   ipcMain.handle(DESKTOP_BRIDGE_IPC_CHANNELS.start, async () => {
     await bridgeManager.start();
