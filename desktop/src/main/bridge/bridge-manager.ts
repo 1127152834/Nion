@@ -1,4 +1,8 @@
-import type { DesktopBridgeStatus } from "../../shared/bridge-ipc.js";
+import type {
+  DesktopBridgeObservationLevel,
+  DesktopBridgeObservationType,
+  DesktopBridgeStatus,
+} from "../../shared/bridge-ipc.js";
 import type { BaseBridgeAdapter, BridgeInboundMessage, BridgeOutboundMessage } from "./base-adapter.js";
 import type { BridgeBinding } from "./bindings-store.js";
 import type { WeixinBridgeAccount } from "./weixin-store.js";
@@ -48,6 +52,16 @@ type BridgePreviewState = {
   pendingText: string;
   throttleTimer: ReturnType<typeof setTimeout> | null;
   degraded: boolean;
+};
+
+type BridgeObservationInput = {
+  observationType: DesktopBridgeObservationType;
+  level: DesktopBridgeObservationLevel;
+  adapterPlatform: string | null;
+  bindingId: string | null;
+  threadId: string | null;
+  summary: string;
+  details: Record<string, unknown>;
 };
 
 function isCardStreamingAdapter(adapter: BaseBridgeAdapter): adapter is BridgeCardStreamingAdapter {
@@ -207,6 +221,7 @@ export function createBridgeManager(options: {
     getContextToken: (accountId: string, peerUserId: string) => string;
     upsertContextToken: (accountId: string, peerUserId: string, contextToken: string) => void;
   };
+  recordObservation?: (observation: BridgeObservationInput) => void;
 }) {
   const adapters = options.adapters ?? [];
   let running = false;
@@ -228,6 +243,9 @@ export function createBridgeManager(options: {
   const threadClient =
     options.threadClient ??
     createNionThreadClient(options.backendBaseUrl ?? "http://127.0.0.1:43115");
+  const recordObservation = (observation: BridgeObservationInput) => {
+    options.recordObservation?.(observation);
+  };
 
   const enabledPlatformsFromSettings = () => {
     const settings = options.loadSettings().settings;
@@ -296,6 +314,10 @@ export function createBridgeManager(options: {
       threadId: binding.threadId,
       replyToMessageId: inbound.messageId,
       ...(extra ?? {}),
+    }, {
+      bindingId: binding.id,
+      threadId: binding.threadId,
+      recordObservation,
     });
   };
 
@@ -646,6 +668,17 @@ export function createBridgeManager(options: {
         if (!running) {
           break;
         }
+        recordObservation({
+          observationType: "adapter_runtime_error",
+          level: "error",
+          adapterPlatform: adapter.platform,
+          bindingId: null,
+          threadId: null,
+          summary: `${adapter.platform} adapter runtime loop failed`,
+          details: {
+            error: error instanceof Error ? error.message : String(error),
+          },
+        });
         console.error(`[bridge-manager] ${adapter.platform} loop failed`, error);
         await new Promise((resolve) => setTimeout(resolve, 1_000));
       }
@@ -671,6 +704,17 @@ export function createBridgeManager(options: {
           await adapter.start();
           startedAdapters.push(adapter);
         } catch (error) {
+          recordObservation({
+            observationType: "adapter_start_failed",
+            level: "error",
+            adapterPlatform: adapter.platform,
+            bindingId: null,
+            threadId: null,
+            summary: `${adapter.platform} adapter failed to start`,
+            details: {
+              error: error instanceof Error ? error.message : String(error),
+            },
+          });
           console.error(`[bridge-manager] failed to start ${adapter.platform}`, error);
         }
       }
@@ -683,6 +727,18 @@ export function createBridgeManager(options: {
 
       running = true;
       startedAt = new Date().toISOString();
+      recordObservation({
+        observationType: "bridge_manager_started",
+        level: "info",
+        adapterPlatform: null,
+        bindingId: null,
+        threadId: null,
+        summary: "Bridge manager started",
+        details: {
+          enabledPlatforms: enabledPlatformsFromSettings(),
+          activeAdapters: startedAdapters.map((adapter) => adapter.platform),
+        },
+      });
 
       for (const adapter of startedAdapters) {
         const task = runAdapterLoop(adapter);
@@ -701,6 +757,17 @@ export function createBridgeManager(options: {
 
       await Promise.allSettled(resolveAdapters().map((adapter) => adapter.stop()));
       await Promise.allSettled(tasks);
+      recordObservation({
+        observationType: "bridge_manager_stopped",
+        level: "info",
+        adapterPlatform: null,
+        bindingId: null,
+        threadId: null,
+        summary: "Bridge manager stopped",
+        details: {
+          enabledPlatforms: enabledPlatformsFromSettings(),
+        },
+      });
       startedAt = null;
     },
     getStatus: (): DesktopBridgeStatus => ({

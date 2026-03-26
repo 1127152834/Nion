@@ -1,3 +1,7 @@
+import type {
+  DesktopBridgeObservationLevel,
+  DesktopBridgeObservationType,
+} from "../../shared/bridge-ipc.js";
 import type { BaseBridgeAdapter, BridgeOutboundMessage } from "./base-adapter.js";
 import { markdownToDiscordChunks } from "./markdown/discord.js";
 import { renderTelegramHtml } from "./markdown/telegram.js";
@@ -6,6 +10,16 @@ import { BridgeChatRateLimiter } from "./security/rate-limiter.js";
 const MAX_RETRIES = 3;
 const BASE_DELAY_MS = 1_000;
 const INTER_CHUNK_DELAY_MS = 300;
+
+type BridgeObservationInput = {
+  observationType: DesktopBridgeObservationType;
+  level: DesktopBridgeObservationLevel;
+  adapterPlatform: string | null;
+  bindingId: string | null;
+  threadId: string | null;
+  summary: string;
+  details: Record<string, unknown>;
+};
 
 const rateLimiter = new BridgeChatRateLimiter();
 
@@ -91,6 +105,11 @@ async function sendWithRetry(adapter: BaseBridgeAdapter, message: BridgeOutbound
 export async function deliverBridgeMessage(
   adapter: BaseBridgeAdapter,
   message: BridgeOutboundMessage,
+  options: {
+    bindingId?: string | null;
+    threadId?: string | null;
+    recordObservation?: (observation: BridgeObservationInput) => void;
+  } = {},
 ) {
   const limit = BRIDGE_PLATFORM_LIMITS[adapter.platform] ?? 4096;
   const renderAsTelegramHtml =
@@ -106,16 +125,35 @@ export async function deliverBridgeMessage(
     if (index > 0) {
       await new Promise((resolve) => setTimeout(resolve, INTER_CHUNK_DELAY_MS));
     }
-    await sendWithRetry(adapter, {
-      ...message,
-      text: renderAsTelegramHtml ? renderTelegramHtml(chunks[index]) : chunks[index],
-      ...(renderAsTelegramHtml ? { parseMode: "HTML" as const } : {}),
-      ...(index === 0
-        ? {}
-        : {
-            replyToMessageId: adapter.platform === "qq" ? message.replyToMessageId : undefined,
-            inlineButtons: undefined,
-          }),
-    });
+    try {
+      await sendWithRetry(adapter, {
+        ...message,
+        text: renderAsTelegramHtml ? renderTelegramHtml(chunks[index]) : chunks[index],
+        ...(renderAsTelegramHtml ? { parseMode: "HTML" as const } : {}),
+        ...(index === 0
+          ? {}
+          : {
+              replyToMessageId: adapter.platform === "qq" ? message.replyToMessageId : undefined,
+              inlineButtons: undefined,
+            }),
+      });
+    } catch (error) {
+      options.recordObservation?.({
+        observationType: "bridge_delivery_failed",
+        level: "error",
+        adapterPlatform: adapter.platform,
+        bindingId: options.bindingId ?? null,
+        threadId: options.threadId ?? message.threadId ?? null,
+        summary: `Bridge delivery failed for ${adapter.platform}`,
+        details: {
+          chatId: message.chatId,
+          chunkIndex: index,
+          totalChunks: chunks.length,
+          textLength: chunks[index].length,
+          error: error instanceof Error ? error.message : String(error),
+        },
+      });
+      throw error;
+    }
   }
 }

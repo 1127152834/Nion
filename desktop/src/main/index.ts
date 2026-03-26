@@ -5,6 +5,7 @@ import { app, BrowserWindow, ipcMain } from "electron";
 
 import { createBridgeManager } from "./bridge/bridge-manager.js";
 import { createBridgeBindingsStore } from "./bridge/bindings-store.js";
+import { createBridgeObservationsStore } from "./bridge/observations-store.js";
 import { createBridgeOffsetStore } from "./bridge/offset-store.js";
 import { createBridgeSettingsStore } from "./bridge/settings-store.js";
 import { createWeixinAuthManager } from "./bridge/weixin/auth.js";
@@ -85,6 +86,9 @@ export async function startDesktopMain(): Promise<void> {
   const bridgeOffsetStore = createBridgeOffsetStore(
     path.join(environment.userDataPath, "bridge", "offsets.json"),
   );
+  const bridgeObservationsStore = createBridgeObservationsStore(
+    path.join(environment.userDataPath, "bridge", "observations.json"),
+  );
   const weixinBridgeStore = createWeixinBridgeStore(
     path.join(environment.userDataPath, "bridge", "weixin.json"),
   );
@@ -100,6 +104,7 @@ export async function startDesktopMain(): Promise<void> {
     backendBaseUrl: runtimeInfo.baseUrl,
     offsetStore: bridgeOffsetStore,
     weixinStore: weixinBridgeStore,
+    recordObservation: (observation) => bridgeObservationsStore.appendObservation(observation),
   });
   const restartBridgeIfRunning = async () => {
     if (!bridgeManager.getStatus().running) {
