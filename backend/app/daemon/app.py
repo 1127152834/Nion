@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.channels.service import start_channel_service, stop_channel_service
-from app.daemon.routers import clients, control, diagnostics, logs, runtime
+from app.daemon.routers import channels, clients, control, diagnostics, logs, runtime
 from app.daemon.service import LocalDaemonService
 from app.gateway.config import get_gateway_config
 from app.gateway.routers import (
@@ -77,6 +77,7 @@ def create_app(
     app.include_router(runtime.router)
     app.include_router(clients.router)
     app.include_router(control.router)
+    app.include_router(channels.router)
     app.include_router(logs.router)
     app.include_router(diagnostics.router)
     app.include_router(config.router)
