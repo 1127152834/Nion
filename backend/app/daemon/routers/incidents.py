@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 from typing import Literal
-from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import BaseModel, Field, model_validator
 
 from app.daemon.service import LocalDaemonService
+from nion.incidents.playbooks import diagnose_incident as run_incident_playbook
 from nion.telemetry.models import IncidentRecord
 
 router = APIRouter(prefix="/api/daemon/incidents", tags=["daemon"])
@@ -83,36 +83,6 @@ def _to_response(record: IncidentRecord) -> IncidentResponse:
     )
 
 
-def _placeholder_incident(payload: DiagnoseIncidentRequest) -> IncidentRecord:
-    incident_type = "daemon_runtime_degraded" if payload.incident_type_hint == "daemon_runtime" else "agent_execution_placeholder"
-    summary = "Incident diagnosis recorded for later playbook analysis"
-    explanation = "A diagnosis placeholder was created. Detailed incident classification will be added in the next phase."
-    recommended_actions = (
-        [{"action_id": "review-logs", "label": "Review recent logs"}]
-        if payload.include_recommended_actions
-        else []
-    )
-    return IncidentRecord(
-        incident_id=str(uuid4()),
-        source=payload.source,
-        incident_type=incident_type,
-        severity="warning",
-        status="open",
-        summary=summary,
-        user_visible_explanation=explanation,
-        thread_id=payload.thread_id,
-        run_id=payload.run_id,
-        confidence=0.3,
-        recommended_actions=recommended_actions,
-        evidence={
-            "thread_id": payload.thread_id,
-            "run_id": payload.run_id,
-            "incident_type_hint": payload.incident_type_hint,
-            "placeholder": True,
-        },
-    )
-
-
 @router.get("", response_model=IncidentListResponse)
 async def list_incidents(
     request: Request,
@@ -161,7 +131,14 @@ async def dismiss_incident(incident_id: str, request: Request) -> IncidentRespon
 async def diagnose_incident(payload: DiagnoseIncidentRequest, request: Request) -> IncidentResponse:
     service = get_daemon_service(request)
     store = _get_store(service)
-    record = _placeholder_incident(payload)
+    record = run_incident_playbook(
+        store=store,
+        source=payload.source,
+        thread_id=payload.thread_id,
+        run_id=payload.run_id,
+        incident_type_hint=payload.incident_type_hint,
+        include_recommended_actions=payload.include_recommended_actions,
+    )
     store.record_incident(record)
     persisted = store.get_incident(record.incident_id)
     return _to_response(persisted)

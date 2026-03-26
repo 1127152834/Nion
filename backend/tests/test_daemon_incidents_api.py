@@ -9,7 +9,7 @@ from nion.config import paths as paths_module
 from nion.config.app_config import reset_app_config
 from nion.config.extensions_config import reset_extensions_config
 from nion.config.paths import get_paths
-from nion.telemetry.models import IncidentRecord
+from nion.telemetry.models import DiagnosticSnapshot, EventRecord, IncidentRecord
 from nion.telemetry.store import TelemetryStore
 
 
@@ -43,11 +43,35 @@ def _stub_daemon_channel_lifecycle(monkeypatch) -> None:
     monkeypatch.setattr("app.daemon.app.stop_channel_service", fake_stop_channel_service)
 
 
-def test_daemon_incidents_diagnose_creates_placeholder_incident(monkeypatch, tmp_path) -> None:
+def test_daemon_incidents_diagnose_creates_agent_execution_incident(monkeypatch, tmp_path) -> None:
     _configure_test_env(monkeypatch, tmp_path)
     _stub_daemon_channel_lifecycle(monkeypatch)
 
     try:
+        store = TelemetryStore(get_paths().telemetry_db_file)
+        store.record_event(
+            EventRecord(
+                event_id="evt-timeout",
+                category="tool",
+                level="warning",
+                event_type="task_delegation_timed_out",
+                actor="agent",
+                message="Delegated task 'inspect logs' timed out",
+                run_id="run-1",
+                tool_name="task",
+                details={"description": "inspect logs"},
+            )
+        )
+        store.upsert_snapshot(
+            DiagnosticSnapshot(
+                scope_type="task",
+                scope_id="run-1",
+                status="error",
+                summary="Delegated task 'inspect logs' timed out",
+                details={"status": "timed_out", "description": "inspect logs"},
+            )
+        )
+
         with TestClient(create_app()) as client:
             response = client.post(
                 "/api/daemon/incidents/diagnose",
@@ -63,13 +87,17 @@ def test_daemon_incidents_diagnose_creates_placeholder_incident(monkeypatch, tmp
         assert response.status_code == 200
         payload = response.json()
         assert payload["source"] == "chat"
+        assert payload["incident_type"] == "task_timeout"
         assert payload["thread_id"] == "thread-1"
         assert payload["run_id"] == "run-1"
+        assert payload["severity"] == "error"
         assert payload["status"] == "open"
         assert payload["incident_id"]
+        assert payload["recommended_actions"]
 
         store = TelemetryStore(get_paths().telemetry_db_file)
         incident = store.get_incident(payload["incident_id"])
+        assert incident.incident_type == "task_timeout"
         assert incident.thread_id == "thread-1"
     finally:
         paths_module._paths = None
