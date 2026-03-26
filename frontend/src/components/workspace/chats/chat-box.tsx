@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { FilesIcon, FolderIcon, XIcon } from "lucide-react";
+import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { GroupImperativeHandle } from "react-resizable-panels";
 
@@ -21,6 +22,7 @@ import {
   useArtifacts,
 } from "../artifacts";
 import { useThread } from "../messages/context";
+import { buildChatPanelIds } from "./panel-ids";
 
 const CLOSE_MODE = { chat: 100, artifacts: 0 };
 const OPEN_MODE = { chat: 60, artifacts: 40 };
@@ -31,6 +33,7 @@ const ChatBox: React.FC<{ children: React.ReactNode; threadId: string }> = ({
 }) => {
   const { t } = useI18n();
   const { thread } = useThread();
+  const pathname = usePathname();
   const threadIdRef = useRef(threadId);
   const layoutRef = useRef<GroupImperativeHandle>(null);
 
@@ -134,9 +137,11 @@ const ChatBox: React.FC<{ children: React.ReactNode; threadId: string }> = ({
     panelType === "working-directory"
       ? workingDirectoryFiles
       : (thread.values.artifacts ?? []);
+  const panelIds = useMemo(() => buildChatPanelIds(pathname), [pathname]);
 
   return (
     <ResizablePanelGroup
+      id={panelIds.groupId}
       orientation="horizontal"
       defaultLayout={{ chat: 100, artifacts: 0 }}
       groupRef={layoutRef}
@@ -145,6 +150,7 @@ const ChatBox: React.FC<{ children: React.ReactNode; threadId: string }> = ({
         {children}
       </ResizablePanel>
       <ResizableHandle
+        id={panelIds.separatorId}
         className={cn(
           "opacity-33 hover:opacity-100",
           !artifactPanelOpen && "pointer-events-none opacity-0",
