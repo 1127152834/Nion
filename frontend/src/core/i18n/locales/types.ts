@@ -468,6 +468,14 @@ export interface Translations {
     assistExpand: string;
     assistChecklist: string;
     assistActionItems: string;
+    askTab: string;
+    historyTab: string;
+    infoTab: string;
+    infoNoteId: string;
+    infoPath: string;
+    infoCreatedAt: string;
+    infoUpdatedAt: string;
+    infoContentHash: string;
     saveFromChat: string;
     saveLastReply: string;
     trashTitle: string;

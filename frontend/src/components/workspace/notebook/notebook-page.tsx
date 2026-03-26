@@ -21,14 +21,6 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
 import { ConfirmActionDialog } from "@/components/workspace/settings/confirm-action-dialog";
 import { NotebookContextPanel } from "./notebook-context-panel";
@@ -50,13 +42,13 @@ import {
 } from "@/core/notebook";
 import { buildNotebookTree } from "@/core/notebook";
 import { buildNotebookAssistPrompt, type NotebookAssistAction } from "@/core/notebook";
-import { formatTimeAgo } from "@/core/utils/datetime";
-
 type CreateDraft = {
   directory: string;
   title: string;
   body: string;
 };
+
+type NotebookContextTab = "ask" | "history" | "info";
 
 export function NotebookPage() {
   const { t } = useI18n();
@@ -79,11 +71,11 @@ export function NotebookPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
   const [moveOpen, setMoveOpen] = useState(false);
-  const [historyOpen, setHistoryOpen] = useState(false);
+  const [contextTab, setContextTab] = useState<NotebookContextTab>("ask");
   const [deleteOpen, setDeleteOpen] = useState(false);
 
   const { note, isLoading: noteLoading } = useNotebookNote(selectedNoteId);
-  const { entries } = useNotebookHistory(historyOpen ? selectedNoteId : null);
+  const { entries } = useNotebookHistory(selectedNoteId);
   const { preview } = useNotebookDeletePreview(selectedNoteId);
 
   const createNote = useCreateNotebookNote();
@@ -294,7 +286,7 @@ export function NotebookPage() {
               onDraftBodyChange={setDraftBody}
               onDraftTitleChange={setDraftTitle}
               onOpenDelete={() => setDeleteOpen(true)}
-              onOpenHistory={() => setHistoryOpen(true)}
+              onOpenHistory={() => setContextTab("history")}
               onOpenMove={() => setMoveOpen(true)}
               onOpenRename={() => setRenameOpen(true)}
               onSave={handleSave}
@@ -304,11 +296,35 @@ export function NotebookPage() {
           <ResizableHandle withHandle />
           <ResizablePanel defaultSize={24} minSize={18}>
             <NotebookContextPanel
-              copy={copy}
+              activeTab={contextTab}
+              copy={{
+                askTab: copy.askTab,
+                assistActionItems: copy.assistActionItems,
+                assistChecklist: copy.assistChecklist,
+                assistDescription: copy.assistDescription,
+                assistExpand: copy.assistExpand,
+                assistRewrite: copy.assistRewrite,
+                assistSummarize: copy.assistSummarize,
+                assistTitle: copy.assistTitle,
+                historyTab: copy.historyTab,
+                historyTitle: copy.historyTitle,
+                infoContentHash: copy.infoContentHash,
+                infoCreatedAt: copy.infoCreatedAt,
+                infoNoteId: copy.infoNoteId,
+                infoPath: copy.infoPath,
+                infoTab: copy.infoTab,
+                infoUpdatedAt: copy.infoUpdatedAt,
+                noSelectionDescription: copy.noSelectionDescription,
+                restore: copy.restore,
+                selectNote: copy.selectNote,
+              }}
+              entries={entries}
               note={note}
               notePath={selectedFile?.path ?? null}
               noteTitle={draftTitle}
+              onActiveTabChange={setContextTab}
               onAssist={handleAssist}
+              onRestoreVersion={handleRestore}
             />
           </ResizablePanel>
         </ResizablePanelGroup>
@@ -399,46 +415,6 @@ export function NotebookPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      <Sheet open={historyOpen} onOpenChange={setHistoryOpen}>
-        <SheetContent className="sm:max-w-md">
-          <SheetHeader>
-            <SheetTitle>{copy.historyTitle}</SheetTitle>
-            <SheetDescription>{copy.historyDescription}</SheetDescription>
-          </SheetHeader>
-          <ScrollArea className="flex-1 px-4 pb-4">
-            <div className="space-y-3">
-              {entries.map((entry) => (
-                <Card key={entry.version_id} className="gap-3 py-4">
-                  <CardContent className="space-y-2 px-4">
-                    <div className="flex items-center justify-between gap-2">
-                      <Badge variant="outline">{entry.operation}</Badge>
-                      <span className="text-muted-foreground text-xs">
-                        {formatTimeAgo(entry.timestamp)}
-                      </span>
-                    </div>
-                    <div className="text-muted-foreground text-sm">
-                      {entry.actor_type} · {entry.path_at_time}
-                    </div>
-                    {entry.diff_text ? (
-                      <pre className="bg-muted overflow-x-auto rounded-md p-3 text-xs leading-5 whitespace-pre-wrap">
-                        {entry.diff_text}
-                      </pre>
-                    ) : null}
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleRestore(entry.version_id)}
-                    >
-                      {copy.restore}
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </ScrollArea>
-        </SheetContent>
-      </Sheet>
 
       <ConfirmActionDialog
         open={deleteOpen}
