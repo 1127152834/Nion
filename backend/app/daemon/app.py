@@ -8,7 +8,6 @@ from typing import Any
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.channels.service import start_channel_service, stop_channel_service
 from app.daemon.routers import channels, clients, control, diagnostics, incidents, logs, runtime
 from app.daemon.service import LocalDaemonService
 from app.gateway.config import get_gateway_config
@@ -30,6 +29,12 @@ from nion.telemetry.store import TelemetryStore
 
 logger = logging.getLogger(__name__)
 
+try:
+    from app.channels.service import start_channel_service, stop_channel_service
+except ModuleNotFoundError:
+    start_channel_service = None  # type: ignore[assignment]
+    stop_channel_service = None  # type: ignore[assignment]
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
@@ -40,14 +45,20 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     service.set_shutdown_callback(shutdown_callback)
     await service.start()
     try:
-        try:
-            await start_channel_service()
-        except Exception:
-            logger.exception("No IM channels configured or channel service failed to start")
+        if start_channel_service is None:
+            logger.info(
+                "Legacy backend channel runtime is unavailable on this branch; skipping channel service startup",
+            )
+        else:
+            try:
+                await start_channel_service()
+            except Exception:
+                logger.exception("No IM channels configured or channel service failed to start")
         yield
     finally:
         try:
-            await stop_channel_service()
+            if stop_channel_service is not None:
+                await stop_channel_service()
         except Exception:
             logger.exception("Failed to stop channel service")
         await service.stop()
@@ -78,7 +89,8 @@ def create_app(
     app.include_router(runtime.router)
     app.include_router(clients.router)
     app.include_router(control.router)
-    app.include_router(channels.router)
+    if channels is not None:
+        app.include_router(channels.router)
     app.include_router(logs.router)
     app.include_router(diagnostics.router)
     app.include_router(incidents.router)

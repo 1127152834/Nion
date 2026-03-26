@@ -1,8 +1,16 @@
 from __future__ import annotations
 
+import importlib.util
 import json
 
+import pytest
 from fastapi.testclient import TestClient
+
+if importlib.util.find_spec("app.channels.repository") is None or importlib.util.find_spec("app.channels.service") is None:
+    pytest.skip(
+        "legacy backend channel subsystem is not available on this branch",
+        allow_module_level=True,
+    )
 
 from app.channels.repository import ChannelRepository
 from app.daemon.app import create_app
