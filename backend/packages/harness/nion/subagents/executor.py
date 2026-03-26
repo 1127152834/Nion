@@ -17,8 +17,12 @@ from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.runnables import RunnableConfig
 
 from nion.agents.thread_state import SandboxState, ThreadDataState, ThreadState
+from nion.config.paths import get_paths
 from nion.models import create_chat_model
 from nion.subagents.config import SubagentConfig
+from nion.telemetry.logger import make_event
+from nion.telemetry.models import DiagnosticSnapshot
+from nion.telemetry.store import TelemetryStore
 
 logger = logging.getLogger(__name__)
 
@@ -73,6 +77,317 @@ _scheduler_pool = ThreadPoolExecutor(max_workers=3, thread_name_prefix="subagent
 # Thread pool for actual subagent execution (with timeout support)
 # Larger pool to avoid blocking when scheduler submits execution tasks
 _execution_pool = ThreadPoolExecutor(max_workers=3, thread_name_prefix="subagent-exec-")
+
+
+def _telemetry_store() -> TelemetryStore:
+    return TelemetryStore(get_paths().telemetry_db_file)
+
+
+def _duration_ms(started_at: datetime | None, completed_at: datetime | None = None) -> int | None:
+    if started_at is None:
+        return None
+    end = completed_at or datetime.now()
+    return max(int((end - started_at).total_seconds() * 1000), 0)
+
+
+def _subagent_details(
+    *,
+    task_id: str | None,
+    thread_id: str | None,
+    subagent_name: str,
+    trace_id: str,
+    status: str,
+    ai_message_count: int = 0,
+    timeout_seconds: int | None = None,
+    error: str | None = None,
+    duration_ms: int | None = None,
+    tool_count: int | None = None,
+) -> dict[str, str | int | None]:
+    return {
+        "task_id": task_id,
+        "thread_id": thread_id,
+        "subagent_name": subagent_name,
+        "trace_id": trace_id,
+        "status": status,
+        "ai_message_count": ai_message_count,
+        "timeout_seconds": timeout_seconds,
+        "error": error,
+        "duration_ms": duration_ms,
+        "tool_count": tool_count,
+    }
+
+
+def _record_subagent_state(
+    *,
+    event_type: str,
+    level: str,
+    message: str,
+    subagent_name: str,
+    trace_id: str,
+    status: str,
+    task_id: str | None = None,
+    thread_id: str | None = None,
+    ai_message_count: int = 0,
+    timeout_seconds: int | None = None,
+    error: str | None = None,
+    duration_ms: int | None = None,
+    tool_count: int | None = None,
+) -> None:
+    details = _subagent_details(
+        task_id=task_id,
+        thread_id=thread_id,
+        subagent_name=subagent_name,
+        trace_id=trace_id,
+        status=status,
+        ai_message_count=ai_message_count,
+        timeout_seconds=timeout_seconds,
+        error=error,
+        duration_ms=duration_ms,
+        tool_count=tool_count,
+    )
+    store = _telemetry_store()
+    store.record_event(
+        make_event(
+            category="agent",
+            level=level,  # type: ignore[arg-type]
+            event_type=event_type,
+            actor="agent",
+            message=message,
+            thread_id=thread_id,
+            run_id=task_id,
+            details=details,
+            duration_ms=duration_ms,
+        )
+    )
+
+
+def _upsert_task_snapshot(
+    *,
+    task_id: str,
+    message: str,
+    snapshot_status: str,
+    thread_id: str | None,
+    subagent_name: str,
+    trace_id: str,
+    status: str,
+    ai_message_count: int = 0,
+    timeout_seconds: int | None = None,
+    error: str | None = None,
+    duration_ms: int | None = None,
+) -> None:
+    _telemetry_store().upsert_snapshot(
+        DiagnosticSnapshot(
+            scope_type="task",
+            scope_id=task_id,
+            status=snapshot_status,  # type: ignore[arg-type]
+            summary=message,
+            details=_subagent_details(
+                task_id=task_id,
+                thread_id=thread_id,
+                subagent_name=subagent_name,
+                trace_id=trace_id,
+                status=status,
+                ai_message_count=ai_message_count,
+                timeout_seconds=timeout_seconds,
+                error=error,
+                duration_ms=duration_ms,
+            ),
+        )
+    )
+
+
+def _record_subagent_initialized(
+    *,
+    subagent_name: str,
+    thread_id: str | None,
+    trace_id: str,
+    tool_count: int,
+) -> None:
+    _record_subagent_state(
+        event_type="subagent_executor_initialized",
+        level="info",
+        message=f"Subagent '{subagent_name}' initialized",
+        subagent_name=subagent_name,
+        trace_id=trace_id,
+        status="initialized",
+        thread_id=thread_id,
+        ai_message_count=0,
+        timeout_seconds=None,
+        duration_ms=None,
+        tool_count=tool_count,
+    )
+
+
+def _record_subagent_started(
+    *,
+    task_id: str,
+    thread_id: str | None,
+    subagent_name: str,
+    trace_id: str,
+    timeout_seconds: int,
+) -> None:
+    _record_subagent_state(
+        event_type="subagent_execution_started",
+        level="info",
+        message=f"Subagent '{subagent_name}' started",
+        subagent_name=subagent_name,
+        trace_id=trace_id,
+        status="running",
+        task_id=task_id,
+        thread_id=thread_id,
+        timeout_seconds=timeout_seconds,
+    )
+    _upsert_task_snapshot(
+        task_id=task_id,
+        message=f"Subagent '{subagent_name}' started",
+        snapshot_status="degraded",
+        thread_id=thread_id,
+        subagent_name=subagent_name,
+        trace_id=trace_id,
+        status="running",
+        timeout_seconds=timeout_seconds,
+    )
+
+
+def _record_subagent_ai_message(
+    *,
+    task_id: str,
+    thread_id: str | None,
+    subagent_name: str,
+    trace_id: str,
+    ai_message_count: int,
+) -> None:
+    _record_subagent_state(
+        event_type="subagent_ai_message_captured",
+        level="info",
+        message=f"Subagent '{subagent_name}' produced message #{ai_message_count}",
+        subagent_name=subagent_name,
+        trace_id=trace_id,
+        status="running",
+        task_id=task_id,
+        thread_id=thread_id,
+        ai_message_count=ai_message_count,
+    )
+    _upsert_task_snapshot(
+        task_id=task_id,
+        message=f"Subagent '{subagent_name}' produced message #{ai_message_count}",
+        snapshot_status="degraded",
+        thread_id=thread_id,
+        subagent_name=subagent_name,
+        trace_id=trace_id,
+        status="running",
+        ai_message_count=ai_message_count,
+    )
+
+
+def _record_subagent_completed(
+    *,
+    task_id: str,
+    thread_id: str | None,
+    subagent_name: str,
+    trace_id: str,
+    ai_message_count: int,
+    duration_ms: int | None,
+) -> None:
+    _record_subagent_state(
+        event_type="subagent_execution_completed",
+        level="info",
+        message=f"Subagent '{subagent_name}' completed",
+        subagent_name=subagent_name,
+        trace_id=trace_id,
+        status="completed",
+        task_id=task_id,
+        thread_id=thread_id,
+        ai_message_count=ai_message_count,
+        duration_ms=duration_ms,
+    )
+    _upsert_task_snapshot(
+        task_id=task_id,
+        message=f"Subagent '{subagent_name}' completed",
+        snapshot_status="healthy",
+        thread_id=thread_id,
+        subagent_name=subagent_name,
+        trace_id=trace_id,
+        status="completed",
+        ai_message_count=ai_message_count,
+        duration_ms=duration_ms,
+    )
+
+
+def _record_subagent_failed(
+    *,
+    task_id: str,
+    thread_id: str | None,
+    subagent_name: str,
+    trace_id: str,
+    error: str,
+    ai_message_count: int = 0,
+    duration_ms: int | None = None,
+) -> None:
+    _record_subagent_state(
+        event_type="subagent_execution_failed",
+        level="error",
+        message=f"Subagent '{subagent_name}' failed",
+        subagent_name=subagent_name,
+        trace_id=trace_id,
+        status="failed",
+        task_id=task_id,
+        thread_id=thread_id,
+        ai_message_count=ai_message_count,
+        error=error,
+        duration_ms=duration_ms,
+    )
+    _upsert_task_snapshot(
+        task_id=task_id,
+        message=f"Subagent '{subagent_name}' failed",
+        snapshot_status="error",
+        thread_id=thread_id,
+        subagent_name=subagent_name,
+        trace_id=trace_id,
+        status="failed",
+        ai_message_count=ai_message_count,
+        error=error,
+        duration_ms=duration_ms,
+    )
+
+
+def _record_subagent_timeout(
+    *,
+    task_id: str,
+    thread_id: str | None,
+    subagent_name: str,
+    trace_id: str,
+    timeout_seconds: int,
+    ai_message_count: int = 0,
+    duration_ms: int | None = None,
+) -> None:
+    _record_subagent_state(
+        event_type="subagent_execution_timed_out",
+        level="warning",
+        message=f"Subagent '{subagent_name}' timed out after {timeout_seconds}s",
+        subagent_name=subagent_name,
+        trace_id=trace_id,
+        status="timed_out",
+        task_id=task_id,
+        thread_id=thread_id,
+        ai_message_count=ai_message_count,
+        timeout_seconds=timeout_seconds,
+        duration_ms=duration_ms,
+        error=f"Execution timed out after {timeout_seconds} seconds",
+    )
+    _upsert_task_snapshot(
+        task_id=task_id,
+        message=f"Subagent '{subagent_name}' timed out after {timeout_seconds}s",
+        snapshot_status="error",
+        thread_id=thread_id,
+        subagent_name=subagent_name,
+        trace_id=trace_id,
+        status="timed_out",
+        ai_message_count=ai_message_count,
+        timeout_seconds=timeout_seconds,
+        error=f"Execution timed out after {timeout_seconds} seconds",
+        duration_ms=duration_ms,
+    )
 
 
 def _filter_tools(
@@ -160,6 +475,12 @@ class SubagentExecutor:
         )
 
         logger.info(f"[trace={self.trace_id}] SubagentExecutor initialized: {config.name} with {len(self.tools)} tools")
+        _record_subagent_initialized(
+            subagent_name=config.name,
+            thread_id=self.thread_id,
+            trace_id=self.trace_id,
+            tool_count=len(self.tools),
+        )
 
     def _create_agent(self):
         """Create the agent instance."""
@@ -237,6 +558,13 @@ class SubagentExecutor:
                 context["thread_id"] = self.thread_id
 
             logger.info(f"[trace={self.trace_id}] Subagent {self.config.name} starting async execution with max_turns={self.config.max_turns}")
+            _record_subagent_started(
+                task_id=result.task_id,
+                thread_id=self.thread_id,
+                subagent_name=self.config.name,
+                trace_id=self.trace_id,
+                timeout_seconds=self.config.timeout_seconds,
+            )
 
             # Use stream instead of invoke to get real-time updates
             # This allows us to collect AI messages as they are generated
@@ -264,6 +592,13 @@ class SubagentExecutor:
                         if not is_duplicate:
                             result.ai_messages.append(message_dict)
                             logger.info(f"[trace={self.trace_id}] Subagent {self.config.name} captured AI message #{len(result.ai_messages)}")
+                            _record_subagent_ai_message(
+                                task_id=result.task_id,
+                                thread_id=self.thread_id,
+                                subagent_name=self.config.name,
+                                trace_id=self.trace_id,
+                                ai_message_count=len(result.ai_messages),
+                            )
 
             logger.info(f"[trace={self.trace_id}] Subagent {self.config.name} completed async execution")
 
@@ -339,12 +674,29 @@ class SubagentExecutor:
 
             result.status = SubagentStatus.COMPLETED
             result.completed_at = datetime.now()
+            _record_subagent_completed(
+                task_id=result.task_id,
+                thread_id=self.thread_id,
+                subagent_name=self.config.name,
+                trace_id=self.trace_id,
+                ai_message_count=len(result.ai_messages),
+                duration_ms=_duration_ms(result.started_at, result.completed_at),
+            )
 
         except Exception as e:
             logger.exception(f"[trace={self.trace_id}] Subagent {self.config.name} async execution failed")
             result.status = SubagentStatus.FAILED
             result.error = str(e)
             result.completed_at = datetime.now()
+            _record_subagent_failed(
+                task_id=result.task_id,
+                thread_id=self.thread_id,
+                subagent_name=self.config.name,
+                trace_id=self.trace_id,
+                error=str(e),
+                ai_message_count=len(result.ai_messages),
+                duration_ms=_duration_ms(result.started_at, result.completed_at),
+            )
 
         return result
 
@@ -386,6 +738,15 @@ class SubagentExecutor:
             result.status = SubagentStatus.FAILED
             result.error = str(e)
             result.completed_at = datetime.now()
+            _record_subagent_failed(
+                task_id=result.task_id,
+                thread_id=self.thread_id,
+                subagent_name=self.config.name,
+                trace_id=self.trace_id,
+                error=str(e),
+                ai_message_count=len(result.ai_messages),
+                duration_ms=_duration_ms(result.started_at, result.completed_at),
+            )
             return result
 
     def execute_async(self, task: str, task_id: str | None = None) -> str:
@@ -440,6 +801,16 @@ class SubagentExecutor:
                         _background_tasks[task_id].status = SubagentStatus.TIMED_OUT
                         _background_tasks[task_id].error = f"Execution timed out after {self.config.timeout_seconds} seconds"
                         _background_tasks[task_id].completed_at = datetime.now()
+                        timed_out_result = _background_tasks[task_id]
+                    _record_subagent_timeout(
+                        task_id=task_id,
+                        thread_id=self.thread_id,
+                        subagent_name=self.config.name,
+                        trace_id=self.trace_id,
+                        timeout_seconds=self.config.timeout_seconds,
+                        ai_message_count=len(timed_out_result.ai_messages),
+                        duration_ms=_duration_ms(timed_out_result.started_at, timed_out_result.completed_at),
+                    )
                     # Cancel the future (best effort - may not stop the actual execution)
                     execution_future.cancel()
             except Exception as e:
@@ -448,6 +819,16 @@ class SubagentExecutor:
                     _background_tasks[task_id].status = SubagentStatus.FAILED
                     _background_tasks[task_id].error = str(e)
                     _background_tasks[task_id].completed_at = datetime.now()
+                    failed_result = _background_tasks[task_id]
+                _record_subagent_failed(
+                    task_id=task_id,
+                    thread_id=self.thread_id,
+                    subagent_name=self.config.name,
+                    trace_id=self.trace_id,
+                    error=str(e),
+                    ai_message_count=len(failed_result.ai_messages),
+                    duration_ms=_duration_ms(failed_result.started_at, failed_result.completed_at),
+                )
 
         _scheduler_pool.submit(run_task)
         return task_id
