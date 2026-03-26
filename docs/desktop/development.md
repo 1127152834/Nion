@@ -116,6 +116,26 @@ Program 03D-A adds an incident workflow above the existing logs and diagnostics:
 - a desktop diagnostics center is designed to consume incident records later, but that UI is still deferred
 - bridge/channel incidents and `daemon_runtime` playbooks are out of scope for this phase
 
+Program 03D-B adds the desktop bridge incident workflow on top of the Electron bridge runtime:
+
+- bridge incident ownership lives in Electron main, not backend daemon
+- bridge observations and incidents are persisted in desktop-owned bridge stores under user data
+- bridge incident IPC now supports:
+  - `bridge:diagnose`
+  - `bridge:list-incidents`
+  - `bridge:get-incident`
+  - `bridge:dismiss-incident`
+  - `bridge:run-action`
+- the first implemented bridge incident types are:
+  - `bridge_manager_down`
+  - `adapter_start_failure`
+  - `adapter_runtime_failure`
+  - `bridge_delivery_failure`
+- the bridge self-heal workflow remains suggestion-first; actions are bounded and require explicit confirmation before execution
+- `binding_resolution_error` and `permission_workflow_stuck` remain designed but not implemented yet
+- the bridge overview page now includes an incident-driven self-heal workflow
+- a dedicated diagnostics section now consumes the bridge incident IPC surface, while a richer long-horizon diagnostics center remains a later phase
+
 ## Known Blocker
 
 `next build --webpack` under `output: "export"` is currently blocked by a Next.js 16 `/_global-error` prerender bug on this branch.

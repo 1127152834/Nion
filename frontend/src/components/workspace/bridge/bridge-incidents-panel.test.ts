@@ -30,7 +30,7 @@ void test("desktop preload exposes bridge incident workflow methods", async () =
 
 void test("bridge section renders the self-heal panel", async () => {
   const source = await readFile(
-    new URL("./BridgeSection.tsx", import.meta.url),
+    new URL("./BridgeDiagnosticsSection.tsx", import.meta.url),
     "utf8",
   );
 
@@ -43,8 +43,8 @@ void test("bridge incidents panel exposes diagnose and confirm-run flow", async 
     "utf8",
   );
 
-  assert.match(source, /Diagnose Bridge/);
-  assert.match(source, /Confirm and Run/);
-  assert.match(source, /Dismiss Incident/);
+  assert.match(source, /t\.bridge\.diagnostics\.diagnoseAction/);
+  assert.match(source, /t\.bridge\.diagnostics\.confirmRunAction/);
+  assert.match(source, /t\.bridge\.diagnostics\.dismissAction/);
   assert.match(source, /window\.confirm/);
 });

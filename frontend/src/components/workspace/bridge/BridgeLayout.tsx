@@ -15,13 +15,14 @@ import { useI18n } from "@/core/i18n/hooks";
 import { cn } from "@/lib/utils";
 
 import { BridgeSection } from "./BridgeSection";
+import { BridgeDiagnosticsSection } from "./BridgeDiagnosticsSection";
 import { DiscordBridgeSection } from "./DiscordBridgeSection";
 import { FeishuBridgeSection } from "./FeishuBridgeSection";
 import { QqBridgeSection } from "./QqBridgeSection";
 import { TelegramBridgeSection } from "./TelegramBridgeSection";
 import { WeixinBridgeSection } from "./WeixinBridgeSection";
 
-type Section = "bridge" | "telegram" | "feishu" | "discord" | "qq" | "weixin";
+type Section = "bridge" | "diagnostics" | "telegram" | "feishu" | "discord" | "qq" | "weixin";
 
 const sidebarItems: Array<{
   id: Section;
@@ -29,6 +30,7 @@ const sidebarItems: Array<{
   icon: typeof BotIcon;
 }> = [
   { id: "bridge", label: "Bridge", icon: BotIcon },
+  { id: "diagnostics", label: "Diagnostics", icon: BotIcon },
   { id: "telegram", label: "Telegram", icon: SendIcon },
   { id: "feishu", label: "Feishu", icon: MessageSquareIcon },
   { id: "discord", label: "Discord", icon: MessagesSquareIcon },
@@ -42,6 +44,7 @@ export function BridgeLayout() {
 
   const labels: Record<Section, string> = {
     bridge: t.bridge.nav.overview,
+    diagnostics: t.bridge.nav.diagnostics,
     telegram: t.bridge.nav.telegram,
     feishu: t.bridge.nav.feishu,
     discord: t.bridge.nav.discord,
@@ -81,6 +84,9 @@ export function BridgeLayout() {
 
         <div className="flex-1 p-6">
           {activeSection === "bridge" && <BridgeSection />}
+          {activeSection === "diagnostics" && (
+            <BridgeDiagnosticsSection bridgeAvailable />
+          )}
           {activeSection === "telegram" && <TelegramBridgeSection />}
           {activeSection === "feishu" && <FeishuBridgeSection />}
           {activeSection === "discord" && <DiscordBridgeSection />}

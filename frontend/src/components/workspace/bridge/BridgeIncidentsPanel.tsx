@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { useI18n } from "@/core/i18n/hooks";
 import {
   createBridgeClient,
   type BridgeIncidentRecord,
@@ -16,6 +17,7 @@ type BridgeIncidentsPanelProps = {
 export function BridgeIncidentsPanel({
   bridgeAvailable,
 }: BridgeIncidentsPanelProps) {
+  const { t } = useI18n();
   const [working, setWorking] = useState(false);
   const [incidents, setIncidents] = useState<BridgeIncidentRecord[]>([]);
   const [selectedIncidentId, setSelectedIncidentId] = useState<string | null>(null);
@@ -65,7 +67,7 @@ export function BridgeIncidentsPanel({
   };
 
   const runAction = async (incidentId: string, actionId: string, label: string) => {
-    if (!window.confirm(`Run "${label}"?`)) {
+    if (!window.confirm(t.bridge.diagnostics.confirmRunPrompt.replace("{label}", label))) {
       return;
     }
     setWorking(true);
@@ -90,13 +92,13 @@ export function BridgeIncidentsPanel({
     <section className="rounded-lg border p-4">
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-1">
-          <h3 className="text-sm font-semibold">Self-Heal</h3>
+          <h3 className="text-sm font-semibold">{t.bridge.diagnostics.title}</h3>
           <p className="text-muted-foreground text-xs">
-            Diagnose the bridge runtime and confirm bounded recovery actions.
+            {t.bridge.diagnostics.description}
           </p>
         </div>
         <Button type="button" size="sm" onClick={() => void diagnose()} disabled={working}>
-          Diagnose Bridge
+          {t.bridge.diagnostics.diagnoseAction}
         </Button>
       </div>
 
@@ -104,7 +106,7 @@ export function BridgeIncidentsPanel({
         <div className="space-y-2">
           {incidents.length === 0 ? (
             <div className="text-muted-foreground rounded-md border p-3 text-xs">
-              No bridge incidents yet.
+              {t.bridge.diagnostics.empty}
             </div>
           ) : (
             incidents.map((incident) => (
@@ -135,18 +137,18 @@ export function BridgeIncidentsPanel({
                 </div>
                 {selectedIncident.rootCauseHypothesis ? (
                   <div className="text-muted-foreground text-xs">
-                    Hypothesis: {selectedIncident.rootCauseHypothesis}
+                    {t.bridge.diagnostics.hypothesisLabel}: {selectedIncident.rootCauseHypothesis}
                   </div>
                 ) : null}
               </div>
 
               <div className="space-y-2">
                 <div className="text-xs font-semibold uppercase tracking-wide">
-                  Recommended Actions
+                  {t.bridge.diagnostics.recommendedActionsTitle}
                 </div>
                 {selectedIncident.recommendedActions.length === 0 ? (
                   <div className="text-muted-foreground rounded-md border p-3 text-xs">
-                    No executable actions suggested for this incident.
+                    {t.bridge.diagnostics.noActions}
                   </div>
                 ) : (
                   selectedIncident.recommendedActions.map((action) => (
@@ -169,10 +171,12 @@ export function BridgeIncidentsPanel({
                             )
                           }
                         >
-                          Confirm and Run
+                          {t.bridge.diagnostics.confirmRunAction}
                         </Button>
                         {!action.executableNow ? (
-                          <span className="text-muted-foreground text-xs">Advisory only</span>
+                          <span className="text-muted-foreground text-xs">
+                            {t.bridge.diagnostics.advisoryOnly}
+                          </span>
                         ) : null}
                       </div>
                     </div>
@@ -188,19 +192,19 @@ export function BridgeIncidentsPanel({
                   disabled={working || selectedIncident.status === "dismissed"}
                   onClick={() => void dismiss(selectedIncident.incidentId)}
                 >
-                  Dismiss Incident
+                  {t.bridge.diagnostics.dismissAction}
                 </Button>
               </div>
             </>
           ) : (
             <div className="text-muted-foreground rounded-md border p-3 text-xs">
-              Select an incident after running a diagnosis.
+              {t.bridge.diagnostics.selectIncident}
             </div>
           )}
 
           {actionResult ? (
             <div className="rounded-md border p-3 text-xs">
-              <div className="font-medium">Last Action Result</div>
+              <div className="font-medium">{t.bridge.diagnostics.lastActionResultTitle}</div>
               <div className="text-muted-foreground mt-1">
                 {actionResult.status}: {actionResult.resultSummary}
               </div>

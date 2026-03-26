@@ -72,6 +72,16 @@ Program 03D-A 已把非 bridge incident workflow 补上：
 - 桌面 `desktop diagnostics center` 已完成数据契约设计，但 UI 本身仍然是 designed-but-deferred
 - 本阶段明确不覆盖 bridge/channel incidents，也不实现 `daemon_runtime` playbooks 和 auto-remediation
 
+Program 03D-B 已把 desktop bridge incident workflow 补上：
+
+- bridge incident 的 owner 现在是 Electron main，而不是 backend daemon
+- bridge runtime 的 observations 和 incidents 都保存在 desktop userData 下的 bridge store
+- bridge incident IPC 已支持 `diagnose / list / get / dismiss / run-action`
+- 第一版已实现的 bridge incident 类型包括 `bridge_manager_down`、`adapter_start_failure`、`adapter_runtime_failure`、`bridge_delivery_failure`
+- recovery workflow 仍然是 suggestion-first，必须确认后才会执行 `bridge:run-action`
+- 当前 bridge 页面已经包含最小 self-heal panel，后续 richer diagnostics center 会在此基础上继续扩展
+- `binding_resolution_error`、`permission_workflow_stuck` 仍然是后续阶段
+
 这些事件必须既可查询，又要有人能直接读懂。
 
 ## 快速开始

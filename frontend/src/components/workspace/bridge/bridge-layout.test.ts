@@ -18,8 +18,9 @@ void test("bridge layout exposes the CodePilot-style section switcher", async ()
     "utf8",
   );
 
-  assert.match(source, /type Section = "bridge" \| "telegram" \| "feishu" \| "discord" \| "qq" \| "weixin"/);
+  assert.match(source, /type Section = "bridge" \| "diagnostics" \| "telegram" \| "feishu" \| "discord" \| "qq" \| "weixin"/);
   assert.match(source, /BridgeSection/);
+  assert.match(source, /BridgeDiagnosticsSection/);
   assert.match(source, /TelegramBridgeSection/);
   assert.match(source, /FeishuBridgeSection/);
   assert.match(source, /DiscordBridgeSection/);

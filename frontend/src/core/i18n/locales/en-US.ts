@@ -265,6 +265,7 @@ export const enUS: Translations = {
     desktopOnly: "Bridge is only available in the desktop app.",
     nav: {
       overview: "Bridge",
+      diagnostics: "Diagnostics",
       telegram: "Telegram",
       feishu: "Feishu",
       discord: "Discord",
@@ -307,6 +308,22 @@ export const enUS: Translations = {
       saveDefaultsAction: "Save Defaults",
       startAction: "Start Bridge",
       stopAction: "Stop Bridge",
+    },
+    diagnostics: {
+      title: "Diagnostics",
+      description:
+        "Review bridge incidents, inspect evidence, and confirm bounded recovery actions.",
+      diagnoseAction: "Diagnose Bridge",
+      empty: "No bridge incidents yet.",
+      selectIncident: "Select an incident after running a diagnosis.",
+      hypothesisLabel: "Hypothesis",
+      recommendedActionsTitle: "Recommended Actions",
+      noActions: "No executable actions suggested for this incident.",
+      confirmRunAction: "Confirm and Run",
+      dismissAction: "Dismiss Incident",
+      advisoryOnly: "Advisory only",
+      lastActionResultTitle: "Last Action Result",
+      confirmRunPrompt: 'Run "{label}"?',
     },
     telegram: {
       title: "Telegram Settings",

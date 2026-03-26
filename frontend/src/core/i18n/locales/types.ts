@@ -113,6 +113,7 @@ type BridgeTranslations = {
   desktopOnly: string;
   nav: {
     overview: string;
+    diagnostics: string;
     telegram: string;
     feishu: string;
     discord: string;
@@ -150,6 +151,21 @@ type BridgeTranslations = {
     saveDefaultsAction: string;
     startAction: string;
     stopAction: string;
+  };
+  diagnostics: {
+    title: string;
+    description: string;
+    diagnoseAction: string;
+    empty: string;
+    selectIncident: string;
+    hypothesisLabel: string;
+    recommendedActionsTitle: string;
+    noActions: string;
+    confirmRunAction: string;
+    dismissAction: string;
+    advisoryOnly: string;
+    lastActionResultTitle: string;
+    confirmRunPrompt: string;
   };
   telegram: {
     title: string;
