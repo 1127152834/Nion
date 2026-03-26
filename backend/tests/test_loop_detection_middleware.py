@@ -2,7 +2,7 @@
 
 from unittest.mock import MagicMock
 
-from langchain_core.messages import AIMessage, SystemMessage
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
 from nion.agents.middlewares.loop_detection_middleware import (
     _HARD_STOP_MSG,
@@ -68,7 +68,7 @@ class TestLoopDetection:
             result = mw._apply(_make_state(tool_calls=call), runtime)
             assert result is None
 
-    def test_warn_at_threshold(self):
+    def test_warn_at_threshold_uses_human_message(self):
         mw = LoopDetectionMiddleware(warn_threshold=3, hard_limit=5)
         runtime = _make_runtime()
         call = [_bash_call("ls")]
@@ -81,7 +81,7 @@ class TestLoopDetection:
         assert result is not None
         msgs = result["messages"]
         assert len(msgs) == 1
-        assert isinstance(msgs[0], SystemMessage)
+        assert isinstance(msgs[0], HumanMessage)
         assert "LOOP DETECTED" in msgs[0].content
 
     def test_warn_only_injected_once(self):
