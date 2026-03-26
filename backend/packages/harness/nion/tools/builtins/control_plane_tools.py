@@ -52,6 +52,7 @@ def get_recent_logs_tool(
     category: str | None = None,
     level: str | None = None,
     thread_id: str | None = None,
+    run_id: str | None = None,
     limit: int = 20,
 ) -> str:
     """Get recent structured daemon logs.
@@ -60,6 +61,7 @@ def get_recent_logs_tool(
         category: Optional category filter.
         level: Optional level filter.
         thread_id: Optional thread filter.
+        run_id: Optional task/run filter.
         limit: Maximum number of events to return.
     """
     events = _telemetry_store().list_events(
@@ -67,6 +69,7 @@ def get_recent_logs_tool(
         category=category,
         level=level,
         thread_id=thread_id,
+        run_id=run_id,
     )
     payload = [
         {
@@ -75,6 +78,7 @@ def get_recent_logs_tool(
             "level": event.level,
             "event_type": event.event_type,
             "thread_id": event.thread_id,
+            "run_id": event.run_id,
             "message": event.message,
             "details": event.details,
         }
@@ -151,6 +155,47 @@ def get_skill_diagnostics_tool(skill_name: str) -> str:
             ),
             "details": {
                 "skill_name": skill_name,
+                "recent_events": [
+                    {
+                        "timestamp": event.timestamp,
+                        "event_type": event.event_type,
+                        "level": event.level,
+                        "message": event.message,
+                    }
+                    for event in events
+                ],
+            },
+        }
+    return json.dumps(payload, ensure_ascii=False, indent=2)
+
+
+@tool("get_task_diagnostics", parse_docstring=True)
+def get_task_diagnostics_tool(task_id: str) -> str:
+    """Get the latest known diagnostic view for one delegated task.
+
+    Args:
+        task_id: Delegated task identifier.
+    """
+    store = _telemetry_store()
+    try:
+        snapshot = store.get_snapshot("task", task_id)
+        payload = {
+            "status": snapshot.status,
+            "summary": snapshot.summary,
+            "updated_at": snapshot.updated_at,
+            "details": snapshot.details,
+        }
+    except LookupError:
+        events = store.list_events(limit=20, run_id=task_id)
+        payload = {
+            "status": "healthy" if not events else ("error" if events[0].level == "error" else "healthy"),
+            "summary": (
+                f"No diagnostics found for task '{task_id}'"
+                if not events
+                else events[0].message
+            ),
+            "details": {
+                "task_id": task_id,
                 "recent_events": [
                     {
                         "timestamp": event.timestamp,

@@ -101,3 +101,30 @@ async def get_skill_diagnostics(skill_name: str, request: Request) -> Diagnostic
             summary=latest.message,
             details={"skill_name": skill_name, "event_type": latest.event_type},
         )
+
+
+@router.get("/diagnostics/tasks/{task_id}", response_model=DiagnosticResponse)
+async def get_task_diagnostics(task_id: str, request: Request) -> DiagnosticResponse:
+    service = get_daemon_service(request)
+    store = _get_store(service)
+    try:
+        snapshot = store.get_snapshot("task", task_id)
+        return DiagnosticResponse(
+            status=snapshot.status,
+            summary=snapshot.summary,
+            details=snapshot.details,
+        )
+    except LookupError:
+        events = store.list_events(limit=20, run_id=task_id)
+        if not events:
+            return DiagnosticResponse(
+                status="healthy",
+                summary=f"No diagnostics found for task '{task_id}'",
+                details={"task_id": task_id},
+            )
+        latest = events[0]
+        return DiagnosticResponse(
+            status="error" if latest.level == "error" else "healthy",
+            summary=latest.message,
+            details={"task_id": task_id, "event_type": latest.event_type},
+        )

@@ -2,9 +2,13 @@ import json
 
 from nion.config.app_config import reset_app_config
 from nion.config.extensions_config import reset_extensions_config
+from nion.config.paths import get_paths
+from nion.telemetry.models import DiagnosticSnapshot, EventRecord
+from nion.telemetry.store import TelemetryStore
 from nion.tools.builtins.control_plane_tools import (
     get_recent_logs_tool,
     get_runtime_status_tool,
+    get_task_diagnostics_tool,
     run_doctor_tool,
     update_config_tool,
 )
@@ -27,9 +31,47 @@ def test_recent_logs_tool_returns_json(monkeypatch, tmp_path):
     import nion.config.paths as paths_module
 
     paths_module._paths = None
-    result = get_recent_logs_tool.invoke({"limit": 5})
+    store = TelemetryStore(get_paths().telemetry_db_file)
+    store.record_event(
+        EventRecord(
+            event_id="evt-1",
+            category="tool",
+            level="info",
+            event_type="task_delegation_started",
+            actor="agent",
+            run_id="task-123",
+            tool_name="task",
+            message="Delegated task 'inspect logs' started",
+            details={},
+        )
+    )
+    result = get_recent_logs_tool.invoke({"limit": 5, "run_id": "task-123"})
     payload = json.loads(result)
     assert isinstance(payload, list)
+    assert payload[0]["run_id"] == "task-123"
+
+
+def test_get_task_diagnostics_tool_returns_snapshot(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    import nion.config.paths as paths_module
+
+    paths_module._paths = None
+    store = TelemetryStore(get_paths().telemetry_db_file)
+    store.upsert_snapshot(
+        DiagnosticSnapshot(
+            scope_type="task",
+            scope_id="task-123",
+            status="error",
+            summary="Delegated task 'inspect logs' failed",
+            details={"task_id": "task-123", "status": "failed"},
+        )
+    )
+
+    result = get_task_diagnostics_tool.invoke({"task_id": "task-123"})
+    payload = json.loads(result)
+
+    assert payload["status"] == "error"
+    assert payload["details"]["task_id"] == "task-123"
 
 
 def test_run_doctor_tool_returns_summary(monkeypatch, tmp_path):
