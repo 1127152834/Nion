@@ -14,6 +14,7 @@ import { InputBox } from "@/components/workspace/input-box";
 import { MessageList } from "@/components/workspace/messages";
 import { ThreadContext } from "@/components/workspace/messages/context";
 import { ThreadRequestErrorAlert } from "@/components/workspace/thread-request-error-alert";
+import { TokenUsageIndicator } from "@/components/workspace/token-usage-indicator";
 import { ThreadTitle } from "@/components/workspace/thread-title";
 import { TodoList } from "@/components/workspace/todo-list";
 import { Tooltip } from "@/components/workspace/tooltip";
@@ -107,7 +108,7 @@ export default function AgentChatPage() {
             <div className="flex w-full items-center text-sm font-medium">
               <ThreadTitle threadId={threadId} thread={thread} />
             </div>
-            <div className="mr-4 flex items-center">
+            <div className="mr-4 flex items-center gap-2">
               <Tooltip content={t.agents.newChat}>
                 <Button
                   size="sm"
@@ -119,6 +120,7 @@ export default function AgentChatPage() {
                   <PlusSquare /> {t.agents.newChat}
                 </Button>
               </Tooltip>
+              <TokenUsageIndicator messages={thread.messages} />
               <ExportTrigger threadId={threadId} />
               <ArtifactTrigger />
             </div>

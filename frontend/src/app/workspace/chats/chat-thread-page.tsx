@@ -15,6 +15,7 @@ import { MessageList } from "@/components/workspace/messages";
 import { ThreadContext } from "@/components/workspace/messages/context";
 import { NewChatStage } from "@/components/workspace/new-chat-stage";
 import { RuntimeModeToggle } from "@/components/workspace/runtime-mode-toggle";
+import { TokenUsageIndicator } from "@/components/workspace/token-usage-indicator";
 import { ThreadTitle } from "@/components/workspace/thread-title";
 import { TodoList } from "@/components/workspace/todo-list";
 import { ThreadRequestErrorAlert } from "@/components/workspace/thread-request-error-alert";
@@ -211,6 +212,9 @@ export default function ChatThreadPage() {
               )}
             </div>
             <div className="flex items-center gap-1">
+              {!isNewThread ? (
+                <TokenUsageIndicator messages={thread.messages} />
+              ) : null}
               <WorkingDirectoryTrigger />
               {!isNewThread ? <ExportTrigger threadId={threadId} /> : null}
               {!isNewThread ? <ArtifactTrigger /> : null}

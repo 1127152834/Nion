@@ -306,6 +306,13 @@ export const enUS: Translations = {
     failed: "Subtask failed",
   },
 
+  tokenUsage: {
+    title: "Token Usage",
+    input: "Input",
+    output: "Output",
+    total: "Total",
+  },
+
   // Shortcuts
   shortcuts: {
     searchActions: "Search actions...",
