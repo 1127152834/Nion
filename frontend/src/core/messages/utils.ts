@@ -1,5 +1,7 @@
 import type { AIMessage, Message } from "../threads";
 
+const INTERNAL_SUMMARY_PREFIX = "Here is a summary of the conversation to date:";
+
 interface GenericMessageGroup<T = string> {
   type: T;
   id: string | undefined;
@@ -52,6 +54,10 @@ export function groupMessages<T>(
   }
 
   for (const message of messages) {
+    if (isInternalSummaryMessage(message)) {
+      continue;
+    }
+
     if (message.name === "todo_reminder") {
       continue;
     }
@@ -126,6 +132,9 @@ export function groupMessages<T>(
 }
 
 export function extractTextFromMessage(message: Message) {
+  if (isInternalSummaryMessage(message)) {
+    return "";
+  }
   if (typeof message.content === "string") {
     return splitInlineReasoningFromAIMessage(message)?.content ?? message.content.trim();
   }
@@ -168,6 +177,9 @@ function splitInlineReasoningFromAIMessage(message: Message) {
 }
 
 export function extractContentFromMessage(message: Message) {
+  if (isInternalSummaryMessage(message)) {
+    return "";
+  }
   if (typeof message.content === "string") {
     return splitInlineReasoningFromAIMessage(message)?.content ?? message.content.trim();
   }
@@ -232,6 +244,9 @@ export function extractURLFromImageURLContent(
 }
 
 export function hasContent(message: Message) {
+  if (isInternalSummaryMessage(message)) {
+    return false;
+  }
   if (typeof message.content === "string") {
     return (
       splitInlineReasoningFromAIMessage(message)?.content ?? message.content.trim()
@@ -241,6 +256,14 @@ export function hasContent(message: Message) {
     return message.content.length > 0;
   }
   return false;
+}
+
+export function isInternalSummaryMessage(message: Message) {
+  return (
+    message.type === "human" &&
+    typeof message.content === "string" &&
+    message.content.trimStart().startsWith(INTERNAL_SUMMARY_PREFIX)
+  );
 }
 
 export function hasReasoning(message: Message) {
