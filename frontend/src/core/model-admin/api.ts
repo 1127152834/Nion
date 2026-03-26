@@ -1,4 +1,4 @@
-import { getBackendBaseURL } from "../config/index.ts";
+import { getBackendBaseURL } from "../config/index.js";
 
 import type {
   AddProviderModelsRequest,
