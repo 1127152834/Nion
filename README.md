@@ -54,7 +54,14 @@
 - daemon API 可按 `run_id` / `task_id` 查询 delegated execution
 - agent built-in tools 可直接读取 task diagnostics
 
-下一阶段才会继续扩到 channel lifecycle / message-bus telemetry。
+Program 03C 已把 channel control plane 补上：
+
+- daemon 在桌面模式下拥有 channel-service 生命周期
+- `/api/daemon/channels/*` 是 channel self-ops 的权威 control-plane surface
+- `/api/channels/*` 保留给兼容层和 UI
+- 已覆盖 channel service lifecycle、message-bus telemetry、channel diagnostics、bounded runtime actions
+- daemon channel control actions 当前只包括 restart、pairing code、approve/reject pair request、revoke authorized user
+- daemon channel control plane 明确不包含 config、credentials、session override 变更
 
 这些事件必须既可查询，又要有人能直接读懂。
 

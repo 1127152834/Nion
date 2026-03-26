@@ -19,6 +19,15 @@ Program 03B extends that surface with delegated execution observability:
 - daemon diagnostics now include task-level summaries
 - built-in control-plane tools can fetch task diagnostics for self-inspection
 
+Program 03C extends that same daemon-owned surface to channels:
+
+- the desktop daemon now owns `ChannelService` lifecycle as well as runtime diagnostics
+- `/api/daemon/channels/*` is the authoritative channel control-plane surface
+- `/api/channels/*` remains a compatibility and UI surface
+- channel telemetry now includes service lifecycle events, message-bus events, and channel diagnostics snapshots
+- bounded runtime actions now include restart, pairing code issuance, pair-request approve/reject, and authorized-user revoke
+- config, credentials, and session override mutation remain outside the daemon channel control plane
+
 ---
 
 ## Architecture

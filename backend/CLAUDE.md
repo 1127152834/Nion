@@ -235,6 +235,7 @@ route surface aligned with the renderer expectations, including:
 - `/api/daemon/logs`, `/api/daemon/logs/tail`
 - `/api/daemon/diagnostics`, `/api/daemon/diagnostics/threads/{thread_id}`, `/api/daemon/diagnostics/skills/{skill_name}`
 - `/api/daemon/diagnostics/tasks/{task_id}`
+- `/api/daemon/channels/*`
 
 If a gateway route is added and the Electron renderer consumes it, update
 `app/daemon/app.py` too or the desktop shell will return 404 while the web/gateway
@@ -250,7 +251,14 @@ Program 03B extends that contract to delegated execution:
 - use `run_id` as the delegated task correlation key
 - keep task-tool and subagent-executor events bounded to counts, IDs, durations, and short summaries
 - prefer task diagnostics over reconstructing delegated failures from raw event tails
-- channel telemetry is a separate follow-up phase, not part of this slice
+
+Program 03C extends the daemon control plane to channels:
+
+- daemon lifespan owns `ChannelService` startup and shutdown in desktop mode
+- `/api/daemon/channels/*` is the authoritative surface for channel runtime inspection and bounded actions
+- `/api/channels/*` remains for compatibility and operator UI
+- channel telemetry must cover service lifecycle events, message-bus events, channel diagnostics, and bounded runtime control actions
+- do not expand daemon channel routes into config, credential, or session-override mutation without a separate design and plan
 
 ### Sandbox System (`packages/harness/nion/sandbox/`)
 

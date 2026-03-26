@@ -59,6 +59,7 @@ cd backend && UV_LINK_MODE=copy uv run pytest -q
 - When `allow_background_running` is disabled, the daemon exits after a short 2–3 second grace period once the Electron client detaches.
 - Electron is single-window. A second app launch should focus the existing window instead of opening another one.
 - `nion daemon status` and `nion daemon stop` talk to the same daemon that Electron uses.
+- In Program 03C, daemon lifespan also owns `ChannelService` startup and shutdown, so channel self-operations now exist in desktop mode without relying on the gateway process.
 
 ## Control Plane Logging Coverage
 
@@ -69,6 +70,10 @@ The daemon control plane is expected to emit structured, human-readable events f
 - thread stream events
 - delegated task lifecycle events
 - subagent execution lifecycle events
+- channel service lifecycle events
+- channel message-bus events
+- channel diagnostics
+- channel runtime control actions
 - task diagnostics
 - skill mutation events
 - config mutation events
@@ -81,7 +86,17 @@ Delegated execution is correlated on `run_id`. Task-level diagnostics should be 
 - `GET /api/daemon/diagnostics/tasks/{task_id}`
 - built-in control-plane tools such as `get_task_diagnostics`
 
-Channel lifecycle and message-bus telemetry are intentionally deferred to a later phase.
+Channel control-plane state should be available from:
+
+- `GET /api/daemon/channels/*`
+- built-in control-plane tools such as `get_channels_status`, `get_channel_diagnostics`, and the bounded channel action tools
+
+Channel control-plane boundaries for Program 03C:
+
+- `/api/daemon/channels/*` is the authoritative self-operations surface
+- `/api/channels/*` remains for compatibility and operator UI
+- approved runtime actions are restart, pairing code issuance, pair-request approve/reject, and authorized-user revoke
+- config, credentials, and session override mutations are intentionally excluded from daemon channel control
 
 ## Known Blocker
 
