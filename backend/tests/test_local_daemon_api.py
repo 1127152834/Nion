@@ -45,6 +45,30 @@ def test_local_daemon_wires_shutdown_callback_when_provided() -> None:
         assert service._shutdown_callback is shutdown_callback
 
 
+def test_local_daemon_starts_channel_service_in_lifespan(monkeypatch) -> None:
+    started = {"count": 0}
+
+    async def fake_start_channel_service():
+        started["count"] += 1
+
+        class FakeChannelService:
+            def get_status(self):
+                return {"service_running": True, "channels": {}}
+
+        return FakeChannelService()
+
+    async def fake_stop_channel_service() -> None:
+        return None
+
+    monkeypatch.setattr("app.daemon.app.start_channel_service", fake_start_channel_service)
+    monkeypatch.setattr("app.daemon.app.stop_channel_service", fake_stop_channel_service)
+
+    with TestClient(create_app()):
+        pass
+
+    assert started["count"] == 1
+
+
 def test_local_daemon_runtime_info_refreshes_after_config_update(tmp_path, monkeypatch) -> None:
     db_path = tmp_path / "config.db"
     extensions_path = tmp_path / "extensions_config.json"

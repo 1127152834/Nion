@@ -11,6 +11,16 @@ from app.channels.message_bus import MessageBus
 from app.channels.pairing_service import PairingService
 from app.channels.runtime_state import ChannelRuntimeState
 from app.channels.store import ChannelStore
+from app.channels.telemetry import (
+    record_channel_restart_completed,
+    record_channel_restart_failed,
+    record_channel_restart_requested,
+    record_channel_service_started,
+    record_channel_service_stopped,
+    record_channel_start_failed,
+    record_channel_started,
+    record_channel_stopped,
+)
 from nion.client import NionClient
 
 logger = logging.getLogger(__name__)
@@ -94,6 +104,7 @@ class ChannelService:
             await self._start_channel(name, channel_config)
 
         self._running = True
+        record_channel_service_started(list(self._channels.keys()))
         logger.info("ChannelService started with channels: %s", list(self._channels.keys()))
 
     async def stop(self) -> None:
@@ -110,25 +121,35 @@ class ChannelService:
 
         await self.manager.stop()
         self._running = False
+        record_channel_service_stopped()
         logger.info("ChannelService stopped")
 
     async def restart_channel(self, name: str) -> bool:
         """Restart a specific channel. Returns True if successful."""
+        record_channel_restart_requested(name)
         if name in self._channels:
             try:
                 await self._channels[name].stop()
                 self.runtime_state.mark_stopped(name)
+                record_channel_stopped(name)
             except Exception:
                 self.runtime_state.mark_error(name, "restart stop failed")
+                record_channel_restart_failed(name, "restart stop failed")
                 logger.exception("Error stopping channel %s for restart", name)
             del self._channels[name]
 
         config = self._config.get(name)
         if not config or not isinstance(config, dict):
             logger.warning("No config for channel %s", name)
+            record_channel_restart_failed(name, "channel config missing")
             return False
 
-        return await self._start_channel(name, config)
+        success = await self._start_channel(name, config)
+        if success:
+            record_channel_restart_completed(name)
+        else:
+            record_channel_restart_failed(name, "channel failed to restart")
+        return success
 
     async def _start_channel(self, name: str, config: dict[str, Any]) -> bool:
         """Instantiate and start a single channel."""
@@ -154,10 +175,12 @@ class ChannelService:
                 getattr(channel, "capabilities", None)
                 or CHANNEL_CAPABILITIES.get(name, {}),
             )
+            record_channel_started(name)
             logger.info("Channel %s started", name)
             return True
         except Exception as exc:
             self.runtime_state.mark_error(name, str(exc))
+            record_channel_start_failed(name, str(exc))
             logger.exception("Failed to start channel %s", name)
             return False
 

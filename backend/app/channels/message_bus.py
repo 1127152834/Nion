@@ -11,6 +11,12 @@ from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
+from app.channels.telemetry import (
+    record_channel_inbound_enqueued,
+    record_channel_outbound_dispatched,
+    record_channel_outbound_failed,
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -131,12 +137,19 @@ class MessageBus:
     async def publish_inbound(self, msg: InboundMessage) -> None:
         """Enqueue an inbound message from a channel."""
         await self._inbound_queue.put(msg)
+        queue_size = self._inbound_queue.qsize()
+        record_channel_inbound_enqueued(
+            msg.channel_name,
+            chat_id=msg.chat_id,
+            msg_type=msg.msg_type.value,
+            queue_size=queue_size,
+        )
         logger.info(
             "[Bus] inbound enqueued: channel=%s, chat_id=%s, type=%s, queue_size=%d",
             msg.channel_name,
             msg.chat_id,
             msg.msg_type.value,
-            self._inbound_queue.qsize(),
+            queue_size,
         )
 
     async def get_inbound(self) -> InboundMessage:
@@ -159,15 +172,27 @@ class MessageBus:
 
     async def publish_outbound(self, msg: OutboundMessage) -> None:
         """Dispatch an outbound message to all registered listeners."""
+        listener_count = len(self._outbound_listeners)
+        record_channel_outbound_dispatched(
+            msg.channel_name,
+            chat_id=msg.chat_id,
+            listener_count=listener_count,
+            text_length=len(msg.text),
+        )
         logger.info(
             "[Bus] outbound dispatching: channel=%s, chat_id=%s, listeners=%d, text_len=%d",
             msg.channel_name,
             msg.chat_id,
-            len(self._outbound_listeners),
+            listener_count,
             len(msg.text),
         )
         for callback in self._outbound_listeners:
             try:
                 await callback(msg)
             except Exception:
+                record_channel_outbound_failed(
+                    msg.channel_name,
+                    chat_id=msg.chat_id,
+                    error="outbound callback failed",
+                )
                 logger.exception("Error in outbound callback for channel=%s", msg.channel_name)

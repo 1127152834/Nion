@@ -7,6 +7,7 @@ from typing import Any
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.channels.service import start_channel_service, stop_channel_service
 from app.daemon.routers import clients, control, diagnostics, logs, runtime
 from app.daemon.service import LocalDaemonService
 from app.gateway.config import get_gateway_config
@@ -34,7 +35,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     shutdown_callback = getattr(app.state, "daemon_shutdown_callback", None)
     service.set_shutdown_callback(shutdown_callback)
     await service.start()
+    await start_channel_service()
     yield
+    await stop_channel_service()
     await service.stop()
 
 
