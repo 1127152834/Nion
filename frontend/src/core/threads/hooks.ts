@@ -12,6 +12,7 @@ import { useUpdateSubtask } from "../tasks/context";
 import { getThreadRequestErrorCopy, getThreadRequestErrorMessage } from "./error-copy";
 import type { UploadedFileInfo } from "../uploads";
 import { uploadFiles } from "../uploads";
+import { removeThreadFromSearchCache } from "./cache";
 
 import type {
   AIMessage,
@@ -652,10 +653,12 @@ export function useDeleteThread() {
           queryKey: ["threads", "search"],
           exact: false,
         },
-        (oldData: Array<AgentThread>) => {
-          return oldData.filter((t) => t.thread_id !== threadId);
-        },
+        (oldData: Array<AgentThread> | undefined) =>
+          removeThreadFromSearchCache(oldData, threadId),
       );
+    },
+    onSettled() {
+      void queryClient.invalidateQueries({ queryKey: ["threads", "search"] });
     },
   });
 }

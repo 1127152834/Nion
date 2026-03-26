@@ -7,7 +7,7 @@ from typing import Any
 
 from nion.config.paths import Paths
 
-from .models import ThreadRecord, ThreadSearchParams, ThreadValues
+from .models import ThreadRecord, ThreadValues
 
 
 def _now_iso() -> str:
@@ -80,11 +80,7 @@ class ThreadRepository:
         return self._write(updated)
 
     def delete_thread(self, thread_id: str) -> None:
-        existing = self._read(thread_id)
-        if existing is None:
-            return
-        deleted = existing.model_copy(update={"updated_at": _now_iso(), "deleted": True})
-        self._write(deleted)
+        self._paths.delete_thread_dir(thread_id)
 
     def search(
         self,
