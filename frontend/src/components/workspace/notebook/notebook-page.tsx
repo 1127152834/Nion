@@ -269,7 +269,22 @@ export function NotebookPage() {
           <ResizableHandle withHandle />
           <ResizablePanel defaultSize={52} minSize={36}>
             <NotebookEditorPane
-              copy={copy}
+              copy={{
+                delete: copy.delete,
+                history: copy.history,
+                move: copy.move,
+                noSelectionDescription: copy.noSelectionDescription,
+                noSelectionTitle: copy.noSelectionTitle,
+                noteTitlePlaceholder: copy.noteTitlePlaceholder,
+                preview: t.common.preview,
+                rename: copy.rename,
+                save: copy.save,
+                saved: copy.saved,
+                saving: copy.saving,
+                selectNote: copy.selectNote,
+                unsaved: copy.unsaved,
+                write: t.common.code,
+              }}
               dirty={dirty}
               draftBody={draftBody}
               draftTitle={draftTitle}

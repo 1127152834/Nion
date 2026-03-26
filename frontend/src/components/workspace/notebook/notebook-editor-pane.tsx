@@ -1,6 +1,7 @@
 "use client";
 
-import { Clock3Icon, SaveIcon, Trash2Icon } from "lucide-react";
+import { Clock3Icon, EyeIcon, PencilIcon, SaveIcon, Trash2Icon } from "lucide-react";
+import { useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,6 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import type { NotebookNote } from "@/core/notebook";
 
+import { MarkdownContent } from "../messages/markdown-content";
+
 type NotebookEditorPaneCopy = {
   delete: string;
   history: string;
@@ -16,12 +19,14 @@ type NotebookEditorPaneCopy = {
   noSelectionDescription: string;
   noSelectionTitle: string;
   noteTitlePlaceholder: string;
+  preview: string;
   rename: string;
   save: string;
   saved: string;
   saving: string;
   selectNote: string;
   unsaved: string;
+  write: string;
 };
 
 type NotebookEditorPaneProps = {
@@ -59,6 +64,8 @@ export function NotebookEditorPane({
   onSave,
   savePending,
 }: NotebookEditorPaneProps) {
+  const [previewMode, setPreviewMode] = useState(false);
+
   return (
     <Card className="h-full rounded-none border-0 shadow-none">
       <CardHeader className="border-b">
@@ -83,6 +90,14 @@ export function NotebookEditorPane({
                 </Button>
                 <Button variant="outline" size="sm" onClick={onOpenMove}>
                   {copy.move}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPreviewMode((current) => !current)}
+                >
+                  {previewMode ? <PencilIcon className="size-4" /> : <EyeIcon className="size-4" />}
+                  {previewMode ? copy.write : copy.preview}
                 </Button>
                 <Button variant="outline" size="sm" onClick={onOpenHistory}>
                   <Clock3Icon className="size-4" />
@@ -112,11 +127,22 @@ export function NotebookEditorPane({
             {isLoading ? loadingLabel : copy.noSelectionDescription}
           </div>
         ) : (
-          <Textarea
-            value={draftBody}
-            onChange={(event) => onDraftBodyChange(event.target.value)}
-            className="h-full min-h-full rounded-none border-0 px-6 py-5 font-mono text-sm shadow-none focus-visible:ring-0"
-          />
+          <div className="h-full overflow-y-auto px-6 py-5">
+            {previewMode ? (
+              <MarkdownContent
+                className="prose prose-neutral max-w-none"
+                content={draftBody}
+                isLoading={false}
+                rehypePlugins={[]}
+              />
+            ) : (
+              <Textarea
+                value={draftBody}
+                onChange={(event) => onDraftBodyChange(event.target.value)}
+                className="h-full min-h-full rounded-none border-0 px-0 py-0 font-mono text-sm shadow-none focus-visible:ring-0"
+              />
+            )}
+          </div>
         )}
       </CardContent>
     </Card>
