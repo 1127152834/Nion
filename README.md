@@ -63,6 +63,15 @@ Program 03C 已把 channel control plane 补上：
 - daemon channel control actions 当前只包括 restart、pairing code、approve/reject pair request、revoke authorized user
 - daemon channel control plane 明确不包含 config、credentials、session override 变更
 
+Program 03D-A 已把非 bridge incident workflow 补上：
+
+- daemon control plane 现在会持久化 `incident records`，作为日志与 diagnostics 之上的诊断结果层
+- 第一版入口是 `chat-triggered diagnosis`，用于显式诊断最近一次 agent-execution 失败
+- 当前已实现的 `agent-execution incident playbooks` 包括 `task_timeout`、`subagent_failure`、`tool_execution_failure`、`thread_stream_failure`
+- diagnosis 是 suggestion-first，采用 `suggested-action confirmation model`，不会在这一阶段自动执行高影响修复动作
+- 桌面 `desktop diagnostics center` 已完成数据契约设计，但 UI 本身仍然是 designed-but-deferred
+- 本阶段明确不覆盖 bridge/channel incidents，也不实现 `daemon_runtime` playbooks 和 auto-remediation
+
 这些事件必须既可查询，又要有人能直接读懂。
 
 ## 快速开始

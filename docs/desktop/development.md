@@ -78,6 +78,11 @@ The daemon control plane is expected to emit structured, human-readable events f
 - skill mutation events
 - config mutation events
 - model/provider mutation events
+- incident records
+- chat-triggered diagnosis
+- agent-execution incident playbooks
+- suggested-action confirmation model
+- desktop diagnostics center
 
 The event store is machine-queryable, but `message` values should stay understandable to humans without requiring raw JSON inspection.
 
@@ -97,6 +102,19 @@ Channel control-plane boundaries for Program 03C:
 - `/api/channels/*` remains for compatibility and operator UI
 - approved runtime actions are restart, pairing code issuance, pair-request approve/reject, and authorized-user revoke
 - config, credentials, and session override mutations are intentionally excluded from daemon channel control
+
+Program 03D-A adds an incident workflow above the existing logs and diagnostics:
+
+- incident records are persisted as structured diagnosis results rather than recomputed ad hoc from raw logs
+- the first implementation path is chat-triggered diagnosis, not a desktop button and not auto-remediation
+- the currently implemented agent-execution incident playbooks are:
+  - `task_timeout`
+  - `subagent_failure`
+  - `tool_execution_failure`
+  - `thread_stream_failure`
+- the suggested-action confirmation model is explicit: diagnosis may propose bounded actions, but execution requires confirmation
+- a desktop diagnostics center is designed to consume incident records later, but that UI is still deferred
+- bridge/channel incidents and `daemon_runtime` playbooks are out of scope for this phase
 
 ## Known Blocker
 

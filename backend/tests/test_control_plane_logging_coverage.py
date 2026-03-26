@@ -11,6 +11,11 @@ def test_control_plane_coverage_notes_exist_for_key_modules() -> None:
     assert "channel message-bus events" in text
     assert "channel diagnostics" in text
     assert "channel runtime control actions" in text
+    assert "incident records" in text
+    assert "chat-triggered diagnosis" in text
+    assert "agent-execution incident playbooks" in text
+    assert "suggested-action confirmation model" in text
+    assert "desktop diagnostics center" in text
     assert "task diagnostics" in text
     assert "skill mutation events" in text
     assert "config mutation events" in text

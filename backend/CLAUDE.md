@@ -259,6 +259,20 @@ Program 03C extends the daemon control plane to channels:
 - channel telemetry must cover service lifecycle events, message-bus events, channel diagnostics, and bounded runtime control actions
 - do not expand daemon channel routes into config, credential, or session-override mutation without a separate design and plan
 
+Program 03D-A extends the daemon control plane to incident workflow:
+
+- incident records are persisted in the same SQLite-backed control plane as diagnosis artifacts
+- `POST /api/daemon/incidents/diagnose` is the chat-first incident entrypoint
+- implemented incident playbooks are limited to non-bridge `agent_execution` failures:
+  - `task_timeout`
+  - `subagent_failure`
+  - `tool_execution_failure`
+  - `thread_stream_failure`
+- suggested actions are suggestion-first and require confirmation before execution
+- `daemon_runtime` playbooks are designed into the contract but are not implemented yet
+- bridge/channel incidents are intentionally excluded from this phase
+- a desktop diagnostics center is a future consumer of incident records rather than a second diagnosis engine
+
 ### Sandbox System (`packages/harness/nion/sandbox/`)
 
 **Interface**: Abstract `Sandbox` with `execute_command`, `read_file`, `write_file`, `list_dir`

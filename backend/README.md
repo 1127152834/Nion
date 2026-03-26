@@ -28,6 +28,15 @@ Program 03C extends that same daemon-owned surface to channels:
 - bounded runtime actions now include restart, pairing code issuance, pair-request approve/reject, and authorized-user revoke
 - config, credentials, and session override mutation remain outside the daemon channel control plane
 
+Program 03D-A extends that surface to incident workflow:
+
+- `incident_records` now persist structured diagnosis results above raw events and snapshots
+- the first implementation path is `chat-triggered diagnosis`, not background auto-repair
+- currently implemented incident types are `task_timeout`, `subagent_failure`, `tool_execution_failure`, and `thread_stream_failure`
+- suggested actions remain bounded and require confirmation before execution
+- a desktop diagnostics center is designed to consume incident records later, but it is not implemented in this phase
+- bridge/channel incidents, `daemon_runtime` playbooks, and auto-remediation remain out of scope for 03D-A
+
 ---
 
 ## Architecture
