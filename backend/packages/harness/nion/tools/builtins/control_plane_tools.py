@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import httpx
 from langchain.tools import tool
@@ -74,6 +74,85 @@ def get_runtime_status_tool() -> str:
         JSON string containing daemon status and current runtime summary.
     """
     return json.dumps(_runtime_summary(), ensure_ascii=False, indent=2)
+
+
+@tool("diagnose_incident", parse_docstring=True)
+def diagnose_incident_tool(
+    source: Literal["chat", "desktop_button", "automatic"],
+    thread_id: str | None = None,
+    run_id: str | None = None,
+    incident_type_hint: Literal["agent_execution", "daemon_runtime", "auto"] = "auto",
+    include_recommended_actions: bool = True,
+) -> str:
+    """Diagnose one incident through the daemon control plane.
+
+    Args:
+        source: Trigger source for the diagnosis request.
+        thread_id: Optional thread scope.
+        run_id: Optional run scope.
+        incident_type_hint: Optional incident-family hint.
+        include_recommended_actions: Whether to include suggested next actions.
+    """
+    return _json_result(
+        lambda: _daemon_post(
+            "/api/daemon/incidents/diagnose",
+            payload={
+                "source": source,
+                "thread_id": thread_id,
+                "run_id": run_id,
+                "incident_type_hint": incident_type_hint,
+                "include_recommended_actions": include_recommended_actions,
+            },
+        )
+    )
+
+
+@tool("list_incidents", parse_docstring=True)
+def list_incidents_tool(
+    incident_type: str | None = None,
+    status: str | None = None,
+    thread_id: str | None = None,
+    run_id: str | None = None,
+    limit: int = 20,
+) -> str:
+    """List persisted incident records from the daemon control plane.
+
+    Args:
+        incident_type: Optional incident type filter.
+        status: Optional incident status filter.
+        thread_id: Optional thread scope filter.
+        run_id: Optional run scope filter.
+        limit: Maximum number of incidents to return.
+    """
+    params = {
+        "incident_type": incident_type,
+        "status": status,
+        "thread_id": thread_id,
+        "run_id": run_id,
+        "limit": limit,
+    }
+    filtered_params = {key: value for key, value in params.items() if value is not None}
+    return _json_result(lambda: _daemon_get("/api/daemon/incidents", params=filtered_params))
+
+
+@tool("get_incident", parse_docstring=True)
+def get_incident_tool(incident_id: str) -> str:
+    """Get one persisted incident record from the daemon control plane.
+
+    Args:
+        incident_id: Incident identifier.
+    """
+    return _json_result(lambda: _daemon_get(f"/api/daemon/incidents/{incident_id}"))
+
+
+@tool("dismiss_incident", parse_docstring=True)
+def dismiss_incident_tool(incident_id: str) -> str:
+    """Dismiss one persisted incident record through the daemon control plane.
+
+    Args:
+        incident_id: Incident identifier.
+    """
+    return _json_result(lambda: _daemon_post(f"/api/daemon/incidents/{incident_id}/dismiss"))
 
 
 @tool("get_channels_status", parse_docstring=True)

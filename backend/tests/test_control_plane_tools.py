@@ -9,14 +9,18 @@ from nion.telemetry.models import DiagnosticSnapshot, EventRecord
 from nion.telemetry.store import TelemetryStore
 from nion.tools.builtins.control_plane_tools import (
     approve_channel_pair_request_tool,
+    diagnose_incident_tool,
+    dismiss_incident_tool,
     get_channel_diagnostics_tool,
     get_channels_status_tool,
+    get_incident_tool,
     get_recent_logs_tool,
     get_runtime_status_tool,
     get_task_diagnostics_tool,
     issue_channel_pairing_code_tool,
     list_channel_authorized_users_tool,
     list_channel_pair_requests_tool,
+    list_incidents_tool,
     reject_channel_pair_request_tool,
     restart_channel_control_plane_tool,
     revoke_channel_authorized_user_tool,
@@ -113,6 +117,162 @@ def test_update_config_tool_updates_daemon_section(monkeypatch, tmp_path):
     payload = json.loads(result)
 
     assert payload["ok"] is True
+
+
+def test_diagnose_incident_tool_returns_daemon_incident(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    import nion.config.paths as paths_module
+
+    paths_module._paths = None
+
+    def fake_post(path: str, *, payload=None):
+        assert path == "/api/daemon/incidents/diagnose"
+        assert payload == {
+            "source": "chat",
+            "thread_id": "thread-1",
+            "run_id": "run-1",
+            "incident_type_hint": "agent_execution",
+            "include_recommended_actions": True,
+        }
+        return {
+            "incident_id": "inc-1",
+            "source": "chat",
+            "incident_type": "task_timeout",
+            "severity": "error",
+            "status": "open",
+            "summary": "Delegated task timed out before completion",
+            "user_visible_explanation": "The latest delegated task did not finish in time.",
+            "thread_id": "thread-1",
+            "run_id": "run-1",
+            "recommended_actions": [{"action_id": "inspect-task"}],
+            "executed_actions": [],
+            "evidence": {"primary_error_event": "task_delegation_timed_out"},
+        }
+
+    monkeypatch.setattr("nion.tools.builtins.control_plane_tools._daemon_post", fake_post)
+    payload = json.loads(
+        diagnose_incident_tool.invoke(
+            {
+                "source": "chat",
+                "thread_id": "thread-1",
+                "run_id": "run-1",
+                "incident_type_hint": "agent_execution",
+                "include_recommended_actions": True,
+            }
+        )
+    )
+    assert payload["incident_type"] == "task_timeout"
+    assert payload["incident_id"] == "inc-1"
+
+
+def test_list_incidents_tool_returns_filtered_results(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    import nion.config.paths as paths_module
+
+    paths_module._paths = None
+
+    def fake_get(path: str, *, params=None):
+        assert path == "/api/daemon/incidents"
+        assert params == {"status": "open", "limit": 10}
+        return {
+            "incidents": [
+                {
+                    "incident_id": "inc-open",
+                    "source": "chat",
+                    "incident_type": "task_timeout",
+                    "severity": "error",
+                    "status": "open",
+                    "summary": "Delegated task timed out before completion",
+                    "user_visible_explanation": "The latest delegated task did not finish in time.",
+                    "thread_id": "thread-1",
+                    "run_id": "run-1",
+                    "recommended_actions": [],
+                    "executed_actions": [],
+                    "evidence": {},
+                }
+            ]
+        }
+
+    monkeypatch.setattr("nion.tools.builtins.control_plane_tools._daemon_get", fake_get)
+    payload = json.loads(list_incidents_tool.invoke({"status": "open", "limit": 10}))
+    assert payload["incidents"][0]["incident_id"] == "inc-open"
+
+
+def test_get_incident_tool_returns_incident(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    import nion.config.paths as paths_module
+
+    paths_module._paths = None
+
+    def fake_get(path: str, *, params=None):
+        assert path == "/api/daemon/incidents/inc-1"
+        assert params is None
+        return {
+            "incident_id": "inc-1",
+            "source": "chat",
+            "incident_type": "subagent_failure",
+            "severity": "error",
+            "status": "open",
+            "summary": "Subagent execution failed before returning a final result",
+            "user_visible_explanation": "The subagent ended with an error.",
+            "thread_id": "thread-2",
+            "run_id": "run-2",
+            "recommended_actions": [],
+            "executed_actions": [],
+            "evidence": {},
+        }
+
+    monkeypatch.setattr("nion.tools.builtins.control_plane_tools._daemon_get", fake_get)
+    payload = json.loads(get_incident_tool.invoke({"incident_id": "inc-1"}))
+    assert payload["incident_id"] == "inc-1"
+    assert payload["incident_type"] == "subagent_failure"
+
+
+def test_dismiss_incident_tool_returns_dismissed_record(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    import nion.config.paths as paths_module
+
+    paths_module._paths = None
+
+    def fake_post(path: str, *, payload=None):
+        assert path == "/api/daemon/incidents/inc-dismiss/dismiss"
+        assert payload is None
+        return {
+            "incident_id": "inc-dismiss",
+            "source": "chat",
+            "incident_type": "tool_execution_failure",
+            "severity": "error",
+            "status": "dismissed",
+            "summary": "Tool execution failed and interrupted the run",
+            "user_visible_explanation": "A tool failed during execution.",
+            "thread_id": "thread-3",
+            "run_id": "run-3",
+            "recommended_actions": [],
+            "executed_actions": [],
+            "evidence": {},
+        }
+
+    monkeypatch.setattr("nion.tools.builtins.control_plane_tools._daemon_post", fake_post)
+    payload = json.loads(dismiss_incident_tool.invoke({"incident_id": "inc-dismiss"}))
+    assert payload["status"] == "dismissed"
+
+
+def test_get_incident_tool_returns_http_error_payload(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    import nion.config.paths as paths_module
+
+    paths_module._paths = None
+    request = httpx.Request("GET", "http://127.0.0.1:43115/api/daemon/incidents/inc-missing")
+    response = httpx.Response(404, request=request)
+
+    def fake_get(path: str, *, params=None):
+        assert path == "/api/daemon/incidents/inc-missing"
+        raise httpx.HTTPStatusError("404 Not Found", request=request, response=response)
+
+    monkeypatch.setattr("nion.tools.builtins.control_plane_tools._daemon_get", fake_get)
+    payload = json.loads(get_incident_tool.invoke({"incident_id": "inc-missing"}))
+    assert payload["error_type"] == "HTTPStatusError"
+    assert "404 Not Found" in payload["error"]
 
 
 def test_get_channels_status_tool_returns_daemon_status(monkeypatch, tmp_path):
