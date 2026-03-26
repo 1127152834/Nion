@@ -15,6 +15,27 @@ This wave deliberately excludes:
 - notebook search UI
 - OpenViking ingest runtime
 
+## Donor UI Parity Status
+
+The original Wave 1 execution spec was backend-first. The current donor UI integration lane extends that foundation with a frontend notebook shell built on top of the already-landed notebook APIs.
+
+Current status:
+
+- [x] three-pane notebook shell
+- [x] donor-style sidebar with search, recent notes, and tree view
+- [x] Markdown editor with explicit save and preview toggle
+- [x] right-side context rail with Ask / History / Info tabs
+- [x] create note dialog
+- [x] quick capture dialog wired to notebook inbox creation
+- [x] notebook-specific delete confirmation dialog
+- [x] notebook trash route aligned to `/workspace/notebook/trash`
+- [x] notebook locale copy contract for donor shell labels
+- [ ] assist preview / replace / insert flow
+- [ ] attachment upload flow
+- [ ] persisted pinned/tag metadata
+- [ ] explicit folder creation flow
+- [ ] desktop manual QA for visual polish and resize ergonomics
+
 ## Why This Wave Comes First
 
 The current repo already has a strong pattern for app-rooted storage under `Paths`, with `~/.nion-data` as the default base directory and existing host-side persisted assets like `memory.json`, `USER.md`, and thread-scoped user-data paths.[paths.py](/Users/zhangtiancheng/Documents/项目/agent/nion/backend/packages/harness/nion/config/paths.py#L15)

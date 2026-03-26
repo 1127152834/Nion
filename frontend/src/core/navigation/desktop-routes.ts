@@ -28,7 +28,7 @@ export function pathOfNotebook(
 export function pathOfNotebookTrash(
   extra: Record<string, string | undefined> = {},
 ) {
-  return pathOfNotebook({ view: "trash", ...extra });
+  return withQuery("/workspace/notebook/trash", extra);
 }
 
 export function pathOfNotebookSeededCreate(input: {

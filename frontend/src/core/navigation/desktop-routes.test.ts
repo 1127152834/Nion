@@ -9,14 +9,14 @@ import {
   pathOfThread,
 } from "./desktop-routes.ts";
 
-void test("desktop routes are query-based and static-export friendly", () => {
+void test("desktop routes keep notebook trash on its dedicated page", () => {
   assert.equal(pathOfThread("thread-1"), "/workspace/chats?thread=thread-1");
   assert.equal(
     pathOfAgentThread("writer", "thread-2"),
     "/workspace/agents?agent=writer&thread=thread-2",
   );
   assert.equal(pathOfNotebook(), "/workspace/notebook");
-  assert.equal(pathOfNotebookTrash(), "/workspace/notebook?view=trash");
+  assert.equal(pathOfNotebookTrash(), "/workspace/notebook/trash");
   assert.equal(
     pathOfNotebookSeededCreate({
       title: "Roadmap",
