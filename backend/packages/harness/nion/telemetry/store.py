@@ -111,6 +111,7 @@ class TelemetryStore:
         category: str | None = None,
         level: str | None = None,
         thread_id: str | None = None,
+        run_id: str | None = None,
         skill_name: str | None = None,
     ) -> list[EventRecord]:
         conditions: list[str] = []
@@ -124,6 +125,9 @@ class TelemetryStore:
         if thread_id is not None:
             conditions.append("thread_id = ?")
             params.append(thread_id)
+        if run_id is not None:
+            conditions.append("run_id = ?")
+            params.append(run_id)
         if skill_name is not None:
             conditions.append("skill_name = ?")
             params.append(skill_name)

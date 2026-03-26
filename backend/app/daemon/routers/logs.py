@@ -49,6 +49,7 @@ async def list_logs(
     category: str | None = None,
     level: Literal["info", "warning", "error"] | None = None,
     thread_id: str | None = None,
+    run_id: str | None = None,
     limit: int = Query(default=50, ge=1, le=500),
 ) -> EventLogListResponse:
     service = get_daemon_service(request)
@@ -58,6 +59,7 @@ async def list_logs(
         category=category,
         level=level,
         thread_id=thread_id,
+        run_id=run_id,
     )
     return EventLogListResponse(events=[EventLogItem(**asdict(event)) for event in events])
 
