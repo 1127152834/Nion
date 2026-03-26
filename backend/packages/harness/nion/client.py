@@ -306,13 +306,17 @@ class NionClient:
                 d["usage_metadata"] = msg.usage_metadata
             return d
         if isinstance(msg, ToolMessage):
-            return {
+            payload = {
                 "type": "tool",
                 "content": NionClient._extract_text(msg.content),
                 "name": getattr(msg, "name", None),
                 "tool_call_id": getattr(msg, "tool_call_id", None),
                 "id": getattr(msg, "id", None),
             }
+            additional_kwargs = getattr(msg, "additional_kwargs", None)
+            if additional_kwargs:
+                payload["additional_kwargs"] = additional_kwargs
+            return payload
         if isinstance(msg, HumanMessage):
             return {"type": "human", "content": msg.content, "id": getattr(msg, "id", None)}
         if isinstance(msg, SystemMessage):
@@ -477,6 +481,7 @@ class NionClient:
                             yield StreamEvent(type="messages-tuple", data=event_data)
 
                     elif isinstance(msg, ToolMessage):
+                        additional_kwargs = getattr(msg, "additional_kwargs", None) or {}
                         yield StreamEvent(
                             type="messages-tuple",
                             data={
@@ -485,8 +490,31 @@ class NionClient:
                                 "name": getattr(msg, "name", None),
                                 "tool_call_id": getattr(msg, "tool_call_id", None),
                                 "id": msg_id,
+                                **({"additional_kwargs": additional_kwargs} if additional_kwargs else {}),
                             },
                         )
+                        clarification = additional_kwargs.get("clarification")
+                        if getattr(msg, "name", None) == "ask_clarification" and isinstance(clarification, dict):
+                            yield StreamEvent(
+                                type="custom",
+                                data={
+                                    "type": "clarification_request",
+                                    "id": msg_id,
+                                    "tool_call_id": getattr(msg, "tool_call_id", None),
+                                    **clarification,
+                                },
+                            )
+                        permission_request = additional_kwargs.get("permission_request")
+                        if getattr(msg, "name", None) == "permission_request" and isinstance(permission_request, dict):
+                            yield StreamEvent(
+                                type="custom",
+                                data={
+                                    "type": "permission_request",
+                                    "id": msg_id,
+                                    "tool_call_id": getattr(msg, "tool_call_id", None),
+                                    **permission_request,
+                                },
+                            )
 
                 # Emit a values event for each state snapshot
                 yield StreamEvent(

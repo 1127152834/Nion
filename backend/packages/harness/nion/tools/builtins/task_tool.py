@@ -365,6 +365,7 @@ def task_tool(
         sandbox_state=sandbox_state,
         thread_data=thread_data,
         thread_id=thread_id,
+        surface=surface,
         trace_id=trace_id,
     )
 

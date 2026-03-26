@@ -105,6 +105,18 @@ class TestSerializeToolMessageContent:
         # int → not str, not list → falls to str()
         assert result["content"] == "42"
 
+    def test_preserves_tool_additional_kwargs(self):
+        msg = ToolMessage(
+            content="need input",
+            tool_call_id="tc1",
+            name="ask_clarification",
+            additional_kwargs={"clarification": {"question": "Continue?"}},
+        )
+        result = NionClient._serialize_message(msg)
+        assert result["additional_kwargs"] == {
+            "clarification": {"question": "Continue?"},
+        }
+
 
 # ---------------------------------------------------------------------------
 # _extract_text (already existed, but verify it also covers ToolMessage paths)

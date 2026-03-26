@@ -139,7 +139,6 @@ from nion.tools import get_available_tools
 # ---------------------------------------------------------------
 from app.gateway.app import app
 from app.gateway.routers.uploads import upload_files
-from app.channels.service import start_channel_service
 
 # ---------------------------------------------------------------
 # App 调用 Harness（单向依赖，Harness 永远不 import app）

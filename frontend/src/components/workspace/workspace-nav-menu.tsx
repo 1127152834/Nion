@@ -101,11 +101,11 @@ export function WorkspaceNavMenu() {
                 <DropdownMenuItem
                   onClick={() => {
                     setSettingsOpen(false);
-                    router.push("/workspace/manage/channels");
+                    router.push("/workspace/bridge");
                   }}
                 >
                   <ActivityIcon />
-                  {t.workspace.manageChannels}
+                  {t.bridge.menuLabel}
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => {

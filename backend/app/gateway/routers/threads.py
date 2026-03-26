@@ -5,8 +5,13 @@ import logging
 from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, Request, Response
+from pydantic import BaseModel
 from starlette.responses import StreamingResponse
 
+from nion.bridge_permissions import (
+    get_bridge_permission_request,
+    resolve_bridge_permission_request,
+)
 from nion.config.paths import get_paths
 from nion.telemetry.logger import make_event
 from nion.telemetry.store import TelemetryStore
@@ -24,6 +29,10 @@ class ThreadsSearchRequest(ThreadSearchParams):
 
 class ThreadStateUpdateRequest(dict):
     values: dict[str, Any]
+
+
+class BridgePermissionResolveRequest(BaseModel):
+    decision: Literal["allow", "allow_session", "deny"]
 
 
 def get_thread_service() -> ThreadService:
@@ -157,3 +166,33 @@ async def stream_thread(
             yield f"event: error\ndata: {json.dumps({'message': str(error) or 'Thread stream failed'})}\n\n"
 
     return StreamingResponse(event_stream(), media_type="text/event-stream")
+
+
+@router.post("/{thread_id}/bridge/permissions/{permission_request_id}/resolve")
+async def resolve_bridge_permission(
+    thread_id: str,
+    permission_request_id: str,
+    payload: BridgePermissionResolveRequest,
+) -> dict[str, Any]:
+    decision = payload.decision
+    if decision not in {"allow", "allow_session", "deny"}:
+        return {"ok": False, "message": "Invalid permission decision"}
+
+    record = resolve_bridge_permission_request(
+        thread_id=thread_id,
+        permission_request_id=permission_request_id,
+        decision=decision,
+    )
+    if record is None:
+        return {"ok": False, "message": "Permission request not found"}
+
+    latest = get_bridge_permission_request(
+        thread_id=thread_id,
+        permission_request_id=permission_request_id,
+    )
+    return {
+        "ok": True,
+        "decision": decision,
+        "original_message_text": latest.original_message_text if latest else "",
+        "tool_name": latest.tool_name if latest else "",
+    }

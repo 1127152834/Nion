@@ -24,7 +24,6 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { SidebarGroupLabel } from "@/components/ui/sidebar";
 import { AppearanceSettingsPage } from "@/components/workspace/settings/appearance-settings-page";
-import { ChannelSettingsPage } from "@/components/workspace/settings/channel-settings-page";
 import { CLIToolsPage } from "@/components/workspace/settings/cli-tools-page";
 import { DaemonSettingsPage } from "@/components/workspace/settings/daemon-settings-page";
 import { MCPServersPage } from "@/components/workspace/settings/mcp-servers-page";
@@ -147,11 +146,6 @@ export function SettingsDialog(props: SettingsDialogProps) {
           label: t.settings.sections.sandbox,
           icon: ShieldIcon,
         },
-        channels: {
-          id: "channels",
-          label: t.settings.sections.channels,
-          icon: PlugIcon,
-        },
         skills: {
           id: "skills",
           label: t.settings.sections.skills,
@@ -178,7 +172,7 @@ export function SettingsDialog(props: SettingsDialogProps) {
         {
           id: "capabilities",
           title: t.settings.navGroups.capabilities,
-          items: [items.tools, items.search, items.cliTools, items.mcpServers, items.channels, items.skills],
+          items: [items.tools, items.search, items.cliTools, items.mcpServers, items.skills],
         },
         {
           id: "system",
@@ -200,7 +194,6 @@ export function SettingsDialog(props: SettingsDialogProps) {
       t.settings.sections.mcpServers,
       t.settings.sections.skills,
       t.settings.sections.sandbox,
-      t.settings.sections.channels,
       t.settings.navGroups.experience,
       t.settings.navGroups.conversation,
       t.settings.navGroups.knowledge,
@@ -286,7 +279,6 @@ export function SettingsDialog(props: SettingsDialogProps) {
                 {activeSection === "search" && <SearchSettingsPage />}
                 {activeSection === "cliTools" && <CLIToolsPage />}
                 {activeSection === "mcpServers" && <MCPServersPage />}
-                {activeSection === "channels" && <ChannelSettingsPage />}
                 {activeSection === "skills" && (
                   <SkillSettingsPage
                     onClose={() => props.onOpenChange?.(false)}

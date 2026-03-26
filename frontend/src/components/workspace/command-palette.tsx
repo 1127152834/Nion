@@ -53,8 +53,8 @@ export function CommandPalette() {
     setShortcutsOpen(true);
   }, []);
 
-  const handleOpenChannelOps = useCallback(() => {
-    router.push("/workspace/manage/channels");
+  const handleOpenBridge = useCallback(() => {
+    router.push("/workspace/bridge");
     setOpen(false);
   }, [router]);
 
@@ -93,9 +93,9 @@ export function CommandPalette() {
               {t.common.settings}
               <CommandShortcut>{metaKey},</CommandShortcut>
             </CommandItem>
-            <CommandItem onSelect={handleOpenChannelOps}>
+            <CommandItem onSelect={handleOpenBridge}>
               <ActivityIcon className="mr-2 h-4 w-4" />
-              {t.workspace.manageChannels}
+              {t.bridge.menuLabel}
             </CommandItem>
             <CommandItem onSelect={handleShowShortcuts}>
               <KeyboardIcon className="mr-2 h-4 w-4" />
@@ -120,7 +120,7 @@ export function CommandPalette() {
               { keys: `${metaKey}${shiftKey}N`, label: t.sidebar.newChat },
               { keys: `${metaKey}B`, label: t.shortcuts.toggleSidebar },
               { keys: `${metaKey},`, label: t.common.settings },
-              { keys: "Palette", label: t.workspace.manageChannels },
+              { keys: "Palette", label: t.bridge.menuLabel },
               {
                 keys: `${metaKey}/`,
                 label: t.shortcuts.keyboardShortcuts,

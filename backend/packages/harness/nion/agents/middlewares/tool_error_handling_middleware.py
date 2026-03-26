@@ -69,6 +69,7 @@ def _build_runtime_middlewares(
     *,
     include_uploads: bool,
     include_dangling_tool_call_patch: bool,
+    surface: str = "workspace",
     lazy_init: bool = True,
 ) -> list[AgentMiddleware]:
     """Build shared base middlewares for agent execution."""
@@ -114,24 +115,34 @@ def _build_runtime_middlewares(
                 pass
         provider = provider_cls(**provider_kwargs)
         middlewares.append(GuardrailMiddleware(provider, fail_closed=guardrails_config.fail_closed, passport=guardrails_config.passport))
+    elif surface == "bridge":
+        from nion.guardrails.builtin import AllowlistProvider
+        from nion.guardrails.middleware import GuardrailMiddleware
+
+        provider = AllowlistProvider(
+            approval_tools=["bash", "write_file", "str_replace"],
+        )
+        middlewares.append(GuardrailMiddleware(provider, fail_closed=True, passport=None))
 
     middlewares.append(ToolErrorHandlingMiddleware())
     return middlewares
 
 
-def build_lead_runtime_middlewares(*, lazy_init: bool = True) -> list[AgentMiddleware]:
+def build_lead_runtime_middlewares(*, surface: str = "workspace", lazy_init: bool = True) -> list[AgentMiddleware]:
     """Middlewares shared by lead agent runtime before lead-only middlewares."""
     return _build_runtime_middlewares(
         include_uploads=True,
         include_dangling_tool_call_patch=True,
+        surface=surface,
         lazy_init=lazy_init,
     )
 
 
-def build_subagent_runtime_middlewares(*, lazy_init: bool = True) -> list[AgentMiddleware]:
+def build_subagent_runtime_middlewares(*, surface: str = "workspace", lazy_init: bool = True) -> list[AgentMiddleware]:
     """Middlewares shared by subagent runtime before subagent-only middlewares."""
     return _build_runtime_middlewares(
         include_uploads=False,
         include_dangling_tool_call_patch=False,
+        surface=surface,
         lazy_init=lazy_init,
     )
