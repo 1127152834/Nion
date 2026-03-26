@@ -64,6 +64,7 @@ export function NotebookPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { tree, isLoading, error } = useNotebookTree();
+  const [query, setQuery] = useState("");
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
   const [draftTitle, setDraftTitle] = useState("");
   const [draftBody, setDraftBody] = useState("");
@@ -130,6 +131,7 @@ export function NotebookPage() {
     [selectedNoteId, tree.files],
   );
   const treeNodes = useMemo(() => buildNotebookTree(tree), [tree]);
+  const recentFiles = useMemo(() => tree.files, [tree.files]);
 
   const dirty =
     note !== null && (draftBody !== note.body || draftTitle !== note.title);
@@ -240,12 +242,26 @@ export function NotebookPage() {
           <ResizablePanel defaultSize={24} minSize={18}>
             <NotebookSidebar
               activePath={selectedFile?.path ?? null}
-              copy={copy}
+              copy={{
+                createNote: copy.createNote,
+                emptyDescription: copy.emptyDescription,
+                emptyTitle: copy.emptyTitle,
+                noteListDescription: copy.noteListDescription,
+                noteListTitle: copy.noteListTitle,
+                quickCaptureLabel: t.inputBox.flashMode,
+                recentTitle: t.common.lastUpdated,
+                searchPlaceholder: `${t.common.search}...`,
+                trashTitle: copy.trashTitle,
+              }}
               isLoading={isLoading}
               loadingLabel={t.common.loading}
+              query={query}
+              recentFiles={recentFiles}
               treeFileCount={tree.files.length}
               treeNodes={treeNodes}
               onOpenCreate={() => setCreateOpen(true)}
+              onOpenQuickCapture={() => setCreateOpen(true)}
+              onQueryChange={setQuery}
               onOpenTrash={() => router.push(pathOfNotebookTrash())}
               onSelectNote={setSelectedNoteId}
             />

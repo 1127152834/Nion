@@ -1,19 +1,26 @@
 "use client";
 
-import { ChevronRightIcon, FileTextIcon, FolderIcon, FolderPlusIcon, Trash2Icon } from "lucide-react";
+import { FolderPlusIcon, SearchIcon, SparklesIcon, Trash2Icon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import type { NotebookTreeNode } from "@/core/notebook";
+import type { NotebookFileEntry, NotebookTreeNode } from "@/core/notebook";
 
-import { filterNotebookTreeNodes } from "./notebook-sidebar-state";
+import {
+  buildRecentNotebookFiles,
+  filterNotebookTreeNodes,
+} from "./notebook-sidebar-state";
+import { NotebookTreeView } from "./notebook-tree-view";
 
 type NotebookSidebarCopy = {
   createNote: string;
   emptyDescription: string;
   emptyTitle: string;
+  quickCaptureLabel: string;
+  recentTitle: string;
+  searchPlaceholder: string;
   noteListDescription: string;
   noteListTitle: string;
   trashTitle: string;
@@ -24,9 +31,13 @@ type NotebookSidebarProps = {
   copy: NotebookSidebarCopy;
   isLoading: boolean;
   loadingLabel: string;
+  query: string;
+  recentFiles: NotebookFileEntry[];
   treeNodes: NotebookTreeNode[];
   treeFileCount: number;
   onOpenCreate: () => void;
+  onOpenQuickCapture: () => void;
+  onQueryChange: (value: string) => void;
   onOpenTrash: () => void;
   onSelectNote: (noteId: string | null) => void;
 };
@@ -36,13 +47,18 @@ export function NotebookSidebar({
   copy,
   isLoading,
   loadingLabel,
+  query,
+  recentFiles,
   treeNodes,
   treeFileCount,
   onOpenCreate,
+  onOpenQuickCapture,
+  onQueryChange,
   onOpenTrash,
   onSelectNote,
 }: NotebookSidebarProps) {
-  const visibleTreeNodes = filterNotebookTreeNodes(treeNodes, "");
+  const visibleTreeNodes = filterNotebookTreeNodes(treeNodes, query);
+  const visibleRecentFiles = buildRecentNotebookFiles(recentFiles, 6);
 
   return (
     <Card className="h-full rounded-none border-0 shadow-none">
@@ -61,12 +77,53 @@ export function NotebookSidebar({
               <FolderPlusIcon className="size-4" />
               {copy.createNote}
             </Button>
+            <Button size="sm" variant="secondary" onClick={onOpenQuickCapture}>
+              <SparklesIcon className="size-4" />
+              {copy.quickCaptureLabel}
+            </Button>
           </div>
         </div>
       </CardHeader>
       <CardContent className="p-0">
         <ScrollArea className="h-[calc(70vh-96px)]">
-          <div className="space-y-2 p-3">
+          <div className="space-y-4 p-3">
+            <div className="relative">
+              <SearchIcon className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+              <Input
+                value={query}
+                onChange={(event) => onQueryChange(event.target.value)}
+                placeholder={copy.searchPlaceholder}
+                className="pl-9"
+              />
+            </div>
+
+            {visibleRecentFiles.length > 0 ? (
+              <section className="space-y-2">
+                <div className="text-muted-foreground px-1 text-xs font-medium uppercase tracking-wide">
+                  {copy.recentTitle}
+                </div>
+                <div className="space-y-2">
+                  {visibleRecentFiles.map((file) => (
+                    <button
+                      key={file.path}
+                      type="button"
+                      onClick={() => onSelectNote(file.note_id ?? null)}
+                      className={`flex w-full items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm transition ${file.path === activePath ? "border-primary bg-primary/5" : "hover:bg-muted/50"}`}
+                    >
+                      <div className="min-w-0">
+                        <div className="truncate font-medium">{file.name}</div>
+                        <div className="text-muted-foreground truncate text-xs">{file.path}</div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </section>
+            ) : null}
+
+            <section className="space-y-2">
+              <div className="text-muted-foreground px-1 text-xs font-medium uppercase tracking-wide">
+                {copy.noteListTitle}
+              </div>
             {isLoading ? (
               <div className="text-muted-foreground text-sm">{loadingLabel}</div>
             ) : treeFileCount === 0 ? (
@@ -75,66 +132,18 @@ export function NotebookSidebar({
                 <div className="mt-1">{copy.emptyDescription}</div>
               </div>
             ) : (
-              visibleTreeNodes.map((node) => (
-                <NotebookTreeItem
-                  key={node.path}
+              <div className="space-y-2">
+                <NotebookTreeView
                   activePath={activePath}
-                  node={node}
-                  onSelect={onSelectNote}
+                  nodes={visibleTreeNodes}
+                  onSelectNote={onSelectNote}
                 />
-              ))
+              </div>
             )}
+            </section>
           </div>
         </ScrollArea>
       </CardContent>
     </Card>
-  );
-}
-
-function NotebookTreeItem({
-  activePath,
-  node,
-  onSelect,
-}: {
-  activePath: string | null;
-  node: NotebookTreeNode;
-  onSelect: (noteId: string | null) => void;
-}) {
-  if (node.kind === "file") {
-    const active = node.path === activePath;
-
-    return (
-      <button
-        type="button"
-        onClick={() => onSelect(node.note_id ?? null)}
-        className={`flex w-full items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm transition ${active ? "border-primary bg-primary/5" : "hover:bg-muted/50"}`}
-      >
-        <FileTextIcon className="text-muted-foreground size-4 shrink-0" />
-        <div className="min-w-0">
-          <div className="truncate font-medium">{node.name}</div>
-          <div className="text-muted-foreground truncate text-xs">{node.path}</div>
-        </div>
-      </button>
-    );
-  }
-
-  return (
-    <Collapsible defaultOpen>
-      <CollapsibleTrigger className="hover:bg-muted/50 flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm">
-        <ChevronRightIcon className="text-muted-foreground size-4" />
-        <FolderIcon className="text-muted-foreground size-4" />
-        <span className="truncate font-medium">{node.name}</span>
-      </CollapsibleTrigger>
-      <CollapsibleContent className="mt-1 space-y-2 pl-4">
-        {node.children.map((child) => (
-          <NotebookTreeItem
-            key={child.path}
-            activePath={activePath}
-            node={child}
-            onSelect={onSelect}
-          />
-        ))}
-      </CollapsibleContent>
-    </Collapsible>
   );
 }
