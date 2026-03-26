@@ -9,7 +9,15 @@ from typing import Literal
 from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import BaseModel, Field
 
-from app.channels.repository import ChannelRepository
+from app.channels.api_models import (
+    ChannelAuthorizedUserResponse,
+    ChannelPairRequestResponse,
+    ChannelSessionConfigResponse,
+    ChannelStatusResponse,
+    build_authorized_user_response,
+    build_pair_request_response,
+)
+from app.channels.repository import ChannelPlatform, ChannelRepository
 from nion.config import ConfigRepository
 from nion.config.app_config import get_app_config
 
@@ -17,7 +25,6 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/channels", tags=["channels"])
 
-ChannelPlatform = Literal["lark", "dingtalk", "telegram"]
 ChannelMode = Literal["webhook", "stream"]
 
 
@@ -27,23 +34,6 @@ def _platform_config_key(platform: ChannelPlatform) -> str:
 
 def _default_mode_for(platform: ChannelPlatform) -> ChannelMode:
     return "webhook" if platform == "lark" else "stream"
-
-
-class ChannelSessionContextResponse(BaseModel):
-    thinking_enabled: bool | None = None
-    is_plan_mode: bool | None = None
-    subagent_enabled: bool | None = None
-
-
-class ChannelSessionRunConfigResponse(BaseModel):
-    recursion_limit: int | None = None
-
-
-class ChannelSessionConfigResponse(BaseModel):
-    assistant_id: str | None = None
-    config: ChannelSessionRunConfigResponse | None = None
-    context: ChannelSessionContextResponse | None = None
-
 
 class ChannelConfigResponse(BaseModel):
     platform: ChannelPlatform
@@ -123,36 +113,6 @@ class ChannelPairRequestDecisionRequest(BaseModel):
     workspace_id: str | None = None
 
 
-class ChannelPairRequestResponse(BaseModel):
-    id: int
-    platform: ChannelPlatform
-    code: str
-    external_user_id: str
-    external_user_name: str | None = None
-    chat_id: str
-    conversation_type: str | None = None
-    source_event_id: str | None = None
-    status: Literal["pending", "approved", "rejected"]
-    note: str | None = None
-    created_at: str
-    handled_at: str | None = None
-    handled_by: str | None = None
-
-
-class ChannelAuthorizedUserResponse(BaseModel):
-    id: int
-    platform: ChannelPlatform
-    external_user_id: str
-    external_user_name: str | None = None
-    chat_id: str | None = None
-    conversation_type: str | None = None
-    workspace_id: str | None = None
-    session_override: ChannelSessionConfigResponse | None = None
-    granted_at: str
-    revoked_at: str | None = None
-    source_request_id: int | None = None
-
-
 class ChannelAuthorizedUserRevokeRequest(BaseModel):
     handled_by: str | None = None
 
@@ -163,30 +123,6 @@ class ChannelAuthorizedUserRevokeResponse(BaseModel):
 
 def _channel_repo() -> ChannelRepository:
     return ChannelRepository()
-
-
-def _coerce_session_config(
-    session: dict[str, object] | None,
-) -> ChannelSessionConfigResponse | None:
-    if not isinstance(session, dict) or not session:
-        return None
-    return ChannelSessionConfigResponse.model_validate(session)
-
-
-def _build_pair_request_response(payload: dict[str, object]) -> ChannelPairRequestResponse:
-    return ChannelPairRequestResponse.model_validate(payload)
-
-
-def _build_authorized_user_response(
-    payload: dict[str, object],
-) -> ChannelAuthorizedUserResponse:
-    normalized = dict(payload)
-    normalized["session_override"] = _coerce_session_config(
-        payload.get("session_override") if isinstance(payload, dict) else None,
-    )
-    return ChannelAuthorizedUserResponse.model_validate(normalized)
-
-
 def _load_channel_config(platform: ChannelPlatform) -> ChannelConfigResponse:
     app_config = get_app_config()
     channel_config = getattr(app_config.channels, platform)
@@ -206,29 +142,6 @@ def _load_channel_config(platform: ChannelPlatform) -> ChannelConfigResponse:
         created_at=channel_config.created_at,
         updated_at=channel_config.updated_at,
     )
-
-
-class ChannelCapabilitiesResponse(BaseModel):
-    supports_streaming: bool
-
-
-class ChannelOpsItemResponse(BaseModel):
-    enabled: bool
-    running: bool
-    capabilities: ChannelCapabilitiesResponse
-    last_heartbeat: float | None = None
-    last_error: str | None = None
-    authorized_user_count: int = 0
-    pending_pair_request_count: int = 0
-    can_restart: bool = False
-
-
-class ChannelStatusResponse(BaseModel):
-    service_running: bool
-    pending_pair_requests: int = 0
-    channels: dict[str, ChannelOpsItemResponse]
-
-
 class ChannelRestartResponse(BaseModel):
     success: bool
     message: str
@@ -390,7 +303,7 @@ async def list_pair_requests(
     ),
 ) -> list[ChannelPairRequestResponse]:
     items = _channel_repo().list_pair_requests(platform, status=status_filter)
-    return [_build_pair_request_response(item) for item in items]
+    return [build_pair_request_response(item) for item in items]
 
 
 @router.post(
@@ -421,7 +334,7 @@ async def approve_pair_request(
             status_code=HTTPStatus.NOT_FOUND,
             detail=f"Pair request {request_id} not found for {platform}",
         )
-    return _build_pair_request_response(updated)
+    return build_pair_request_response(updated)
 
 
 @router.post(
@@ -452,7 +365,7 @@ async def reject_pair_request(
             status_code=HTTPStatus.NOT_FOUND,
             detail=f"Pair request {request_id} not found for {platform}",
         )
-    return _build_pair_request_response(updated)
+    return build_pair_request_response(updated)
 
 
 @router.get(
@@ -467,7 +380,7 @@ async def list_authorized_users(
         platform,
         active_only=active_only,
     )
-    return [_build_authorized_user_response(item) for item in items]
+    return [build_authorized_user_response(item) for item in items]
 
 
 @router.post(
@@ -521,4 +434,4 @@ async def update_authorized_user_session_override(
             status_code=HTTPStatus.NOT_FOUND,
             detail=f"Authorized user {user_id} not found for {platform}",
         )
-    return _build_authorized_user_response(updated)
+    return build_authorized_user_response(updated)

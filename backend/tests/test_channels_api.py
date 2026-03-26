@@ -6,9 +6,9 @@ from fastapi.testclient import TestClient
 
 from app.channels.repository import ChannelRepository
 from app.gateway.app import create_app
+from nion.config import paths as paths_module
 from nion.config.app_config import reset_app_config
 from nion.config.extensions_config import reset_extensions_config
-from nion.config import paths as paths_module
 
 
 def _write_extensions_config(path):

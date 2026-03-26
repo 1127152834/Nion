@@ -114,6 +114,61 @@ def test_daemon_channel_diagnostics_api_returns_snapshot(monkeypatch, tmp_path) 
         reset_extensions_config()
 
 
+def test_daemon_channel_diagnostics_prefers_error_snapshot_over_live_healthy_status(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    _configure_test_env(monkeypatch, tmp_path)
+    _stub_daemon_channel_lifecycle(monkeypatch)
+
+    class FakeChannelService:
+        def get_status(self):
+            return {
+                "service_running": True,
+                "pending_pair_requests": 0,
+                "channels": {
+                    "feishu": {
+                        "enabled": True,
+                        "running": True,
+                        "capabilities": {"supports_streaming": True},
+                        "last_heartbeat": 123.0,
+                        "last_error": None,
+                        "authorized_user_count": 0,
+                        "pending_pair_request_count": 0,
+                        "can_restart": True,
+                    }
+                },
+            }
+
+    monkeypatch.setattr("app.channels.service.get_channel_service", lambda: FakeChannelService())
+
+    try:
+        store = TelemetryStore(get_paths().telemetry_db_file)
+        store.upsert_snapshot(
+            DiagnosticSnapshot(
+                scope_type="channel",
+                scope_id="feishu",
+                status="error",
+                summary="Channel 'feishu' outbound delivery failed",
+                details={"channel_name": "feishu", "last_event_type": "channel_outbound_failed"},
+            )
+        )
+
+        with TestClient(create_app()) as client:
+            response = client.get("/api/daemon/channels/feishu")
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["status"] == "error"
+        assert payload["summary"] == "Channel 'feishu' outbound delivery failed"
+        assert payload["details"]["runtime"]["running"] is True
+        assert payload["details"]["snapshot"]["status"] == "error"
+    finally:
+        paths_module._paths = None
+        reset_app_config()
+        reset_extensions_config()
+
+
 def test_daemon_channel_pair_requests_api_returns_seeded_requests(monkeypatch, tmp_path) -> None:
     _configure_test_env(monkeypatch, tmp_path)
     _stub_daemon_channel_lifecycle(monkeypatch)

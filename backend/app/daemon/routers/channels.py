@@ -2,16 +2,15 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Query, Request
 
-from app.channels.repository import ChannelRepository
-from app.daemon.routers.diagnostics import DiagnosticResponse
-from app.gateway.routers.channels import (
+from app.channels.api_models import (
     ChannelAuthorizedUserResponse,
     ChannelPairRequestResponse,
-    ChannelPlatform,
     ChannelStatusResponse,
-    _build_authorized_user_response,
-    _build_pair_request_response,
+    build_authorized_user_response,
+    build_pair_request_response,
 )
+from app.channels.repository import ChannelPlatform, ChannelRepository
+from app.daemon.routers.diagnostics import DiagnosticResponse
 
 router = APIRouter(prefix="/api/daemon/channels", tags=["daemon"])
 
@@ -38,17 +37,17 @@ def _channel_snapshot(request: Request, name: str) -> DiagnosticResponse | None:
     )
 
 
-def _live_channel_diagnostic(name: str) -> DiagnosticResponse | None:
+def _live_channel_diagnostic(name: str) -> tuple[DiagnosticResponse | None, dict | None]:
     from app.channels.service import get_channel_service
 
     service = get_channel_service()
     if service is None:
-        return None
+        return None, None
 
     payload = service.get_status()
     channel = payload.get("channels", {}).get(name)
     if not isinstance(channel, dict):
-        return None
+        return None, None
 
     if channel.get("last_error"):
         status = "error"
@@ -64,6 +63,42 @@ def _live_channel_diagnostic(name: str) -> DiagnosticResponse | None:
         status=status,
         summary=summary,
         details={"channel_name": name, **channel},
+    ), channel
+
+
+def _severity(status: str) -> int:
+    return {"healthy": 0, "degraded": 1, "error": 2}.get(status, 0)
+
+
+def _merge_channel_diagnostics(
+    request: Request,
+    name: str,
+) -> DiagnosticResponse | None:
+    snapshot = _channel_snapshot(request, name)
+    live, live_details = _live_channel_diagnostic(name)
+
+    if snapshot is None and live is None:
+        return None
+    if snapshot is None:
+        return live
+    if live is None:
+        return snapshot
+
+    use_snapshot = _severity(snapshot.status) >= _severity(live.status)
+    primary = snapshot if use_snapshot else live
+
+    return DiagnosticResponse(
+        status=primary.status,
+        summary=primary.summary,
+        details={
+            "channel_name": name,
+            "snapshot": {
+                "status": snapshot.status,
+                "summary": snapshot.summary,
+                "details": snapshot.details,
+            },
+            "runtime": live_details or {},
+        },
     )
 
 
@@ -88,7 +123,7 @@ async def list_channel_pair_requests(
     status_filter: str | None = Query(default=None, alias="status"),
 ) -> list[ChannelPairRequestResponse]:
     items = _channel_repo().list_pair_requests(platform, status=status_filter)
-    return [_build_pair_request_response(item) for item in items]
+    return [build_pair_request_response(item) for item in items]
 
 
 @router.get("/{platform}/authorized-users", response_model=list[ChannelAuthorizedUserResponse])
@@ -97,18 +132,14 @@ async def list_channel_authorized_users(
     active_only: bool = Query(default=True),
 ) -> list[ChannelAuthorizedUserResponse]:
     items = _channel_repo().list_authorized_users(platform, active_only=active_only)
-    return [_build_authorized_user_response(item) for item in items]
+    return [build_authorized_user_response(item) for item in items]
 
 
 @router.get("/{name}", response_model=DiagnosticResponse)
 async def get_channel_diagnostics(name: str, request: Request) -> DiagnosticResponse:
-    live = _live_channel_diagnostic(name)
-    if live is not None:
-        return live
-
-    snapshot = _channel_snapshot(request, name)
-    if snapshot is not None:
-        return snapshot
+    merged = _merge_channel_diagnostics(request, name)
+    if merged is not None:
+        return merged
 
     return DiagnosticResponse(
         status="healthy",
