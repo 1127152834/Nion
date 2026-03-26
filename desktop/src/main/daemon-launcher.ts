@@ -36,15 +36,38 @@ async function fetchRuntimeInfo(baseUrl: string): Promise<DesktopRuntimeInfo> {
     base_url?: string;
     health_url?: string;
     mode?: string;
+    working_directory?: string;
   };
 
   return {
     mode: payload.mode === "local-daemon" ? "local-daemon" : "local-daemon",
     baseUrl: payload.base_url ?? baseUrl,
     healthUrl: payload.health_url ?? `${baseUrl}/health`,
+    workingDirectory: payload.working_directory ?? null,
     clientId: null,
     allowBackgroundRunning: Boolean(payload.allow_background_running),
   };
+}
+
+async function stopDaemon(baseUrl: string): Promise<void> {
+  try {
+    await fetch(`${baseUrl}/api/daemon/stop`, { method: "POST" });
+  } catch {
+    // best effort
+  }
+}
+
+export function shouldReuseDaemon(
+  command: DaemonCommand,
+  runtimeInfo: DesktopRuntimeInfo,
+): boolean {
+  if (process.env.NION_DESKTOP_DEV_USE_BINARY === "1") {
+    return true;
+  }
+  if (!runtimeInfo.workingDirectory) {
+    return true;
+  }
+  return runtimeInfo.workingDirectory === command.cwd;
 }
 
 export async function ensureLocalDaemon(
@@ -52,16 +75,22 @@ export async function ensureLocalDaemon(
 ): Promise<DesktopRuntimeInfo> {
   try {
     await waitForDaemonHealthy(command.urls.health, 1_000);
-    return await fetchRuntimeInfo(command.urls.base);
+    const runtimeInfo = await fetchRuntimeInfo(command.urls.base);
+    if (shouldReuseDaemon(command, runtimeInfo)) {
+      return runtimeInfo;
+    }
+    await stopDaemon(command.urls.base);
   } catch {
-    const child = spawn(command.executable, command.args, {
-      cwd: command.cwd,
-      env: command.env,
-      detached: true,
-      stdio: "ignore",
-    });
-    child.unref();
+    // fall through and spawn the expected daemon
   }
+
+  const child = spawn(command.executable, command.args, {
+    cwd: command.cwd,
+    env: command.env,
+    detached: true,
+    stdio: "ignore",
+  });
+  child.unref();
 
   await waitForDaemonHealthy(command.urls.health);
   return await fetchRuntimeInfo(command.urls.base);

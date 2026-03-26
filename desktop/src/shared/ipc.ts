@@ -8,6 +8,7 @@ export type DesktopRuntimeInfo = {
   mode: "local-daemon";
   baseUrl: string;
   healthUrl: string;
+  workingDirectory: string | null;
   clientId: string | null;
   allowBackgroundRunning: boolean;
 };

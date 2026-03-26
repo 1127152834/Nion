@@ -26,6 +26,7 @@ class DaemonRuntimeInfoResponse(BaseModel):
     port: int
     base_url: str
     health_url: str
+    working_directory: str
     allow_background_running: bool
     shutdown_grace_period_seconds: int = Field(ge=1, le=10)
     clients: RuntimeClientCounts = Field(default_factory=RuntimeClientCounts)

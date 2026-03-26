@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import os
 from collections.abc import Awaitable, Callable
 from typing import Any
 
@@ -58,6 +59,7 @@ class LocalDaemonService:
             "port": self.port,
             "base_url": self.base_url,
             "health_url": self.health_url,
+            "working_directory": os.getcwd(),
             "allow_background_running": self.allow_background_running,
             "shutdown_grace_period_seconds": self.shutdown_grace_period_seconds,
             "clients": counts,

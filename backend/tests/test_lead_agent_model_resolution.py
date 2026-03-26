@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 import pytest
 
 from nion.agents.lead_agent import agent as lead_agent_module
@@ -29,6 +31,31 @@ def _make_model(name: str, *, supports_thinking: bool) -> ModelConfig:
     )
 
 
+def _patch_registry(monkeypatch, models: list[ModelConfig]) -> None:
+    class _Resolved:
+        def __init__(self, model: ModelConfig):
+            self.runtime_name = model.name
+            self.runtime_model_config = model
+
+    class _Registry:
+        def get_default_model(self):
+            if not models:
+                raise ValueError("no models")
+            return _Resolved(models[0])
+
+        def resolve_model(self, identity: str):
+            for model in models:
+                if model.name == identity:
+                    return _Resolved(model)
+            raise ValueError(identity)
+
+    monkeypatch.setattr(
+        lead_agent_module,
+        "get_model_registry_service",
+        lambda **kwargs: _Registry(),
+    )
+
+
 def test_resolve_model_name_falls_back_to_default(monkeypatch, caplog):
     app_config = _make_app_config(
         [
@@ -38,6 +65,7 @@ def test_resolve_model_name_falls_back_to_default(monkeypatch, caplog):
     )
 
     monkeypatch.setattr(lead_agent_module, "get_app_config", lambda: app_config)
+    _patch_registry(monkeypatch, app_config.models)
 
     with caplog.at_level("WARNING"):
         resolved = lead_agent_module._resolve_model_name("missing-model")
@@ -55,6 +83,7 @@ def test_resolve_model_name_uses_default_when_none(monkeypatch):
     )
 
     monkeypatch.setattr(lead_agent_module, "get_app_config", lambda: app_config)
+    _patch_registry(monkeypatch, app_config.models)
 
     resolved = lead_agent_module._resolve_model_name(None)
 
@@ -65,6 +94,7 @@ def test_resolve_model_name_raises_when_no_models_configured(monkeypatch):
     app_config = _make_app_config([])
 
     monkeypatch.setattr(lead_agent_module, "get_app_config", lambda: app_config)
+    _patch_registry(monkeypatch, app_config.models)
 
     with pytest.raises(
         ValueError,
@@ -79,6 +109,7 @@ def test_make_lead_agent_disables_thinking_when_model_does_not_support_it(monkey
     import nion.tools as tools_module
 
     monkeypatch.setattr(lead_agent_module, "get_app_config", lambda: app_config)
+    _patch_registry(monkeypatch, app_config.models)
     monkeypatch.setattr(tools_module, "get_available_tools", lambda **kwargs: [])
     monkeypatch.setattr(lead_agent_module, "_build_middlewares", lambda config, model_name, agent_name=None: [])
 
@@ -126,6 +157,7 @@ def test_build_middlewares_uses_resolved_model_name_for_vision(monkeypatch):
     )
 
     monkeypatch.setattr(lead_agent_module, "get_app_config", lambda: app_config)
+    _patch_registry(monkeypatch, app_config.models)
     monkeypatch.setattr(lead_agent_module, "_create_summarization_middleware", lambda: None)
     monkeypatch.setattr(lead_agent_module, "_create_todo_list_middleware", lambda is_plan_mode: None)
 
@@ -135,3 +167,48 @@ def test_build_middlewares_uses_resolved_model_name_for_vision(monkeypatch):
     )
 
     assert any(isinstance(m, lead_agent_module.ViewImageMiddleware) for m in middlewares)
+
+
+def test_create_summarization_middleware_uses_runtime_model_instance(monkeypatch):
+    captured: dict[str, object] = {}
+
+    class _FakeSummarizationMiddleware:
+        def __init__(self, **kwargs):
+            captured.update(kwargs)
+
+    monkeypatch.setattr(
+        lead_agent_module,
+        "get_summarization_config",
+        lambda: SimpleNamespace(
+            enabled=True,
+            model_name="stale-summary-model",
+            trigger=None,
+            keep=SimpleNamespace(to_tuple=lambda: ("messages", 20)),
+            trim_tokens_to_summarize=3000,
+            summary_prompt=None,
+        ),
+    )
+    monkeypatch.setattr(
+        lead_agent_module,
+        "resolve_model_name_with_fallback",
+        lambda requested_name=None, fallback_name=None: "gpt-5.4",
+    )
+    monkeypatch.setattr(
+        lead_agent_module,
+        "create_chat_model",
+        lambda **kwargs: {"kind": "runtime-model", **kwargs},
+    )
+    monkeypatch.setattr(
+        lead_agent_module,
+        "SummarizationMiddleware",
+        _FakeSummarizationMiddleware,
+    )
+
+    middleware = lead_agent_module._create_summarization_middleware()
+
+    assert middleware is not None
+    assert captured["model"] == {
+        "kind": "runtime-model",
+        "name": "gpt-5.4",
+        "thinking_enabled": False,
+    }

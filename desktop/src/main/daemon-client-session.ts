@@ -30,7 +30,7 @@ export async function createElectronClientSession(
   const interval = setInterval(() => {
     void fetch(`${baseUrl}/api/daemon/clients/${clientId}/heartbeat`, {
       method: "POST",
-    });
+    }).catch(() => undefined);
   }, 1_000);
 
   return {
