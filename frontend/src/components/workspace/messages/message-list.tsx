@@ -3,6 +3,7 @@ import {
   ConversationContent,
 } from "@/components/ai-elements/conversation";
 import { useI18n } from "@/core/i18n/hooks";
+import { getTaskToolCallIds } from "@/core/messages/tool-calls";
 import {
   extractContentFromMessage,
   extractPresentFilesFromMessage,
@@ -166,9 +167,7 @@ export function MessageList({
                   {t.subtasks.executing(tasks.size)}
                 </div>,
               );
-              const taskIds = message.tool_calls?.map(
-                (toolCall) => toolCall.id,
-              );
+              const taskIds = getTaskToolCallIds(message.tool_calls);
               for (const taskId of taskIds ?? []) {
                 results.push(
                   <SubtaskCard
