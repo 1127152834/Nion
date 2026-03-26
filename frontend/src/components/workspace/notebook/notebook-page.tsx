@@ -22,9 +22,12 @@ import {
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
 import { Textarea } from "@/components/ui/textarea";
-import { ConfirmActionDialog } from "@/components/workspace/settings/confirm-action-dialog";
+import { NotebookCreateDialog } from "./notebook-create-dialog";
 import { NotebookContextPanel } from "./notebook-context-panel";
+import { NotebookDeleteDialog } from "./notebook-delete-dialog";
 import { NotebookEditorPane } from "./notebook-editor-pane";
+import { buildQuickCaptureDraft } from "./notebook-compose";
+import { NotebookQuickCaptureDialog } from "./notebook-quick-capture-dialog";
 import { NotebookSidebar } from "./notebook-sidebar";
 import { useI18n } from "@/core/i18n/hooks";
 import { pathOfNewThread, pathOfNotebookTrash } from "@/core/navigation/desktop-routes";
@@ -69,6 +72,8 @@ export function NotebookPage() {
     body: "",
   });
   const [createOpen, setCreateOpen] = useState(false);
+  const [quickCaptureOpen, setQuickCaptureOpen] = useState(false);
+  const [quickCaptureValue, setQuickCaptureValue] = useState("");
   const [renameOpen, setRenameOpen] = useState(false);
   const [moveOpen, setMoveOpen] = useState(false);
   const [contextTab, setContextTab] = useState<NotebookContextTab>("ask");
@@ -133,6 +138,19 @@ export function NotebookPage() {
       const created = await createNote.mutateAsync(createDraft);
       setCreateOpen(false);
       setCreateDraft({ directory: "", title: "", body: "" });
+      setSelectedNoteId(created.note_id);
+      toast.success(copy.saved);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  async function handleQuickCapture() {
+    try {
+      const draft = buildQuickCaptureDraft(quickCaptureValue);
+      const created = await createNote.mutateAsync(draft);
+      setQuickCaptureOpen(false);
+      setQuickCaptureValue("");
       setSelectedNoteId(created.note_id);
       toast.success(copy.saved);
     } catch (err) {
@@ -252,7 +270,7 @@ export function NotebookPage() {
               treeFileCount={tree.files.length}
               treeNodes={treeNodes}
               onOpenCreate={() => setCreateOpen(true)}
-              onOpenQuickCapture={() => setCreateOpen(true)}
+              onOpenQuickCapture={() => setQuickCaptureOpen(true)}
               onQueryChange={setQuery}
               onOpenTrash={() => router.push(pathOfNotebookTrash())}
               onSelectNote={setSelectedNoteId}
@@ -330,49 +348,49 @@ export function NotebookPage() {
         </ResizablePanelGroup>
       </section>
 
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{copy.createDialogTitle}</DialogTitle>
-            <DialogDescription>{copy.createDialogDescription}</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3">
-            <Input
-              value={createDraft.title}
-              onChange={(event) =>
-                setCreateDraft((current) => ({ ...current, title: event.target.value }))
-              }
-              placeholder={copy.noteTitlePlaceholder}
-            />
-            <Input
-              value={createDraft.directory}
-              onChange={(event) =>
-                setCreateDraft((current) => ({ ...current, directory: event.target.value }))
-              }
-              placeholder={copy.noteDirectoryPlaceholder}
-            />
-            <Textarea
-              value={createDraft.body}
-              onChange={(event) =>
-                setCreateDraft((current) => ({ ...current, body: event.target.value }))
-              }
-              placeholder={copy.emptyDescription}
-              className="min-h-40"
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateOpen(false)}>
-              {t.common.cancel}
-            </Button>
-            <Button
-              onClick={handleCreate}
-              disabled={!createDraft.title.trim() || createNote.isPending}
-            >
-              {createNote.isPending ? copy.saving : copy.createNote}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <NotebookCreateDialog
+        body={createDraft.body}
+        copy={{
+          cancel: t.common.cancel,
+          createDialogDescription: copy.createDialogDescription,
+          createDialogTitle: copy.createDialogTitle,
+          createNote: copy.createNote,
+          emptyDescription: copy.emptyDescription,
+          noteDirectoryPlaceholder: copy.noteDirectoryPlaceholder,
+          noteTitlePlaceholder: copy.noteTitlePlaceholder,
+          saving: copy.saving,
+        }}
+        directory={createDraft.directory}
+        open={createOpen}
+        pending={createNote.isPending}
+        title={createDraft.title}
+        onBodyChange={(value) =>
+          setCreateDraft((current) => ({ ...current, body: value }))
+        }
+        onDirectoryChange={(value) =>
+          setCreateDraft((current) => ({ ...current, directory: value }))
+        }
+        onOpenChange={setCreateOpen}
+        onSubmit={handleCreate}
+        onTitleChange={(value) =>
+          setCreateDraft((current) => ({ ...current, title: value }))
+        }
+      />
+
+      <NotebookQuickCaptureDialog
+        cancelLabel={t.common.cancel}
+        open={quickCaptureOpen}
+        pending={createNote.isPending}
+        quickCaptureDescription={copy.assistDescription}
+        quickCaptureHint={copy.emptyDescription}
+        quickCaptureLabel={t.inputBox.flashMode}
+        saveLabel={copy.createNote}
+        savingLabel={copy.saving}
+        value={quickCaptureValue}
+        onOpenChange={setQuickCaptureOpen}
+        onSubmit={handleQuickCapture}
+        onValueChange={setQuickCaptureValue}
+      />
 
       <Dialog open={renameOpen} onOpenChange={setRenameOpen}>
         <DialogContent>
@@ -416,18 +434,19 @@ export function NotebookPage() {
         </DialogContent>
       </Dialog>
 
-      <ConfirmActionDialog
-        open={deleteOpen}
-        onOpenChange={setDeleteOpen}
-        title={copy.deleteConfirmTitle}
+      <NotebookDeleteDialog
+        cancelLabel={t.common.cancel}
+        confirmLabel={copy.deleteConfirmAction}
         description={
           preview
             ? copy.deleteConfirmDescription.replace("{title}", preview.title)
             : copy.deleteConfirmDescription.replace("{title}", "")
         }
-        confirmText={copy.deleteConfirmAction}
-        confirmVariant="destructive"
+        open={deleteOpen}
+        summary={preview?.summary ?? null}
+        title={copy.deleteConfirmTitle}
         onConfirm={handleDelete}
+        onOpenChange={setDeleteOpen}
       />
     </>
   );
