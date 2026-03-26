@@ -78,7 +78,7 @@ class RecallCaptureMiddleware(AgentMiddleware[AgentState]):
         return []
 
     def after_agent(self, state: AgentState, runtime: Runtime) -> dict | None:
-        thread_id = runtime.context.get("thread_id")
+        thread_id = runtime.context.get("thread_id") if runtime.context else None
         if not thread_id:
             return None
 

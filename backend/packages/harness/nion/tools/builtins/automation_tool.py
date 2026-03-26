@@ -18,7 +18,7 @@ def set_automation_tool_service(service) -> None:
 
 def get_automation_tool_service(runtime: ToolRuntime[ContextT, ThreadState] | None = None):
     if runtime is not None:
-        service = runtime.context.get("automation_tool_service")
+        service = runtime.context.get("automation_tool_service") if runtime.context else None
         if service is not None:
             return service
     global _automation_tool_service

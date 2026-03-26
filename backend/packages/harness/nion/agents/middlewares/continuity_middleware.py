@@ -18,7 +18,7 @@ class ContinuityMiddleware(AgentMiddleware[AgentState]):
         self._archive = LocalRecallArchive(self._paths.recall_db_file)
 
     def before_model(self, state: AgentState, runtime: Runtime) -> dict | None:
-        thread_id = runtime.context.get("thread_id")
+        thread_id = runtime.context.get("thread_id") if runtime.context else None
         if not thread_id:
             return None
 
