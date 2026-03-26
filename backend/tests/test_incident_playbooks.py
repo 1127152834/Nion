@@ -155,3 +155,50 @@ def test_diagnose_thread_stream_failure_incident(tmp_path) -> None:
     assert incident.summary
     assert incident.evidence["primary_error_event"]["event_type"] == "thread_stream_failed"
     assert len(incident.recommended_actions) <= 2
+
+
+def test_diagnose_incident_returns_inconclusive_when_no_failure_evidence(tmp_path) -> None:
+    store = TelemetryStore(tmp_path / "telemetry.sqlite3")
+
+    incident = diagnose_incident(
+        store=store,
+        source="chat",
+        thread_id="thread-empty",
+        run_id="run-empty",
+        incident_type_hint="agent_execution",
+        include_recommended_actions=True,
+    )
+
+    assert incident.incident_type == "agent_execution_inconclusive"
+    assert incident.severity == "info"
+    assert incident.summary
+    assert incident.evidence["primary_error_event"] is None
+    assert incident.recommended_actions == []
+
+
+def test_diagnose_thread_stream_failure_does_not_misclassify_without_structured_tool_signal(tmp_path) -> None:
+    store = TelemetryStore(tmp_path / "telemetry.sqlite3")
+    store.record_event(
+        EventRecord(
+            event_id="evt-thread-generic-fail",
+            category="thread",
+            level="error",
+            event_type="thread_stream_failed",
+            actor="system",
+            message="Thread stream failed for thread-5",
+            thread_id="thread-5",
+            details={"reason": "upstream unavailable"},
+        )
+    )
+
+    incident = diagnose_incident(
+        store=store,
+        source="chat",
+        thread_id="thread-5",
+        run_id=None,
+        incident_type_hint="agent_execution",
+        include_recommended_actions=True,
+    )
+
+    assert incident.incident_type == "thread_stream_failure"
+    assert incident.severity == "error"

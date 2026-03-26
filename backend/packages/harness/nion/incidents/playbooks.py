@@ -47,6 +47,11 @@ def _find_tool_failure_event(events: list[EventRecord]) -> EventRecord | None:
             continue
         if event.event_type == "tool_execution_failed":
             return event
+        if event.category == "tool" and event.tool_name:
+            return event
+        tool_name = event.details.get("tool_name")
+        if isinstance(tool_name, str) and tool_name:
+            return event
         reason = str(event.details.get("reason") or "")
         message = event.message
         haystack = f"{reason} {message}".lower()
@@ -243,6 +248,50 @@ def diagnose_incident(
     thread_failure_event = _find_primary_event(thread_events, _THREAD_FAILURE_EVENT_TYPES)
 
     task_status = str(task_snapshot.details.get("status")) if task_snapshot is not None else ""
+    has_meaningful_failure_evidence = any(
+        value is not None
+        for value in (
+            timeout_event,
+            subagent_failure_event,
+            tool_failure_event,
+            thread_failure_event,
+        )
+    ) or (thread_snapshot is not None and thread_snapshot.status == "error")
+
+    if not has_meaningful_failure_evidence:
+        return _build_incident(
+            source=source,
+            incident_type="agent_execution_inconclusive",
+            severity="info",
+            summary="No conclusive agent-execution failure evidence was found",
+            explanation="The current control-plane evidence does not show a clear task, subagent, tool, or thread-stream failure for this scope.",
+            root_cause_hypothesis="More evidence is needed before classifying this as a real execution incident.",
+            confidence=0.3,
+            thread_id=thread_id,
+            run_id=run_id,
+            evidence={
+                "thread_id": thread_id,
+                "run_id": run_id,
+                "diagnostic_scope": "agent_execution",
+                "latest_task_snapshot": _snapshot_payload(task_snapshot),
+                "latest_thread_snapshot": _snapshot_payload(thread_snapshot),
+                "latest_runtime_summary": _snapshot_payload(runtime_snapshot),
+                "relevant_events": [],
+                "event_window": {
+                    "run_events_considered": len(run_events),
+                    "thread_events_considered": len(thread_events),
+                    "limit": 20,
+                },
+                "primary_error_event": None,
+                "confidence_signals": {
+                    "has_task_snapshot": task_snapshot is not None,
+                    "has_thread_snapshot": thread_snapshot is not None,
+                    "has_primary_error_event": False,
+                },
+            },
+            recommended_actions=[],
+        )
+
     incident_type = "thread_stream_failure"
     primary_event = thread_failure_event or tool_failure_event or subagent_failure_event or timeout_event
     summary = "Thread stream failed before producing a stable response"
