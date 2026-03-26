@@ -1,13 +1,22 @@
 """Upload router for handling file uploads."""
 
 import logging
+import os
 from pathlib import Path
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
 from pydantic import BaseModel
 
-from nion.config.paths import VIRTUAL_PATH_PREFIX, get_paths
+from nion.config.paths import get_paths
 from nion.sandbox.sandbox_provider import get_sandbox_provider
+from nion.uploads import (
+    PathTraversalError,
+    delete_file_safe,
+    get_uploads_dir,
+    normalize_filename,
+    upload_artifact_url,
+    upload_virtual_path,
+)
 from nion.utils.file_conversion import CONVERTIBLE_EXTENSIONS, convert_file_to_markdown
 
 logger = logging.getLogger(__name__)
@@ -21,22 +30,6 @@ class UploadResponse(BaseModel):
     success: bool
     files: list[dict[str, str]]
     message: str
-
-
-def get_uploads_dir(thread_id: str) -> Path:
-    """Get the uploads directory for a thread.
-
-    Args:
-        thread_id: The thread ID.
-
-    Returns:
-        Path to the uploads directory.
-    """
-    base_dir = get_paths().sandbox_uploads_dir(thread_id)
-    base_dir.mkdir(parents=True, exist_ok=True)
-    return base_dir
-
-
 @router.post("", response_model=UploadResponse)
 async def upload_files(
     thread_id: str,
@@ -58,6 +51,7 @@ async def upload_files(
         raise HTTPException(status_code=400, detail="No files provided")
 
     uploads_dir = get_uploads_dir(thread_id)
+    uploads_dir.mkdir(parents=True, exist_ok=True)
     paths = get_paths()
     uploaded_files = []
 
@@ -70,9 +64,9 @@ async def upload_files(
             continue
 
         try:
-            # Normalize filename to prevent path traversal
-            safe_filename = Path(file.filename).name
-            if not safe_filename or safe_filename in {".", ".."} or "/" in safe_filename or "\\" in safe_filename:
+            try:
+                safe_filename = normalize_filename(file.filename)
+            except ValueError:
                 logger.warning(f"Skipping file with unsafe filename: {file.filename!r}")
                 continue
 
@@ -82,7 +76,7 @@ async def upload_files(
 
             # Build relative path from backend root
             relative_path = str(paths.sandbox_uploads_dir(thread_id) / safe_filename)
-            virtual_path = f"{VIRTUAL_PATH_PREFIX}/uploads/{safe_filename}"
+            virtual_path = upload_virtual_path(safe_filename)
 
             # Keep local sandbox source of truth in thread-scoped host storage.
             # For non-local sandboxes, also sync to virtual path for runtime visibility.
@@ -94,7 +88,7 @@ async def upload_files(
                 "size": str(len(content)),
                 "path": relative_path,  # Actual filesystem path (relative to backend/)
                 "virtual_path": virtual_path,  # Path for Agent in sandbox
-                "artifact_url": f"/api/threads/{thread_id}/artifacts/mnt/user-data/uploads/{safe_filename}",  # HTTP URL
+                "artifact_url": upload_artifact_url(thread_id, safe_filename),  # HTTP URL
             }
 
             logger.info(f"Saved file: {safe_filename} ({len(content)} bytes) to {relative_path}")
@@ -105,7 +99,7 @@ async def upload_files(
                 md_path = await convert_file_to_markdown(file_path)
                 if md_path:
                     md_relative_path = str(paths.sandbox_uploads_dir(thread_id) / md_path.name)
-                    md_virtual_path = f"{VIRTUAL_PATH_PREFIX}/uploads/{md_path.name}"
+                    md_virtual_path = upload_virtual_path(md_path.name)
 
                     if sandbox_id != "local":
                         sandbox.update_file(md_virtual_path, md_path.read_bytes())
@@ -113,7 +107,7 @@ async def upload_files(
                     file_info["markdown_file"] = md_path.name
                     file_info["markdown_path"] = md_relative_path
                     file_info["markdown_virtual_path"] = md_virtual_path
-                    file_info["markdown_artifact_url"] = f"/api/threads/{thread_id}/artifacts/mnt/user-data/uploads/{md_path.name}"
+                    file_info["markdown_artifact_url"] = upload_artifact_url(thread_id, md_path.name)
 
             uploaded_files.append(file_info)
 
@@ -144,21 +138,24 @@ async def list_uploaded_files(thread_id: str) -> dict:
         return {"files": [], "count": 0}
 
     files = []
-    for file_path in sorted(uploads_dir.iterdir()):
-        if file_path.is_file():
-            stat = file_path.stat()
-            relative_path = str(get_paths().sandbox_uploads_dir(thread_id) / file_path.name)
-            files.append(
-                {
-                    "filename": file_path.name,
-                    "size": stat.st_size,
-                    "path": relative_path,  # Actual filesystem path
-                    "virtual_path": f"{VIRTUAL_PATH_PREFIX}/uploads/{file_path.name}",  # Path for Agent in sandbox
-                    "artifact_url": f"/api/threads/{thread_id}/artifacts/mnt/user-data/uploads/{file_path.name}",  # HTTP URL
-                    "extension": file_path.suffix,
-                    "modified": stat.st_mtime,
-                }
-            )
+    with os.scandir(uploads_dir) as entries:
+        file_entries = [entry for entry in entries if entry.is_file(follow_symlinks=False)]
+
+    for entry in sorted(file_entries, key=lambda item: item.name):
+        stat = entry.stat()
+        filename = entry.name
+        relative_path = str(get_paths().sandbox_uploads_dir(thread_id) / filename)
+        files.append(
+            {
+                "filename": filename,
+                "size": stat.st_size,
+                "path": relative_path,  # Actual filesystem path
+                "virtual_path": upload_virtual_path(filename),  # Path for Agent in sandbox
+                "artifact_url": upload_artifact_url(thread_id, filename),  # HTTP URL
+                "extension": Path(filename).suffix,
+                "modified": stat.st_mtime,
+            }
+        )
 
     return {"files": files, "count": len(files)}
 
@@ -175,22 +172,17 @@ async def delete_uploaded_file(thread_id: str, filename: str) -> dict:
         Success message.
     """
     uploads_dir = get_uploads_dir(thread_id)
-    file_path = uploads_dir / filename
-
-    if not file_path.exists():
-        raise HTTPException(status_code=404, detail=f"File not found: {filename}")
-
-    # Security check: ensure the path is within the uploads directory
     try:
-        file_path.resolve().relative_to(uploads_dir.resolve())
-    except ValueError:
-        raise HTTPException(status_code=403, detail="Access denied")
+        file_path = delete_file_safe(uploads_dir, filename)
+    except PathTraversalError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
     try:
         if file_path.suffix.lower() in CONVERTIBLE_EXTENSIONS:
             companion_markdown = file_path.with_suffix(".md")
             companion_markdown.unlink(missing_ok=True)
-        file_path.unlink(missing_ok=True)
         logger.info(f"Deleted file: {filename}")
         return {"success": True, "message": f"Deleted {filename}"}
     except Exception as e:

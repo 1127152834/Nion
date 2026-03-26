@@ -110,3 +110,16 @@ def test_delete_uploaded_file_removes_generated_markdown_companion(tmp_path):
     assert result == {"success": True, "message": "Deleted report.pdf"}
     assert not (thread_uploads_dir / "report.pdf").exists()
     assert not (thread_uploads_dir / "report.md").exists()
+
+
+def test_list_uploaded_files_percent_encodes_artifact_url(tmp_path):
+    thread_uploads_dir = tmp_path / "uploads"
+    thread_uploads_dir.mkdir(parents=True)
+    (thread_uploads_dir / "hello world?.txt").write_text("data", encoding="utf-8")
+
+    with patch.object(uploads, "get_uploads_dir", return_value=thread_uploads_dir):
+        result = asyncio.run(uploads.list_uploaded_files("thread-aio"))
+
+    assert result["files"][0]["artifact_url"].endswith(
+        "/api/threads/thread-aio/artifacts/mnt/user-data/uploads/hello%20world%3F.txt"
+    )

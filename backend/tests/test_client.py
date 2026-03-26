@@ -800,6 +800,19 @@ class TestUploads:
             assert "delete-me.txt" in result["message"]
             assert not (uploads_dir / "delete-me.txt").exists()
 
+    def test_delete_upload_removes_markdown_companion(self, client):
+        with tempfile.TemporaryDirectory() as tmp:
+            uploads_dir = Path(tmp)
+            (uploads_dir / "report.pdf").write_bytes(b"pdf")
+            (uploads_dir / "report.md").write_text("converted", encoding="utf-8")
+
+            with patch.object(NionClient, "_get_uploads_dir", return_value=uploads_dir):
+                result = client.delete_upload("thread-1", "report.pdf")
+
+            assert result["success"] is True
+            assert not (uploads_dir / "report.pdf").exists()
+            assert not (uploads_dir / "report.md").exists()
+
     def test_delete_upload_not_found(self, client):
         with tempfile.TemporaryDirectory() as tmp:
             with patch.object(NionClient, "_get_uploads_dir", return_value=Path(tmp)):

@@ -45,6 +45,14 @@ from nion.model_management.service import get_model_registry_service
 from nion.models import create_chat_model
 from nion.telemetry.logger import make_event
 from nion.telemetry.store import TelemetryStore
+from nion.uploads import (
+    PathTraversalError,
+    delete_file_safe,
+    ensure_uploads_dir,
+    normalize_filename,
+    upload_artifact_url,
+    upload_virtual_path,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -862,9 +870,7 @@ class NionClient:
     @staticmethod
     def _get_uploads_dir(thread_id: str) -> Path:
         """Get (and create) the uploads directory for a thread."""
-        base = get_paths().sandbox_uploads_dir(thread_id)
-        base.mkdir(parents=True, exist_ok=True)
-        return base
+        return ensure_uploads_dir(thread_id)
 
     def upload_files(self, thread_id: str, files: list[str | Path]) -> dict:
         """Upload local files into a thread's uploads directory.
@@ -920,15 +926,16 @@ class NionClient:
 
         try:
             for src_path in resolved_files:
-                dest = uploads_dir / src_path.name
+                safe_filename = normalize_filename(src_path.name)
+                dest = uploads_dir / safe_filename
                 shutil.copy2(src_path, dest)
 
                 info: dict[str, Any] = {
-                    "filename": src_path.name,
+                    "filename": safe_filename,
                     "size": str(dest.stat().st_size),
                     "path": str(dest),
-                    "virtual_path": f"/mnt/user-data/uploads/{src_path.name}",
-                    "artifact_url": f"/api/threads/{thread_id}/artifacts/mnt/user-data/uploads/{src_path.name}",
+                    "virtual_path": upload_virtual_path(safe_filename),
+                    "artifact_url": upload_artifact_url(thread_id, safe_filename),
                 }
 
                 if src_path.suffix.lower() in convertible_extensions:
@@ -947,8 +954,8 @@ class NionClient:
 
                     if md_path is not None:
                         info["markdown_file"] = md_path.name
-                        info["markdown_virtual_path"] = f"/mnt/user-data/uploads/{md_path.name}"
-                        info["markdown_artifact_url"] = f"/api/threads/{thread_id}/artifacts/mnt/user-data/uploads/{md_path.name}"
+                        info["markdown_virtual_path"] = upload_virtual_path(md_path.name)
+                        info["markdown_artifact_url"] = upload_artifact_url(thread_id, md_path.name)
 
                 uploaded_files.append(info)
         finally:
@@ -987,8 +994,8 @@ class NionClient:
                     "filename": filename,
                     "size": str(stat.st_size),
                     "path": str(Path(entry.path)),
-                    "virtual_path": f"/mnt/user-data/uploads/{filename}",
-                    "artifact_url": f"/api/threads/{thread_id}/artifacts/mnt/user-data/uploads/{filename}",
+                    "virtual_path": upload_virtual_path(filename),
+                    "artifact_url": upload_artifact_url(thread_id, filename),
                     "extension": Path(filename).suffix,
                     "modified": stat.st_mtime,
                 }
@@ -1011,17 +1018,13 @@ class NionClient:
             PermissionError: If path traversal is detected.
         """
         uploads_dir = self._get_uploads_dir(thread_id)
-        file_path = (uploads_dir / filename).resolve()
-
         try:
-            file_path.relative_to(uploads_dir.resolve())
-        except ValueError as exc:
-            raise PermissionError("Access denied: path traversal detected") from exc
+            file_path = delete_file_safe(uploads_dir, filename)
+        except PathTraversalError as exc:
+            raise PermissionError(str(exc)) from exc
 
-        if not file_path.is_file():
-            raise FileNotFoundError(f"File not found: {filename}")
-
-        file_path.unlink()
+        companion_markdown = file_path.with_suffix(".md")
+        companion_markdown.unlink(missing_ok=True)
         return {"success": True, "message": f"Deleted {filename}"}
 
     # ------------------------------------------------------------------
