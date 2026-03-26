@@ -103,6 +103,18 @@ def record_channel_stopped(channel_name: str) -> None:
     )
 
 
+def record_channel_stop_failed(channel_name: str, error: str) -> None:
+    _record_channel_event(
+        event_type="channel_stop_failed",
+        actor=channel_name,
+        level="error",
+        message=f"Channel '{channel_name}' failed to stop",
+        channel_name=channel_name,
+        snapshot_status="error",
+        details={"error": error, "running": True},
+    )
+
+
 def record_channel_restart_requested(channel_name: str) -> None:
     _record_channel_event(
         event_type="channel_restart_requested",

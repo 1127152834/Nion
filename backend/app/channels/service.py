@@ -19,6 +19,7 @@ from app.channels.telemetry import (
     record_channel_service_stopped,
     record_channel_start_failed,
     record_channel_started,
+    record_channel_stop_failed,
     record_channel_stopped,
 )
 from nion.client import NionClient
@@ -113,9 +114,11 @@ class ChannelService:
             try:
                 await channel.stop()
                 self.runtime_state.mark_stopped(name)
+                record_channel_stopped(name)
                 logger.info("Channel %s stopped", name)
-            except Exception:
+            except Exception as exc:
                 self.runtime_state.mark_error(name, "stop failed")
+                record_channel_stop_failed(name, str(exc))
                 logger.exception("Error stopping channel %s", name)
         self._channels.clear()
 

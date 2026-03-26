@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import Any
@@ -26,6 +27,8 @@ from app.gateway.routers import (
 from nion.config.paths import get_paths
 from nion.telemetry.store import TelemetryStore
 
+logger = logging.getLogger(__name__)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
@@ -35,10 +38,18 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     shutdown_callback = getattr(app.state, "daemon_shutdown_callback", None)
     service.set_shutdown_callback(shutdown_callback)
     await service.start()
-    await start_channel_service()
-    yield
-    await stop_channel_service()
-    await service.stop()
+    try:
+        try:
+            await start_channel_service()
+        except Exception:
+            logger.exception("No IM channels configured or channel service failed to start")
+        yield
+    finally:
+        try:
+            await stop_channel_service()
+        except Exception:
+            logger.exception("Failed to stop channel service")
+        await service.stop()
 
 
 def create_app(

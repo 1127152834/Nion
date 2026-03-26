@@ -69,6 +69,35 @@ def test_local_daemon_starts_channel_service_in_lifespan(monkeypatch) -> None:
     assert started["count"] == 1
 
 
+def test_local_daemon_survives_channel_service_start_failure(monkeypatch) -> None:
+    started = {"count": 0}
+    stopped = {"count": 0}
+    daemon_stopped = {"count": 0}
+
+    async def fake_start_channel_service():
+        started["count"] += 1
+        raise RuntimeError("boom")
+
+    async def fake_stop_channel_service() -> None:
+        stopped["count"] += 1
+
+    async def fake_daemon_stop(_self) -> None:
+        daemon_stopped["count"] += 1
+
+    monkeypatch.setattr("app.daemon.app.start_channel_service", fake_start_channel_service)
+    monkeypatch.setattr("app.daemon.app.stop_channel_service", fake_stop_channel_service)
+    monkeypatch.setattr("app.daemon.app.LocalDaemonService.stop", fake_daemon_stop)
+
+    with TestClient(create_app()) as client:
+        runtime = client.get("/api/daemon/runtime-info")
+        assert runtime.status_code == 200
+        assert runtime.json()["mode"] == "local-daemon"
+
+    assert started["count"] == 1
+    assert stopped["count"] == 1
+    assert daemon_stopped["count"] == 1
+
+
 def test_local_daemon_runtime_info_refreshes_after_config_update(tmp_path, monkeypatch) -> None:
     db_path = tmp_path / "config.db"
     extensions_path = tmp_path / "extensions_config.json"
