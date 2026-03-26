@@ -5,7 +5,22 @@ from langchain.tools import BaseTool
 from nion.config import get_app_config
 from nion.model_management.service import get_model_registry_service
 from nion.reflection import resolve_variable
-from nion.tools.builtins import ask_clarification_tool, present_file_tool, task_tool, view_image_tool
+from nion.tools.builtins import (
+    ask_clarification_tool,
+    get_config_summary_tool,
+    get_recent_logs_tool,
+    get_runtime_status_tool,
+    get_skill_diagnostics_tool,
+    get_thread_diagnostics_tool,
+    list_skills_tool,
+    present_file_tool,
+    read_skill_tool,
+    run_doctor_tool,
+    task_tool,
+    update_config_tool,
+    update_skill_tool,
+    view_image_tool,
+)
 from nion.tools.builtins.tool_search import reset_deferred_registry
 from nion.tools.catalog import ToolCatalogEntry, build_configured_tool_catalog
 
@@ -14,6 +29,16 @@ logger = logging.getLogger(__name__)
 BUILTIN_TOOLS = [
     present_file_tool,
     ask_clarification_tool,
+    get_runtime_status_tool,
+    get_recent_logs_tool,
+    get_thread_diagnostics_tool,
+    get_skill_diagnostics_tool,
+    list_skills_tool,
+    read_skill_tool,
+    get_config_summary_tool,
+    run_doctor_tool,
+    update_skill_tool,
+    update_config_tool,
 ]
 
 SUBAGENT_TOOLS = [

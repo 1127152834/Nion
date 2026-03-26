@@ -10,12 +10,16 @@ def test_local_daemon_exposes_runtime_and_threads_routes() -> None:
         health = client.get("/health")
         runtime = client.get("/api/daemon/runtime-info")
         threads = client.post("/api/threads/search", json={"limit": 1})
+        memory = client.get("/api/memory")
+        recall = client.get("/api/recall/search", params={"q": "test", "limit": 1})
 
         assert health.status_code == 200
         assert runtime.status_code == 200
         assert runtime.json()["host"] == "127.0.0.1"
         assert runtime.json()["mode"] == "local-daemon"
         assert threads.status_code == 200
+        assert memory.status_code == 200
+        assert recall.status_code == 200
 
 
 def test_local_daemon_exposes_runtime_profile_and_model_admin_routes() -> None:

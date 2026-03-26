@@ -20,18 +20,17 @@ def test_threads_stream_surfaces_runtime_errors_as_sse_events() -> None:
             raise RuntimeError("upstream unavailable")
 
     app.dependency_overrides[threads.get_thread_service] = lambda: FailingThreadService()
-    client = TestClient(app)
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/threads/new/stream",
+            json={
+                "messages": [{"type": "human", "content": [{"type": "text", "text": "hi"}]}],
+                "context": {},
+                "config": {},
+            },
+        )
 
-    response = client.post(
-        "/api/threads/new/stream",
-        json={
-            "messages": [{"type": "human", "content": [{"type": "text", "text": "hi"}]}],
-            "context": {},
-            "config": {},
-        },
-    )
-
-    assert response.status_code == 200
-    assert 'event: created' in response.text
-    assert 'event: error' in response.text
-    assert json.dumps({"message": "upstream unavailable"}) in response.text
+        assert response.status_code == 200
+        assert 'event: created' in response.text
+        assert 'event: error' in response.text
+        assert json.dumps({"message": "upstream unavailable"}) in response.text

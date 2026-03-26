@@ -60,6 +60,19 @@ cd backend && UV_LINK_MODE=copy uv run pytest -q
 - Electron is single-window. A second app launch should focus the existing window instead of opening another one.
 - `nion daemon status` and `nion daemon stop` talk to the same daemon that Electron uses.
 
+## Control Plane Logging Coverage
+
+The daemon control plane is expected to emit structured, human-readable events for at least these key areas:
+
+- daemon lifecycle events
+- client register / unregister events
+- thread stream events
+- skill mutation events
+- config mutation events
+- model/provider mutation events
+
+The event store is machine-queryable, but `message` values should stay understandable to humans without requiring raw JSON inspection.
+
 ## Known Blocker
 
 `next build --webpack` under `output: "export"` is currently blocked by a Next.js 16 `/_global-error` prerender bug on this branch.

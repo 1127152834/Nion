@@ -1,17 +1,19 @@
 from __future__ import annotations
 
+import logging
 from collections import defaultdict
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Response
+from fastapi import APIRouter, HTTPException, Request, Response
 from pydantic import BaseModel, Field
 
 from nion.config.config_store import resolve_config_db_path
+from nion.config.paths import get_paths
 from nion.model_management import (
     DEFAULT_CHAT_BINDING,
+    LegacyModelConfigImporter,
     ModelBinding,
     ModelBindingStatus,
-    LegacyModelConfigImporter,
     ModelManagementRepository,
     ProviderInstance,
     ProviderKind,
@@ -25,10 +27,13 @@ from nion.model_management import (
 )
 from nion.model_management.crypto import decrypt_provider_secret, get_model_management_secret
 from nion.model_management.seed import seed_builtin_provider_templates
+from nion.telemetry.logger import make_event
+from nion.telemetry.store import TelemetryStore
 
 from . import models as models_router
 
 router = APIRouter(prefix="/api/model-admin", tags=["model-admin"])
+logger = logging.getLogger(__name__)
 
 
 class ProviderTemplateListResponse(BaseModel):
@@ -172,6 +177,33 @@ class UpdateBindingRequest(BaseModel):
 
 class BindingMutationResponse(BaseModel):
     binding: ModelBinding
+
+
+def _record_model_event(
+    request: Request | None,
+    *,
+    level: str,
+    event_type: str,
+    message: str,
+    details: dict[str, Any] | None = None,
+) -> None:
+    try:
+        daemon_service = getattr(getattr(request, "app", None), "state", None)
+        daemon_service = getattr(daemon_service, "daemon_service", None)
+        telemetry_store = getattr(daemon_service, "telemetry_store", None)
+        store = telemetry_store or TelemetryStore(get_paths().telemetry_db_file)
+        store.record_event(
+            make_event(
+                category="model",
+                level=level,  # type: ignore[arg-type]
+                event_type=event_type,
+                actor="system",
+                message=message,
+                details=details or {},
+            )
+        )
+    except Exception:
+        logger.warning("Failed to record model event %s", event_type, exc_info=True)
 
 
 def _get_repo() -> ModelManagementRepository:
@@ -425,24 +457,53 @@ async def list_providers() -> ProvidersListResponse:
 
 
 @router.post("/providers", response_model=ProviderMutationResponse)
-async def create_provider(request: CreateProviderRequest) -> ProviderMutationResponse:
+async def create_provider(
+    http_request: Request,
+    payload: CreateProviderRequest,
+) -> ProviderMutationResponse:
     repo = _get_repo()
-    provider = _create_provider_instance_from_request(repo, request)
+    provider = _create_provider_instance_from_request(repo, payload)
+    _record_model_event(
+        http_request,
+        level="info",
+        event_type="provider_created",
+        message=f"Created provider '{provider.display_name}'",
+        details={
+            "provider_id": provider.id,
+            "provider_kind": provider.kind,
+            "provider_template_id": provider.provider_template_id,
+        },
+    )
     return ProviderMutationResponse(provider=_load_provider_view(repo, provider.id))
 
 
 @router.patch("/providers/{provider_id}", response_model=ProviderMutationResponse)
 async def update_provider(
+    http_request: Request,
     provider_id: str,
-    request: UpdateProviderRequest,
+    payload: UpdateProviderRequest,
 ) -> ProviderMutationResponse:
     repo = _get_repo()
-    provider = _update_provider_instance_from_request(repo, provider_id, request)
+    provider = _update_provider_instance_from_request(repo, provider_id, payload)
+    _record_model_event(
+        http_request,
+        level="info",
+        event_type="provider_updated",
+        message=f"Updated provider '{provider.display_name}'",
+        details={
+            "provider_id": provider.id,
+            "provider_kind": provider.kind,
+            "provider_template_id": provider.provider_template_id,
+        },
+    )
     return ProviderMutationResponse(provider=_load_provider_view(repo, provider.id))
 
 
 @router.delete("/providers/{provider_id}", status_code=204)
-async def delete_provider(provider_id: str) -> Response:
+async def delete_provider(
+    provider_id: str,
+    http_request: Request,
+) -> Response:
     repo = _get_repo()
     provider = repo.get_provider_instance(provider_id)
     if provider is None:
@@ -458,13 +519,25 @@ async def delete_provider(provider_id: str) -> Response:
         remaining_primary = _primary_model_id(remaining_models)
         _ensure_default_binding(repo, remaining_primary)
 
+    _record_model_event(
+        http_request,
+        level="info",
+        event_type="provider_deleted",
+        message=f"Deleted provider '{provider.display_name}'",
+        details={
+            "provider_id": provider.id,
+            "provider_kind": provider.kind,
+            "provider_template_id": provider.provider_template_id,
+        },
+    )
     return Response(status_code=204)
 
 
 @router.post("/providers/{provider_id}/test", response_model=ProviderTestExecutionResponse)
 async def test_provider(
+    http_request: Request,
     provider_id: str,
-    request: ProviderExecutionRequest,
+    payload: ProviderExecutionRequest,
 ) -> ProviderTestExecutionResponse:
     repo = _get_repo()
     provider = repo.get_provider_instance(provider_id)
@@ -478,8 +551,8 @@ async def test_provider(
             api_key=_provider_api_key(provider),
             api_base=_provider_api_base(provider, template),
             provider_protocol=_provider_protocol_for_request(provider, template),
-            timeout_seconds=request.timeout_seconds,
-            probe_message=request.probe_message,
+            timeout_seconds=payload.timeout_seconds,
+            probe_message=payload.probe_message,
         )
     )
 
@@ -493,6 +566,18 @@ async def test_provider(
         }
     )
     saved = repo.save_provider_instance(updated)
+    _record_model_event(
+        http_request,
+        level="info" if result.success else "warning",
+        event_type="provider_test_completed",
+        message=f"Tested provider '{provider.display_name}'",
+        details={
+            "provider_id": provider.id,
+            "success": result.success,
+            "latency_ms": result.latency_ms,
+            "provider_test_status": saved.provider_test_status,
+        },
+    )
     return ProviderTestExecutionResponse(
         provider=_load_provider_view(repo, saved.id),
         result=result,
@@ -501,8 +586,9 @@ async def test_provider(
 
 @router.post("/providers/{provider_id}/discover-models", response_model=ProviderDiscoveryExecutionResponse)
 async def discover_provider_models(
+    http_request: Request,
     provider_id: str,
-    request: ProviderExecutionRequest,
+    payload: ProviderExecutionRequest,
 ) -> ProviderDiscoveryExecutionResponse:
     repo = _get_repo()
     provider = repo.get_provider_instance(provider_id)
@@ -516,7 +602,7 @@ async def discover_provider_models(
             api_key=_provider_api_key(provider),
             api_base=_provider_api_base(provider, template),
             provider_protocol=_provider_protocol_for_request(provider, template),
-            timeout_seconds=request.timeout_seconds,
+            timeout_seconds=payload.timeout_seconds,
         )
     )
 
@@ -529,6 +615,18 @@ async def discover_provider_models(
         }
     )
     saved = repo.save_provider_instance(updated)
+    _record_model_event(
+        http_request,
+        level="info" if result.success else "warning",
+        event_type="provider_models_discovered",
+        message=f"Discovered models for provider '{provider.display_name}'",
+        details={
+            "provider_id": provider.id,
+            "success": result.success,
+            "model_count": len(result.models),
+            "discovery_status": saved.last_discovery_status,
+        },
+    )
     return ProviderDiscoveryExecutionResponse(
         provider=_load_provider_view(repo, saved.id),
         result=result,
@@ -537,8 +635,9 @@ async def discover_provider_models(
 
 @router.post("/providers/{provider_id}/models", response_model=ProviderModelsMutationResponse)
 async def add_provider_models(
+    http_request: Request,
     provider_id: str,
-    request: AddProviderModelsRequest,
+    payload: AddProviderModelsRequest,
 ) -> ProviderModelsMutationResponse:
     repo = _get_repo()
     provider = repo.get_provider_instance(provider_id)
@@ -551,7 +650,7 @@ async def add_provider_models(
     saved_models: list[ProviderModel] = []
     requested_primary_model_id: str | None = None
 
-    for offset, item in enumerate(request.models):
+    for offset, item in enumerate(payload.models):
         existing = existing_by_model_id.get(item.model_id)
         priority_order = item.priority_order if item.priority_order is not None else next_priority + offset
         base_update = {
@@ -591,6 +690,17 @@ async def add_provider_models(
         _set_primary_model(repo, provider_id, requested_primary_model_id)
         _ensure_default_binding(repo, requested_primary_model_id)
 
+    _record_model_event(
+        http_request,
+        level="info",
+        event_type="provider_models_added",
+        message=f"Updated models for provider '{provider.display_name}'",
+        details={
+            "provider_id": provider.id,
+            "model_count": len(saved_models),
+            "primary_model_id": requested_primary_model_id,
+        },
+    )
     return ProviderModelsMutationResponse(
         provider=_load_provider_view(repo, provider_id),
         models=[repo.get_provider_model(item.id) or item for item in saved_models],
@@ -599,15 +709,16 @@ async def add_provider_models(
 
 @router.patch("/models/{model_id}", response_model=ProviderModelMutationResponse)
 async def update_provider_model(
+    http_request: Request,
     model_id: str,
-    request: UpdateProviderModelRequest,
+    payload: UpdateProviderModelRequest,
 ) -> ProviderModelMutationResponse:
     repo = _get_repo()
     existing = repo.get_provider_model(model_id)
     if existing is None:
         raise HTTPException(status_code=404, detail=f"Provider model '{model_id}' not found")
 
-    update_payload = request.model_dump(exclude_unset=True)
+    update_payload = payload.model_dump(exclude_unset=True)
     update_payload["updated_at"] = utc_now_iso()
     should_set_primary = update_payload.pop("is_primary", None)
     saved = repo.save_provider_model(existing.model_copy(update=update_payload))
@@ -617,11 +728,26 @@ async def update_provider_model(
         refreshed = repo.get_provider_model(saved.id)
         if refreshed is not None:
             saved = refreshed
+    _record_model_event(
+        http_request,
+        level="info",
+        event_type="provider_model_updated",
+        message=f"Updated provider model '{saved.model_id}'",
+        details={
+            "provider_id": saved.provider_instance_id,
+            "provider_model_id": saved.id,
+            "model_id": saved.model_id,
+            "is_primary": saved.is_primary,
+        },
+    )
     return ProviderModelMutationResponse(model=saved)
 
 
 @router.delete("/models/{model_id}", status_code=204)
-async def delete_provider_model(model_id: str) -> Response:
+async def delete_provider_model(
+    model_id: str,
+    http_request: Request,
+) -> Response:
     repo = _get_repo()
     model = repo.get_provider_model(model_id)
     if model is None:
@@ -635,13 +761,25 @@ async def delete_provider_model(model_id: str) -> Response:
         _set_primary_model(repo, model.provider_instance_id, replacement_primary)
     if removed_default:
         _ensure_default_binding(repo, replacement_primary)
+    _record_model_event(
+        http_request,
+        level="info",
+        event_type="provider_model_deleted",
+        message=f"Deleted provider model '{model.model_id}'",
+        details={
+            "provider_id": model.provider_instance_id,
+            "provider_model_id": model.id,
+            "model_id": model.model_id,
+        },
+    )
     return Response(status_code=204)
 
 
 @router.post("/models/{model_id}/test", response_model=ProviderModelTestExecutionResponse)
 async def test_provider_model(
+    http_request: Request,
     model_id: str,
-    request: ProviderExecutionRequest,
+    payload: ProviderExecutionRequest,
 ) -> ProviderModelTestExecutionResponse:
     repo = _get_repo()
     model = repo.get_provider_model(model_id)
@@ -662,8 +800,8 @@ async def test_provider_model(
             api_key=_provider_api_key(provider),
             api_base=_provider_api_base(provider, template),
             provider_protocol=_provider_protocol_for_request(provider, template),
-            timeout_seconds=request.timeout_seconds,
-            probe_message=request.probe_message,
+            timeout_seconds=payload.timeout_seconds,
+            probe_message=payload.probe_message,
         )
     )
 
@@ -680,6 +818,19 @@ async def test_provider_model(
         )
     )
 
+    _record_model_event(
+        http_request,
+        level="info" if result.success else "warning",
+        event_type="provider_model_test_completed",
+        message=f"Tested provider model '{model.model_id}'",
+        details={
+            "provider_id": provider.id,
+            "provider_model_id": updated_model.id,
+            "model_id": model.model_id,
+            "success": result.success,
+            "latency_ms": result.latency_ms,
+        },
+    )
     return ProviderModelTestExecutionResponse(
         provider=_load_provider_view(repo, provider.id),
         model=updated_model,
@@ -695,30 +846,43 @@ async def list_bindings() -> BindingsListResponse:
 
 @router.put("/bindings/{binding_key}", response_model=BindingMutationResponse)
 async def update_binding(
+    http_request: Request,
     binding_key: str,
-    request: UpdateBindingRequest,
+    payload: UpdateBindingRequest,
 ) -> BindingMutationResponse:
     repo = _get_repo()
-    provider_model = repo.get_provider_model(request.provider_model_id)
+    provider_model = repo.get_provider_model(payload.provider_model_id)
     if provider_model is None:
         raise HTTPException(
             status_code=404,
-            detail=f"Provider model '{request.provider_model_id}' not found",
+            detail=f"Provider model '{payload.provider_model_id}' not found",
         )
-    if request.fallback_provider_model_id is not None and repo.get_provider_model(
-        request.fallback_provider_model_id
+    if payload.fallback_provider_model_id is not None and repo.get_provider_model(
+        payload.fallback_provider_model_id
     ) is None:
         raise HTTPException(
             status_code=404,
-            detail=f"Fallback provider model '{request.fallback_provider_model_id}' not found",
+            detail=f"Fallback provider model '{payload.fallback_provider_model_id}' not found",
         )
 
     binding = repo.save_binding(
         ModelBinding(
             binding_key=binding_key,
-            provider_model_id=request.provider_model_id,
-            fallback_provider_model_id=request.fallback_provider_model_id,
-            status=request.status,
+            provider_model_id=payload.provider_model_id,
+            fallback_provider_model_id=payload.fallback_provider_model_id,
+            status=payload.status,
         )
+    )
+    _record_model_event(
+        http_request,
+        level="info",
+        event_type="model_binding_updated",
+        message=f"Updated model binding '{binding_key}'",
+        details={
+            "binding_key": binding.binding_key,
+            "provider_model_id": binding.provider_model_id,
+            "fallback_provider_model_id": binding.fallback_provider_model_id,
+            "status": binding.status,
+        },
     )
     return BindingMutationResponse(binding=binding)

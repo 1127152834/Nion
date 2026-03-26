@@ -232,10 +232,17 @@ route surface aligned with the renderer expectations, including:
 - `/api/model-admin/*`
 - `/api/threads/{thread_id}/runtime-profile`
 - `/api/models`, `/api/config`, `/api/skills`, `/api/files`, `/api/cli/catalog`
+- `/api/daemon/logs`, `/api/daemon/logs/tail`
+- `/api/daemon/diagnostics`, `/api/daemon/diagnostics/threads/{thread_id}`, `/api/daemon/diagnostics/skills/{skill_name}`
 
 If a gateway route is added and the Electron renderer consumes it, update
 `app/daemon/app.py` too or the desktop shell will return 404 while the web/gateway
 path keeps working.
+
+Program 03 adds a daemon control plane backed by `telemetry.sqlite3` under the
+resolved Nion app data root. Keep telemetry human-readable in `message`,
+machine-readable in structured `details`, and prefer querying through daemon APIs
+or built-in control-plane tools instead of direct database scraping.
 
 ### Sandbox System (`packages/harness/nion/sandbox/`)
 

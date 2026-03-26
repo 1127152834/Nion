@@ -36,6 +36,19 @@
 - `make desktop-start` 会直接启动已编译好的桌面端，不再重复编译
 - `nion daemon status` 与 `nion daemon stop` 提供本地 daemon 管理入口
 
+## 控制平面
+
+当前本地运行时正在演进为一个 daemon-owned control plane。它的目标不是做第二个用户界面，而是让 Electron、薄 CLI 与 agent 自检/自操作都能共享一套结构化状态、日志与诊断面。
+
+第一阶段要求：
+
+- daemon lifecycle events
+- thread stream events
+- skill mutation events
+- config mutation events
+
+这些事件必须既可查询，又要有人能直接读懂。
+
 ## 快速开始
 
 ### 1) 准备环境

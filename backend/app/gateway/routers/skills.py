@@ -6,14 +6,17 @@ import tempfile
 import zipfile
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from app.gateway.path_utils import resolve_thread_virtual_path
 from nion.config.extensions_config import ExtensionsConfig, SkillStateConfig, get_extensions_config, reload_extensions_config
+from nion.config.paths import get_paths
 from nion.skills import Skill, load_skills
 from nion.skills.loader import get_skills_root_path
 from nion.skills.validation import _validate_skill_frontmatter
+from nion.telemetry.logger import make_event
+from nion.telemetry.store import TelemetryStore
 
 logger = logging.getLogger(__name__)
 
@@ -158,6 +161,48 @@ def _skill_to_response(skill: Skill) -> SkillResponse:
     )
 
 
+def _record_skill_event(
+    request: Request | None,
+    *,
+    level: str,
+    event_type: str,
+    message: str,
+    skill_name: str | None = None,
+    details: dict[str, object] | None = None,
+) -> None:
+    try:
+        payload_details: dict[str, object] = dict(details or {})
+        if skill_name is not None:
+            payload_details.setdefault("skill_name", skill_name)
+        daemon_service = getattr(getattr(request, "app", None), "state", None)
+        daemon_service = getattr(daemon_service, "daemon_service", None)
+        if daemon_service is not None and hasattr(daemon_service, "record_skill_event"):
+            daemon_service.record_skill_event(  # type: ignore[attr-defined]
+                level=level,
+                event_type=event_type,
+                message=message,
+                skill_name=skill_name,
+                details=payload_details,
+            )
+            return
+
+        telemetry_store = getattr(daemon_service, "telemetry_store", None)
+        store = telemetry_store or TelemetryStore(get_paths().telemetry_db_file)
+        store.record_event(
+            make_event(
+                category="skill",
+                level=level,  # type: ignore[arg-type]
+                event_type=event_type,
+                actor="system",
+                message=message,
+                skill_name=skill_name,
+                details=payload_details,
+            )
+        )
+    except Exception:
+        logger.warning("Failed to record skill event %s", event_type, exc_info=True)
+
+
 @router.get(
     "/skills",
     response_model=SkillsListResponse,
@@ -209,7 +254,7 @@ async def list_skills() -> SkillsListResponse:
     summary="Get Skill Details",
     description="Retrieve detailed information about a specific skill by its name.",
 )
-async def get_skill(skill_name: str) -> SkillResponse:
+async def get_skill(skill_name: str, request: Request) -> SkillResponse:
     """Get a specific skill by name.
 
     Args:
@@ -239,6 +284,14 @@ async def get_skill(skill_name: str) -> SkillResponse:
         if skill is None:
             raise HTTPException(status_code=404, detail=f"Skill '{skill_name}' not found")
 
+        _record_skill_event(
+            request,
+            level="info",
+            event_type="skill_read",
+            message=f"Read skill '{skill_name}'",
+            skill_name=skill_name,
+            details={"category": skill.category, "enabled": skill.enabled},
+        )
         return _skill_to_response(skill)
     except HTTPException:
         raise
@@ -253,7 +306,11 @@ async def get_skill(skill_name: str) -> SkillResponse:
     summary="Update Skill",
     description="Update a skill's enabled status by modifying the extensions_config.json file.",
 )
-async def update_skill(skill_name: str, request: SkillUpdateRequest) -> SkillResponse:
+async def update_skill(
+    skill_name: str,
+    request: SkillUpdateRequest,
+    http_request: Request,
+) -> SkillResponse:
     """Update a skill's enabled status.
 
     This will modify the extensions_config.json file to update the enabled state.
@@ -288,6 +345,14 @@ async def update_skill(skill_name: str, request: SkillUpdateRequest) -> SkillRes
         ```
     """
     try:
+        _record_skill_event(
+            http_request,
+            level="info",
+            event_type="skill_update_requested",
+            message=f"Skill update requested for '{skill_name}'",
+            skill_name=skill_name,
+            details={"enabled": request.enabled},
+        )
         # Find the skill to verify it exists
         skills = load_skills(enabled_only=False)
         skill = next((s for s in skills if s.name == skill_name), None)
@@ -331,12 +396,36 @@ async def update_skill(skill_name: str, request: SkillUpdateRequest) -> SkillRes
             raise HTTPException(status_code=500, detail=f"Failed to reload skill '{skill_name}' after update")
 
         logger.info(f"Skill '{skill_name}' enabled status updated to {request.enabled}")
+        _record_skill_event(
+            http_request,
+            level="info",
+            event_type="skill_update_applied",
+            message=f"Updated skill '{skill_name}'",
+            skill_name=skill_name,
+            details={"enabled": request.enabled},
+        )
         return _skill_to_response(updated_skill)
 
-    except HTTPException:
+    except HTTPException as exc:
+        _record_skill_event(
+            http_request,
+            level="warning",
+            event_type="skill_update_failed",
+            message=f"Failed to update skill '{skill_name}'",
+            skill_name=skill_name,
+            details={"reason": exc.detail, "status_code": exc.status_code},
+        )
         raise
     except Exception as e:
         logger.error(f"Failed to update skill {skill_name}: {e}", exc_info=True)
+        _record_skill_event(
+            http_request,
+            level="error",
+            event_type="skill_update_failed",
+            message=f"Failed to update skill '{skill_name}'",
+            skill_name=skill_name,
+            details={"reason": str(e)},
+        )
         raise HTTPException(status_code=500, detail=f"Failed to update skill: {str(e)}")
 
 
@@ -346,7 +435,10 @@ async def update_skill(skill_name: str, request: SkillUpdateRequest) -> SkillRes
     summary="Install Skill",
     description="Install a skill from a .skill file (ZIP archive) located in the thread's user-data directory.",
 )
-async def install_skill(request: SkillInstallRequest) -> SkillInstallResponse:
+async def install_skill(
+    request: SkillInstallRequest,
+    http_request: Request,
+) -> SkillInstallResponse:
     """Install a skill from a .skill file.
 
     The .skill file is a ZIP archive containing a skill directory with SKILL.md
@@ -384,6 +476,13 @@ async def install_skill(request: SkillInstallRequest) -> SkillInstallResponse:
         ```
     """
     try:
+        _record_skill_event(
+            http_request,
+            level="info",
+            event_type="skill_install_requested",
+            message="Skill install requested",
+            details={"thread_id": request.thread_id, "path": request.path},
+        )
         # Resolve the virtual path to actual file path
         skill_file_path = resolve_thread_virtual_path(request.thread_id, request.path)
 
@@ -437,12 +536,39 @@ async def install_skill(request: SkillInstallRequest) -> SkillInstallResponse:
             shutil.copytree(skill_dir, target_dir)
 
         logger.info(f"Skill '{skill_name}' installed successfully to {target_dir}")
+        _record_skill_event(
+            http_request,
+            level="info",
+            event_type="skill_install_applied",
+            message=f"Installed skill '{skill_name}'",
+            skill_name=skill_name,
+            details={"path": request.path},
+        )
         return SkillInstallResponse(success=True, skill_name=skill_name, message=f"Skill '{skill_name}' installed successfully")
 
-    except HTTPException:
+    except HTTPException as exc:
+        _record_skill_event(
+            http_request,
+            level="warning",
+            event_type="skill_install_failed",
+            message="Failed to install skill",
+            details={
+                "reason": exc.detail,
+                "status_code": exc.status_code,
+                "path": request.path,
+                "thread_id": request.thread_id,
+            },
+        )
         raise
     except Exception as e:
         logger.error(f"Failed to install skill: {e}", exc_info=True)
+        _record_skill_event(
+            http_request,
+            level="error",
+            event_type="skill_install_failed",
+            message="Failed to install skill",
+            details={"reason": str(e), "path": request.path},
+        )
         raise HTTPException(status_code=500, detail=f"Failed to install skill: {str(e)}")
 
 
@@ -452,8 +578,16 @@ async def install_skill(request: SkillInstallRequest) -> SkillInstallResponse:
     summary="Delete Skill",
     description="Delete a custom skill and remove its persisted enabled-state override.",
 )
-async def delete_skill(skill_name: str) -> SkillDeleteResponse:
+async def delete_skill(skill_name: str, request: Request) -> SkillDeleteResponse:
     try:
+        _record_skill_event(
+            request,
+            level="info",
+            event_type="skill_delete_requested",
+            message=f"Skill delete requested for '{skill_name}'",
+            skill_name=skill_name,
+            details={},
+        )
         skills = load_skills(enabled_only=False)
         skill = next((s for s in skills if s.name == skill_name), None)
         if skill is None:
@@ -486,13 +620,37 @@ async def delete_skill(skill_name: str) -> SkillDeleteResponse:
             reload_extensions_config()
 
         logger.info("Skill '%s' deleted successfully", skill_name)
+        _record_skill_event(
+            request,
+            level="info",
+            event_type="skill_delete_applied",
+            message=f"Deleted skill '{skill_name}'",
+            skill_name=skill_name,
+            details={},
+        )
         return SkillDeleteResponse(
             success=True,
             skill_name=skill_name,
             message=f"Skill '{skill_name}' deleted successfully",
         )
-    except HTTPException:
+    except HTTPException as exc:
+        _record_skill_event(
+            request,
+            level="warning",
+            event_type="skill_delete_failed",
+            message=f"Failed to delete skill '{skill_name}'",
+            skill_name=skill_name,
+            details={"reason": exc.detail, "status_code": exc.status_code},
+        )
         raise
     except Exception as e:
         logger.error(f"Failed to delete skill {skill_name}: {e}", exc_info=True)
+        _record_skill_event(
+            request,
+            level="error",
+            event_type="skill_delete_failed",
+            message=f"Failed to delete skill '{skill_name}'",
+            skill_name=skill_name,
+            details={"reason": str(e)},
+        )
         raise HTTPException(status_code=500, detail=f"Failed to delete skill: {str(e)}")

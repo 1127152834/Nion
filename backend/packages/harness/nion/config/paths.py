@@ -80,6 +80,11 @@ class Paths:
         return self.base_dir / "recall.sqlite3"
 
     @property
+    def telemetry_db_file(self) -> Path:
+        """Path to the local telemetry database: `{base_dir}/telemetry.sqlite3`."""
+        return self.base_dir / "telemetry.sqlite3"
+
+    @property
     def user_md_file(self) -> Path:
         """Path to the global user profile file: `{base_dir}/USER.md`."""
         return self.base_dir / "USER.md"

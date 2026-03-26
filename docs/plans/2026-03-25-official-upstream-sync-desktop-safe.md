@@ -2,19 +2,31 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Absorb as many recent upstream `bytedance/deer-flow` fixes as possible into Nion while preserving Nion branding, settings-backed configuration, and the Electron desktop runtime model.
+**Goal:** Absorb as many recent upstream `bytedance/deer-flow` fixes as possible into Nion without regressing Nion branding, System Settings / Config Center ownership, or the shipped Electron desktop runtime model.
 
-**Architecture:** Execute the sync in an isolated worktree and split the work into two lanes: direct backports for compatible upstream fixes, and Nion-specific rewrites for upstream ideas that conflict with the desktop-first or settings-first architecture. Keep the existing Nion persistence and runtime surfaces as the source of truth; do not reintroduce `config.yaml` or web-only cleanup APIs as runtime dependencies.
+**Architecture:** Execute the sync in an isolated worktree and split the work into two lanes: direct backports for compatible upstream fixes, and Nion-specific rewrites for upstream ideas that conflict with the desktop-first or settings-first architecture. Keep the existing Nion persistence, local-daemon, and shared renderer surfaces as the source of truth; do not reintroduce `config.yaml`, browser-first deployment assumptions, or web-only cleanup APIs as runtime dependencies.
 
-**Tech Stack:** Python 3.12, FastAPI, LangGraph/LangChain, TypeScript, React/Next.js, Electron, `pytest`, `node --test`, `pnpm`, `uv`
+**Tech Stack:** Python 3.12, FastAPI, LangGraph/LangChain, TypeScript, React 19, Next.js-based shared renderer code, Electron, Config Center / SQLite, `pytest`, `node --test`, `pnpm`, `uv`
 
 ---
+
+## Current Nion Invariants
+
+- `Nion` is the shipped brand. Mention `deer-flow` only when citing the upstream repository, commit ids, or inherited unchanged paths.
+- Runtime and user-editable configuration ownership lives in System Settings / Config Center APIs. If a subsystem still persists through SQLite or `extensions_config.json` internally, keep that internal seam behind the current settings-backed flow and do not revive direct `config.yaml` workflows.
+- The shipped product is an Electron desktop app plus the existing local runtime/daemon. `frontend/` paths in this plan are shared renderer code loaded by `desktop/src/renderer/renderer-app.tsx`, not permission to restore a browser-first or public-web-only product surface.
+
+## Repository Baseline For This Plan
+
+- Treat the local `electron` branch as the desktop integration base unless a newer desktop integration branch explicitly replaces it.
+- In this clone, `origin/main` may already be the upstream `bytedance/deer-flow` branch. If another clone uses a separate `upstream` remote, substitute that remote name consistently but keep the rest of the plan unchanged.
+- If the target worktree path or branch already exists, reuse that existing sync worktree after verifying it is clean instead of blindly recreating it.
 
 ## Red Lines
 
 - Do not reintroduce `deer-flow` in user-facing strings, comments that describe product behavior, or newly added file/module names unless the path is still inherited and unchanged.
-- Do not reintroduce `config.yaml` as runtime source of truth. Keep configuration flowing through the existing settings/config-center/`extensions_config` surfaces.
-- Do not add web-only APIs if the same outcome should live inside Nion's existing desktop/runtime ownership boundary.
+- Do not reintroduce `config.yaml` as runtime source of truth. Keep public configuration ownership on System Settings / Config Center; if an internal implementation still persists through `extensions_config.json`, do not bypass the existing settings-backed flow.
+- Do not add browser-only or web-only APIs if the same outcome should live inside Nion's existing desktop/runtime ownership boundary.
 - Do not merge upstream directly into the dirty working tree. Execute in a new worktree and fast-forward or cherry-pick/backport from there.
 - Do not add dependencies.
 
@@ -24,7 +36,9 @@ Run the implementation in a new worktree before Task 1:
 
 ```bash
 git fetch origin --prune
-git worktree add .worktrees/codex-sync-desktop-safe -b codex/upstream-desktop-safe-sync
+git worktree list
+test -d .worktrees/codex-sync-desktop-safe || \
+  git worktree add .worktrees/codex-sync-desktop-safe -b codex/upstream-desktop-safe-sync
 cd .worktrees/codex-sync-desktop-safe
 git status --short --branch
 git log --oneline electron..origin/main
@@ -32,6 +46,7 @@ git log --oneline electron..origin/main
 
 Expected:
 - Worktree branch is `codex/upstream-desktop-safe-sync`
+- If the branch/worktree already existed, it is reused only after confirming the worktree is clean
 - Upstream-only commits still include `a9940c39`, `77b8ef79`, `2eca58bd`, `6bf52674`, `b8bc80d8`, `8b0f3fe2`, `0431a67b`, `b40b05f6`, `48a19755`
 
 ## Upstream Scope To Absorb
@@ -56,6 +71,7 @@ Expected:
 - `16ed797e` pieces that add `log_level` or `token_usage.enabled` through config files or `serve.sh`
 - docs/translation/CI-only commits unless they become prerequisites for a code change
 - any upstream logic that expects a separate web UI cleanup endpoint instead of Nion's existing thread storage ownership
+- any upstream UI assumption that depends on a browser-first deployment surface instead of Electron loading the shared renderer
 
 ### Task 1: Async MCP Sync Wrapper (Upstream `a9940c39`)
 
@@ -171,11 +187,11 @@ git commit -F- <<'EOF'
 Make async-only MCP tools callable from sync execution paths
 
 Backport the upstream MCP sync-wrapper fix into Nion without changing
-settings ownership or MCP configuration sources. This only patches
-tool invocation so desktop/runtime sync consumers can execute
+System Settings / Config Center ownership or MCP configuration surfaces.
+This only patches tool invocation so desktop/runtime sync consumers can execute
 async-only MCP tools safely.
 
-Constraint: Must keep settings-backed extensions config as the only MCP source of truth
+Constraint: Must keep System Settings / Config Center as the public MCP source of truth while leaving any retained extensions_config persistence behind the existing settings-backed path
 Rejected: Rewriting all sync execution paths to async-only | too broad for this sync batch
 Confidence: high
 Scope-risk: narrow
@@ -592,7 +608,7 @@ gateway router and local client use one upload policy. This keeps upload
 URLs, filename validation, and delete behavior consistent in the desktop
 runtime.
 
-Constraint: Must preserve settings-backed runtime behavior and existing thread-id rules
+Constraint: Must preserve System Settings-owned runtime behavior and existing thread-id rules
 Rejected: Copying upstream regex validation verbatim | would diverge from Nion Paths validation
 Confidence: medium
 Scope-risk: moderate
@@ -675,7 +691,7 @@ def install_skill_from_archive(zip_path: str | Path, *, skills_root: Path | None
 
 Notes:
 - Keep the shared installer pure. No FastAPI types should leak into `installer.py`.
-- Keep the enable/disable state on the existing `extensions_config` JSON path. Do not add any `config.yaml` behavior.
+- Keep public skill enable/disable ownership on System Settings / Config Center. If the current implementation still persists that state through `extensions_config.json`, preserve that internal path and do not add any `config.yaml` behavior.
 - Move archive-root resolution tests off the router helper and onto the new installer helper if that removes router-only coupling.
 
 **Step 4: Run tests to verify they pass**
@@ -703,10 +719,11 @@ Share skill-archive installation logic without reviving config.yaml flows
 
 Port the upstream skill-installer extraction into Nion's harness so skill
 archive validation and install behavior stop living inside the router.
-The router still owns HTTP mapping, while settings-backed skill state
-remains on the existing extensions config path.
+The router still owns HTTP mapping, while System Settings / Config Center
+continues to own the user-facing skill state even if the current
+implementation persists through the existing extensions config path.
 
-Constraint: Skill enablement must remain on extensions_config, not config.yaml
+Constraint: Skill enablement must remain settings-owned and must not revive config.yaml; if extensions_config persists internally, keep it behind the existing API flow
 Rejected: Copying router-specific HTTPException logic into the installer | breaks separation of concerns
 Confidence: medium
 Scope-risk: moderate
@@ -717,6 +734,8 @@ EOF
 ```
 
 ### Task 7: Nion-Owned Thread Deletion Cleanup (Inspired by Upstream `8b0f3fe2`)
+
+Renderer note for Tasks 7-9: the `frontend/src/**` files below are shared renderer sources consumed by Electron through `desktop/src/renderer/renderer-app.tsx`. Treat them as desktop UI code, not as a browser-first product surface.
 
 **Files:**
 - Modify: `backend/packages/harness/nion/config/paths.py`
@@ -768,7 +787,7 @@ pnpm -C frontend exec node --test src/core/threads/cache.test.ts
 
 Expected:
 - Backend test FAIL because the delete path only tombstones metadata today
-- Frontend test FAIL because the helper file does not exist
+- Shared renderer/frontend package test FAIL because the helper file does not exist
 
 **Step 3: Write minimal implementation**
 
@@ -804,7 +823,7 @@ export function removeThreadFromSearchCache(
 
 Notes:
 - Do not add the upstream extra cleanup endpoint. Nion already owns thread storage behind `/api/threads/{thread_id}`.
-- Keep the frontend hook invalidation explicit after delete, but drive the cache mutation through a pure helper so it is testable.
+- Keep the shared renderer hook invalidation explicit after delete, but drive the cache mutation through a pure helper so it is testable.
 
 **Step 4: Run tests to verify they pass**
 
@@ -834,7 +853,7 @@ Delete desktop thread storage at the point Nion deletes the thread
 
 Apply the intent of the upstream thread-cleanup fix, but keep the
 storage deletion inside Nion's existing desktop thread API instead of
-adding a second web-only cleanup endpoint. The frontend cache update is
+adding a second web-only cleanup endpoint. The renderer cache update is
 also made resilient when no search data is cached.
 
 Constraint: Desktop thread deletion should stay on the existing /api/threads/{thread_id} route
@@ -938,11 +957,11 @@ Confidence: high
 Scope-risk: narrow
 Directive: Any future UI that interprets tool_calls should classify by tool name first
 Tested: pnpm -C frontend exec node --test src/core/messages/tool-calls.test.ts; pnpm -C frontend exec tsc --noEmit
-Not-tested: Browser-level visual regression in a live thread
+Not-tested: Renderer-level visual regression in a live desktop thread
 EOF
 ```
 
-### Task 9: Add Token Usage Indicator In Both Chat Headers (Upstream `b40b05f6` + `48a19755`)
+### Task 9: Add Token Usage Indicator In Both Desktop Chat Headers (Upstream `b40b05f6` + `48a19755`)
 
 **Files:**
 - Create: `frontend/src/core/messages/usage.ts`
@@ -1053,7 +1072,7 @@ Expose per-thread token usage in the desktop chat surfaces
 
 Backport the upstream token-usage UI to Nion's chat headers using the
 usage metadata already emitted by the client stream. The locale changes
-include the upstream brace fix so the front-end build stays healthy.
+include the upstream brace fix so the shared renderer build stays healthy.
 
 Constraint: Must rely on existing streamed usage_metadata instead of new config-backed logging flags
 Rejected: Porting upstream token_usage.enabled config plumbing | conflicts with settings-first architecture
@@ -1090,20 +1109,22 @@ pnpm -C frontend exec node --test \
   src/core/threads/cache.test.ts
 
 pnpm -C frontend check
+pnpm -C desktop test
 pnpm -C desktop build
 ```
 
 Expected:
 - All targeted backend tests PASS
-- All frontend node tests PASS
+- All shared renderer/frontend package node tests PASS
 - `pnpm -C frontend check` PASS
+- `pnpm -C desktop test` PASS
 - `pnpm -C desktop build` PASS
 
 ## Review Checklist Before Landing
 
 - Re-read the full diff and remove any patch-on-patch code. If a helper exists only to paper over an earlier hasty edit, replace it with the simpler final shape before landing.
 - Confirm no new user-facing `deer-flow` strings were introduced.
-- Confirm no `config.yaml` read/write path became a runtime dependency.
+- Confirm no `config.yaml` read/write path became a runtime dependency and no settings write path bypasses System Settings / Config Center ownership.
+- Confirm any `frontend/` changes still work as shared Electron renderer code and do not reintroduce browser-only assumptions.
 - Confirm thread deletion still works from the desktop flow and now removes the on-disk thread directory.
 - Confirm upload/skill logic is shared from harness, not duplicated between router and client.
-

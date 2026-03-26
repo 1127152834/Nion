@@ -2,6 +2,15 @@
 
 Nion Local Daemon is the local Python runtime bundled into the Electron application. In Program 01, Electron became a single-window client of this daemon rather than the owner of a helper child process. The daemon also exposes a thin CLI management surface for status and stop operations, which can support future diagnostics and self-operations work.
 
+The next layer is the daemon control plane:
+
+- structured event logging in SQLite
+- daemon and thread diagnostics
+- agent-facing self-inspection tools
+- guarded self-operation tools for approved surfaces
+
+This control plane is designed for both humans and agents. Event messages should remain readable while preserving machine-parseable detail payloads.
+
 ---
 
 ## Architecture

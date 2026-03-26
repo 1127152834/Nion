@@ -14,9 +14,49 @@ from nion.config.config_repository import (
     ConfigValidationError,
     VersionConflictError,
 )
+from nion.config.paths import get_paths
+from nion.telemetry.logger import make_event
+from nion.telemetry.store import TelemetryStore
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["config"])
+
+
+def _record_config_event(
+    request: Request | None,
+    *,
+    level: str,
+    event_type: str,
+    message: str,
+    details: dict[str, Any] | None = None,
+) -> None:
+    try:
+        payload_details = details or {}
+        daemon_service = getattr(getattr(request, "app", None), "state", None)
+        daemon_service = getattr(daemon_service, "daemon_service", None)
+        if daemon_service is not None and hasattr(daemon_service, "record_config_event"):
+            daemon_service.record_config_event(  # type: ignore[attr-defined]
+                level=level,
+                event_type=event_type,
+                message=message,
+                details=payload_details,
+            )
+            return
+
+        telemetry_store = getattr(daemon_service, "telemetry_store", None)
+        store = telemetry_store or TelemetryStore(get_paths().telemetry_db_file)
+        store.record_event(
+            make_event(
+                category="config",
+                level=level,  # type: ignore[arg-type]
+                event_type=event_type,
+                actor="system",
+                message=message,
+                details=payload_details,
+            )
+        )
+    except Exception:
+        logger.warning("Failed to record config event %s", event_type, exc_info=True)
 
 
 class ConfigSectionSchema(BaseModel):
@@ -175,9 +215,16 @@ def _resolve_config_payload(
 
 
 @router.get("/config", response_model=ConfigReadResponse)
-async def get_config() -> ConfigReadResponse:
+async def get_config(request: Request) -> ConfigReadResponse:
     repo = ConfigRepository()
     config, version, source_path = repo.read()
+    _record_config_event(
+        request,
+        level="info",
+        event_type="config_read",
+        message="Read current config payload",
+        details={"version": version, "source_path": str(source_path)},
+    )
     return ConfigReadResponse(
         version=version,
         source_path=str(source_path),
@@ -218,12 +265,26 @@ async def update_config(
     config_payload = _resolve_config_payload(payload.config, payload.yaml_text)
 
     try:
+        _record_config_event(
+            request,
+            level="info",
+            event_type="config_update_requested",
+            message="Config update requested",
+            details={"expected_version": payload.version},
+        )
         new_version, warnings_raw = repo.write_with_warnings(
             config_dict=config_payload, expected_version=payload.version
         )
         daemon_service = getattr(request.app.state, "daemon_service", None)
         if daemon_service is not None:
             daemon_service.refresh_from_app_config()
+        _record_config_event(
+            request,
+            level="info",
+            event_type="config_update_applied",
+            message="Config update applied",
+            details={"new_version": new_version},
+        )
         warnings = [ConfigValidateWarningItem(**item) for item in warnings_raw]
         config, _, source_path = repo.read()
         return ConfigUpdateResponse(
@@ -234,6 +295,13 @@ async def update_config(
             warnings=warnings,
         )
     except VersionConflictError as exc:
+        _record_config_event(
+            request,
+            level="warning",
+            event_type="config_update_failed",
+            message="Config update failed due to version conflict",
+            details={"current_version": exc.current_version},
+        )
         raise HTTPException(
             status_code=409,
             detail={
@@ -242,6 +310,13 @@ async def update_config(
             },
         ) from exc
     except ConfigValidationError as exc:
+        _record_config_event(
+            request,
+            level="warning",
+            event_type="config_update_failed",
+            message="Config update rejected by validation",
+            details={"error_count": len(exc.errors), "warning_count": len(exc.warnings)},
+        )
         raise HTTPException(
             status_code=422,
             detail={
@@ -252,6 +327,13 @@ async def update_config(
         ) from exc
     except Exception as exc:  # noqa: BLE001
         logger.error("Failed to update config: %s", exc, exc_info=True)
+        _record_config_event(
+            request,
+            level="error",
+            event_type="config_update_failed",
+            message="Config update failed unexpectedly",
+            details={"reason": str(exc)},
+        )
         raise HTTPException(status_code=500, detail="Failed to update config") from exc
 
 

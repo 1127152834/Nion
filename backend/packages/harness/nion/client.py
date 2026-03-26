@@ -43,8 +43,34 @@ from nion.config.extensions_config import ExtensionsConfig, SkillStateConfig, ge
 from nion.config.paths import get_paths
 from nion.model_management.service import get_model_registry_service
 from nion.models import create_chat_model
+from nion.telemetry.logger import make_event
+from nion.telemetry.store import TelemetryStore
 
 logger = logging.getLogger(__name__)
+
+
+def _record_agent_event(
+    *,
+    event_type: str,
+    thread_id: str,
+    message: str,
+    level: str = "info",
+    details: dict[str, Any] | None = None,
+) -> None:
+    try:
+        TelemetryStore(get_paths().telemetry_db_file).record_event(
+            make_event(
+                category="agent",
+                level=level,  # type: ignore[arg-type]
+                event_type=event_type,
+                actor="agent",
+                thread_id=thread_id,
+                message=message,
+                details=details or {},
+            )
+        )
+    except Exception:
+        logger.warning("Failed to record agent event %s", event_type, exc_info=True)
 
 
 @dataclass
@@ -235,6 +261,18 @@ class NionClient:
 
         self._agent = create_agent(**kwargs)
         self._agent_config_key = key
+        _record_agent_event(
+            event_type="agent_created",
+            thread_id=str(cfg.get("thread_id") or "unknown"),
+            message=f"Created embedded agent '{self._agent_name or 'lead_agent'}'",
+            details={
+                "agent_name": self._agent_name or "lead_agent",
+                "model_name": model_name,
+                "thinking_enabled": thinking_enabled,
+                "subagent_enabled": subagent_enabled,
+                "surface": surface,
+            },
+        )
         logger.info("Agent created: agent_name=%s, model=%s, thinking=%s", self._agent_name, model_name, thinking_enabled)
 
     @staticmethod
@@ -359,7 +397,29 @@ class NionClient:
             thread_id = str(uuid.uuid4())
 
         config = self._get_runnable_config(thread_id, **kwargs)
+        configurable = config.get("configurable", {})
+        _record_agent_event(
+            event_type="agent_model_selected",
+            thread_id=thread_id,
+            message=f"Selected model for embedded agent thread '{thread_id}'",
+            details={
+                "agent_name": self._agent_name or "lead_agent",
+                "model_name": configurable.get("model_name"),
+                "thinking_enabled": configurable.get("thinking_enabled"),
+                "subagent_enabled": configurable.get("subagent_enabled"),
+                "surface": configurable.get("surface"),
+            },
+        )
         self._ensure_agent(config)
+        _record_agent_event(
+            event_type="agent_run_started",
+            thread_id=thread_id,
+            message=f"Started embedded agent run for thread '{thread_id}'",
+            details={
+                "agent_name": self._agent_name or "lead_agent",
+                "model_name": config.get("configurable", {}).get("model_name"),
+            },
+        )
 
         state: dict[str, Any] = {"messages": [HumanMessage(content=message)]}
         context = {"thread_id": thread_id}
@@ -369,69 +429,90 @@ class NionClient:
         seen_ids: set[str] = set()
         cumulative_usage: dict[str, int] = {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0}
 
-        for chunk in self._agent.stream(state, config=config, context=context, stream_mode="values"):
-            messages = chunk.get("messages", [])
+        try:
+            ai_message_count = 0
+            for chunk in self._agent.stream(state, config=config, context=context, stream_mode="values"):
+                messages = chunk.get("messages", [])
 
-            for msg in messages:
-                msg_id = getattr(msg, "id", None)
-                if msg_id and msg_id in seen_ids:
-                    continue
-                if msg_id:
-                    seen_ids.add(msg_id)
+                for msg in messages:
+                    msg_id = getattr(msg, "id", None)
+                    if msg_id and msg_id in seen_ids:
+                        continue
+                    if msg_id:
+                        seen_ids.add(msg_id)
 
-                if isinstance(msg, AIMessage):
-                    # Track token usage from AI messages
-                    usage = getattr(msg, "usage_metadata", None)
-                    if usage:
-                        cumulative_usage["input_tokens"] += usage.get("input_tokens", 0) or 0
-                        cumulative_usage["output_tokens"] += usage.get("output_tokens", 0) or 0
-                        cumulative_usage["total_tokens"] += usage.get("total_tokens", 0) or 0
+                    if isinstance(msg, AIMessage):
+                        ai_message_count += 1
+                        # Track token usage from AI messages
+                        usage = getattr(msg, "usage_metadata", None)
+                        if usage:
+                            cumulative_usage["input_tokens"] += usage.get("input_tokens", 0) or 0
+                            cumulative_usage["output_tokens"] += usage.get("output_tokens", 0) or 0
+                            cumulative_usage["total_tokens"] += usage.get("total_tokens", 0) or 0
 
-                    if msg.tool_calls:
+                        if msg.tool_calls:
+                            yield StreamEvent(
+                                type="messages-tuple",
+                                data={
+                                    "type": "ai",
+                                    "content": "",
+                                    "id": msg_id,
+                                    "tool_calls": [{"name": tc["name"], "args": tc["args"], "id": tc.get("id")} for tc in msg.tool_calls],
+                                },
+                            )
+
+                        text = self._extract_text(msg.content)
+                        if text:
+                            event_data: dict[str, Any] = {"type": "ai", "content": text, "id": msg_id}
+                            if usage:
+                                event_data["usage_metadata"] = {
+                                    "input_tokens": usage.get("input_tokens", 0) or 0,
+                                    "output_tokens": usage.get("output_tokens", 0) or 0,
+                                    "total_tokens": usage.get("total_tokens", 0) or 0,
+                                }
+                            yield StreamEvent(type="messages-tuple", data=event_data)
+
+                    elif isinstance(msg, ToolMessage):
                         yield StreamEvent(
                             type="messages-tuple",
                             data={
-                                "type": "ai",
-                                "content": "",
+                                "type": "tool",
+                                "content": self._extract_text(msg.content),
+                                "name": getattr(msg, "name", None),
+                                "tool_call_id": getattr(msg, "tool_call_id", None),
                                 "id": msg_id,
-                                "tool_calls": [{"name": tc["name"], "args": tc["args"], "id": tc.get("id")} for tc in msg.tool_calls],
                             },
                         )
 
-                    text = self._extract_text(msg.content)
-                    if text:
-                        event_data: dict[str, Any] = {"type": "ai", "content": text, "id": msg_id}
-                        if usage:
-                            event_data["usage_metadata"] = {
-                                "input_tokens": usage.get("input_tokens", 0) or 0,
-                                "output_tokens": usage.get("output_tokens", 0) or 0,
-                                "total_tokens": usage.get("total_tokens", 0) or 0,
-                            }
-                        yield StreamEvent(type="messages-tuple", data=event_data)
+                # Emit a values event for each state snapshot
+                yield StreamEvent(
+                    type="values",
+                    data={
+                        "title": chunk.get("title"),
+                        "messages": [self._serialize_message(m) for m in messages],
+                        "artifacts": chunk.get("artifacts", []),
+                    },
+                )
 
-                elif isinstance(msg, ToolMessage):
-                    yield StreamEvent(
-                        type="messages-tuple",
-                        data={
-                            "type": "tool",
-                            "content": self._extract_text(msg.content),
-                            "name": getattr(msg, "name", None),
-                            "tool_call_id": getattr(msg, "tool_call_id", None),
-                            "id": msg_id,
-                        },
-                    )
-
-            # Emit a values event for each state snapshot
-            yield StreamEvent(
-                type="values",
-                data={
-                    "title": chunk.get("title"),
-                    "messages": [self._serialize_message(m) for m in messages],
-                    "artifacts": chunk.get("artifacts", []),
+            _record_agent_event(
+                event_type="agent_run_completed",
+                thread_id=thread_id,
+                message=f"Completed embedded agent run for thread '{thread_id}'",
+                details={
+                    "ai_message_count": ai_message_count,
+                    "usage": cumulative_usage,
                 },
             )
-
-        yield StreamEvent(type="end", data={"usage": cumulative_usage})
+            yield StreamEvent(type="end", data={"usage": cumulative_usage})
+        except Exception as exc:
+            _record_agent_event(
+                event_type="agent_run_failed",
+                thread_id=thread_id,
+                message=f"Embedded agent run failed for thread '{thread_id}'",
+                level="error",
+                details={"reason": str(exc)},
+            )
+            raise
 
     def chat(self, message: str, *, thread_id: str | None = None, **kwargs) -> str:
         """Send a message and return the final text response.

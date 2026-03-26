@@ -556,6 +556,12 @@ export interface Translations {
         idle: string;
         empty: string;
         loadFailed: string;
+        structuredTitle: string;
+        structuredEmpty: string;
+        historyTitle: string;
+        historyEmpty: string;
+        overviewTitle: string;
+        overviewDescription: string;
         threadLabel: string;
         agentLabel: string;
       };
