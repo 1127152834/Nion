@@ -234,6 +234,7 @@ route surface aligned with the renderer expectations, including:
 - `/api/models`, `/api/config`, `/api/skills`, `/api/files`, `/api/cli/catalog`
 - `/api/daemon/logs`, `/api/daemon/logs/tail`
 - `/api/daemon/diagnostics`, `/api/daemon/diagnostics/threads/{thread_id}`, `/api/daemon/diagnostics/skills/{skill_name}`
+- `/api/daemon/diagnostics/tasks/{task_id}`
 
 If a gateway route is added and the Electron renderer consumes it, update
 `app/daemon/app.py` too or the desktop shell will return 404 while the web/gateway
@@ -243,6 +244,13 @@ Program 03 adds a daemon control plane backed by `telemetry.sqlite3` under the
 resolved Nion app data root. Keep telemetry human-readable in `message`,
 machine-readable in structured `details`, and prefer querying through daemon APIs
 or built-in control-plane tools instead of direct database scraping.
+
+Program 03B extends that contract to delegated execution:
+
+- use `run_id` as the delegated task correlation key
+- keep task-tool and subagent-executor events bounded to counts, IDs, durations, and short summaries
+- prefer task diagnostics over reconstructing delegated failures from raw event tails
+- channel telemetry is a separate follow-up phase, not part of this slice
 
 ### Sandbox System (`packages/harness/nion/sandbox/`)
 

@@ -67,11 +67,21 @@ The daemon control plane is expected to emit structured, human-readable events f
 - daemon lifecycle events
 - client register / unregister events
 - thread stream events
+- delegated task lifecycle events
+- subagent execution lifecycle events
+- task diagnostics
 - skill mutation events
 - config mutation events
 - model/provider mutation events
 
 The event store is machine-queryable, but `message` values should stay understandable to humans without requiring raw JSON inspection.
+
+Delegated execution is correlated on `run_id`. Task-level diagnostics should be available from both:
+
+- `GET /api/daemon/diagnostics/tasks/{task_id}`
+- built-in control-plane tools such as `get_task_diagnostics`
+
+Channel lifecycle and message-bus telemetry are intentionally deferred to a later phase.
 
 ## Known Blocker
 

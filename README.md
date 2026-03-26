@@ -44,8 +44,17 @@
 
 - daemon lifecycle events
 - thread stream events
+- delegated task lifecycle events
+- subagent execution lifecycle events
 - skill mutation events
 - config mutation events
+
+当前还新增了 task 级诊断入口：
+
+- daemon API 可按 `run_id` / `task_id` 查询 delegated execution
+- agent built-in tools 可直接读取 task diagnostics
+
+下一阶段才会继续扩到 channel lifecycle / message-bus telemetry。
 
 这些事件必须既可查询，又要有人能直接读懂。
 

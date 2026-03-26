@@ -6,10 +6,18 @@ The next layer is the daemon control plane:
 
 - structured event logging in SQLite
 - daemon and thread diagnostics
+- delegated task and subagent execution diagnostics
 - agent-facing self-inspection tools
 - guarded self-operation tools for approved surfaces
 
 This control plane is designed for both humans and agents. Event messages should remain readable while preserving machine-parseable detail payloads.
+
+Program 03B extends that surface with delegated execution observability:
+
+- `run_id` is the correlation key for delegated task execution
+- daemon logs can be filtered by `run_id`
+- daemon diagnostics now include task-level summaries
+- built-in control-plane tools can fetch task diagnostics for self-inspection
 
 ---
 
