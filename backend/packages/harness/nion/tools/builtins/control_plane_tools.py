@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+import httpx
 from langchain.tools import tool
 
 from nion.config import ConfigRepository, get_app_config, get_paths
@@ -18,6 +19,31 @@ from nion.telemetry.store import TelemetryStore
 
 def _telemetry_store() -> TelemetryStore:
     return TelemetryStore(get_paths().telemetry_db_file)
+
+
+def _daemon_base_url() -> str:
+    config = get_app_config()
+    return f"http://{config.daemon.host}:{config.daemon.port}"
+
+
+def _daemon_get(path: str, *, params: dict[str, Any] | None = None) -> dict[str, Any] | list[Any]:
+    response = httpx.get(f"{_daemon_base_url()}{path}", params=params, timeout=5.0)
+    response.raise_for_status()
+    return response.json()
+
+
+def _daemon_post(path: str, *, payload: dict[str, Any] | None = None) -> dict[str, Any] | list[Any]:
+    response = httpx.post(f"{_daemon_base_url()}{path}", json=payload, timeout=5.0)
+    response.raise_for_status()
+    return response.json()
+
+
+def _json_result(fn) -> str:
+    try:
+        payload = fn()
+    except Exception as exc:  # noqa: BLE001
+        payload = {"error": str(exc)}
+    return json.dumps(payload, ensure_ascii=False, indent=2)
 
 
 def _runtime_summary() -> dict[str, Any]:
@@ -45,6 +71,56 @@ def get_runtime_status_tool() -> str:
         JSON string containing daemon status and current runtime summary.
     """
     return json.dumps(_runtime_summary(), ensure_ascii=False, indent=2)
+
+
+@tool("get_channels_status", parse_docstring=True)
+def get_channels_status_tool() -> str:
+    """Get the daemon-owned status view for all channels."""
+    return _json_result(lambda: _daemon_get("/api/daemon/channels"))
+
+
+@tool("get_channel_diagnostics", parse_docstring=True)
+def get_channel_diagnostics_tool(channel_name: str) -> str:
+    """Get the latest diagnostic view for one channel.
+
+    Args:
+        channel_name: Channel identifier, e.g. `feishu`.
+    """
+    return _json_result(lambda: _daemon_get(f"/api/daemon/channels/{channel_name}"))
+
+
+@tool("list_channel_pair_requests", parse_docstring=True)
+def list_channel_pair_requests_tool(
+    platform: str,
+    status: str | None = None,
+) -> str:
+    """List channel pair requests from the daemon control plane.
+
+    Args:
+        platform: Channel platform, e.g. `lark`.
+        status: Optional request status filter.
+    """
+    params = {"status": status} if status is not None else None
+    return _json_result(lambda: _daemon_get(f"/api/daemon/channels/{platform}/pair-requests", params=params))
+
+
+@tool("list_channel_authorized_users", parse_docstring=True)
+def list_channel_authorized_users_tool(
+    platform: str,
+    active_only: bool = True,
+) -> str:
+    """List channel authorized users from the daemon control plane.
+
+    Args:
+        platform: Channel platform, e.g. `lark`.
+        active_only: Whether to list only active users.
+    """
+    return _json_result(
+        lambda: _daemon_get(
+            f"/api/daemon/channels/{platform}/authorized-users",
+            params={"active_only": active_only},
+        )
+    )
 
 
 @tool("get_recent_logs", parse_docstring=True)
@@ -208,6 +284,114 @@ def get_task_diagnostics_tool(task_id: str) -> str:
             },
         }
     return json.dumps(payload, ensure_ascii=False, indent=2)
+
+
+@tool("restart_channel_control_plane", parse_docstring=True)
+def restart_channel_control_plane_tool(channel_name: str) -> str:
+    """Restart one channel through the daemon control plane.
+
+    Args:
+        channel_name: Channel identifier, e.g. `feishu`.
+    """
+    return _json_result(lambda: _daemon_post(f"/api/daemon/channels/{channel_name}/restart"))
+
+
+@tool("issue_channel_pairing_code", parse_docstring=True)
+def issue_channel_pairing_code_tool(
+    platform: str,
+    ttl_minutes: int = 10,
+) -> str:
+    """Issue a channel pairing code through the daemon control plane.
+
+    Args:
+        platform: Channel platform, e.g. `lark`.
+        ttl_minutes: Pairing code TTL in minutes.
+    """
+    return _json_result(
+        lambda: _daemon_post(
+            f"/api/daemon/channels/{platform}/pairing-code",
+            payload={"ttl_minutes": ttl_minutes},
+        )
+    )
+
+
+@tool("approve_channel_pair_request", parse_docstring=True)
+def approve_channel_pair_request_tool(
+    platform: str,
+    request_id: int,
+    handled_by: str | None = None,
+    workspace_id: str | None = None,
+    note: str | None = None,
+) -> str:
+    """Approve a channel pair request through the daemon control plane.
+
+    Args:
+        platform: Channel platform, e.g. `lark`.
+        request_id: Pair request identifier.
+        handled_by: Optional operator identifier.
+        workspace_id: Optional workspace binding.
+        note: Optional note.
+    """
+    return _json_result(
+        lambda: _daemon_post(
+            f"/api/daemon/channels/{platform}/pair-requests/{request_id}/approve",
+            payload={
+                "handled_by": handled_by,
+                "workspace_id": workspace_id,
+                "note": note,
+            },
+        )
+    )
+
+
+@tool("reject_channel_pair_request", parse_docstring=True)
+def reject_channel_pair_request_tool(
+    platform: str,
+    request_id: int,
+    handled_by: str | None = None,
+    workspace_id: str | None = None,
+    note: str | None = None,
+) -> str:
+    """Reject a channel pair request through the daemon control plane.
+
+    Args:
+        platform: Channel platform, e.g. `lark`.
+        request_id: Pair request identifier.
+        handled_by: Optional operator identifier.
+        workspace_id: Optional workspace binding.
+        note: Optional note.
+    """
+    return _json_result(
+        lambda: _daemon_post(
+            f"/api/daemon/channels/{platform}/pair-requests/{request_id}/reject",
+            payload={
+                "handled_by": handled_by,
+                "workspace_id": workspace_id,
+                "note": note,
+            },
+        )
+    )
+
+
+@tool("revoke_channel_authorized_user", parse_docstring=True)
+def revoke_channel_authorized_user_tool(
+    platform: str,
+    user_id: int,
+    handled_by: str | None = None,
+) -> str:
+    """Revoke a channel authorized user through the daemon control plane.
+
+    Args:
+        platform: Channel platform, e.g. `lark`.
+        user_id: Authorized user identifier.
+        handled_by: Optional operator identifier.
+    """
+    return _json_result(
+        lambda: _daemon_post(
+            f"/api/daemon/channels/{platform}/authorized-users/{user_id}/revoke",
+            payload={"handled_by": handled_by},
+        )
+    )
 
 
 @tool("list_skills_control_plane", parse_docstring=True)

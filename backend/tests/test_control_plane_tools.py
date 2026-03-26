@@ -6,9 +6,18 @@ from nion.config.paths import get_paths
 from nion.telemetry.models import DiagnosticSnapshot, EventRecord
 from nion.telemetry.store import TelemetryStore
 from nion.tools.builtins.control_plane_tools import (
+    approve_channel_pair_request_tool,
+    get_channel_diagnostics_tool,
+    get_channels_status_tool,
     get_recent_logs_tool,
     get_runtime_status_tool,
     get_task_diagnostics_tool,
+    issue_channel_pairing_code_tool,
+    list_channel_authorized_users_tool,
+    list_channel_pair_requests_tool,
+    reject_channel_pair_request_tool,
+    restart_channel_control_plane_tool,
+    revoke_channel_authorized_user_tool,
     run_doctor_tool,
     update_config_tool,
 )
@@ -102,3 +111,251 @@ def test_update_config_tool_updates_daemon_section(monkeypatch, tmp_path):
     payload = json.loads(result)
 
     assert payload["ok"] is True
+
+
+def test_get_channels_status_tool_returns_daemon_status(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    import nion.config.paths as paths_module
+
+    paths_module._paths = None
+
+    def fake_get(path: str, *, params=None):
+        assert path == "/api/daemon/channels"
+        assert params is None
+        return {
+            "service_running": True,
+            "pending_pair_requests": 1,
+            "channels": {
+                "feishu": {
+                    "enabled": True,
+                    "running": True,
+                    "capabilities": {"supports_streaming": True},
+                    "last_heartbeat": 123.0,
+                    "last_error": None,
+                    "authorized_user_count": 2,
+                    "pending_pair_request_count": 1,
+                    "can_restart": True,
+                }
+            },
+        }
+
+    monkeypatch.setattr("nion.tools.builtins.control_plane_tools._daemon_get", fake_get)
+    payload = json.loads(get_channels_status_tool.invoke({}))
+    assert payload["service_running"] is True
+    assert payload["channels"]["feishu"]["running"] is True
+
+
+def test_get_channel_diagnostics_tool_returns_payload(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    import nion.config.paths as paths_module
+
+    paths_module._paths = None
+
+    def fake_get(path: str, *, params=None):
+        assert path == "/api/daemon/channels/feishu"
+        assert params is None
+        return {
+            "status": "error",
+            "summary": "Channel 'feishu' outbound delivery failed",
+            "details": {"channel_name": "feishu"},
+        }
+
+    monkeypatch.setattr("nion.tools.builtins.control_plane_tools._daemon_get", fake_get)
+    payload = json.loads(get_channel_diagnostics_tool.invoke({"channel_name": "feishu"}))
+    assert payload["status"] == "error"
+    assert payload["details"]["channel_name"] == "feishu"
+
+
+def test_list_channel_pair_requests_tool_returns_seeded_requests(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    import nion.config.paths as paths_module
+
+    paths_module._paths = None
+
+    def fake_get(path: str, *, params=None):
+        assert path == "/api/daemon/channels/lark/pair-requests"
+        assert params == {"status": "pending"}
+        return [
+            {
+                "id": 1,
+                "platform": "lark",
+                "code": "654321",
+                "external_user_id": "ou_seeded",
+                "external_user_name": "Seeded User",
+                "chat_id": "oc_seeded",
+                "conversation_type": "group",
+                "source_event_id": "evt_seeded",
+                "status": "pending",
+                "note": None,
+                "created_at": "2026-03-26T00:00:00+00:00",
+                "handled_at": None,
+                "handled_by": None,
+            }
+        ]
+
+    monkeypatch.setattr("nion.tools.builtins.control_plane_tools._daemon_get", fake_get)
+    payload = json.loads(
+        list_channel_pair_requests_tool.invoke({"platform": "lark", "status": "pending"})
+    )
+    assert payload[0]["status"] == "pending"
+
+
+def test_list_channel_authorized_users_tool_returns_seeded_users(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    import nion.config.paths as paths_module
+
+    paths_module._paths = None
+
+    def fake_get(path: str, *, params=None):
+        assert path == "/api/daemon/channels/lark/authorized-users"
+        assert params == {"active_only": True}
+        return [
+            {
+                "id": 1,
+                "platform": "lark",
+                "external_user_id": "ou_seeded",
+                "external_user_name": "Seeded User",
+                "chat_id": "oc_seeded",
+                "conversation_type": "group",
+                "workspace_id": "default",
+                "session_override": None,
+                "granted_at": "2026-03-26T00:00:00+00:00",
+                "revoked_at": None,
+                "source_request_id": 1,
+            }
+        ]
+
+    monkeypatch.setattr("nion.tools.builtins.control_plane_tools._daemon_get", fake_get)
+    payload = json.loads(
+        list_channel_authorized_users_tool.invoke({"platform": "lark", "active_only": True})
+    )
+    assert payload[0]["workspace_id"] == "default"
+
+
+def test_restart_channel_control_plane_tool_returns_action_result(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    import nion.config.paths as paths_module
+
+    paths_module._paths = None
+
+    def fake_post(path: str, *, payload=None):
+        assert path == "/api/daemon/channels/feishu/restart"
+        assert payload is None
+        return {"success": True, "message": "Channel feishu restarted successfully"}
+
+    monkeypatch.setattr("nion.tools.builtins.control_plane_tools._daemon_post", fake_post)
+    payload = json.loads(restart_channel_control_plane_tool.invoke({"channel_name": "feishu"}))
+    assert payload["success"] is True
+
+
+def test_issue_channel_pairing_code_tool_returns_pairing_code(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    import nion.config.paths as paths_module
+
+    paths_module._paths = None
+
+    def fake_post(path: str, *, payload=None):
+        assert path == "/api/daemon/channels/lark/pairing-code"
+        assert payload == {"ttl_minutes": 15}
+        return {
+            "id": 1,
+            "platform": "lark",
+            "code": "654321",
+            "expires_at": "2026-03-26T00:15:00+00:00",
+            "consumed_at": None,
+            "created_at": "2026-03-26T00:00:00+00:00",
+        }
+
+    monkeypatch.setattr("nion.tools.builtins.control_plane_tools._daemon_post", fake_post)
+    payload = json.loads(
+        issue_channel_pairing_code_tool.invoke({"platform": "lark", "ttl_minutes": 15})
+    )
+    assert payload["platform"] == "lark"
+
+
+def test_approve_channel_pair_request_tool_returns_request(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    import nion.config.paths as paths_module
+
+    paths_module._paths = None
+
+    def fake_post(path: str, *, payload=None):
+        assert path == "/api/daemon/channels/lark/pair-requests/1/approve"
+        assert payload == {"handled_by": "daemon", "workspace_id": "default", "note": None}
+        return {
+            "id": 1,
+            "platform": "lark",
+            "code": "654321",
+            "external_user_id": "ou_seeded",
+            "external_user_name": "Seeded User",
+            "chat_id": "oc_seeded",
+            "conversation_type": "group",
+            "source_event_id": "evt_seeded",
+            "status": "approved",
+            "note": None,
+            "created_at": "2026-03-26T00:00:00+00:00",
+            "handled_at": "2026-03-26T00:01:00+00:00",
+            "handled_by": "daemon",
+        }
+
+    monkeypatch.setattr("nion.tools.builtins.control_plane_tools._daemon_post", fake_post)
+    payload = json.loads(
+        approve_channel_pair_request_tool.invoke(
+            {"platform": "lark", "request_id": 1, "handled_by": "daemon", "workspace_id": "default"}
+        )
+    )
+    assert payload["status"] == "approved"
+
+
+def test_reject_channel_pair_request_tool_returns_request(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    import nion.config.paths as paths_module
+
+    paths_module._paths = None
+
+    def fake_post(path: str, *, payload=None):
+        assert path == "/api/daemon/channels/lark/pair-requests/1/reject"
+        assert payload == {"handled_by": "daemon", "workspace_id": None, "note": "denied"}
+        return {
+            "id": 1,
+            "platform": "lark",
+            "code": "654321",
+            "external_user_id": "ou_seeded",
+            "external_user_name": "Seeded User",
+            "chat_id": "oc_seeded",
+            "conversation_type": "group",
+            "source_event_id": "evt_seeded",
+            "status": "rejected",
+            "note": "denied",
+            "created_at": "2026-03-26T00:00:00+00:00",
+            "handled_at": "2026-03-26T00:01:00+00:00",
+            "handled_by": "daemon",
+        }
+
+    monkeypatch.setattr("nion.tools.builtins.control_plane_tools._daemon_post", fake_post)
+    payload = json.loads(
+        reject_channel_pair_request_tool.invoke(
+            {"platform": "lark", "request_id": 1, "handled_by": "daemon", "note": "denied"}
+        )
+    )
+    assert payload["status"] == "rejected"
+
+
+def test_revoke_channel_authorized_user_tool_returns_result(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    import nion.config.paths as paths_module
+
+    paths_module._paths = None
+
+    def fake_post(path: str, *, payload=None):
+        assert path == "/api/daemon/channels/lark/authorized-users/1/revoke"
+        assert payload == {"handled_by": "daemon"}
+        return {"revoked": True}
+
+    monkeypatch.setattr("nion.tools.builtins.control_plane_tools._daemon_post", fake_post)
+    payload = json.loads(
+        revoke_channel_authorized_user_tool.invoke(
+            {"platform": "lark", "user_id": 1, "handled_by": "daemon"}
+        )
+    )
+    assert payload["revoked"] is True
