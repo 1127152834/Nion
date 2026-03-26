@@ -73,6 +73,23 @@ def test_daemon_channel_restart_action_returns_result_and_logs_event(monkeypatch
         reset_extensions_config()
 
 
+def test_daemon_channel_restart_action_returns_503_without_channel_service(monkeypatch, tmp_path) -> None:
+    _configure_test_env(monkeypatch, tmp_path)
+    _stub_daemon_channel_lifecycle(monkeypatch)
+    monkeypatch.setattr("app.channels.service.get_channel_service", lambda: None)
+
+    try:
+        with TestClient(create_app()) as client:
+            response = client.post("/api/daemon/channels/feishu/restart")
+
+        assert response.status_code == 503
+        assert response.json()["detail"] == "Channel service is not running"
+    finally:
+        paths_module._paths = None
+        reset_app_config()
+        reset_extensions_config()
+
+
 def test_daemon_channel_pairing_code_action_issues_code_and_logs_event(monkeypatch, tmp_path) -> None:
     _configure_test_env(monkeypatch, tmp_path)
     _stub_daemon_channel_lifecycle(monkeypatch)
@@ -130,6 +147,37 @@ def test_daemon_channel_approve_pair_request_returns_request_and_logs_event(monk
         reset_extensions_config()
 
 
+def test_daemon_channel_approve_pair_request_rejects_cross_platform_mismatch(monkeypatch, tmp_path) -> None:
+    _configure_test_env(monkeypatch, tmp_path)
+    _stub_daemon_channel_lifecycle(monkeypatch)
+
+    try:
+        repo = ChannelRepository()
+        seeded = repo.create_pair_request(
+            "lark",
+            code="654321",
+            external_user_id="ou_seeded",
+            external_user_name="Seeded User",
+            chat_id="oc_seeded",
+            conversation_type="group",
+            source_event_id="evt_seeded",
+        )
+
+        with TestClient(create_app()) as client:
+            response = client.post(
+                f"/api/daemon/channels/telegram/pair-requests/{seeded['id']}/approve",
+                json={"handled_by": "daemon", "workspace_id": "default"},
+            )
+
+        assert response.status_code == 404
+        request = repo.get_pair_request(seeded["id"])
+        assert request["status"] == "pending"
+    finally:
+        paths_module._paths = None
+        reset_app_config()
+        reset_extensions_config()
+
+
 def test_daemon_channel_reject_pair_request_returns_request_and_logs_event(monkeypatch, tmp_path) -> None:
     _configure_test_env(monkeypatch, tmp_path)
     _stub_daemon_channel_lifecycle(monkeypatch)
@@ -159,6 +207,37 @@ def test_daemon_channel_reject_pair_request_returns_request_and_logs_event(monke
         store = TelemetryStore(get_paths().telemetry_db_file)
         events = store.list_events(limit=10, category="channel")
         assert any(event.event_type == "channel_pair_request_rejected" for event in events)
+    finally:
+        paths_module._paths = None
+        reset_app_config()
+        reset_extensions_config()
+
+
+def test_daemon_channel_reject_pair_request_rejects_cross_platform_mismatch(monkeypatch, tmp_path) -> None:
+    _configure_test_env(monkeypatch, tmp_path)
+    _stub_daemon_channel_lifecycle(monkeypatch)
+
+    try:
+        repo = ChannelRepository()
+        seeded = repo.create_pair_request(
+            "lark",
+            code="654321",
+            external_user_id="ou_seeded",
+            external_user_name="Seeded User",
+            chat_id="oc_seeded",
+            conversation_type="group",
+            source_event_id="evt_seeded",
+        )
+
+        with TestClient(create_app()) as client:
+            response = client.post(
+                f"/api/daemon/channels/telegram/pair-requests/{seeded['id']}/reject",
+                json={"handled_by": "daemon", "note": "denied"},
+            )
+
+        assert response.status_code == 404
+        request = repo.get_pair_request(seeded["id"])
+        assert request["status"] == "pending"
     finally:
         paths_module._paths = None
         reset_app_config()
@@ -203,6 +282,48 @@ def test_daemon_channel_revoke_authorized_user_returns_result_and_logs_event(mon
         store = TelemetryStore(get_paths().telemetry_db_file)
         events = store.list_events(limit=10, category="channel")
         assert any(event.event_type == "channel_authorized_user_revoked" for event in events)
+    finally:
+        paths_module._paths = None
+        reset_app_config()
+        reset_extensions_config()
+
+
+def test_daemon_channel_revoke_authorized_user_rejects_cross_platform_mismatch(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    _configure_test_env(monkeypatch, tmp_path)
+    _stub_daemon_channel_lifecycle(monkeypatch)
+
+    try:
+        repo = ChannelRepository()
+        seeded = repo.create_pair_request(
+            "lark",
+            code="654321",
+            external_user_id="ou_seeded",
+            external_user_name="Seeded User",
+            chat_id="oc_seeded",
+            conversation_type="group",
+            source_event_id="evt_seeded",
+        )
+        repo.decide_pair_request(
+            seeded["id"],
+            status="approved",
+            handled_by="daemon",
+            workspace_id="default",
+        )
+        users = repo.list_authorized_users("lark")
+        user_id = users[0]["id"]
+
+        with TestClient(create_app()) as client:
+            response = client.post(
+                f"/api/daemon/channels/telegram/authorized-users/{user_id}/revoke",
+                json={"handled_by": "daemon"},
+            )
+
+        assert response.status_code == 404
+        user = repo.get_authorized_user(user_id)
+        assert user["revoked_at"] is None
     finally:
         paths_module._paths = None
         reset_app_config()

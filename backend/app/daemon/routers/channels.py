@@ -33,6 +33,48 @@ def _channel_repo() -> ChannelRepository:
     return ChannelRepository()
 
 
+def _get_pair_request_for_platform_or_404(
+    repo: ChannelRepository,
+    *,
+    platform: ChannelPlatform,
+    request_id: int,
+) -> dict:
+    try:
+        request = repo.get_pair_request(request_id)
+    except KeyError as exc:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    if request.get("platform") != platform:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail=f"Pair request {request_id} not found for {platform}",
+        )
+    return request
+
+
+def _get_authorized_user_for_platform_or_404(
+    repo: ChannelRepository,
+    *,
+    platform: ChannelPlatform,
+    user_id: int,
+) -> dict:
+    try:
+        user = repo.get_authorized_user(user_id)
+    except KeyError as exc:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    if user.get("platform") != platform:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail=f"Authorized user {user_id} not found for {platform}",
+        )
+    return user
+
+
 def _channel_snapshot(request: Request, name: str) -> DiagnosticResponse | None:
     daemon_service = request.app.state.daemon_service
     store = daemon_service.telemetry_store
@@ -155,7 +197,10 @@ async def restart_channel(name: str) -> ChannelRestartResponse:
 
     service = get_channel_service()
     if service is None:
-        return ChannelRestartResponse(success=False, message="Channel service is not running")
+        raise HTTPException(
+            status_code=HTTPStatus.SERVICE_UNAVAILABLE,
+            detail="Channel service is not running",
+        )
 
     success = await service.restart_channel(name)
     if success:
@@ -200,24 +245,19 @@ async def approve_pair_request(
     request_id: int,
     payload: ChannelPairRequestDecisionRequest,
 ) -> ChannelPairRequestResponse:
-    try:
-        updated = _channel_repo().decide_pair_request(
-            request_id,
-            status="approved",
-            handled_by=payload.handled_by,
-            note=payload.note,
-            workspace_id=payload.workspace_id,
-        )
-    except KeyError as exc:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail=str(exc),
-        ) from exc
-    if updated.get("platform") != platform:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail=f"Pair request {request_id} not found for {platform}",
-        )
+    repo = _channel_repo()
+    _get_pair_request_for_platform_or_404(
+        repo,
+        platform=platform,
+        request_id=request_id,
+    )
+    updated = repo.decide_pair_request(
+        request_id,
+        status="approved",
+        handled_by=payload.handled_by,
+        note=payload.note,
+        workspace_id=payload.workspace_id,
+    )
     record_channel_pair_request_approved(
         platform,
         request_id=request_id,
@@ -235,24 +275,19 @@ async def reject_pair_request(
     request_id: int,
     payload: ChannelPairRequestDecisionRequest,
 ) -> ChannelPairRequestResponse:
-    try:
-        updated = _channel_repo().decide_pair_request(
-            request_id,
-            status="rejected",
-            handled_by=payload.handled_by,
-            note=payload.note,
-            workspace_id=payload.workspace_id,
-        )
-    except KeyError as exc:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail=str(exc),
-        ) from exc
-    if updated.get("platform") != platform:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail=f"Pair request {request_id} not found for {platform}",
-        )
+    repo = _channel_repo()
+    _get_pair_request_for_platform_or_404(
+        repo,
+        platform=platform,
+        request_id=request_id,
+    )
+    updated = repo.decide_pair_request(
+        request_id,
+        status="rejected",
+        handled_by=payload.handled_by,
+        note=payload.note,
+        workspace_id=payload.workspace_id,
+    )
     record_channel_pair_request_rejected(platform, request_id=request_id)
     return build_pair_request_response(updated)
 
@@ -267,18 +302,13 @@ async def revoke_authorized_user(
     payload: ChannelAuthorizedUserRevokeRequest,
 ) -> ChannelAuthorizedUserRevokeResponse:
     _ = payload
-    try:
-        updated = _channel_repo().revoke_authorized_user(user_id)
-    except KeyError as exc:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail=str(exc),
-        ) from exc
-    if updated.get("platform") != platform:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail=f"Authorized user {user_id} not found for {platform}",
-        )
+    repo = _channel_repo()
+    _get_authorized_user_for_platform_or_404(
+        repo,
+        platform=platform,
+        user_id=user_id,
+    )
+    updated = repo.revoke_authorized_user(user_id)
     record_channel_authorized_user_revoked(platform, user_id=user_id)
     return ChannelAuthorizedUserRevokeResponse(revoked=bool(updated.get("revoked_at")))
 
