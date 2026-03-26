@@ -12,6 +12,7 @@ from app.daemon.routers import channels, clients, control, diagnostics, incident
 from app.daemon.service import LocalDaemonService
 from app.gateway.config import get_gateway_config
 from app.gateway.routers import (
+    artifacts,
     cli,
     config,
     files,
@@ -23,6 +24,7 @@ from app.gateway.routers import (
     runtime_profile,
     skills,
     threads,
+    uploads,
 )
 from nion.config.paths import get_paths
 from nion.telemetry.store import TelemetryStore
@@ -100,6 +102,8 @@ def create_app(
     app.include_router(models.router)
     app.include_router(model_admin.router)
     app.include_router(skills.router)
+    app.include_router(artifacts.router)
+    app.include_router(uploads.router)
     app.include_router(files.router)
     app.include_router(cli.router)
     app.include_router(memory.router)
