@@ -60,6 +60,55 @@ test("nion thread client streamMessage returns final ai text from SSE", async ()
   globalThis.fetch = originalFetch;
 });
 
+test("nion thread client forwards incremental ai text updates to onText", async () => {
+  const createNionThreadClient = await loadThreadClientFactory();
+  const originalFetch = globalThis.fetch;
+  const seenTexts = [];
+
+  globalThis.fetch = async () =>
+    new Response(
+      new ReadableStream({
+        start(controller) {
+          controller.enqueue(
+            new TextEncoder().encode(
+              [
+                'event: created',
+                'data: {"thread_id":"t-1"}',
+                "",
+                'event: messages-tuple',
+                'data: {"type":"ai","id":"ai-1","content":"Hel"}',
+                "",
+                'event: messages-tuple',
+                'data: {"type":"ai","id":"ai-1","content":"Hello"}',
+                "",
+                'event: messages-tuple',
+                'data: {"type":"ai","id":"ai-1","content":"Hello world"}',
+                "",
+                'event: end',
+                'data: {}',
+                "",
+              ].join("\n"),
+            ),
+          );
+          controller.close();
+        },
+      }),
+      { status: 200, headers: { "Content-Type": "text/event-stream" } },
+    );
+
+  const client = createNionThreadClient("http://127.0.0.1:43115");
+  const result = await client.streamMessage("t-1", "hi", {
+    onText: (text) => {
+      seenTexts.push(text);
+    },
+  });
+
+  assert.deepEqual(seenTexts, ["Hel", "Hello", "Hello world"]);
+  assert.equal(result.finalText, "Hello world");
+
+  globalThis.fetch = originalFetch;
+});
+
 test("nion thread client streamMessage surfaces SSE error events", async () => {
   const createNionThreadClient = await loadThreadClientFactory();
   const originalFetch = globalThis.fetch;
