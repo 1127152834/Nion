@@ -1,15 +1,29 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Query, Request
+from http import HTTPStatus
+
+from fastapi import APIRouter, HTTPException, Query, Request
 
 from app.channels.api_models import (
     ChannelAuthorizedUserResponse,
+    ChannelAuthorizedUserRevokeRequest,
+    ChannelAuthorizedUserRevokeResponse,
+    ChannelPairingCodeCreateRequest,
+    ChannelPairingCodeResponse,
+    ChannelPairRequestDecisionRequest,
     ChannelPairRequestResponse,
+    ChannelRestartResponse,
     ChannelStatusResponse,
     build_authorized_user_response,
     build_pair_request_response,
 )
 from app.channels.repository import ChannelPlatform, ChannelRepository
+from app.channels.telemetry import (
+    record_channel_authorized_user_revoked,
+    record_channel_pair_request_approved,
+    record_channel_pair_request_rejected,
+    record_channel_pairing_code_issued,
+)
 from app.daemon.routers.diagnostics import DiagnosticResponse
 
 router = APIRouter(prefix="/api/daemon/channels", tags=["daemon"])
@@ -133,6 +147,140 @@ async def list_channel_authorized_users(
 ) -> list[ChannelAuthorizedUserResponse]:
     items = _channel_repo().list_authorized_users(platform, active_only=active_only)
     return [build_authorized_user_response(item) for item in items]
+
+
+@router.post("/{name}/restart", response_model=ChannelRestartResponse)
+async def restart_channel(name: str) -> ChannelRestartResponse:
+    from app.channels.service import get_channel_service
+
+    service = get_channel_service()
+    if service is None:
+        return ChannelRestartResponse(success=False, message="Channel service is not running")
+
+    success = await service.restart_channel(name)
+    if success:
+        return ChannelRestartResponse(
+            success=True,
+            message=f"Channel {name} restarted successfully",
+        )
+    return ChannelRestartResponse(
+        success=False,
+        message=f"Failed to restart channel {name}",
+    )
+
+
+@router.post(
+    "/{platform}/pairing-code",
+    response_model=ChannelPairingCodeResponse,
+    status_code=201,
+)
+async def create_pairing_code(
+    platform: ChannelPlatform,
+    payload: ChannelPairingCodeCreateRequest,
+) -> ChannelPairingCodeResponse:
+    created = _channel_repo().issue_pairing_code(
+        platform,
+        ttl_minutes=payload.ttl_minutes,
+    )
+    record_channel_pairing_code_issued(
+        platform,
+        pairing_id=created["id"],
+        expires_at=created["expires_at"],
+        ttl_minutes=payload.ttl_minutes,
+    )
+    return ChannelPairingCodeResponse.model_validate(created)
+
+
+@router.post(
+    "/{platform}/pair-requests/{request_id}/approve",
+    response_model=ChannelPairRequestResponse,
+)
+async def approve_pair_request(
+    platform: ChannelPlatform,
+    request_id: int,
+    payload: ChannelPairRequestDecisionRequest,
+) -> ChannelPairRequestResponse:
+    try:
+        updated = _channel_repo().decide_pair_request(
+            request_id,
+            status="approved",
+            handled_by=payload.handled_by,
+            note=payload.note,
+            workspace_id=payload.workspace_id,
+        )
+    except KeyError as exc:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    if updated.get("platform") != platform:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail=f"Pair request {request_id} not found for {platform}",
+        )
+    record_channel_pair_request_approved(
+        platform,
+        request_id=request_id,
+        workspace_id=payload.workspace_id,
+    )
+    return build_pair_request_response(updated)
+
+
+@router.post(
+    "/{platform}/pair-requests/{request_id}/reject",
+    response_model=ChannelPairRequestResponse,
+)
+async def reject_pair_request(
+    platform: ChannelPlatform,
+    request_id: int,
+    payload: ChannelPairRequestDecisionRequest,
+) -> ChannelPairRequestResponse:
+    try:
+        updated = _channel_repo().decide_pair_request(
+            request_id,
+            status="rejected",
+            handled_by=payload.handled_by,
+            note=payload.note,
+            workspace_id=payload.workspace_id,
+        )
+    except KeyError as exc:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    if updated.get("platform") != platform:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail=f"Pair request {request_id} not found for {platform}",
+        )
+    record_channel_pair_request_rejected(platform, request_id=request_id)
+    return build_pair_request_response(updated)
+
+
+@router.post(
+    "/{platform}/authorized-users/{user_id}/revoke",
+    response_model=ChannelAuthorizedUserRevokeResponse,
+)
+async def revoke_authorized_user(
+    platform: ChannelPlatform,
+    user_id: int,
+    payload: ChannelAuthorizedUserRevokeRequest,
+) -> ChannelAuthorizedUserRevokeResponse:
+    _ = payload
+    try:
+        updated = _channel_repo().revoke_authorized_user(user_id)
+    except KeyError as exc:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    if updated.get("platform") != platform:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail=f"Authorized user {user_id} not found for {platform}",
+        )
+    record_channel_authorized_user_revoked(platform, user_id=user_id)
+    return ChannelAuthorizedUserRevokeResponse(revoked=bool(updated.get("revoked_at")))
 
 
 @router.get("/{name}", response_model=DiagnosticResponse)

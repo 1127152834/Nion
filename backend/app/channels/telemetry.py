@@ -149,6 +149,64 @@ def record_channel_restart_failed(channel_name: str, error: str) -> None:
     )
 
 
+def record_channel_pairing_code_issued(
+    channel_name: str,
+    *,
+    pairing_id: int,
+    expires_at: str,
+    ttl_minutes: int,
+) -> None:
+    _record_channel_event(
+        event_type="channel_pairing_code_issued",
+        actor="system",
+        message=f"Channel '{channel_name}' pairing code issued",
+        channel_name=channel_name,
+        details={
+            "pairing_id": pairing_id,
+            "expires_at": expires_at,
+            "ttl_minutes": ttl_minutes,
+        },
+    )
+
+
+def record_channel_pair_request_approved(
+    channel_name: str,
+    *,
+    request_id: int,
+    workspace_id: str | None,
+) -> None:
+    _record_channel_event(
+        event_type="channel_pair_request_approved",
+        actor="system",
+        message=f"Channel '{channel_name}' pair request approved",
+        channel_name=channel_name,
+        details={
+            "request_id": request_id,
+            "workspace_id": workspace_id,
+        },
+    )
+
+
+def record_channel_pair_request_rejected(channel_name: str, *, request_id: int) -> None:
+    _record_channel_event(
+        event_type="channel_pair_request_rejected",
+        actor="system",
+        message=f"Channel '{channel_name}' pair request rejected",
+        channel_name=channel_name,
+        details={"request_id": request_id},
+    )
+
+
+def record_channel_authorized_user_revoked(channel_name: str, *, user_id: int) -> None:
+    _record_channel_event(
+        event_type="channel_authorized_user_revoked",
+        actor="system",
+        message=f"Channel '{channel_name}' authorized user revoked",
+        channel_name=channel_name,
+        details={"user_id": user_id},
+    )
+
+
 def record_channel_inbound_enqueued(
     channel_name: str,
     *,

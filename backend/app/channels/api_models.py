@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.channels.repository import ChannelPlatform
 
@@ -72,6 +72,38 @@ class ChannelStatusResponse(BaseModel):
     service_running: bool
     pending_pair_requests: int = 0
     channels: dict[str, ChannelOpsItemResponse]
+
+
+class ChannelRestartResponse(BaseModel):
+    success: bool
+    message: str
+
+
+class ChannelPairingCodeCreateRequest(BaseModel):
+    ttl_minutes: int = Field(default=10, ge=1, le=1440)
+
+
+class ChannelPairingCodeResponse(BaseModel):
+    id: int
+    platform: ChannelPlatform
+    code: str
+    expires_at: str
+    consumed_at: str | None = None
+    created_at: str
+
+
+class ChannelPairRequestDecisionRequest(BaseModel):
+    handled_by: str | None = None
+    note: str | None = None
+    workspace_id: str | None = None
+
+
+class ChannelAuthorizedUserRevokeRequest(BaseModel):
+    handled_by: str | None = None
+
+
+class ChannelAuthorizedUserRevokeResponse(BaseModel):
+    revoked: bool
 
 
 def coerce_session_config(

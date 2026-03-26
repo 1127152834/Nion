@@ -11,7 +11,13 @@ from pydantic import BaseModel, Field
 
 from app.channels.api_models import (
     ChannelAuthorizedUserResponse,
+    ChannelAuthorizedUserRevokeRequest,
+    ChannelAuthorizedUserRevokeResponse,
+    ChannelPairingCodeCreateRequest,
+    ChannelPairingCodeResponse,
+    ChannelPairRequestDecisionRequest,
     ChannelPairRequestResponse,
+    ChannelRestartResponse,
     ChannelSessionConfigResponse,
     ChannelStatusResponse,
     build_authorized_user_response,
@@ -94,33 +100,6 @@ class ChannelRuntimeStatusResponse(BaseModel):
     updated_at: str | None = None
 
 
-class ChannelPairingCodeCreateRequest(BaseModel):
-    ttl_minutes: int = Field(default=10, ge=1, le=1440)
-
-
-class ChannelPairingCodeResponse(BaseModel):
-    id: int
-    platform: ChannelPlatform
-    code: str
-    expires_at: str
-    consumed_at: str | None = None
-    created_at: str
-
-
-class ChannelPairRequestDecisionRequest(BaseModel):
-    handled_by: str | None = None
-    note: str | None = None
-    workspace_id: str | None = None
-
-
-class ChannelAuthorizedUserRevokeRequest(BaseModel):
-    handled_by: str | None = None
-
-
-class ChannelAuthorizedUserRevokeResponse(BaseModel):
-    revoked: bool
-
-
 def _channel_repo() -> ChannelRepository:
     return ChannelRepository()
 def _load_channel_config(platform: ChannelPlatform) -> ChannelConfigResponse:
@@ -142,11 +121,6 @@ def _load_channel_config(platform: ChannelPlatform) -> ChannelConfigResponse:
         created_at=channel_config.created_at,
         updated_at=channel_config.updated_at,
     )
-class ChannelRestartResponse(BaseModel):
-    success: bool
-    message: str
-
-
 @router.get("/", response_model=ChannelStatusResponse)
 async def get_channels_status() -> ChannelStatusResponse:
     """Get the status of all IM channels."""
