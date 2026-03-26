@@ -468,6 +468,14 @@ export interface Translations {
     assistExpand: string;
     assistChecklist: string;
     assistActionItems: string;
+    quickCapture: string;
+    quickCaptureDescription: string;
+    quickCaptureHint: string;
+    quickCaptureSaved: string;
+    searchPlaceholder: string;
+    recentTitle: string;
+    preview: string;
+    edit: string;
     askTab: string;
     historyTab: string;
     infoTab: string;

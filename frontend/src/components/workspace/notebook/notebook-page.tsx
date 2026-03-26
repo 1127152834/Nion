@@ -152,7 +152,7 @@ export function NotebookPage() {
       setQuickCaptureOpen(false);
       setQuickCaptureValue("");
       setSelectedNoteId(created.note_id);
-      toast.success(copy.saved);
+      toast.success(copy.quickCaptureSaved);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err));
     }
@@ -258,9 +258,9 @@ export function NotebookPage() {
                 emptyTitle: copy.emptyTitle,
                 noteListDescription: copy.noteListDescription,
                 noteListTitle: copy.noteListTitle,
-                quickCaptureLabel: t.inputBox.flashMode,
-                recentTitle: t.common.lastUpdated,
-                searchPlaceholder: `${t.common.search}...`,
+                quickCaptureLabel: copy.quickCapture,
+                recentTitle: copy.recentTitle,
+                searchPlaceholder: copy.searchPlaceholder,
                 trashTitle: copy.trashTitle,
               }}
               isLoading={isLoading}
@@ -286,14 +286,14 @@ export function NotebookPage() {
                 noSelectionDescription: copy.noSelectionDescription,
                 noSelectionTitle: copy.noSelectionTitle,
                 noteTitlePlaceholder: copy.noteTitlePlaceholder,
-                preview: t.common.preview,
+                preview: copy.preview,
                 rename: copy.rename,
                 save: copy.save,
                 saved: copy.saved,
                 saving: copy.saving,
                 selectNote: copy.selectNote,
                 unsaved: copy.unsaved,
-                write: t.common.code,
+                edit: copy.edit,
               }}
               dirty={dirty}
               draftBody={draftBody}
@@ -381,9 +381,9 @@ export function NotebookPage() {
         cancelLabel={t.common.cancel}
         open={quickCaptureOpen}
         pending={createNote.isPending}
-        quickCaptureDescription={copy.assistDescription}
-        quickCaptureHint={copy.emptyDescription}
-        quickCaptureLabel={t.inputBox.flashMode}
+        quickCaptureDescription={copy.quickCaptureDescription}
+        quickCaptureHint={copy.quickCaptureHint}
+        quickCaptureLabel={copy.quickCapture}
         saveLabel={copy.createNote}
         savingLabel={copy.saving}
         value={quickCaptureValue}

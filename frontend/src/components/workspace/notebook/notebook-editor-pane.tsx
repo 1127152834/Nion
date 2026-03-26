@@ -26,7 +26,7 @@ type NotebookEditorPaneCopy = {
   saving: string;
   selectNote: string;
   unsaved: string;
-  write: string;
+  edit: string;
 };
 
 type NotebookEditorPaneProps = {
@@ -97,7 +97,7 @@ export function NotebookEditorPane({
                   onClick={() => setPreviewMode((current) => !current)}
                 >
                   {previewMode ? <PencilIcon className="size-4" /> : <EyeIcon className="size-4" />}
-                  {previewMode ? copy.write : copy.preview}
+                  {previewMode ? copy.edit : copy.preview}
                 </Button>
                 <Button variant="outline" size="sm" onClick={onOpenHistory}>
                   <Clock3Icon className="size-4" />
