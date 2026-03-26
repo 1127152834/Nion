@@ -11,9 +11,10 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -44,6 +45,7 @@ import {
 } from "@/components/ui/sidebar";
 import { getAPIClient } from "@/core/api";
 import { useI18n } from "@/core/i18n/hooks";
+import { derivePendingClarification } from "@/core/threads";
 import {
   exportThreadAsJSON,
   exportThreadAsMarkdown,
@@ -66,6 +68,18 @@ export function RecentChatList() {
   const { data: threads = [] } = useThreads();
   const { mutate: deleteThread } = useDeleteThread();
   const { mutate: renameThread } = useRenameThread();
+  const threadEntries = useMemo(() => {
+    const enriched = threads.map((thread) => ({
+      thread,
+      pendingClarification: derivePendingClarification(
+        thread.values?.messages ?? [],
+      ),
+    }));
+
+    const pending = enriched.filter((entry) => entry.pendingClarification);
+    const regular = enriched.filter((entry) => !entry.pendingClarification);
+    return [...pending, ...regular];
+  }, [threads]);
 
   // Rename dialog state
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
@@ -154,7 +168,7 @@ export function RecentChatList() {
     [t],
   );
 
-  if (threads.length === 0) {
+  if (threadEntries.length === 0) {
     return null;
   }
   return (
@@ -168,7 +182,7 @@ export function RecentChatList() {
         <SidebarGroupContent className="group-data-[collapsible=icon]:pointer-events-none group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0">
           <SidebarMenu>
             <div className="flex w-full flex-col gap-1">
-              {threads.map((thread) => {
+              {threadEntries.map(({ thread, pendingClarification }) => {
                 const isActive =
                   pathname === "/workspace/chats" &&
                   searchParams.get("thread") === thread.thread_id;
@@ -180,10 +194,22 @@ export function RecentChatList() {
                     <SidebarMenuButton isActive={isActive} asChild>
                       <div>
                         <Link
-                          className="text-muted-foreground block w-full whitespace-nowrap group-hover/side-menu-item:overflow-hidden"
+                          className="text-muted-foreground block w-full overflow-hidden group-hover/side-menu-item:overflow-hidden"
                           href={pathOfThread(thread.thread_id)}
                         >
-                          {titleOfThread(thread)}
+                          <span className="flex items-center gap-2 overflow-hidden">
+                            <span className="truncate">{titleOfThread(thread)}</span>
+                            {pendingClarification ? (
+                              <Badge
+                                variant="outline"
+                                className="border-foreground/10 bg-accent/40 text-foreground gap-1 rounded-full px-2 py-0 text-[10px]"
+                                data-pending-reply-label
+                              >
+                                <span className="bg-foreground/70 size-1.5 rounded-full" />
+                                {t.sidebar.pendingReply}
+                              </Badge>
+                            ) : null}
+                          </span>
                         </Link>
                         {env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY !== "true" && (
                           <DropdownMenu>

@@ -391,6 +391,28 @@ export function useThreadStream({
         });
       }
       setOptimisticMessages(newOptimistic);
+      queryClient.setQueriesData(
+        {
+          queryKey: ["threads", "search"],
+          exact: false,
+        },
+        (oldData: Array<AgentThread> | undefined) =>
+          oldData?.map((threadEntry) =>
+            threadEntry.thread_id === threadId
+              ? {
+                  ...threadEntry,
+                  updated_at: new Date().toISOString(),
+                  values: {
+                    ...threadEntry.values,
+                    messages: [
+                      ...(threadEntry.values?.messages ?? []),
+                      optimisticHumanMsg,
+                    ],
+                  },
+                }
+              : threadEntry,
+          ),
+      );
 
       _handleOnStart(threadId);
 
@@ -550,13 +572,13 @@ export function useThreadStream({
             },
           },
         );
-        void queryClient.invalidateQueries({ queryKey: ["threads", "search"] });
       } catch (error) {
         setOptimisticMessages([]);
         setIsUploading(false);
         throw error;
       } finally {
         sendInFlightRef.current = false;
+        void queryClient.invalidateQueries({ queryKey: ["threads", "search"] });
       }
     },
     [thread, _handleOnStart, t.uploads.uploadingFiles, context, queryClient],

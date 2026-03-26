@@ -67,6 +67,7 @@ import { useModels } from "@/core/models/hooks";
 import { useSkills } from "@/core/skills/hooks";
 import type { Skill } from "@/core/skills/type";
 import type { AgentThreadContext } from "@/core/threads";
+import type { PendingClarification } from "@/core/threads";
 import { textOfMessage } from "@/core/threads/utils";
 import { cn } from "@/lib/utils";
 
@@ -433,6 +434,7 @@ export function InputBox({
   status = "ready",
   context,
   extraHeader,
+  pendingClarification,
   isNewThread,
   threadId,
   initialValue,
@@ -453,6 +455,7 @@ export function InputBox({
     reasoning_effort?: "minimal" | "low" | "medium" | "high";
   };
   extraHeader?: React.ReactNode;
+  pendingClarification?: PendingClarification | null;
   isNewThread?: boolean;
   threadId: string;
   initialValue?: string;
@@ -1127,6 +1130,16 @@ export function InputBox({
 
   return (
     <div ref={promptRootRef} className="relative">
+      {pendingClarification ? (
+        <div className="mb-2 flex items-center gap-2 rounded-2xl border border-border/60 bg-background/75 px-4 py-2 text-sm backdrop-blur-sm">
+          <span className="text-muted-foreground shrink-0 font-medium">
+            {t.inputBox.clarificationReplying}
+          </span>
+          <span className="text-foreground truncate">
+            {pendingClarification.question}
+          </span>
+        </div>
+      ) : null}
       <PromptInput
         className={cn(
           "bg-background/85 rounded-2xl backdrop-blur-sm transition-all duration-300 ease-out *:data-[slot='input-group']:rounded-2xl",
@@ -1156,7 +1169,11 @@ export function InputBox({
           <PromptInputTextarea
             className={cn("relative z-10 size-full bg-transparent")}
             disabled={disabled}
-            placeholder={t.inputBox.placeholder}
+            placeholder={
+              pendingClarification
+                ? t.inputBox.clarificationPlaceholder
+                : t.inputBox.placeholder
+            }
             autoFocus={autoFocus}
             defaultValue={initialValue}
             onClick={handleMentionSelectionSync}
