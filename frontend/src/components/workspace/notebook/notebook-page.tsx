@@ -1,14 +1,12 @@
 "use client";
 
-import { ChevronRightIcon, Clock3Icon, FileTextIcon, FolderIcon, FolderPlusIcon, SaveIcon, Trash2Icon } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -18,6 +16,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from "@/components/ui/resizable";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Sheet,
@@ -28,6 +31,9 @@ import {
 } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
 import { ConfirmActionDialog } from "@/components/workspace/settings/confirm-action-dialog";
+import { NotebookContextPanel } from "./notebook-context-panel";
+import { NotebookEditorPane } from "./notebook-editor-pane";
+import { NotebookSidebar } from "./notebook-sidebar";
 import { useI18n } from "@/core/i18n/hooks";
 import { pathOfNewThread, pathOfNotebookTrash } from "@/core/navigation/desktop-routes";
 import {
@@ -42,7 +48,7 @@ import {
   useRestoreNotebookVersion,
   useUpdateNotebookNote,
 } from "@/core/notebook";
-import { buildNotebookTree, type NotebookTreeNode } from "@/core/notebook";
+import { buildNotebookTree } from "@/core/notebook";
 import { buildNotebookAssistPrompt, type NotebookAssistAction } from "@/core/notebook";
 import { formatTimeAgo } from "@/core/utils/datetime";
 
@@ -227,138 +233,54 @@ export function NotebookPage() {
           </div>
         ) : null}
 
-        <div className="grid min-h-[70vh] grid-cols-[320px_minmax(0,1fr)] rounded-xl border">
-          <div className="min-w-0 border-r">
-            <Card className="h-full rounded-none border-0 shadow-none">
-              <CardHeader className="gap-3 border-b">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="space-y-1">
-                    <CardTitle>{copy.noteListTitle}</CardTitle>
-                    <CardDescription>{copy.noteListDescription}</CardDescription>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button size="sm" variant="outline" onClick={() => router.push(pathOfNotebookTrash())}>
-                      <Trash2Icon className="size-4" />
-                      {copy.trashTitle}
-                    </Button>
-                    <Button size="sm" onClick={() => setCreateOpen(true)}>
-                      <FolderPlusIcon className="size-4" />
-                      {copy.createNote}
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="p-0">
-                <ScrollArea className="h-[calc(70vh-96px)]">
-                  <div className="space-y-2 p-3">
-                    {isLoading ? (
-                      <div className="text-muted-foreground text-sm">{t.common.loading}</div>
-                    ) : tree.files.length === 0 ? (
-                      <div className="text-muted-foreground rounded-lg border border-dashed p-4 text-sm">
-                        <div className="font-medium">{copy.emptyTitle}</div>
-                        <div className="mt-1">{copy.emptyDescription}</div>
-                      </div>
-                    ) : (
-                      treeNodes.map((node) => (
-                        <NotebookTreeItem
-                          key={node.path}
-                          node={node}
-                          activePath={selectedFile?.path ?? null}
-                          onSelect={setSelectedNoteId}
-                        />
-                      ))
-                    )}
-                  </div>
-                </ScrollArea>
-              </CardContent>
-            </Card>
-          </div>
-          <div className="min-w-0">
-            <Card className="h-full rounded-none border-0 shadow-none">
-              <CardHeader className="border-b">
-                {!note ? (
-                  <div className="space-y-1">
-                    <CardTitle>{copy.noSelectionTitle}</CardTitle>
-                    <CardDescription>{copy.noSelectionDescription}</CardDescription>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    <div className="space-y-2 rounded-xl border border-dashed bg-muted/20 p-3">
-                      <div className="text-sm font-medium">{copy.assistTitle}</div>
-                      <p className="text-muted-foreground text-sm">
-                        {copy.assistDescription}
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        <Button size="sm" variant="outline" onClick={() => handleAssist("summarize")}>
-                          {copy.assistSummarize}
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={() => handleAssist("rewrite")}>
-                          {copy.assistRewrite}
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={() => handleAssist("expand")}>
-                          {copy.assistExpand}
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={() => handleAssist("checklist")}>
-                          {copy.assistChecklist}
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={() => handleAssist("action_items")}>
-                          {copy.assistActionItems}
-                        </Button>
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div className="space-y-1">
-                        <CardTitle>{draftTitle || copy.selectNote}</CardTitle>
-                        <CardDescription>{note.relative_path}</CardDescription>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Badge variant={dirty ? "outline" : "secondary"}>
-                          {dirty ? copy.unsaved : copy.saved}
-                        </Badge>
-                        <Button variant="outline" size="sm" onClick={() => setRenameOpen(true)}>
-                          {copy.rename}
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={() => setMoveOpen(true)}>
-                          {copy.move}
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={() => setHistoryOpen(true)}>
-                          <Clock3Icon className="size-4" />
-                          {copy.history}
-                        </Button>
-                        <Button size="sm" onClick={handleSave} disabled={!dirty || updateNote.isPending}>
-                          <SaveIcon className="size-4" />
-                          {updateNote.isPending ? copy.saving : copy.save}
-                        </Button>
-                        <Button variant="destructive" size="sm" onClick={() => setDeleteOpen(true)}>
-                          <Trash2Icon className="size-4" />
-                          {copy.delete}
-                        </Button>
-                      </div>
-                    </div>
-                    <Input
-                      value={draftTitle}
-                      onChange={(event) => setDraftTitle(event.target.value)}
-                      placeholder={copy.noteTitlePlaceholder}
-                    />
-                  </div>
-                )}
-              </CardHeader>
-              <CardContent className="h-[calc(70vh-120px)] p-0">
-                {!note || noteLoading ? (
-                  <div className="text-muted-foreground flex h-full items-center justify-center text-sm">
-                    {noteLoading ? t.common.loading : copy.noSelectionDescription}
-                  </div>
-                ) : (
-                  <Textarea
-                    value={draftBody}
-                    onChange={(event) => setDraftBody(event.target.value)}
-                    className="h-full min-h-full rounded-none border-0 px-6 py-5 font-mono text-sm shadow-none focus-visible:ring-0"
-                  />
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+        <ResizablePanelGroup
+          orientation="horizontal"
+          className="min-h-[70vh] overflow-hidden rounded-xl border"
+        >
+          <ResizablePanel defaultSize={24} minSize={18}>
+            <NotebookSidebar
+              activePath={selectedFile?.path ?? null}
+              copy={copy}
+              isLoading={isLoading}
+              loadingLabel={t.common.loading}
+              treeFileCount={tree.files.length}
+              treeNodes={treeNodes}
+              onOpenCreate={() => setCreateOpen(true)}
+              onOpenTrash={() => router.push(pathOfNotebookTrash())}
+              onSelectNote={setSelectedNoteId}
+            />
+          </ResizablePanel>
+          <ResizableHandle withHandle />
+          <ResizablePanel defaultSize={52} minSize={36}>
+            <NotebookEditorPane
+              copy={copy}
+              dirty={dirty}
+              draftBody={draftBody}
+              draftTitle={draftTitle}
+              isLoading={noteLoading}
+              loadingLabel={t.common.loading}
+              note={note}
+              onDraftBodyChange={setDraftBody}
+              onDraftTitleChange={setDraftTitle}
+              onOpenDelete={() => setDeleteOpen(true)}
+              onOpenHistory={() => setHistoryOpen(true)}
+              onOpenMove={() => setMoveOpen(true)}
+              onOpenRename={() => setRenameOpen(true)}
+              onSave={handleSave}
+              savePending={updateNote.isPending}
+            />
+          </ResizablePanel>
+          <ResizableHandle withHandle />
+          <ResizablePanel defaultSize={24} minSize={18}>
+            <NotebookContextPanel
+              copy={copy}
+              note={note}
+              notePath={selectedFile?.path ?? null}
+              noteTitle={draftTitle}
+              onAssist={handleAssist}
+            />
+          </ResizablePanel>
+        </ResizablePanelGroup>
       </section>
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
@@ -501,52 +423,5 @@ export function NotebookPage() {
         onConfirm={handleDelete}
       />
     </>
-  );
-}
-
-function NotebookTreeItem({
-  node,
-  activePath,
-  onSelect,
-}: {
-  node: NotebookTreeNode;
-  activePath: string | null;
-  onSelect: (noteId: string | null) => void;
-}) {
-  if (node.kind === "file") {
-    const active = node.path === activePath;
-    return (
-      <button
-        type="button"
-        onClick={() => onSelect(node.note_id ?? null)}
-        className={`flex w-full items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm transition ${active ? "border-primary bg-primary/5" : "hover:bg-muted/50"}`}
-      >
-        <FileTextIcon className="text-muted-foreground size-4 shrink-0" />
-        <div className="min-w-0">
-          <div className="truncate font-medium">{node.name}</div>
-          <div className="text-muted-foreground truncate text-xs">{node.path}</div>
-        </div>
-      </button>
-    );
-  }
-
-  return (
-    <Collapsible defaultOpen>
-      <CollapsibleTrigger className="hover:bg-muted/50 flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm">
-        <ChevronRightIcon className="text-muted-foreground size-4" />
-        <FolderIcon className="text-muted-foreground size-4" />
-        <span className="truncate font-medium">{node.name}</span>
-      </CollapsibleTrigger>
-      <CollapsibleContent className="mt-1 space-y-2 pl-4">
-        {node.children.map((child) => (
-          <NotebookTreeItem
-            key={child.path}
-            node={child}
-            activePath={activePath}
-            onSelect={onSelect}
-          />
-        ))}
-      </CollapsibleContent>
-    </Collapsible>
   );
 }
