@@ -25,8 +25,7 @@ void test("NotebookPage becomes a shell controller that renders extracted notebo
   assert.match(pageSource, /<NotebookEditorPane[\s\S]*draftBody=\{draftBody\}/);
   assert.match(pageSource, /<NotebookContextPanel[\s\S]*onAssist=\{handleAssist\}/);
   assert.doesNotMatch(pageSource, /treeNodes\.map/);
-  assert.doesNotMatch(pageSource, /copy\.noteListTitle/);
-  assert.doesNotMatch(pageSource, /copy\.assistTitle/);
+  assert.doesNotMatch(pageSource, /NotebookTreeItem/);
   assert.match(sidebarSource, /export function NotebookSidebar/);
   assert.match(editorPaneSource, /export function NotebookEditorPane/);
   assert.match(contextPanelSource, /export function NotebookContextPanel/);
