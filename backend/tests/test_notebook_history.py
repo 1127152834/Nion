@@ -68,3 +68,39 @@ def test_rename_and_move_are_recorded_in_history(tmp_path):
     assert moved.note_id == created.note_id
     assert [entry.operation for entry in history[:3]] == ["move", "rename", "create"]
     assert history[0].actor_type == "agent"
+
+
+def test_restore_flows_preserve_tags(tmp_path):
+    service = NotebookHistoryService(base_dir=tmp_path)
+    created = service.create_note(directory="", title="Tagged Note", body="v1", actor_type="user")
+    tagged = service._service._write_note(
+        Path(created.absolute_path),
+        note_id=created.note_id,
+        title=created.title,
+        created_at=created.created_at,
+        updated_at=created.updated_at,
+        body=created.body,
+        tags=["alpha", "roadmap"],
+    )
+    service._record(
+        note=tagged,
+        operation="edit",
+        actor_type="user",
+        snapshot=Path(tagged.absolute_path).read_text(encoding="utf-8"),
+        before_snapshot=Path(tagged.absolute_path).read_text(encoding="utf-8"),
+    )
+
+    history = service.list_history(created.note_id)
+    edit_entry = history[0]
+
+    restored = service.restore_version(
+        note_id=created.note_id,
+        version_id=edit_entry.version_id,
+        actor_type="user",
+    )
+    deleted = service.delete_note(created.note_id, actor_type="user")
+    restored_deleted = service.restore_deleted_note(created.note_id, actor_type="user")
+
+    assert restored.tags == ["alpha", "roadmap"]
+    assert deleted.note_id == created.note_id
+    assert restored_deleted.tags == ["alpha", "roadmap"]

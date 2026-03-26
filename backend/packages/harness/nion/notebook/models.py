@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class NotebookNote(BaseModel):
@@ -12,6 +12,19 @@ class NotebookNote(BaseModel):
     updated_at: str
     content_hash: str
     body: str
+    tags: list[str] = Field(default_factory=list)
+    is_pinned: bool = False
+
+
+class NotebookNoteSummary(BaseModel):
+    note_id: str
+    title: str
+    relative_path: str
+    created_at: str
+    updated_at: str
+    summary: str
+    tags: list[str] = Field(default_factory=list)
+    is_pinned: bool = False
 
 
 class NotebookHistoryEntry(BaseModel):

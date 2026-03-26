@@ -226,6 +226,7 @@ class NotebookHistoryService:
             created_at=str(frontmatter.get("created_at") or current.created_at),
             updated_at=_now_iso(),
             body=body.rstrip("\n"),
+            tags=[str(tag) for tag in frontmatter.get("tags", [])] if isinstance(frontmatter.get("tags"), list) else current.tags,
         )
         new_snapshot = Path(note.absolute_path).read_text(encoding="utf-8")
         self._record(
@@ -290,6 +291,7 @@ class NotebookHistoryService:
             created_at=restored.created_at,
             updated_at=_now_iso(),
             body=restored.body,
+            tags=restored.tags,
         )
         snapshot = Path(note.absolute_path).read_text(encoding="utf-8")
         self._record(

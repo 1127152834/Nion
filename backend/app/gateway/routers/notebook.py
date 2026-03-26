@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 
 from nion.config.paths import get_paths
 from nion.notebook import NotebookHistoryService, NotebookNote
-from nion.notebook.models import NotebookDeletedNotePreview
+from nion.notebook.models import NotebookDeletedNotePreview, NotebookNoteSummary
 from nion.notebook.service import NotebookConflictError, NotebookNotFoundError
 
 router = APIRouter(prefix="/api/notebook", tags=["notebook"])
@@ -47,6 +47,10 @@ class NotebookTreeResponse(BaseModel):
 
 class NotebookNoteResponse(BaseModel):
     note: NotebookNote
+
+
+class NotebookNotesResponse(BaseModel):
+    notes: list[NotebookNoteSummary]
 
 
 class NotebookHistoryResponse(BaseModel):
@@ -203,6 +207,12 @@ async def create_notebook_note(payload: NotebookCreateRequest) -> NotebookNoteRe
         actor_type="user",
     )
     return NotebookNoteResponse(note=note)
+
+
+@router.get("/notes", response_model=NotebookNotesResponse)
+async def list_notebook_notes() -> NotebookNotesResponse:
+    notes = NotebookHistoryService()._service.list_note_summaries()
+    return NotebookNotesResponse(notes=notes)
 
 
 @router.get("/notes/{note_id}", response_model=NotebookNoteResponse)
