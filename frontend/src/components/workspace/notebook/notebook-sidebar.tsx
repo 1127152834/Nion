@@ -8,6 +8,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { NotebookTreeNode } from "@/core/notebook";
 
+import { filterNotebookTreeNodes } from "./notebook-sidebar-state";
+
 type NotebookSidebarCopy = {
   createNote: string;
   emptyDescription: string;
@@ -40,6 +42,8 @@ export function NotebookSidebar({
   onOpenTrash,
   onSelectNote,
 }: NotebookSidebarProps) {
+  const visibleTreeNodes = filterNotebookTreeNodes(treeNodes, "");
+
   return (
     <Card className="h-full rounded-none border-0 shadow-none">
       <CardHeader className="gap-3 border-b">
@@ -71,7 +75,7 @@ export function NotebookSidebar({
                 <div className="mt-1">{copy.emptyDescription}</div>
               </div>
             ) : (
-              treeNodes.map((node) => (
+              visibleTreeNodes.map((node) => (
                 <NotebookTreeItem
                   key={node.path}
                   activePath={activePath}
