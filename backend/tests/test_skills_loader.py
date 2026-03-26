@@ -2,6 +2,8 @@
 
 from pathlib import Path
 
+import pytest
+
 from nion.skills.loader import get_skills_root_path, load_skills
 
 
@@ -64,3 +66,22 @@ def test_load_skills_skips_hidden_directories(tmp_path: Path):
 
     assert "ok-skill" in names
     assert "secret-skill" not in names
+
+
+def test_load_skills_descends_into_symlinked_custom_skill(tmp_path: Path):
+    skills_root = tmp_path / "skills"
+    external_skill = tmp_path / "external" / "linked-skill"
+    _write_skill(external_skill, "linked-skill", "Linked skill")
+
+    link_parent = skills_root / "custom"
+    link_parent.mkdir(parents=True, exist_ok=True)
+    symlink_path = link_parent / "linked-skill"
+
+    try:
+        symlink_path.symlink_to(external_skill, target_is_directory=True)
+    except OSError:
+        pytest.skip("symlink support is unavailable on this platform")
+
+    skills = load_skills(skills_path=skills_root, use_config=False, enabled_only=False)
+
+    assert "linked-skill" in {skill.name for skill in skills}
