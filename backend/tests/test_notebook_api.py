@@ -370,3 +370,29 @@ def test_notebook_directory_create_rejects_existing_folder(monkeypatch, tmp_path
             json={"parent_directory": "projects", "name": "alpha"},
         )
         assert duplicated.status_code == 409
+
+
+def test_notebook_directory_move_updates_tree(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+
+    with TestClient(create_app()) as client:
+        client.post("/api/notebook/directories", json={"parent_directory": "", "name": "projects"})
+        client.post("/api/notebook/directories", json={"parent_directory": "", "name": "archive"})
+        created = client.post(
+            "/api/notebook/directories",
+            json={"parent_directory": "projects", "name": "alpha"},
+        )
+        assert created.status_code == 200
+
+        moved = client.post(
+            "/api/notebook/directories/move",
+            json={"directory": "projects/alpha", "parent_directory": "archive"},
+        )
+        assert moved.status_code == 200
+        assert moved.json()["directory"] == "archive/alpha"
+
+        tree = client.get("/api/notebook/tree")
+        payload = tree.json()
+        assert any(item["path"] == "archive/alpha" for item in payload["directories"])
+        assert all(item["path"] != "projects/alpha" for item in payload["directories"])

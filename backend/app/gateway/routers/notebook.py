@@ -21,6 +21,7 @@ from nion.notebook.service import (
     NotebookDirectoryAlreadyExistsError,
     NotebookConflictError,
     NotebookDirectoryNotEmptyError,
+    NotebookDirectoryMoveError,
     NotebookDirectoryNotFoundError,
     NotebookNotFoundError,
 )
@@ -111,6 +112,11 @@ class NotebookDirectoryRenameRequest(BaseModel):
 
 class NotebookDirectoryDeleteRequest(BaseModel):
     directory: str
+
+
+class NotebookDirectoryMoveRequest(BaseModel):
+    directory: str
+    parent_directory: str = ""
 
 
 class NotebookUpdateRequest(BaseModel):
@@ -318,6 +324,26 @@ async def delete_notebook_directory(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return NotebookDirectoryResponse(directory=payload.directory)
+
+
+@router.post("/directories/move", response_model=NotebookDirectoryResponse)
+async def move_notebook_directory(
+    payload: NotebookDirectoryMoveRequest,
+) -> NotebookDirectoryResponse:
+    try:
+        directory = NotebookHistoryService()._service.move_directory(
+            directory=payload.directory,
+            parent_directory=payload.parent_directory,
+        )
+    except NotebookDirectoryAlreadyExistsError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except NotebookDirectoryMoveError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except NotebookDirectoryNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return NotebookDirectoryResponse(directory=directory)
 
 
 @router.get("/notes", response_model=NotebookNotesResponse)

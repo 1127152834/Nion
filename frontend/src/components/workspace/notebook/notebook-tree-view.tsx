@@ -3,6 +3,7 @@
 import {
   ChevronDownIcon,
   ChevronRightIcon,
+  GripVerticalIcon,
   FilePlus2Icon,
   FileTextIcon,
   FolderIcon,
@@ -39,11 +40,18 @@ type NotebookTreeViewProps = {
   onCreateSubfolder: (directory: string) => void;
   onDeleteDirectory: (directory: string) => void;
   onDeleteNote: (noteId: string) => void;
+  onMoveDirectoryToDirectory: (directory: string, parentDirectory: string) => void;
   onMoveNote: (noteId: string) => void;
+  onMoveNoteToDirectory: (noteId: string, directory: string) => void;
+  onMoveNodeToRoot: (payload: DragPayload) => void;
   onRenameDirectory: (directory: string) => void;
   onRenameNote: (noteId: string) => void;
   onSelectNote: (noteId: string | null) => void;
 };
+
+export type DragPayload =
+  | { kind: "file"; noteId: string }
+  | { kind: "directory"; path: string };
 
 export function NotebookTreeView({
   activePath,
@@ -54,13 +62,36 @@ export function NotebookTreeView({
   onCreateSubfolder,
   onDeleteDirectory,
   onDeleteNote,
+  onMoveDirectoryToDirectory,
   onMoveNote,
+  onMoveNoteToDirectory,
+  onMoveNodeToRoot,
   onRenameDirectory,
   onRenameNote,
   onSelectNote,
 }: NotebookTreeViewProps) {
   return (
-    <>
+    <div
+      className="space-y-1"
+      onDragOver={(event) => {
+        const payload = readDragPayload(event.dataTransfer);
+        if (!payload) {
+          return;
+        }
+        event.preventDefault();
+      }}
+      onDrop={(event) => {
+        const payload = readDragPayload(event.dataTransfer);
+        if (!payload) {
+          return;
+        }
+        event.preventDefault();
+        onMoveNodeToRoot(payload);
+      }}
+    >
+      <div className="rounded-md border border-dashed border-[var(--notebook-border)] px-2 py-1 text-[11px] text-[var(--notebook-soft-text)]">
+        拖到这里移动到顶层
+      </div>
       {nodes.map((node) => (
         <NotebookTreeItem
           key={node.path}
@@ -72,13 +103,16 @@ export function NotebookTreeView({
           onCreateSubfolder={onCreateSubfolder}
           onDeleteDirectory={onDeleteDirectory}
           onDeleteNote={onDeleteNote}
+          onMoveDirectoryToDirectory={onMoveDirectoryToDirectory}
           onMoveNote={onMoveNote}
+          onMoveNoteToDirectory={onMoveNoteToDirectory}
+          onMoveNodeToRoot={onMoveNodeToRoot}
           onRenameDirectory={onRenameDirectory}
           onRenameNote={onRenameNote}
           onSelect={onSelectNote}
         />
       ))}
-    </>
+    </div>
   );
 }
 
@@ -91,7 +125,10 @@ function NotebookTreeItem({
   onCreateSubfolder,
   onDeleteDirectory,
   onDeleteNote,
+  onMoveDirectoryToDirectory,
   onMoveNote,
+  onMoveNoteToDirectory,
+  onMoveNodeToRoot,
   onRenameDirectory,
   onRenameNote,
   onSelect,
@@ -104,7 +141,10 @@ function NotebookTreeItem({
   onCreateSubfolder: (directory: string) => void;
   onDeleteDirectory: (directory: string) => void;
   onDeleteNote: (noteId: string) => void;
+  onMoveDirectoryToDirectory: (directory: string, parentDirectory: string) => void;
   onMoveNote: (noteId: string) => void;
+  onMoveNoteToDirectory: (noteId: string, directory: string) => void;
+  onMoveNodeToRoot: (payload: DragPayload) => void;
   onRenameDirectory: (directory: string) => void;
   onRenameNote: (noteId: string) => void;
   onSelect: (noteId: string | null) => void;
@@ -117,12 +157,23 @@ function NotebookTreeItem({
     return (
       <div
         className={`group relative flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors ${active ? "bg-[var(--notebook-active)] font-medium text-[var(--notebook-ink)]" : "text-[var(--notebook-soft-text)] hover:bg-[var(--notebook-hover)]"}`}
+        draggable={Boolean(node.note_id)}
+        onDragStart={(event) => {
+          if (!node.note_id) {
+            return;
+          }
+          writeDragPayload(event.dataTransfer, {
+            kind: "file",
+            noteId: node.note_id,
+          });
+        }}
       >
         <button
           type="button"
           onClick={() => onSelect(node.note_id ?? null)}
           className="flex min-w-0 flex-1 items-center gap-2 text-left"
         >
+          <GripVerticalIcon className="size-3.5 shrink-0 text-[var(--notebook-soft-text)] opacity-0 transition-opacity group-hover:opacity-100" />
           <FileTextIcon className="size-3.5 shrink-0 text-[var(--notebook-soft-text)]" />
           <div className="min-w-0">
             <div className="truncate">{title}</div>
@@ -165,12 +216,43 @@ function NotebookTreeItem({
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
       <div className="group flex items-center gap-1 rounded-md px-1 py-0.5 transition-colors hover:bg-[var(--notebook-hover)]">
-        <CollapsibleTrigger className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-1 py-1 text-left text-sm text-[var(--notebook-soft-text)]">
+        <CollapsibleTrigger
+          className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-1 py-1 text-left text-sm text-[var(--notebook-soft-text)]"
+          draggable
+          onDragStart={(event) => {
+            writeDragPayload(event.dataTransfer, {
+              kind: "directory",
+              path: node.path,
+            });
+          }}
+          onDragOver={(event) => {
+            const payload = readDragPayload(event.dataTransfer);
+            if (!payload) {
+              return;
+            }
+            event.preventDefault();
+          }}
+          onDrop={(event) => {
+            const payload = readDragPayload(event.dataTransfer);
+            if (!payload) {
+              return;
+            }
+            event.preventDefault();
+            if (payload.kind === "file") {
+              onMoveNoteToDirectory(payload.noteId, node.path);
+              return;
+            }
+            if (payload.path !== node.path) {
+              onMoveDirectoryToDirectory(payload.path, node.path);
+            }
+          }}
+        >
           {open ? (
             <ChevronDownIcon className="size-3.5 text-[var(--notebook-soft-text)]" />
           ) : (
             <ChevronRightIcon className="size-3.5 text-[var(--notebook-soft-text)]" />
           )}
+          <GripVerticalIcon className="size-3.5 text-[var(--notebook-soft-text)] opacity-0 transition-opacity group-hover:opacity-100" />
           <FolderIcon className="size-3.5 text-[var(--notebook-soft-text)]" />
           <span className="truncate font-medium">{node.name}</span>
         </CollapsibleTrigger>
@@ -216,7 +298,10 @@ function NotebookTreeItem({
             onCreateSubfolder={onCreateSubfolder}
             onDeleteDirectory={onDeleteDirectory}
             onDeleteNote={onDeleteNote}
+            onMoveDirectoryToDirectory={onMoveDirectoryToDirectory}
             onMoveNote={onMoveNote}
+            onMoveNoteToDirectory={onMoveNoteToDirectory}
+            onMoveNodeToRoot={onMoveNodeToRoot}
             onRenameDirectory={onRenameDirectory}
             onRenameNote={onRenameNote}
             onSelect={onSelect}
@@ -225,4 +310,27 @@ function NotebookTreeItem({
       </CollapsibleContent>
     </Collapsible>
   );
+}
+
+function writeDragPayload(dataTransfer: DataTransfer | null, payload: DragPayload) {
+  if (!dataTransfer) {
+    return;
+  }
+  dataTransfer.effectAllowed = "move";
+  dataTransfer.setData("application/x-nion-notebook-node", JSON.stringify(payload));
+}
+
+function readDragPayload(dataTransfer: DataTransfer | null): DragPayload | null {
+  if (!dataTransfer) {
+    return null;
+  }
+  const raw = dataTransfer.getData("application/x-nion-notebook-node");
+  if (!raw) {
+    return null;
+  }
+  try {
+    return JSON.parse(raw) as DragPayload;
+  } catch {
+    return null;
+  }
 }

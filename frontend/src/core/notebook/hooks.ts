@@ -14,6 +14,7 @@ import {
   loadNotebookNotes,
   loadNotebookTrash,
   loadNotebookTree,
+  moveNotebookDirectory,
   moveNotebookNote,
   previewNotebookAssist,
   renameNotebookDirectory,
@@ -29,6 +30,7 @@ import type {
   NotebookCreateInput,
   NotebookDirectoryCreateInput,
   NotebookDirectoryDeleteInput,
+  NotebookDirectoryMoveInput,
   NotebookDirectoryRenameInput,
   NotebookImportInput,
   NotebookMetadataInput,
@@ -168,6 +170,20 @@ export function useDeleteNotebookDirectory() {
   });
 }
 
+export function useMoveNotebookDirectory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: NotebookDirectoryMoveInput) =>
+      moveNotebookDirectory(input),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["notebook", "tree"] }),
+        queryClient.invalidateQueries({ queryKey: ["notebook", "notes"] }),
+      ]);
+    },
+  });
+}
+
 export function useUpdateNotebookNote(noteId: string) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -194,6 +210,22 @@ export function useMoveNotebookNote(noteId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (input: NotebookMoveInput) => moveNotebookNote(noteId, input),
+    onSuccess: async (note) => {
+      await invalidateNotebookQueries(queryClient, note.note_id);
+    },
+  });
+}
+
+export function useMoveNotebookNoteAction() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      noteId,
+      directory,
+    }: {
+      noteId: string;
+      directory: string;
+    }) => moveNotebookNote(noteId, { directory }),
     onSuccess: async (note) => {
       await invalidateNotebookQueries(queryClient, note.note_id);
     },

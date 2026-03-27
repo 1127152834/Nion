@@ -21,6 +21,7 @@ import {
   hasNotebookTreeContent,
 } from "./notebook-sidebar-state";
 import { NotebookTreeView } from "./notebook-tree-view";
+import type { DragPayload } from "./notebook-tree-view";
 
 type NotebookSidebarCopy = {
   createNoteHere: string;
@@ -59,8 +60,11 @@ type NotebookSidebarProps = {
   onOpenCreateInDirectory: (directory: string) => void;
   onOpenDeleteDirectory: (directory: string) => void;
   onOpenDeleteNote: (noteId: string) => void;
+  onMoveDirectoryToDirectory: (directory: string, parentDirectory: string) => void;
   onOpenMoveNote: (noteId: string) => void;
+  onMoveNodeToRoot: (payload: DragPayload) => void;
   onOpenQuickCapture: () => void;
+  onMoveNoteToDirectory: (noteId: string, directory: string) => void;
   onOpenRenameDirectory: (directory: string) => void;
   onOpenRenameNote: (noteId: string) => void;
   onOpenCreateSubfolder: (directory: string) => void;
@@ -87,8 +91,11 @@ export function NotebookSidebar({
   onOpenCreateInDirectory,
   onOpenDeleteDirectory,
   onOpenDeleteNote,
+  onMoveDirectoryToDirectory,
   onOpenMoveNote,
+  onMoveNodeToRoot,
   onOpenQuickCapture,
+  onMoveNoteToDirectory,
   onOpenRenameDirectory,
   onOpenRenameNote,
   onOpenCreateSubfolder,
@@ -244,7 +251,10 @@ export function NotebookSidebar({
                 onCreateSubfolder={onOpenCreateSubfolder}
                 onDeleteDirectory={onOpenDeleteDirectory}
                 onDeleteNote={onOpenDeleteNote}
+                onMoveDirectoryToDirectory={onMoveDirectoryToDirectory}
                 onMoveNote={onOpenMoveNote}
+                onMoveNodeToRoot={onMoveNodeToRoot}
+                onMoveNoteToDirectory={onMoveNoteToDirectory}
                 onRenameDirectory={onOpenRenameDirectory}
                 onRenameNote={onOpenRenameNote}
                 onSelectNote={onSelectNote}

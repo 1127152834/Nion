@@ -61,7 +61,18 @@ export function NotebookFolderPicker({
             value={option.path || ROOT_VALUE}
             className="text-[var(--notebook-ink)]"
           >
-            {option.label}
+            <span className="flex min-w-0 items-center">
+              <span
+                className="truncate"
+                style={{
+                  paddingLeft: option.isInbox
+                    ? "0rem"
+                    : `${Math.max(0, option.depth - 1) * 0.9}rem`,
+                }}
+              >
+                {option.label}
+              </span>
+            </span>
           </SelectItem>
         ))}
       </SelectContent>

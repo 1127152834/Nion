@@ -24,7 +24,9 @@ import {
   useCreateNotebookNote,
   useDeleteNotebookDirectory,
   useDeleteNotebookNote,
+  useMoveNotebookDirectory,
   useMoveNotebookNote,
+  useMoveNotebookNoteAction,
   useNotebookDeletePreview,
   useNotebookHistory,
   useNotebookNotes,
@@ -110,8 +112,10 @@ export function NotebookPage() {
   const createNote = useCreateNotebookNote();
   const deleteDirectory = useDeleteNotebookDirectory();
   const renameDirectory = useRenameNotebookDirectory();
+  const moveAnyDirectory = useMoveNotebookDirectory();
   const updateNote = useUpdateNotebookNote(selectedNoteId ?? "");
   const renameNote = useRenameNotebookNote(selectedNoteId ?? "");
+  const moveAnyNote = useMoveNotebookNoteAction();
   const moveNote = useMoveNotebookNote(selectedNoteId ?? "");
   const restoreVersion = useRestoreNotebookVersion(selectedNoteId ?? "");
   const deleteNote = useDeleteNotebookNote(selectedNoteId ?? "");
@@ -407,6 +411,24 @@ export function NotebookPage() {
     setDeleteOpen(true);
   }
 
+  async function handleMoveNoteToDirectory(noteId: string, directory: string) {
+    try {
+      await moveAnyNote.mutateAsync({ noteId, directory });
+      toast.success(copy.saved);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  async function handleMoveDirectoryToDirectory(directory: string, parentDirectory: string) {
+    try {
+      await moveAnyDirectory.mutateAsync({ directory, parent_directory: parentDirectory });
+      toast.success(copy.saved);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    }
+  }
+
   function openDraftComposer() {
     setDraftSession({
       directory: "",
@@ -538,8 +560,17 @@ export function NotebookPage() {
               onOpenCreateSubfolder={openCreateFolderDialog}
               onOpenDeleteDirectory={openDeleteFolderDialog}
               onOpenDeleteNote={openDeleteNoteDialog}
+              onMoveDirectoryToDirectory={handleMoveDirectoryToDirectory}
               onOpenMoveNote={openMoveNoteDialog}
               onOpenQuickCapture={() => setQuickCaptureOpen(true)}
+              onMoveNoteToDirectory={handleMoveNoteToDirectory}
+              onMoveNodeToRoot={(payload) => {
+                if (payload.kind === "file") {
+                  void handleMoveNoteToDirectory(payload.noteId, "");
+                  return;
+                }
+                void handleMoveDirectoryToDirectory(payload.path, "");
+              }}
               onOpenRenameDirectory={openRenameFolderDialog}
               onOpenRenameNote={openRenameNoteDialog}
               onQueryChange={setQuery}

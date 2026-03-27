@@ -13,6 +13,7 @@ const {
   loadNotebookTrash,
   loadNotebookTree,
   moveNotebookNote,
+  moveNotebookDirectory,
   previewNotebookAssist,
   applyNotebookAssist,
   renameNotebookDirectory,
@@ -76,14 +77,20 @@ void test("notebook directory helpers hit their expected endpoints", async () =>
     const deleted = await deleteNotebookDirectory({
       directory: "projects/beta",
     });
+    const moved = await moveNotebookDirectory({
+      directory: "projects/beta",
+      parent_directory: "archive",
+    });
 
     assert.equal(created, "projects/beta");
     assert.equal(renamed, "projects/beta");
     assert.equal(deleted, "projects/beta");
+    assert.equal(moved, "projects/beta");
     assert.deepEqual(requests, [
       'POST /api/notebook/directories {"parent_directory":"projects","name":"alpha"}',
       'POST /api/notebook/directories/rename {"directory":"projects/alpha","name":"beta"}',
       'POST /api/notebook/directories/delete {"directory":"projects/beta"}',
+      'POST /api/notebook/directories/move {"directory":"projects/beta","parent_directory":"archive"}',
     ]);
   } finally {
     globalThis.fetch = originalFetch;

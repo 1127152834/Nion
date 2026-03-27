@@ -5,6 +5,7 @@ import pytest
 from nion.notebook.service import (
     NotebookConflictError,
     NotebookDirectoryAlreadyExistsError,
+    NotebookDirectoryMoveError,
     NotebookDirectoryNotEmptyError,
     NotebookService,
 )
@@ -137,3 +138,25 @@ def test_delete_directory_rejects_non_empty_folder(tmp_path):
 
     with pytest.raises(NotebookDirectoryNotEmptyError):
         service.delete_directory("projects/alpha")
+
+
+def test_move_directory_moves_subtree_to_new_parent(tmp_path):
+    service = NotebookService(base_dir=tmp_path)
+    service.create_directory(parent_directory="", name="projects")
+    service.create_directory(parent_directory="", name="archive")
+    service.create_directory(parent_directory="projects", name="alpha")
+    moved = service.move_directory(directory="projects/alpha", parent_directory="archive")
+
+    assert moved == "archive/alpha"
+    assert not (tmp_path / "notebook" / "projects" / "alpha").exists()
+    assert (tmp_path / "notebook" / "archive" / "alpha").is_dir()
+
+
+def test_move_directory_rejects_descendant_target(tmp_path):
+    service = NotebookService(base_dir=tmp_path)
+    service.create_directory(parent_directory="", name="projects")
+    service.create_directory(parent_directory="projects", name="alpha")
+    service.create_directory(parent_directory="projects/alpha", name="nested")
+
+    with pytest.raises(NotebookDirectoryMoveError):
+        service.move_directory(directory="projects/alpha", parent_directory="projects/alpha/nested")

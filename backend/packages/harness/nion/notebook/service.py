@@ -36,6 +36,10 @@ class NotebookDirectoryAlreadyExistsError(NotebookError):
     """Raised when attempting to create a notebook directory that already exists."""
 
 
+class NotebookDirectoryMoveError(NotebookError):
+    """Raised when attempting an invalid notebook directory move."""
+
+
 def _now_iso() -> str:
     return datetime.now(UTC).isoformat()
 
@@ -242,6 +246,41 @@ class NotebookService:
                 f"Notebook directory is not empty: {relative.as_posix()}"
             )
         target.rmdir()
+
+    def move_directory(self, *, directory: str, parent_directory: str) -> str:
+        current = self._resolve_directory(directory)
+        current_relative = self._visible_relative_dir(current)
+        if current_relative == Path("."):
+            raise ValueError("Notebook root directory cannot be moved")
+        if not current.exists() or not current.is_dir():
+            raise NotebookDirectoryNotFoundError(f"Notebook directory not found: {directory}")
+
+        target_parent = self._resolve_directory(parent_directory)
+        self._visible_relative_dir(target_parent)
+        if not target_parent.exists() or not target_parent.is_dir():
+            raise NotebookDirectoryNotFoundError(
+                f"Notebook directory not found: {parent_directory}"
+            )
+
+        try:
+            target_parent.relative_to(current)
+        except ValueError:
+            pass
+        else:
+            raise NotebookDirectoryMoveError(
+                "Notebook directory cannot be moved into itself or a descendant"
+            )
+
+        target = target_parent / current.name
+        target_relative = self._visible_relative_dir(target)
+        if target == current:
+            return current_relative.as_posix()
+        if target.exists():
+            raise NotebookDirectoryAlreadyExistsError(
+                f"Notebook directory already exists: {target_relative.as_posix()}"
+            )
+        current.rename(target)
+        return target_relative.as_posix()
 
     def read_note(self, note_id: str) -> NotebookNote:
         return self._build_note(self._find_note_path(note_id))

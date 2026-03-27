@@ -102,6 +102,11 @@ export interface NotebookDirectoryDeleteInput {
   directory: string;
 }
 
+export interface NotebookDirectoryMoveInput {
+  directory: string;
+  parent_directory: string;
+}
+
 export interface NotebookUpdateInput {
   body: string;
   expected_content_hash: string;

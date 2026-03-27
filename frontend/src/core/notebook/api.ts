@@ -8,6 +8,7 @@ import type {
   NotebookCreateInput,
   NotebookDirectoryCreateInput,
   NotebookDirectoryDeleteInput,
+  NotebookDirectoryMoveInput,
   NotebookDirectoryRenameInput,
   NotebookDeletePreview,
   NotebookDeletedNotePreview,
@@ -169,6 +170,26 @@ export async function deleteNotebookDirectory(
       resolveErrorMessage(
         await response.text(),
         `Failed to delete notebook directory (${response.status})`,
+      ),
+    );
+  }
+  const json = await readJson<{ directory: string }>(response);
+  return json.directory;
+}
+
+export async function moveNotebookDirectory(
+  input: NotebookDirectoryMoveInput,
+): Promise<string> {
+  const response = await fetch(`${getBackendBaseURL()}/api/notebook/directories/move`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) {
+    throw new Error(
+      resolveErrorMessage(
+        await response.text(),
+        `Failed to move notebook directory (${response.status})`,
       ),
     );
   }
