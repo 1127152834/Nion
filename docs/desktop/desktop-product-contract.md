@@ -2,7 +2,12 @@
 
 ## Runtime
 
-Nion Desktop is a desktop-only product. The shipped application now consists of an Electron single-window client and one single local daemon running on the local machine for a single signed-in desktop user. Production runtime must not require `nginx`, standalone `langgraph dev`, Docker, Kubernetes, or a browser-based deployment surface.
+Nion ships as two first-party surfaces that share one core backend contract:
+
+- Web: browser client + deployed backend services
+- Desktop: Electron client + one single local daemon running on the local machine for a single signed-in desktop user
+
+This document defines the desktop surface specifically. Desktop production runtime must not require `nginx`, standalone `langgraph dev`, Docker, Kubernetes, or a browser-based deployment surface.
 
 ## Supported Platforms
 
@@ -19,9 +24,9 @@ Nion Desktop is a desktop-only product. The shipped application now consists of 
 - Cloud model providers and local OpenAI-compatible model endpoints
 - Skills, MCP-backed extensions, recall, and OpenViking-backed memory
 
-## Removed Deployment Surfaces
+## Removed Desktop-Only Dependencies
 
-- Browser-first startup and public web deployment workflows
+- Browser-only startup assumptions inside the packaged desktop app
 - `nginx` reverse proxy topology
 - Standalone `langgraph dev` server topology in production packaging
 - Docker, Kubernetes, and provisioner payloads from the desktop bundle

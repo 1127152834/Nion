@@ -1,6 +1,11 @@
-# Nion Local Daemon Backend
+# Nion Runtime Backend
 
-Nion Local Daemon is the local Python runtime bundled into the Electron application. In Program 01, Electron became a single-window client of this daemon rather than the owner of a helper child process. The daemon also exposes a thin CLI management surface for status and stop operations, which can support future diagnostics and self-operations work.
+Nion ships with one shared backend capability layer and two first-party shells:
+
+- Web: deployed HTTP services + browser client
+- Desktop: bundled local daemon + Electron client
+
+This document focuses on the local-daemon wrapper, which is the desktop-hosted runtime surface bundled into the Electron application. In Program 01, Electron became a single-window client of this daemon rather than the owner of a helper child process. The daemon also exposes a thin CLI management surface for status and stop operations, which can support future diagnostics and self-operations work.
 
 The next layer is the daemon control plane:
 

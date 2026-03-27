@@ -25,9 +25,14 @@
 
 ---
 
-## 桌面端优先
+## 双端产品面
 
-当前分支将 Nion 作为桌面应用来交付：Electron 单窗口客户端 + 本机单 daemon 运行时。浏览器部署与独立 LangGraph/Nginx 拓扑不再是默认产品路径。
+当前分支维护两个一方产品面：
+
+- Web：浏览器客户端 + 部署态后端服务
+- Desktop：Electron 单窗口客户端 + 本机单 daemon 运行时
+
+两者共享同一套一方 `/api/*` 契约和核心能力语义；差异只应存在于 shell、打包方式和运行时宿主环境。
 
 - 桌面 renderer 通过特权 `nion://app` 协议加载静态资源
 - preload 会向前端同步注入本地 helper base URL，前端不再假设 `/api/*` 由浏览器同源反代提供
@@ -212,9 +217,9 @@ make docker-start
 
 ---
 
-## 桌面端路线
+## Desktop Surface
 
-当前版本将以 Electron 作为桌面端优先路线，目标是实现“安装即用”的前后端一体桌面体验：
+Electron 桌面端仍然是当前最完整的本地优先体验，目标是实现“安装即用”的前后端一体桌面体验：
 
 - 单本地 daemon 运行时
 - Electron 单窗口客户端

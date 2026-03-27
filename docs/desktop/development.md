@@ -2,7 +2,7 @@
 
 ## Goal
 
-Nion Desktop is the only supported product surface in this branch. The application is packaged as an Electron single-window client plus a bundled local daemon.
+Nion Desktop is one of two first-party product surfaces in this branch. The desktop application is packaged as an Electron single-window client plus a bundled local daemon, while the web surface uses the same first-party backend contract behind a browser shell.
 
 ## Local Workflow
 
@@ -42,7 +42,7 @@ cd backend && UV_LINK_MODE=copy uv run pytest -q
 ## Desktop Runtime Contract
 
 - The Electron renderer is served from the privileged `nion://app` scheme, not `http://localhost`.
-- The Python helper must accept CORS requests from `nion://app` because there is no nginx layer in desktop mode.
+- In desktop dev, the renderer may also be served from `http://127.0.0.1:5173`; the Python helper must accept both `nion://app` and the Vite dev origin.
 - `desktop/postcss.config.js` is required so Vite processes the shared Tailwind v4 stylesheet; without it the renderer falls back to mostly unstyled HTML.
 - `make package-desktop-builder` publishes GitHub metadata by default; set `NION_UPDATE_BASE_URL` only when you want the optional generic/CDN update feed baked into the build.
 
