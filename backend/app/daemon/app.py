@@ -6,26 +6,10 @@ from contextlib import asynccontextmanager
 from typing import Any
 
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 
 from app.daemon.routers import channels, clients, control, diagnostics, incidents, logs, runtime
 from app.daemon.service import LocalDaemonService
-from app.gateway.config import get_gateway_config
-from app.gateway.routers import (
-    artifacts,
-    cli,
-    config,
-    files,
-    memory,
-    model_admin,
-    models,
-    notebook,
-    recall,
-    runtime_profile,
-    skills,
-    threads,
-    uploads,
-)
+from app.runtime.app_factory import create_runtime_app
 from nion.config.paths import get_paths
 from nion.telemetry.store import TelemetryStore
 
@@ -70,43 +54,11 @@ def create_app(
     *,
     shutdown_callback: Any = None,
 ) -> FastAPI:
-    app = FastAPI(
+    return create_runtime_app(
+        mode="desktop",
         title="Nion Local Daemon",
         description="Single local runtime for the Nion desktop client.",
         version="0.1.0",
         lifespan=lifespan,
+        shutdown_callback=shutdown_callback,
     )
-    app.state.daemon_shutdown_callback = shutdown_callback
-
-    gateway_config = get_gateway_config()
-    allowed_origins = list(dict.fromkeys([*gateway_config.cors_origins, "nion://app"]))
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=allowed_origins,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
-
-    app.include_router(runtime.router)
-    app.include_router(clients.router)
-    app.include_router(control.router)
-    if channels is not None:
-        app.include_router(channels.router)
-    app.include_router(logs.router)
-    app.include_router(diagnostics.router)
-    app.include_router(incidents.router)
-    app.include_router(config.router)
-    app.include_router(threads.router)
-    app.include_router(runtime_profile.router)
-    app.include_router(models.router)
-    app.include_router(model_admin.router)
-    app.include_router(skills.router)
-    app.include_router(artifacts.router)
-    app.include_router(uploads.router)
-    app.include_router(files.router)
-    app.include_router(cli.router)
-    app.include_router(memory.router)
-    app.include_router(notebook.router)
-    app.include_router(recall.router)
-    return app

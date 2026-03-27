@@ -3,30 +3,9 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 
 from app.gateway.config import get_gateway_config
-from app.gateway.routers import (
-    agents,
-    artifacts,
-    automation,
-    cli,
-    config,
-    desktop_system,
-    files,
-    mcp,
-    model_admin,
-    memory,
-    models,
-    notebook,
-    recall,
-    runtime_profile,
-    skills,
-    suggestions,
-    threads,
-    tool_policy,
-    uploads,
-)
+from app.runtime.app_factory import create_runtime_app
 from nion.config.app_config import get_app_config
 
 # Configure logging
@@ -65,13 +44,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 
 def create_app() -> FastAPI:
-    """Create and configure the FastAPI application.
-
-    Returns:
-        Configured FastAPI application instance.
-    """
-
-    app = FastAPI(
+    return create_runtime_app(
+        mode="web",
         title="Nion API Gateway",
         description="""
 ## Nion API Gateway
@@ -180,85 +154,6 @@ This gateway provides custom endpoints for models, MCP configuration, skills, an
             },
         ],
     )
-
-    gateway_config = get_gateway_config()
-    allowed_origins = list(dict.fromkeys([*gateway_config.cors_origins, "nion://app"]))
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=allowed_origins,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
-
-    # Include routers
-    # Models API is mounted at /api/models
-    app.include_router(models.router)
-
-    # Model management admin API is mounted at /api/model-admin/*
-    app.include_router(model_admin.router)
-
-    # Config Center API is mounted at /api/config*
-    app.include_router(config.router)
-
-    # Runtime profile API is mounted at /api/threads/{thread_id}/runtime-profile
-    app.include_router(runtime_profile.router)
-
-    # Files API is mounted at /api/threads/{thread_id}/files/*
-    app.include_router(files.router)
-
-    # CLI catalog API is mounted at /api/cli/*
-    app.include_router(cli.router)
-
-    # MCP API is mounted at /api/mcp
-    app.include_router(mcp.router)
-
-    # Memory API is mounted at /api/memory
-    app.include_router(memory.router)
-
-    # Notebook API is mounted at /api/notebook
-    app.include_router(notebook.router)
-
-    # Recall API is mounted at /api/recall
-    app.include_router(recall.router)
-
-    # Automation API is mounted at /api/automation
-    app.include_router(automation.router)
-
-    # Tool policy API is mounted at /api/tool-policy
-    app.include_router(tool_policy.router)
-
-    # Skills API is mounted at /api/skills
-    app.include_router(skills.router)
-
-    # Artifacts API is mounted at /api/threads/{thread_id}/artifacts
-    app.include_router(artifacts.router)
-
-    # Uploads API is mounted at /api/threads/{thread_id}/uploads
-    app.include_router(uploads.router)
-
-    # Agents API is mounted at /api/agents
-    app.include_router(agents.router)
-
-    # Suggestions API is mounted at /api/threads/{thread_id}/suggestions
-    app.include_router(suggestions.router)
-
-    # Desktop thread API is mounted at /api/threads/*
-    app.include_router(threads.router)
-
-    # Desktop helper system API is mounted at /api/desktop/*
-    app.include_router(desktop_system.router)
-
-    @app.get("/health", tags=["health"])
-    async def health_check() -> dict:
-        """Health check endpoint.
-
-        Returns:
-            Service health status information.
-        """
-        return {"status": "healthy", "service": "nion-gateway"}
-
-    return app
 
 
 # Create app instance for uvicorn
