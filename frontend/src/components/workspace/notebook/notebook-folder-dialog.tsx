@@ -1,12 +1,12 @@
 "use client";
 
-import { FolderPenIcon, FolderPlusIcon, FolderXIcon, XIcon } from "lucide-react";
+import { FolderPenIcon, FolderPlusIcon, FolderXIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogFooter } from "@/components/ui/dialog";
+import { DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { notebookThemeStyle } from "./notebook-theme";
+import { NotebookDialogShell } from "./notebook-dialog-shell";
 
 type NotebookFolderDialogMode = "create" | "rename" | "delete";
 
@@ -80,25 +80,12 @@ export function NotebookFolderDialog({
   const resolvedTargetLabel = targetLabel || copy.rootFolderLabel;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        showCloseButton={false}
-        className="gap-0 overflow-hidden border-[var(--notebook-border)] bg-[var(--notebook-panel)] p-0 text-[var(--notebook-ink)] shadow-xl"
-        style={notebookThemeStyle}
-      >
-        <div className="flex items-center justify-between border-b border-[var(--notebook-border)] px-6 py-4">
-          <div className="flex items-center text-lg font-semibold text-[var(--notebook-ink)]">
-            <span className="mr-2 text-[var(--notebook-soft-text)]">{meta.icon}</span>
-            {copy[meta.titleKey]}
-          </div>
-          <button
-            type="button"
-            onClick={() => onOpenChange(false)}
-            className="text-[var(--notebook-soft-text)] transition-colors hover:text-[var(--notebook-ink)]"
-          >
-            <XIcon className="size-5" />
-          </button>
-        </div>
+    <NotebookDialogShell
+      icon={meta.icon}
+      open={open}
+      onOpenChange={onOpenChange}
+      title={copy[meta.titleKey]}
+    >
         <div className="space-y-4 p-6">
           {mode === "delete" ? (
             <p className="text-sm text-[var(--notebook-soft-text)]">
@@ -143,7 +130,6 @@ export function NotebookFolderDialog({
             </Button>
           </DialogFooter>
         </div>
-      </DialogContent>
-    </Dialog>
+    </NotebookDialogShell>
   );
 }

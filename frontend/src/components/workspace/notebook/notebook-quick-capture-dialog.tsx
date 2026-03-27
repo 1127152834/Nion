@@ -1,13 +1,10 @@
 "use client";
 
-import { Sparkles, X } from "lucide-react";
+import { Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-} from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { NotebookDialogShell } from "./notebook-dialog-shell";
 
 type NotebookQuickCaptureDialogProps = {
   destinationLabel: string;
@@ -37,23 +34,18 @@ export function NotebookQuickCaptureDialog({
   onValueChange,
 }: NotebookQuickCaptureDialogProps) {
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        showCloseButton={false}
-        className="gap-0 overflow-hidden border-[var(--notebook-border)] bg-[var(--notebook-panel)] p-0 text-[var(--notebook-ink)] shadow-xl sm:max-w-3xl"
-      >
-        <div className="flex items-center border-b border-[var(--notebook-border)] bg-[var(--notebook-sidebar)] px-4 py-3">
-          <Sparkles className="mr-2 size-4 text-[var(--notebook-ink)]" />
-          <span className="text-sm font-medium text-[var(--notebook-ink)]">{quickCaptureLabel}</span>
-          <span className="ml-auto text-xs text-[var(--notebook-soft-text)]">按 Cmd+Enter 保存至收件箱</span>
-          <button
-            type="button"
-            onClick={() => onOpenChange(false)}
-            className="ml-4 text-[var(--notebook-soft-text)] transition-colors hover:text-[var(--notebook-ink)]"
-          >
-            <X className="size-4" />
-          </button>
-        </div>
+    <NotebookDialogShell
+      contentClassName="sm:max-w-3xl"
+      headerAccessory={
+        <span className="text-xs text-[var(--notebook-soft-text)]">
+          按 Cmd+Enter 保存至收件箱
+        </span>
+      }
+      icon={<Sparkles className="size-4" />}
+      open={open}
+      onOpenChange={onOpenChange}
+      title={quickCaptureLabel}
+    >
         <div className="flex flex-col">
           <Textarea
             value={value}
@@ -80,7 +72,6 @@ export function NotebookQuickCaptureDialog({
             </Button>
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+    </NotebookDialogShell>
   );
 }

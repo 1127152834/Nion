@@ -28,14 +28,17 @@ type NotebookSidebarCopy = {
   createFolder: string;
   createNote: string;
   deleteFolder: string;
+  deleteNote: string;
   emptyDescription: string;
   emptyTitle: string;
+  moveNote: string;
   quickCaptureLabel: string;
   recentTitle: string;
   searchPlaceholder: string;
   noteListDescription: string;
   noteListTitle: string;
   renameFolder: string;
+  renameNote: string;
   trashTitle: string;
 };
 
@@ -55,8 +58,11 @@ type NotebookSidebarProps = {
   onOpenCreateFolder: () => void;
   onOpenCreateInDirectory: (directory: string) => void;
   onOpenDeleteDirectory: (directory: string) => void;
+  onOpenDeleteNote: (noteId: string) => void;
+  onOpenMoveNote: (noteId: string) => void;
   onOpenQuickCapture: () => void;
   onOpenRenameDirectory: (directory: string) => void;
+  onOpenRenameNote: (noteId: string) => void;
   onOpenCreateSubfolder: (directory: string) => void;
   onQueryChange: (value: string) => void;
   onOpenTrash: () => void;
@@ -80,8 +86,11 @@ export function NotebookSidebar({
   onOpenCreateFolder,
   onOpenCreateInDirectory,
   onOpenDeleteDirectory,
+  onOpenDeleteNote,
+  onOpenMoveNote,
   onOpenQuickCapture,
   onOpenRenameDirectory,
+  onOpenRenameNote,
   onOpenCreateSubfolder,
   onQueryChange,
   onOpenTrash,
@@ -224,14 +233,20 @@ export function NotebookSidebar({
                   createNoteHere: copy.createNoteHere,
                   createSubfolder: copy.createSubfolder,
                   deleteFolder: copy.deleteFolder,
+                  deleteNote: copy.deleteNote,
+                  moveNote: copy.moveNote,
                   renameFolder: copy.renameFolder,
+                  renameNote: copy.renameNote,
                 }}
                 noteTitleById={noteTitleById}
                 nodes={visibleTreeNodes}
                 onCreateNoteInDirectory={onOpenCreateInDirectory}
                 onCreateSubfolder={onOpenCreateSubfolder}
                 onDeleteDirectory={onOpenDeleteDirectory}
+                onDeleteNote={onOpenDeleteNote}
+                onMoveNote={onOpenMoveNote}
                 onRenameDirectory={onOpenRenameDirectory}
+                onRenameNote={onOpenRenameNote}
                 onSelectNote={onSelectNote}
               />
             )}

@@ -12,7 +12,6 @@ import { MarkdownContent } from "../messages/markdown-content";
 
 type NotebookEditorPaneCopy = {
   delete: string;
-  draftDirectoryPending: string;
   draftMetaLabel: string;
   edit: string;
   history: string;
@@ -69,9 +68,6 @@ export function NotebookEditorPane({
 }: NotebookEditorPaneProps) {
   const [previewMode, setPreviewMode] = useState(false);
   const lastEdited = note ? formatLastEdited(note.updated_at) : "";
-  const draftLocationLabel = draftDirectory
-    ? draftDirectory
-    : copy.draftDirectoryPending;
 
   return (
     <div className="relative flex h-full min-w-0 flex-col overflow-hidden bg-[var(--notebook-panel)]">
@@ -92,9 +88,7 @@ export function NotebookEditorPane({
                 <div className="mb-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[var(--notebook-soft-text)]">
                   <Folder className="size-3" />
                   <span>{isDraft ? copy.draftMetaLabel : note?.relative_path}</span>
-                  {isDraft ? (
-                    <span className="truncate">{draftLocationLabel}</span>
-                  ) : (
+                  {isDraft ? null : (
                     <>
                       <span>/</span>
                       <span className="flex items-center">

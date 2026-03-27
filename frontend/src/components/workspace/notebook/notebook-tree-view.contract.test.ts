@@ -10,8 +10,14 @@ void test("NotebookTreeView exposes folder management actions", async () => {
   assert.match(source, /createSubfolder/);
   assert.match(source, /renameFolder/);
   assert.match(source, /deleteFolder/);
+  assert.match(source, /renameNote/);
+  assert.match(source, /moveNote/);
+  assert.match(source, /deleteNote/);
   assert.match(source, /onCreateNoteInDirectory/);
   assert.match(source, /onCreateSubfolder/);
   assert.match(source, /onRenameDirectory/);
   assert.match(source, /onDeleteDirectory/);
+  assert.match(source, /onRenameNote/);
+  assert.match(source, /onMoveNote/);
+  assert.match(source, /onDeleteNote/);
 });

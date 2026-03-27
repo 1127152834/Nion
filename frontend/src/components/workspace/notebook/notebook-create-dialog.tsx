@@ -1,17 +1,13 @@
 "use client";
 
-import { FileText, X } from "lucide-react";
+import { FileText } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import type { NotebookDirectoryOption } from "@/core/notebook";
+import { NotebookDialogShell } from "./notebook-dialog-shell";
 import { NotebookFolderPicker } from "./notebook-folder-picker";
-import { notebookThemeStyle } from "./notebook-theme";
 
 type NotebookCreateDialogCopy = {
   cancel: string;
@@ -51,25 +47,12 @@ export function NotebookCreateDialog({
   onTitleChange,
 }: NotebookCreateDialogProps) {
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        showCloseButton={false}
-        className="gap-0 overflow-hidden border-[var(--notebook-border)] bg-[var(--notebook-panel)] p-0 text-[var(--notebook-ink)] shadow-xl"
-        style={notebookThemeStyle}
-      >
-        <div className="flex items-center justify-between border-b border-[var(--notebook-border)] px-6 py-4">
-          <div className="flex items-center text-lg font-semibold text-[var(--notebook-ink)]">
-            <FileText className="mr-2 size-5" />
-            {copy.createDialogTitle}
-          </div>
-          <button
-            type="button"
-            onClick={() => onOpenChange(false)}
-            className="text-[var(--notebook-soft-text)] transition-colors hover:text-[var(--notebook-ink)]"
-          >
-            <X className="size-5" />
-          </button>
-        </div>
+    <NotebookDialogShell
+      icon={<FileText className="size-5" />}
+      open={open}
+      onOpenChange={onOpenChange}
+      title={copy.createDialogTitle}
+    >
         <div className="space-y-4 p-6">
           <p className="text-sm leading-relaxed text-[var(--notebook-soft-text)]">
             {copy.createDialogDescription}
@@ -112,7 +95,6 @@ export function NotebookCreateDialog({
             </Button>
           </DialogFooter>
         </div>
-      </DialogContent>
-    </Dialog>
+    </NotebookDialogShell>
   );
 }

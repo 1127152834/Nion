@@ -4,13 +4,12 @@ import { AlertTriangle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { NotebookDialogShell } from "./notebook-dialog-shell";
 
 type NotebookDeleteDialogProps = {
   cancelLabel: string;
@@ -34,8 +33,11 @@ export function NotebookDeleteDialog({
   onOpenChange,
 }: NotebookDeleteDialogProps) {
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+    <NotebookDialogShell
+      open={open}
+      onOpenChange={onOpenChange}
+      title={title}
+    >
         <div className="p-6">
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#FFF1F0]">
             <AlertTriangle className="size-6 text-[#F5222D]" />
@@ -67,7 +69,6 @@ export function NotebookDeleteDialog({
             </Button>
           </DialogFooter>
         </div>
-      </DialogContent>
-    </Dialog>
+    </NotebookDialogShell>
   );
 }

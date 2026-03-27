@@ -5,13 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { NotebookCreateDialog } from "./notebook-create-dialog";
 import { NotebookContextPanel } from "./notebook-context-panel";
@@ -45,6 +39,7 @@ import {
 import { buildNotebookTree } from "@/core/notebook";
 import { buildNotebookAssistPrompt, type NotebookAssistAction } from "@/core/notebook";
 import { NotebookFolderDialog } from "./notebook-folder-dialog";
+import { NotebookDialogShell } from "./notebook-dialog-shell";
 import { notebookThemeStyle } from "./notebook-theme";
 type CreateDraft = {
   directory: string;
@@ -397,6 +392,21 @@ export function NotebookPage() {
     setContextTab("ask");
   }
 
+  function openRenameNoteDialog(noteId: string) {
+    setSelectedNoteId(noteId);
+    setRenameOpen(true);
+  }
+
+  function openMoveNoteDialog(noteId: string) {
+    setSelectedNoteId(noteId);
+    setMoveOpen(true);
+  }
+
+  function openDeleteNoteDialog(noteId: string) {
+    setSelectedNoteId(noteId);
+    setDeleteOpen(true);
+  }
+
   function openDraftComposer() {
     setDraftSession({
       directory: "",
@@ -501,13 +511,16 @@ export function NotebookPage() {
                 createNoteHere: copy.createNoteHere,
                 createSubfolder: copy.createSubfolder,
                 deleteFolder: copy.deleteFolder,
+                deleteNote: copy.delete,
                 emptyDescription: copy.emptyDescription,
                 emptyTitle: copy.emptyTitle,
+                moveNote: copy.move,
                 noteListDescription: copy.noteListDescription,
                 noteListTitle: copy.noteListTitle,
                 quickCaptureLabel: copy.quickCapture,
                 recentTitle: copy.recentTitle,
                 renameFolder: copy.renameFolder,
+                renameNote: copy.rename,
                 searchPlaceholder: copy.searchPlaceholder,
                 trashTitle: copy.trashTitle,
               }}
@@ -524,8 +537,11 @@ export function NotebookPage() {
               onOpenCreateInDirectory={openCreateDialogInDirectory}
               onOpenCreateSubfolder={openCreateFolderDialog}
               onOpenDeleteDirectory={openDeleteFolderDialog}
+              onOpenDeleteNote={openDeleteNoteDialog}
+              onOpenMoveNote={openMoveNoteDialog}
               onOpenQuickCapture={() => setQuickCaptureOpen(true)}
               onOpenRenameDirectory={openRenameFolderDialog}
+              onOpenRenameNote={openRenameNoteDialog}
               onQueryChange={setQuery}
               onOpenTrash={() => router.push(pathOfNotebookTrash())}
               onSelectNote={setSelectedNoteId}
@@ -547,7 +563,6 @@ export function NotebookPage() {
                 saveDraft: copy.saveDraft,
                 saving: copy.saving,
                 selectNote: copy.selectNote,
-                draftDirectoryPending: copy.draftDirectoryPending,
                 draftMetaLabel: copy.draftMetaLabel,
                 untitledDraftTitle: copy.untitledDraftTitle,
                 unsaved: copy.unsaved,
@@ -649,32 +664,43 @@ export function NotebookPage() {
         onValueChange={setQuickCaptureValue}
       />
 
-      <Dialog open={renameOpen} onOpenChange={setRenameOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{copy.rename}</DialogTitle>
-          </DialogHeader>
+      <NotebookDialogShell
+        open={renameOpen}
+        onOpenChange={setRenameOpen}
+        title={copy.rename}
+      >
+        <div className="space-y-4 p-6">
           <Input
             value={renameValue}
             onChange={(event) => setRenameValue(event.target.value)}
             placeholder={copy.renamePlaceholder}
+            className="border-[var(--notebook-border)] bg-[var(--notebook-panel)] text-[var(--notebook-ink)] placeholder:text-[var(--notebook-soft-text)]"
           />
           <DialogFooter>
-            <Button variant="outline" onClick={() => setRenameOpen(false)}>
+            <Button
+              variant="outline"
+              className="border-[var(--notebook-border)] bg-[var(--notebook-panel)] text-[var(--notebook-ink)] hover:bg-[var(--notebook-hover)]"
+              onClick={() => setRenameOpen(false)}
+            >
               {t.common.cancel}
             </Button>
-            <Button onClick={handleRename} disabled={!renameValue.trim() || renameNote.isPending}>
+            <Button
+              className="bg-[var(--notebook-brand)] text-[var(--notebook-panel)] hover:opacity-90"
+              onClick={handleRename}
+              disabled={!renameValue.trim() || renameNote.isPending}
+            >
               {copy.save}
             </Button>
           </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        </div>
+      </NotebookDialogShell>
 
-      <Dialog open={moveOpen} onOpenChange={setMoveOpen}>
-        <DialogContent className="border-[var(--notebook-border)] bg-[var(--notebook-panel)] text-[var(--notebook-ink)]">
-          <DialogHeader>
-            <DialogTitle>{copy.move}</DialogTitle>
-          </DialogHeader>
+      <NotebookDialogShell
+        open={moveOpen}
+        onOpenChange={setMoveOpen}
+        title={copy.move}
+      >
+        <div className="space-y-4 p-6">
           <NotebookFolderPicker
             emptyLabel={copy.folderPickerEmpty}
             options={directoryOptions}
@@ -683,15 +709,23 @@ export function NotebookPage() {
             onValueChange={setMoveDirectory}
           />
           <DialogFooter>
-            <Button variant="outline" onClick={() => setMoveOpen(false)}>
+            <Button
+              variant="outline"
+              className="border-[var(--notebook-border)] bg-[var(--notebook-panel)] text-[var(--notebook-ink)] hover:bg-[var(--notebook-hover)]"
+              onClick={() => setMoveOpen(false)}
+            >
               {t.common.cancel}
             </Button>
-            <Button onClick={handleMove} disabled={moveNote.isPending}>
+            <Button
+              className="bg-[var(--notebook-brand)] text-[var(--notebook-panel)] hover:opacity-90"
+              onClick={handleMove}
+              disabled={moveNote.isPending}
+            >
               {copy.save}
             </Button>
           </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        </div>
+      </NotebookDialogShell>
 
       <NotebookFolderDialog
         copy={{

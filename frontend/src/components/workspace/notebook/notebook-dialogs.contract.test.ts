@@ -9,13 +9,14 @@ void test("Notebook dialogs match the reference create / quick capture / delete 
 
   assert.match(createSource, /saveToLabel/);
   assert.match(createSource, /FileText/);
-  assert.match(createSource, /showCloseButton=\{false\}/);
+  assert.match(createSource, /NotebookDialogShell/);
   assert.match(createSource, /NotebookFolderPicker/);
   assert.doesNotMatch(createSource, /目录，例如 projects\/alpha|Directory, e\.g\. projects\/alpha/);
   assert.match(quickSource, /Cmd\+Enter|Ctrl\+Enter/);
   assert.match(quickSource, /Zap|Sparkles/);
-  assert.match(quickSource, /showCloseButton=\{false\}/);
+  assert.match(quickSource, /NotebookDialogShell/);
   assert.match(quickSource, /收件箱|Inbox/);
+  assert.match(deleteSource, /NotebookDialogShell/);
   assert.match(deleteSource, /AlertTriangle/);
   assert.match(deleteSource, /恢复/);
   assert.match(deleteSource, /summary|content|路径/);
