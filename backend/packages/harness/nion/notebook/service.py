@@ -119,7 +119,7 @@ class NotebookService:
             created_at=str(frontmatter["created_at"]),
             updated_at=str(frontmatter["updated_at"]),
             content_hash=_hash_text(text),
-            body=body.rstrip("\n"),
+            body=body.lstrip("\n").rstrip("\n"),
             tags=normalized_tags,
             is_pinned=self._read_pinned_state(str(frontmatter["id"])),
         )

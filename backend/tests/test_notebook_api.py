@@ -221,3 +221,45 @@ def test_notebook_history_detail_returns_snapshot_content(monkeypatch, tmp_path)
         assert payload["entry"]["version_id"] == version_id
         assert payload["snapshot"]["title"] == "History Note"
         assert payload["snapshot"]["body"] == "v2"
+
+
+def test_notebook_assist_preview_and_apply(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+
+    with TestClient(create_app()) as client:
+        created = client.post(
+            "/api/notebook/notes",
+            json={"directory": "", "title": "Assist Note", "body": "line one\nline two"},
+        )
+        assert created.status_code == 200
+        note = created.json()["note"]
+        note_id = note["note_id"]
+
+        preview = client.post(
+            f"/api/notebook/notes/{note_id}/assist-preview",
+            json={"action": "summarize"},
+        )
+        assert preview.status_code == 200
+        preview_payload = preview.json()
+        assert preview_payload["action"] == "summarize"
+        assert preview_payload["content"]
+        assert preview_payload["original_content"] == "line one\nline two"
+
+        applied = client.post(
+            f"/api/notebook/notes/{note_id}/assist-apply",
+            json={
+                "action": "summarize",
+                "mode": "replace",
+                "content": preview_payload["content"],
+                "expected_content_hash": note["content_hash"],
+            },
+        )
+        assert applied.status_code == 200
+        applied_note = applied.json()["note"]
+        assert applied_note["body"] == preview_payload["content"]
+
+        history = client.get(f"/api/notebook/notes/{note_id}/history")
+        assert history.status_code == 200
+        assert history.json()["entries"][0]["actor_type"] == "agent"
+        assert history.json()["entries"][0]["operation"] == "edit"

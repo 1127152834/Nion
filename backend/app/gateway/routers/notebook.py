@@ -4,12 +4,18 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Literal
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from nion.config.paths import get_paths
-from nion.notebook import NotebookHistoryService, NotebookNote
+from nion.notebook import (
+    NotebookHistoryService,
+    NotebookNote,
+    apply_assist_content,
+    build_assist_preview,
+)
 from nion.notebook.models import NotebookDeletedNotePreview, NotebookNoteSummary
 from nion.notebook.service import NotebookConflictError, NotebookNotFoundError
 
@@ -104,6 +110,23 @@ class NotebookRestoreVersionRequest(BaseModel):
 class NotebookMetadataRequest(BaseModel):
     tags: list[str] | None = None
     is_pinned: bool | None = None
+
+
+class NotebookAssistPreviewRequest(BaseModel):
+    action: Literal["summarize", "rewrite", "expand", "checklist", "action_items"]
+
+
+class NotebookAssistPreviewResponse(BaseModel):
+    action: str
+    content: str
+    original_content: str
+
+
+class NotebookAssistApplyRequest(BaseModel):
+    action: Literal["summarize", "rewrite", "expand", "checklist", "action_items"]
+    mode: Literal["replace", "insert"]
+    content: str
+    expected_content_hash: str
 
 
 def _now_iso() -> str:
@@ -266,6 +289,54 @@ async def update_notebook_note_metadata(
             tags=payload.tags,
             is_pinned=payload.is_pinned,
         )
+    except NotebookNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return NotebookNoteResponse(note=note)
+
+
+@router.post("/notes/{note_id}/assist-preview", response_model=NotebookAssistPreviewResponse)
+async def preview_notebook_assist(
+    note_id: str,
+    payload: NotebookAssistPreviewRequest,
+) -> NotebookAssistPreviewResponse:
+    try:
+        note = NotebookHistoryService()._service.read_note(note_id)
+    except NotebookNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    content = build_assist_preview(
+        title=note.title,
+        body=note.body,
+        action=payload.action,
+    )
+    return NotebookAssistPreviewResponse(
+        action=payload.action,
+        content=content,
+        original_content=note.body,
+    )
+
+
+@router.post("/notes/{note_id}/assist-apply", response_model=NotebookNoteResponse)
+async def apply_notebook_assist(
+    note_id: str,
+    payload: NotebookAssistApplyRequest,
+) -> NotebookNoteResponse:
+    service = NotebookHistoryService()
+    try:
+        current = service._service.read_note(note_id)
+        next_body = apply_assist_content(
+            original_body=current.body,
+            generated_content=payload.content,
+            mode=payload.mode,
+        )
+        note = service.update_note(
+            note_id=note_id,
+            body=next_body,
+            expected_content_hash=payload.expected_content_hash,
+            actor_type="agent",
+        )
+    except NotebookConflictError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     except NotebookNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     return NotebookNoteResponse(note=note)
