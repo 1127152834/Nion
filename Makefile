@@ -1,6 +1,6 @@
 # Nion - Unified Development Environment
 
-.PHONY: help config config-upgrade check check-branding install dev dev-daemon start stop up down clean docker-init docker-start docker-stop docker-logs docker-logs-frontend docker-logs-gateway desktop-install build-desktop desktop-build desktop-start desktop-dev package-desktop package-desktop-builder package-desktop-forge
+.PHONY: help config config-upgrade check check-branding install dev web-dev dev-daemon start web-start stop up down clean docker-init docker-start docker-stop docker-logs docker-logs-frontend docker-logs-gateway desktop-install build-desktop desktop-build desktop-start desktop-dev package-desktop package-desktop-builder package-desktop-forge
 
 PYTHON ?= python
 
@@ -18,9 +18,11 @@ help:
 	@echo "  make check           - Check if all required tools are installed"
 	@echo "  make install         - Install all dependencies (frontend + backend)"
 	@echo "  make setup-sandbox   - Pre-pull sandbox container image (recommended)"
-	@echo "  make dev             - Start all services in development mode (with hot-reloading)"
+	@echo "  make web-dev         - Start the web development surface (frontend + backend + compatibility proxy)"
+	@echo "  make dev             - Compatibility alias for make web-dev"
 	@echo "  make dev-daemon      - Start all services in background (daemon mode)"
-	@echo "  make start           - Start all services in production mode (optimized, no hot-reloading)"
+	@echo "  make web-start       - Start the web production surface (optimized, no hot-reloading)"
+	@echo "  make start           - Compatibility alias for make web-start"
 	@echo "  make stop            - Stop all running services"
 	@echo "  make clean           - Clean up processes and temporary files"
 	@echo ""
@@ -102,12 +104,16 @@ setup-sandbox:
 	fi
 
 # Start all services in development mode (with hot-reloading)
-dev:
+web-dev:
 	@./scripts/serve.sh --dev
 
 # Start all services in production mode (with optimizations)
-start:
+web-start:
 	@./scripts/serve.sh --prod
+
+dev: web-dev
+
+start: web-start
 
 # Start all services in daemon mode (background)
 dev-daemon:
