@@ -1,5 +1,7 @@
 "use client";
 
+import { FileText, X } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -53,39 +55,54 @@ export function NotebookCreateDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{copy.createDialogTitle}</DialogTitle>
-          <DialogDescription>{copy.createDialogDescription}</DialogDescription>
-        </DialogHeader>
-        <div className="space-y-3">
-          <Input
-            value={title}
-            onChange={(event) => onTitleChange(event.target.value)}
-            placeholder={copy.noteTitlePlaceholder}
-          />
-          <Input
-            value={directory}
-            onChange={(event) => onDirectoryChange(event.target.value)}
-            placeholder={copy.noteDirectoryPlaceholder}
-          />
+        <div className="flex items-center justify-between border-b border-[#E5E5E5] px-6 py-4">
+          <div className="flex items-center text-lg font-semibold text-[#1A1A1A]">
+            <FileText className="mr-2 size-5" />
+            {copy.createDialogTitle}
+          </div>
+          <button
+            type="button"
+            onClick={() => onOpenChange(false)}
+            className="text-[#8C8C8C] transition-colors hover:text-[#1A1A1A]"
+          >
+            <X className="size-5" />
+          </button>
+        </div>
+        <div className="space-y-4 p-6">
+          <div>
+            <label className="mb-1 block text-sm font-medium text-[#595959]">标题</label>
+            <Input
+              value={title}
+              onChange={(event) => onTitleChange(event.target.value)}
+              placeholder={copy.noteTitlePlaceholder}
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-[#595959]">位置</label>
+            <Input
+              value={directory}
+              onChange={(event) => onDirectoryChange(event.target.value)}
+              placeholder={copy.noteDirectoryPlaceholder}
+            />
+          </div>
           <Textarea
             value={body}
             onChange={(event) => onBodyChange(event.target.value)}
             placeholder={copy.emptyDescription}
             className="min-h-40"
           />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              {copy.cancel}
+            </Button>
+            <Button
+              onClick={onSubmit}
+              disabled={!title.trim() || pending}
+            >
+              {pending ? copy.saving : copy.createNote}
+            </Button>
+          </DialogFooter>
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            {copy.cancel}
-          </Button>
-          <Button
-            onClick={onSubmit}
-            disabled={!title.trim() || pending}
-          >
-            {pending ? copy.saving : copy.createNote}
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
