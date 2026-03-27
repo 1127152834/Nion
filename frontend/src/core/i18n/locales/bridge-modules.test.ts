@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import * as nodeModule from "node:module";
 import test from "node:test";
+import vm from "node:vm";
 
 const { stripTypeScriptTypes } = nodeModule as typeof nodeModule & {
   stripTypeScriptTypes: (code: string) => string;
@@ -31,7 +32,7 @@ async function loadLocale<T>(filename: string, exportName: string): Promise<T> {
   );
   const executable = `${strippedSource}\nreturn __locale__;`;
 
-  return new Function(`${ICON_STUBS}\n${executable}`)() as T;
+  return vm.runInNewContext(`(() => {${ICON_STUBS}\n${executable}})()`) as T;
 }
 
 const enUS = await loadLocale<typeof import("./en-US.ts").enUS>("./en-US.ts", "enUS");

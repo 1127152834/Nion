@@ -18,8 +18,8 @@ import { ThreadContext } from "@/components/workspace/messages/context";
 import type { Agent } from "@/core/agents";
 import { checkAgentName, getAgent } from "@/core/agents/api";
 import { useI18n } from "@/core/i18n/hooks";
-import { pathOfNewAgentThread } from "@/core/threads/utils";
 import { useThreadStream } from "@/core/threads/hooks";
+import { pathOfNewAgentThread } from "@/core/threads/utils";
 import { uuid } from "@/core/utils/uuid";
 import { cn } from "@/lib/utils";
 

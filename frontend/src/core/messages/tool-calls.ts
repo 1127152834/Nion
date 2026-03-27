@@ -3,5 +3,5 @@ export function getTaskToolCallIds(
 ): string[] {
   return (toolCalls ?? [])
     .filter((toolCall) => toolCall.name === "task" && Boolean(toolCall.id))
-    .map((toolCall) => toolCall.id as string);
+    .map((toolCall) => toolCall.id!);
 }
