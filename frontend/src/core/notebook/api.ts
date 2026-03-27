@@ -1,12 +1,18 @@
 import { getBackendBaseURL } from "../config/index.ts";
 
 import type {
+  NotebookAssistApplyInput,
+  NotebookAssistPreview,
+  NotebookAssistPreviewInput,
   NotebookCreateInput,
   NotebookDeletePreview,
   NotebookDeletedNotePreview,
+  NotebookHistoryDetail,
   NotebookHistoryEntry,
+  NotebookMetadataInput,
   NotebookMoveInput,
   NotebookNote,
+  NotebookNoteSummary,
   NotebookRenameInput,
   NotebookRestoreVersionInput,
   NotebookTreeResponse,
@@ -44,6 +50,20 @@ export async function loadNotebookTree(): Promise<NotebookTreeResponse> {
     );
   }
   return readJson<NotebookTreeResponse>(response);
+}
+
+export async function loadNotebookNotes(): Promise<NotebookNoteSummary[]> {
+  const response = await fetch(`${getBackendBaseURL()}/api/notebook/notes`);
+  if (!response.ok) {
+    throw new Error(
+      resolveErrorMessage(
+        await response.text(),
+        `Failed to load notebook notes (${response.status})`,
+      ),
+    );
+  }
+  const json = await readJson<{ notes: NotebookNoteSummary[] }>(response);
+  return json.notes;
 }
 
 export async function loadNotebookTrash(): Promise<NotebookDeletedNotePreview[]> {
@@ -171,6 +191,24 @@ export async function loadNotebookHistory(
   return json.entries;
 }
 
+export async function loadNotebookHistoryDetail(
+  noteId: string,
+  versionId: string,
+): Promise<NotebookHistoryDetail> {
+  const response = await fetch(
+    `${getBackendBaseURL()}/api/notebook/notes/${noteId}/history/${versionId}`,
+  );
+  if (!response.ok) {
+    throw new Error(
+      resolveErrorMessage(
+        await response.text(),
+        `Failed to load notebook history detail (${response.status})`,
+      ),
+    );
+  }
+  return readJson<NotebookHistoryDetail>(response);
+}
+
 export async function restoreNotebookVersion(
   noteId: string,
   input: NotebookRestoreVersionInput,
@@ -223,6 +261,68 @@ export async function deleteNotebookNote(noteId: string): Promise<{ note_id: str
   }
   const json = await readJson<{ deleted: { note_id: string; trash_path: string } }>(response);
   return json.deleted;
+}
+
+export async function updateNotebookMetadata(
+  noteId: string,
+  input: NotebookMetadataInput,
+): Promise<NotebookNote> {
+  const response = await fetch(`${getBackendBaseURL()}/api/notebook/notes/${noteId}/metadata`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) {
+    throw new Error(
+      resolveErrorMessage(
+        await response.text(),
+        `Failed to update notebook metadata (${response.status})`,
+      ),
+    );
+  }
+  const json = await readJson<{ note: NotebookNote }>(response);
+  return json.note;
+}
+
+export async function previewNotebookAssist(
+  noteId: string,
+  input: NotebookAssistPreviewInput,
+): Promise<NotebookAssistPreview> {
+  const response = await fetch(`${getBackendBaseURL()}/api/notebook/notes/${noteId}/assist-preview`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) {
+    throw new Error(
+      resolveErrorMessage(
+        await response.text(),
+        `Failed to preview notebook assist (${response.status})`,
+      ),
+    );
+  }
+  return readJson<NotebookAssistPreview>(response);
+}
+
+export async function applyNotebookAssist(
+  noteId: string,
+  input: NotebookAssistApplyInput,
+): Promise<NotebookNote> {
+  const response = await fetch(`${getBackendBaseURL()}/api/notebook/notes/${noteId}/assist-apply`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) {
+    throw new Error(
+      resolveErrorMessage(
+        await response.text(),
+        `Failed to apply notebook assist (${response.status})`,
+      ),
+    );
+  }
+  const json = await readJson<{ note: NotebookNote }>(response);
+  return json.note;
 }
 
 export async function restoreDeletedNotebookNote(noteId: string): Promise<NotebookNote> {
