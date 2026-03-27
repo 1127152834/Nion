@@ -162,6 +162,23 @@ make dev
 - Thread Files API：`http://localhost:2026/api/threads/{thread_id}/files/*`
 - CLI Catalog API：`http://localhost:2026/api/cli/catalog`
 
+如果只调试 web 前端，也可以直接运行：
+
+```bash
+cd frontend && pnpm dev
+```
+
+此模式下 Next.js 会直接转发：
+
+- `/api/langgraph/*` → `http://127.0.0.1:2024/*`
+- 其余 `/api/*` → `http://127.0.0.1:8001/api/*`
+
+如果需要显式执行静态导出构建，请使用：
+
+```bash
+NION_STATIC_EXPORT=1 pnpm --dir frontend build
+```
+
 ---
 
 ## Docker 开发模式

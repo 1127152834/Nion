@@ -35,6 +35,7 @@ cp .env.example .env
 pnpm dev
 
 # The app will be available at http://localhost:3000
+# API routes are proxied to the local backend services automatically
 ```
 
 ### Build
@@ -69,13 +70,15 @@ pnpm start
 Key environment variables (see `.env.example` for full list):
 
 ```bash
-# Backend API URLs (optional, uses nginx proxy by default)
+# Backend API URLs (optional)
+# Leave these unset for local `pnpm dev` use; Next.js rewrites proxy `/api/*`
+# to the default local backend services automatically.
 NEXT_PUBLIC_BACKEND_BASE_URL="http://localhost:8001"
-# LangGraph API URLs (optional, uses nginx proxy by default)
+# LangGraph API URLs (optional)
 NEXT_PUBLIC_LANGGRAPH_BASE_URL="http://localhost:2024"
 ```
 
-When running behind the local nginx entrypoint (`http://localhost:2026`), the frontend can use relative `/api/*` requests. The settings shell now expects `/api/config`, `/api/config/schema`, and `/api/config/runtime-status` to be proxied to the gateway.
+When running behind the local nginx entrypoint (`http://localhost:2026`), the frontend can use relative `/api/*` requests. When running standalone via `pnpm dev`, `next.config.js` rewrites `/api/langgraph/*` to `http://127.0.0.1:2024/*` and rewrites the remaining `/api/*` requests to `http://127.0.0.1:8001/api/*`. The settings shell now expects `/api/config`, `/api/config/schema`, and `/api/config/runtime-status` to be proxied to the gateway.
 The chat runtime shell also expects `/api/threads/{thread_id}/runtime-profile`, `/api/threads/{thread_id}/files/*`, and `/api/cli/catalog`.
 
 ## Project Structure
@@ -131,7 +134,7 @@ src/
 - Uses pnpm workspaces (see `packageManager` in package.json)
 - Turbopack enabled by default in development for faster builds
 - Environment validation can be skipped with `SKIP_ENV_VALIDATION=1` (useful for Docker)
-- Backend API URLs are optional; nginx proxy is used by default in development
+- Set `NION_STATIC_EXPORT=1` only when you intentionally need a static export build
 - The settings dialog shell is grouped into Experience / Knowledge & Memory / Tools & Skills and preloads Config Center state when opened
 - The chat page now exposes a runtime toggle plus Context / Skill / MCP / CLI shortcut lanes
 
