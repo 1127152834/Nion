@@ -640,9 +640,11 @@ export async function startDesktopMain(): Promise<void> {
   });
 
   const preloadPath = path.join(__dirname, "..", "preload", "index.js");
+  const rendererUrl =
+    process.env.NION_DESKTOP_RENDERER_URL?.trim() || "nion://app/index.html";
   mainWindow = await createMainWindow({
     preloadPath,
-    rendererUrl: "nion://app/index.html",
+    rendererUrl,
   });
 
   mainWindow.on("closed", () => {

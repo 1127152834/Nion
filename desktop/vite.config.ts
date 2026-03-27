@@ -7,9 +7,23 @@ const rootDir = path.resolve(import.meta.dirname, "..");
 const frontendSrc = path.resolve(rootDir, "frontend", "src");
 const rendererShims = path.resolve(import.meta.dirname, "src", "renderer", "shims");
 const rootNodeModules = path.resolve(rootDir, "node_modules");
+const defineProcessEnv = {
+  "process.env.NODE_ENV": JSON.stringify(process.env.NODE_ENV ?? "development"),
+  "process.env.NEXT_PUBLIC_BACKEND_BASE_URL": JSON.stringify(process.env.NEXT_PUBLIC_BACKEND_BASE_URL ?? ""),
+  "process.env.NEXT_PUBLIC_LANGGRAPH_BASE_URL": JSON.stringify(process.env.NEXT_PUBLIC_LANGGRAPH_BASE_URL ?? ""),
+  "process.env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY": JSON.stringify(process.env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY ?? ""),
+  "process.env.GITHUB_OAUTH_TOKEN": JSON.stringify(process.env.GITHUB_OAUTH_TOKEN ?? ""),
+  "process.env.SKIP_ENV_VALIDATION": JSON.stringify(process.env.SKIP_ENV_VALIDATION ?? ""),
+};
 
 export default defineConfig({
   plugins: [react()],
+  define: defineProcessEnv,
+  server: {
+    host: "127.0.0.1",
+    port: 5173,
+    strictPort: true,
+  },
   resolve: {
     dedupe: ["react", "react-dom"],
     alias: [

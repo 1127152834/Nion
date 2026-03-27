@@ -11,6 +11,7 @@ from app.gateway.config import get_gateway_config
 
 
 SharedLifespan = AbstractAsyncContextManager[AsyncGenerator[None, None], bool]
+DEV_RENDERER_ORIGINS = ("http://127.0.0.1:5173", "http://localhost:5173")
 
 
 def create_runtime_app(
@@ -70,7 +71,9 @@ def create_runtime_app(
     app.state.daemon_shutdown_callback = shutdown_callback
 
     gateway_config = get_gateway_config()
-    allowed_origins = list(dict.fromkeys([*gateway_config.cors_origins, "nion://app"]))
+    allowed_origins = list(
+        dict.fromkeys([*gateway_config.cors_origins, *DEV_RENDERER_ORIGINS, "nion://app"])
+    )
     app.add_middleware(
         CORSMiddleware,
         allow_origins=allowed_origins,

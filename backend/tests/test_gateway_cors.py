@@ -14,3 +14,4 @@ def test_gateway_allows_desktop_protocol_origin() -> None:
     assert cors_middleware is not None
     assert "nion://app" in cors_middleware.kwargs["allow_origins"]
     assert "http://localhost:3000" in cors_middleware.kwargs["allow_origins"]
+    assert "http://127.0.0.1:5173" in cors_middleware.kwargs["allow_origins"]

@@ -187,8 +187,9 @@ desktop-build: build-desktop
 desktop-start:
 	@cd desktop && pnpm exec electron dist/main/index.js
 
-desktop-dev: build-desktop
-	@cd desktop && pnpm exec electron dist/main/index.js
+desktop-dev:
+	@mkdir -p logs
+	@bash ./scripts/desktop-dev.sh
 
 package-desktop:
 	@bash ./scripts/package-desktop.sh builder
