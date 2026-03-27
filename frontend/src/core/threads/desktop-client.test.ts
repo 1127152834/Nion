@@ -1,9 +1,23 @@
-import test from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import test from "node:test";
 
 import { createDesktopThreadClient } from "../api/desktop-client.ts";
 
-test("desktop thread client exposes search/getState/update/delete/stream", () => {
+void test("shared thread model files avoid explicit any", async () => {
+  const files = [
+    new URL("../types.ts", import.meta.url),
+    new URL("../api/desktop-client.ts", import.meta.url),
+    new URL("../../../next-shims.d.ts", import.meta.url),
+  ];
+
+  for (const file of files) {
+    const source = fs.readFileSync(file, "utf8");
+    assert.doesNotMatch(source, /\bany\b/);
+  }
+});
+
+void test("desktop thread client exposes search/getState/update/delete/stream", () => {
   const client = createDesktopThreadClient({
     getBaseURL: () => "http://127.0.0.1:43115/api/threads",
   });
@@ -14,9 +28,9 @@ test("desktop thread client exposes search/getState/update/delete/stream", () =>
   assert.equal(typeof client.streamRun, "function");
 });
 
-test("desktop thread client forwards custom SSE events to handlers", async () => {
+void test("desktop thread client forwards custom SSE events to handlers", async () => {
   const originalFetch = globalThis.fetch;
-  const seen: Array<{ event: string; data: any }> = [];
+  const seen: Array<{ event: string; data: Record<string, unknown> }> = [];
 
   globalThis.fetch = async () =>
     new Response(
@@ -71,7 +85,7 @@ test("desktop thread client forwards custom SSE events to handlers", async () =>
   globalThis.fetch = originalFetch;
 });
 
-test("desktop thread client surfaces SSE error events", async () => {
+void test("desktop thread client surfaces SSE error events", async () => {
   const originalFetch = globalThis.fetch;
 
   globalThis.fetch = async () =>

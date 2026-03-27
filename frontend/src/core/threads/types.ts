@@ -3,20 +3,35 @@ import type { Todo } from "../todos";
 export type ToolCall = {
   id?: string;
   name: string;
-  args: Record<string, any>;
+  args: Record<string, unknown> & {
+    query?: string;
+    description?: string;
+    prompt?: string;
+    subagent_type?: string;
+    content?: string;
+    filepaths?: string[];
+  };
+};
+
+type UnknownMessageContentPart = {
+  type: string;
+  text?: string;
+  image_url?: string | { url: string };
+  thinking?: string;
+  [key: string]: unknown;
 };
 
 export type MessageContentPart =
   | { type: "text"; text: string }
   | { type: "image_url"; image_url: string | { url: string } }
   | { type: "thinking"; thinking?: string; text?: string }
-  | Record<string, any>;
+  | UnknownMessageContentPart;
 
 export interface Message {
   type: "human" | "ai" | "tool";
   id?: string;
   content: string | MessageContentPart[];
-  additional_kwargs?: Record<string, any>;
+  additional_kwargs?: Record<string, unknown>;
   tool_calls?: ToolCall[];
   name?: string;
   tool_call_id?: string;

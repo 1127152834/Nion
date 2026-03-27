@@ -9,11 +9,11 @@ import type { ThreadClientSearchParams } from "../api/thread-client";
 import { useI18n } from "../i18n/hooks";
 import type { FileInMessage } from "../messages/utils";
 import { useUpdateSubtask } from "../tasks/context";
-import { getThreadRequestErrorCopy, getThreadRequestErrorMessage } from "./error-copy";
 import type { UploadedFileInfo } from "../uploads";
 import { uploadFiles } from "../uploads";
-import { removeThreadFromSearchCache } from "./cache";
 
+import { removeThreadFromSearchCache } from "./cache";
+import { getThreadRequestErrorCopy, getThreadRequestErrorMessage } from "./error-copy";
 import type {
   AIMessage,
   AgentThread,
@@ -219,7 +219,7 @@ export function useThreadStream({
           },
           onEvent: (eventType, eventData) => {
             if (eventType === "messages-tuple") {
-              const nextMessage = eventData as Message;
+              const nextMessage = eventData as unknown as Message;
               setMessages((current) => mergeMessages(current, [nextMessage]));
               if (nextMessage.type === "tool" && nextMessage.name) {
                 listeners.current.onToolEnd?.({
@@ -246,7 +246,7 @@ export function useThreadStream({
             if (eventType === "values") {
               const snapshot = eventData as Partial<AgentThreadState>;
               const snapshotMessages = Array.isArray(snapshot.messages)
-                ? (snapshot.messages as Message[])
+                ? snapshot.messages
                 : [];
               const mergedMessages = mergeMessages(messagesRef.current, snapshotMessages);
               setMessages(mergedMessages);
@@ -269,7 +269,7 @@ export function useThreadStream({
                             ...thread,
                             values: {
                               ...thread.values,
-                              title: snapshot.title as string,
+                              title: snapshot.title,
                             },
                           }
                         : thread,
@@ -309,7 +309,7 @@ export function useThreadStream({
         void queryClient.invalidateQueries({ queryKey: ["threads", "search"] });
       }
     },
-    [apiClient, handleStreamStart, queryClient, updateSubtask],
+    [apiClient, handleStreamStart, queryClient, t.workspace.requestError, updateSubtask],
   );
 
   const thread: BaseStream<AgentThreadState> = useMemo(

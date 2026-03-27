@@ -1,4 +1,4 @@
-import type { AIMessage, Message } from "../threads";
+import type { Message } from "../threads";
 
 const INTERNAL_SUMMARY_PREFIX = "Here is a summary of the conversation to date:";
 
@@ -186,10 +186,16 @@ export function extractContentFromMessage(message: Message) {
   if (Array.isArray(message.content)) {
     return message.content
       .map((content) => {
-        if (content.type === "text" && "text" in content) {
+        if (content.type === "text" && typeof content.text === "string") {
           return content.text;
         }
-        if (content.type === "image_url" && "image_url" in content) {
+        if (
+          content.type === "image_url" &&
+          (typeof content.image_url === "string" ||
+            (typeof content.image_url === "object" &&
+              content.image_url !== null &&
+              "url" in content.image_url))
+        ) {
           const imageURL = extractURLFromImageURLContent(content.image_url);
           return `![image](${imageURL})`;
         }
@@ -213,8 +219,8 @@ export function extractReasoningContentFromMessage(message: Message) {
   }
   if (Array.isArray(message.content)) {
     const part = message.content[0];
-    if (part && "thinking" in part) {
-      return part.thinking as string;
+    if (part && "thinking" in part && typeof part.thinking === "string") {
+      return part.thinking;
     }
   }
   if (typeof message.content === "string") {
@@ -276,7 +282,7 @@ export function hasReasoning(message: Message) {
   if (Array.isArray(message.content)) {
     const part = message.content[0];
     // Compatible with the Anthropic gateway
-    return (part as unknown as { type: "thinking" })?.type === "thinking";
+    return part?.type === "thinking";
   }
   if (typeof message.content === "string") {
     return splitInlineReasoning(message.content).reasoning !== null;
@@ -311,7 +317,7 @@ export function extractPresentFilesFromMessage(message: Message) {
       toolCall.name === "present_files" &&
       Array.isArray(toolCall.args.filepaths)
     ) {
-      files.push(...(toolCall.args.filepaths as string[]));
+      files.push(...toolCall.args.filepaths);
     }
   }
   return files;

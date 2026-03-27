@@ -17,7 +17,7 @@ export type DesktopThreadSearchParams = {
 type StreamHandlers = {
   signal?: AbortSignal;
   onCreated?: (threadId: string) => void;
-  onEvent?: (event: string, data: any) => void;
+  onEvent?: (event: string, data: Record<string, unknown>) => void;
 };
 
 export type DesktopThreadRecord<TState extends Record<string, unknown> = AgentThreadState> = {
@@ -149,11 +149,17 @@ function normalizeThreadRecord<TState extends Record<string, unknown>>(
   threadId?: string,
 ): DesktopThreadRecord<TState> {
   const values = (record.values ?? {}) as TState;
+  const resolvedThreadId =
+    typeof record.thread_id === "string" ? record.thread_id : (threadId ?? "");
+  const createdAt =
+    typeof record.created_at === "string" ? record.created_at : undefined;
+  const updatedAt =
+    typeof record.updated_at === "string" ? record.updated_at : undefined;
 
   return {
-    thread_id: (record.thread_id as string | undefined) ?? threadId ?? "",
-    created_at: record.created_at as string | undefined,
-    updated_at: record.updated_at as string | undefined,
+    thread_id: resolvedThreadId,
+    created_at: createdAt,
+    updated_at: updatedAt,
     values,
   };
 }
@@ -207,11 +213,13 @@ async function consumeSSE(
       }
 
       const event = parseSSEEvent(rawEvent);
-      const parsed = event.data ? JSON.parse(event.data) : {};
+      const parsed = event.data
+        ? (JSON.parse(event.data) as Record<string, unknown>)
+        : {};
       if (event.event === "error") {
         const message =
-          (typeof parsed?.message === "string" && parsed.message.trim()) ||
-          (typeof parsed?.error === "string" && parsed.error.trim()) ||
+          (typeof parsed.message === "string" ? parsed.message.trim() : undefined) ??
+          (typeof parsed.error === "string" ? parsed.error.trim() : undefined) ??
           "Thread stream failed";
         throw new Error(message);
       }
@@ -229,15 +237,24 @@ async function getMockState<TState extends Record<string, unknown>>(
   threadId: string,
 ): Promise<DesktopThreadRecord<TState>> {
   const baseUrl = getThreadsBaseURL(true);
-  const data = await requestJSON<any>(`${baseUrl}/${threadId}/history`, {
+  const data = await requestJSON<unknown>(`${baseUrl}/${threadId}/history`, {
     method: "POST",
   });
+  const emptyRecord: Record<string, unknown> = {};
 
   if (Array.isArray(data)) {
-    return normalizeThreadRecord<TState>(data[0] ?? {}, threadId);
+    const firstRecord =
+      typeof data[0] === "object" && data[0] !== null
+        ? (data[0] as Record<string, unknown>)
+        : emptyRecord;
+    return normalizeThreadRecord<TState>(firstRecord, threadId);
   }
 
-  return normalizeThreadRecord<TState>(data ?? {}, threadId);
+  const record =
+    typeof data === "object" && data !== null
+      ? (data as Record<string, unknown>)
+      : emptyRecord;
+  return normalizeThreadRecord<TState>(record, threadId);
 }
 
 export function createDesktopThreadClient(
@@ -262,7 +279,7 @@ export function createDesktopThreadClient(
         },
       );
 
-      return result.map((item) => normalizeThreadRecord<TState>(item as any));
+      return result.map((item) => normalizeThreadRecord<TState>(item));
     },
 
     async getState<TState extends Record<string, unknown> = AgentThreadState>(
@@ -276,7 +293,7 @@ export function createDesktopThreadClient(
       const result = await requestJSON<Record<string, unknown>>(
         `${baseUrl}/${threadId}/state`,
       );
-      return normalizeThreadRecord<TState>(result as any, threadId);
+      return normalizeThreadRecord<TState>(result, threadId);
     },
 
     async updateState(threadId: string, payload: { values: Record<string, unknown> }) {
@@ -288,7 +305,7 @@ export function createDesktopThreadClient(
           body: JSON.stringify(payload),
         },
       );
-      return normalizeThreadRecord(result as any, threadId);
+      return normalizeThreadRecord(result, threadId);
     },
 
     async deleteThread(threadId: string) {

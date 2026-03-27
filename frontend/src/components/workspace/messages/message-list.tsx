@@ -125,9 +125,9 @@ export function MessageList({
                   if (toolCall.name === "task") {
                     const task: Subtask = {
                       id: toolCall.id!,
-                      subagent_type: toolCall.args.subagent_type,
-                      description: toolCall.args.description,
-                      prompt: toolCall.args.prompt,
+                      subagent_type: toolCall.args.subagent_type ?? "",
+                      description: toolCall.args.description ?? "",
+                      prompt: toolCall.args.prompt ?? "",
                       status: "in_progress",
                     };
                     updateSubtask(task);
@@ -193,7 +193,7 @@ export function MessageList({
                 results.push(
                   <SubtaskCard
                     key={"task-group-" + taskId}
-                    taskId={taskId!}
+                    taskId={taskId}
                     isLoading={thread.isLoading}
                   />,
                 );
