@@ -3,6 +3,7 @@
 import { CheckCircle2, Clock, Edit3, Eye, FileText, Folder, History, MoreHorizontal, Trash2 } from "lucide-react";
 import { useState } from "react";
 
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import type { NotebookNote } from "@/core/notebook";
@@ -11,6 +12,8 @@ import { MarkdownContent } from "../messages/markdown-content";
 
 type NotebookEditorPaneCopy = {
   delete: string;
+  draftDirectoryPending: string;
+  draftMetaLabel: string;
   edit: string;
   history: string;
   lastEditedPrefix: string;
@@ -20,8 +23,10 @@ type NotebookEditorPaneCopy = {
   noteTitlePlaceholder: string;
   preview: string;
   saved: string;
+  saveDraft: string;
   saving: string;
   selectNote: string;
+  untitledDraftTitle: string;
   unsaved: string;
 };
 
@@ -29,6 +34,8 @@ type NotebookEditorPaneProps = {
   copy: NotebookEditorPaneCopy;
   draftBody: string;
   draftTitle: string;
+  draftDirectory: string;
+  isDraft: boolean;
   isLoading: boolean;
   loadingLabel: string;
   note: NotebookNote | null;
@@ -39,12 +46,15 @@ type NotebookEditorPaneProps = {
   onOpenHistory: () => void;
   onOpenMore: () => void;
   onPrimaryCreate: () => void;
+  onSaveDraft: () => void;
 };
 
 export function NotebookEditorPane({
   copy,
   draftBody,
   draftTitle,
+  draftDirectory,
+  isDraft,
   isLoading,
   loadingLabel,
   note,
@@ -55,14 +65,18 @@ export function NotebookEditorPane({
   onOpenHistory,
   onOpenMore,
   onPrimaryCreate,
+  onSaveDraft,
 }: NotebookEditorPaneProps) {
   const [previewMode, setPreviewMode] = useState(false);
   const lastEdited = note ? formatLastEdited(note.updated_at) : "";
+  const draftLocationLabel = draftDirectory
+    ? draftDirectory
+    : copy.draftDirectoryPending;
 
   return (
     <div className="relative flex h-full min-w-0 flex-col overflow-hidden bg-[var(--notebook-panel)]">
-      <header className="z-10 flex shrink-0 items-center justify-between border-b border-[var(--notebook-border)] bg-[var(--notebook-panel)] px-5 py-4 xl:px-6">
-        {!note ? (
+      <header className="z-10 flex shrink-0 flex-col gap-4 border-b border-[var(--notebook-border)] bg-[var(--notebook-panel)] px-5 py-4 xl:px-6">
+        {!note && !isDraft ? (
           <div className="space-y-1">
             <h2 className="text-[18px] font-semibold text-[var(--notebook-ink)]">
               {copy.noSelectionTitle}
@@ -73,70 +87,89 @@ export function NotebookEditorPane({
           </div>
         ) : (
           <>
-            <div className="flex min-w-0 flex-col">
-              <div className="mb-1 flex items-center gap-2 text-xs text-[var(--notebook-soft-text)]">
-                <Folder className="size-3" />
-                <span>{note.relative_path}</span>
-                <span>/</span>
-                <span className="flex items-center">
-                  <Clock className="mr-1 size-3" />
-                  {copy.lastEditedPrefix} {lastEdited}
-                </span>
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+              <div className="min-w-0 flex-1">
+                <div className="mb-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[var(--notebook-soft-text)]">
+                  <Folder className="size-3" />
+                  <span>{isDraft ? copy.draftMetaLabel : note?.relative_path}</span>
+                  {isDraft ? (
+                    <span className="truncate">{draftLocationLabel}</span>
+                  ) : (
+                    <>
+                      <span>/</span>
+                      <span className="flex items-center">
+                        <Clock className="mr-1 size-3" />
+                        {copy.lastEditedPrefix} {lastEdited}
+                      </span>
+                    </>
+                  )}
+                </div>
+                <Input
+                  value={draftTitle}
+                  onChange={(event) => onDraftTitleChange(event.target.value)}
+                  placeholder={copy.noteTitlePlaceholder}
+                  className="h-auto border-0 bg-transparent px-0 text-2xl font-semibold leading-tight tracking-tight text-[var(--notebook-ink)] shadow-none focus-visible:ring-0 md:text-[2rem]"
+                />
               </div>
-              <Input
-                value={draftTitle}
-                onChange={(event) => onDraftTitleChange(event.target.value)}
-                placeholder={copy.noteTitlePlaceholder}
-                className="h-auto border-0 bg-transparent px-0 text-2xl font-semibold leading-tight tracking-tight text-[var(--notebook-ink)] shadow-none focus-visible:ring-0 md:text-[2rem]"
-              />
-            </div>
 
-            <div className="flex items-center gap-4">
-              <div className="text-xs text-[var(--notebook-soft-text)]">
-                {saveState === "saved" ? (
-                  <span className="flex items-center text-[var(--notebook-success)]">
-                    <CheckCircle2 className="mr-1 size-4" />
-                    {copy.saved}
-                  </span>
-                ) : saveState === "saving" ? (
-                  <span>{copy.saving}</span>
+              <div className="flex shrink-0 items-center gap-3 self-start lg:pt-1">
+                <div className="text-xs text-[var(--notebook-soft-text)]">
+                  {isDraft ? (
+                    <span>{copy.unsaved}</span>
+                  ) : saveState === "saved" ? (
+                    <span className="flex items-center text-[var(--notebook-success)]">
+                      <CheckCircle2 className="mr-1 size-4" />
+                      {copy.saved}
+                    </span>
+                  ) : saveState === "saving" ? (
+                    <span>{copy.saving}</span>
+                  ) : (
+                    <span>{copy.unsaved}</span>
+                  )}
+                </div>
+                {isDraft ? (
+                  <Button
+                    className="bg-[var(--notebook-brand)] text-[var(--notebook-panel)] hover:opacity-90"
+                    onClick={onSaveDraft}
+                  >
+                    {copy.saveDraft}
+                  </Button>
                 ) : (
-                  <span>{copy.unsaved}</span>
+                  <div className="flex items-center gap-1 border-l border-[var(--notebook-border)] pl-4">
+                    <button
+                      type="button"
+                      onClick={() => setPreviewMode((current) => !current)}
+                      className={`rounded-md p-1.5 transition-colors ${previewMode ? "bg-[var(--notebook-active)] text-[var(--notebook-ink)]" : "text-[var(--notebook-soft-text)] hover:bg-[var(--notebook-muted)] hover:text-[var(--notebook-ink)]"}`}
+                      title={previewMode ? copy.edit : copy.preview}
+                    >
+                      {previewMode ? <Edit3 className="size-4" /> : <Eye className="size-4" />}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={onOpenHistory}
+                      className="rounded-md p-1.5 text-[var(--notebook-soft-text)] transition-colors hover:bg-[var(--notebook-muted)] hover:text-[var(--notebook-ink)]"
+                      title={copy.history}
+                    >
+                      <History className="size-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={onOpenDelete}
+                      className="rounded-md p-1.5 text-[var(--notebook-soft-text)] transition-colors hover:bg-[var(--notebook-danger-surface)] hover:text-[var(--notebook-danger)]"
+                      title={copy.delete}
+                    >
+                      <Trash2 className="size-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={onOpenMore}
+                      className="rounded-md p-1.5 text-[var(--notebook-soft-text)] transition-colors hover:bg-[var(--notebook-muted)] hover:text-[var(--notebook-ink)]"
+                      title="更多操作"
+                    >
+                      <MoreHorizontal className="size-4" />
+                    </button>
+                  </div>
                 )}
-              </div>
-              <div className="flex items-center gap-1 border-l border-[var(--notebook-border)] pl-4">
-                <button
-                  type="button"
-                  onClick={() => setPreviewMode((current) => !current)}
-                  className={`rounded-md p-1.5 transition-colors ${previewMode ? "bg-[var(--notebook-active)] text-[var(--notebook-ink)]" : "text-[var(--notebook-soft-text)] hover:bg-[var(--notebook-muted)] hover:text-[var(--notebook-ink)]"}`}
-                  title={previewMode ? copy.edit : copy.preview}
-                >
-                  {previewMode ? <Edit3 className="size-4" /> : <Eye className="size-4" />}
-                </button>
-                <button
-                  type="button"
-                  onClick={onOpenHistory}
-                  className="rounded-md p-1.5 text-[var(--notebook-soft-text)] transition-colors hover:bg-[var(--notebook-muted)] hover:text-[var(--notebook-ink)]"
-                  title={copy.history}
-                >
-                  <History className="size-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={onOpenDelete}
-                  className="rounded-md p-1.5 text-[var(--notebook-soft-text)] transition-colors hover:bg-[var(--notebook-danger-surface)] hover:text-[var(--notebook-danger)]"
-                  title={copy.delete}
-                >
-                  <Trash2 className="size-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={onOpenMore}
-                  className="rounded-md p-1.5 text-[var(--notebook-soft-text)] transition-colors hover:bg-[var(--notebook-muted)] hover:text-[var(--notebook-ink)]"
-                  title="更多操作"
-                >
-                  <MoreHorizontal className="size-4" />
-                </button>
               </div>
             </div>
           </>
@@ -144,7 +177,7 @@ export function NotebookEditorPane({
       </header>
 
       <div className="relative flex-1 overflow-y-auto px-8 py-6 xl:px-10 xl:py-7">
-        {!note || isLoading ? (
+        {!note && !isDraft || isLoading ? (
           <div className="flex h-full flex-col items-center justify-center text-[var(--notebook-soft-text)]">
             <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--notebook-muted)]">
               <FileText className="size-6" />

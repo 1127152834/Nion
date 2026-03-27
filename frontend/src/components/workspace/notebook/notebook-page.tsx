@@ -61,6 +61,10 @@ type FolderDialogState = {
   open: boolean;
   parentDirectory: string;
 };
+type DraftSession = {
+  directory: string;
+  needsMetadataBeforeSave: boolean;
+};
 
 export function NotebookPage() {
   const { t } = useI18n();
@@ -88,6 +92,7 @@ export function NotebookPage() {
   const [renameOpen, setRenameOpen] = useState(false);
   const [moveOpen, setMoveOpen] = useState(false);
   const [moveDirectory, setMoveDirectory] = useState("");
+  const [draftSession, setDraftSession] = useState<DraftSession | null>(null);
   const [leftRailCollapsed, setLeftRailCollapsed] = useState(false);
   const [rightRailCollapsed, setRightRailCollapsed] = useState(false);
   const [contextTab, setContextTab] = useState<NotebookContextTab>("ask");
@@ -118,10 +123,13 @@ export function NotebookPage() {
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    if (draftSession) {
+      return;
+    }
     if (!selectedNoteId && tree.files.length > 0) {
       setSelectedNoteId(tree.files[0]?.note_id ?? null);
     }
-  }, [selectedNoteId, tree.files]);
+  }, [draftSession, selectedNoteId, tree.files]);
 
   useEffect(() => {
     if (searchParams.get("create") !== "1") {
@@ -130,12 +138,17 @@ export function NotebookPage() {
     const seededTitle = searchParams.get("title") ?? "";
     const seededBody = searchParams.get("body") ?? "";
     const seededDirectory = searchParams.get("directory") ?? "";
-    setCreateDraft({
-      title: seededTitle,
-      body: seededBody,
+    setDraftSession({
       directory: seededDirectory,
+      needsMetadataBeforeSave: !seededDirectory,
     });
-    setCreateOpen(true);
+    setSelectedNoteId(null);
+    setDraftTitle(seededTitle);
+    setDraftBody(seededBody);
+    setDraftHash("");
+    setSavedTitle("");
+    setSavedBody("");
+    setSaveState("unsaved");
   }, [searchParams]);
 
   useEffect(() => {
@@ -151,6 +164,7 @@ export function NotebookPage() {
     setRenameValue(note.title);
     const slash = note.relative_path.lastIndexOf("/");
     setMoveDirectory(slash >= 0 ? note.relative_path.slice(0, slash) : "");
+    setDraftSession(null);
   }, [note, selectedNoteId]);
 
   const selectedFile = useMemo(
@@ -170,12 +184,18 @@ export function NotebookPage() {
   );
 
   const dirty = note !== null && (draftBody !== savedBody || draftTitle !== savedTitle);
+  const isDraft = draftSession !== null;
 
   async function handleCreate() {
     try {
-      const created = await createNote.mutateAsync(createDraft);
+      const created = await createNote.mutateAsync({
+        directory: createDraft.directory,
+        title: draftTitle.trim() || copy.untitledDraftTitle,
+        body: draftBody,
+      });
       setCreateOpen(false);
       setCreateDraft({ directory: "", title: "", body: "" });
+      setDraftSession(null);
       setSelectedNoteId(created.note_id);
       toast.success(copy.saved);
     } catch (err) {
@@ -197,6 +217,9 @@ export function NotebookPage() {
   }
 
   async function handleSave() {
+    if (isDraft) {
+      return;
+    }
     if (!selectedNoteId) {
       return;
     }
@@ -311,6 +334,9 @@ export function NotebookPage() {
   }
 
   useEffect(() => {
+    if (isDraft) {
+      return;
+    }
     if (!note) {
       return;
     }
@@ -331,21 +357,17 @@ export function NotebookPage() {
         saveTimeoutRef.current = null;
       }
     };
-  }, [draftBody, draftTitle, dirty, note]);
+  }, [draftBody, draftTitle, dirty, isDraft, note]);
 
   useEffect(() => {
-    if (!createOpen) {
+    if (!createOpen || !draftSession) {
       return;
     }
     setCreateDraft((current) => ({
       ...current,
-      directory: findDefaultNotebookDirectory({
-        options: directoryOptions,
-        preferredDirectory: current.directory,
-        selectedNotePath: selectedFile?.path ?? null,
-      }),
+      directory: current.directory || draftSession.directory,
     }));
-  }, [createOpen, directoryOptions, selectedFile?.path]);
+  }, [createOpen, draftSession]);
 
   useEffect(() => {
     if (!moveOpen) {
@@ -361,8 +383,49 @@ export function NotebookPage() {
   }, [directoryOptions, moveOpen, selectedFile?.path]);
 
   function openCreateDialogInDirectory(directory: string) {
-    setCreateDraft((current) => ({ ...current, directory }));
-    setCreateOpen(true);
+    setDraftSession({
+      directory,
+      needsMetadataBeforeSave: false,
+    });
+    setSelectedNoteId(null);
+    setDraftTitle("");
+    setDraftBody("");
+    setDraftHash("");
+    setSavedTitle("");
+    setSavedBody("");
+    setSaveState("unsaved");
+    setContextTab("ask");
+  }
+
+  function openDraftComposer() {
+    setDraftSession({
+      directory: "",
+      needsMetadataBeforeSave: true,
+    });
+    setSelectedNoteId(null);
+    setDraftTitle("");
+    setDraftBody("");
+    setDraftHash("");
+    setSavedTitle("");
+    setSavedBody("");
+    setSaveState("unsaved");
+    setContextTab("ask");
+  }
+
+  function handleSaveDraft() {
+    if (!draftSession) {
+      return;
+    }
+    setCreateDraft({
+      directory: draftSession.directory,
+      title: draftTitle,
+      body: draftBody,
+    });
+    if (draftSession.needsMetadataBeforeSave) {
+      setCreateOpen(true);
+      return;
+    }
+    void handleCreate();
   }
 
   function openCreateFolderDialog(parentDirectory = "") {
@@ -456,7 +519,7 @@ export function NotebookPage() {
               recentNotes={recentNotes}
               treeFileCount={tree.files.length}
               treeNodes={treeNodes}
-              onOpenCreate={() => setCreateOpen(true)}
+              onOpenCreate={() => openDraftComposer()}
               onOpenCreateFolder={() => openCreateFolderDialog("")}
               onOpenCreateInDirectory={openCreateDialogInDirectory}
               onOpenCreateSubfolder={openCreateFolderDialog}
@@ -481,8 +544,12 @@ export function NotebookPage() {
                 noteTitlePlaceholder: copy.noteTitlePlaceholder,
                 preview: copy.preview,
                 saved: copy.saved,
+                saveDraft: copy.saveDraft,
                 saving: copy.saving,
                 selectNote: copy.selectNote,
+                draftDirectoryPending: copy.draftDirectoryPending,
+                draftMetaLabel: copy.draftMetaLabel,
+                untitledDraftTitle: copy.untitledDraftTitle,
                 unsaved: copy.unsaved,
               }}
               draftBody={draftBody}
@@ -496,7 +563,10 @@ export function NotebookPage() {
               onOpenDelete={() => setDeleteOpen(true)}
               onOpenHistory={() => setContextTab("history")}
               onOpenMore={() => setRenameOpen(true)}
-              onPrimaryCreate={() => setCreateOpen(true)}
+              onPrimaryCreate={() => openDraftComposer()}
+              draftDirectory={draftSession?.directory ?? ""}
+              isDraft={isDraft}
+              onSaveDraft={handleSaveDraft}
             />
 
             <NotebookContextPanel
@@ -538,13 +608,11 @@ export function NotebookPage() {
       </section>
 
       <NotebookCreateDialog
-        body={createDraft.body}
         copy={{
           cancel: t.common.cancel,
+          confirmSaveDraft: copy.confirmSaveDraft,
           createDialogDescription: copy.createDialogDescription,
           createDialogTitle: copy.createDialogTitle,
-          createNote: copy.createNote,
-          emptyDescription: copy.emptyDescription,
           folderPickerEmpty: copy.folderPickerEmpty,
           noteTitlePlaceholder: copy.noteTitlePlaceholder,
           saveToLabel: copy.saveToLabel,
@@ -555,18 +623,13 @@ export function NotebookPage() {
         directoryOptions={directoryOptions}
         open={createOpen}
         pending={createNote.isPending}
-        title={createDraft.title}
-        onBodyChange={(value) =>
-          setCreateDraft((current) => ({ ...current, body: value }))
-        }
+        title={draftTitle}
         onDirectoryChange={(value) =>
           setCreateDraft((current) => ({ ...current, directory: value }))
         }
         onOpenChange={setCreateOpen}
         onSubmit={handleCreate}
-        onTitleChange={(value) =>
-          setCreateDraft((current) => ({ ...current, title: value }))
-        }
+        onTitleChange={setDraftTitle}
       />
 
       <NotebookQuickCaptureDialog

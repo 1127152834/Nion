@@ -478,9 +478,14 @@ export interface Translations {
     selectFolderPlaceholder: string;
     folderPickerEmpty: string;
     save: string;
+    confirmSaveDraft: string;
     saving: string;
     saved: string;
     unsaved: string;
+    saveDraft: string;
+    draftMetaLabel: string;
+    draftDirectoryPending: string;
+    untitledDraftTitle: string;
     rename: string;
     move: string;
     history: string;

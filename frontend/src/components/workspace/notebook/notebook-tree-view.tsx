@@ -137,20 +137,20 @@ function NotebookTreeItem({
               <MoreHorizontalIcon className="size-4" />
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" sideOffset={8}>
-            <DropdownMenuItem onClick={() => onCreateNoteInDirectory(node.path)}>
+          <DropdownMenuContent align="end" side="bottom" sideOffset={8}>
+            <DropdownMenuItem onSelect={() => onCreateNoteInDirectory(node.path)}>
               <FilePlus2Icon className="size-4" />
               <span>{copy.createNoteHere}</span>
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onCreateSubfolder(node.path)}>
+            <DropdownMenuItem onSelect={() => onCreateSubfolder(node.path)}>
               <FolderPlusIcon className="size-4" />
               <span>{copy.createSubfolder}</span>
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onRenameDirectory(node.path)}>
+            <DropdownMenuItem onSelect={() => onRenameDirectory(node.path)}>
               <FolderPenIcon className="size-4" />
               <span>{copy.renameFolder}</span>
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onDeleteDirectory(node.path)}>
+            <DropdownMenuItem onSelect={() => onDeleteDirectory(node.path)}>
               <FolderXIcon className="size-4" />
               <span>{copy.deleteFolder}</span>
             </DropdownMenuItem>

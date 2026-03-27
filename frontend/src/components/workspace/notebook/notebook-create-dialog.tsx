@@ -10,7 +10,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import type { NotebookDirectoryOption } from "@/core/notebook";
-import { Textarea } from "@/components/ui/textarea";
 import { NotebookFolderPicker } from "./notebook-folder-picker";
 import { notebookThemeStyle } from "./notebook-theme";
 
@@ -18,8 +17,7 @@ type NotebookCreateDialogCopy = {
   cancel: string;
   createDialogDescription: string;
   createDialogTitle: string;
-  createNote: string;
-  emptyDescription: string;
+  confirmSaveDraft: string;
   folderPickerEmpty: string;
   noteTitlePlaceholder: string;
   saveToLabel: string;
@@ -28,14 +26,12 @@ type NotebookCreateDialogCopy = {
 };
 
 type NotebookCreateDialogProps = {
-  body: string;
   copy: NotebookCreateDialogCopy;
   directory: string;
   directoryOptions: NotebookDirectoryOption[];
   open: boolean;
   pending: boolean;
   title: string;
-  onBodyChange: (value: string) => void;
   onDirectoryChange: (value: string) => void;
   onOpenChange: (open: boolean) => void;
   onSubmit: () => void;
@@ -43,14 +39,12 @@ type NotebookCreateDialogProps = {
 };
 
 export function NotebookCreateDialog({
-  body,
   copy,
   directory,
   directoryOptions,
   open,
   pending,
   title,
-  onBodyChange,
   onDirectoryChange,
   onOpenChange,
   onSubmit,
@@ -77,6 +71,9 @@ export function NotebookCreateDialog({
           </button>
         </div>
         <div className="space-y-4 p-6">
+          <p className="text-sm leading-relaxed text-[var(--notebook-soft-text)]">
+            {copy.createDialogDescription}
+          </p>
           <div>
             <label className="mb-1 block text-sm font-medium text-[var(--notebook-soft-text)]">标题</label>
             <Input
@@ -98,12 +95,6 @@ export function NotebookCreateDialog({
               onValueChange={onDirectoryChange}
             />
           </div>
-          <Textarea
-            value={body}
-            onChange={(event) => onBodyChange(event.target.value)}
-            placeholder={copy.createDialogDescription}
-            className="min-h-40 border-[var(--notebook-border)] bg-[var(--notebook-panel)] text-[var(--notebook-ink)] placeholder:text-[var(--notebook-soft-text)]"
-          />
           <DialogFooter>
             <Button
               variant="outline"
@@ -117,7 +108,7 @@ export function NotebookCreateDialog({
               onClick={onSubmit}
               disabled={!title.trim() || pending}
             >
-              {pending ? copy.saving : copy.createNote}
+              {pending ? copy.saving : copy.confirmSaveDraft}
             </Button>
           </DialogFooter>
         </div>
