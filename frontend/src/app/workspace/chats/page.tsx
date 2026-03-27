@@ -1,8 +1,8 @@
 "use client";
 
-import { Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import { useEffect, useMemo, useState } from "react";
 
 import { PromptInputProvider } from "@/components/ai-elements/prompt-input";
@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ArtifactsProvider } from "@/components/workspace/artifacts";
+import { useBridgeTranslation } from "@/components/workspace/bridge/useBridgeTranslation";
 import {
   WorkspaceBody,
   WorkspaceContainer,
@@ -20,7 +21,6 @@ import { SubtasksProvider } from "@/core/tasks/context";
 import { useThreads } from "@/core/threads/hooks";
 import { bridgeInfoOfThread, pathOfThread, titleOfThread } from "@/core/threads/utils";
 import { formatTimeAgo } from "@/core/utils/datetime";
-import { useBridgeTranslation } from "@/components/workspace/bridge/useBridgeTranslation";
 
 import ChatThreadPage from "./chat-thread-page";
 

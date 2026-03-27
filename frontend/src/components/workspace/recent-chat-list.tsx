@@ -58,6 +58,7 @@ import {
 import type { AgentThread, AgentThreadState } from "@/core/threads/types";
 import { bridgeInfoOfThread, pathOfThread, titleOfThread } from "@/core/threads/utils";
 import { env } from "@/env";
+
 import { useBridgeTranslation } from "./bridge/useBridgeTranslation";
 
 export function RecentChatList() {

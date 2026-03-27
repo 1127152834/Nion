@@ -22,6 +22,7 @@ import {
   useArtifacts,
 } from "../artifacts";
 import { useThread } from "../messages/context";
+
 import { buildChatPanelIds } from "./panel-ids";
 
 const CLOSE_MODE = { chat: 100, artifacts: 0 };
