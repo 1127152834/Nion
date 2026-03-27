@@ -14,4 +14,7 @@ void test("NotebookContextPanel matches the reference collaboration rail structu
   assert.match(source, /handleImportFromChat/);
   assert.match(source, /onStartConversation/);
   assert.match(source, /tags/);
+  assert.match(source, /collapsed: boolean/);
+  assert.match(source, /rounded-\[1\.5rem\]/);
+  assert.match(source, /onToggleCollapse/);
 });

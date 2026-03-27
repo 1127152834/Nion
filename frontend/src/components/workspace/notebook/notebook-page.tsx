@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -45,6 +45,7 @@ import {
 import { buildNotebookTree } from "@/core/notebook";
 import { buildNotebookAssistPrompt, type NotebookAssistAction } from "@/core/notebook";
 import { NotebookFolderDialog } from "./notebook-folder-dialog";
+import { notebookThemeStyle } from "./notebook-theme";
 type CreateDraft = {
   directory: string;
   title: string;
@@ -60,25 +61,6 @@ type FolderDialogState = {
   open: boolean;
   parentDirectory: string;
 };
-
-const notebookThemeStyle = {
-  "--notebook-shell": "color-mix(in oklab, var(--background) 84%, var(--muted) 16%)",
-  "--notebook-sidebar": "color-mix(in oklab, var(--sidebar) 90%, var(--card) 10%)",
-  "--notebook-panel": "color-mix(in oklab, var(--card) 97%, white 3%)",
-  "--notebook-muted": "color-mix(in oklab, var(--muted) 88%, var(--card) 12%)",
-  "--notebook-hover": "color-mix(in oklab, var(--accent) 78%, var(--card) 22%)",
-  "--notebook-active": "color-mix(in oklab, var(--accent) 70%, var(--foreground) 4%)",
-  "--notebook-border": "color-mix(in oklab, var(--border) 86%, var(--foreground) 14%)",
-  "--notebook-ink": "color-mix(in oklab, var(--foreground) 96%, var(--background) 4%)",
-  "--notebook-soft-text": "color-mix(in oklab, var(--muted-foreground) 88%, var(--foreground) 12%)",
-  "--notebook-brand": "color-mix(in oklab, var(--foreground) 90%, var(--background) 10%)",
-  "--notebook-success": "oklch(0.72 0.15 154)",
-  "--notebook-danger": "color-mix(in oklab, var(--destructive) 78%, var(--foreground) 22%)",
-  "--notebook-danger-surface":
-    "color-mix(in oklab, var(--destructive) 10%, var(--card) 90%)",
-  "--notebook-warning": "oklch(0.58 0.14 72)",
-  "--notebook-warning-surface": "oklch(0.96 0.03 94)",
-} as CSSProperties;
 
 export function NotebookPage() {
   const { t } = useI18n();
@@ -106,6 +88,8 @@ export function NotebookPage() {
   const [renameOpen, setRenameOpen] = useState(false);
   const [moveOpen, setMoveOpen] = useState(false);
   const [moveDirectory, setMoveDirectory] = useState("");
+  const [leftRailCollapsed, setLeftRailCollapsed] = useState(false);
+  const [rightRailCollapsed, setRightRailCollapsed] = useState(false);
   const [contextTab, setContextTab] = useState<NotebookContextTab>("ask");
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [folderDialog, setFolderDialog] = useState<FolderDialogState>({
@@ -434,14 +418,20 @@ export function NotebookPage() {
       >
         <div className="flex min-h-0 flex-1 flex-col">
           {error ? (
-            <div className="mx-4 mt-4 rounded-2xl border border-[color-mix(in_oklab,var(--notebook-danger)_22%,transparent)] bg-[var(--notebook-danger-surface)] px-4 py-3 text-sm text-[var(--notebook-danger)]">
+            <div className="mx-4 mt-4 rounded-2xl border border-[#f4c7cc] bg-[var(--notebook-danger-surface)] px-4 py-3 text-sm text-[var(--notebook-danger)]">
               {error instanceof Error ? error.message : String(error)}
             </div>
           ) : null}
 
-          <div className="grid min-h-0 flex-1 grid-cols-[15.5rem_minmax(0,1fr)_19.5rem] overflow-hidden bg-[var(--notebook-panel)]">
+          <div
+            className="grid min-h-0 flex-1 gap-4 p-4 transition-[grid-template-columns] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
+            style={{
+              gridTemplateColumns: `${leftRailCollapsed ? "3.75rem" : "17.5rem"} minmax(0, 1fr) ${rightRailCollapsed ? "3.75rem" : "20rem"}`,
+            }}
+          >
             <NotebookSidebar
               activePath={selectedFile?.path ?? null}
+              collapsed={leftRailCollapsed}
               copy={{
                 createFolder: copy.createFolder,
                 createNote: copy.createNote,
@@ -476,6 +466,7 @@ export function NotebookPage() {
               onQueryChange={setQuery}
               onOpenTrash={() => router.push(pathOfNotebookTrash())}
               onSelectNote={setSelectedNoteId}
+              onToggleCollapse={() => setLeftRailCollapsed((value) => !value)}
             />
 
             <NotebookEditorPane
@@ -510,6 +501,7 @@ export function NotebookPage() {
 
             <NotebookContextPanel
               activeTab={contextTab}
+              collapsed={rightRailCollapsed}
               copy={{
                 askTab: copy.askTab,
                 assistActionItems: copy.assistActionItems,
@@ -539,6 +531,7 @@ export function NotebookPage() {
               onActiveTabChange={setContextTab}
               onApplyNote={syncNotebookDraft}
               onStartConversation={handleAssist}
+              onToggleCollapse={() => setRightRailCollapsed((value) => !value)}
             />
           </div>
         </div>

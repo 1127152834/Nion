@@ -1,6 +1,16 @@
 "use client";
 
-import { ClockIcon, FolderPlusIcon, MoreHorizontalIcon, PinIcon, SearchIcon, SparklesIcon, Trash2Icon } from "lucide-react";
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  ClockIcon,
+  FolderPlusIcon,
+  MoreHorizontalIcon,
+  PinIcon,
+  SearchIcon,
+  SparklesIcon,
+  Trash2Icon,
+} from "lucide-react";
 
 import { Input } from "@/components/ui/input";
 import type { NotebookNoteSummary, NotebookTreeNode } from "@/core/notebook";
@@ -8,6 +18,7 @@ import type { NotebookNoteSummary, NotebookTreeNode } from "@/core/notebook";
 import {
   buildRecentNotebookNotes,
   filterNotebookTreeNodes,
+  hasNotebookTreeContent,
 } from "./notebook-sidebar-state";
 import { NotebookTreeView } from "./notebook-tree-view";
 
@@ -30,6 +41,7 @@ type NotebookSidebarCopy = {
 
 type NotebookSidebarProps = {
   activePath: string | null;
+  collapsed: boolean;
   copy: NotebookSidebarCopy;
   deletedCount: number;
   isLoading: boolean;
@@ -49,10 +61,12 @@ type NotebookSidebarProps = {
   onQueryChange: (value: string) => void;
   onOpenTrash: () => void;
   onSelectNote: (noteId: string | null) => void;
+  onToggleCollapse: () => void;
 };
 
 export function NotebookSidebar({
   activePath,
+  collapsed,
   copy,
   deletedCount,
   isLoading,
@@ -72,6 +86,7 @@ export function NotebookSidebar({
   onQueryChange,
   onOpenTrash,
   onSelectNote,
+  onToggleCollapse,
 }: NotebookSidebarProps) {
   const queryText = query.trim().toLowerCase();
   const visibleTreeNodes = filterNotebookTreeNodes(treeNodes, query);
@@ -81,18 +96,44 @@ export function NotebookSidebar({
     buildRecentNotebookNotes(recentNotes, 5),
     queryText,
   );
+  const hasTreeContent = hasNotebookTreeContent(treeNodes);
   const noteTitleById = new Map(
     noteSummaries.map((note) => [note.note_id, note.title]),
   );
 
+  if (collapsed) {
+    return (
+      <aside className="flex h-full w-full min-w-0 flex-col items-center rounded-[1.5rem] border border-[var(--notebook-border)] bg-[var(--notebook-sidebar)] px-2 py-3 shadow-[0_10px_30px_-24px_rgba(0,0,0,0.35)] transition-[background-color,border-color,box-shadow] duration-300">
+        <div className="flex w-full justify-center">
+          <button
+            type="button"
+            onClick={onToggleCollapse}
+            className="group flex h-10 w-10 items-center justify-center rounded-2xl border border-transparent bg-[var(--notebook-panel)] text-[var(--notebook-soft-text)] shadow-[0_10px_25px_-20px_rgba(0,0,0,0.4)] transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-0.5 hover:border-[var(--notebook-border)] hover:bg-[var(--notebook-hover)] hover:text-[var(--notebook-ink)]"
+            title="展开左侧栏"
+          >
+            <ChevronRightIcon className="size-4 transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:translate-x-0.5" />
+          </button>
+        </div>
+      </aside>
+    );
+  }
+
   return (
-    <aside className="flex h-full w-full min-w-0 flex-col border-r border-[var(--notebook-border)] bg-[var(--notebook-sidebar)]">
+    <aside className="flex h-full w-full min-w-0 flex-col rounded-[1.5rem] border border-[var(--notebook-border)] bg-[var(--notebook-sidebar)] shadow-[0_10px_30px_-24px_rgba(0,0,0,0.35)] transition-[background-color,border-color,box-shadow] duration-300">
       <div className="border-b border-[var(--notebook-border)] p-4 pb-3">
         <div className="mb-4 flex items-center gap-2">
           <div className="flex h-6 w-6 items-center justify-center rounded bg-[var(--notebook-brand)] text-xs font-bold text-[var(--notebook-panel)]">
             N
           </div>
-          <span className="text-[15px] font-semibold text-[var(--notebook-ink)]">Nion Notebook</span>
+          <span className="flex-1 text-[15px] font-semibold text-[var(--notebook-ink)]">Nion Notebook</span>
+          <button
+            type="button"
+            onClick={onToggleCollapse}
+            className="rounded-md p-1.5 text-[var(--notebook-soft-text)] transition-colors hover:bg-[var(--notebook-hover)] hover:text-[var(--notebook-ink)]"
+            title="收起左侧栏"
+          >
+            <ChevronLeftIcon className="size-4" />
+          </button>
         </div>
 
         <div className="relative mb-4">
@@ -171,7 +212,7 @@ export function NotebookSidebar({
             />
             {isLoading ? (
               <div className="px-2 py-2 text-sm text-[var(--notebook-soft-text)]">{loadingLabel}</div>
-            ) : treeFileCount === 0 ? (
+            ) : !hasTreeContent ? (
               <div className="rounded-xl border border-dashed border-[var(--notebook-border)] bg-[var(--notebook-panel)] p-4 text-sm text-[var(--notebook-soft-text)]">
                 <div className="mb-1 font-medium text-[var(--notebook-ink)]">{copy.emptyTitle}</div>
                 <div>{copy.emptyDescription}</div>

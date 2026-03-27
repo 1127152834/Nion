@@ -1,7 +1,24 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ArrowRight, CheckSquare, Copy, FileText, History, Info, List, MessageSquare, RefreshCw, Save, Sparkles, Tag, User, Bot } from "lucide-react";
+import {
+  ArrowRight,
+  Bot,
+  CheckSquare,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  Copy,
+  FileText,
+  History,
+  Info,
+  List,
+  MessageSquare,
+  RefreshCw,
+  Save,
+  Sparkles,
+  Tag,
+  User,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -49,6 +66,7 @@ type NotebookContextPanelCopy = {
 
 type NotebookContextPanelProps = {
   activeTab: NotebookContextTab;
+  collapsed: boolean;
   copy: NotebookContextPanelCopy;
   currentContentHash: string;
   entries: NotebookHistoryEntry[];
@@ -58,6 +76,7 @@ type NotebookContextPanelProps = {
   onActiveTabChange: (tab: NotebookContextTab) => void;
   onApplyNote: (note: NotebookNote) => void;
   onStartConversation: (action: NotebookAssistAction) => void;
+  onToggleCollapse: () => void;
 };
 
 const ASSIST_ACTIONS: Array<{
@@ -75,6 +94,7 @@ const ASSIST_ACTIONS: Array<{
 
 export function NotebookContextPanel({
   activeTab,
+  collapsed,
   copy,
   currentContentHash,
   entries,
@@ -84,6 +104,7 @@ export function NotebookContextPanel({
   onActiveTabChange,
   onApplyNote,
   onStartConversation,
+  onToggleCollapse,
 }: NotebookContextPanelProps) {
   const [aiPreview, setAiPreview] = useState<NotebookAssistPreview | null>(null);
   const [historyPreviewId, setHistoryPreviewId] = useState<string | null>(null);
@@ -157,9 +178,26 @@ export function NotebookContextPanel({
     }
   }
 
+  if (collapsed) {
+    return (
+      <div className="flex h-full w-full min-w-0 flex-col items-center rounded-[1.5rem] border border-[var(--notebook-border)] bg-[var(--notebook-sidebar)] px-2 py-3 shadow-[0_10px_30px_-24px_rgba(0,0,0,0.35)] transition-[background-color,border-color,box-shadow] duration-300">
+        <div className="flex w-full justify-center">
+          <button
+            type="button"
+            onClick={onToggleCollapse}
+            className="group flex h-10 w-10 items-center justify-center rounded-2xl border border-transparent bg-[var(--notebook-panel)] text-[var(--notebook-soft-text)] shadow-[0_10px_25px_-20px_rgba(0,0,0,0.4)] transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-0.5 hover:border-[var(--notebook-border)] hover:bg-[var(--notebook-hover)] hover:text-[var(--notebook-ink)]"
+            title="展开右侧栏"
+          >
+            <ChevronLeftIcon className="size-4 transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:-translate-x-0.5" />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex h-full w-full min-w-0 flex-col border-l border-[var(--notebook-border)] bg-[var(--notebook-sidebar)]">
-      <div className="flex border-b border-[var(--notebook-border)] px-2 pt-2">
+    <div className="flex h-full w-full min-w-0 flex-col rounded-[1.5rem] border border-[var(--notebook-border)] bg-[var(--notebook-sidebar)] shadow-[0_10px_30px_-24px_rgba(0,0,0,0.35)] transition-[background-color,border-color,box-shadow] duration-300">
+      <div className="flex items-center border-b border-[var(--notebook-border)] px-2 pt-2">
         <TabButton active={activeTab === "ask"} onClick={() => onActiveTabChange("ask")} icon={<Sparkles className="mr-1.5 size-4" />}>
           Ask Nion
         </TabButton>
@@ -169,6 +207,14 @@ export function NotebookContextPanel({
         <TabButton active={activeTab === "info"} onClick={() => onActiveTabChange("info")} icon={<Info className="mr-1.5 size-4" />}>
           信息
         </TabButton>
+        <button
+          type="button"
+          onClick={onToggleCollapse}
+          className="mb-2 ml-1 rounded-md p-1.5 text-[var(--notebook-soft-text)] transition-colors hover:bg-[var(--notebook-hover)] hover:text-[var(--notebook-ink)]"
+          title="收起右侧栏"
+        >
+          <ChevronRightIcon className="size-4" />
+        </button>
       </div>
 
       <div className="custom-scrollbar flex-1 overflow-y-auto p-4">
@@ -318,7 +364,7 @@ export function NotebookContextPanel({
                   </div>
                 </div>
 
-                <div className="rounded-lg border border-[color-mix(in_oklab,var(--notebook-warning)_28%,transparent)] bg-[var(--notebook-warning-surface)] p-3 text-xs text-[var(--notebook-warning)]">
+                <div className="rounded-lg border border-[#ffe58f] bg-[var(--notebook-warning-surface)] p-3 text-xs text-[var(--notebook-warning)]">
                   恢复此版本将创建一个新的历史记录，不会覆盖或删除之后的修改。
                 </div>
 

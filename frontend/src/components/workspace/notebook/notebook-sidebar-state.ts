@@ -28,6 +28,10 @@ export function collectRootNotebookFiles(nodes: NotebookTreeNode[]) {
   );
 }
 
+export function hasNotebookTreeContent(nodes: NotebookTreeNode[]) {
+  return nodes.length > 0;
+}
+
 export function filterNotebookTreeNodes(
   nodes: NotebookTreeNode[],
   query: string,

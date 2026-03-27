@@ -18,7 +18,9 @@ void test("NotebookPage becomes a shell controller that renders extracted notebo
   );
 
   assert.match(pageSource, /notebookThemeStyle/);
-  assert.match(pageSource, /grid-cols-\[15\.5rem_minmax\(0,1fr\)_19\.5rem\]/);
+  assert.match(pageSource, /leftRailCollapsed/);
+  assert.match(pageSource, /rightRailCollapsed/);
+  assert.match(pageSource, /gridTemplateColumns/);
   assert.match(pageSource, /from "\.\/notebook-sidebar"/);
   assert.match(pageSource, /from "\.\/notebook-editor-pane"/);
   assert.match(pageSource, /from "\.\/notebook-context-panel"/);

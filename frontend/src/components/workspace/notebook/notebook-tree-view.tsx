@@ -113,6 +113,7 @@ function NotebookTreeItem({
   }
 
   const [open, setOpen] = useState(true);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
@@ -126,16 +127,17 @@ function NotebookTreeItem({
           <FolderIcon className="size-3.5 text-[var(--notebook-soft-text)]" />
           <span className="truncate font-medium">{node.name}</span>
         </CollapsibleTrigger>
-        <DropdownMenu>
+        <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
           <DropdownMenuTrigger asChild>
             <button
               type="button"
-              className="hidden rounded p-1 text-[var(--notebook-soft-text)] transition-colors hover:bg-[var(--notebook-muted)] hover:text-[var(--notebook-ink)] group-hover:inline-flex"
+              className={`rounded p-1 text-[var(--notebook-soft-text)] transition-all duration-200 hover:bg-[var(--notebook-muted)] hover:text-[var(--notebook-ink)] ${menuOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0 group-hover:pointer-events-auto group-hover:opacity-100 focus-visible:pointer-events-auto focus-visible:opacity-100"}`}
+              onClick={(event) => event.stopPropagation()}
             >
               <MoreHorizontalIcon className="size-4" />
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
+          <DropdownMenuContent align="end" sideOffset={8}>
             <DropdownMenuItem onClick={() => onCreateNoteInDirectory(node.path)}>
               <FilePlus2Icon className="size-4" />
               <span>{copy.createNoteHere}</span>

@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import type { NotebookDirectoryOption } from "@/core/notebook";
 import { Textarea } from "@/components/ui/textarea";
 import { NotebookFolderPicker } from "./notebook-folder-picker";
+import { notebookThemeStyle } from "./notebook-theme";
 
 type NotebookCreateDialogCopy = {
   cancel: string;
@@ -60,6 +61,7 @@ export function NotebookCreateDialog({
       <DialogContent
         showCloseButton={false}
         className="gap-0 overflow-hidden border-[var(--notebook-border)] bg-[var(--notebook-panel)] p-0 text-[var(--notebook-ink)] shadow-xl"
+        style={notebookThemeStyle}
       >
         <div className="flex items-center justify-between border-b border-[var(--notebook-border)] px-6 py-4">
           <div className="flex items-center text-lg font-semibold text-[var(--notebook-ink)]">

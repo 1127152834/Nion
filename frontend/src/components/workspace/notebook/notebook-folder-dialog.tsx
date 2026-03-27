@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { notebookThemeStyle } from "./notebook-theme";
 
 type NotebookFolderDialogMode = "create" | "rename" | "delete";
 
@@ -83,6 +84,7 @@ export function NotebookFolderDialog({
       <DialogContent
         showCloseButton={false}
         className="gap-0 overflow-hidden border-[var(--notebook-border)] bg-[var(--notebook-panel)] p-0 text-[var(--notebook-ink)] shadow-xl"
+        style={notebookThemeStyle}
       >
         <div className="flex items-center justify-between border-b border-[var(--notebook-border)] px-6 py-4">
           <div className="flex items-center text-lg font-semibold text-[var(--notebook-ink)]">

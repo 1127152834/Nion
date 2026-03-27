@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { NotebookDirectoryOption } from "@/core/notebook/directories";
+import { notebookThemeStyle } from "./notebook-theme";
 
 type NotebookFolderPickerProps = {
   emptyLabel?: string;
@@ -52,6 +53,7 @@ export function NotebookFolderPicker({
         align="start"
         className="border-[var(--notebook-border)] bg-[var(--notebook-panel)] text-[var(--notebook-ink)]"
         position="popper"
+        style={notebookThemeStyle}
       >
         {options.map((option) => (
           <SelectItem
@@ -59,8 +61,7 @@ export function NotebookFolderPicker({
             value={option.path || ROOT_VALUE}
             className="text-[var(--notebook-ink)]"
           >
-            <FolderIcon className="size-4 text-[var(--notebook-soft-text)]" />
-            <span className="truncate">{option.label}</span>
+            {option.label}
           </SelectItem>
         ))}
       </SelectContent>

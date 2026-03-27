@@ -7,6 +7,7 @@ import {
   buildRecentNotebookFiles,
   collectRootNotebookFiles,
   filterNotebookTreeNodes,
+  hasNotebookTreeContent,
 } from "./notebook-sidebar-state.ts";
 
 void test("buildRecentNotebookFiles sorts by mtime desc and caps results", () => {
@@ -85,4 +86,18 @@ void test("filterNotebookTreeNodes keeps nested directories when descendants mat
   assert.equal(filtered.length, 1);
   assert.equal(filtered[0]?.kind, "directory");
   assert.equal(filtered[0]?.path, "projects");
+});
+
+void test("hasNotebookTreeContent treats directory-only trees as real content", () => {
+  const hasContent = hasNotebookTreeContent([
+    {
+      kind: "directory",
+      path: "projects",
+      name: "projects",
+      depth: 1,
+      children: [],
+    },
+  ] satisfies NotebookTreeNode[]);
+
+  assert.equal(hasContent, true);
 });
