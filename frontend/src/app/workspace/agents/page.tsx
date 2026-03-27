@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 
 import { PromptInputProvider } from "@/components/ai-elements/prompt-input";
@@ -9,7 +10,7 @@ import { SubtasksProvider } from "@/core/tasks/context";
 
 import AgentChatPage from "./agent-chat-page";
 
-export default function AgentsPage() {
+function AgentsPageContent() {
   const searchParams = useSearchParams();
   const selectedAgent = searchParams.get("agent");
   const selectedThread = searchParams.get("thread");
@@ -27,4 +28,12 @@ export default function AgentsPage() {
   }
 
   return <AgentGallery />;
+}
+
+export default function AgentsPage() {
+  return (
+    <Suspense fallback={null}>
+      <AgentsPageContent />
+    </Suspense>
+  );
 }

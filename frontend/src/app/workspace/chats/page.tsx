@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -23,7 +24,7 @@ import { useBridgeTranslation } from "@/components/workspace/bridge/useBridgeTra
 
 import ChatThreadPage from "./chat-thread-page";
 
-export default function ChatsPage() {
+function ChatsPageContent() {
   const { t } = useI18n();
   const { t: bt } = useBridgeTranslation();
   const searchParams = useSearchParams();
@@ -117,5 +118,13 @@ export default function ChatsPage() {
         </div>
       </WorkspaceBody>
     </WorkspaceContainer>
+  );
+}
+
+export default function ChatsPage() {
+  return (
+    <Suspense fallback={null}>
+      <ChatsPageContent />
+    </Suspense>
   );
 }
