@@ -96,6 +96,11 @@ class NotebookRestoreVersionRequest(BaseModel):
     version_id: str
 
 
+class NotebookMetadataRequest(BaseModel):
+    tags: list[str] | None = None
+    is_pinned: bool | None = None
+
+
 def _now_iso() -> str:
     return datetime.now(UTC).isoformat()
 
@@ -240,6 +245,22 @@ async def update_notebook_note(
         )
     except NotebookConflictError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except NotebookNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return NotebookNoteResponse(note=note)
+
+
+@router.patch("/notes/{note_id}/metadata", response_model=NotebookNoteResponse)
+async def update_notebook_note_metadata(
+    note_id: str,
+    payload: NotebookMetadataRequest,
+) -> NotebookNoteResponse:
+    try:
+        note = NotebookHistoryService()._service.update_note_metadata(
+            note_id=note_id,
+            tags=payload.tags,
+            is_pinned=payload.is_pinned,
+        )
     except NotebookNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     return NotebookNoteResponse(note=note)

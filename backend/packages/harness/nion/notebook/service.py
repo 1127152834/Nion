@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import re
+import sqlite3
 import uuid
 from datetime import UTC, datetime
 from pathlib import Path
@@ -49,6 +50,45 @@ class NotebookService:
     def __init__(self, base_dir: str | Path | None = None) -> None:
         self._paths = Paths(base_dir=base_dir) if base_dir is not None else get_paths()
         self._paths.ensure_notebook_dirs()
+        self._metadata_db_path = self._paths.notebook_meta_dir / "metadata.sqlite3"
+        self._init_metadata_schema()
+
+    def _connect_metadata(self) -> sqlite3.Connection:
+        conn = sqlite3.connect(self._metadata_db_path)
+        conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA journal_mode=WAL;")
+        conn.execute("PRAGMA busy_timeout = 5000;")
+        return conn
+
+    def _init_metadata_schema(self) -> None:
+        with self._connect_metadata() as conn:
+            conn.executescript(
+                """
+                CREATE TABLE IF NOT EXISTS notebook_note_metadata (
+                    note_id TEXT PRIMARY KEY,
+                    is_pinned INTEGER NOT NULL DEFAULT 0
+                );
+                """
+            )
+
+    def _read_pinned_state(self, note_id: str) -> bool:
+        with self._connect_metadata() as conn:
+            row = conn.execute(
+                "SELECT is_pinned FROM notebook_note_metadata WHERE note_id = ?",
+                (note_id,),
+            ).fetchone()
+        return bool(row["is_pinned"]) if row else False
+
+    def _write_pinned_state(self, note_id: str, *, is_pinned: bool) -> None:
+        with self._connect_metadata() as conn:
+            conn.execute(
+                """
+                INSERT INTO notebook_note_metadata(note_id, is_pinned)
+                VALUES (?, ?)
+                ON CONFLICT(note_id) DO UPDATE SET is_pinned = excluded.is_pinned
+                """,
+                (note_id, int(is_pinned)),
+            )
 
     def _resolve_directory(self, directory: str) -> Path:
         stripped = directory.strip().strip("/")
@@ -81,7 +121,7 @@ class NotebookService:
             content_hash=_hash_text(text),
             body=body.rstrip("\n"),
             tags=normalized_tags,
-            is_pinned=False,
+            is_pinned=self._read_pinned_state(str(frontmatter["id"])),
         )
 
     def _write_note(self, path: Path, *, note_id: str, title: str, created_at: str, updated_at: str, body: str, tags: list[str] | None = None) -> NotebookNote:
@@ -219,3 +259,25 @@ class NotebookService:
         attachment_dir = self._attachment_dir_for_path(note_path, note_id)
         attachment_dir.mkdir(parents=True, exist_ok=True)
         return attachment_dir
+
+    def update_note_metadata(
+        self,
+        note_id: str,
+        *,
+        tags: list[str] | None = None,
+        is_pinned: bool | None = None,
+    ) -> NotebookNote:
+        current = self.read_note(note_id)
+        next_tags = current.tags if tags is None else [str(tag) for tag in tags]
+        note = self._write_note(
+            Path(current.absolute_path),
+            note_id=current.note_id,
+            title=current.title,
+            created_at=current.created_at,
+            updated_at=_now_iso(),
+            body=current.body,
+            tags=next_tags,
+        )
+        if is_pinned is not None:
+            self._write_pinned_state(note.note_id, is_pinned=is_pinned)
+        return self.read_note(note_id)

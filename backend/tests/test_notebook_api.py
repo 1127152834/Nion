@@ -154,3 +154,36 @@ def test_notebook_notes_list_exposes_summary_and_metadata(monkeypatch, tmp_path)
         assert note["summary"] == "Alpha launch summary"
         assert note["tags"] == []
         assert note["is_pinned"] is False
+
+
+def test_notebook_metadata_patch_updates_tags_and_pin_state(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+
+    with TestClient(create_app()) as client:
+        created = client.post(
+            "/api/notebook/notes",
+            json={"directory": "projects/alpha", "title": "Roadmap", "body": "Alpha launch summary"},
+        )
+        assert created.status_code == 200
+        note_id = created.json()["note"]["note_id"]
+
+        updated = client.patch(
+            f"/api/notebook/notes/{note_id}/metadata",
+            json={"tags": ["alpha", "roadmap"], "is_pinned": True},
+        )
+        assert updated.status_code == 200
+        payload = updated.json()["note"]
+        assert payload["tags"] == ["alpha", "roadmap"]
+        assert payload["is_pinned"] is True
+
+        loaded = client.get(f"/api/notebook/notes/{note_id}")
+        assert loaded.status_code == 200
+        assert loaded.json()["note"]["tags"] == ["alpha", "roadmap"]
+        assert loaded.json()["note"]["is_pinned"] is True
+
+        listed = client.get("/api/notebook/notes")
+        assert listed.status_code == 200
+        summary = listed.json()["notes"][0]
+        assert summary["tags"] == ["alpha", "roadmap"]
+        assert summary["is_pinned"] is True
