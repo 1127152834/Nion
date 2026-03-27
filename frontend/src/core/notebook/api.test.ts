@@ -4,14 +4,19 @@ import test from "node:test";
 const {
   createNotebookNote,
   getNotebookDeletePreview,
+  loadNotebookHistoryDetail,
+  loadNotebookNotes,
   loadNotebookHistory,
   loadNotebookNote,
   loadNotebookTrash,
   loadNotebookTree,
   moveNotebookNote,
+  previewNotebookAssist,
+  applyNotebookAssist,
   renameNotebookNote,
   restoreDeletedNotebookNote,
   restoreNotebookVersion,
+  updateNotebookMetadata,
   updateNotebookNote,
 } = await import(new URL("./api.ts", import.meta.url).href);
 
@@ -143,8 +148,55 @@ void test("notebook detail helpers hit their expected endpoints", async () => {
 
   globalThis.fetch = async (input, init) => {
     urls.push(`${init?.method ?? "GET"} ${String(input)}`);
+    if (String(input).endsWith("/history/ver_1")) {
+      return createJsonResponse({
+        entry: {
+          version_id: "ver_1",
+          note_id: "note_1",
+          operation: "edit",
+          actor_type: "agent",
+          timestamp: "2026-03-26T00:00:00Z",
+          path_at_time: "projects/roadmap.md",
+        },
+        snapshot: {
+          note_id: "note_1",
+          title: "Roadmap",
+          relative_path: "projects/roadmap.md",
+          absolute_path: "",
+          created_at: "2026-03-26T00:00:00Z",
+          updated_at: "2026-03-26T00:00:00Z",
+          content_hash: "hash",
+          body: "hello",
+          tags: ["alpha"],
+          is_pinned: true,
+        },
+      });
+    }
     if (String(input).endsWith("/history")) {
       return createJsonResponse({ entries: [] });
+    }
+    if (String(input).endsWith("/assist-preview")) {
+      return createJsonResponse({
+        action: "summarize",
+        content: "**摘要：**",
+        original_content: "hello",
+      });
+    }
+    if (String(input).endsWith("/assist-apply")) {
+      return createJsonResponse({
+        note: {
+          note_id: "note_1",
+          title: "Roadmap",
+          relative_path: "projects/roadmap.md",
+          absolute_path: "/tmp/notebook/projects/roadmap.md",
+          created_at: "2026-03-26T00:00:00Z",
+          updated_at: "2026-03-26T00:02:00Z",
+          content_hash: "hash-3",
+          body: "**摘要：**",
+          tags: ["alpha"],
+          is_pinned: true,
+        },
+      });
     }
     if (String(input).endsWith("/delete-preview")) {
       return createJsonResponse({
@@ -152,6 +204,38 @@ void test("notebook detail helpers hit their expected endpoints", async () => {
         title: "Roadmap",
         relative_path: "projects/roadmap.md",
         summary: "summary",
+      });
+    }
+    if (String(input).endsWith("/metadata")) {
+      return createJsonResponse({
+        note: {
+          note_id: "note_1",
+          title: "Roadmap",
+          relative_path: "projects/roadmap.md",
+          absolute_path: "/tmp/notebook/projects/roadmap.md",
+          created_at: "2026-03-26T00:00:00Z",
+          updated_at: "2026-03-26T00:01:00Z",
+          content_hash: "hash-2",
+          body: "hello",
+          tags: ["alpha"],
+          is_pinned: true,
+        },
+      });
+    }
+    if (String(input).endsWith("/api/notebook/notes")) {
+      return createJsonResponse({
+        notes: [
+          {
+            note_id: "note_1",
+            title: "Roadmap",
+            relative_path: "projects/roadmap.md",
+            created_at: "2026-03-26T00:00:00Z",
+            updated_at: "2026-03-26T00:00:00Z",
+            summary: "summary",
+            tags: ["alpha"],
+            is_pinned: true,
+          },
+        ],
       });
     }
     return createJsonResponse({
@@ -164,25 +248,42 @@ void test("notebook detail helpers hit their expected endpoints", async () => {
         updated_at: "2026-03-26T00:00:00Z",
         content_hash: "hash",
         body: "hello",
+        tags: [],
+        is_pinned: false,
       },
     });
   };
 
   try {
+    await loadNotebookNotes();
     await loadNotebookNote("note_1");
     await renameNotebookNote("note_1", { title: "New Title" });
     await moveNotebookNote("note_1", { directory: "projects/archive" });
     await loadNotebookHistory("note_1");
+    await loadNotebookHistoryDetail("note_1", "ver_1");
     await restoreNotebookVersion("note_1", { version_id: "ver_1" });
+    await updateNotebookMetadata("note_1", { tags: ["alpha"], is_pinned: true });
+    await previewNotebookAssist("note_1", { action: "summarize" });
+    await applyNotebookAssist("note_1", {
+      action: "summarize",
+      mode: "replace",
+      content: "**摘要：**",
+      expected_content_hash: "hash",
+    });
     await getNotebookDeletePreview("note_1");
     await restoreDeletedNotebookNote("note_1");
 
     assert.deepEqual(urls, [
+      "GET /api/notebook/notes",
       "GET /api/notebook/notes/note_1",
       "POST /api/notebook/notes/note_1/rename",
       "POST /api/notebook/notes/note_1/move",
       "GET /api/notebook/notes/note_1/history",
+      "GET /api/notebook/notes/note_1/history/ver_1",
       "POST /api/notebook/notes/note_1/restore",
+      "PATCH /api/notebook/notes/note_1/metadata",
+      "POST /api/notebook/notes/note_1/assist-preview",
+      "POST /api/notebook/notes/note_1/assist-apply",
       "GET /api/notebook/notes/note_1/delete-preview",
       "POST /api/notebook/notes/note_1/restore-deleted",
     ]);

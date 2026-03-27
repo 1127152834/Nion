@@ -226,6 +226,7 @@ class NotebookHistoryService:
             created_at=str(frontmatter.get("created_at") or current.created_at),
             updated_at=_now_iso(),
             body=body.rstrip("\n"),
+            tags=[str(tag) for tag in frontmatter.get("tags", [])] if isinstance(frontmatter.get("tags"), list) else current.tags,
         )
         new_snapshot = Path(note.absolute_path).read_text(encoding="utf-8")
         self._record(
@@ -290,6 +291,7 @@ class NotebookHistoryService:
             created_at=restored.created_at,
             updated_at=_now_iso(),
             body=restored.body,
+            tags=restored.tags,
         )
         snapshot = Path(note.absolute_path).read_text(encoding="utf-8")
         self._record(
@@ -351,3 +353,24 @@ class NotebookHistoryService:
                 (note_id,),
             ).fetchall()
         return [NotebookHistoryEntry.model_validate(dict(row)) for row in rows]
+
+    def get_history_detail(self, note_id: str, version_id: str) -> tuple[NotebookHistoryEntry, NotebookNote]:
+        entry, snapshot = self._entry_snapshot(version_id)
+        if entry.note_id != note_id:
+            raise ValueError(f"Notebook history version not found for note: {version_id}")
+        frontmatter, body = split_frontmatter(snapshot)
+        return (
+            entry,
+            NotebookNote(
+                note_id=str(frontmatter.get("id") or note_id),
+                title=str(frontmatter.get("title") or ""),
+                relative_path=entry.path_at_time,
+                absolute_path="",
+                created_at=str(frontmatter.get("created_at") or ""),
+                updated_at=entry.timestamp,
+                content_hash=entry.content_hash_after or "",
+                body=body.lstrip("\n").rstrip("\n"),
+                tags=[str(tag) for tag in frontmatter.get("tags", [])] if isinstance(frontmatter.get("tags"), list) else [],
+                is_pinned=False,
+            ),
+        )

@@ -1,21 +1,31 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
+  applyNotebookAssist,
   createNotebookNote,
   deleteNotebookNote,
   getNotebookDeletePreview,
+  importNotebookContent,
+  loadNotebookHistoryDetail,
   loadNotebookHistory,
   loadNotebookNote,
+  loadNotebookNotes,
   loadNotebookTrash,
   loadNotebookTree,
   moveNotebookNote,
+  previewNotebookAssist,
   renameNotebookNote,
   restoreDeletedNotebookNote,
   restoreNotebookVersion,
+  updateNotebookMetadata,
   updateNotebookNote,
 } from "./api";
 import type {
+  NotebookAssistApplyInput,
+  NotebookAssistPreviewInput,
   NotebookCreateInput,
+  NotebookImportInput,
+  NotebookMetadataInput,
   NotebookMoveInput,
   NotebookRenameInput,
   NotebookRestoreVersionInput,
@@ -51,6 +61,15 @@ export function useNotebookTrash() {
   return { notes: data ?? [], isLoading, error };
 }
 
+export function useNotebookNotes() {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["notebook", "notes"],
+    queryFn: () => loadNotebookNotes(),
+    refetchOnWindowFocus: false,
+  });
+  return { notes: data ?? [], isLoading, error };
+}
+
 export function useNotebookNote(noteId: string | null) {
   const { data, isLoading, error } = useQuery({
     queryKey: ["notebook", "note", noteId],
@@ -69,6 +88,16 @@ export function useNotebookHistory(noteId: string | null) {
     refetchOnWindowFocus: false,
   });
   return { entries: data ?? [], isLoading, error };
+}
+
+export function useNotebookHistoryDetail(noteId: string | null, versionId: string | null) {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["notebook", "history-detail", noteId, versionId],
+    queryFn: () => loadNotebookHistoryDetail(noteId!, versionId!),
+    enabled: Boolean(noteId && versionId),
+    refetchOnWindowFocus: false,
+  });
+  return { detail: data ?? null, isLoading, error };
 }
 
 export function useNotebookDeletePreview(noteId: string | null) {
@@ -151,6 +180,46 @@ export function useDeleteNotebookNote(noteId: string) {
   });
 }
 
+export function useUpdateNotebookMetadata(noteId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: NotebookMetadataInput) =>
+      updateNotebookMetadata(noteId, input),
+    onSuccess: async (note) => {
+      await invalidateNotebookQueries(queryClient, note.note_id);
+    },
+  });
+}
+
+export function usePreviewNotebookAssist(noteId: string) {
+  return useMutation({
+    mutationFn: async (input: NotebookAssistPreviewInput) =>
+      previewNotebookAssist(noteId, input),
+  });
+}
+
+export function useApplyNotebookAssist(noteId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: NotebookAssistApplyInput) =>
+      applyNotebookAssist(noteId, input),
+    onSuccess: async (note) => {
+      await invalidateNotebookQueries(queryClient, note.note_id);
+    },
+  });
+}
+
+export function useImportNotebookContent(noteId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: NotebookImportInput) =>
+      importNotebookContent(noteId, input),
+    onSuccess: async (note) => {
+      await invalidateNotebookQueries(queryClient, note.note_id);
+    },
+  });
+}
+
 export function useRestoreDeletedNotebookNote(noteId?: string) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -170,8 +239,10 @@ async function invalidateNotebookQueries(
   await Promise.all([
     queryClient.invalidateQueries({ queryKey: ["notebook", "tree"] }),
     queryClient.invalidateQueries({ queryKey: ["notebook", "trash"] }),
+    queryClient.invalidateQueries({ queryKey: ["notebook", "notes"] }),
     queryClient.invalidateQueries({ queryKey: ["notebook", "note", noteId] }),
     queryClient.invalidateQueries({ queryKey: ["notebook", "history", noteId] }),
+    queryClient.invalidateQueries({ queryKey: ["notebook", "history-detail", noteId] }),
     queryClient.invalidateQueries({
       queryKey: ["notebook", "delete-preview", noteId],
     }),

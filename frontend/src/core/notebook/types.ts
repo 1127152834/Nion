@@ -33,6 +33,19 @@ export interface NotebookNote {
   updated_at: string;
   content_hash: string;
   body: string;
+  tags: string[];
+  is_pinned: boolean;
+}
+
+export interface NotebookNoteSummary {
+  note_id: string;
+  title: string;
+  relative_path: string;
+  created_at: string;
+  updated_at: string;
+  summary: string;
+  tags: string[];
+  is_pinned: boolean;
 }
 
 export interface NotebookHistoryEntry {
@@ -47,6 +60,11 @@ export interface NotebookHistoryEntry {
   diff_text?: string | null;
   restored_from_version_id?: string | null;
   trash_path?: string | null;
+}
+
+export interface NotebookHistoryDetail {
+  entry: NotebookHistoryEntry;
+  snapshot: NotebookNote;
 }
 
 export interface NotebookDeletePreview {
@@ -86,4 +104,33 @@ export interface NotebookMoveInput {
 
 export interface NotebookRestoreVersionInput {
   version_id: string;
+}
+
+export interface NotebookMetadataInput {
+  tags?: string[];
+  is_pinned?: boolean;
+}
+
+export interface NotebookAssistPreviewInput {
+  action: "summarize" | "rewrite" | "expand" | "checklist" | "action_items";
+}
+
+export interface NotebookAssistPreview {
+  action: string;
+  content: string;
+  original_content: string;
+}
+
+export interface NotebookAssistApplyInput {
+  action: "summarize" | "rewrite" | "expand" | "checklist" | "action_items";
+  mode: "replace" | "insert";
+  content: string;
+  expected_content_hash: string;
+}
+
+export interface NotebookImportInput {
+  source: "chat";
+  content: string;
+  mode: "append" | "replace";
+  expected_content_hash: string;
 }

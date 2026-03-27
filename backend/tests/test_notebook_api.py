@@ -24,6 +24,8 @@ def test_notebook_api_round_trips_note_lifecycle(monkeypatch, tmp_path):
         loaded = client.get(f"/api/notebook/notes/{note_id}")
         assert loaded.status_code == 200
         assert loaded.json()["note"]["title"] == "Roadmap"
+        assert loaded.json()["note"]["tags"] == []
+        assert loaded.json()["note"]["is_pinned"] is False
 
         updated = client.put(
             f"/api/notebook/notes/{note_id}",
@@ -84,6 +86,31 @@ def test_notebook_tree_ignores_hidden_notebook_metadata(monkeypatch, tmp_path):
         assert all(".nion" not in item["path"] for item in payload["files"])
 
 
+def test_notebook_notes_list_ignores_hidden_paths(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+
+    with TestClient(create_app()) as client:
+        created = client.post(
+            "/api/notebook/notes",
+            json={"directory": "", "title": "Visible Note", "body": "body"},
+        )
+        assert created.status_code == 200
+
+        hidden_dir = tmp_path / "notebook" / ".private"
+        hidden_dir.mkdir(parents=True, exist_ok=True)
+        (hidden_dir / "secret.md").write_text(
+            "---\nid: note_hidden\ntitle: Secret\ncreated_at: 2026-03-27T00:00:00Z\nupdated_at: 2026-03-27T00:00:00Z\ntags: []\n---\n\nsecret\n",
+            encoding="utf-8",
+        )
+
+        listed = client.get("/api/notebook/notes")
+        assert listed.status_code == 200
+        payload = listed.json()
+
+        assert [item["title"] for item in payload["notes"]] == ["Visible Note"]
+
+
 def test_notebook_trash_lists_deleted_notes(monkeypatch, tmp_path):
     monkeypatch.setenv("NION_HOME", str(tmp_path))
     reset_paths()
@@ -103,3 +130,167 @@ def test_notebook_trash_lists_deleted_notes(monkeypatch, tmp_path):
         assert trash.status_code == 200
         payload = trash.json()
         assert payload["notes"][0]["note_id"] == note_id
+
+
+def test_notebook_notes_list_exposes_summary_and_metadata(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+
+    with TestClient(create_app()) as client:
+        created = client.post(
+            "/api/notebook/notes",
+            json={"directory": "projects/alpha", "title": "Roadmap", "body": "Alpha launch summary"},
+        )
+        assert created.status_code == 200
+
+        listed = client.get("/api/notebook/notes")
+        assert listed.status_code == 200
+        payload = listed.json()
+
+        assert len(payload["notes"]) == 1
+        note = payload["notes"][0]
+        assert note["title"] == "Roadmap"
+        assert note["relative_path"] == "projects/alpha/roadmap.md"
+        assert note["summary"] == "Alpha launch summary"
+        assert note["tags"] == []
+        assert note["is_pinned"] is False
+
+
+def test_notebook_metadata_patch_updates_tags_and_pin_state(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+
+    with TestClient(create_app()) as client:
+        created = client.post(
+            "/api/notebook/notes",
+            json={"directory": "projects/alpha", "title": "Roadmap", "body": "Alpha launch summary"},
+        )
+        assert created.status_code == 200
+        note_id = created.json()["note"]["note_id"]
+
+        updated = client.patch(
+            f"/api/notebook/notes/{note_id}/metadata",
+            json={"tags": ["alpha", "roadmap"], "is_pinned": True},
+        )
+        assert updated.status_code == 200
+        payload = updated.json()["note"]
+        assert payload["tags"] == ["alpha", "roadmap"]
+        assert payload["is_pinned"] is True
+
+        loaded = client.get(f"/api/notebook/notes/{note_id}")
+        assert loaded.status_code == 200
+        assert loaded.json()["note"]["tags"] == ["alpha", "roadmap"]
+        assert loaded.json()["note"]["is_pinned"] is True
+
+        listed = client.get("/api/notebook/notes")
+        assert listed.status_code == 200
+        summary = listed.json()["notes"][0]
+        assert summary["tags"] == ["alpha", "roadmap"]
+        assert summary["is_pinned"] is True
+
+
+def test_notebook_history_detail_returns_snapshot_content(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+
+    with TestClient(create_app()) as client:
+        created = client.post(
+            "/api/notebook/notes",
+            json={"directory": "", "title": "History Note", "body": "v1"},
+        )
+        assert created.status_code == 200
+        note_id = created.json()["note"]["note_id"]
+
+        updated = client.put(
+            f"/api/notebook/notes/{note_id}",
+            json={
+                "body": "v2",
+                "expected_content_hash": created.json()["note"]["content_hash"],
+            },
+        )
+        assert updated.status_code == 200
+
+        history = client.get(f"/api/notebook/notes/{note_id}/history")
+        assert history.status_code == 200
+        version_id = history.json()["entries"][0]["version_id"]
+
+        detail = client.get(f"/api/notebook/notes/{note_id}/history/{version_id}")
+        assert detail.status_code == 200
+        payload = detail.json()
+
+        assert payload["entry"]["version_id"] == version_id
+        assert payload["snapshot"]["title"] == "History Note"
+        assert payload["snapshot"]["body"] == "v2"
+
+
+def test_notebook_assist_preview_and_apply(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+
+    with TestClient(create_app()) as client:
+        created = client.post(
+            "/api/notebook/notes",
+            json={"directory": "", "title": "Assist Note", "body": "line one\nline two"},
+        )
+        assert created.status_code == 200
+        note = created.json()["note"]
+        note_id = note["note_id"]
+
+        preview = client.post(
+            f"/api/notebook/notes/{note_id}/assist-preview",
+            json={"action": "summarize"},
+        )
+        assert preview.status_code == 200
+        preview_payload = preview.json()
+        assert preview_payload["action"] == "summarize"
+        assert preview_payload["content"]
+        assert preview_payload["original_content"] == "line one\nline two"
+
+        applied = client.post(
+            f"/api/notebook/notes/{note_id}/assist-apply",
+            json={
+                "action": "summarize",
+                "mode": "replace",
+                "content": preview_payload["content"],
+                "expected_content_hash": note["content_hash"],
+            },
+        )
+        assert applied.status_code == 200
+        applied_note = applied.json()["note"]
+        assert applied_note["body"] == preview_payload["content"]
+
+        history = client.get(f"/api/notebook/notes/{note_id}/history")
+        assert history.status_code == 200
+        assert history.json()["entries"][0]["actor_type"] == "agent"
+        assert history.json()["entries"][0]["operation"] == "edit"
+
+
+def test_notebook_import_updates_current_note(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+
+    with TestClient(create_app()) as client:
+        created = client.post(
+            "/api/notebook/notes",
+            json={"directory": "", "title": "Import Note", "body": "line one"},
+        )
+        assert created.status_code == 200
+        note = created.json()["note"]
+        note_id = note["note_id"]
+
+        imported = client.post(
+            f"/api/notebook/notes/{note_id}/import",
+            json={
+                "source": "chat",
+                "content": "imported block",
+                "mode": "append",
+                "expected_content_hash": note["content_hash"],
+            },
+        )
+        assert imported.status_code == 200
+        imported_note = imported.json()["note"]
+        assert "imported block" in imported_note["body"]
+
+        history = client.get(f"/api/notebook/notes/{note_id}/history")
+        assert history.status_code == 200
+        assert history.json()["entries"][0]["actor_type"] == "agent"

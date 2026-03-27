@@ -4,13 +4,19 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Literal
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from nion.config.paths import get_paths
-from nion.notebook import NotebookHistoryService, NotebookNote
-from nion.notebook.models import NotebookDeletedNotePreview
+from nion.notebook import (
+    NotebookHistoryService,
+    NotebookNote,
+    apply_assist_content,
+    build_assist_preview,
+)
+from nion.notebook.models import NotebookDeletedNotePreview, NotebookNoteSummary
 from nion.notebook.service import NotebookConflictError, NotebookNotFoundError
 
 router = APIRouter(prefix="/api/notebook", tags=["notebook"])
@@ -49,8 +55,17 @@ class NotebookNoteResponse(BaseModel):
     note: NotebookNote
 
 
+class NotebookNotesResponse(BaseModel):
+    notes: list[NotebookNoteSummary]
+
+
 class NotebookHistoryResponse(BaseModel):
     entries: list[dict[str, object]]
+
+
+class NotebookHistoryDetailResponse(BaseModel):
+    entry: dict[str, object]
+    snapshot: NotebookNote
 
 
 class NotebookDeletePreviewResponse(BaseModel):
@@ -90,6 +105,35 @@ class NotebookMoveRequest(BaseModel):
 
 class NotebookRestoreVersionRequest(BaseModel):
     version_id: str
+
+
+class NotebookMetadataRequest(BaseModel):
+    tags: list[str] | None = None
+    is_pinned: bool | None = None
+
+
+class NotebookAssistPreviewRequest(BaseModel):
+    action: Literal["summarize", "rewrite", "expand", "checklist", "action_items"]
+
+
+class NotebookAssistPreviewResponse(BaseModel):
+    action: str
+    content: str
+    original_content: str
+
+
+class NotebookAssistApplyRequest(BaseModel):
+    action: Literal["summarize", "rewrite", "expand", "checklist", "action_items"]
+    mode: Literal["replace", "insert"]
+    content: str
+    expected_content_hash: str
+
+
+class NotebookImportRequest(BaseModel):
+    source: Literal["chat"]
+    content: str
+    mode: Literal["append", "replace"]
+    expected_content_hash: str
 
 
 def _now_iso() -> str:
@@ -205,6 +249,12 @@ async def create_notebook_note(payload: NotebookCreateRequest) -> NotebookNoteRe
     return NotebookNoteResponse(note=note)
 
 
+@router.get("/notes", response_model=NotebookNotesResponse)
+async def list_notebook_notes() -> NotebookNotesResponse:
+    notes = NotebookHistoryService()._service.list_note_summaries()
+    return NotebookNotesResponse(notes=notes)
+
+
 @router.get("/notes/{note_id}", response_model=NotebookNoteResponse)
 async def get_notebook_note(note_id: str) -> NotebookNoteResponse:
     try:
@@ -227,6 +277,96 @@ async def update_notebook_note(
             expected_content_hash=payload.expected_content_hash,
             title=payload.title,
             actor_type="user",
+        )
+    except NotebookConflictError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except NotebookNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return NotebookNoteResponse(note=note)
+
+
+@router.patch("/notes/{note_id}/metadata", response_model=NotebookNoteResponse)
+async def update_notebook_note_metadata(
+    note_id: str,
+    payload: NotebookMetadataRequest,
+) -> NotebookNoteResponse:
+    try:
+        note = NotebookHistoryService()._service.update_note_metadata(
+            note_id=note_id,
+            tags=payload.tags,
+            is_pinned=payload.is_pinned,
+        )
+    except NotebookNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return NotebookNoteResponse(note=note)
+
+
+@router.post("/notes/{note_id}/assist-preview", response_model=NotebookAssistPreviewResponse)
+async def preview_notebook_assist(
+    note_id: str,
+    payload: NotebookAssistPreviewRequest,
+) -> NotebookAssistPreviewResponse:
+    try:
+        note = NotebookHistoryService()._service.read_note(note_id)
+    except NotebookNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    content = build_assist_preview(
+        title=note.title,
+        body=note.body,
+        action=payload.action,
+    )
+    return NotebookAssistPreviewResponse(
+        action=payload.action,
+        content=content,
+        original_content=note.body,
+    )
+
+
+@router.post("/notes/{note_id}/assist-apply", response_model=NotebookNoteResponse)
+async def apply_notebook_assist(
+    note_id: str,
+    payload: NotebookAssistApplyRequest,
+) -> NotebookNoteResponse:
+    service = NotebookHistoryService()
+    try:
+        current = service._service.read_note(note_id)
+        next_body = apply_assist_content(
+            original_body=current.body,
+            generated_content=payload.content,
+            mode=payload.mode,
+        )
+        note = service.update_note(
+            note_id=note_id,
+            body=next_body,
+            expected_content_hash=payload.expected_content_hash,
+            actor_type="agent",
+        )
+    except NotebookConflictError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except NotebookNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return NotebookNoteResponse(note=note)
+
+
+@router.post("/notes/{note_id}/import", response_model=NotebookNoteResponse)
+async def import_notebook_content(
+    note_id: str,
+    payload: NotebookImportRequest,
+) -> NotebookNoteResponse:
+    service = NotebookHistoryService()
+    try:
+        current = service._service.read_note(note_id)
+        next_body = (
+            payload.content
+            if payload.mode == "replace"
+            else f"{current.body.rstrip()}\n\n---\n\n{payload.content}".rstrip()
+        )
+        note = service.update_note(
+            note_id=note_id,
+            body=next_body,
+            expected_content_hash=payload.expected_content_hash,
+            actor_type="agent",
         )
     except NotebookConflictError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
@@ -274,6 +414,21 @@ async def get_notebook_history(note_id: str) -> NotebookHistoryResponse:
         for entry in NotebookHistoryService().list_history(note_id)
     ]
     return NotebookHistoryResponse(entries=entries)
+
+
+@router.get("/notes/{note_id}/history/{version_id}", response_model=NotebookHistoryDetailResponse)
+async def get_notebook_history_detail(
+    note_id: str,
+    version_id: str,
+) -> NotebookHistoryDetailResponse:
+    try:
+        entry, snapshot = NotebookHistoryService().get_history_detail(note_id, version_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return NotebookHistoryDetailResponse(
+        entry=entry.model_dump(),
+        snapshot=snapshot,
+    )
 
 
 @router.post("/notes/{note_id}/restore", response_model=NotebookNoteResponse)
