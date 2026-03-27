@@ -37,8 +37,10 @@ import {
   useMoveNotebookNote,
   useNotebookDeletePreview,
   useNotebookHistory,
+  useNotebookNotes,
   useNotebookNote,
   useNotebookTree,
+  useNotebookTrash,
   useRenameNotebookNote,
   useRestoreNotebookVersion,
   useUpdateNotebookNote,
@@ -79,9 +81,11 @@ export function NotebookPage() {
   const [contextTab, setContextTab] = useState<NotebookContextTab>("ask");
   const [deleteOpen, setDeleteOpen] = useState(false);
 
+  const { notes: noteSummaries } = useNotebookNotes();
   const { note, isLoading: noteLoading } = useNotebookNote(selectedNoteId);
   const { entries } = useNotebookHistory(selectedNoteId);
   const { preview } = useNotebookDeletePreview(selectedNoteId);
+  const { notes: deletedNotes } = useNotebookTrash();
 
   const createNote = useCreateNotebookNote();
   const updateNote = useUpdateNotebookNote(selectedNoteId ?? "");
@@ -128,7 +132,7 @@ export function NotebookPage() {
     [selectedNoteId, tree.files],
   );
   const treeNodes = useMemo(() => buildNotebookTree(tree), [tree]);
-  const recentFiles = useMemo(() => tree.files, [tree.files]);
+  const recentNotes = useMemo(() => noteSummaries, [noteSummaries]);
 
   const dirty =
     note !== null && (draftBody !== note.body || draftTitle !== note.title);
@@ -263,10 +267,12 @@ export function NotebookPage() {
                 searchPlaceholder: copy.searchPlaceholder,
                 trashTitle: copy.trashTitle,
               }}
+              deletedCount={deletedNotes.length}
               isLoading={isLoading}
               loadingLabel={t.common.loading}
+              noteSummaries={noteSummaries}
               query={query}
-              recentFiles={recentFiles}
+              recentNotes={recentNotes}
               treeFileCount={tree.files.length}
               treeNodes={treeNodes}
               onOpenCreate={() => setCreateOpen(true)}

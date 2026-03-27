@@ -1,4 +1,4 @@
-import type { NotebookFileEntry, NotebookTreeNode } from "@/core/notebook";
+import type { NotebookFileEntry, NotebookNoteSummary, NotebookTreeNode } from "@/core/notebook";
 
 export function buildRecentNotebookFiles(
   files: NotebookFileEntry[],
@@ -6,6 +6,18 @@ export function buildRecentNotebookFiles(
 ) {
   return [...files]
     .sort((left, right) => (right.mtime ?? 0) - (left.mtime ?? 0))
+    .slice(0, limit);
+}
+
+export function buildRecentNotebookNotes(
+  notes: NotebookNoteSummary[],
+  limit = 6,
+) {
+  return [...notes]
+    .sort(
+      (left, right) =>
+        new Date(right.updated_at).getTime() - new Date(left.updated_at).getTime(),
+    )
     .slice(0, limit);
 }
 
