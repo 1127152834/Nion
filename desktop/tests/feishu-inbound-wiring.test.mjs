@@ -21,3 +21,14 @@ test("feishu adapter wires gateway input through the inbound parser into its que
   assert.match(source, /registerMessageHandler/);
   assert.match(source, /this\.inbox\.push/);
 });
+
+test("feishu adapter wires card actions into callback messages", () => {
+  const source = fs.readFileSync(
+    new URL("../src/main/bridge/adapters/feishu-adapter.ts", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /registerCardActionHandler/);
+  assert.match(source, /callback_data/);
+  assert.match(source, /action:/);
+});

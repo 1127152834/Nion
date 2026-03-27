@@ -22,6 +22,7 @@ class ThreadService:
 
     def search(self, params: ThreadSearchParams) -> list[dict[str, Any]]:
         return self._repository.search(
+            thread_id=params.thread_id,
             limit=params.limit,
             offset=params.offset,
             sort_by=params.sort_by,

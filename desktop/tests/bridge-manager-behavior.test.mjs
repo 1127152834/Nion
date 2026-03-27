@@ -142,7 +142,7 @@ test("bridge manager background loop processes one inbound message and stops cle
   const adapter = createStubAdapter("telegram");
   const streamCalls = [];
   const manager = createBridgeManager({
-    loadSettings: () => ({ settings: {} }),
+    loadSettings: () => ({ settings: { remote_bridge_enabled: "true" } }),
     adapters: [adapter],
     listBindings: () => [],
     upsertBinding: (binding) => ({
@@ -212,7 +212,7 @@ test("bridge manager does not send adapter output when streamMessage returns emp
   });
 
   const manager = createBridgeManager({
-    loadSettings: () => ({ settings: {} }),
+    loadSettings: () => ({ settings: { remote_bridge_enabled: "true" } }),
     adapters: [adapter],
     listBindings: () => [],
     upsertBinding: (binding) => ({
@@ -601,4 +601,213 @@ test("bridge manager renders text permission commands for platforms without inli
   assert.equal(adapter.sent.length, 1);
   assert.match(adapter.sent[0].text, /\/perm allow perm-qq-1/);
   assert.equal(adapter.sent[0].inlineButtons, undefined);
+});
+
+test("bridge manager /mode updates binding mode and applies it to the next stream", async () => {
+  const createBridgeManager = await loadBridgeManagerFactory();
+  const adapter = createStubAdapter("telegram");
+  const bindings = [];
+  const streamCalls = [];
+
+  const upsertBinding = (binding) => {
+    const existingIndex = bindings.findIndex(
+      (item) => item.platform === binding.platform && item.chatId === binding.chatId,
+    );
+    const record = {
+      ...binding,
+      id: existingIndex >= 0 ? bindings[existingIndex].id : "binding-mode",
+      createdAt: "",
+      updatedAt: "",
+    };
+    if (existingIndex >= 0) {
+      bindings[existingIndex] = record;
+    } else {
+      bindings.push(record);
+    }
+    return record;
+  };
+
+  const manager = createBridgeManager({
+    loadSettings: () => ({
+      settings: {
+        remote_bridge_enabled: "true",
+        bridge_default_work_dir: "/tmp/project",
+        bridge_default_model: "sonnet",
+      },
+    }),
+    adapters: [adapter],
+    listBindings: () => bindings,
+    upsertBinding,
+    defaultWorkingDirectory: () => "/tmp/project",
+    threadClient: {
+      async streamMessage(threadId, text, _callbacks, options) {
+        streamCalls.push({ threadId, text, options });
+        return {
+          threadId,
+          finalText: "ok",
+          events: [],
+        };
+      },
+    },
+  });
+
+  adapter.enqueue({
+    platform: "telegram",
+    chatId: "chat-mode",
+    userId: "user-1",
+    text: "/mode plan",
+    messageId: "msg-mode",
+    timestamp: Date.now(),
+  });
+  await manager.processNextInboundMessage();
+
+  adapter.enqueue({
+    platform: "telegram",
+    chatId: "chat-mode",
+    userId: "user-1",
+    text: "run this",
+    messageId: "msg-run",
+    timestamp: Date.now(),
+  });
+  await manager.processNextInboundMessage();
+
+  assert.equal(bindings.length, 1);
+  assert.equal(bindings[0].mode, "plan");
+  assert.equal(streamCalls.length, 1);
+  assert.equal(streamCalls[0].options.planMode, true);
+  assert.equal(streamCalls[0].options.modelName, "sonnet");
+});
+
+test("bridge manager uses provider-qualified default model identity when configured", async () => {
+  const createBridgeManager = await loadBridgeManagerFactory();
+  const adapter = createStubAdapter("telegram");
+  const streamCalls = [];
+
+  const manager = createBridgeManager({
+    loadSettings: () => ({
+      settings: {
+        remote_bridge_enabled: "true",
+        bridge_default_work_dir: "/tmp/project",
+        bridge_default_provider_id: "anthropic-main",
+        bridge_default_model: "sonnet",
+      },
+    }),
+    adapters: [adapter],
+    listBindings: () => [],
+    upsertBinding: (binding) => ({
+      ...binding,
+      id: "binding-provider",
+      createdAt: "",
+      updatedAt: "",
+    }),
+    defaultWorkingDirectory: () => "/tmp/project",
+    threadClient: {
+      async streamMessage(threadId, text, _callbacks, options) {
+        streamCalls.push({ threadId, text, options });
+        return {
+          threadId,
+          finalText: "ok",
+          events: [],
+        };
+      },
+    },
+  });
+
+  adapter.enqueue({
+    platform: "telegram",
+    chatId: "chat-provider",
+    userId: "user-1",
+    text: "run this",
+    messageId: "msg-provider",
+    timestamp: Date.now(),
+  });
+
+  await manager.processNextInboundMessage();
+
+  assert.equal(streamCalls.length, 1);
+  assert.equal(streamCalls[0].options.modelName, "anthropic-main:sonnet");
+});
+
+test("bridge manager /stop aborts an in-flight task while the adapter loop keeps running", async () => {
+  const createBridgeManager = await loadBridgeManagerFactory();
+  const adapter = createStubAdapter("telegram");
+  const bindings = [];
+  let streamStarted = false;
+  let aborted = false;
+
+  const upsertBinding = (binding) => {
+    const existingIndex = bindings.findIndex(
+      (item) => item.platform === binding.platform && item.chatId === binding.chatId,
+    );
+    const record = {
+      ...binding,
+      id: existingIndex >= 0 ? bindings[existingIndex].id : "binding-stop",
+      createdAt: "",
+      updatedAt: "",
+    };
+    if (existingIndex >= 0) {
+      bindings[existingIndex] = record;
+    } else {
+      bindings.push(record);
+    }
+    return record;
+  };
+
+  const manager = createBridgeManager({
+    loadSettings: () => ({
+      settings: {
+        remote_bridge_enabled: "true",
+        bridge_default_work_dir: "/tmp/project",
+      },
+    }),
+    adapters: [adapter],
+    listBindings: () => bindings,
+    upsertBinding,
+    defaultWorkingDirectory: () => "/tmp/project",
+    threadClient: {
+      async streamMessage(threadId, _text, _callbacks, options) {
+        streamStarted = true;
+        return await new Promise((resolve, reject) => {
+          options.signal.addEventListener("abort", () => {
+            aborted = true;
+            const error = new Error("aborted");
+            error.name = "AbortError";
+            reject(error);
+          });
+        });
+      },
+    },
+  });
+
+  await manager.start();
+
+  adapter.enqueue({
+    platform: "telegram",
+    chatId: "chat-stop",
+    userId: "user-1",
+    text: "long running task",
+    messageId: "msg-long",
+    timestamp: Date.now(),
+  });
+
+  await waitFor(() => {
+    assert.equal(streamStarted, true);
+  });
+
+  adapter.enqueue({
+    platform: "telegram",
+    chatId: "chat-stop",
+    userId: "user-1",
+    text: "/stop",
+    messageId: "msg-stop",
+    timestamp: Date.now(),
+  });
+
+  await waitFor(() => {
+    assert.equal(aborted, true);
+    assert.ok(adapter.sent.some((message) => /Stopping current task/.test(message.text)));
+    assert.ok(adapter.sent.some((message) => /Task interrupted/.test(message.text)));
+  });
+
+  await manager.stop();
 });

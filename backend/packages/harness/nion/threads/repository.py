@@ -85,11 +85,16 @@ class ThreadRepository:
     def search(
         self,
         *,
+        thread_id: str | None = None,
         limit: int = 50,
         offset: int = 0,
         sort_by: str = "updated_at",
         sort_order: str = "desc",
     ) -> list[dict[str, Any]]:
+        if thread_id:
+            record = self.get_thread(thread_id)
+            return [record.model_dump()] if record is not None else []
+
         threads_root = self._paths.base_dir / "threads"
         if not threads_root.exists():
             return []

@@ -85,6 +85,7 @@ async def search_threads(
     service: ThreadService = Depends(get_thread_service),
 ) -> list[dict[str, Any]]:
     params = ThreadSearchParams(
+        thread_id=payload.thread_id,
         limit=payload.limit,
         offset=payload.offset,
         sort_by=payload.sortBy,

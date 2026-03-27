@@ -22,6 +22,7 @@ class ThreadRecord(BaseModel):
 
 
 class ThreadSearchParams(BaseModel):
+    thread_id: str | None = None
     limit: int = 50
     offset: int = 0
     sort_by: Literal["updated_at", "created_at"] = "updated_at"

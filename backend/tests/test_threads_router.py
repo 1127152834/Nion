@@ -13,6 +13,24 @@ def test_threads_search_route_exists() -> None:
     assert response.status_code == 200
 
 
+def test_threads_search_route_supports_thread_id_filter(tmp_path, monkeypatch) -> None:
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+
+    from nion.config import paths as paths_module
+
+    paths_module._paths = None
+
+    repository = ThreadRepository(base_dir=tmp_path)
+    repository.upsert_thread("thread-1", title="One", values={"messages": [], "artifacts": []})
+    repository.upsert_thread("thread-2", title="Two", values={"messages": [], "artifacts": []})
+
+    client = TestClient(create_app())
+    response = client.post("/api/threads/search", json={"thread_id": "thread-2", "limit": 10})
+
+    assert response.status_code == 200
+    assert [item["thread_id"] for item in response.json()] == ["thread-2"]
+
+
 def test_threads_stream_surfaces_runtime_errors_as_sse_events() -> None:
     app = create_app()
 

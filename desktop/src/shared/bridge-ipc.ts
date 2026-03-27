@@ -6,6 +6,12 @@ export const DESKTOP_BRIDGE_IPC_CHANNELS = {
   start: "bridge:start",
   stop: "bridge:stop",
   probe: "bridge:probe",
+  browseWorkingDirectory: "bridge:browse-working-directory",
+  verifyTelegram: "bridge:verify-telegram",
+  detectTelegramChatId: "bridge:detect-telegram-chat-id",
+  verifyDiscord: "bridge:verify-discord",
+  verifyFeishu: "bridge:verify-feishu",
+  verifyQq: "bridge:verify-qq",
   listWeixinAccounts: "bridge:list-weixin-accounts",
   startWeixinLogin: "bridge:start-weixin-login",
   waitForWeixinLogin: "bridge:wait-for-weixin-login",
@@ -20,20 +26,37 @@ export const DESKTOP_BRIDGE_IPC_CHANNELS = {
 
 export type DesktopBridgeStatus = {
   running: boolean;
+  startedAt: string | null;
   enabledPlatforms: string[];
   adapters: DesktopBridgeAdapterStatus[];
 };
 
 export type DesktopBridgeAdapterStatus = {
   platform: string;
+  channelType: string;
   running: boolean;
   connectedAt: string | null;
+  lastMessageAt: string | null;
   error: string | null;
 };
 
 export type DesktopBridgeProbeResult = {
   ok: boolean;
   message: string;
+};
+
+export type DesktopBridgeVerifyResult = {
+  verified: boolean;
+  botName?: string;
+  gatewayUrl?: string;
+  error?: string;
+};
+
+export type DesktopBridgeDetectChatIdResult = {
+  ok: boolean;
+  chatId?: string;
+  chatTitle?: string;
+  error?: string;
 };
 
 export type DesktopWeixinAccount = {
@@ -51,6 +74,14 @@ export type DesktopWeixinLoginSession = {
   qrImage: string;
   status: "waiting" | "scanned" | "confirmed" | "expired" | "failed";
   accountId?: string;
+  error?: string;
+  bridgeRestartError?: string;
+};
+
+export type DesktopWeixinAccountMutationResult = {
+  ok: boolean;
+  accountUpdated?: boolean;
+  accountDeleted?: boolean;
   error?: string;
 };
 

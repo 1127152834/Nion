@@ -137,7 +137,7 @@ test("bridge manager records manager start and stop observations", async () => {
   const adapter = createStubAdapter("telegram");
   const observations = [];
   const manager = createBridgeManager({
-    loadSettings: () => ({ settings: {} }),
+    loadSettings: () => ({ settings: { remote_bridge_enabled: "true" } }),
     adapters: [adapter],
     listBindings: () => [],
     upsertBinding: (binding) => ({
@@ -174,7 +174,7 @@ test("bridge manager records adapter start failures", async () => {
   };
 
   const manager = createBridgeManager({
-    loadSettings: () => ({ settings: {} }),
+    loadSettings: () => ({ settings: { remote_bridge_enabled: "true" } }),
     adapters: [adapter],
     listBindings: () => [],
     upsertBinding: (binding) => ({
@@ -208,7 +208,7 @@ test("bridge manager records adapter runtime failures from the background loop",
   adapter.consumeErrorCount = 1;
 
   const manager = createBridgeManager({
-    loadSettings: () => ({ settings: {} }),
+    loadSettings: () => ({ settings: { remote_bridge_enabled: "true" } }),
     adapters: [adapter],
     listBindings: () => [],
     upsertBinding: (binding) => ({

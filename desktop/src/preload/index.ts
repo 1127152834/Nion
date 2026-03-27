@@ -12,6 +12,10 @@ export function registerPreloadBridge(): void {
 
   contextBridge.exposeInMainWorld("nionDesktop", {
     backendBaseUrl,
+    dialog: {
+      openFolder: (options?: { defaultPath?: string; title?: string }) =>
+        ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.openFolder, options),
+    },
     bridge: {
       getSettings: () => ipcRenderer.invoke(DESKTOP_BRIDGE_IPC_CHANNELS.getSettings),
       saveSettings: (updates: Record<string, string>) =>
@@ -32,6 +36,24 @@ export function registerPreloadBridge(): void {
       stop: () => ipcRenderer.invoke(DESKTOP_BRIDGE_IPC_CHANNELS.stop),
       probe: (platform: string) =>
         ipcRenderer.invoke(DESKTOP_BRIDGE_IPC_CHANNELS.probe, platform),
+      browseWorkingDirectory: (defaultPath?: string) =>
+        ipcRenderer.invoke(
+          DESKTOP_BRIDGE_IPC_CHANNELS.browseWorkingDirectory,
+          defaultPath,
+        ),
+      verifyTelegram: (payload: Record<string, unknown>) =>
+        ipcRenderer.invoke(DESKTOP_BRIDGE_IPC_CHANNELS.verifyTelegram, payload),
+      detectTelegramChatId: (payload: Record<string, unknown>) =>
+        ipcRenderer.invoke(
+          DESKTOP_BRIDGE_IPC_CHANNELS.detectTelegramChatId,
+          payload,
+        ),
+      verifyDiscord: (payload: Record<string, unknown>) =>
+        ipcRenderer.invoke(DESKTOP_BRIDGE_IPC_CHANNELS.verifyDiscord, payload),
+      verifyFeishu: (payload: Record<string, unknown>) =>
+        ipcRenderer.invoke(DESKTOP_BRIDGE_IPC_CHANNELS.verifyFeishu, payload),
+      verifyQq: (payload: Record<string, unknown>) =>
+        ipcRenderer.invoke(DESKTOP_BRIDGE_IPC_CHANNELS.verifyQq, payload),
       listWeixinAccounts: () =>
         ipcRenderer.invoke(DESKTOP_BRIDGE_IPC_CHANNELS.listWeixinAccounts),
       startWeixinLogin: () =>

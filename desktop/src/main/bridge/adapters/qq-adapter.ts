@@ -36,6 +36,29 @@ type QQC2CMessageData = {
 
 const QQ_MAX_FILE_SIZE = 20 * 1024 * 1024;
 
+async function verifyQqConfig(payload: {
+  appId?: string;
+  appSecret?: string;
+}) {
+  const appId = payload.appId?.trim();
+  const appSecret = payload.appSecret?.trim();
+
+  if (!appId || !appSecret) {
+    return { verified: false, error: "QQ bot credentials are unavailable" };
+  }
+
+  try {
+    const accessToken = await getQqAccessToken(appId, appSecret);
+    await getQqGatewayUrl(accessToken);
+    return { verified: true };
+  } catch (error) {
+    return {
+      verified: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
 export class QqBridgeAdapter extends BaseBridgeAdapter {
   readonly platform = "qq";
   private running = false;
@@ -399,23 +422,13 @@ export class QqBridgeAdapter extends BaseBridgeAdapter {
   }
 
   async probe() {
-    const validation = this.validateConfig();
-    if (validation) {
-      return { ok: false, message: validation };
-    }
-
-    try {
-      const accessToken = await this.getAccessToken();
-      await getQqGatewayUrl(accessToken);
-      return {
-        ok: true,
-        message: "QQ bot credentials verified",
-      };
-    } catch (error) {
-      return {
-        ok: false,
-        message: error instanceof Error ? error.message : "QQ probe failed",
-      };
-    }
+    const verification = await verifyQqConfig({
+      appId: this.settings.bridge_qq_app_id,
+      appSecret: this.settings.bridge_qq_app_secret,
+    });
+    return {
+      ok: verification.verified,
+      message: verification.error || "QQ bot credentials verified",
+    };
   }
 }

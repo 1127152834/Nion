@@ -14,8 +14,21 @@ export function createBridgeChannelRouter(options: {
   upsertBinding: (
     binding: Omit<BridgeBinding, "id" | "createdAt" | "updatedAt">,
   ) => BridgeBinding;
-  defaultWorkingDirectory: () => string;
+  loadSettings?: () => Record<string, string>;
+  defaultWorkingDirectory?: () => string;
 }) {
+  const defaultBindingValues = () => {
+    const settings = options.loadSettings?.() ?? {};
+    const providerId = settings.bridge_default_provider_id ?? "";
+    const modelId = settings.bridge_default_model ?? "";
+    return {
+      workingDirectory:
+        settings.bridge_default_work_dir ?? options.defaultWorkingDirectory?.() ?? "",
+      model: providerId && modelId ? `${providerId}:${modelId}` : modelId,
+      mode: (settings.bridge_default_mode as BridgeBinding["mode"] | undefined) ?? "code",
+    };
+  };
+
   const resolveBinding = (address: BridgeAddress): BridgeBinding => {
     const existing = options
       .listBindings()
@@ -25,14 +38,25 @@ export function createBridgeChannelRouter(options: {
       );
 
     if (existing) {
+      if (!existing.model || !existing.mode) {
+        const defaults = defaultBindingValues();
+        return options.upsertBinding({
+          ...existing,
+          model: existing.model || defaults.model,
+          mode: existing.mode || defaults.mode,
+        });
+      }
       return existing;
     }
 
+    const defaults = defaultBindingValues();
     return options.upsertBinding({
       platform: address.platform,
       chatId: address.chatId,
       threadId: `bridge-${randomUUID()}`,
-      workingDirectory: options.defaultWorkingDirectory(),
+      workingDirectory: defaults.workingDirectory,
+      model: defaults.model,
+      mode: defaults.mode,
       active: true,
     });
   };

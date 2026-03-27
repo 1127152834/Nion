@@ -38,6 +38,12 @@ type ThreadStreamResult = {
   events: ThreadStreamEvent[];
 };
 
+type ThreadStreamOptions = {
+  modelName?: string;
+  planMode?: boolean;
+  signal?: AbortSignal;
+};
+
 function parseSSEEvent(part: string): { event: string; data: string } {
   const lines = part.split("\n");
   const event = lines
@@ -169,6 +175,7 @@ export function createNionThreadClient(baseUrl: string) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        thread_id: threadId,
         limit: 1,
         offset: 0,
         select: ["values"],
@@ -200,13 +207,18 @@ export function createNionThreadClient(baseUrl: string) {
     threadId: string,
     text: string,
     callbacks?: ThreadStreamCallbacks,
+    options?: ThreadStreamOptions,
   ): Promise<ThreadStreamResult> => {
     const response = await fetch(`${threadsBaseUrl}/${threadId}/stream`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         messages: [{ role: "user", content: text }],
-        context: { surface: "bridge" },
+        context: {
+          surface: "bridge",
+          model_name: options?.modelName,
+          is_plan_mode: options?.planMode ?? false,
+        },
         config: {},
       }),
     });

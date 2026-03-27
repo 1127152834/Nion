@@ -83,6 +83,53 @@ function buildDiscordGatewayUrl(url: string) {
   return url.includes("?") ? url : `${url}${suffix}`;
 }
 
+async function verifyDiscordConfig(payload: { botToken?: string }) {
+  const botToken = payload.botToken?.trim();
+  if (!botToken) {
+    return { verified: false, error: "Discord bot token is unavailable" };
+  }
+
+  try {
+    const response = await fetch(`${DISCORD_REST_API}/users/@me`, {
+      headers: {
+        Authorization: `Bot ${botToken}`,
+      },
+      signal: AbortSignal.timeout(15_000),
+    });
+
+    if (!response.ok) {
+      const errorPayload = (await response.json().catch(() => ({}))) as {
+        message?: string;
+      };
+      return {
+        verified: false,
+        error:
+          errorPayload.message || `Discord request failed: HTTP ${response.status}`,
+      };
+    }
+
+    const user = (await response.json()) as {
+      username?: string;
+      discriminator?: string;
+      global_name?: string;
+    };
+
+    return {
+      verified: true,
+      botName:
+        user.global_name ||
+        (user.username
+          ? `${user.username}${user.discriminator ? `#${user.discriminator}` : ""}`
+          : undefined),
+    };
+  } catch (error) {
+    return {
+      verified: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
 export class DiscordBridgeAdapter extends BaseBridgeAdapter {
   readonly platform = "discord";
   private running = false;
@@ -629,28 +676,12 @@ export class DiscordBridgeAdapter extends BaseBridgeAdapter {
   }
 
   async probe() {
-    const validation = this.validateConfig();
-    if (validation) {
-      return { ok: false, message: validation };
-    }
-
-    try {
-      const payload = await this.discordRest<{
-        username?: string;
-        discriminator?: string;
-        id?: string;
-      }>("/users/@me");
-      return {
-        ok: true,
-        message: payload.username
-          ? `Discord bot verified: ${payload.username}#${payload.discriminator || "0"}`
-          : payload.id || "Discord bot verified",
-      };
-    } catch (error) {
-      return {
-        ok: false,
-        message: error instanceof Error ? error.message : "Discord probe failed",
-      };
-    }
+    const verification = await verifyDiscordConfig({
+      botToken: this.settings.bridge_discord_bot_token,
+    });
+    return {
+      ok: verification.verified,
+      message: verification.botName || verification.error || "Discord bot verified",
+    };
   }
 }

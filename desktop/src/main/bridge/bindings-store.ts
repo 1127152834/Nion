@@ -8,6 +8,8 @@ export type BridgeBinding = {
   chatId: string;
   threadId: string;
   workingDirectory: string;
+  model?: string;
+  mode?: "code" | "plan" | "ask";
   active: boolean;
   createdAt: string;
   updatedAt: string;
@@ -36,7 +38,16 @@ export function createBridgeBindingsStore(filePath: string) {
     const raw = fs.readFileSync(resolvedPath, "utf8");
     const parsed = JSON.parse(raw) as Partial<BridgeBindingsDocument>;
     return {
-      bindings: Array.isArray(parsed.bindings) ? [...parsed.bindings] : [],
+      bindings: Array.isArray(parsed.bindings)
+        ? parsed.bindings.map((binding) => ({
+            ...binding,
+            model: typeof binding.model === "string" ? binding.model : "",
+            mode:
+              binding.mode === "plan" || binding.mode === "ask" || binding.mode === "code"
+                ? binding.mode
+                : "code",
+          }))
+        : [],
     };
   };
 

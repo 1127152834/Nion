@@ -2,11 +2,14 @@
 
 export type BridgeStatus = {
   running: boolean;
+  startedAt: string | null;
   enabledPlatforms: string[];
   adapters: Array<{
     platform: string;
+    channelType: string;
     running: boolean;
     connectedAt: string | null;
+    lastMessageAt: string | null;
     error: string | null;
   }>;
 };
@@ -17,6 +20,8 @@ export type BridgeBinding = {
   chatId: string;
   threadId: string;
   workingDirectory: string;
+  model?: string;
+  mode?: "code" | "plan" | "ask";
   active: boolean;
   createdAt: string;
   updatedAt: string;
@@ -25,6 +30,30 @@ export type BridgeBinding = {
 export type BridgeProbeResult = {
   ok: boolean;
   message: string;
+  error?: string;
+};
+
+export type BridgeVerifyResult = {
+  verified: boolean;
+  botName?: string;
+  gatewayUrl?: string;
+  error?: string;
+};
+
+export type BridgeDetectChatIdResult = {
+  ok: boolean;
+  chatId?: string;
+  chatTitle?: string;
+  error?: string;
+};
+
+export type ProviderModelGroup = {
+  provider_id: string;
+  provider_name: string;
+  models: Array<{
+    value: string;
+    label: string;
+  }>;
 };
 
 export type BridgeRecommendedAction = {
@@ -122,6 +151,14 @@ export type WeixinBridgeLoginSession = {
   status: "waiting" | "scanned" | "confirmed" | "expired" | "failed";
   accountId?: string;
   error?: string;
+  bridgeRestartError?: string;
+};
+
+export type WeixinBridgeMutationResult = {
+  ok: boolean;
+  accountUpdated?: boolean;
+  accountDeleted?: boolean;
+  error?: string;
 };
 
 export type BridgeClient = {
@@ -134,14 +171,37 @@ export type BridgeClient = {
   diagnose(request: BridgeDiagnoseRequest): Promise<BridgeIncidentRecord>;
   dismissIncident(incidentId: string): Promise<BridgeIncidentRecord | null>;
   runAction(request: BridgeRunActionRequest): Promise<BridgeRunActionResult>;
-  start(): Promise<void>;
+  start(): Promise<string | null>;
   stop(): Promise<void>;
   probe(platform: string): Promise<BridgeProbeResult>;
+  browseWorkingDirectory(defaultPath?: string): Promise<string | null>;
+  verifyTelegram(payload: {
+    bot_token?: string;
+    chat_id?: string;
+  }): Promise<BridgeVerifyResult>;
+  detectTelegramChatId(payload: {
+    bot_token?: string;
+  }): Promise<BridgeDetectChatIdResult>;
+  verifyDiscord(payload: {
+    bot_token?: string;
+  }): Promise<BridgeVerifyResult>;
+  verifyFeishu(payload: {
+    app_id?: string;
+    app_secret?: string;
+    domain?: string;
+  }): Promise<BridgeVerifyResult>;
+  verifyQq(payload: {
+    app_id?: string;
+    app_secret?: string;
+  }): Promise<BridgeVerifyResult>;
   listWeixinAccounts(): Promise<WeixinBridgeAccount[]>;
   startWeixinLogin(): Promise<WeixinBridgeLoginSession>;
   waitForWeixinLogin(sessionId: string): Promise<WeixinBridgeLoginSession>;
-  setWeixinAccountEnabled(accountId: string, enabled: boolean): Promise<void>;
-  deleteWeixinAccount(accountId: string): Promise<void>;
+  setWeixinAccountEnabled(
+    accountId: string,
+    enabled: boolean,
+  ): Promise<WeixinBridgeMutationResult>;
+  deleteWeixinAccount(accountId: string): Promise<WeixinBridgeMutationResult>;
 };
 
 function resolveDesktopBridge() {
@@ -160,14 +220,39 @@ function resolveDesktopBridge() {
                 diagnose: (request: BridgeDiagnoseRequest) => Promise<BridgeIncidentRecord>;
                 dismissIncident: (incidentId: string) => Promise<BridgeIncidentRecord | null>;
                 runAction: (request: BridgeRunActionRequest) => Promise<BridgeRunActionResult>;
-                start: () => Promise<void>;
+                start: () => Promise<string | null>;
                 stop: () => Promise<void>;
                 probe: (platform: string) => Promise<BridgeProbeResult>;
+                browseWorkingDirectory: (defaultPath?: string) => Promise<string | null>;
+                verifyTelegram: (payload: {
+                  bot_token?: string;
+                  chat_id?: string;
+                }) => Promise<BridgeVerifyResult>;
+                detectTelegramChatId: (payload: {
+                  bot_token?: string;
+                }) => Promise<BridgeDetectChatIdResult>;
+                verifyDiscord: (payload: {
+                  bot_token?: string;
+                }) => Promise<BridgeVerifyResult>;
+                verifyFeishu: (payload: {
+                  app_id?: string;
+                  app_secret?: string;
+                  domain?: string;
+                }) => Promise<BridgeVerifyResult>;
+                verifyQq: (payload: {
+                  app_id?: string;
+                  app_secret?: string;
+                }) => Promise<BridgeVerifyResult>;
                 listWeixinAccounts: () => Promise<WeixinBridgeAccount[]>;
                 startWeixinLogin: () => Promise<WeixinBridgeLoginSession>;
                 waitForWeixinLogin: (sessionId: string) => Promise<WeixinBridgeLoginSession>;
-                setWeixinAccountEnabled: (accountId: string, enabled: boolean) => Promise<void>;
-                deleteWeixinAccount: (accountId: string) => Promise<void>;
+                setWeixinAccountEnabled: (
+                  accountId: string,
+                  enabled: boolean,
+                ) => Promise<WeixinBridgeMutationResult>;
+                deleteWeixinAccount: (
+                  accountId: string,
+                ) => Promise<WeixinBridgeMutationResult>;
               };
             };
           }
@@ -196,6 +281,13 @@ export function getBridgeClient(): BridgeClient | null {
     start: () => bridge.start(),
     stop: () => bridge.stop(),
     probe: (platform) => bridge.probe(platform),
+    browseWorkingDirectory: (defaultPath) =>
+      bridge.browseWorkingDirectory(defaultPath),
+    verifyTelegram: (payload) => bridge.verifyTelegram(payload),
+    detectTelegramChatId: (payload) => bridge.detectTelegramChatId(payload),
+    verifyDiscord: (payload) => bridge.verifyDiscord(payload),
+    verifyFeishu: (payload) => bridge.verifyFeishu(payload),
+    verifyQq: (payload) => bridge.verifyQq(payload),
     listWeixinAccounts: () => bridge.listWeixinAccounts(),
     startWeixinLogin: () => bridge.startWeixinLogin(),
     waitForWeixinLogin: (sessionId) => bridge.waitForWeixinLogin(sessionId),

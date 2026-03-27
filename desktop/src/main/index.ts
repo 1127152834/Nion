@@ -1,7 +1,7 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { app, BrowserWindow, ipcMain } from "electron";
+import { app, BrowserWindow, dialog, ipcMain } from "electron";
 
 import { createBridgeActionRunner } from "./bridge/action-runner.js";
 import { createBridgeManager } from "./bridge/bridge-manager.js";
@@ -28,6 +28,251 @@ const __dirname = path.dirname(__filename);
 let mainWindow: BrowserWindow | null = null;
 let clientSession: ElectronClientSession | null = null;
 let runtimeInfo: import("../shared/ipc.js").DesktopRuntimeInfo | null = null;
+
+const MASKED_SETTING_KEYS = new Set([
+  "telegram_bot_token",
+  "bridge_telegram_bot_token",
+  "bridge_discord_bot_token",
+  "bridge_feishu_app_secret",
+  "bridge_qq_app_secret",
+]);
+
+function maskSettingValue(key: string, value: string) {
+  if (!MASKED_SETTING_KEYS.has(key) || value.length <= 8) {
+    return value;
+  }
+  return `***${value.slice(-8)}`;
+}
+
+function getSettingWithAliases(settings: Record<string, string>, key: string) {
+  if (key === "telegram_bot_token") {
+    return settings.telegram_bot_token || settings.bridge_telegram_bot_token || "";
+  }
+  if (key === "telegram_chat_id") {
+    return settings.telegram_chat_id || settings.bridge_telegram_chat_id || "";
+  }
+  return settings[key] ?? "";
+}
+
+async function callTelegramApi(
+  botToken: string,
+  method: string,
+  params: Record<string, unknown>,
+) {
+  const response = await fetch(`https://api.telegram.org/bot${botToken}/${method}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
+  const data = (await response.json()) as {
+    ok?: boolean;
+    result?: Record<string, unknown>;
+    description?: string;
+    parameters?: { retry_after?: number };
+  };
+  return {
+    ok: data.ok === true,
+    result: data.result,
+    description: data.description,
+    retryAfter: data.parameters?.retry_after,
+  };
+}
+
+async function verifyTelegramBot(botToken: string, chatId?: string) {
+  const response = await fetch(`https://api.telegram.org/bot${botToken}/getMe`, {
+    signal: AbortSignal.timeout(10_000),
+  });
+  const data = (await response.json()) as {
+    ok?: boolean;
+    result?: { username?: string; first_name?: string };
+    description?: string;
+  };
+  if (!data.ok || !data.result) {
+    return {
+      verified: false,
+      error: data.description || "Invalid bot token",
+    };
+  }
+
+  const botName = data.result.username || data.result.first_name || "";
+  if (chatId) {
+    const sendResult = await callTelegramApi(botToken, "sendMessage", {
+      chat_id: chatId,
+      text: `✅ CodePilot connected successfully!\n\nBot: @${botName}\nNotifications will be sent to this chat.`,
+      parse_mode: "HTML",
+    });
+    if (!sendResult.ok) {
+      return {
+        verified: false,
+        botName,
+        error: `Bot verified but cannot send to chat: ${sendResult.description || "Unknown Telegram API error"}`,
+      };
+    }
+  }
+
+  return {
+    verified: true,
+    botName,
+  };
+}
+
+async function detectTelegramChatId(botToken: string) {
+  const response = await fetch(`https://api.telegram.org/bot${botToken}/getUpdates`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ limit: 100, timeout: 0, allowed_updates: ["message"] }),
+    signal: AbortSignal.timeout(10_000),
+  });
+  const data = (await response.json()) as {
+    ok?: boolean;
+    result?: Array<{
+      message?: {
+        chat?: {
+          id?: number | string;
+          first_name?: string;
+          title?: string;
+          username?: string;
+        };
+      };
+    }>;
+  };
+
+  if (data.ok && Array.isArray(data.result) && data.result.length > 0) {
+    for (let index = data.result.length - 1; index >= 0; index -= 1) {
+      const chat = data.result[index]?.message?.chat;
+      if (!chat?.id) {
+        continue;
+      }
+      const chatId = String(chat.id);
+      return {
+        ok: true,
+        chatId,
+        chatTitle: chat.first_name || chat.title || chat.username || chatId,
+      };
+    }
+  }
+
+  return {
+    ok: false,
+    error: "No messages found. Please send /start to the bot first, then try again.",
+  };
+}
+
+async function verifyDiscordBot(botToken: string) {
+  const response = await fetch("https://discord.com/api/v10/users/@me", {
+    headers: {
+      Authorization: `Bot ${botToken}`,
+    },
+    signal: AbortSignal.timeout(10_000),
+  });
+  const data = (await response.json().catch(() => ({}))) as {
+    id?: string;
+    username?: string;
+    discriminator?: string;
+    message?: string;
+  };
+
+  if (!response.ok) {
+    return {
+      verified: false,
+      error: data.message || `HTTP ${response.status}: Token verification failed`,
+    };
+  }
+
+  if (!data.id) {
+    return {
+      verified: false,
+      error: "Could not retrieve bot info",
+    };
+  }
+
+  return {
+    verified: true,
+    botName: data.username ? `${data.username}#${data.discriminator || "0"}` : data.id,
+  };
+}
+
+async function verifyFeishuApp(appId: string, appSecret: string, domain: string) {
+  const baseUrl = domain === "lark" ? "https://open.larksuite.com" : "https://open.feishu.cn";
+  const tokenResponse = await fetch(`${baseUrl}/open-apis/auth/v3/tenant_access_token/internal`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ app_id: appId, app_secret: appSecret }),
+    signal: AbortSignal.timeout(10_000),
+  });
+  const tokenData = (await tokenResponse.json()) as {
+    tenant_access_token?: string;
+    msg?: string;
+  };
+  if (!tokenData.tenant_access_token) {
+    return {
+      verified: false,
+      error: tokenData.msg || "Failed to get access token",
+    };
+  }
+
+  const botResponse = await fetch(`${baseUrl}/open-apis/bot/v3/info/`, {
+    headers: {
+      Authorization: `Bearer ${tokenData.tenant_access_token}`,
+    },
+    signal: AbortSignal.timeout(10_000),
+  });
+  const botData = (await botResponse.json()) as {
+    bot?: { open_id?: string; app_name?: string };
+    msg?: string;
+  };
+  if (!botData.bot?.open_id) {
+    return {
+      verified: false,
+      error: botData.msg || "Could not retrieve bot info",
+    };
+  }
+
+  return {
+    verified: true,
+    botName: botData.bot.app_name || botData.bot.open_id,
+  };
+}
+
+async function verifyQqApp(appId: string, appSecret: string) {
+  const tokenResponse = await fetch("https://bots.qq.com/app/getAppAccessToken", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ appId, clientSecret: appSecret }),
+    signal: AbortSignal.timeout(10_000),
+  });
+  const tokenData = (await tokenResponse.json()) as {
+    access_token?: string;
+    message?: string;
+  };
+  if (!tokenData.access_token) {
+    return {
+      verified: false,
+      error: tokenData.message || "Failed to get access token",
+    };
+  }
+
+  const gatewayResponse = await fetch("https://api.sgroup.qq.com/gateway", {
+    headers: {
+      Authorization: `QQBot ${tokenData.access_token}`,
+    },
+    signal: AbortSignal.timeout(10_000),
+  });
+  const gatewayData = (await gatewayResponse.json()) as {
+    url?: string;
+  };
+  if (!gatewayData.url) {
+    return {
+      verified: false,
+      error: "Failed to get gateway URL",
+    };
+  }
+
+  return {
+    verified: true,
+    gatewayUrl: gatewayData.url,
+  };
+}
 
 const lockAcquired = app.requestSingleInstanceLock();
 
@@ -146,14 +391,58 @@ export async function startDesktopMain(): Promise<void> {
     await bridgeManager.start();
   };
 
+  const readBridgeSettings = () => {
+    const settings = bridgeSettingsStore.loadSettings().settings;
+    const result: Record<string, string> = {};
+    for (const [key, value] of Object.entries(settings)) {
+      result[key] = maskSettingValue(key, value);
+    }
+    const telegramBotToken = getSettingWithAliases(settings, "telegram_bot_token");
+    if (telegramBotToken) {
+      result.telegram_bot_token = maskSettingValue("telegram_bot_token", telegramBotToken);
+    }
+    const telegramChatId = getSettingWithAliases(settings, "telegram_chat_id");
+    if (telegramChatId) {
+      result.telegram_chat_id = telegramChatId;
+    }
+    return result;
+  };
+
+  const persistBridgeSettings = (updates: Record<string, string>) => {
+    const current = bridgeSettingsStore.loadSettings().settings;
+    const next = { ...current };
+
+    for (const [key, value] of Object.entries(updates)) {
+      const nextValue = String(value ?? "").trim();
+      if (MASKED_SETTING_KEYS.has(key) && nextValue.startsWith("***")) {
+        continue;
+      }
+
+      next[key] = nextValue;
+      if (key === "telegram_bot_token" || key === "bridge_telegram_bot_token") {
+        next.telegram_bot_token = nextValue;
+        next.bridge_telegram_bot_token = nextValue;
+      }
+      if (key === "telegram_chat_id" || key === "bridge_telegram_chat_id") {
+        next.telegram_chat_id = nextValue;
+        next.bridge_telegram_chat_id = nextValue;
+      }
+    }
+
+    bridgeSettingsStore.saveSettings(next);
+  };
+
   ipcMain.handle(DESKTOP_BRIDGE_IPC_CHANNELS.getSettings, () => {
-    return bridgeSettingsStore.loadSettings().settings;
+    return readBridgeSettings();
   });
   ipcMain.handle(
     DESKTOP_BRIDGE_IPC_CHANNELS.saveSettings,
-    (_event, updates: Record<string, string>) => {
-      const current = bridgeSettingsStore.loadSettings().settings;
-      bridgeSettingsStore.saveSettings({ ...current, ...updates });
+    async (_event, updates: Record<string, string>) => {
+      persistBridgeSettings(updates);
+      bridgeManager.reloadAdapters();
+      if (bridgeManager.getStatus().running) {
+        await restartBridgeIfRunning();
+      }
     },
   );
   ipcMain.handle(DESKTOP_BRIDGE_IPC_CHANNELS.getStatus, () => {
@@ -178,7 +467,7 @@ export async function startDesktopMain(): Promise<void> {
     return bridgeActionRunner.runAction(request);
   });
   ipcMain.handle(DESKTOP_BRIDGE_IPC_CHANNELS.start, async () => {
-    await bridgeManager.start();
+    return bridgeManager.start();
   });
   ipcMain.handle(DESKTOP_BRIDGE_IPC_CHANNELS.stop, async () => {
     await bridgeManager.stop();
@@ -186,6 +475,88 @@ export async function startDesktopMain(): Promise<void> {
   ipcMain.handle(DESKTOP_BRIDGE_IPC_CHANNELS.probe, async (_event, platform: string) => {
     return bridgeManager.probePlatform(platform);
   });
+  ipcMain.handle(
+    DESKTOP_BRIDGE_IPC_CHANNELS.browseWorkingDirectory,
+    async (_event, defaultPath?: string) => {
+      const result = mainWindow
+        ? await dialog.showOpenDialog(mainWindow, {
+            title: "Select Working Directory",
+            defaultPath,
+            properties: ["openDirectory", "createDirectory"],
+          })
+        : await dialog.showOpenDialog({
+            title: "Select Working Directory",
+            defaultPath,
+            properties: ["openDirectory", "createDirectory"],
+          });
+      if (result.canceled || !result.filePaths[0]) {
+        return null;
+      }
+      return result.filePaths[0];
+    },
+  );
+  ipcMain.handle(
+    DESKTOP_BRIDGE_IPC_CHANNELS.verifyTelegram,
+    async (_event, payload: { bot_token?: string; chat_id?: string }) => {
+      const settings = bridgeSettingsStore.loadSettings().settings;
+      const botToken = payload.bot_token?.trim() || getSettingWithAliases(settings, "telegram_bot_token");
+      const chatId = payload.chat_id?.trim() || getSettingWithAliases(settings, "telegram_chat_id");
+      if (!botToken || botToken.startsWith("***")) {
+        return { verified: false, error: "bot_token is required" };
+      }
+      return verifyTelegramBot(botToken, chatId || undefined);
+    },
+  );
+  ipcMain.handle(
+    DESKTOP_BRIDGE_IPC_CHANNELS.detectTelegramChatId,
+    async (_event, payload: { bot_token?: string }) => {
+      const settings = bridgeSettingsStore.loadSettings().settings;
+      const botToken = payload.bot_token?.trim() || getSettingWithAliases(settings, "telegram_bot_token");
+      if (!botToken || botToken.startsWith("***")) {
+        return { ok: false, error: "bot_token is required" };
+      }
+      return detectTelegramChatId(botToken);
+    },
+  );
+  ipcMain.handle(
+    DESKTOP_BRIDGE_IPC_CHANNELS.verifyDiscord,
+    async (_event, payload: { bot_token?: string }) => {
+      const settings = bridgeSettingsStore.loadSettings().settings;
+      const botToken = payload.bot_token?.trim() || settings.bridge_discord_bot_token || "";
+      if (!botToken || botToken.startsWith("***")) {
+        return { verified: false, error: "Bot token is required" };
+      }
+      return verifyDiscordBot(botToken);
+    },
+  );
+  ipcMain.handle(
+    DESKTOP_BRIDGE_IPC_CHANNELS.verifyFeishu,
+    async (
+      _event,
+      payload: { app_id?: string; app_secret?: string; domain?: string },
+    ) => {
+      const settings = bridgeSettingsStore.loadSettings().settings;
+      const appId = payload.app_id?.trim() || settings.bridge_feishu_app_id || "";
+      const appSecret = payload.app_secret?.trim() || settings.bridge_feishu_app_secret || "";
+      const domain = payload.domain?.trim() || settings.bridge_feishu_domain || "feishu";
+      if (!appId || !appSecret || appSecret.startsWith("***")) {
+        return { verified: false, error: "App ID and App Secret are required" };
+      }
+      return verifyFeishuApp(appId, appSecret, domain);
+    },
+  );
+  ipcMain.handle(
+    DESKTOP_BRIDGE_IPC_CHANNELS.verifyQq,
+    async (_event, payload: { app_id?: string; app_secret?: string }) => {
+      const settings = bridgeSettingsStore.loadSettings().settings;
+      const appId = payload.app_id?.trim() || settings.bridge_qq_app_id || "";
+      const appSecret = payload.app_secret?.trim() || settings.bridge_qq_app_secret || "";
+      if (!appId || !appSecret || appSecret.startsWith("***")) {
+        return { verified: false, error: "App ID and App Secret are required" };
+      }
+      return verifyQqApp(appId, appSecret);
+    },
+  );
   ipcMain.handle(DESKTOP_BRIDGE_IPC_CHANNELS.listWeixinAccounts, () => {
     return weixinBridgeStore.listAccounts().map((account) => ({
       accountId: account.accountId,
@@ -209,8 +580,14 @@ export async function startDesktopMain(): Promise<void> {
   });
   ipcMain.handle(DESKTOP_BRIDGE_IPC_CHANNELS.waitForWeixinLogin, async (_event, sessionId: string) => {
     const session = await weixinAuthManager.waitForLogin(sessionId);
+    let bridgeRestartError: string | undefined;
     if (session.status === "confirmed") {
-      await restartBridgeIfRunning();
+      try {
+        await restartBridgeIfRunning();
+      } catch (error) {
+        bridgeRestartError =
+          error instanceof Error ? error.message : String(error);
+      }
     }
     return {
       sessionId: session.sessionId,
@@ -218,18 +595,37 @@ export async function startDesktopMain(): Promise<void> {
       status: session.status,
       accountId: session.accountId,
       error: session.error,
+      bridgeRestartError,
     };
   });
   ipcMain.handle(
     DESKTOP_BRIDGE_IPC_CHANNELS.setWeixinAccountEnabled,
     async (_event, accountId: string, enabled: boolean) => {
       weixinBridgeStore.setAccountEnabled(accountId, enabled);
-      await restartBridgeIfRunning();
+      try {
+        await restartBridgeIfRunning();
+        return { ok: true, accountUpdated: true };
+      } catch (error) {
+        return {
+          ok: false,
+          accountUpdated: true,
+          error: error instanceof Error ? error.message : String(error),
+        };
+      }
     },
   );
   ipcMain.handle(DESKTOP_BRIDGE_IPC_CHANNELS.deleteWeixinAccount, async (_event, accountId: string) => {
     weixinBridgeStore.deleteAccount(accountId);
-    await restartBridgeIfRunning();
+    try {
+      await restartBridgeIfRunning();
+      return { ok: true, accountDeleted: true };
+    } catch (error) {
+      return {
+        ok: false,
+        accountDeleted: true,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
   });
 
   const preloadPath = path.join(__dirname, "..", "preload", "index.js");

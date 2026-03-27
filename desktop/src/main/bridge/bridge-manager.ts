@@ -228,6 +228,12 @@ export function createBridgeManager(options: {
   let startedAt: string | null = null;
   let resolvedAdapters: BaseBridgeAdapter[] | null = null;
   const loopTasks = new Map<string, Promise<void>>();
+  const activeTasks = new Map<string, AbortController>();
+  const sessionLocks = new Map<string, Promise<void>>();
+  const adapterMeta = new Map<
+    string,
+    { lastMessageAt: string | null; lastError: string | null }
+  >();
   const router = createBridgeChannelRouter({
     listBindings: options.listBindings ?? (() => []),
     upsertBinding:
@@ -238,6 +244,7 @@ export function createBridgeManager(options: {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       })),
+    loadSettings: () => options.loadSettings().settings,
     defaultWorkingDirectory: options.defaultWorkingDirectory ?? (() => ""),
   });
   const threadClient =
@@ -246,6 +253,118 @@ export function createBridgeManager(options: {
   const recordObservation = (observation: BridgeObservationInput) => {
     options.recordObservation?.(observation);
   };
+  const listBindings = options.listBindings ?? (() => []);
+  const upsertBinding =
+    options.upsertBinding ??
+    ((binding: Omit<BridgeBinding, "id" | "createdAt" | "updatedAt">) => ({
+      ...binding,
+      id: "stub-binding",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }));
+
+  const getAdapterMeta = (platform: string) => {
+    let meta = adapterMeta.get(platform);
+    if (!meta) {
+      meta = { lastMessageAt: null, lastError: null };
+      adapterMeta.set(platform, meta);
+    }
+    return meta;
+  };
+
+  const defaultBindingValues = () => {
+    const settings = options.loadSettings().settings;
+    const providerId = settings.bridge_default_provider_id ?? "";
+    const modelId = settings.bridge_default_model ?? "";
+    return {
+      workingDirectory:
+        settings.bridge_default_work_dir ?? options.defaultWorkingDirectory?.() ?? "",
+      model: providerId && modelId ? `${providerId}:${modelId}` : modelId,
+      mode:
+        settings.bridge_default_mode === "plan" ||
+        settings.bridge_default_mode === "ask" ||
+        settings.bridge_default_mode === "code"
+          ? settings.bridge_default_mode
+          : "code",
+    } satisfies Pick<BridgeBinding, "workingDirectory" | "model" | "mode">;
+  };
+
+  const findBindingForAddress = (address: BridgeAddress) =>
+    listBindings().find(
+      (binding) => binding.platform === address.platform && binding.chatId === address.chatId,
+    ) ?? null;
+
+  const createNewBinding = (
+    address: BridgeAddress,
+    overrides?: Partial<Pick<BridgeBinding, "workingDirectory" | "model" | "mode" | "threadId">>,
+  ) => {
+    const defaults = defaultBindingValues();
+    return upsertBinding({
+      platform: address.platform,
+      chatId: address.chatId,
+      threadId:
+        overrides?.threadId ??
+        `bridge-${Date.now().toString(36)}-${Math.random().toString(16).slice(2, 10)}`,
+      workingDirectory: overrides?.workingDirectory ?? defaults.workingDirectory,
+      model: overrides?.model ?? defaults.model,
+      mode: overrides?.mode ?? defaults.mode,
+      active: true,
+    });
+  };
+
+  const updateBindingById = (
+    bindingId: string,
+    updates: Partial<Pick<BridgeBinding, "threadId" | "workingDirectory" | "model" | "mode" | "active">>,
+  ) => {
+    const existing = listBindings().find((binding) => binding.id === bindingId);
+    if (!existing) {
+      return null;
+    }
+    return upsertBinding({
+      ...existing,
+      ...updates,
+    });
+  };
+
+  const processWithSessionLock = (sessionId: string, fn: () => Promise<void>) => {
+    const previous = sessionLocks.get(sessionId) ?? Promise.resolve();
+    const current = previous.then(fn, fn);
+    sessionLocks.set(sessionId, current);
+    current.finally(() => {
+      if (sessionLocks.get(sessionId) === current) {
+        sessionLocks.delete(sessionId);
+      }
+    });
+    return current;
+  };
+
+  const isCommandMessage = (inbound: BridgeInboundMessage) =>
+    Boolean(inbound.callbackData) ||
+    (typeof inbound.text === "string" && inbound.text.trim().startsWith("/"));
+
+  const validateWorkingDirectory = (value: string) => {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return null;
+    }
+    if (!trimmed.startsWith("/") || trimmed.includes("\0")) {
+      return null;
+    }
+    if (trimmed.split("/").includes("..")) {
+      return null;
+    }
+    return trimmed;
+  };
+
+  const formatBindingStatus = (binding: BridgeBinding) =>
+    [
+      "<b>Bridge Status</b>",
+      "",
+      `Session: <code>${binding.threadId}</code>`,
+      `CWD: <code>${binding.workingDirectory || "~"}</code>`,
+      `Mode: <b>${binding.mode || "code"}</b>`,
+      `Model: <code>${binding.model || "default"}</code>`,
+    ].join("\n");
 
   const enabledPlatformsFromSettings = () => {
     const settings = options.loadSettings().settings;
@@ -285,8 +404,14 @@ export function createBridgeManager(options: {
     return resolvedAdapters;
   };
 
-  const startableAdapters = () =>
-    resolveAdapters().filter((adapter) => adapter.validateConfig() === null);
+  const startableAdapters = () => {
+    const validAdapters = resolveAdapters().filter((adapter) => adapter.validateConfig() === null);
+    if (adapters.length > 0) {
+      return validAdapters;
+    }
+    const enabled = new Set(enabledPlatformsFromSettings());
+    return validAdapters.filter((adapter) => enabled.has(adapter.platform));
+  };
 
   const finalizeCardStream = async (
     controller: BridgeCardStreamController | null,
@@ -305,7 +430,7 @@ export function createBridgeManager(options: {
     inbound: BridgeInboundMessage,
     binding: BridgeBinding,
     text: string,
-    extra?: Pick<BridgeOutboundMessage, "inlineButtons">,
+    extra?: Pick<BridgeOutboundMessage, "inlineButtons" | "parseMode">,
   ) => {
     await deliverBridgeMessage(adapter, {
       platform: inbound.platform,
@@ -340,15 +465,256 @@ export function createBridgeManager(options: {
     }
   };
 
+  const handleCommand = async (
+    adapter: BaseBridgeAdapter,
+    inbound: BridgeInboundMessage,
+    rawText: string,
+    binding: BridgeBinding,
+  ) => {
+    const [command, ...argParts] = rawText.trim().split(/\s+/);
+    const args = argParts.join(" ").trim();
+
+    switch (command) {
+      case "/start":
+      case "/help": {
+        await deliverOutboundText(
+          adapter,
+          inbound,
+          binding,
+          [
+            "<b>Nion Bridge</b>",
+            "",
+            "Commands:",
+            "/new [absolute_path]",
+            "/bind <thread_id>",
+            "/cwd [absolute_path]",
+            "/mode code|plan|ask",
+            "/status",
+            "/sessions",
+            "/stop",
+          ].join("\n"),
+          { parseMode: "HTML" },
+        );
+        return true;
+      }
+      case "/new": {
+        const nextDirectory = args ? validateWorkingDirectory(args) : binding.workingDirectory;
+        if (args && !nextDirectory) {
+          await deliverOutboundText(
+            adapter,
+            inbound,
+            binding,
+            "Invalid path. Use an absolute path without traversal segments.",
+          );
+          return true;
+        }
+        const created = createNewBinding(
+          { platform: inbound.platform, chatId: inbound.chatId, userId: inbound.userId },
+          {
+            workingDirectory: nextDirectory ?? "",
+            model: binding.model,
+            mode: binding.mode,
+          },
+        );
+        await deliverOutboundText(
+          adapter,
+          inbound,
+          created,
+          `New session created.\nSession: <code>${created.threadId}</code>\nCWD: <code>${created.workingDirectory || "~"}</code>`,
+          { parseMode: "HTML" },
+        );
+        return true;
+      }
+      case "/bind": {
+        if (!args) {
+          await deliverOutboundText(adapter, inbound, binding, "Usage: /bind <thread_id>");
+          return true;
+        }
+        const existingThread = await threadClient.searchThread?.(args);
+        if (!existingThread) {
+          await deliverOutboundText(adapter, inbound, binding, "Session not found.");
+          return true;
+        }
+        const rebound =
+          updateBindingById(binding.id, { threadId: args, active: true }) ?? binding;
+        await deliverOutboundText(
+          adapter,
+          inbound,
+          rebound,
+          `Bound to session <code>${args}</code>`,
+          { parseMode: "HTML" },
+        );
+        return true;
+      }
+      case "/cwd": {
+        if (!args) {
+          const current = updateBindingById(binding.id, {}) ?? binding;
+          const recentDirs = [...new Set(
+            listBindings()
+              .filter((candidate) => candidate.platform === inbound.platform && candidate.active)
+              .map((candidate) => candidate.workingDirectory)
+              .filter(Boolean),
+          )].slice(0, 8);
+
+          if (recentDirs.length === 0) {
+            await deliverOutboundText(
+              adapter,
+              inbound,
+              current,
+              `Current working directory: <code>${current.workingDirectory || "~"}</code>\nUsage: /cwd /absolute/path`,
+              { parseMode: "HTML" },
+            );
+            return true;
+          }
+
+          const supportsButtons = adapter.platform === "telegram" || adapter.platform === "discord";
+          await deliverOutboundText(
+            adapter,
+            inbound,
+            current,
+            [
+              "<b>Switch Working Directory</b>",
+              "",
+              `Current: <code>${current.workingDirectory || "~"}</code>`,
+              "",
+              supportsButtons
+                ? "Select a project below."
+                : `Recent projects:\n${recentDirs.map((dir) => `- ${dir}`).join("\n")}`,
+            ].join("\n"),
+              supportsButtons
+                ? {
+                  inlineButtons: recentDirs.map((dir) => [
+                    {
+                      text:
+                        dir === current.workingDirectory
+                          ? `📍 ${dir.split("/").filter(Boolean).pop() || dir}`
+                          : dir.split("/").filter(Boolean).pop() || dir,
+                      callbackData: `cwd:${dir}`,
+                    },
+                  ]),
+                  parseMode: "HTML",
+                }
+              : undefined,
+          );
+          return true;
+        }
+
+        const nextDirectory = validateWorkingDirectory(args);
+        if (!nextDirectory) {
+          await deliverOutboundText(
+            adapter,
+            inbound,
+            binding,
+            "Invalid path. Use an absolute path without traversal segments.",
+          );
+          return true;
+        }
+        const updated =
+          updateBindingById(binding.id, { workingDirectory: nextDirectory }) ?? binding;
+        await deliverOutboundText(
+          adapter,
+          inbound,
+          updated,
+          `Working directory set to <code>${nextDirectory}</code>`,
+          { parseMode: "HTML" },
+        );
+        return true;
+      }
+      case "/mode": {
+        if (args !== "code" && args !== "plan" && args !== "ask") {
+          await deliverOutboundText(adapter, inbound, binding, "Usage: /mode code|plan|ask");
+          return true;
+        }
+        const updated = updateBindingById(binding.id, {
+          mode: args,
+        }) ?? binding;
+        await deliverOutboundText(adapter, inbound, updated, `Mode set to <b>${args}</b>`);
+        return true;
+      }
+      case "/status": {
+        await deliverOutboundText(adapter, inbound, binding, formatBindingStatus(binding), {
+          parseMode: "HTML",
+        });
+        return true;
+      }
+      case "/sessions": {
+        const bindings = listBindings()
+          .filter((candidate) => candidate.platform === inbound.platform)
+          .slice(0, 10);
+        const lines =
+          bindings.length === 0
+            ? ["No sessions found."]
+            : [
+                "<b>Sessions:</b>",
+                "",
+                ...bindings.map((candidate) =>
+                  `<code>${candidate.threadId}</code> [${candidate.active ? "active" : "inactive"}] ${candidate.workingDirectory || "~"}`,
+                ),
+              ];
+        await deliverOutboundText(adapter, inbound, binding, lines.join("\n"), {
+          parseMode: "HTML",
+        });
+        return true;
+      }
+      case "/stop": {
+        const taskAbort = activeTasks.get(binding.threadId);
+        if (taskAbort) {
+          taskAbort.abort();
+          activeTasks.delete(binding.threadId);
+          await deliverOutboundText(adapter, inbound, binding, "Stopping current task...");
+        } else {
+          await deliverOutboundText(adapter, inbound, binding, "No task is currently running.");
+        }
+        return true;
+      }
+      default:
+        return false;
+    }
+  };
+
   const handleInboundMessage = async (
     adapter: BaseBridgeAdapter,
     inbound: BridgeInboundMessage,
   ) => {
-    const binding = router.resolveBinding({
+    const resolvedBinding = router.resolveBinding({
       platform: inbound.platform,
       chatId: inbound.chatId,
       userId: inbound.userId,
     });
+    const defaults = defaultBindingValues();
+    const binding =
+      !resolvedBinding.model || !resolvedBinding.mode || !resolvedBinding.workingDirectory
+        ? updateBindingById(resolvedBinding.id, {
+            model: resolvedBinding.model || defaults.model,
+            mode: resolvedBinding.mode || defaults.mode,
+            workingDirectory: resolvedBinding.workingDirectory || defaults.workingDirectory,
+          }) ?? {
+            ...resolvedBinding,
+            model: resolvedBinding.model || defaults.model,
+            mode: resolvedBinding.mode || defaults.mode,
+            workingDirectory:
+              resolvedBinding.workingDirectory || defaults.workingDirectory,
+          }
+        : resolvedBinding;
+    const rawText = typeof inbound.text === "string" ? inbound.text.trim() : "";
+
+    if (typeof inbound.callbackData === "string" && inbound.callbackData.startsWith("cwd:")) {
+      const nextDirectory = validateWorkingDirectory(inbound.callbackData.slice(4));
+      if (nextDirectory) {
+        const updated =
+          updateBindingById(binding.id, { workingDirectory: nextDirectory }) ?? binding;
+        await deliverOutboundText(
+          adapter,
+          inbound,
+          updated,
+          `Working directory switched to <code>${nextDirectory}</code>`,
+        );
+      }
+      if (typeof inbound.updateId === "number") {
+        adapter.acknowledgeUpdate?.(inbound.updateId);
+      }
+      return;
+    }
 
     const permissionDecision =
       typeof inbound.callbackData === "string" && inbound.callbackData.startsWith("perm:")
@@ -384,6 +750,16 @@ export function createBridgeManager(options: {
           };
           await handleInboundMessage(adapter, retriedInbound);
         }
+        if (typeof inbound.updateId === "number") {
+          adapter.acknowledgeUpdate?.(inbound.updateId);
+        }
+        return;
+      }
+    }
+
+    if (rawText.startsWith("/")) {
+      const handled = await handleCommand(adapter, inbound, rawText, binding);
+      if (handled) {
         if (typeof inbound.updateId === "number") {
           adapter.acknowledgeUpdate?.(inbound.updateId);
         }
@@ -509,6 +885,9 @@ export function createBridgeManager(options: {
 
     adapter.onMessageStart?.(inbound.chatId);
 
+    const taskAbort = new AbortController();
+    activeTasks.set(binding.threadId, taskAbort);
+
     try {
       if (inbound.text) {
         const dangerCheck = isDangerousInput(inbound.text);
@@ -539,6 +918,11 @@ export function createBridgeManager(options: {
         binding.threadId,
         sanitized.text,
         streamCallbacks,
+        {
+          modelName: binding.model || undefined,
+          planMode: binding.mode === "plan",
+          signal: taskAbort.signal,
+        },
       );
 
       const pendingCardCreate = cardCreatePromise;
@@ -606,6 +990,30 @@ export function createBridgeManager(options: {
         );
       }
     } catch (error) {
+      if (
+        (error instanceof Error && error.name === "AbortError") ||
+        (error instanceof Error && /aborted/i.test(error.message))
+      ) {
+        const pendingCardCreate = cardCreatePromise;
+        if (pendingCardCreate) {
+          await pendingCardCreate;
+        }
+
+        if (cardController && cardMessageId) {
+          await finalizeCardStream(
+            cardController,
+            cardMessageId,
+            "⚠️ Task interrupted.",
+            "interrupted",
+          );
+          cardFinalized = true;
+          return;
+        }
+
+        await deliverOutboundText(adapter, inbound, binding, "Task interrupted.");
+        return;
+      }
+
       const message =
         error instanceof Error && error.message.trim()
           ? error.message
@@ -650,6 +1058,7 @@ export function createBridgeManager(options: {
         adapter.acknowledgeUpdate?.(inbound.updateId);
       }
       adapter.onMessageEnd?.(inbound.chatId);
+      activeTasks.delete(binding.threadId);
     }
   };
 
@@ -663,11 +1072,37 @@ export function createBridgeManager(options: {
         if (!inbound) {
           continue;
         }
-        await handleInboundMessage(adapter, inbound);
+        const meta = getAdapterMeta(adapter.platform);
+        meta.lastMessageAt = new Date().toISOString();
+        meta.lastError = null;
+
+        if (isCommandMessage(inbound)) {
+          await handleInboundMessage(adapter, inbound);
+          continue;
+        }
+
+        const binding = router.resolveBinding({
+          platform: inbound.platform,
+          chatId: inbound.chatId,
+          userId: inbound.userId,
+        });
+
+        void processWithSessionLock(binding.threadId, async () => {
+          await handleInboundMessage(adapter, inbound);
+        }).catch((error) => {
+          const currentMeta = getAdapterMeta(adapter.platform);
+          currentMeta.lastError = error instanceof Error ? error.message : String(error);
+          console.error(
+            `[bridge-manager] session ${binding.threadId} failed on ${adapter.platform}`,
+            error,
+          );
+        });
       } catch (error) {
         if (!running) {
           break;
         }
+        const meta = getAdapterMeta(adapter.platform);
+        meta.lastError = error instanceof Error ? error.message : String(error);
         recordObservation({
           observationType: "adapter_runtime_error",
           level: "error",
@@ -686,24 +1121,33 @@ export function createBridgeManager(options: {
   };
 
   return {
-    start: async () => {
+    start: async (): Promise<string | null> => {
       if (running) {
-        return;
+        return null;
+      }
+
+      const settings = options.loadSettings().settings;
+      if (settings.remote_bridge_enabled !== "true") {
+        running = false;
+        startedAt = null;
+        return "bridge_not_enabled";
       }
 
       const candidates = startableAdapters();
       if (candidates.length === 0) {
         running = false;
         startedAt = null;
-        return;
+        return "no_channels_enabled";
       }
 
       const startedAdapters: BaseBridgeAdapter[] = [];
+      let invalidAdapterConfig = false;
       for (const adapter of candidates) {
         try {
           await adapter.start();
           startedAdapters.push(adapter);
         } catch (error) {
+          invalidAdapterConfig = true;
           recordObservation({
             observationType: "adapter_start_failed",
             level: "error",
@@ -722,7 +1166,7 @@ export function createBridgeManager(options: {
       if (startedAdapters.length === 0) {
         running = false;
         startedAt = null;
-        return;
+        return invalidAdapterConfig ? "adapter_config_invalid" : "no_adapters_started";
       }
 
       running = true;
@@ -744,6 +1188,8 @@ export function createBridgeManager(options: {
         const task = runAdapterLoop(adapter);
         loopTasks.set(adapter.platform, task);
       }
+
+      return null;
     },
     stop: async () => {
       if (!running && loopTasks.size === 0) {
@@ -757,6 +1203,11 @@ export function createBridgeManager(options: {
 
       await Promise.allSettled(resolveAdapters().map((adapter) => adapter.stop()));
       await Promise.allSettled(tasks);
+      for (const abort of activeTasks.values()) {
+        abort.abort();
+      }
+      activeTasks.clear();
+      sessionLocks.clear();
       recordObservation({
         observationType: "bridge_manager_stopped",
         level: "info",
@@ -772,12 +1223,17 @@ export function createBridgeManager(options: {
     },
     getStatus: (): DesktopBridgeStatus => ({
       running,
+      startedAt,
       enabledPlatforms: enabledPlatformsFromSettings(),
       adapters: resolveAdapters().map((adapter) => {
         const status = adapter.getStatus();
+        const meta = getAdapterMeta(adapter.platform);
         return {
           ...status,
+          channelType: status.platform,
           connectedAt: status.running ? status.connectedAt ?? startedAt : null,
+          lastMessageAt: meta.lastMessageAt,
+          error: status.error ?? meta.lastError,
         };
       }),
     }),
@@ -790,6 +1246,9 @@ export function createBridgeManager(options: {
     },
     resolveBindingForAddress: (address: BridgeAddress) => router.resolveBinding(address),
     getThreadClient: () => threadClient,
+    reloadAdapters: () => {
+      resolvedAdapters = null;
+    },
     processNextInboundMessage: async () => {
       for (const adapter of resolveAdapters()) {
         const inbound = await adapter.consumeOne();

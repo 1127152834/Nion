@@ -17,5 +17,5 @@ test("frontend feishu bridge section exposes a test connection action", () => {
     "utf8",
   );
 
-  assert.match(source, /t\.bridge\.feishu\.testAction/);
+  assert.match(source, /t\("feishu\.verify"\)/);
 });

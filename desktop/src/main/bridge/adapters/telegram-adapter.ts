@@ -38,13 +38,110 @@ type TelegramUpdate = {
     from: { id: number; first_name?: string; username?: string };
     message?: {
       message_id: number;
-      chat: { id: number };
+      chat: { id: number; title?: string; username?: string };
     };
   };
 };
 
 function tokenShortHash(botToken: string) {
   return crypto.createHash("sha256").update(botToken).digest("hex").slice(0, 8);
+}
+
+async function callTelegramApiWithToken(
+  botToken: string,
+  method: string,
+  body?: Record<string, unknown>,
+  signal?: AbortSignal,
+) {
+  const response = await fetch(`${TELEGRAM_API}/bot${botToken}/${method}`, {
+    method: body ? "POST" : "GET",
+    headers: body ? { "Content-Type": "application/json" } : undefined,
+    body: body ? JSON.stringify(body) : undefined,
+    signal: signal ?? AbortSignal.timeout(30_000),
+  });
+  const payload = (await response.json().catch(() => ({}))) as Record<string, any>;
+
+  if (!response.ok || payload.ok === false) {
+    const description =
+      (typeof payload.description === "string" && payload.description) ||
+      `Telegram ${method} failed`;
+    throw new Error(description);
+  }
+
+  return payload;
+}
+
+async function verifyTelegramConfig(payload: {
+  botToken?: string;
+  chatId?: string;
+}) {
+  const botToken = payload.botToken?.trim();
+  if (!botToken) {
+    return { verified: false, error: "Telegram bot token is unavailable" };
+  }
+
+  try {
+    const me = (await callTelegramApiWithToken(botToken, "getMe")) as {
+      result?: { username?: string };
+    };
+
+    if (payload.chatId?.trim()) {
+      await callTelegramApiWithToken(botToken, "getChat", {
+        chat_id: payload.chatId.trim(),
+      });
+    }
+
+    return {
+      verified: true,
+      botName: me.result?.username,
+    };
+  } catch (error) {
+    return {
+      verified: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
+async function detectTelegramChatId(payload: { botToken?: string }) {
+  const botToken = payload.botToken?.trim();
+  if (!botToken) {
+    return { ok: false, error: "Telegram bot token is unavailable" };
+  }
+
+  try {
+    const updates = (await callTelegramApiWithToken(botToken, "getUpdates", {
+      limit: 20,
+      allowed_updates: ["message", "callback_query"],
+    })) as {
+      result?: TelegramUpdate[];
+    };
+
+    const lastUpdate = [...(updates.result ?? [])]
+      .reverse()
+      .find((update) => update.message?.chat || update.callback_query?.message?.chat);
+
+    const chat =
+      lastUpdate?.message?.chat ?? lastUpdate?.callback_query?.message?.chat;
+
+    if (!chat?.id) {
+      return {
+        ok: false,
+        error: "Unable to detect Chat ID. Send /start to the bot first.",
+      };
+    }
+
+    return {
+      ok: true,
+      chatId: String(chat.id),
+      chatTitle: chat.title || chat.username || String(chat.id),
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
 }
 
 export class TelegramBridgeAdapter extends BaseBridgeAdapter {
@@ -123,27 +220,10 @@ export class TelegramBridgeAdapter extends BaseBridgeAdapter {
     body?: Record<string, unknown>,
     signal?: AbortSignal,
   ): Promise<Record<string, any>> {
-    const token = this.botToken;
-    if (!token) {
+    if (!this.botToken) {
       throw new Error("Telegram bot token is unavailable");
     }
-
-    const response = await fetch(`${TELEGRAM_API}/bot${token}/${method}`, {
-      method: body ? "POST" : "GET",
-      headers: body ? { "Content-Type": "application/json" } : undefined,
-      body: body ? JSON.stringify(body) : undefined,
-      signal: signal ?? AbortSignal.timeout(30_000),
-    });
-    const payload = (await response.json().catch(() => ({}))) as Record<string, any>;
-
-    if (!response.ok || payload.ok === false) {
-      const description =
-        (typeof payload.description === "string" && payload.description) ||
-        `Telegram ${method} failed`;
-      throw new Error(description);
-    }
-
-    return payload;
+    return callTelegramApiWithToken(this.botToken, method, body, signal);
   }
 
   private async answerCallback(callbackQueryId: string) {
@@ -168,7 +248,7 @@ export class TelegramBridgeAdapter extends BaseBridgeAdapter {
       return chatId === this.settings.bridge_telegram_chat_id;
     }
 
-    return true;
+    return false;
   }
 
   private async pollLoop() {
@@ -299,6 +379,18 @@ export class TelegramBridgeAdapter extends BaseBridgeAdapter {
     }
 
     await this.resolveBotIdentity();
+    await this.callTelegramApi("setMyCommands", {
+      commands: [
+        { command: "new", description: "Start new session (optionally specify path)" },
+        { command: "bind", description: "Bind to existing session" },
+        { command: "cwd", description: "Change working directory" },
+        { command: "mode", description: "Switch mode: plan / code / ask" },
+        { command: "status", description: "Show current session status" },
+        { command: "sessions", description: "List recent sessions" },
+        { command: "stop", description: "Stop current task" },
+        { command: "help", description: "Show available commands" },
+      ],
+    }).catch(() => {});
     this.running = true;
     this.abortController = new AbortController();
     void this.pollLoop();
