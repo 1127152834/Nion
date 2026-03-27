@@ -129,6 +129,13 @@ class NotebookAssistApplyRequest(BaseModel):
     expected_content_hash: str
 
 
+class NotebookImportRequest(BaseModel):
+    source: Literal["chat"]
+    content: str
+    mode: Literal["append", "replace"]
+    expected_content_hash: str
+
+
 def _now_iso() -> str:
     return datetime.now(UTC).isoformat()
 
@@ -328,6 +335,32 @@ async def apply_notebook_assist(
             original_body=current.body,
             generated_content=payload.content,
             mode=payload.mode,
+        )
+        note = service.update_note(
+            note_id=note_id,
+            body=next_body,
+            expected_content_hash=payload.expected_content_hash,
+            actor_type="agent",
+        )
+    except NotebookConflictError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except NotebookNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return NotebookNoteResponse(note=note)
+
+
+@router.post("/notes/{note_id}/import", response_model=NotebookNoteResponse)
+async def import_notebook_content(
+    note_id: str,
+    payload: NotebookImportRequest,
+) -> NotebookNoteResponse:
+    service = NotebookHistoryService()
+    try:
+        current = service._service.read_note(note_id)
+        next_body = (
+            payload.content
+            if payload.mode == "replace"
+            else f"{current.body.rstrip()}\n\n---\n\n{payload.content}".rstrip()
         )
         note = service.update_note(
             note_id=note_id,

@@ -263,3 +263,34 @@ def test_notebook_assist_preview_and_apply(monkeypatch, tmp_path):
         assert history.status_code == 200
         assert history.json()["entries"][0]["actor_type"] == "agent"
         assert history.json()["entries"][0]["operation"] == "edit"
+
+
+def test_notebook_import_updates_current_note(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+
+    with TestClient(create_app()) as client:
+        created = client.post(
+            "/api/notebook/notes",
+            json={"directory": "", "title": "Import Note", "body": "line one"},
+        )
+        assert created.status_code == 200
+        note = created.json()["note"]
+        note_id = note["note_id"]
+
+        imported = client.post(
+            f"/api/notebook/notes/{note_id}/import",
+            json={
+                "source": "chat",
+                "content": "imported block",
+                "mode": "append",
+                "expected_content_hash": note["content_hash"],
+            },
+        )
+        assert imported.status_code == 200
+        imported_note = imported.json()["note"]
+        assert "imported block" in imported_note["body"]
+
+        history = client.get(f"/api/notebook/notes/{note_id}/history")
+        assert history.status_code == 200
+        assert history.json()["entries"][0]["actor_type"] == "agent"
