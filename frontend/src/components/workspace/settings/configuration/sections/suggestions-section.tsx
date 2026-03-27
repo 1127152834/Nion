@@ -13,15 +13,15 @@ import { useI18n } from "@/core/i18n/hooks";
 import { useModels } from "@/core/models/hooks";
 
 import {
+  DEFAULT_POLICY_MODEL_VALUE,
+  getPolicyModelSelectValue,
+} from "../../session-policy-model-selection";
+import {
   asObject,
   asString,
   cloneConfig,
   type ConfigDraft,
 } from "../shared";
-import {
-  DEFAULT_POLICY_MODEL_VALUE,
-  getPolicyModelSelectValue,
-} from "../../session-policy-model-selection";
 
 export function SuggestionsSection({
   config,

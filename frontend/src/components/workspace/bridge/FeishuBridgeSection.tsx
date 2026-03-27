@@ -249,7 +249,7 @@ export function FeishuBridgeSection() {
 
       setVerifyResult({
         ok: false,
-        message: result.error || t("feishu.verifyFailed"),
+        message: result.error?.trim() ? result.error : t("feishu.verifyFailed"),
       });
     } catch {
       setVerifyResult({ ok: false, message: t("feishu.verifyFailed") });

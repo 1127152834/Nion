@@ -157,7 +157,7 @@ export function DiscordBridgeSection() {
 
       setVerifyResult({
         ok: false,
-        message: result.error || t("discord.verifyFailed"),
+        message: result.error?.trim() ? result.error : t("discord.verifyFailed"),
       });
     } catch {
       setVerifyResult({ ok: false, message: t("discord.verifyFailed") });

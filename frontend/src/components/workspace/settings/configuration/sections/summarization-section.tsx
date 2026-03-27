@@ -23,16 +23,16 @@ import { useModels } from "@/core/models/hooks";
 import { cn } from "@/lib/utils";
 
 import {
+  DEFAULT_POLICY_MODEL_VALUE,
+  getPolicyModelSelectValue,
+} from "../../session-policy-model-selection";
+import {
   asBoolean,
   asObject,
   asString,
   cloneConfig,
   type ConfigDraft,
 } from "../shared";
-import {
-  DEFAULT_POLICY_MODEL_VALUE,
-  getPolicyModelSelectValue,
-} from "../../session-policy-model-selection";
 
 type ContextSizeType = "tokens" | "messages" | "fraction";
 const DEFAULT_SUMMARIZATION_TOKEN_LIMIT = 20480;

@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-
 import { getBridgeClient } from "@/core/bridge/client";
 
 import {
@@ -34,6 +33,10 @@ const DEFAULT_SETTINGS: TelegramBridgeSettings = {
   telegram_bridge_allowed_users: "",
 };
 
+function firstNonEmpty(...values: Array<string | undefined>) {
+  return values.find((value) => typeof value === "string" && value.length > 0) ?? "";
+}
+
 export function TelegramBridgeSection() {
   const client = getBridgeClient();
   const [botToken, setBotToken] = useState("");
@@ -57,13 +60,17 @@ export function TelegramBridgeSection() {
     const data = await client.getSettings();
     const settings = {
       ...DEFAULT_SETTINGS,
-      remote_bridge_enabled: data.remote_bridge_enabled || "",
-      bridge_telegram_enabled: data.bridge_telegram_enabled || "",
-      telegram_bot_token:
-        data.telegram_bot_token || data.bridge_telegram_bot_token || "",
-      telegram_chat_id:
-        data.telegram_chat_id || data.bridge_telegram_chat_id || "",
-      telegram_bridge_allowed_users: data.telegram_bridge_allowed_users || "",
+      remote_bridge_enabled: data.remote_bridge_enabled ?? "",
+      bridge_telegram_enabled: data.bridge_telegram_enabled ?? "",
+      telegram_bot_token: firstNonEmpty(
+        data.telegram_bot_token,
+        data.bridge_telegram_bot_token,
+      ),
+      telegram_chat_id: firstNonEmpty(
+        data.telegram_chat_id,
+        data.bridge_telegram_chat_id,
+      ),
+      telegram_bridge_allowed_users: data.telegram_bridge_allowed_users ?? "",
     };
     setBridgeEnabled(settings.remote_bridge_enabled === "true");
     setChannelEnabled(settings.bridge_telegram_enabled === "true");
@@ -136,13 +143,15 @@ export function TelegramBridgeSection() {
           ok: true,
           message: t("telegram.chatIdDetected", {
             id: result.chatId,
-            name: result.chatTitle || result.chatId,
+            name: result.chatTitle?.trim() ? result.chatTitle : result.chatId,
           }),
         });
       } else {
         setVerifyResult({
           ok: false,
-          message: result.error || t("telegram.chatIdDetectFailed"),
+          message: result.error?.trim()
+            ? result.error
+            : t("telegram.chatIdDetectFailed"),
         });
       }
     } finally {
@@ -177,7 +186,7 @@ export function TelegramBridgeSection() {
       } else {
         setVerifyResult({
           ok: false,
-          message: result.error || t("telegram.verifyFailed"),
+          message: result.error?.trim() ? result.error : t("telegram.verifyFailed"),
         });
       }
     } finally {

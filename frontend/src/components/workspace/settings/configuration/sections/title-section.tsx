@@ -22,16 +22,16 @@ import { useModels } from "@/core/models/hooks";
 import { cn } from "@/lib/utils";
 
 import {
+  DEFAULT_POLICY_MODEL_VALUE,
+  getPolicyModelSelectValue,
+} from "../../session-policy-model-selection";
+import {
   asBoolean,
   asObject,
   asString,
   cloneConfig,
   type ConfigDraft,
 } from "../shared";
-import {
-  DEFAULT_POLICY_MODEL_VALUE,
-  getPolicyModelSelectValue,
-} from "../../session-policy-model-selection";
 
 function parseOptionalInteger(value: string): number | undefined {
   if (!value.trim()) {

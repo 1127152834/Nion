@@ -1,6 +1,5 @@
 "use client";
 
-import { type ReactElement, type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import {
   CheckCircle2Icon,
   FolderOpenIcon,
@@ -15,15 +14,16 @@ import {
   PlusIcon,
   WifiIcon,
 } from "lucide-react";
+import { type ReactElement, type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import {
   createBridgeClient,
   getBridgeClient,
   type BridgeStatus,
 } from "@/core/bridge/client";
-import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import { useI18n } from "@/core/i18n/hooks";
 import { cn } from "@/lib/utils";
 
@@ -583,7 +583,7 @@ export function SettingsCard({
         className,
       )}
     >
-      {(title || description) && (
+      {(Boolean(title) || Boolean(description)) && (
         <div className="space-y-1">
           {title ? <h3 className="text-sm font-medium">{title}</h3> : null}
           {description ? (

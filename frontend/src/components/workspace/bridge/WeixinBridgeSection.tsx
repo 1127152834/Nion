@@ -1,11 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-
 import { toast } from "sonner";
 
+import { SettingsCard } from "@/components/patterns/SettingsCard";
+import { StatusBanner } from "@/components/patterns/StatusBanner";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import {
   CheckCircle,
   Code,
@@ -14,8 +14,7 @@ import {
   Trash,
   Warning,
 } from "@/components/ui/icon";
-import { SettingsCard } from "@/components/patterns/SettingsCard";
-import { StatusBanner } from "@/components/patterns/StatusBanner";
+import { Switch } from "@/components/ui/switch";
 import { createBridgeClient, type WeixinBridgeAccount } from "@/core/bridge/client";
 
 import {
@@ -72,7 +71,9 @@ export function WeixinBridgeSection() {
           toast.warning(formatToastMessage(t("weixin.accountUpdateSavedRestartFailed"), result.error));
           return;
         }
-        toast.error(result.error || t("weixin.accountUpdateFailed"));
+        toast.error(
+          result.error?.trim() ? result.error : t("weixin.accountUpdateFailed"),
+        );
         return;
       }
       await fetchAccounts();
@@ -94,7 +95,9 @@ export function WeixinBridgeSection() {
           );
           return;
         }
-        toast.error(result.error || t("weixin.accountDeleteFailed"));
+        toast.error(
+          result.error?.trim() ? result.error : t("weixin.accountDeleteFailed"),
+        );
         return;
       }
 
@@ -122,7 +125,7 @@ export function WeixinBridgeSection() {
         const client = createBridgeClient();
         const session = await client.waitForWeixinLogin(sessionId);
         setQrStatus(session.status);
-        setQrBridgeError(session.bridgeRestartError || null);
+        setQrBridgeError(session.bridgeRestartError ?? null);
 
         if (session.qrImage && session.status === "waiting") {
           setQrImage(session.qrImage);

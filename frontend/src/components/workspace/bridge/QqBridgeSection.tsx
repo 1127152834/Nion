@@ -2,13 +2,13 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
-import { CheckCircle, SpinnerGap, Warning } from "@/components/ui/icon";
 import { FieldRow } from "@/components/patterns/FieldRow";
 import { SettingsCard } from "@/components/patterns/SettingsCard";
 import { StatusBanner } from "@/components/patterns/StatusBanner";
+import { Button } from "@/components/ui/button";
+import { CheckCircle, SpinnerGap, Warning } from "@/components/ui/icon";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { createBridgeClient } from "@/core/bridge/client";
 
 import {
@@ -131,7 +131,7 @@ export function QqBridgeSection() {
 
       setVerifyResult({
         ok: false,
-        message: result.error || t("qq.verifyFailed"),
+        message: result.error?.trim() ? result.error : t("qq.verifyFailed"),
       });
     } catch {
       setVerifyResult({ ok: false, message: t("qq.verifyFailed") });

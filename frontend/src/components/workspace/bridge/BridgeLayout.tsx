@@ -5,11 +5,6 @@ import { useCallback, useState, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-import { DiscordBridgeSection } from "./DiscordBridgeSection";
-import { FeishuBridgeSection } from "./FeishuBridgeSection";
-import { QqBridgeSection } from "./QqBridgeSection";
-import { TelegramBridgeSection } from "./TelegramBridgeSection";
-import { WeixinBridgeSection } from "./WeixinBridgeSection";
 import {
   ChatsCircle,
   ChatTeardrop,
@@ -17,6 +12,11 @@ import {
   TelegramLogo,
   useBridgeTranslation,
 } from "./bridge-shared";
+import { DiscordBridgeSection } from "./DiscordBridgeSection";
+import { FeishuBridgeSection } from "./FeishuBridgeSection";
+import { QqBridgeSection } from "./QqBridgeSection";
+import { TelegramBridgeSection } from "./TelegramBridgeSection";
+import { WeixinBridgeSection } from "./WeixinBridgeSection";
 
 type Section = "telegram" | "feishu" | "discord" | "qq" | "weixin";
 
@@ -41,7 +41,7 @@ function getSectionFromHash(): Section {
 
 function subscribeToHash(callback: () => void) {
   if (typeof window === "undefined") {
-    return () => {};
+    return () => undefined;
   }
   window.addEventListener("hashchange", callback);
   return () => window.removeEventListener("hashchange", callback);
