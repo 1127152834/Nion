@@ -1,5 +1,6 @@
 from fastapi.testclient import TestClient
 
+from app.daemon.app import create_app as create_desktop_daemon_app
 from app.runtime.app_factory import create_runtime_app
 
 
@@ -52,3 +53,9 @@ def test_desktop_mode_exposes_shared_routes_and_daemon_runtime() -> None:
     assert client.get("/health").status_code == 200
     assert client.post("/api/threads/search", json={"limit": 1}).status_code == 200
     assert client.get("/api/daemon/runtime-info").status_code == 200
+
+
+def test_desktop_wrapper_owns_daemon_service_lifecycle() -> None:
+    with TestClient(create_desktop_daemon_app()) as client:
+        assert hasattr(client.app.state, "daemon_service")
+        assert client.get("/api/daemon/runtime-info").status_code == 200
