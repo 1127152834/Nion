@@ -1,10 +1,9 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -66,6 +65,9 @@ export function NotebookPage() {
   const [draftTitle, setDraftTitle] = useState("");
   const [draftBody, setDraftBody] = useState("");
   const [draftHash, setDraftHash] = useState("");
+  const [savedTitle, setSavedTitle] = useState("");
+  const [savedBody, setSavedBody] = useState("");
+  const [saveState, setSaveState] = useState<"saved" | "unsaved" | "saving">("saved");
   const [renameValue, setRenameValue] = useState("");
   const [moveValue, setMoveValue] = useState("");
   const [createDraft, setCreateDraft] = useState<CreateDraft>({
@@ -93,6 +95,7 @@ export function NotebookPage() {
   const moveNote = useMoveNotebookNote(selectedNoteId ?? "");
   const restoreVersion = useRestoreNotebookVersion(selectedNoteId ?? "");
   const deleteNote = useDeleteNotebookNote(selectedNoteId ?? "");
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!selectedNoteId && tree.files.length > 0) {
@@ -122,6 +125,9 @@ export function NotebookPage() {
     setDraftTitle(note.title);
     setDraftBody(note.body);
     setDraftHash(note.content_hash);
+    setSavedTitle(note.title);
+    setSavedBody(note.body);
+    setSaveState("saved");
     setRenameValue(note.title);
     const slash = note.relative_path.lastIndexOf("/");
     setMoveValue(slash >= 0 ? note.relative_path.slice(0, slash) : "");
@@ -134,8 +140,7 @@ export function NotebookPage() {
   const treeNodes = useMemo(() => buildNotebookTree(tree), [tree]);
   const recentNotes = useMemo(() => noteSummaries, [noteSummaries]);
 
-  const dirty =
-    note !== null && (draftBody !== note.body || draftTitle !== note.title);
+  const dirty = note !== null && (draftBody !== savedBody || draftTitle !== savedTitle);
 
   async function handleCreate() {
     try {
@@ -167,14 +172,18 @@ export function NotebookPage() {
       return;
     }
     try {
+      setSaveState("saving");
       const updated = await updateNote.mutateAsync({
         body: draftBody,
         title: draftTitle,
         expected_content_hash: draftHash,
       });
       setDraftHash(updated.content_hash);
-      toast.success(copy.saved);
+      setSavedTitle(updated.title);
+      setSavedBody(updated.body);
+      setSaveState("saved");
     } catch (err) {
+      setSaveState("unsaved");
       toast.error(err instanceof Error ? err.message : String(err));
     }
   }
@@ -233,6 +242,29 @@ export function NotebookPage() {
     );
   }
 
+  useEffect(() => {
+    if (!note) {
+      return;
+    }
+    if (!dirty) {
+      return;
+    }
+    setSaveState("unsaved");
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    saveTimeoutRef.current = setTimeout(() => {
+      void handleSave();
+    }, 1000);
+
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+        saveTimeoutRef.current = null;
+      }
+    };
+  }, [draftBody, draftTitle, dirty, note]);
+
   return (
     <>
       <section className="space-y-6">
@@ -287,34 +319,31 @@ export function NotebookPage() {
             <NotebookEditorPane
               copy={{
                 delete: copy.delete,
+                edit: copy.edit,
                 history: copy.history,
-                move: copy.move,
+                lastEditedPrefix: "最后编辑于",
+                noSelectionCta: copy.createNote,
                 noSelectionDescription: copy.noSelectionDescription,
                 noSelectionTitle: copy.noSelectionTitle,
                 noteTitlePlaceholder: copy.noteTitlePlaceholder,
                 preview: copy.preview,
-                rename: copy.rename,
-                save: copy.save,
                 saved: copy.saved,
                 saving: copy.saving,
                 selectNote: copy.selectNote,
                 unsaved: copy.unsaved,
-                edit: copy.edit,
               }}
-              dirty={dirty}
               draftBody={draftBody}
               draftTitle={draftTitle}
               isLoading={noteLoading}
               loadingLabel={t.common.loading}
               note={note}
+              saveState={saveState}
               onDraftBodyChange={setDraftBody}
               onDraftTitleChange={setDraftTitle}
               onOpenDelete={() => setDeleteOpen(true)}
               onOpenHistory={() => setContextTab("history")}
-              onOpenMove={() => setMoveOpen(true)}
-              onOpenRename={() => setRenameOpen(true)}
-              onSave={handleSave}
-              savePending={updateNote.isPending}
+              onOpenMore={() => setRenameOpen(true)}
+              onPrimaryCreate={() => setCreateOpen(true)}
             />
           </ResizablePanel>
           <ResizableHandle withHandle />
