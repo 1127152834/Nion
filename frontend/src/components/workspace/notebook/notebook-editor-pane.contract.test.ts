@@ -13,6 +13,8 @@ void test("NotebookEditorPane matches the reference writing-pane structure", asy
   assert.match(source, /Clock/);
   assert.match(source, /onOpenDelete/);
   assert.match(source, /onOpenHistory/);
+  assert.match(source, /onSelectionChange/);
+  assert.match(source, /selectionStart/);
   assert.match(source, /previewMode/);
   assert.match(source, /min-h-\[500px\]/);
 });

@@ -2,7 +2,6 @@ import { getBackendBaseURL } from "../config/index.ts";
 
 import type {
   NotebookAssistApplyInput,
-  NotebookImportInput,
   NotebookAssistPreview,
   NotebookAssistPreviewInput,
   NotebookCreateInput,
@@ -14,6 +13,8 @@ import type {
   NotebookDeletedNotePreview,
   NotebookHistoryDetail,
   NotebookHistoryEntry,
+  NotebookImportInput,
+  NotebookImportSourcesResponse,
   NotebookMetadataInput,
   NotebookMoveInput,
   NotebookNote,
@@ -387,6 +388,21 @@ export async function previewNotebookAssist(
     );
   }
   return readJson<NotebookAssistPreview>(response);
+}
+
+export async function loadNotebookImportSources(
+  source: "chat",
+): Promise<NotebookImportSourcesResponse> {
+  const response = await fetch(`${getBackendBaseURL()}/api/notebook/import-sources?source=${source}`);
+  if (!response.ok) {
+    throw new Error(
+      resolveErrorMessage(
+        await response.text(),
+        `Failed to load notebook import sources (${response.status})`,
+      ),
+    );
+  }
+  return readJson<NotebookImportSourcesResponse>(response);
 }
 
 export async function applyNotebookAssist(

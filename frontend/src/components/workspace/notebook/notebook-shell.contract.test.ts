@@ -26,7 +26,10 @@ void test("NotebookPage becomes a shell controller that renders extracted notebo
   assert.match(pageSource, /from "\.\/notebook-context-panel"/);
   assert.match(pageSource, /<NotebookSidebar[\s\S]*treeNodes=\{treeNodes\}/);
   assert.match(pageSource, /<NotebookEditorPane[\s\S]*draftBody=\{draftBody\}/);
+  assert.match(pageSource, /<NotebookEditorPane[\s\S]*onSelectionChange=/);
   assert.match(pageSource, /<NotebookContextPanel[\s\S]*onStartConversation=\{handleAssist\}/);
+  assert.match(pageSource, /<NotebookContextPanel[\s\S]*currentBody=\{draftBody\}/);
+  assert.match(pageSource, /<NotebookContextPanel[\s\S]*selection=\{editorSelection\}/);
   assert.doesNotMatch(pageSource, /treeNodes\.map/);
   assert.doesNotMatch(pageSource, /NotebookTreeItem/);
   assert.match(sidebarSource, /export function NotebookSidebar/);

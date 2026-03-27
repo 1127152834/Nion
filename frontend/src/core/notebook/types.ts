@@ -132,19 +132,39 @@ export interface NotebookMetadataInput {
 
 export interface NotebookAssistPreviewInput {
   action: "summarize" | "rewrite" | "expand" | "checklist" | "action_items";
+  title?: string;
+  body?: string;
+  scope?: "whole_note" | "selection" | "paragraph";
+  selection_start?: number;
+  selection_end?: number;
+  options?: {
+    rewrite_tone?: "clear" | "formal" | "concise";
+    expansion_intent?: "background" | "details" | "examples" | "next_steps";
+  };
 }
 
 export interface NotebookAssistPreview {
   action: string;
+  action_label: string;
+  kind: "rewrite" | "derived";
+  scope: "whole_note" | "selection" | "paragraph";
+  source_excerpt: string;
+  source_start?: number | null;
+  source_end?: number | null;
+  recommended_mode: "replace" | "insert" | "replace_selection" | "insert_after_selection";
+  available_modes: Array<"replace" | "insert" | "replace_selection" | "insert_after_selection">;
   content: string;
   original_content: string;
 }
 
 export interface NotebookAssistApplyInput {
   action: "summarize" | "rewrite" | "expand" | "checklist" | "action_items";
-  mode: "replace" | "insert";
+  mode: "replace" | "insert" | "replace_selection" | "insert_after_selection";
   content: string;
   expected_content_hash: string;
+  current_body?: string;
+  selection_start?: number;
+  selection_end?: number;
 }
 
 export interface NotebookImportInput {
@@ -152,4 +172,24 @@ export interface NotebookImportInput {
   content: string;
   mode: "append" | "replace";
   expected_content_hash: string;
+}
+
+export interface NotebookImportSource {
+  id: string;
+  source: "chat";
+  thread_id: string;
+  thread_title: string;
+  preview_text: string;
+  content: string;
+  updated_at: string;
+}
+
+export interface NotebookImportSourcesResponse {
+  items: NotebookImportSource[];
+}
+
+export interface NotebookSelection {
+  start: number;
+  end: number;
+  text: string;
 }

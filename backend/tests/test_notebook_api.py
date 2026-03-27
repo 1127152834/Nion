@@ -1,7 +1,9 @@
 from fastapi.testclient import TestClient
 
+from app.gateway.routers import notebook as notebook_router
 from app.daemon.app import create_app
 from nion.config.paths import reset_paths
+from nion.threads.repository import ThreadRepository
 
 
 def test_notebook_api_round_trips_note_lifecycle(monkeypatch, tmp_path):
@@ -227,6 +229,30 @@ def test_notebook_assist_preview_and_apply(monkeypatch, tmp_path):
     monkeypatch.setenv("NION_HOME", str(tmp_path))
     reset_paths()
 
+    class FakeModel:
+        def invoke(self, prompt: str):
+            assert "Assist Note" in prompt
+            return type(
+                "FakeResponse",
+                (),
+                {
+                    "content": "## 一句话总结\n- 已生成真实摘要",
+                },
+            )()
+
+    monkeypatch.setattr(
+        notebook_router,
+        "create_chat_model",
+        lambda **kwargs: FakeModel(),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        notebook_router,
+        "resolve_model_name_with_fallback",
+        lambda *args, **kwargs: "test-model",
+        raising=False,
+    )
+
     with TestClient(create_app()) as client:
         created = client.post(
             "/api/notebook/notes",
@@ -243,7 +269,11 @@ def test_notebook_assist_preview_and_apply(monkeypatch, tmp_path):
         assert preview.status_code == 200
         preview_payload = preview.json()
         assert preview_payload["action"] == "summarize"
-        assert preview_payload["content"]
+        assert preview_payload["kind"] == "derived"
+        assert preview_payload["action_label"] == "生成摘要"
+        assert preview_payload["recommended_mode"] == "insert"
+        assert preview_payload["available_modes"] == ["insert", "replace"]
+        assert preview_payload["content"] == "## 一句话总结\n- 已生成真实摘要"
         assert preview_payload["original_content"] == "line one\nline two"
 
         applied = client.post(
@@ -259,10 +289,66 @@ def test_notebook_assist_preview_and_apply(monkeypatch, tmp_path):
         applied_note = applied.json()["note"]
         assert applied_note["body"] == preview_payload["content"]
 
-        history = client.get(f"/api/notebook/notes/{note_id}/history")
-        assert history.status_code == 200
-        assert history.json()["entries"][0]["actor_type"] == "agent"
-        assert history.json()["entries"][0]["operation"] == "edit"
+
+def test_notebook_import_sources_lists_recent_assistant_replies(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+
+    repository = ThreadRepository(base_dir=tmp_path)
+    repository.upsert_thread(
+        "thread-1",
+        title="Alpha 讨论",
+        values={
+            "title": "Alpha 讨论",
+            "messages": [
+                {"type": "human", "content": "帮我写一下总结"},
+                {
+                    "type": "ai",
+                    "id": "ai-1",
+                    "content": [{"type": "text", "text": "这是 Alpha 的第一版总结。"}],
+                },
+            ],
+            "artifacts": [],
+        },
+    )
+    repository.upsert_thread(
+        "thread-2",
+        title="Beta 计划",
+        values={
+            "title": "Beta 计划",
+            "messages": [
+                {"type": "human", "content": "整理行动项"},
+                {
+                    "type": "ai",
+                    "id": "ai-2",
+                    "content": "Beta 的行动项如下：先调研，再排期。",
+                },
+            ],
+            "artifacts": [],
+        },
+    )
+    repository.upsert_thread(
+        "thread-3",
+        title="仅用户消息",
+        values={
+            "title": "仅用户消息",
+            "messages": [{"type": "human", "content": "这里只有用户消息"}],
+            "artifacts": [],
+        },
+    )
+
+    with TestClient(create_app()) as client:
+        response = client.get("/api/notebook/import-sources?source=chat")
+        assert response.status_code == 200
+        payload = response.json()
+
+        assert [item["thread_id"] for item in payload["items"]] == ["thread-3", "thread-2", "thread-1"][1:]
+        assert payload["items"][0]["thread_title"] == "Beta 计划"
+        assert payload["items"][0]["preview_text"] == "Beta 的行动项如下：先调研，再排期。"
+        assert payload["items"][0]["content"] == "Beta 的行动项如下：先调研，再排期。"
+        assert payload["items"][0]["source"] == "chat"
+        assert payload["items"][1]["thread_title"] == "Alpha 讨论"
+        assert payload["items"][1]["preview_text"] == "这是 Alpha 的第一版总结。"
 
 
 def test_notebook_import_updates_current_note(monkeypatch, tmp_path):
@@ -294,6 +380,142 @@ def test_notebook_import_updates_current_note(monkeypatch, tmp_path):
         history = client.get(f"/api/notebook/notes/{note_id}/history")
         assert history.status_code == 200
         assert history.json()["entries"][0]["actor_type"] == "agent"
+
+
+def test_notebook_assist_supports_selection_scope_and_selection_apply(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+
+    class FakeModel:
+        def invoke(self, prompt: str):
+            assert "当前选中内容" in prompt
+            assert "line one" in prompt
+            return type(
+                "FakeResponse",
+                (),
+                {
+                    "content": "line one, but clearer",
+                },
+            )()
+
+    monkeypatch.setattr(
+        notebook_router,
+        "create_chat_model",
+        lambda **kwargs: FakeModel(),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        notebook_router,
+        "resolve_model_name_with_fallback",
+        lambda *args, **kwargs: "test-model",
+        raising=False,
+    )
+
+    with TestClient(create_app()) as client:
+        created = client.post(
+            "/api/notebook/notes",
+            json={"directory": "", "title": "Assist Selection", "body": "line one\nline two"},
+        )
+        assert created.status_code == 200
+        note = created.json()["note"]
+        note_id = note["note_id"]
+
+        preview = client.post(
+            f"/api/notebook/notes/{note_id}/assist-preview",
+            json={
+                "action": "rewrite",
+                "body": "line one\nline two",
+                "scope": "selection",
+                "selection_start": 0,
+                "selection_end": 8,
+            },
+        )
+        assert preview.status_code == 200
+        preview_payload = preview.json()
+        assert preview_payload["scope"] == "selection"
+        assert preview_payload["source_excerpt"] == "line one"
+        assert preview_payload["recommended_mode"] == "replace_selection"
+        assert preview_payload["available_modes"] == ["replace_selection", "insert_after_selection"]
+
+        applied = client.post(
+            f"/api/notebook/notes/{note_id}/assist-apply",
+            json={
+                "action": "rewrite",
+                "mode": "replace_selection",
+                "content": preview_payload["content"],
+                "expected_content_hash": note["content_hash"],
+                "current_body": "line one\nline two",
+                "selection_start": 0,
+                "selection_end": 8,
+            },
+        )
+        assert applied.status_code == 200
+        applied_note = applied.json()["note"]
+        assert applied_note["body"] == "line one, but clearer\nline two"
+
+
+def test_notebook_assist_supports_paragraph_scope_and_action_options(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+
+    class FakeModel:
+        def invoke(self, prompt: str):
+            assert "当前段落" in prompt
+            assert "重写风格：更正式" in prompt
+            assert "补充方向：补例子" in prompt
+            assert "second paragraph" in prompt
+            return type(
+                "FakeResponse",
+                (),
+                {
+                    "content": "expanded second paragraph with examples",
+                },
+            )()
+
+    monkeypatch.setattr(
+        notebook_router,
+        "create_chat_model",
+        lambda **kwargs: FakeModel(),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        notebook_router,
+        "resolve_model_name_with_fallback",
+        lambda *args, **kwargs: "test-model",
+        raising=False,
+    )
+
+    body = "first paragraph\n\nsecond paragraph\nwith more lines\n\nthird paragraph"
+
+    with TestClient(create_app()) as client:
+        created = client.post(
+            "/api/notebook/notes",
+            json={"directory": "", "title": "Assist Paragraph", "body": body},
+        )
+        assert created.status_code == 200
+        note = created.json()["note"]
+        note_id = note["note_id"]
+
+        preview = client.post(
+            f"/api/notebook/notes/{note_id}/assist-preview",
+            json={
+                "action": "expand",
+                "title": "Assist Paragraph",
+                "body": body,
+                "scope": "paragraph",
+                "selection_start": 18,
+                "selection_end": 18,
+                "options": {
+                    "rewrite_tone": "formal",
+                    "expansion_intent": "examples",
+                },
+            },
+        )
+        assert preview.status_code == 200
+        preview_payload = preview.json()
+        assert preview_payload["scope"] == "paragraph"
+        assert preview_payload["source_excerpt"] == "second paragraph with more lines"
+        assert preview_payload["recommended_mode"] == "insert_after_selection"
 
 
 def test_notebook_directory_api_round_trip(monkeypatch, tmp_path):

@@ -10,7 +10,10 @@ from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from nion.config.paths import get_paths
+from nion.models import create_chat_model
+from nion.models.factory import resolve_model_name_with_fallback
 from nion.notebook import (
+    ASSIST_SPECS,
     NotebookHistoryService,
     NotebookNote,
     apply_assist_content,
@@ -25,6 +28,7 @@ from nion.notebook.service import (
     NotebookDirectoryNotFoundError,
     NotebookNotFoundError,
 )
+from nion.threads.repository import ThreadRepository
 
 router = APIRouter(prefix="/api/notebook", tags=["notebook"])
 
@@ -144,19 +148,36 @@ class NotebookMetadataRequest(BaseModel):
 
 class NotebookAssistPreviewRequest(BaseModel):
     action: Literal["summarize", "rewrite", "expand", "checklist", "action_items"]
+    title: str | None = None
+    body: str | None = None
+    scope: Literal["whole_note", "selection", "paragraph"] = "whole_note"
+    selection_start: int | None = None
+    selection_end: int | None = None
+    options: dict[str, str | None] | None = None
 
 
 class NotebookAssistPreviewResponse(BaseModel):
     action: str
+    action_label: str
+    kind: Literal["rewrite", "derived"]
+    scope: Literal["whole_note", "selection", "paragraph"]
+    source_excerpt: str
+    source_start: int | None = None
+    source_end: int | None = None
+    recommended_mode: Literal["replace", "insert", "replace_selection", "insert_after_selection"]
+    available_modes: list[Literal["replace", "insert", "replace_selection", "insert_after_selection"]] = Field(default_factory=list)
     content: str
     original_content: str
 
 
 class NotebookAssistApplyRequest(BaseModel):
     action: Literal["summarize", "rewrite", "expand", "checklist", "action_items"]
-    mode: Literal["replace", "insert"]
+    mode: Literal["replace", "insert", "replace_selection", "insert_after_selection"]
     content: str
     expected_content_hash: str
+    current_body: str | None = None
+    selection_start: int | None = None
+    selection_end: int | None = None
 
 
 class NotebookImportRequest(BaseModel):
@@ -164,6 +185,20 @@ class NotebookImportRequest(BaseModel):
     content: str
     mode: Literal["append", "replace"]
     expected_content_hash: str
+
+
+class NotebookImportSourceItem(BaseModel):
+    id: str
+    source: Literal["chat"] = "chat"
+    thread_id: str
+    thread_title: str
+    preview_text: str
+    content: str
+    updated_at: str
+
+
+class NotebookImportSourcesResponse(BaseModel):
+    items: list[NotebookImportSourceItem] = Field(default_factory=list)
 
 
 def _now_iso() -> str:
@@ -175,6 +210,68 @@ def _build_summary(body: str, limit: int = 140) -> str:
     if len(compact) <= limit:
         return compact
     return f"{compact[:limit - 3]}..."
+
+
+def _extract_thread_message_text(message: dict[str, object]) -> str:
+    content = message.get("content", "")
+    if isinstance(content, str):
+        return content.strip()
+    if isinstance(content, list):
+        parts: list[str] = []
+        for part in content:
+            if isinstance(part, str):
+                parts.append(part)
+                continue
+            if isinstance(part, dict) and part.get("type") == "text":
+                text = part.get("text")
+                if isinstance(text, str):
+                    parts.append(text)
+        return "\n".join(part.strip() for part in parts if part.strip()).strip()
+    return ""
+
+
+def _list_chat_import_sources(limit: int) -> list[NotebookImportSourceItem]:
+    repository = ThreadRepository()
+    candidates: list[NotebookImportSourceItem] = []
+
+    for record in repository.search(limit=max(limit * 4, limit)):
+        values = record.get("values") or {}
+        if not isinstance(values, dict):
+            continue
+        messages = values.get("messages") or []
+        if not isinstance(messages, list):
+            continue
+
+        latest_ai_message: dict[str, object] | None = None
+        for message in reversed(messages):
+            if not isinstance(message, dict):
+                continue
+            if message.get("type") != "ai":
+                continue
+            preview_text = _extract_thread_message_text(message)
+            if preview_text:
+                latest_ai_message = message
+                break
+
+        if latest_ai_message is None:
+            continue
+
+        content = _extract_thread_message_text(latest_ai_message)
+        preview_text = _build_summary(content, limit=120)
+        candidates.append(
+            NotebookImportSourceItem(
+                id=f"{record['thread_id']}:{latest_ai_message.get('id') or 'latest'}",
+                thread_id=str(record["thread_id"]),
+                thread_title=str(values.get("title") or "Untitled"),
+                preview_text=preview_text,
+                content=content,
+                updated_at=str(record.get("updated_at") or _now_iso()),
+            )
+        )
+        if len(candidates) >= limit:
+            break
+
+    return candidates
 
 
 def _visible_relpath(path: Path, root: Path) -> str | None:
@@ -261,6 +358,16 @@ async def get_notebook_tree(
         directories=directories,
         files=files,
     )
+
+
+@router.get("/import-sources", response_model=NotebookImportSourcesResponse)
+async def get_notebook_import_sources(
+    source: Literal["chat"] = Query(default="chat"),
+    limit: int = Query(default=6, ge=1, le=20),
+) -> NotebookImportSourcesResponse:
+    if source != "chat":
+        return NotebookImportSourcesResponse(items=[])
+    return NotebookImportSourcesResponse(items=_list_chat_import_sources(limit))
 
 
 @router.get("/trash", response_model=NotebookTrashResponse)
@@ -408,15 +515,39 @@ async def preview_notebook_assist(
     except NotebookNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
-    content = build_assist_preview(
-        title=note.title,
-        body=note.body,
-        action=payload.action,
-    )
+    try:
+        model_name = resolve_model_name_with_fallback()
+        model = create_chat_model(name=model_name, thinking_enabled=False)
+        preview = build_assist_preview(
+            title=payload.title if payload.title is not None else note.title,
+            body=payload.body if payload.body is not None else note.body,
+            action=payload.action,
+            scope=payload.scope,
+            selection_start=payload.selection_start,
+            selection_end=payload.selection_end,
+            options=payload.options,
+            model=model,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Failed to generate notebook assist preview ({ASSIST_SPECS[payload.action].label}).",
+        ) from exc
+
     return NotebookAssistPreviewResponse(
-        action=payload.action,
-        content=content,
-        original_content=note.body,
+        action=preview.action,
+        action_label=preview.action_label,
+        kind=preview.kind,
+        scope=preview.scope,
+        source_excerpt=preview.source_excerpt,
+        source_start=preview.source_start,
+        source_end=preview.source_end,
+        recommended_mode=preview.recommended_mode,
+        available_modes=preview.available_modes,
+        content=preview.content,
+        original_content=preview.original_content,
     )
 
 
@@ -429,9 +560,11 @@ async def apply_notebook_assist(
     try:
         current = service._service.read_note(note_id)
         next_body = apply_assist_content(
-            original_body=current.body,
+            original_body=payload.current_body if payload.current_body is not None else current.body,
             generated_content=payload.content,
             mode=payload.mode,
+            selection_start=payload.selection_start,
+            selection_end=payload.selection_end,
         )
         note = service.update_note(
             note_id=note_id,
@@ -439,6 +572,8 @@ async def apply_notebook_assist(
             expected_content_hash=payload.expected_content_hash,
             actor_type="agent",
         )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     except NotebookConflictError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     except NotebookNotFoundError as exc:

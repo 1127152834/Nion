@@ -20,4 +20,10 @@ void test("NotebookTreeView exposes folder management actions", async () => {
   assert.match(source, /onRenameNote/);
   assert.match(source, /onMoveNote/);
   assert.match(source, /onDeleteNote/);
+  assert.match(source, /draggable/);
+  assert.match(source, /onDrop/);
+  assert.match(source, /放到这里|拖到这里移动到顶层/);
+  assert.match(source, /onDragEndCapture/);
+  assert.match(source, /window\.addEventListener\("dragend"/);
+  assert.match(source, /rootDropActive && dragPayload !== null/);
 });

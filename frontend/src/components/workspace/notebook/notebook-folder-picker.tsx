@@ -8,7 +8,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import type { NotebookDirectoryOption } from "@/core/notebook/directories";
 import { notebookThemeStyle } from "./notebook-theme";
@@ -46,7 +45,9 @@ export function NotebookFolderPicker({
       >
         <span className="flex min-w-0 items-center gap-2">
           <FolderIcon className="size-4 shrink-0 text-[var(--notebook-soft-text)]" />
-          <SelectValue placeholder={placeholder} />
+          <span className="truncate text-sm">
+            {selected?.pathLabel || placeholder}
+          </span>
         </span>
       </SelectTrigger>
       <SelectContent
@@ -61,16 +62,23 @@ export function NotebookFolderPicker({
             value={option.path || ROOT_VALUE}
             className="text-[var(--notebook-ink)]"
           >
-            <span className="flex min-w-0 items-center">
+            <span className="flex min-w-0 items-start gap-2">
               <span
-                className="truncate"
+                aria-hidden="true"
+                className="text-[var(--notebook-soft-text)]"
                 style={{
-                  paddingLeft: option.isInbox
-                    ? "0rem"
-                    : `${Math.max(0, option.depth - 1) * 0.9}rem`,
+                  marginLeft: `${Math.max(0, option.depth) * 0.75}rem`,
                 }}
               >
-                {option.label}
+                {option.depth === 0 ? "•" : "└"}
+              </span>
+              <span className="flex min-w-0 flex-col">
+                <span className="truncate">{option.label}</span>
+                {option.depth > 1 ? (
+                  <span className="truncate text-xs text-[var(--notebook-soft-text)]">
+                    {option.pathLabel}
+                  </span>
+                ) : null}
               </span>
             </span>
           </SelectItem>

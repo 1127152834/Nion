@@ -6,6 +6,7 @@ const {
   createNotebookDirectory,
   deleteNotebookDirectory,
   getNotebookDeletePreview,
+  loadNotebookImportSources,
   loadNotebookHistoryDetail,
   loadNotebookNotes,
   loadNotebookHistory,
@@ -223,6 +224,12 @@ void test("notebook detail helpers hit their expected endpoints", async () => {
     if (String(input).endsWith("/assist-preview")) {
       return createJsonResponse({
         action: "summarize",
+        action_label: "生成摘要",
+        kind: "derived",
+        scope: "whole_note",
+        source_excerpt: "hello",
+        recommended_mode: "insert",
+        available_modes: ["insert", "replace"],
         content: "**摘要：**",
         original_content: "hello",
       });
@@ -267,6 +274,21 @@ void test("notebook detail helpers hit their expected endpoints", async () => {
         },
       });
     }
+    if (String(input).includes("/api/notebook/import-sources?source=chat")) {
+      return createJsonResponse({
+        items: [
+          {
+            id: "thread-1:ai-1",
+            source: "chat",
+            thread_id: "thread-1",
+            thread_title: "Alpha 讨论",
+            preview_text: "根据您的要求，这是关于 Alpha 项目的最新市场调研总结...",
+            content: "根据您的要求，这是关于 Alpha 项目的最新市场调研总结，以下是完整版本。",
+            updated_at: "2026-03-28T10:00:00Z",
+          },
+        ],
+      });
+    }
     if (String(input).endsWith("/api/notebook/notes")) {
       return createJsonResponse({
         notes: [
@@ -308,15 +330,22 @@ void test("notebook detail helpers hit their expected endpoints", async () => {
     await loadNotebookHistoryDetail("note_1", "ver_1");
     await restoreNotebookVersion("note_1", { version_id: "ver_1" });
     await updateNotebookMetadata("note_1", { tags: ["alpha"], is_pinned: true });
-    await previewNotebookAssist("note_1", { action: "summarize" });
+    const preview = await previewNotebookAssist("note_1", { action: "summarize" });
     await applyNotebookAssist("note_1", {
       action: "summarize",
       mode: "replace",
       content: "**摘要：**",
       expected_content_hash: "hash",
     });
+    const importSources = await loadNotebookImportSources("chat");
     await getNotebookDeletePreview("note_1");
     await restoreDeletedNotebookNote("note_1");
+
+    assert.equal(preview.kind, "derived");
+    assert.equal(preview.action_label, "生成摘要");
+    assert.equal(preview.recommended_mode, "insert");
+    assert.deepEqual(preview.available_modes, ["insert", "replace"]);
+    assert.equal(importSources.items[0]?.thread_id, "thread-1");
 
     assert.deepEqual(urls, [
       "GET /api/notebook/notes",
@@ -329,6 +358,7 @@ void test("notebook detail helpers hit their expected endpoints", async () => {
       "PATCH /api/notebook/notes/note_1/metadata",
       "POST /api/notebook/notes/note_1/assist-preview",
       "POST /api/notebook/notes/note_1/assist-apply",
+      "GET /api/notebook/import-sources?source=chat",
       "GET /api/notebook/notes/note_1/delete-preview",
       "POST /api/notebook/notes/note_1/restore-deleted",
     ]);

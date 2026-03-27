@@ -16,3 +16,24 @@ void test("buildNotebookAssistPrompt creates a rewrite prompt with title and bod
   assert.match(prompt, /Title: Roadmap/);
   assert.match(prompt, /Ship notebook v1\./);
 });
+
+void test("buildNotebookAssistPrompt can prioritize the current selection for rewrite", () => {
+  const prompt = buildNotebookAssistPrompt(
+    {
+      title: "Roadmap",
+      body: "Ship notebook v1.\nThen polish the release notes.",
+    },
+    "rewrite",
+    {
+      selection: {
+        start: 0,
+        end: 17,
+        text: "Ship notebook v1.",
+      },
+    },
+  );
+
+  assert.match(prompt, /Use the selected excerpt as the primary scope/);
+  assert.match(prompt, /Selected excerpt:\nShip notebook v1\./);
+  assert.match(prompt, /Full note for reference/);
+});

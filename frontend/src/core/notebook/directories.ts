@@ -5,10 +5,12 @@ export type NotebookDirectoryOption = {
   label: string;
   depth: number;
   isInbox: boolean;
+  pathLabel: string;
 };
 
 type BuildNotebookDirectoryOptionsInput = {
   entries: NotebookDirectoryEntry[];
+  includeInbox?: boolean;
   inboxLabel?: string;
   rootLabel?: string;
 };
@@ -29,6 +31,7 @@ export function formatNotebookDirectoryLabel(path: string) {
 
 export function buildNotebookDirectoryOptions({
   entries,
+  includeInbox = false,
   inboxLabel = "Inbox",
   rootLabel = "Top level",
 }: BuildNotebookDirectoryOptionsInput): NotebookDirectoryOption[] {
@@ -39,16 +42,22 @@ export function buildNotebookDirectoryOptions({
       label: rootLabel,
       depth: 0,
       isInbox: false,
+      pathLabel: rootLabel,
     },
-    {
+  ];
+
+  seen.add("");
+
+  if (includeInbox) {
+    options.push({
       path: "inbox",
       label: inboxLabel,
       depth: 1,
       isInbox: true,
-    },
-  ];
-
-  seen.add("inbox");
+      pathLabel: inboxLabel,
+    });
+    seen.add("inbox");
+  }
 
   for (const entry of [...entries].sort((left, right) => left.path.localeCompare(right.path))) {
     const path = entry.path.trim().replace(/^\/+|\/+$/g, "");
@@ -58,9 +67,10 @@ export function buildNotebookDirectoryOptions({
     seen.add(path);
     options.push({
       path,
-      label: formatNotebookDirectoryLabel(path),
+      label: entry.name,
       depth: entry.depth,
       isInbox: false,
+      pathLabel: formatNotebookDirectoryLabel(path),
     });
   }
 

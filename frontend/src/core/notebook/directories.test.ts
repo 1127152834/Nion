@@ -13,16 +13,29 @@ void test("buildNotebookDirectoryOptions always includes inbox first", () => {
       { path: "projects/alpha", name: "alpha", depth: 2, child_count: 0, mtime: null },
       { path: "projects", name: "projects", depth: 1, child_count: 1, mtime: null },
     ],
-    inboxLabel: "收件箱",
     rootLabel: "顶层",
   });
 
   assert.equal(options[0]?.path, "");
   assert.equal(options[0]?.label, "顶层");
+  assert.equal(options[1]?.path, "projects");
+  assert.equal(options[1]?.label, "projects");
+  assert.equal(options[1]?.pathLabel, "projects");
+  assert.equal(options[2]?.label, "alpha");
+  assert.equal(options[2]?.pathLabel, "projects / alpha");
+});
+
+void test("buildNotebookDirectoryOptions can include inbox explicitly", () => {
+  const options = buildNotebookDirectoryOptions({
+    entries: [],
+    includeInbox: true,
+    inboxLabel: "收件箱",
+    rootLabel: "顶层",
+  });
+
+  assert.equal(options[0]?.path, "");
   assert.equal(options[1]?.path, "inbox");
   assert.equal(options[1]?.label, "收件箱");
-  assert.equal(options[2]?.label, "projects");
-  assert.equal(options[3]?.label, "projects / alpha");
 });
 
 void test("findDefaultNotebookDirectory prefers explicit directory then current note folder", () => {
@@ -31,6 +44,7 @@ void test("findDefaultNotebookDirectory prefers explicit directory then current 
       { path: "projects", name: "projects", depth: 1, child_count: 1, mtime: null },
       { path: "projects/alpha", name: "alpha", depth: 2, child_count: 0, mtime: null },
     ],
+    includeInbox: true,
   });
 
   assert.equal(

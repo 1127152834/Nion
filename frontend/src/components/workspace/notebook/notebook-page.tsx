@@ -1,25 +1,21 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { NotebookCreateDialog } from "./notebook-create-dialog";
-import { NotebookContextPanel } from "./notebook-context-panel";
-import { NotebookDeleteDialog } from "./notebook-delete-dialog";
-import { NotebookEditorPane } from "./notebook-editor-pane";
-import { buildQuickCaptureDraft } from "./notebook-compose";
-import { NotebookFolderPicker } from "./notebook-folder-picker";
-import { NotebookQuickCaptureDialog } from "./notebook-quick-capture-dialog";
-import { NotebookSidebar } from "./notebook-sidebar";
 import { useI18n } from "@/core/i18n/hooks";
 import { pathOfNewThread, pathOfNotebookTrash } from "@/core/navigation/desktop-routes";
 import {
+  buildNotebookAssistPrompt,
   buildNotebookDirectoryOptions,
+  buildNotebookTree,
   findDefaultNotebookDirectory,
+  type NotebookAssistAction,
+  type NotebookSelection,
   useCreateNotebookDirectory,
   useCreateNotebookNote,
   useDeleteNotebookDirectory,
@@ -35,14 +31,21 @@ import {
   useNotebookTrash,
   useRenameNotebookDirectory,
   useRenameNotebookNote,
-  useRestoreNotebookVersion,
   useUpdateNotebookNote,
 } from "@/core/notebook";
-import { buildNotebookTree } from "@/core/notebook";
-import { buildNotebookAssistPrompt, type NotebookAssistAction } from "@/core/notebook";
-import { NotebookFolderDialog } from "./notebook-folder-dialog";
+
+import { buildQuickCaptureDraft } from "./notebook-compose";
+import { NotebookContextPanel } from "./notebook-context-panel";
+import { NotebookCreateDialog } from "./notebook-create-dialog";
+import { NotebookDeleteDialog } from "./notebook-delete-dialog";
 import { NotebookDialogShell } from "./notebook-dialog-shell";
+import { NotebookEditorPane } from "./notebook-editor-pane";
+import { NotebookFolderDialog } from "./notebook-folder-dialog";
+import { NotebookFolderPicker } from "./notebook-folder-picker";
+import { NotebookQuickCaptureDialog } from "./notebook-quick-capture-dialog";
+import { NotebookSidebar } from "./notebook-sidebar";
 import { notebookThemeStyle } from "./notebook-theme";
+
 type CreateDraft = {
   directory: string;
   title: string;
@@ -61,6 +64,12 @@ type FolderDialogState = {
 type DraftSession = {
   directory: string;
   needsMetadataBeforeSave: boolean;
+};
+
+type NotebookConversationStartInput = {
+  action: NotebookAssistAction;
+  mode?: "note" | "selection" | "preview";
+  previewContent?: string;
 };
 
 export function NotebookPage() {
@@ -90,6 +99,7 @@ export function NotebookPage() {
   const [moveOpen, setMoveOpen] = useState(false);
   const [moveDirectory, setMoveDirectory] = useState("");
   const [draftSession, setDraftSession] = useState<DraftSession | null>(null);
+  const [editorSelection, setEditorSelection] = useState<NotebookSelection | null>(null);
   const [leftRailCollapsed, setLeftRailCollapsed] = useState(false);
   const [rightRailCollapsed, setRightRailCollapsed] = useState(false);
   const [contextTab, setContextTab] = useState<NotebookContextTab>("ask");
@@ -117,7 +127,6 @@ export function NotebookPage() {
   const renameNote = useRenameNotebookNote(selectedNoteId ?? "");
   const moveAnyNote = useMoveNotebookNoteAction();
   const moveNote = useMoveNotebookNote(selectedNoteId ?? "");
-  const restoreVersion = useRestoreNotebookVersion(selectedNoteId ?? "");
   const deleteNote = useDeleteNotebookNote(selectedNoteId ?? "");
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -164,6 +173,7 @@ export function NotebookPage() {
     const slash = note.relative_path.lastIndexOf("/");
     setMoveDirectory(slash >= 0 ? note.relative_path.slice(0, slash) : "");
     setDraftSession(null);
+    setEditorSelection(null);
   }, [note, selectedNoteId]);
 
   const selectedFile = useMemo(
@@ -215,7 +225,7 @@ export function NotebookPage() {
     }
   }
 
-  async function handleSave() {
+  const handleSave = useCallback(async () => {
     if (isDraft) {
       return;
     }
@@ -237,7 +247,7 @@ export function NotebookPage() {
       setSaveState("unsaved");
       toast.error(err instanceof Error ? err.message : String(err));
     }
-  }
+  }, [draftBody, draftHash, draftTitle, isDraft, selectedNoteId, updateNote]);
 
   async function handleRename() {
     try {
@@ -290,18 +300,6 @@ export function NotebookPage() {
     }
   }
 
-  async function handleRestore(versionId: string) {
-    try {
-      const restored = await restoreVersion.mutateAsync({ version_id: versionId });
-      setDraftBody(restored.body);
-      setDraftTitle(restored.title);
-      setDraftHash(restored.content_hash);
-      toast.success(copy.saved);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
-    }
-  }
-
   async function handleDelete() {
     try {
       await deleteNote.mutateAsync();
@@ -312,13 +310,40 @@ export function NotebookPage() {
     }
   }
 
-  function handleAssist(action: NotebookAssistAction) {
-    if (!note) {
+  function handleAssist(input: NotebookConversationStartInput) {
+    if (!note && !isDraft) {
       return;
     }
+    const mode = input.mode ?? "note";
+    const selectionForPrompt =
+      mode === "selection" && editorSelection?.text.trim() ? editorSelection : null;
+    const bodyForPrompt =
+      mode === "preview" && input.previewContent?.trim()
+        ? input.previewContent
+        : draftBody;
+    const sourceLabel =
+      mode === "preview"
+        ? "Current AI result"
+        : mode === "selection" && selectionForPrompt
+          ? "Current selected excerpt"
+          : undefined;
     router.push(
       pathOfNewThread({
-        draft: buildNotebookAssistPrompt(note, action),
+        draft: buildNotebookAssistPrompt(
+          {
+            title: draftTitle,
+            body: bodyForPrompt,
+          },
+          input.action,
+          {
+            selection:
+              input.action === "rewrite" || input.action === "expand"
+                ? selectionForPrompt
+                : null,
+            sourceLabel,
+            referenceBody: mode === "preview" ? draftBody : null,
+          },
+        ),
       }),
     );
   }
@@ -330,6 +355,7 @@ export function NotebookPage() {
     setSavedTitle(nextNote.title);
     setSavedBody(nextNote.body);
     setSaveState("saved");
+    setEditorSelection(null);
   }
 
   useEffect(() => {
@@ -356,7 +382,7 @@ export function NotebookPage() {
         saveTimeoutRef.current = null;
       }
     };
-  }, [draftBody, draftTitle, dirty, isDraft, note]);
+  }, [draftBody, draftTitle, dirty, handleSave, isDraft, note]);
 
   useEffect(() => {
     if (!createOpen || !draftSession) {
@@ -394,6 +420,7 @@ export function NotebookPage() {
     setSavedBody("");
     setSaveState("unsaved");
     setContextTab("ask");
+    setEditorSelection(null);
   }
 
   function openRenameNoteDialog(noteId: string) {
@@ -442,6 +469,7 @@ export function NotebookPage() {
     setSavedBody("");
     setSaveState("unsaved");
     setContextTab("ask");
+    setEditorSelection(null);
   }
 
   function handleSaveDraft() {
@@ -613,6 +641,7 @@ export function NotebookPage() {
               draftDirectory={draftSession?.directory ?? ""}
               isDraft={isDraft}
               onSaveDraft={handleSaveDraft}
+              onSelectionChange={setEditorSelection}
             />
 
             <NotebookContextPanel
@@ -640,9 +669,11 @@ export function NotebookPage() {
                 selectNote: copy.selectNote,
               }}
               currentContentHash={draftHash}
+              currentBody={draftBody}
               entries={entries}
               note={note}
               notePath={selectedFile?.path ?? null}
+              selection={editorSelection}
               noteTitle={draftTitle}
               onActiveTabChange={setContextTab}
               onApplyNote={syncNotebookDraft}

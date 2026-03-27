@@ -1,12 +1,12 @@
 "use client";
 
 import { CheckCircle2, Clock, Edit3, Eye, FileText, Folder, History, MoreHorizontal, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import type { NotebookNote } from "@/core/notebook";
+import type { NotebookNote, NotebookSelection } from "@/core/notebook";
 
 import { MarkdownContent } from "../messages/markdown-content";
 
@@ -46,13 +46,14 @@ type NotebookEditorPaneProps = {
   onOpenMore: () => void;
   onPrimaryCreate: () => void;
   onSaveDraft: () => void;
+  onSelectionChange: (selection: NotebookSelection | null) => void;
 };
 
 export function NotebookEditorPane({
   copy,
   draftBody,
   draftTitle,
-  draftDirectory,
+  draftDirectory: _draftDirectory,
   isDraft,
   isLoading,
   loadingLabel,
@@ -65,9 +66,26 @@ export function NotebookEditorPane({
   onOpenMore,
   onPrimaryCreate,
   onSaveDraft,
+  onSelectionChange,
 }: NotebookEditorPaneProps) {
   const [previewMode, setPreviewMode] = useState(false);
   const lastEdited = note ? formatLastEdited(note.updated_at) : "";
+
+  useEffect(() => {
+    if (previewMode) {
+      onSelectionChange(null);
+    }
+  }, [onSelectionChange, previewMode]);
+
+  function syncSelection(target: HTMLTextAreaElement) {
+    const selectionStart = target.selectionStart ?? 0;
+    const selectionEnd = target.selectionEnd ?? selectionStart;
+    onSelectionChange({
+      start: selectionStart,
+      end: selectionEnd,
+      text: target.value.slice(selectionStart, selectionEnd),
+    });
+  }
 
   return (
     <div className="relative flex h-full min-w-0 flex-col overflow-hidden bg-[var(--notebook-panel)]">
@@ -201,6 +219,9 @@ export function NotebookEditorPane({
               <Textarea
                 value={draftBody}
                 onChange={(event) => onDraftBodyChange(event.target.value)}
+                onClick={(event) => syncSelection(event.currentTarget)}
+                onKeyUp={(event) => syncSelection(event.currentTarget)}
+                onSelect={(event) => syncSelection(event.currentTarget)}
                 placeholder="开始输入 Markdown..."
                 className="h-full min-h-[500px] w-full resize-none border-0 bg-transparent px-0 py-0 text-base leading-[1.8] text-[var(--notebook-ink)] shadow-none focus-visible:ring-0"
               />

@@ -8,8 +8,9 @@ import {
   deleteNotebookNote,
   getNotebookDeletePreview,
   importNotebookContent,
-  loadNotebookHistoryDetail,
   loadNotebookHistory,
+  loadNotebookHistoryDetail,
+  loadNotebookImportSources,
   loadNotebookNote,
   loadNotebookNotes,
   loadNotebookTrash,
@@ -33,6 +34,7 @@ import type {
   NotebookDirectoryMoveInput,
   NotebookDirectoryRenameInput,
   NotebookImportInput,
+  NotebookImportSourcesResponse,
   NotebookMetadataInput,
   NotebookMoveInput,
   NotebookRenameInput,
@@ -276,6 +278,21 @@ export function usePreviewNotebookAssist(noteId: string) {
     mutationFn: async (input: NotebookAssistPreviewInput) =>
       previewNotebookAssist(noteId, input),
   });
+}
+
+export function useNotebookImportSources(source: "chat") {
+  const query = useQuery<NotebookImportSourcesResponse>({
+    queryKey: ["notebook", "import-sources", source],
+    queryFn: async () => loadNotebookImportSources(source),
+    refetchOnWindowFocus: false,
+    staleTime: 15_000,
+  });
+  return {
+    importSources: query.data?.items ?? [],
+    isLoading: query.isLoading,
+    error: query.error,
+    refetch: query.refetch,
+  };
 }
 
 export function useApplyNotebookAssist(noteId: string) {
