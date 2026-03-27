@@ -1,16 +1,16 @@
 "use client";
 
-import { createDesktopThreadClient, type DesktopThreadClient } from "./desktop-client";
+import { createThreadClient, type ThreadClient } from "./thread-client";
 
-let _singleton: DesktopThreadClient | null = null;
-let _mockSingleton: DesktopThreadClient | null = null;
+let _singleton: ThreadClient | null = null;
+let _mockSingleton: ThreadClient | null = null;
 
-export function getAPIClient(isMock?: boolean): DesktopThreadClient {
+export function getAPIClient(isMock?: boolean): ThreadClient {
   if (isMock) {
-    _mockSingleton ??= createDesktopThreadClient({ isMock: true });
+    _mockSingleton ??= createThreadClient({ isMock: true });
     return _mockSingleton;
   }
 
-  _singleton ??= createDesktopThreadClient({ isMock: false });
+  _singleton ??= createThreadClient({ isMock: false });
   return _singleton;
 }

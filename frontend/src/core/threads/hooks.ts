@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
 
 import { getAPIClient } from "../api";
-import type { DesktopThreadSearchParams } from "../api/desktop-client";
+import type { ThreadClientSearchParams } from "../api/thread-client";
 import { useI18n } from "../i18n/hooks";
 import type { FileInMessage } from "../messages/utils";
 import { useUpdateSubtask } from "../tasks/context";
@@ -597,7 +597,7 @@ export function useThreadStream({
 }
 
 export function useThreads(
-  params: DesktopThreadSearchParams = {
+  params: ThreadClientSearchParams = {
     limit: 50,
     sortBy: "updated_at",
     sortOrder: "desc",
