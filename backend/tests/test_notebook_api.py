@@ -187,3 +187,37 @@ def test_notebook_metadata_patch_updates_tags_and_pin_state(monkeypatch, tmp_pat
         summary = listed.json()["notes"][0]
         assert summary["tags"] == ["alpha", "roadmap"]
         assert summary["is_pinned"] is True
+
+
+def test_notebook_history_detail_returns_snapshot_content(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+
+    with TestClient(create_app()) as client:
+        created = client.post(
+            "/api/notebook/notes",
+            json={"directory": "", "title": "History Note", "body": "v1"},
+        )
+        assert created.status_code == 200
+        note_id = created.json()["note"]["note_id"]
+
+        updated = client.put(
+            f"/api/notebook/notes/{note_id}",
+            json={
+                "body": "v2",
+                "expected_content_hash": created.json()["note"]["content_hash"],
+            },
+        )
+        assert updated.status_code == 200
+
+        history = client.get(f"/api/notebook/notes/{note_id}/history")
+        assert history.status_code == 200
+        version_id = history.json()["entries"][0]["version_id"]
+
+        detail = client.get(f"/api/notebook/notes/{note_id}/history/{version_id}")
+        assert detail.status_code == 200
+        payload = detail.json()
+
+        assert payload["entry"]["version_id"] == version_id
+        assert payload["snapshot"]["title"] == "History Note"
+        assert payload["snapshot"]["body"] == "v2"

@@ -57,6 +57,11 @@ class NotebookHistoryResponse(BaseModel):
     entries: list[dict[str, object]]
 
 
+class NotebookHistoryDetailResponse(BaseModel):
+    entry: dict[str, object]
+    snapshot: NotebookNote
+
+
 class NotebookDeletePreviewResponse(BaseModel):
     note_id: str
     title: str
@@ -305,6 +310,21 @@ async def get_notebook_history(note_id: str) -> NotebookHistoryResponse:
         for entry in NotebookHistoryService().list_history(note_id)
     ]
     return NotebookHistoryResponse(entries=entries)
+
+
+@router.get("/notes/{note_id}/history/{version_id}", response_model=NotebookHistoryDetailResponse)
+async def get_notebook_history_detail(
+    note_id: str,
+    version_id: str,
+) -> NotebookHistoryDetailResponse:
+    try:
+        entry, snapshot = NotebookHistoryService().get_history_detail(note_id, version_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return NotebookHistoryDetailResponse(
+        entry=entry.model_dump(),
+        snapshot=snapshot,
+    )
 
 
 @router.post("/notes/{note_id}/restore", response_model=NotebookNoteResponse)
