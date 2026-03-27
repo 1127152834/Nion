@@ -2,12 +2,16 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-void test("NotebookContextPanel exposes ask, history, and info tabs", async () => {
+void test("NotebookContextPanel matches the reference collaboration rail structure", async () => {
   const source = await readFile(new URL("./notebook-context-panel.tsx", import.meta.url), "utf8");
 
   assert.match(source, /"ask"/);
   assert.match(source, /"history"/);
   assert.match(source, /"info"/);
-  assert.match(source, /onAssist/);
-  assert.match(source, /onRestoreVersion/);
+  assert.match(source, /aiPreview/);
+  assert.match(source, /historyPreview/);
+  assert.match(source, /handleApplyPreview/);
+  assert.match(source, /handleImportFromChat/);
+  assert.match(source, /onStartConversation/);
+  assert.match(source, /tags/);
 });

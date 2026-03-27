@@ -5,6 +5,7 @@ import {
   createNotebookNote,
   deleteNotebookNote,
   getNotebookDeletePreview,
+  importNotebookContent,
   loadNotebookHistoryDetail,
   loadNotebookHistory,
   loadNotebookNote,
@@ -23,6 +24,7 @@ import type {
   NotebookAssistApplyInput,
   NotebookAssistPreviewInput,
   NotebookCreateInput,
+  NotebookImportInput,
   NotebookMetadataInput,
   NotebookMoveInput,
   NotebookRenameInput,
@@ -201,6 +203,17 @@ export function useApplyNotebookAssist(noteId: string) {
   return useMutation({
     mutationFn: async (input: NotebookAssistApplyInput) =>
       applyNotebookAssist(noteId, input),
+    onSuccess: async (note) => {
+      await invalidateNotebookQueries(queryClient, note.note_id);
+    },
+  });
+}
+
+export function useImportNotebookContent(noteId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: NotebookImportInput) =>
+      importNotebookContent(noteId, input),
     onSuccess: async (note) => {
       await invalidateNotebookQueries(queryClient, note.note_id);
     },

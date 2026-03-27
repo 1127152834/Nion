@@ -127,3 +127,10 @@ export interface NotebookAssistApplyInput {
   content: string;
   expected_content_hash: string;
 }
+
+export interface NotebookImportInput {
+  source: "chat";
+  content: string;
+  mode: "append" | "replace";
+  expected_content_hash: string;
+}

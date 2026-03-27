@@ -2,6 +2,7 @@ import { getBackendBaseURL } from "../config/index.ts";
 
 import type {
   NotebookAssistApplyInput,
+  NotebookImportInput,
   NotebookAssistPreview,
   NotebookAssistPreviewInput,
   NotebookCreateInput,
@@ -337,6 +338,27 @@ export async function restoreDeletedNotebookNote(noteId: string): Promise<Notebo
       resolveErrorMessage(
         await response.text(),
         `Failed to restore deleted notebook note (${response.status})`,
+      ),
+    );
+  }
+  const json = await readJson<{ note: NotebookNote }>(response);
+  return json.note;
+}
+
+export async function importNotebookContent(
+  noteId: string,
+  input: NotebookImportInput,
+): Promise<NotebookNote> {
+  const response = await fetch(`${getBackendBaseURL()}/api/notebook/notes/${noteId}/import`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) {
+    throw new Error(
+      resolveErrorMessage(
+        await response.text(),
+        `Failed to import notebook content (${response.status})`,
       ),
     );
   }

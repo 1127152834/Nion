@@ -242,6 +242,15 @@ export function NotebookPage() {
     );
   }
 
+  function syncNotebookDraft(nextNote: { title: string; body: string; content_hash: string }) {
+    setDraftTitle(nextNote.title);
+    setDraftBody(nextNote.body);
+    setDraftHash(nextNote.content_hash);
+    setSavedTitle(nextNote.title);
+    setSavedBody(nextNote.body);
+    setSaveState("saved");
+  }
+
   useEffect(() => {
     if (!note) {
       return;
@@ -371,13 +380,14 @@ export function NotebookPage() {
                 restore: copy.restore,
                 selectNote: copy.selectNote,
               }}
+              currentContentHash={draftHash}
               entries={entries}
               note={note}
               notePath={selectedFile?.path ?? null}
               noteTitle={draftTitle}
               onActiveTabChange={setContextTab}
-              onAssist={handleAssist}
-              onRestoreVersion={handleRestore}
+              onApplyNote={syncNotebookDraft}
+              onStartConversation={handleAssist}
             />
           </ResizablePanel>
         </ResizablePanelGroup>
