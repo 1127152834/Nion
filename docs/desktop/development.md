@@ -31,6 +31,19 @@ If the desktop shell and helper are already built, you can skip rebuilding:
 make desktop-start
 ```
 
+## Multi-Surface Smoke Checklist
+
+Run this checklist whenever you touch shared runtime contracts or shell startup behavior:
+
+1. `make web-dev`
+2. Open `http://127.0.0.1:3000/workspace/chats`
+3. Confirm recent chats load from `/api/threads/search`
+4. Open `http://127.0.0.1:2026/workspace/chats`
+5. Confirm the compatibility proxy surface shows the same recent chats
+6. `make desktop-dev`
+7. Confirm Electron loads `http://127.0.0.1:5173`
+8. Confirm the renderer connects to Vite without CORS failures
+
 4. Run focused checks:
 
 ```bash
