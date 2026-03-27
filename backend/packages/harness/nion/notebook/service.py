@@ -24,6 +24,14 @@ class NotebookConflictError(NotebookError):
     """Raised when a stale write would overwrite newer content."""
 
 
+class NotebookDirectoryNotFoundError(NotebookError):
+    """Raised when a notebook directory cannot be found."""
+
+
+class NotebookDirectoryNotEmptyError(NotebookError):
+    """Raised when attempting to delete a non-empty notebook directory."""
+
+
 def _now_iso() -> str:
     return datetime.now(UTC).isoformat()
 
@@ -103,6 +111,24 @@ class NotebookService:
     def _relative_path(self, path: Path) -> str:
         return path.resolve().relative_to(self._paths.notebook_root_dir.resolve()).as_posix()
 
+    def _visible_relative_dir(self, path: Path) -> Path:
+        relative = path.resolve().relative_to(self._paths.notebook_root_dir.resolve())
+        if relative == Path("."):
+            return relative
+        if not is_visible_notebook_relative_path(relative):
+            raise ValueError("Notebook hidden directories are not allowed")
+        return relative
+
+    def _normalize_directory_name(self, name: str) -> str:
+        stripped = name.strip().strip("/")
+        if not stripped:
+            raise ValueError("Notebook directory name is required")
+        if "/" in stripped or "\\" in stripped:
+            raise ValueError("Notebook directory name must be a single path segment")
+        if stripped in {".", ".."} or stripped.startswith("."):
+            raise ValueError("Notebook hidden directories are not allowed")
+        return stripped
+
     def _attachment_dir_for_path(self, path: Path, note_id: str) -> Path:
         return path.parent / ".assets" / note_id
 
@@ -171,6 +197,43 @@ class NotebookService:
             body=body,
             tags=[],
         )
+
+    def create_directory(self, *, parent_directory: str, name: str) -> str:
+        parent = self._resolve_directory(parent_directory)
+        self._visible_relative_dir(parent)
+        target = parent / self._normalize_directory_name(name)
+        relative = self._visible_relative_dir(target)
+        target.mkdir(parents=True, exist_ok=True)
+        return relative.as_posix()
+
+    def rename_directory(self, directory: str, name: str) -> str:
+        current = self._resolve_directory(directory)
+        current_relative = self._visible_relative_dir(current)
+        if current_relative == Path("."):
+            raise ValueError("Notebook root directory cannot be renamed")
+        if not current.exists() or not current.is_dir():
+            raise NotebookDirectoryNotFoundError(f"Notebook directory not found: {directory}")
+
+        target = current.parent / self._normalize_directory_name(name)
+        target_relative = self._visible_relative_dir(target)
+        if target.exists() and target != current:
+            raise ValueError(f"Notebook directory already exists: {target_relative.as_posix()}")
+        if target != current:
+            current.rename(target)
+        return target_relative.as_posix()
+
+    def delete_directory(self, directory: str) -> None:
+        target = self._resolve_directory(directory)
+        relative = self._visible_relative_dir(target)
+        if relative == Path("."):
+            raise ValueError("Notebook root directory cannot be deleted")
+        if not target.exists() or not target.is_dir():
+            raise NotebookDirectoryNotFoundError(f"Notebook directory not found: {directory}")
+        if any(target.iterdir()):
+            raise NotebookDirectoryNotEmptyError(
+                f"Notebook directory is not empty: {relative.as_posix()}"
+            )
+        target.rmdir()
 
     def read_note(self, note_id: str) -> NotebookNote:
         return self._build_note(self._find_note_path(note_id))

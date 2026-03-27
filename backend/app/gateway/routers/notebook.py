@@ -17,7 +17,12 @@ from nion.notebook import (
     build_assist_preview,
 )
 from nion.notebook.models import NotebookDeletedNotePreview, NotebookNoteSummary
-from nion.notebook.service import NotebookConflictError, NotebookNotFoundError
+from nion.notebook.service import (
+    NotebookConflictError,
+    NotebookDirectoryNotEmptyError,
+    NotebookDirectoryNotFoundError,
+    NotebookNotFoundError,
+)
 
 router = APIRouter(prefix="/api/notebook", tags=["notebook"])
 
@@ -79,6 +84,10 @@ class NotebookDeletedResponse(BaseModel):
     deleted: dict[str, str]
 
 
+class NotebookDirectoryResponse(BaseModel):
+    directory: str
+
+
 class NotebookTrashResponse(BaseModel):
     notes: list[NotebookDeletedNotePreview]
 
@@ -87,6 +96,20 @@ class NotebookCreateRequest(BaseModel):
     directory: str = ""
     title: str
     body: str
+
+
+class NotebookDirectoryCreateRequest(BaseModel):
+    parent_directory: str = ""
+    name: str
+
+
+class NotebookDirectoryRenameRequest(BaseModel):
+    directory: str
+    name: str
+
+
+class NotebookDirectoryDeleteRequest(BaseModel):
+    directory: str
 
 
 class NotebookUpdateRequest(BaseModel):
@@ -247,6 +270,51 @@ async def create_notebook_note(payload: NotebookCreateRequest) -> NotebookNoteRe
         actor_type="user",
     )
     return NotebookNoteResponse(note=note)
+
+
+@router.post("/directories", response_model=NotebookDirectoryResponse)
+async def create_notebook_directory(
+    payload: NotebookDirectoryCreateRequest,
+) -> NotebookDirectoryResponse:
+    try:
+        directory = NotebookHistoryService()._service.create_directory(
+            parent_directory=payload.parent_directory,
+            name=payload.name,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return NotebookDirectoryResponse(directory=directory)
+
+
+@router.post("/directories/rename", response_model=NotebookDirectoryResponse)
+async def rename_notebook_directory(
+    payload: NotebookDirectoryRenameRequest,
+) -> NotebookDirectoryResponse:
+    try:
+        directory = NotebookHistoryService()._service.rename_directory(
+            directory=payload.directory,
+            name=payload.name,
+        )
+    except NotebookDirectoryNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return NotebookDirectoryResponse(directory=directory)
+
+
+@router.post("/directories/delete", response_model=NotebookDirectoryResponse)
+async def delete_notebook_directory(
+    payload: NotebookDirectoryDeleteRequest,
+) -> NotebookDirectoryResponse:
+    try:
+        NotebookHistoryService()._service.delete_directory(payload.directory)
+    except NotebookDirectoryNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except NotebookDirectoryNotEmptyError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return NotebookDirectoryResponse(directory=payload.directory)
 
 
 @router.get("/notes", response_model=NotebookNotesResponse)

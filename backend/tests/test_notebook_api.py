@@ -294,3 +294,61 @@ def test_notebook_import_updates_current_note(monkeypatch, tmp_path):
         history = client.get(f"/api/notebook/notes/{note_id}/history")
         assert history.status_code == 200
         assert history.json()["entries"][0]["actor_type"] == "agent"
+
+
+def test_notebook_directory_api_round_trip(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+
+    with TestClient(create_app()) as client:
+        created = client.post(
+            "/api/notebook/directories",
+            json={"parent_directory": "projects", "name": "alpha"},
+        )
+        assert created.status_code == 200
+        assert created.json()["directory"] == "projects/alpha"
+
+        tree = client.get("/api/notebook/tree")
+        assert tree.status_code == 200
+        assert any(item["path"] == "projects/alpha" for item in tree.json()["directories"])
+
+        renamed = client.post(
+            "/api/notebook/directories/rename",
+            json={"directory": "projects/alpha", "name": "beta"},
+        )
+        assert renamed.status_code == 200
+        assert renamed.json()["directory"] == "projects/beta"
+
+        tree = client.get("/api/notebook/tree")
+        assert tree.status_code == 200
+        assert any(item["path"] == "projects/beta" for item in tree.json()["directories"])
+        assert all(item["path"] != "projects/alpha" for item in tree.json()["directories"])
+
+        deleted = client.post(
+            "/api/notebook/directories/delete",
+            json={"directory": "projects/beta"},
+        )
+        assert deleted.status_code == 200
+        assert deleted.json()["directory"] == "projects/beta"
+
+        tree = client.get("/api/notebook/tree")
+        assert tree.status_code == 200
+        assert all(item["path"] != "projects/beta" for item in tree.json()["directories"])
+
+
+def test_notebook_directory_delete_rejects_non_empty_folder(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+
+    with TestClient(create_app()) as client:
+        created = client.post(
+            "/api/notebook/notes",
+            json={"directory": "projects/alpha", "title": "Roadmap", "body": "v1"},
+        )
+        assert created.status_code == 200
+
+        deleted = client.post(
+            "/api/notebook/directories/delete",
+            json={"directory": "projects/alpha"},
+        )
+        assert deleted.status_code == 409
