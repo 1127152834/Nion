@@ -1,9 +1,9 @@
-import test from "node:test";
 import assert from "node:assert/strict";
+import test from "node:test";
 
 import { accumulateUsage, formatTokenCount } from "./usage.ts";
 
-test("accumulateUsage sums usage_metadata across ai messages", () => {
+void test("accumulateUsage sums usage_metadata across ai messages", () => {
   const usage = accumulateUsage([
     {
       type: "ai",
@@ -31,6 +31,6 @@ test("accumulateUsage sums usage_metadata across ai messages", () => {
   });
 });
 
-test("formatTokenCount uses compact display at 10k+", () => {
+void test("formatTokenCount uses compact display at 10k+", () => {
   assert.equal(formatTokenCount(12345), "12.3K");
 });

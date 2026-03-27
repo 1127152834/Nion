@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import type { Message } from "./types.ts";
 import { derivePendingClarification } from "./clarification.ts";
+import type { Message } from "./types.ts";
 
 void test("returns the latest unresolved clarification with options", () => {
   const messages: Message[] = [

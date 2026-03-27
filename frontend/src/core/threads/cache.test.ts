@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import type { AgentThread } from "./types.ts";
 import { removeThreadFromSearchCache } from "./cache.ts";
+import type { AgentThread } from "./types.ts";
 
 void test("removeThreadFromSearchCache tolerates undefined cache", () => {
   assert.equal(removeThreadFromSearchCache(undefined, "t-1"), undefined);

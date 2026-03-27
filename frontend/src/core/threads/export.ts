@@ -1,5 +1,3 @@
-import type { Message } from "./types";
-
 import {
   extractContentFromMessage,
   extractReasoningContentFromMessage,
@@ -8,7 +6,7 @@ import {
   stripUploadedFilesTag,
 } from "../messages/utils";
 
-import type { AgentThread } from "./types";
+import type { AgentThread, Message } from "./types";
 import { titleOfThread } from "./utils";
 
 function formatMessageContent(message: Message): string {
