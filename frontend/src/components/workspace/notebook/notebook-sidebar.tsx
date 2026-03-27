@@ -12,7 +12,11 @@ import {
 import { NotebookTreeView } from "./notebook-tree-view";
 
 type NotebookSidebarCopy = {
+  createNoteHere: string;
+  createSubfolder: string;
+  createFolder: string;
   createNote: string;
+  deleteFolder: string;
   emptyDescription: string;
   emptyTitle: string;
   quickCaptureLabel: string;
@@ -20,6 +24,7 @@ type NotebookSidebarCopy = {
   searchPlaceholder: string;
   noteListDescription: string;
   noteListTitle: string;
+  renameFolder: string;
   trashTitle: string;
 };
 
@@ -35,7 +40,12 @@ type NotebookSidebarProps = {
   treeNodes: NotebookTreeNode[];
   treeFileCount: number;
   onOpenCreate: () => void;
+  onOpenCreateFolder: () => void;
+  onOpenCreateInDirectory: (directory: string) => void;
+  onOpenDeleteDirectory: (directory: string) => void;
   onOpenQuickCapture: () => void;
+  onOpenRenameDirectory: (directory: string) => void;
+  onOpenCreateSubfolder: (directory: string) => void;
   onQueryChange: (value: string) => void;
   onOpenTrash: () => void;
   onSelectNote: (noteId: string | null) => void;
@@ -53,7 +63,12 @@ export function NotebookSidebar({
   treeNodes,
   treeFileCount,
   onOpenCreate,
+  onOpenCreateFolder,
+  onOpenCreateInDirectory,
+  onOpenDeleteDirectory,
   onOpenQuickCapture,
+  onOpenRenameDirectory,
+  onOpenCreateSubfolder,
   onQueryChange,
   onOpenTrash,
   onSelectNote,
@@ -71,22 +86,22 @@ export function NotebookSidebar({
   );
 
   return (
-    <aside className="flex h-full w-64 flex-shrink-0 flex-col border-r border-[#E5E5E5] bg-[#F9F9F8]">
-      <div className="border-b border-[#E5E5E5] p-4 pb-3">
+    <aside className="flex h-full w-full min-w-0 flex-col border-r border-[var(--notebook-border)] bg-[var(--notebook-sidebar)]">
+      <div className="border-b border-[var(--notebook-border)] p-4 pb-3">
         <div className="mb-4 flex items-center gap-2">
-          <div className="flex h-6 w-6 items-center justify-center rounded bg-[#1A1A1A] text-xs font-bold text-white">
+          <div className="flex h-6 w-6 items-center justify-center rounded bg-[var(--notebook-brand)] text-xs font-bold text-[var(--notebook-panel)]">
             N
           </div>
-          <span className="text-[15px] font-semibold text-[#1A1A1A]">Nion Notebook</span>
+          <span className="text-[15px] font-semibold text-[var(--notebook-ink)]">Nion Notebook</span>
         </div>
 
         <div className="relative mb-4">
-          <SearchIcon className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-[#8C8C8C]" />
+          <SearchIcon className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-[var(--notebook-soft-text)]" />
           <Input
             value={query}
             onChange={(event) => onQueryChange(event.target.value)}
             placeholder={copy.searchPlaceholder}
-            className="h-9 rounded-md border-[#E5E5E5] bg-[#EAEAE9] pr-3 pl-8 text-sm shadow-none placeholder:text-[#8C8C8C] focus-visible:ring-1 focus-visible:ring-[#1A1A1A]"
+            className="h-9 rounded-md border-[var(--notebook-border)] bg-[var(--notebook-muted)] pr-3 pl-8 text-sm text-[var(--notebook-ink)] shadow-none placeholder:text-[var(--notebook-soft-text)] focus-visible:ring-1 focus-visible:ring-[var(--notebook-brand)]"
           />
         </div>
 
@@ -94,7 +109,7 @@ export function NotebookSidebar({
           <button
             type="button"
             onClick={onOpenCreate}
-            className="flex flex-1 items-center justify-center gap-1 rounded-md border border-[#E5E5E5] bg-white px-3 py-2 text-sm font-medium text-[#1A1A1A] shadow-sm transition-colors hover:bg-[#F0F0F0]"
+            className="flex flex-1 items-center justify-center gap-1 rounded-md border border-[var(--notebook-border)] bg-[var(--notebook-panel)] px-3 py-2 text-sm font-medium text-[var(--notebook-ink)] transition-colors hover:bg-[var(--notebook-hover)]"
           >
             <FolderPlusIcon className="size-4" />
             <span>{copy.createNote}</span>
@@ -102,7 +117,7 @@ export function NotebookSidebar({
           <button
             type="button"
             onClick={onOpenQuickCapture}
-            className="flex flex-1 items-center justify-center gap-1 rounded-md bg-[#1A1A1A] px-3 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[#333333]"
+            className="flex flex-1 items-center justify-center gap-1 rounded-md bg-[var(--notebook-brand)] px-3 py-2 text-sm font-medium text-[var(--notebook-panel)] transition-opacity hover:opacity-90"
           >
             <SparklesIcon className="size-4" />
             <span>{copy.quickCaptureLabel}</span>
@@ -110,8 +125,8 @@ export function NotebookSidebar({
         </div>
       </div>
 
-      <div className="custom-scrollbar flex-1 overflow-y-auto px-2 py-4">
-        <div className="space-y-6">
+      <div className="custom-scrollbar flex-1 overflow-y-auto px-2.5 py-4">
+        <div className="space-y-5">
           {visiblePinnedNotes.length > 0 ? (
             <section>
               <SectionLabel label="已固定" />
@@ -120,7 +135,7 @@ export function NotebookSidebar({
                   <NotebookLeafRow
                     key={note.note_id}
                     active={note.relative_path === activePath}
-                    icon={<PinIcon className="size-3.5 text-[#8C8C8C]" />}
+                    icon={<PinIcon className="size-3.5 text-[var(--notebook-soft-text)]" />}
                     title={note.title}
                     subtitle={null}
                     onClick={() => onSelectNote(note.note_id)}
@@ -138,7 +153,7 @@ export function NotebookSidebar({
                 <NotebookLeafRow
                   key={note.note_id}
                   active={note.relative_path === activePath}
-                  icon={<ClockIcon className="size-3.5 text-[#8C8C8C]" />}
+                  icon={<ClockIcon className="size-3.5 text-[var(--notebook-soft-text)]" />}
                   title={note.title}
                   subtitle={null}
                   onClick={() => onSelectNote(note.note_id)}
@@ -149,19 +164,33 @@ export function NotebookSidebar({
           </section>
 
           <section>
-            <SectionLabel label={copy.noteListTitle} />
+            <SectionLabel
+              actionLabel={copy.createFolder}
+              label={copy.noteListTitle}
+              onAction={onOpenCreateFolder}
+            />
             {isLoading ? (
-              <div className="px-2 py-2 text-sm text-[#8C8C8C]">{loadingLabel}</div>
+              <div className="px-2 py-2 text-sm text-[var(--notebook-soft-text)]">{loadingLabel}</div>
             ) : treeFileCount === 0 ? (
-              <div className="rounded-xl border border-dashed border-[#E5E5E5] bg-white p-4 text-sm text-[#8C8C8C]">
-                <div className="mb-1 font-medium text-[#595959]">{copy.emptyTitle}</div>
+              <div className="rounded-xl border border-dashed border-[var(--notebook-border)] bg-[var(--notebook-panel)] p-4 text-sm text-[var(--notebook-soft-text)]">
+                <div className="mb-1 font-medium text-[var(--notebook-ink)]">{copy.emptyTitle}</div>
                 <div>{copy.emptyDescription}</div>
               </div>
             ) : (
               <NotebookTreeView
                 activePath={activePath}
+                copy={{
+                  createNoteHere: copy.createNoteHere,
+                  createSubfolder: copy.createSubfolder,
+                  deleteFolder: copy.deleteFolder,
+                  renameFolder: copy.renameFolder,
+                }}
                 noteTitleById={noteTitleById}
                 nodes={visibleTreeNodes}
+                onCreateNoteInDirectory={onOpenCreateInDirectory}
+                onCreateSubfolder={onOpenCreateSubfolder}
+                onDeleteDirectory={onOpenDeleteDirectory}
+                onRenameDirectory={onOpenRenameDirectory}
                 onSelectNote={onSelectNote}
               />
             )}
@@ -169,16 +198,16 @@ export function NotebookSidebar({
         </div>
       </div>
 
-      <div className="border-t border-[#E5E5E5] p-2">
+      <div className="border-t border-[var(--notebook-border)] p-2">
         <button
           type="button"
           onClick={onOpenTrash}
-          className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm text-[#595959] transition-colors hover:bg-[#EAEAE9] hover:text-[#1A1A1A]"
+          className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm text-[var(--notebook-soft-text)] transition-colors hover:bg-[var(--notebook-hover)] hover:text-[var(--notebook-ink)]"
         >
-          <Trash2Icon className="size-4 text-[#8C8C8C]" />
+          <Trash2Icon className="size-4 text-[var(--notebook-soft-text)]" />
           <span>{copy.trashTitle}</span>
           {deletedCount > 0 ? (
-            <span className="ml-auto rounded-full bg-[#E5E5E5] px-1.5 py-0.5 text-xs text-[#595959]">
+            <span className="ml-auto rounded-full bg-[var(--notebook-muted)] px-1.5 py-0.5 text-xs text-[var(--notebook-soft-text)]">
               {deletedCount}
             </span>
           ) : null}
@@ -188,10 +217,27 @@ export function NotebookSidebar({
   );
 }
 
-function SectionLabel({ label }: { label: string }) {
+function SectionLabel({
+  actionLabel,
+  label,
+  onAction,
+}: {
+  actionLabel?: string;
+  label: string;
+  onAction?: () => void;
+}) {
   return (
-    <div className="mb-1 px-2 text-xs font-semibold uppercase tracking-wider text-[#8C8C8C]">
-      {label}
+    <div className="mb-1 flex items-center justify-between gap-2 px-2 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--notebook-soft-text)]">
+      <span>{label}</span>
+      {actionLabel && onAction ? (
+        <button
+          type="button"
+          onClick={onAction}
+          className="rounded px-1.5 py-0.5 text-[10px] font-medium tracking-normal text-[var(--notebook-soft-text)] transition-colors hover:bg-[var(--notebook-hover)] hover:text-[var(--notebook-ink)]"
+        >
+          {actionLabel}
+        </button>
+      ) : null}
     </div>
   );
 }
@@ -215,14 +261,16 @@ function NotebookLeafRow({
     <button
       type="button"
       onClick={onClick}
-      className={`group relative flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors ${active ? "bg-[#EAEAE9] font-medium text-[#1A1A1A]" : "text-[#595959] hover:bg-[#EAEAE9]"}`}
+      className={`group relative flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors ${active ? "bg-[var(--notebook-active)] font-medium text-[var(--notebook-ink)]" : "text-[var(--notebook-soft-text)] hover:bg-[var(--notebook-hover)]"}`}
     >
       <span className="shrink-0">{icon}</span>
       <span className="min-w-0 flex-1 truncate">{title}</span>
-      {subtitle ? <span className="text-xs text-[#8C8C8C]">{subtitle}</span> : null}
+      {subtitle ? (
+        <span className="text-xs text-[var(--notebook-soft-text)]">{subtitle}</span>
+      ) : null}
       {withHoverActions ? (
-        <span className={`absolute right-2 hidden items-center pl-4 group-hover:flex ${active ? "bg-gradient-to-l from-[#EAEAE9] via-[#EAEAE9]" : "bg-gradient-to-l from-[#F9F9F8] via-[#F9F9F8]"}`}>
-          <MoreHorizontalIcon className="size-4 text-[#8C8C8C]" />
+        <span className="absolute right-2 hidden items-center pl-4 group-hover:flex">
+          <MoreHorizontalIcon className="size-4 text-[var(--notebook-soft-text)]" />
         </span>
       ) : null}
     </button>

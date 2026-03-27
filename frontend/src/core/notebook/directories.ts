@@ -10,6 +10,7 @@ export type NotebookDirectoryOption = {
 type BuildNotebookDirectoryOptionsInput = {
   entries: NotebookDirectoryEntry[];
   inboxLabel?: string;
+  rootLabel?: string;
 };
 
 type FindDefaultNotebookDirectoryInput = {
@@ -29,9 +30,16 @@ export function formatNotebookDirectoryLabel(path: string) {
 export function buildNotebookDirectoryOptions({
   entries,
   inboxLabel = "Inbox",
+  rootLabel = "Top level",
 }: BuildNotebookDirectoryOptionsInput): NotebookDirectoryOption[] {
   const seen = new Set<string>();
   const options: NotebookDirectoryOption[] = [
+    {
+      path: "",
+      label: rootLabel,
+      depth: 0,
+      isInbox: false,
+    },
     {
       path: "inbox",
       label: inboxLabel,
@@ -69,10 +77,16 @@ export function findDefaultNotebookDirectory({
   if (normalizedPreferred && paths.has(normalizedPreferred)) {
     return normalizedPreferred;
   }
+  if (preferredDirectory !== undefined && preferredDirectory !== null && normalizedPreferred === "" && paths.has("")) {
+    return "";
+  }
 
   const currentDirectory = normalizeDirectory(parentDirectoryOfNote(selectedNotePath));
   if (currentDirectory && paths.has(currentDirectory)) {
     return currentDirectory;
+  }
+  if (selectedNotePath && currentDirectory === "" && paths.has("")) {
+    return "";
   }
 
   return paths.has("inbox") ? "inbox" : options[0]?.path ?? "";

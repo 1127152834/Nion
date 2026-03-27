@@ -6,18 +6,13 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 
 type NotebookQuickCaptureDialogProps = {
-  cancelLabel: string;
+  destinationLabel: string;
   open: boolean;
   pending: boolean;
-  quickCaptureDescription: string;
   quickCaptureHint: string;
   quickCaptureLabel: string;
   saveLabel: string;
@@ -29,10 +24,9 @@ type NotebookQuickCaptureDialogProps = {
 };
 
 export function NotebookQuickCaptureDialog({
-  cancelLabel,
+  destinationLabel,
   open,
   pending,
-  quickCaptureDescription,
   quickCaptureHint,
   quickCaptureLabel,
   saveLabel,
@@ -44,15 +38,18 @@ export function NotebookQuickCaptureDialog({
 }: NotebookQuickCaptureDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <div className="flex items-center border-b border-[#E5E5E5] bg-[#F9F9F8] px-4 py-3">
-          <Sparkles className="mr-2 size-4 text-[#1A1A1A]" />
-          <span className="text-sm font-medium text-[#1A1A1A]">{quickCaptureLabel}</span>
-          <span className="ml-auto text-xs text-[#8C8C8C]">按 Cmd+Enter 保存至收件箱</span>
+      <DialogContent
+        showCloseButton={false}
+        className="gap-0 overflow-hidden border-[var(--notebook-border)] bg-[var(--notebook-panel)] p-0 text-[var(--notebook-ink)] shadow-xl sm:max-w-3xl"
+      >
+        <div className="flex items-center border-b border-[var(--notebook-border)] bg-[var(--notebook-sidebar)] px-4 py-3">
+          <Sparkles className="mr-2 size-4 text-[var(--notebook-ink)]" />
+          <span className="text-sm font-medium text-[var(--notebook-ink)]">{quickCaptureLabel}</span>
+          <span className="ml-auto text-xs text-[var(--notebook-soft-text)]">按 Cmd+Enter 保存至收件箱</span>
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            className="ml-4 text-[#8C8C8C] transition-colors hover:text-[#1A1A1A]"
+            className="ml-4 text-[var(--notebook-soft-text)] transition-colors hover:text-[var(--notebook-ink)]"
           >
             <X className="size-4" />
           </button>
@@ -67,11 +64,18 @@ export function NotebookQuickCaptureDialog({
                 onSubmit();
               }
             }}
-            placeholder={quickCaptureHint || quickCaptureDescription}
-            className="min-h-52 rounded-none border-0 focus-visible:ring-0"
+            placeholder={quickCaptureHint}
+            className="min-h-52 rounded-none border-0 bg-[var(--notebook-panel)] text-base text-[var(--notebook-ink)] focus-visible:ring-0 placeholder:text-[var(--notebook-soft-text)]"
           />
-          <div className="flex justify-end border-t border-[#E5E5E5] bg-[#F9F9F8] px-4 py-3">
-            <Button onClick={onSubmit} disabled={!value.trim() || pending}>
+          <div className="flex items-center justify-between border-t border-[var(--notebook-border)] bg-[var(--notebook-sidebar)] px-4 py-3">
+            <span className="text-xs text-[var(--notebook-soft-text)]">
+              {destinationLabel}
+            </span>
+            <Button
+              className="bg-[var(--notebook-brand)] text-[var(--notebook-panel)] hover:opacity-90"
+              onClick={onSubmit}
+              disabled={!value.trim() || pending}
+            >
               {pending ? savingLabel : saveLabel}
             </Button>
           </div>

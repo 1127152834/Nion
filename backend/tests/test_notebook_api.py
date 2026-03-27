@@ -352,3 +352,21 @@ def test_notebook_directory_delete_rejects_non_empty_folder(monkeypatch, tmp_pat
             json={"directory": "projects/alpha"},
         )
         assert deleted.status_code == 409
+
+
+def test_notebook_directory_create_rejects_existing_folder(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+
+    with TestClient(create_app()) as client:
+        created = client.post(
+            "/api/notebook/directories",
+            json={"parent_directory": "projects", "name": "alpha"},
+        )
+        assert created.status_code == 200
+
+        duplicated = client.post(
+            "/api/notebook/directories",
+            json={"parent_directory": "projects", "name": "alpha"},
+        )
+        assert duplicated.status_code == 409

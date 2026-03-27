@@ -14,12 +14,15 @@ void test("buildNotebookDirectoryOptions always includes inbox first", () => {
       { path: "projects", name: "projects", depth: 1, child_count: 1, mtime: null },
     ],
     inboxLabel: "收件箱",
+    rootLabel: "顶层",
   });
 
-  assert.equal(options[0]?.path, "inbox");
-  assert.equal(options[0]?.label, "收件箱");
-  assert.equal(options[1]?.label, "projects");
-  assert.equal(options[2]?.label, "projects / alpha");
+  assert.equal(options[0]?.path, "");
+  assert.equal(options[0]?.label, "顶层");
+  assert.equal(options[1]?.path, "inbox");
+  assert.equal(options[1]?.label, "收件箱");
+  assert.equal(options[2]?.label, "projects");
+  assert.equal(options[3]?.label, "projects / alpha");
 });
 
 void test("findDefaultNotebookDirectory prefers explicit directory then current note folder", () => {
@@ -45,6 +48,14 @@ void test("findDefaultNotebookDirectory prefers explicit directory then current 
       selectedNotePath: "projects/roadmap.md",
     }),
     "projects",
+  );
+
+  assert.equal(
+    findDefaultNotebookDirectory({
+      options,
+      selectedNotePath: "roadmap.md",
+    }),
+    "",
   );
 
   assert.equal(findDefaultNotebookDirectory({ options }), "inbox");

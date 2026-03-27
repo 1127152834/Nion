@@ -17,13 +17,14 @@ void test("NotebookPage becomes a shell controller that renders extracted notebo
     "utf8",
   );
 
-  assert.match(pageSource, /ResizablePanelGroup/);
+  assert.match(pageSource, /notebookThemeStyle/);
+  assert.match(pageSource, /grid-cols-\[15\.5rem_minmax\(0,1fr\)_19\.5rem\]/);
   assert.match(pageSource, /from "\.\/notebook-sidebar"/);
   assert.match(pageSource, /from "\.\/notebook-editor-pane"/);
   assert.match(pageSource, /from "\.\/notebook-context-panel"/);
   assert.match(pageSource, /<NotebookSidebar[\s\S]*treeNodes=\{treeNodes\}/);
   assert.match(pageSource, /<NotebookEditorPane[\s\S]*draftBody=\{draftBody\}/);
-  assert.match(pageSource, /<NotebookContextPanel[\s\S]*onAssist=\{handleAssist\}/);
+  assert.match(pageSource, /<NotebookContextPanel[\s\S]*onStartConversation=\{handleAssist\}/);
   assert.doesNotMatch(pageSource, /treeNodes\.map/);
   assert.doesNotMatch(pageSource, /NotebookTreeItem/);
   assert.match(sidebarSource, /export function NotebookSidebar/);

@@ -1,37 +1,34 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import {
-  ResizableHandle,
-  ResizablePanel,
-  ResizablePanelGroup,
-} from "@/components/ui/resizable";
-import { Textarea } from "@/components/ui/textarea";
 import { NotebookCreateDialog } from "./notebook-create-dialog";
 import { NotebookContextPanel } from "./notebook-context-panel";
 import { NotebookDeleteDialog } from "./notebook-delete-dialog";
 import { NotebookEditorPane } from "./notebook-editor-pane";
 import { buildQuickCaptureDraft } from "./notebook-compose";
+import { NotebookFolderPicker } from "./notebook-folder-picker";
 import { NotebookQuickCaptureDialog } from "./notebook-quick-capture-dialog";
 import { NotebookSidebar } from "./notebook-sidebar";
 import { useI18n } from "@/core/i18n/hooks";
 import { pathOfNewThread, pathOfNotebookTrash } from "@/core/navigation/desktop-routes";
 import {
+  buildNotebookDirectoryOptions,
+  findDefaultNotebookDirectory,
+  useCreateNotebookDirectory,
   useCreateNotebookNote,
+  useDeleteNotebookDirectory,
   useDeleteNotebookNote,
   useMoveNotebookNote,
   useNotebookDeletePreview,
@@ -40,12 +37,14 @@ import {
   useNotebookNote,
   useNotebookTree,
   useNotebookTrash,
+  useRenameNotebookDirectory,
   useRenameNotebookNote,
   useRestoreNotebookVersion,
   useUpdateNotebookNote,
 } from "@/core/notebook";
 import { buildNotebookTree } from "@/core/notebook";
 import { buildNotebookAssistPrompt, type NotebookAssistAction } from "@/core/notebook";
+import { NotebookFolderDialog } from "./notebook-folder-dialog";
 type CreateDraft = {
   directory: string;
   title: string;
@@ -53,6 +52,33 @@ type CreateDraft = {
 };
 
 type NotebookContextTab = "ask" | "history" | "info";
+type FolderDialogMode = "create" | "rename" | "delete";
+type FolderDialogState = {
+  mode: FolderDialogMode;
+  directory: string;
+  name: string;
+  open: boolean;
+  parentDirectory: string;
+};
+
+const notebookThemeStyle = {
+  "--notebook-shell": "color-mix(in oklab, var(--background) 84%, var(--muted) 16%)",
+  "--notebook-sidebar": "color-mix(in oklab, var(--sidebar) 90%, var(--card) 10%)",
+  "--notebook-panel": "color-mix(in oklab, var(--card) 97%, white 3%)",
+  "--notebook-muted": "color-mix(in oklab, var(--muted) 88%, var(--card) 12%)",
+  "--notebook-hover": "color-mix(in oklab, var(--accent) 78%, var(--card) 22%)",
+  "--notebook-active": "color-mix(in oklab, var(--accent) 70%, var(--foreground) 4%)",
+  "--notebook-border": "color-mix(in oklab, var(--border) 86%, var(--foreground) 14%)",
+  "--notebook-ink": "color-mix(in oklab, var(--foreground) 96%, var(--background) 4%)",
+  "--notebook-soft-text": "color-mix(in oklab, var(--muted-foreground) 88%, var(--foreground) 12%)",
+  "--notebook-brand": "color-mix(in oklab, var(--foreground) 90%, var(--background) 10%)",
+  "--notebook-success": "oklch(0.72 0.15 154)",
+  "--notebook-danger": "color-mix(in oklab, var(--destructive) 78%, var(--foreground) 22%)",
+  "--notebook-danger-surface":
+    "color-mix(in oklab, var(--destructive) 10%, var(--card) 90%)",
+  "--notebook-warning": "oklch(0.58 0.14 72)",
+  "--notebook-warning-surface": "oklch(0.96 0.03 94)",
+} as CSSProperties;
 
 export function NotebookPage() {
   const { t } = useI18n();
@@ -69,7 +95,6 @@ export function NotebookPage() {
   const [savedBody, setSavedBody] = useState("");
   const [saveState, setSaveState] = useState<"saved" | "unsaved" | "saving">("saved");
   const [renameValue, setRenameValue] = useState("");
-  const [moveValue, setMoveValue] = useState("");
   const [createDraft, setCreateDraft] = useState<CreateDraft>({
     directory: "",
     title: "",
@@ -80,8 +105,16 @@ export function NotebookPage() {
   const [quickCaptureValue, setQuickCaptureValue] = useState("");
   const [renameOpen, setRenameOpen] = useState(false);
   const [moveOpen, setMoveOpen] = useState(false);
+  const [moveDirectory, setMoveDirectory] = useState("");
   const [contextTab, setContextTab] = useState<NotebookContextTab>("ask");
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [folderDialog, setFolderDialog] = useState<FolderDialogState>({
+    mode: "create",
+    directory: "",
+    name: "",
+    open: false,
+    parentDirectory: "",
+  });
 
   const { notes: noteSummaries } = useNotebookNotes();
   const { note, isLoading: noteLoading } = useNotebookNote(selectedNoteId);
@@ -89,7 +122,10 @@ export function NotebookPage() {
   const { preview } = useNotebookDeletePreview(selectedNoteId);
   const { notes: deletedNotes } = useNotebookTrash();
 
+  const createDirectory = useCreateNotebookDirectory();
   const createNote = useCreateNotebookNote();
+  const deleteDirectory = useDeleteNotebookDirectory();
+  const renameDirectory = useRenameNotebookDirectory();
   const updateNote = useUpdateNotebookNote(selectedNoteId ?? "");
   const renameNote = useRenameNotebookNote(selectedNoteId ?? "");
   const moveNote = useMoveNotebookNote(selectedNoteId ?? "");
@@ -130,7 +166,7 @@ export function NotebookPage() {
     setSaveState("saved");
     setRenameValue(note.title);
     const slash = note.relative_path.lastIndexOf("/");
-    setMoveValue(slash >= 0 ? note.relative_path.slice(0, slash) : "");
+    setMoveDirectory(slash >= 0 ? note.relative_path.slice(0, slash) : "");
   }, [note, selectedNoteId]);
 
   const selectedFile = useMemo(
@@ -139,6 +175,15 @@ export function NotebookPage() {
   );
   const treeNodes = useMemo(() => buildNotebookTree(tree), [tree]);
   const recentNotes = useMemo(() => noteSummaries, [noteSummaries]);
+  const directoryOptions = useMemo(
+    () =>
+      buildNotebookDirectoryOptions({
+        entries: tree.directories,
+        inboxLabel: copy.inboxLabel,
+        rootLabel: copy.rootFolderLabel,
+      }),
+    [copy.inboxLabel, copy.rootFolderLabel, tree.directories],
+  );
 
   const dirty = note !== null && (draftBody !== savedBody || draftTitle !== savedTitle);
 
@@ -201,8 +246,38 @@ export function NotebookPage() {
 
   async function handleMove() {
     try {
-      await moveNote.mutateAsync({ directory: moveValue.trim() });
+      await moveNote.mutateAsync({ directory: moveDirectory.trim() });
       setMoveOpen(false);
+      toast.success(copy.saved);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  async function handleFolderDialogSubmit() {
+    try {
+      if (folderDialog.mode === "create") {
+        await createDirectory.mutateAsync({
+          parent_directory: folderDialog.parentDirectory,
+          name: folderDialog.name.trim(),
+        });
+      } else if (folderDialog.mode === "rename") {
+        await renameDirectory.mutateAsync({
+          directory: folderDialog.directory,
+          name: folderDialog.name.trim(),
+        });
+      } else {
+        await deleteDirectory.mutateAsync({
+          directory: folderDialog.directory,
+        });
+      }
+      setFolderDialog({
+        mode: "create",
+        directory: "",
+        name: "",
+        open: false,
+        parentDirectory: "",
+      });
       toast.success(copy.saved);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err));
@@ -274,37 +349,112 @@ export function NotebookPage() {
     };
   }, [draftBody, draftTitle, dirty, note]);
 
+  useEffect(() => {
+    if (!createOpen) {
+      return;
+    }
+    setCreateDraft((current) => ({
+      ...current,
+      directory: findDefaultNotebookDirectory({
+        options: directoryOptions,
+        preferredDirectory: current.directory,
+        selectedNotePath: selectedFile?.path ?? null,
+      }),
+    }));
+  }, [createOpen, directoryOptions, selectedFile?.path]);
+
+  useEffect(() => {
+    if (!moveOpen) {
+      return;
+    }
+    setMoveDirectory((current) =>
+      findDefaultNotebookDirectory({
+        options: directoryOptions,
+        preferredDirectory: current,
+        selectedNotePath: selectedFile?.path ?? null,
+      }),
+    );
+  }, [directoryOptions, moveOpen, selectedFile?.path]);
+
+  function openCreateDialogInDirectory(directory: string) {
+    setCreateDraft((current) => ({ ...current, directory }));
+    setCreateOpen(true);
+  }
+
+  function openCreateFolderDialog(parentDirectory = "") {
+    setFolderDialog({
+      mode: "create",
+      directory: "",
+      name: "",
+      open: true,
+      parentDirectory,
+    });
+  }
+
+  function openRenameFolderDialog(directory: string) {
+    const segments = directory.split("/").filter(Boolean);
+    setFolderDialog({
+      mode: "rename",
+      directory,
+      name: segments.at(-1) ?? "",
+      open: true,
+      parentDirectory: "",
+    });
+  }
+
+  function openDeleteFolderDialog(directory: string) {
+    setFolderDialog({
+      mode: "delete",
+      directory,
+      name: "",
+      open: true,
+      parentDirectory: "",
+    });
+  }
+
+  const folderDialogParentLabel = useMemo(() => {
+    if (!folderDialog.parentDirectory) {
+      return copy.rootFolderLabel;
+    }
+    return folderDialog.parentDirectory.split("/").join(" / ");
+  }, [copy.rootFolderLabel, folderDialog.parentDirectory]);
+
+  const folderDialogTargetLabel = useMemo(() => {
+    if (!folderDialog.directory) {
+      return copy.rootFolderLabel;
+    }
+    return folderDialog.directory.split("/").join(" / ");
+  }, [copy.rootFolderLabel, folderDialog.directory]);
+
   return (
     <>
-      <section className="space-y-6">
-        <header className="space-y-2">
-          <div className="text-2xl font-semibold tracking-tight">{copy.title}</div>
-          <p className="text-muted-foreground max-w-3xl text-sm">
-            {copy.description}
-          </p>
-        </header>
+      <section
+        className="flex h-full min-h-0 flex-1 flex-col bg-[var(--notebook-shell)] text-[var(--notebook-ink)]"
+        style={notebookThemeStyle}
+      >
+        <div className="flex min-h-0 flex-1 flex-col">
+          {error ? (
+            <div className="mx-4 mt-4 rounded-2xl border border-[color-mix(in_oklab,var(--notebook-danger)_22%,transparent)] bg-[var(--notebook-danger-surface)] px-4 py-3 text-sm text-[var(--notebook-danger)]">
+              {error instanceof Error ? error.message : String(error)}
+            </div>
+          ) : null}
 
-        {error ? (
-          <div className="rounded-xl border border-red-500/30 bg-red-500/5 p-4 text-sm">
-            {error instanceof Error ? error.message : String(error)}
-          </div>
-        ) : null}
-
-        <ResizablePanelGroup
-          orientation="horizontal"
-          className="min-h-[70vh] overflow-hidden rounded-xl border"
-        >
-          <ResizablePanel defaultSize={24} minSize={18}>
+          <div className="grid min-h-0 flex-1 grid-cols-[15.5rem_minmax(0,1fr)_19.5rem] overflow-hidden bg-[var(--notebook-panel)]">
             <NotebookSidebar
               activePath={selectedFile?.path ?? null}
               copy={{
+                createFolder: copy.createFolder,
                 createNote: copy.createNote,
+                createNoteHere: copy.createNoteHere,
+                createSubfolder: copy.createSubfolder,
+                deleteFolder: copy.deleteFolder,
                 emptyDescription: copy.emptyDescription,
                 emptyTitle: copy.emptyTitle,
                 noteListDescription: copy.noteListDescription,
                 noteListTitle: copy.noteListTitle,
                 quickCaptureLabel: copy.quickCapture,
                 recentTitle: copy.recentTitle,
+                renameFolder: copy.renameFolder,
                 searchPlaceholder: copy.searchPlaceholder,
                 trashTitle: copy.trashTitle,
               }}
@@ -317,14 +467,17 @@ export function NotebookPage() {
               treeFileCount={tree.files.length}
               treeNodes={treeNodes}
               onOpenCreate={() => setCreateOpen(true)}
+              onOpenCreateFolder={() => openCreateFolderDialog("")}
+              onOpenCreateInDirectory={openCreateDialogInDirectory}
+              onOpenCreateSubfolder={openCreateFolderDialog}
+              onOpenDeleteDirectory={openDeleteFolderDialog}
               onOpenQuickCapture={() => setQuickCaptureOpen(true)}
+              onOpenRenameDirectory={openRenameFolderDialog}
               onQueryChange={setQuery}
               onOpenTrash={() => router.push(pathOfNotebookTrash())}
               onSelectNote={setSelectedNoteId}
             />
-          </ResizablePanel>
-          <ResizableHandle withHandle />
-          <ResizablePanel defaultSize={52} minSize={36}>
+
             <NotebookEditorPane
               copy={{
                 delete: copy.delete,
@@ -354,9 +507,7 @@ export function NotebookPage() {
               onOpenMore={() => setRenameOpen(true)}
               onPrimaryCreate={() => setCreateOpen(true)}
             />
-          </ResizablePanel>
-          <ResizableHandle withHandle />
-          <ResizablePanel defaultSize={24} minSize={18}>
+
             <NotebookContextPanel
               activeTab={contextTab}
               copy={{
@@ -389,8 +540,8 @@ export function NotebookPage() {
               onApplyNote={syncNotebookDraft}
               onStartConversation={handleAssist}
             />
-          </ResizablePanel>
-        </ResizablePanelGroup>
+          </div>
+        </div>
       </section>
 
       <NotebookCreateDialog
@@ -401,11 +552,14 @@ export function NotebookPage() {
           createDialogTitle: copy.createDialogTitle,
           createNote: copy.createNote,
           emptyDescription: copy.emptyDescription,
-          noteDirectoryPlaceholder: copy.noteDirectoryPlaceholder,
+          folderPickerEmpty: copy.folderPickerEmpty,
           noteTitlePlaceholder: copy.noteTitlePlaceholder,
+          saveToLabel: copy.saveToLabel,
+          selectFolderPlaceholder: copy.selectFolderPlaceholder,
           saving: copy.saving,
         }}
         directory={createDraft.directory}
+        directoryOptions={directoryOptions}
         open={createOpen}
         pending={createNote.isPending}
         title={createDraft.title}
@@ -423,10 +577,12 @@ export function NotebookPage() {
       />
 
       <NotebookQuickCaptureDialog
-        cancelLabel={t.common.cancel}
+        destinationLabel={copy.quickCaptureDestination.replace(
+          "{folder}",
+          copy.inboxLabel,
+        )}
         open={quickCaptureOpen}
         pending={createNote.isPending}
-        quickCaptureDescription={copy.quickCaptureDescription}
         quickCaptureHint={copy.quickCaptureHint}
         quickCaptureLabel={copy.quickCapture}
         saveLabel={copy.createNote}
@@ -459,14 +615,16 @@ export function NotebookPage() {
       </Dialog>
 
       <Dialog open={moveOpen} onOpenChange={setMoveOpen}>
-        <DialogContent>
+        <DialogContent className="border-[var(--notebook-border)] bg-[var(--notebook-panel)] text-[var(--notebook-ink)]">
           <DialogHeader>
             <DialogTitle>{copy.move}</DialogTitle>
           </DialogHeader>
-          <Input
-            value={moveValue}
-            onChange={(event) => setMoveValue(event.target.value)}
-            placeholder={copy.movePlaceholder}
+          <NotebookFolderPicker
+            emptyLabel={copy.folderPickerEmpty}
+            options={directoryOptions}
+            placeholder={copy.selectFolderPlaceholder}
+            value={moveDirectory}
+            onValueChange={setMoveDirectory}
           />
           <DialogFooter>
             <Button variant="outline" onClick={() => setMoveOpen(false)}>
@@ -478,6 +636,41 @@ export function NotebookPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <NotebookFolderDialog
+        copy={{
+          cancel: t.common.cancel,
+          confirmCreate: copy.confirmCreateFolder,
+          confirmDelete: copy.confirmDeleteFolder,
+          confirmRename: copy.confirmRenameFolder,
+          createFolder: copy.createFolder,
+          deleteFolder: copy.deleteFolder,
+          deleteFolderDescription: copy.deleteFolderDescription,
+          folderNameLabel: copy.folderNameLabel,
+          folderNamePlaceholder: copy.folderNamePlaceholder,
+          renameFolder: copy.renameFolder,
+          rootFolderLabel: copy.rootFolderLabel,
+          saveToPrefix: copy.folderSaveToPrefix,
+          saving: copy.saving,
+        }}
+        mode={folderDialog.mode}
+        name={folderDialog.name}
+        open={folderDialog.open}
+        parentLabel={folderDialogParentLabel}
+        pending={
+          createDirectory.isPending ||
+          renameDirectory.isPending ||
+          deleteDirectory.isPending
+        }
+        targetLabel={folderDialogTargetLabel}
+        onNameChange={(value) =>
+          setFolderDialog((current) => ({ ...current, name: value }))
+        }
+        onOpenChange={(open) =>
+          setFolderDialog((current) => ({ ...current, open }))
+        }
+        onSubmit={handleFolderDialogSubmit}
+      />
 
       <NotebookDeleteDialog
         cancelLabel={t.common.cancel}

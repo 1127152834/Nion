@@ -16,6 +16,7 @@
 - 聊天运行时：支持线程级 sandbox/host 模式、工作目录面板与单工作区展示
 - 快捷入口合同：聊天输入框支持 Context / Skill / MCP / CLI 四类选择入口
 - 上传与产物链路：文件上传、解析、产物访问与下载能力完整闭环
+- Notebook 第二大脑：本地 Markdown 知识库、收件箱闪记、目录管理、版本历史与回收站恢复
 - 上下文存储：支持 workspace/thread 级上下文沉淀与召回
 - 临时会话保护：`temporary_chat` 默认允许读取长期记忆但禁止写回，避免污染长期记忆文件
 - 聊天追问建议模型可在“模型设置”页单独指定；未设置时默认跟随当前聊天模型
@@ -35,6 +36,23 @@
 - `make build-desktop` 只做桌面编译；`make desktop-dev` 会在编译后直接拉起 Electron
 - `make desktop-start` 会直接启动已编译好的桌面端，不再重复编译
 - `nion daemon status` 与 `nion daemon stop` 提供本地 daemon 管理入口
+
+## Notebook
+
+桌面端 Notebook 现在是一个本地优先的个人知识库工作台，根目录固定为：
+
+`~/.nion-data/notebook`
+
+当前版本已支持：
+
+- Markdown 笔记创建与编辑
+- `收件箱` 优先的闪记捕获
+- 目录树浏览与目录创建
+- 笔记移动、重命名、删除到回收站
+- 版本历史查看与恢复
+- Agent 协助改写、总结、扩写与从对话导入内容
+
+Notebook 是用户资产，不是 agent memory。用户笔记、agent memory、agent diary 仍然保持边界分离。
 
 ## 控制平面
 

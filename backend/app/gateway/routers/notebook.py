@@ -18,6 +18,7 @@ from nion.notebook import (
 )
 from nion.notebook.models import NotebookDeletedNotePreview, NotebookNoteSummary
 from nion.notebook.service import (
+    NotebookDirectoryAlreadyExistsError,
     NotebookConflictError,
     NotebookDirectoryNotEmptyError,
     NotebookDirectoryNotFoundError,
@@ -281,6 +282,8 @@ async def create_notebook_directory(
             parent_directory=payload.parent_directory,
             name=payload.name,
         )
+    except NotebookDirectoryAlreadyExistsError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return NotebookDirectoryResponse(directory=directory)

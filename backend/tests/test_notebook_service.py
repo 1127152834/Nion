@@ -4,6 +4,7 @@ import pytest
 
 from nion.notebook.service import (
     NotebookConflictError,
+    NotebookDirectoryAlreadyExistsError,
     NotebookDirectoryNotEmptyError,
     NotebookService,
 )
@@ -108,6 +109,14 @@ def test_create_directory_creates_empty_folder_and_returns_relative_path(tmp_pat
 
     assert created == "projects/alpha"
     assert (tmp_path / "notebook" / "projects" / "alpha").is_dir()
+
+
+def test_create_directory_rejects_existing_folder(tmp_path):
+    service = NotebookService(base_dir=tmp_path)
+    service.create_directory(parent_directory="projects", name="alpha")
+
+    with pytest.raises(NotebookDirectoryAlreadyExistsError):
+        service.create_directory(parent_directory="projects", name="alpha")
 
 
 def test_rename_directory_moves_visible_folder_and_returns_new_relative_path(tmp_path):

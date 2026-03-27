@@ -32,6 +32,10 @@ class NotebookDirectoryNotEmptyError(NotebookError):
     """Raised when attempting to delete a non-empty notebook directory."""
 
 
+class NotebookDirectoryAlreadyExistsError(NotebookError):
+    """Raised when attempting to create a notebook directory that already exists."""
+
+
 def _now_iso() -> str:
     return datetime.now(UTC).isoformat()
 
@@ -203,7 +207,11 @@ class NotebookService:
         self._visible_relative_dir(parent)
         target = parent / self._normalize_directory_name(name)
         relative = self._visible_relative_dir(target)
-        target.mkdir(parents=True, exist_ok=True)
+        if target.exists():
+            raise NotebookDirectoryAlreadyExistsError(
+                f"Notebook directory already exists: {relative.as_posix()}"
+            )
+        target.mkdir(parents=True, exist_ok=False)
         return relative.as_posix()
 
     def rename_directory(self, directory: str, name: str) -> str:

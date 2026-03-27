@@ -60,19 +60,21 @@ export function NotebookEditorPane({
   const lastEdited = note ? formatLastEdited(note.updated_at) : "";
 
   return (
-    <div className="relative flex h-full flex-col overflow-hidden bg-white">
-      <header className="z-10 flex shrink-0 items-center justify-between border-b border-[#E5E5E5] bg-white px-6 py-4">
+    <div className="relative flex h-full min-w-0 flex-col overflow-hidden bg-[var(--notebook-panel)]">
+      <header className="z-10 flex shrink-0 items-center justify-between border-b border-[var(--notebook-border)] bg-[var(--notebook-panel)] px-5 py-4 xl:px-6">
         {!note ? (
           <div className="space-y-1">
-            <h2 className="text-[18px] font-semibold text-[#1A1A1A]">
+            <h2 className="text-[18px] font-semibold text-[var(--notebook-ink)]">
               {copy.noSelectionTitle}
             </h2>
-            <p className="text-sm text-[#8C8C8C]">{copy.noSelectionDescription}</p>
+            <p className="text-sm text-[var(--notebook-soft-text)]">
+              {copy.noSelectionDescription}
+            </p>
           </div>
         ) : (
           <>
             <div className="flex min-w-0 flex-col">
-              <div className="mb-1 flex items-center gap-2 text-xs text-[#8C8C8C]">
+              <div className="mb-1 flex items-center gap-2 text-xs text-[var(--notebook-soft-text)]">
                 <Folder className="size-3" />
                 <span>{note.relative_path}</span>
                 <span>/</span>
@@ -85,14 +87,14 @@ export function NotebookEditorPane({
                 value={draftTitle}
                 onChange={(event) => onDraftTitleChange(event.target.value)}
                 placeholder={copy.noteTitlePlaceholder}
-                className="h-auto border-0 bg-transparent px-0 text-[36px] font-semibold tracking-tight text-[#1A1A1A] shadow-none focus-visible:ring-0"
+                className="h-auto border-0 bg-transparent px-0 text-2xl font-semibold leading-tight tracking-tight text-[var(--notebook-ink)] shadow-none focus-visible:ring-0 md:text-[2rem]"
               />
             </div>
 
             <div className="flex items-center gap-4">
-              <div className="text-xs text-[#8C8C8C]">
+              <div className="text-xs text-[var(--notebook-soft-text)]">
                 {saveState === "saved" ? (
-                  <span className="flex items-center text-[#52C41A]">
+                  <span className="flex items-center text-[var(--notebook-success)]">
                     <CheckCircle2 className="mr-1 size-4" />
                     {copy.saved}
                   </span>
@@ -102,11 +104,11 @@ export function NotebookEditorPane({
                   <span>{copy.unsaved}</span>
                 )}
               </div>
-              <div className="flex items-center gap-1 border-l border-[#E5E5E5] pl-4">
+              <div className="flex items-center gap-1 border-l border-[var(--notebook-border)] pl-4">
                 <button
                   type="button"
                   onClick={() => setPreviewMode((current) => !current)}
-                  className={`rounded-md p-1.5 transition-colors ${previewMode ? "bg-[#EAEAE9] text-[#1A1A1A]" : "text-[#8C8C8C] hover:bg-[#F0F0F0] hover:text-[#1A1A1A]"}`}
+                  className={`rounded-md p-1.5 transition-colors ${previewMode ? "bg-[var(--notebook-active)] text-[var(--notebook-ink)]" : "text-[var(--notebook-soft-text)] hover:bg-[var(--notebook-muted)] hover:text-[var(--notebook-ink)]"}`}
                   title={previewMode ? copy.edit : copy.preview}
                 >
                   {previewMode ? <Edit3 className="size-4" /> : <Eye className="size-4" />}
@@ -114,7 +116,7 @@ export function NotebookEditorPane({
                 <button
                   type="button"
                   onClick={onOpenHistory}
-                  className="rounded-md p-1.5 text-[#8C8C8C] transition-colors hover:bg-[#F0F0F0] hover:text-[#1A1A1A]"
+                  className="rounded-md p-1.5 text-[var(--notebook-soft-text)] transition-colors hover:bg-[var(--notebook-muted)] hover:text-[var(--notebook-ink)]"
                   title={copy.history}
                 >
                   <History className="size-4" />
@@ -122,7 +124,7 @@ export function NotebookEditorPane({
                 <button
                   type="button"
                   onClick={onOpenDelete}
-                  className="rounded-md p-1.5 text-[#8C8C8C] transition-colors hover:bg-[#FFF1F0] hover:text-[#F5222D]"
+                  className="rounded-md p-1.5 text-[var(--notebook-soft-text)] transition-colors hover:bg-[var(--notebook-danger-surface)] hover:text-[var(--notebook-danger)]"
                   title={copy.delete}
                 >
                   <Trash2 className="size-4" />
@@ -130,7 +132,7 @@ export function NotebookEditorPane({
                 <button
                   type="button"
                   onClick={onOpenMore}
-                  className="rounded-md p-1.5 text-[#8C8C8C] transition-colors hover:bg-[#F0F0F0] hover:text-[#1A1A1A]"
+                  className="rounded-md p-1.5 text-[var(--notebook-soft-text)] transition-colors hover:bg-[var(--notebook-muted)] hover:text-[var(--notebook-ink)]"
                   title="更多操作"
                 >
                   <MoreHorizontal className="size-4" />
@@ -141,29 +143,29 @@ export function NotebookEditorPane({
         )}
       </header>
 
-      <div className="relative flex-1 overflow-y-auto px-12 py-8">
+      <div className="relative flex-1 overflow-y-auto px-8 py-6 xl:px-10 xl:py-7">
         {!note || isLoading ? (
-          <div className="flex h-full flex-col items-center justify-center text-[#8C8C8C]">
-            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#F0F0F0]">
+          <div className="flex h-full flex-col items-center justify-center text-[var(--notebook-soft-text)]">
+            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--notebook-muted)]">
               <FileText className="size-6" />
             </div>
-            <h3 className="mb-2 text-lg font-medium text-[#1A1A1A]">
+            <h3 className="mb-2 text-lg font-medium text-[var(--notebook-ink)]">
               {copy.noSelectionTitle}
             </h3>
             <p className="text-sm">{isLoading ? loadingLabel : copy.noSelectionDescription}</p>
             <button
               type="button"
               onClick={onPrimaryCreate}
-              className="mt-6 rounded-md bg-[#1A1A1A] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#333333]"
+              className="mt-6 rounded-md bg-[var(--notebook-brand)] px-4 py-2 text-sm font-medium text-[var(--notebook-panel)] transition-opacity hover:opacity-90"
             >
               {copy.noSelectionCta}
             </button>
           </div>
         ) : (
-          <div className="relative mx-auto h-full max-w-3xl">
+          <div className="relative mx-auto h-full max-w-[52rem]">
             {previewMode ? (
               <MarkdownContent
-                className="prose prose-neutral max-w-none"
+                className="prose prose-neutral max-w-none text-[var(--notebook-ink)]"
                 content={draftBody}
                 isLoading={false}
                 rehypePlugins={[]}
@@ -173,26 +175,26 @@ export function NotebookEditorPane({
                 value={draftBody}
                 onChange={(event) => onDraftBodyChange(event.target.value)}
                 placeholder="开始输入 Markdown..."
-                className="min-h-[500px] h-full w-full resize-none border-0 bg-transparent px-0 py-0 text-base leading-relaxed text-[#1A1A1A] shadow-none focus-visible:ring-0"
+                className="h-full min-h-[500px] w-full resize-none border-0 bg-transparent px-0 py-0 text-base leading-[1.8] text-[var(--notebook-ink)] shadow-none focus-visible:ring-0"
               />
             )}
 
             {!previewMode ? (
-              <div className="absolute bottom-6 left-1/2 hidden -translate-x-1/2 items-center gap-4 rounded-full border border-[#E5E5E5] bg-white px-4 py-2 shadow-sm hover:flex">
-                <button className="text-[#8C8C8C] transition-colors hover:text-[#1A1A1A]">
+              <div className="absolute bottom-6 left-1/2 flex -translate-x-1/2 items-center gap-4 rounded-full border border-[var(--notebook-border)] bg-[var(--notebook-panel)] px-4 py-2 opacity-0 shadow-sm transition-opacity duration-300 hover:opacity-100">
+                <button className="text-[var(--notebook-soft-text)] transition-colors hover:text-[var(--notebook-ink)]">
                   <FileText className="size-4" />
                 </button>
-                <div className="h-4 w-px bg-[#E5E5E5]" />
-                <button className="text-sm font-medium text-[#8C8C8C] transition-colors hover:text-[#1A1A1A]">
+                <div className="h-4 w-px bg-[var(--notebook-border)]" />
+                <button className="text-sm font-medium text-[var(--notebook-soft-text)] transition-colors hover:text-[var(--notebook-ink)]">
                   H1
                 </button>
-                <button className="text-sm font-medium text-[#8C8C8C] transition-colors hover:text-[#1A1A1A]">
+                <button className="text-sm font-medium text-[var(--notebook-soft-text)] transition-colors hover:text-[var(--notebook-ink)]">
                   H2
                 </button>
-                <button className="text-sm font-bold text-[#8C8C8C] transition-colors hover:text-[#1A1A1A]">
+                <button className="text-sm font-bold text-[var(--notebook-soft-text)] transition-colors hover:text-[var(--notebook-ink)]">
                   B
                 </button>
-                <button className="text-sm italic text-[#8C8C8C] transition-colors hover:text-[#1A1A1A]">
+                <button className="text-sm italic text-[var(--notebook-soft-text)] transition-colors hover:text-[var(--notebook-ink)]">
                   I
                 </button>
               </div>
