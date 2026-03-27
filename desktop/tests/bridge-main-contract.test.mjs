@@ -15,4 +15,6 @@ test("desktop main wires bridge IPC handlers to bridge stores", () => {
   assert.match(source, /DESKTOP_BRIDGE_IPC_CHANNELS\.saveSettings/);
   assert.match(source, /DESKTOP_BRIDGE_IPC_CHANNELS\.getStatus/);
   assert.match(source, /DESKTOP_BRIDGE_IPC_CHANNELS\.listBindings/);
+  assert.match(source, /DESKTOP_BRIDGE_IPC_CHANNELS\.startPlatform/);
+  assert.match(source, /DESKTOP_BRIDGE_IPC_CHANNELS\.stopPlatform/);
 });

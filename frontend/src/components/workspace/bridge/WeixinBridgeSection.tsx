@@ -18,11 +18,18 @@ import { SettingsCard } from "@/components/patterns/SettingsCard";
 import { StatusBanner } from "@/components/patterns/StatusBanner";
 import { createBridgeClient, type WeixinBridgeAccount } from "@/core/bridge/client";
 
-import { normalizeQrImageSrc, useBridgeTranslation } from "./bridge-shared";
+import {
+  BridgePlatformEnableCard,
+  BridgePlatformRuntimeCard,
+  normalizeQrImageSrc,
+  useBridgeTranslation,
+} from "./bridge-shared";
 
 export function WeixinBridgeSection() {
   const { t } = useBridgeTranslation();
   const [accounts, setAccounts] = useState<WeixinBridgeAccount[]>([]);
+  const [bridgeEnabled, setBridgeEnabled] = useState(false);
+  const [channelEnabled, setChannelEnabled] = useState(false);
   const [qrImage, setQrImage] = useState<string | null>(null);
   const [qrSessionId, setQrSessionId] = useState<string | null>(null);
   const [qrStatus, setQrStatus] = useState("");
@@ -33,6 +40,9 @@ export function WeixinBridgeSection() {
 
   const fetchAccounts = useCallback(async () => {
     const client = createBridgeClient();
+    const settings = await client.getSettings();
+    setBridgeEnabled(settings.remote_bridge_enabled === "true");
+    setChannelEnabled(settings.bridge_weixin_enabled === "true");
     setAccounts(await client.listWeixinAccounts());
   }, []);
 
@@ -181,6 +191,27 @@ export function WeixinBridgeSection() {
 
   return (
     <div className="max-w-3xl space-y-6">
+      <BridgePlatformEnableCard
+        title={t("bridge.weixinChannel")}
+        description={t("bridge.weixinChannelDesc")}
+        enabled={channelEnabled}
+        saving={qrLoading}
+        onToggle={(checked) => {
+          void createBridgeClient()
+            .saveSettings({
+              bridge_weixin_enabled: checked ? "true" : "",
+              ...(checked ? { remote_bridge_enabled: "true" } : {}),
+            })
+            .then(fetchAccounts);
+        }}
+      />
+
+      <BridgePlatformRuntimeCard
+        platform="weixin"
+        bridgeEnabled={bridgeEnabled}
+        channelEnabled={channelEnabled}
+      />
+
       <StatusBanner variant="warning" className="text-sm">
         <Warning size={16} className="mt-0.5 mr-2 shrink-0" />
         <span>{t("weixin.riskWarning")}</span>

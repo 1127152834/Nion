@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { getBridgeClient } from "@/core/bridge/client";
 
 import {
+  BridgePlatformEnableCard,
+  BridgePlatformRuntimeCard,
   CheckCircle,
   SettingsCard,
   SpinnerGap,
@@ -17,12 +19,16 @@ import {
 } from "./bridge-shared";
 
 type TelegramBridgeSettings = {
+  remote_bridge_enabled: string;
+  bridge_telegram_enabled: string;
   telegram_bot_token: string;
   telegram_chat_id: string;
   telegram_bridge_allowed_users: string;
 };
 
 const DEFAULT_SETTINGS: TelegramBridgeSettings = {
+  remote_bridge_enabled: "",
+  bridge_telegram_enabled: "",
   telegram_bot_token: "",
   telegram_chat_id: "",
   telegram_bridge_allowed_users: "",
@@ -33,6 +39,8 @@ export function TelegramBridgeSection() {
   const [botToken, setBotToken] = useState("");
   const [chatId, setChatId] = useState("");
   const [allowedUsers, setAllowedUsers] = useState("");
+  const [bridgeEnabled, setBridgeEnabled] = useState(false);
+  const [channelEnabled, setChannelEnabled] = useState(false);
   const [saving, setSaving] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [detecting, setDetecting] = useState(false);
@@ -49,12 +57,16 @@ export function TelegramBridgeSection() {
     const data = await client.getSettings();
     const settings = {
       ...DEFAULT_SETTINGS,
+      remote_bridge_enabled: data.remote_bridge_enabled || "",
+      bridge_telegram_enabled: data.bridge_telegram_enabled || "",
       telegram_bot_token:
         data.telegram_bot_token || data.bridge_telegram_bot_token || "",
       telegram_chat_id:
         data.telegram_chat_id || data.bridge_telegram_chat_id || "",
       telegram_bridge_allowed_users: data.telegram_bridge_allowed_users || "",
     };
+    setBridgeEnabled(settings.remote_bridge_enabled === "true");
+    setChannelEnabled(settings.bridge_telegram_enabled === "true");
     setBotToken(settings.telegram_bot_token);
     setChatId(settings.telegram_chat_id);
     setAllowedUsers(settings.telegram_bridge_allowed_users);
@@ -81,6 +93,22 @@ export function TelegramBridgeSection() {
         updates.bridge_telegram_bot_token = botToken;
       }
       await client.saveSettings(updates);
+      await fetchSettings();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleToggleChannel = async (checked: boolean) => {
+    if (!client) {
+      return;
+    }
+    setSaving(true);
+    try {
+      await client.saveSettings({
+        bridge_telegram_enabled: checked ? "true" : "",
+        ...(checked ? { remote_bridge_enabled: "true" } : {}),
+      });
       await fetchSettings();
     } finally {
       setSaving(false);
@@ -159,6 +187,20 @@ export function TelegramBridgeSection() {
 
   return (
     <div className="max-w-3xl space-y-6">
+      <BridgePlatformEnableCard
+        title={t("bridge.telegramChannel")}
+        description={t("bridge.telegramChannelDesc")}
+        enabled={channelEnabled}
+        saving={saving}
+        onToggle={(checked) => void handleToggleChannel(checked)}
+      />
+
+      <BridgePlatformRuntimeCard
+        platform="telegram"
+        bridgeEnabled={bridgeEnabled}
+        channelEnabled={channelEnabled}
+      />
+
       <SettingsCard
         title={t("telegram.credentials")}
         description={t("telegram.credentialsDesc")}

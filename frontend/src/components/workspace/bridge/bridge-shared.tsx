@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactElement, type ReactNode } from "react";
+import { type ReactElement, type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import {
   CheckCircle2Icon,
   FolderOpenIcon,
@@ -15,7 +15,15 @@ import {
   PlusIcon,
   WifiIcon,
 } from "lucide-react";
+import { toast } from "sonner";
 
+import {
+  createBridgeClient,
+  getBridgeClient,
+  type BridgeStatus,
+} from "@/core/bridge/client";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { useI18n } from "@/core/i18n/hooks";
 import { cn } from "@/lib/utils";
 
@@ -79,6 +87,9 @@ const zhCN = {
   "bridge.errorNoAdapters": "没有适配器成功启动，请检查渠道配置。",
   "bridge.errorAdapterConfig": "渠道配置无效，请检查已启用渠道的设置。",
   "bridge.errorNetwork": "启动桥接时网络错误。",
+  "bridge.errorChannelNotEnabled": "请先启用当前渠道，再启动桥接。",
+  "bridge.channelStatusDesc": "当前渠道桥接运行状态",
+  "bridge.bridgeChatBadge": "桥接",
 
   "telegram.credentials": "Bot 凭据",
   "telegram.credentialsDesc": "输入您的 Telegram Bot Token 和 Chat ID",
@@ -301,6 +312,9 @@ const enUS: Record<keyof typeof zhCN, string> = {
   "bridge.errorNoAdapters": "No adapters started successfully. Check channel settings.",
   "bridge.errorAdapterConfig": "Invalid channel configuration. Check enabled channel settings.",
   "bridge.errorNetwork": "Network error while starting bridge.",
+  "bridge.errorChannelNotEnabled": "Enable this channel before starting bridge.",
+  "bridge.channelStatusDesc": "Runtime status for this channel",
+  "bridge.bridgeChatBadge": "Bridge",
 
   "telegram.credentials": "Bot Credentials",
   "telegram.credentialsDesc": "Enter your Telegram Bot Token and Chat ID",
@@ -501,6 +515,56 @@ export function normalizeQrImageSrc(value: string) {
   return `data:image/png;base64,${value}`;
 }
 
+export function bridgePlatformLabel(
+  platform: string,
+  t: (key: keyof typeof zhCN, vars?: TranslationVars) => string,
+) {
+  switch (platform) {
+    case "telegram":
+      return t("bridge.telegramChannel");
+    case "feishu":
+      return t("bridge.feishuChannel");
+    case "discord":
+      return t("bridge.discordChannel");
+    case "qq":
+      return t("bridge.qqChannel");
+    case "weixin":
+      return t("bridge.weixinChannel");
+    default:
+      return platform;
+  }
+}
+
+function useBridgePlatformStatus(platform: string) {
+  const client = getBridgeClient();
+  const [status, setStatus] = useState<BridgeStatus | null>(null);
+
+  const refresh = useCallback(async () => {
+    if (!client) {
+      return;
+    }
+    setStatus(await client.getStatus());
+  }, [client]);
+
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
+
+  const adapter = useMemo(
+    () =>
+      status?.adapters.find(
+        (item) => item.platform === platform || item.channelType === platform,
+      ) ?? null,
+    [platform, status],
+  );
+
+  return {
+    client,
+    adapter,
+    refresh,
+  };
+}
+
 export function SettingsCard({
   title,
   description,
@@ -593,6 +657,140 @@ export function StatusBanner({
       {icon ? <div className="shrink-0">{icon}</div> : null}
       <div className="min-w-0 flex-1">{children}</div>
     </div>
+  );
+}
+
+export function BridgePlatformRuntimeCard({
+  platform,
+  bridgeEnabled,
+  channelEnabled,
+}: {
+  platform: string;
+  bridgeEnabled: boolean;
+  channelEnabled: boolean;
+}) {
+  const { t } = useBridgeTranslation();
+  const { client, adapter, refresh } = useBridgePlatformStatus(platform);
+  const [starting, setStarting] = useState(false);
+  const [stopping, setStopping] = useState(false);
+
+  if (!client) {
+    return null;
+  }
+
+  const running = Boolean(adapter?.running);
+
+  const handleStart = async () => {
+    setStarting(true);
+    try {
+      const reason = await createBridgeClient().startPlatform(platform);
+      if (reason) {
+        const reasonMessages: Record<string, string> = {
+          bridge_not_enabled: t("bridge.errorNotEnabled"),
+          channel_not_enabled: t("bridge.errorChannelNotEnabled"),
+          no_adapters_started: t("bridge.errorNoAdapters"),
+          adapter_unavailable: t("bridge.errorNetwork"),
+          network_error: t("bridge.errorNetwork"),
+        };
+        const message = reason.startsWith("adapter_config_invalid")
+          ? t("bridge.errorAdapterConfig")
+          : reasonMessages[reason] ?? reason;
+        toast.error(message);
+      }
+      await refresh();
+    } finally {
+      setStarting(false);
+    }
+  };
+
+  const handleStop = async () => {
+    setStopping(true);
+    try {
+      await createBridgeClient().stopPlatform(platform);
+      await refresh();
+    } finally {
+      setStopping(false);
+    }
+  };
+
+  return (
+    <SettingsCard title={t("bridge.status")} description={t("bridge.channelStatusDesc")}>
+      {!bridgeEnabled ? (
+        <StatusBanner variant="warning">
+          <Warning className="size-4 shrink-0" />
+          {t("bridge.errorNotEnabled")}
+        </StatusBanner>
+      ) : null}
+      {bridgeEnabled && !channelEnabled ? (
+        <StatusBanner variant="warning">
+          <Warning className="size-4 shrink-0" />
+          {t("bridge.errorChannelNotEnabled")}
+        </StatusBanner>
+      ) : null}
+
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="text-sm font-medium">{bridgePlatformLabel(platform, t)}</div>
+          <div className="text-xs text-muted-foreground">
+            {running ? t("bridge.statusConnected") : t("bridge.statusDisconnected")}
+          </div>
+          {adapter?.lastMessageAt ? (
+            <div className="mt-1 text-xs text-muted-foreground">
+              {t("bridge.adapterLastMessage")}:{" "}
+              {new Date(adapter.lastMessageAt).toLocaleString()}
+            </div>
+          ) : null}
+          {adapter?.error ? (
+            <div className="mt-1 text-xs text-red-600 dark:text-red-400">
+              {t("bridge.adapterLastError")}: {adapter.error}
+            </div>
+          ) : null}
+        </div>
+
+        {running ? (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => void handleStop()}
+            disabled={stopping}
+          >
+            {stopping ? <SpinnerGap className="mr-1.5 size-3.5 animate-spin" /> : null}
+            {stopping ? t("bridge.stopping") : t("bridge.stop")}
+          </Button>
+        ) : (
+          <Button
+            size="sm"
+            onClick={() => void handleStart()}
+            disabled={starting || !bridgeEnabled || !channelEnabled}
+          >
+            {starting ? <SpinnerGap className="mr-1.5 size-3.5 animate-spin" /> : null}
+            {starting ? t("bridge.starting") : t("bridge.start")}
+          </Button>
+        )}
+      </div>
+    </SettingsCard>
+  );
+}
+
+export function BridgePlatformEnableCard({
+  title,
+  description,
+  enabled,
+  saving,
+  onToggle,
+}: {
+  title: string;
+  description: string;
+  enabled: boolean;
+  saving: boolean;
+  onToggle: (checked: boolean) => void;
+}) {
+  return (
+    <SettingsCard className={enabled ? "border-primary/50 bg-primary/5" : undefined}>
+      <FieldRow label={title} description={description}>
+        <Switch checked={enabled} onCheckedChange={onToggle} disabled={saving} />
+      </FieldRow>
+    </SettingsCard>
   );
 }
 

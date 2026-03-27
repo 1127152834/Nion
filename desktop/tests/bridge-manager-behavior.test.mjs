@@ -675,10 +675,10 @@ test("bridge manager /mode updates binding mode and applies it to the next strea
   assert.equal(bindings[0].mode, "plan");
   assert.equal(streamCalls.length, 1);
   assert.equal(streamCalls[0].options.planMode, true);
-  assert.equal(streamCalls[0].options.modelName, "sonnet");
+  assert.equal(streamCalls[0].options.modelName, undefined);
 });
 
-test("bridge manager uses provider-qualified default model identity when configured", async () => {
+test("bridge manager ignores bridge-specific default model configuration", async () => {
   const createBridgeManager = await loadBridgeManagerFactory();
   const adapter = createStubAdapter("telegram");
   const streamCalls = [];
@@ -725,7 +725,7 @@ test("bridge manager uses provider-qualified default model identity when configu
   await manager.processNextInboundMessage();
 
   assert.equal(streamCalls.length, 1);
-  assert.equal(streamCalls[0].options.modelName, "anthropic-main:sonnet");
+  assert.equal(streamCalls[0].options.modelName, undefined);
 });
 
 test("bridge manager /stop aborts an in-flight task while the adapter loop keeps running", async () => {

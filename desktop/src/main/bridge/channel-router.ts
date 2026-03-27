@@ -18,14 +18,10 @@ export function createBridgeChannelRouter(options: {
   defaultWorkingDirectory?: () => string;
 }) {
   const defaultBindingValues = () => {
-    const settings = options.loadSettings?.() ?? {};
-    const providerId = settings.bridge_default_provider_id ?? "";
-    const modelId = settings.bridge_default_model ?? "";
     return {
-      workingDirectory:
-        settings.bridge_default_work_dir ?? options.defaultWorkingDirectory?.() ?? "",
-      model: providerId && modelId ? `${providerId}:${modelId}` : modelId,
-      mode: (settings.bridge_default_mode as BridgeBinding["mode"] | undefined) ?? "code",
+      workingDirectory: options.defaultWorkingDirectory?.() ?? "",
+      model: "",
+      mode: "code" as const,
     };
   };
 

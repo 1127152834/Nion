@@ -273,19 +273,10 @@ export function createBridgeManager(options: {
   };
 
   const defaultBindingValues = () => {
-    const settings = options.loadSettings().settings;
-    const providerId = settings.bridge_default_provider_id ?? "";
-    const modelId = settings.bridge_default_model ?? "";
     return {
-      workingDirectory:
-        settings.bridge_default_work_dir ?? options.defaultWorkingDirectory?.() ?? "",
-      model: providerId && modelId ? `${providerId}:${modelId}` : modelId,
-      mode:
-        settings.bridge_default_mode === "plan" ||
-        settings.bridge_default_mode === "ask" ||
-        settings.bridge_default_mode === "code"
-          ? settings.bridge_default_mode
-          : "code",
+      workingDirectory: options.defaultWorkingDirectory?.() ?? "",
+      model: "",
+      mode: "code",
     } satisfies Pick<BridgeBinding, "workingDirectory" | "model" | "mode">;
   };
 
@@ -443,6 +434,27 @@ export function createBridgeManager(options: {
       bindingId: binding.id,
       threadId: binding.threadId,
       recordObservation,
+    });
+  };
+
+  const hydrateBridgeThreadState = async (
+    threadId: string,
+    binding: BridgeBinding,
+  ) => {
+    const labelByPlatform: Record<string, string> = {
+      telegram: "Telegram",
+      feishu: "Feishu",
+      discord: "Discord",
+      qq: "QQ",
+      weixin: "Weixin",
+    };
+    await threadClient.ensureThreadState?.(threadId, {
+      bridge: {
+        source: "bridge",
+        platform: binding.platform,
+        label: labelByPlatform[binding.platform] ?? binding.platform,
+        chatId: binding.chatId,
+      },
     });
   };
 
@@ -914,6 +926,7 @@ export function createBridgeManager(options: {
       }
 
       const sanitized = sanitizeInput(inbound.text || (inbound.attachments?.length ? "Please inspect the uploaded files." : ""));
+      await hydrateBridgeThreadState(binding.threadId, binding);
       const result = await threadClient.streamMessage(
         binding.threadId,
         sanitized.text,
@@ -1191,6 +1204,56 @@ export function createBridgeManager(options: {
 
       return null;
     },
+    startPlatform: async (platform: string): Promise<string | null> => {
+      const settings = options.loadSettings().settings;
+      if (settings.remote_bridge_enabled !== "true") {
+        return "bridge_not_enabled";
+      }
+
+      if (settings[`bridge_${platform}_enabled`] !== "true") {
+        return "channel_not_enabled";
+      }
+
+      const adapter = resolveAdapters().find((item) => item.platform === platform);
+      if (!adapter) {
+        return "adapter_unavailable";
+      }
+
+      const validation = adapter.validateConfig();
+      if (validation) {
+        return `adapter_config_invalid:${validation}`;
+      }
+
+      if (loopTasks.has(platform) && adapter.getStatus().running) {
+        return null;
+      }
+
+      try {
+        await adapter.start();
+      } catch (error) {
+        recordObservation({
+          observationType: "adapter_start_failed",
+          level: "error",
+          adapterPlatform: adapter.platform,
+          bindingId: null,
+          threadId: null,
+          summary: `${adapter.platform} adapter failed to start`,
+          details: {
+            error: error instanceof Error ? error.message : String(error),
+          },
+        });
+        return `adapter_config_invalid:${error instanceof Error ? error.message : String(error)}`;
+      }
+
+      if (!running) {
+        running = true;
+        startedAt = new Date().toISOString();
+      }
+
+      const task = runAdapterLoop(adapter);
+      loopTasks.set(adapter.platform, task);
+      return null;
+    },
     stop: async () => {
       if (!running && loopTasks.size === 0) {
         await Promise.all(resolveAdapters().map((adapter) => adapter.stop()));
@@ -1221,11 +1284,36 @@ export function createBridgeManager(options: {
       });
       startedAt = null;
     },
+    stopPlatform: async (platform: string) => {
+      const adapter = resolveAdapters().find((item) => item.platform === platform);
+      if (!adapter) {
+        return;
+      }
+
+      await adapter.stop();
+      loopTasks.delete(platform);
+      activeTasks.forEach((controller, threadId) => {
+        const binding = listBindings().find((item) => item.threadId === threadId);
+        if (binding?.platform === platform) {
+          controller.abort();
+          activeTasks.delete(threadId);
+        }
+      });
+
+      const anyRunning = resolveAdapters().some((item) => item.getStatus().running);
+      if (!anyRunning) {
+        running = false;
+        startedAt = null;
+      }
+    },
     getStatus: (): DesktopBridgeStatus => ({
       running,
       startedAt,
       enabledPlatforms: enabledPlatformsFromSettings(),
-      adapters: resolveAdapters().map((adapter) => {
+      adapters: resolveAdapters().filter((adapter) => {
+        const enabled = enabledPlatformsFromSettings().includes(adapter.platform);
+        return enabled || adapter.getStatus().running;
+      }).map((adapter) => {
         const status = adapter.getStatus();
         const meta = getAdapterMeta(adapter.platform);
         return {

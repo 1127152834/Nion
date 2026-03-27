@@ -350,8 +350,7 @@ export async function startDesktopMain(): Promise<void> {
     loadSettings: () => bridgeSettingsStore.loadSettings(),
     listBindings: () => bridgeBindingsStore.listBindings(),
     upsertBinding: (binding) => bridgeBindingsStore.upsertBinding(binding),
-    defaultWorkingDirectory: () =>
-      bridgeSettingsStore.loadSettings().settings.bridge_default_work_dir ?? "",
+    defaultWorkingDirectory: () => "",
     backendBaseUrl: runtimeInfo.baseUrl,
     offsetStore: bridgeOffsetStore,
     weixinStore: weixinBridgeStore,
@@ -472,6 +471,18 @@ export async function startDesktopMain(): Promise<void> {
   ipcMain.handle(DESKTOP_BRIDGE_IPC_CHANNELS.stop, async () => {
     await bridgeManager.stop();
   });
+  ipcMain.handle(
+    DESKTOP_BRIDGE_IPC_CHANNELS.startPlatform,
+    async (_event, platform: string) => {
+      return bridgeManager.startPlatform(platform);
+    },
+  );
+  ipcMain.handle(
+    DESKTOP_BRIDGE_IPC_CHANNELS.stopPlatform,
+    async (_event, platform: string) => {
+      await bridgeManager.stopPlatform(platform);
+    },
+  );
   ipcMain.handle(DESKTOP_BRIDGE_IPC_CHANNELS.probe, async (_event, platform: string) => {
     return bridgeManager.probePlatform(platform);
   });

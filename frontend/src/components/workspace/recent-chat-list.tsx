@@ -56,11 +56,13 @@ import {
   useThreads,
 } from "@/core/threads/hooks";
 import type { AgentThread, AgentThreadState } from "@/core/threads/types";
-import { pathOfThread, titleOfThread } from "@/core/threads/utils";
+import { bridgeInfoOfThread, pathOfThread, titleOfThread } from "@/core/threads/utils";
 import { env } from "@/env";
+import { useBridgeTranslation } from "./bridge/useBridgeTranslation";
 
 export function RecentChatList() {
   const { t } = useI18n();
+  const { t: bt } = useBridgeTranslation();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -186,6 +188,20 @@ export function RecentChatList() {
                 const isActive =
                   pathname === "/workspace/chats" &&
                   searchParams.get("thread") === thread.thread_id;
+                const bridgeInfo = bridgeInfoOfThread(thread);
+                const bridgeLabel = bridgeInfo
+                  ? bridgeInfo.platform === "telegram"
+                    ? bt("bridge.telegramChannel")
+                    : bridgeInfo.platform === "feishu"
+                      ? bt("bridge.feishuChannel")
+                      : bridgeInfo.platform === "discord"
+                        ? bt("bridge.discordChannel")
+                        : bridgeInfo.platform === "qq"
+                          ? bt("bridge.qqChannel")
+                          : bridgeInfo.platform === "weixin"
+                            ? bt("bridge.weixinChannel")
+                            : bridgeInfo.platform
+                  : "";
                 return (
                   <SidebarMenuItem
                     key={thread.thread_id}
@@ -199,6 +215,14 @@ export function RecentChatList() {
                         >
                           <span className="flex items-center gap-2 overflow-hidden">
                             <span className="truncate">{titleOfThread(thread)}</span>
+                            {bridgeInfo ? (
+                              <Badge
+                                variant="outline"
+                                className="gap-1 rounded-full px-2 py-0 text-[10px]"
+                              >
+                                {bt("bridge.bridgeChatBadge")} · {bridgeLabel}
+                              </Badge>
+                            ) : null}
                             {pendingClarification ? (
                               <Badge
                                 variant="outline"

@@ -10,6 +10,7 @@ class ThreadValues(BaseModel):
     messages: list[dict[str, Any]] = Field(default_factory=list)
     artifacts: list[str] = Field(default_factory=list)
     todos: list[dict[str, Any]] | None = None
+    bridge: dict[str, Any] | None = None
 
 
 class ThreadRecord(BaseModel):

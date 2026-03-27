@@ -27,3 +27,11 @@ export function textOfMessage(message: Message) {
 export function titleOfThread(thread: AgentThread) {
   return thread.values?.title ?? "Untitled";
 }
+
+export function bridgeInfoOfThread(thread: AgentThread) {
+  const bridge = thread.values?.bridge;
+  if (!bridge || bridge.source !== "bridge" || !bridge.platform) {
+    return null;
+  }
+  return bridge;
+}

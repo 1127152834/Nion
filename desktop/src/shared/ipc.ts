@@ -94,6 +94,8 @@ declare global {
         listBindings: () => Promise<DesktopBridgeBinding[]>;
         start: () => Promise<string | null>;
         stop: () => Promise<void>;
+        startPlatform: (platform: string) => Promise<string | null>;
+        stopPlatform: (platform: string) => Promise<void>;
         probe: (platform: string) => Promise<DesktopBridgeProbeResult>;
         browseWorkingDirectory: (defaultPath?: string) => Promise<string | null>;
         verifyTelegram: (payload: {

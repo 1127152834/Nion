@@ -5,6 +5,8 @@ export const DESKTOP_BRIDGE_IPC_CHANNELS = {
   listBindings: "bridge:list-bindings",
   start: "bridge:start",
   stop: "bridge:stop",
+  startPlatform: "bridge:start-platform",
+  stopPlatform: "bridge:stop-platform",
   probe: "bridge:probe",
   browseWorkingDirectory: "bridge:browse-working-directory",
   verifyTelegram: "bridge:verify-telegram",

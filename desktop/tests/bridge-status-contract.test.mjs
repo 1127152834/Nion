@@ -18,5 +18,6 @@ test("bridge manager computes adapter status list", () => {
     "utf8",
   );
 
-  assert.match(source, /adapters: resolveAdapters\(\)\.map/);
+  assert.match(source, /adapters: resolveAdapters\(\)\.filter/);
+  assert.match(source, /\.map\(\(adapter\) =>/);
 });

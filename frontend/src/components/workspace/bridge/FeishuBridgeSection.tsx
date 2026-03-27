@@ -18,9 +18,15 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { createBridgeClient } from "@/core/bridge/client";
 
-import { useBridgeTranslation } from "./useBridgeTranslation";
+import {
+  BridgePlatformEnableCard,
+  BridgePlatformRuntimeCard,
+  useBridgeTranslation,
+} from "./useBridgeTranslation";
 
 type FeishuBridgeSettings = {
+  remote_bridge_enabled: string;
+  bridge_feishu_enabled: string;
   bridge_feishu_app_id: string;
   bridge_feishu_app_secret: string;
   bridge_feishu_domain: string;
@@ -33,6 +39,8 @@ type FeishuBridgeSettings = {
 };
 
 const DEFAULT_SETTINGS: FeishuBridgeSettings = {
+  remote_bridge_enabled: "",
+  bridge_feishu_enabled: "",
   bridge_feishu_app_id: "",
   bridge_feishu_app_secret: "",
   bridge_feishu_domain: "feishu",
@@ -105,6 +113,8 @@ export function FeishuBridgeSection() {
     ok: boolean;
     message: string;
   } | null>(null);
+  const [bridgeEnabled, setBridgeEnabled] = useState(false);
+  const [channelEnabled, setChannelEnabled] = useState(false);
 
   useEffect(() => {
     const saved = savedCredentials.current;
@@ -129,6 +139,8 @@ export function FeishuBridgeSection() {
     const client = createBridgeClient();
     const data = await client.getSettings();
     const settings = { ...DEFAULT_SETTINGS, ...data };
+    setBridgeEnabled(settings.remote_bridge_enabled === "true");
+    setChannelEnabled(settings.bridge_feishu_enabled === "true");
 
     setAppId(settings.bridge_feishu_app_id);
     setAppSecret(settings.bridge_feishu_app_secret);
@@ -248,6 +260,25 @@ export function FeishuBridgeSection() {
 
   return (
     <div className="max-w-3xl space-y-6">
+      <BridgePlatformEnableCard
+        title={t("bridge.feishuChannel")}
+        description={t("bridge.feishuChannelDesc")}
+        enabled={channelEnabled}
+        saving={credentialsSaving || behaviorSaving}
+        onToggle={(checked) => {
+          void saveToClient({
+            bridge_feishu_enabled: checked ? "true" : "",
+            ...(checked ? { remote_bridge_enabled: "true" } : {}),
+          }).then(fetchSettings);
+        }}
+      />
+
+      <BridgePlatformRuntimeCard
+        platform="feishu"
+        bridgeEnabled={bridgeEnabled}
+        channelEnabled={channelEnabled}
+      />
+
       <SettingsCard title={t("feishu.credentials")} description={t("feishu.credentialsDesc")}>
         <div className="space-y-3">
           <div>

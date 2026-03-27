@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 import { PromptInputProvider } from "@/components/ai-elements/prompt-input";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ArtifactsProvider } from "@/components/workspace/artifacts";
@@ -16,13 +17,15 @@ import {
 import { useI18n } from "@/core/i18n/hooks";
 import { SubtasksProvider } from "@/core/tasks/context";
 import { useThreads } from "@/core/threads/hooks";
-import { pathOfThread, titleOfThread } from "@/core/threads/utils";
+import { bridgeInfoOfThread, pathOfThread, titleOfThread } from "@/core/threads/utils";
 import { formatTimeAgo } from "@/core/utils/datetime";
+import { useBridgeTranslation } from "@/components/workspace/bridge/useBridgeTranslation";
 
 import ChatThreadPage from "./chat-thread-page";
 
 export default function ChatsPage() {
   const { t } = useI18n();
+  const { t: bt } = useBridgeTranslation();
   const searchParams = useSearchParams();
   const { data: threads } = useThreads();
   const [search, setSearch] = useState("");
@@ -70,6 +73,20 @@ export default function ChatsPage() {
               <div className="mx-auto flex size-full max-w-(--container-width-md) flex-col">
                 {filteredThreads?.map((thread) => {
                   const updatedAtLabel = formatTimeAgo(thread.updated_at);
+                  const bridgeInfo = bridgeInfoOfThread(thread);
+                  const bridgeLabel = bridgeInfo
+                    ? bridgeInfo.platform === "telegram"
+                      ? bt("bridge.telegramChannel")
+                      : bridgeInfo.platform === "feishu"
+                        ? bt("bridge.feishuChannel")
+                        : bridgeInfo.platform === "discord"
+                          ? bt("bridge.discordChannel")
+                          : bridgeInfo.platform === "qq"
+                            ? bt("bridge.qqChannel")
+                            : bridgeInfo.platform === "weixin"
+                              ? bt("bridge.weixinChannel")
+                              : bridgeInfo.platform
+                    : "";
 
                   return (
                     <Link
@@ -77,8 +94,13 @@ export default function ChatsPage() {
                       href={pathOfThread(thread.thread_id)}
                     >
                       <div className="flex flex-col gap-2 border-b p-4">
-                        <div>
+                        <div className="flex items-center gap-2">
                           <div>{titleOfThread(thread)}</div>
+                          {bridgeInfo ? (
+                            <Badge variant="outline">
+                              {bt("bridge.bridgeChatBadge")} · {bridgeLabel}
+                            </Badge>
+                          ) : null}
                         </div>
                         {updatedAtLabel ? (
                           <div className="text-muted-foreground text-sm">

@@ -14,3 +14,14 @@ void test("recent chat list derives pending clarification badges and prioritizes
   assert.match(source, /const pending = enriched\.filter/);
   assert.match(source, /return \[\.\.\.pending, \.\.\.regular\]/);
 });
+
+void test("recent chat list marks bridge conversations with a platform badge", async () => {
+  const source = await readFile(
+    new URL("./recent-chat-list.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /bridgeInfoOfThread/);
+  assert.match(source, /bridge\.bridgeChatBadge/);
+  assert.match(source, /bridgeLabel/);
+});

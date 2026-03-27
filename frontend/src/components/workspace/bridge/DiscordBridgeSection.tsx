@@ -15,6 +15,8 @@ import { Switch } from "@/components/ui/switch";
 import { createBridgeClient } from "@/core/bridge/client";
 
 import {
+  BridgePlatformEnableCard,
+  BridgePlatformRuntimeCard,
   CheckCircle,
   FieldRow,
   SettingsCard,
@@ -25,6 +27,8 @@ import {
 } from "./bridge-shared";
 
 type DiscordBridgeSettings = {
+  remote_bridge_enabled: string;
+  bridge_discord_enabled: string;
   bridge_discord_bot_token: string;
   bridge_discord_allowed_users: string;
   bridge_discord_allowed_channels: string;
@@ -37,6 +41,8 @@ type DiscordBridgeSettings = {
 };
 
 const DEFAULT_SETTINGS: DiscordBridgeSettings = {
+  remote_bridge_enabled: "",
+  bridge_discord_enabled: "",
   bridge_discord_bot_token: "",
   bridge_discord_allowed_users: "",
   bridge_discord_allowed_channels: "",
@@ -66,12 +72,16 @@ export function DiscordBridgeSection() {
     ok: boolean;
     message: string;
   } | null>(null);
+  const [bridgeEnabled, setBridgeEnabled] = useState(false);
+  const [channelEnabled, setChannelEnabled] = useState(false);
 
   const fetchSettings = useCallback(async () => {
     const client = createBridgeClient();
     const data = await client.getSettings();
     const next = { ...DEFAULT_SETTINGS, ...data };
     setSettings(next);
+    setBridgeEnabled(next.remote_bridge_enabled === "true");
+    setChannelEnabled(next.bridge_discord_enabled === "true");
     setBotToken(next.bridge_discord_bot_token);
     setAllowedUsers(next.bridge_discord_allowed_users);
     setAllowedChannels(next.bridge_discord_allowed_channels);
@@ -158,6 +168,25 @@ export function DiscordBridgeSection() {
 
   return (
     <div className="max-w-3xl space-y-6">
+      <BridgePlatformEnableCard
+        title={t("bridge.discordChannel")}
+        description={t("bridge.discordChannelDesc")}
+        enabled={channelEnabled}
+        saving={saving}
+        onToggle={(checked) =>
+          void saveSettings({
+            bridge_discord_enabled: checked ? "true" : "",
+            ...(checked ? { remote_bridge_enabled: "true" } : {}),
+          })
+        }
+      />
+
+      <BridgePlatformRuntimeCard
+        platform="discord"
+        bridgeEnabled={bridgeEnabled}
+        channelEnabled={channelEnabled}
+      />
+
       <SettingsCard
         title={t("discord.credentials")}
         description={t("discord.credentialsDesc")}

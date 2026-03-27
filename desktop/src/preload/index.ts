@@ -34,6 +34,10 @@ export function registerPreloadBridge(): void {
         ipcRenderer.invoke(DESKTOP_BRIDGE_IPC_CHANNELS.runAction, request),
       start: () => ipcRenderer.invoke(DESKTOP_BRIDGE_IPC_CHANNELS.start),
       stop: () => ipcRenderer.invoke(DESKTOP_BRIDGE_IPC_CHANNELS.stop),
+      startPlatform: (platform: string) =>
+        ipcRenderer.invoke(DESKTOP_BRIDGE_IPC_CHANNELS.startPlatform, platform),
+      stopPlatform: (platform: string) =>
+        ipcRenderer.invoke(DESKTOP_BRIDGE_IPC_CHANNELS.stopPlatform, platform),
       probe: (platform: string) =>
         ipcRenderer.invoke(DESKTOP_BRIDGE_IPC_CHANNELS.probe, platform),
       browseWorkingDirectory: (defaultPath?: string) =>

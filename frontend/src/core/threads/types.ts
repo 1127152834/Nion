@@ -32,6 +32,12 @@ export interface AgentThreadState extends Record<string, unknown> {
   messages: Message[];
   artifacts: string[];
   todos?: Todo[];
+  bridge?: {
+    source: "bridge";
+    platform: string;
+    label?: string;
+    chatId?: string;
+  };
 }
 
 export interface Thread<TState extends Record<string, unknown>> {

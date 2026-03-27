@@ -173,6 +173,8 @@ export type BridgeClient = {
   runAction(request: BridgeRunActionRequest): Promise<BridgeRunActionResult>;
   start(): Promise<string | null>;
   stop(): Promise<void>;
+  startPlatform(platform: string): Promise<string | null>;
+  stopPlatform(platform: string): Promise<void>;
   probe(platform: string): Promise<BridgeProbeResult>;
   browseWorkingDirectory(defaultPath?: string): Promise<string | null>;
   verifyTelegram(payload: {
@@ -222,6 +224,8 @@ function resolveDesktopBridge() {
                 runAction: (request: BridgeRunActionRequest) => Promise<BridgeRunActionResult>;
                 start: () => Promise<string | null>;
                 stop: () => Promise<void>;
+                startPlatform: (platform: string) => Promise<string | null>;
+                stopPlatform: (platform: string) => Promise<void>;
                 probe: (platform: string) => Promise<BridgeProbeResult>;
                 browseWorkingDirectory: (defaultPath?: string) => Promise<string | null>;
                 verifyTelegram: (payload: {
@@ -280,6 +284,8 @@ export function getBridgeClient(): BridgeClient | null {
     runAction: (request) => bridge.runAction(request),
     start: () => bridge.start(),
     stop: () => bridge.stop(),
+    startPlatform: (platform) => bridge.startPlatform(platform),
+    stopPlatform: (platform) => bridge.stopPlatform(platform),
     probe: (platform) => bridge.probe(platform),
     browseWorkingDirectory: (defaultPath) =>
       bridge.browseWorkingDirectory(defaultPath),

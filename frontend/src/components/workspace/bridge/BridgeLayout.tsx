@@ -5,7 +5,6 @@ import { useCallback, useState, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-import { BridgeSection } from "./BridgeSection";
 import { DiscordBridgeSection } from "./DiscordBridgeSection";
 import { FeishuBridgeSection } from "./FeishuBridgeSection";
 import { QqBridgeSection } from "./QqBridgeSection";
@@ -16,14 +15,12 @@ import {
   ChatTeardrop,
   GameController,
   TelegramLogo,
-  WifiHigh,
   useBridgeTranslation,
 } from "./bridge-shared";
 
-type Section = "bridge" | "telegram" | "feishu" | "discord" | "qq" | "weixin";
+type Section = "telegram" | "feishu" | "discord" | "qq" | "weixin";
 
 const sidebarItems = [
-  { id: "bridge", icon: WifiHigh, labelKey: "bridge.title" },
   { id: "telegram", icon: TelegramLogo, labelKey: "bridge.telegramSettings" },
   { id: "feishu", icon: ChatTeardrop, labelKey: "bridge.feishuSettings" },
   { id: "discord", icon: GameController, labelKey: "bridge.discordSettings" },
@@ -33,13 +30,13 @@ const sidebarItems = [
 
 function getSectionFromHash(): Section {
   if (typeof window === "undefined") {
-    return "bridge";
+    return "telegram";
   }
   const hash = window.location.hash.replace("#", "");
   if (sidebarItems.some((item) => item.id === hash)) {
     return hash as Section;
   }
-  return "bridge";
+  return "telegram";
 }
 
 function subscribeToHash(callback: () => void) {
@@ -54,7 +51,7 @@ export function BridgeLayout() {
   const hashSection = useSyncExternalStore(
     subscribeToHash,
     getSectionFromHash,
-    () => "bridge" as Section,
+    () => "telegram" as Section,
   );
   const [overrideSection, setOverrideSection] = useState<Section | null>(null);
   const activeSection = overrideSection ?? hashSection;
@@ -96,7 +93,6 @@ export function BridgeLayout() {
         </nav>
 
         <div className="flex-1 overflow-auto p-6">
-          {activeSection === "bridge" && <BridgeSection />}
           {activeSection === "telegram" && <TelegramBridgeSection />}
           {activeSection === "feishu" && <FeishuBridgeSection />}
           {activeSection === "discord" && <DiscordBridgeSection />}

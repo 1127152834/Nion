@@ -11,9 +11,15 @@ import { SettingsCard } from "@/components/patterns/SettingsCard";
 import { StatusBanner } from "@/components/patterns/StatusBanner";
 import { createBridgeClient } from "@/core/bridge/client";
 
-import { useBridgeTranslation } from "./useBridgeTranslation";
+import {
+  BridgePlatformEnableCard,
+  BridgePlatformRuntimeCard,
+  useBridgeTranslation,
+} from "./useBridgeTranslation";
 
 type QqBridgeSettings = {
+  remote_bridge_enabled: string;
+  bridge_qq_enabled: string;
   bridge_qq_app_id: string;
   bridge_qq_app_secret: string;
   bridge_qq_allowed_users: string;
@@ -22,6 +28,8 @@ type QqBridgeSettings = {
 };
 
 const DEFAULT_SETTINGS: QqBridgeSettings = {
+  remote_bridge_enabled: "",
+  bridge_qq_enabled: "",
   bridge_qq_app_id: "",
   bridge_qq_app_secret: "",
   bridge_qq_allowed_users: "",
@@ -43,12 +51,16 @@ export function QqBridgeSection() {
     ok: boolean;
     message: string;
   } | null>(null);
+  const [bridgeEnabled, setBridgeEnabled] = useState(false);
+  const [channelEnabled, setChannelEnabled] = useState(false);
 
   const fetchSettings = useCallback(async () => {
     const client = createBridgeClient();
     const data = await client.getSettings();
     const next = { ...DEFAULT_SETTINGS, ...data };
     setSettings(next);
+    setBridgeEnabled(next.remote_bridge_enabled === "true");
+    setChannelEnabled(next.bridge_qq_enabled === "true");
     setAppId(next.bridge_qq_app_id);
     setAppSecret(next.bridge_qq_app_secret);
     setAllowedUsers(next.bridge_qq_allowed_users);
@@ -130,6 +142,25 @@ export function QqBridgeSection() {
 
   return (
     <div className="max-w-3xl space-y-6">
+      <BridgePlatformEnableCard
+        title={t("bridge.qqChannel")}
+        description={t("bridge.qqChannelDesc")}
+        enabled={channelEnabled}
+        saving={saving}
+        onToggle={(checked) =>
+          void saveSettings({
+            bridge_qq_enabled: checked ? "true" : "",
+            ...(checked ? { remote_bridge_enabled: "true" } : {}),
+          })
+        }
+      />
+
+      <BridgePlatformRuntimeCard
+        platform="qq"
+        bridgeEnabled={bridgeEnabled}
+        channelEnabled={channelEnabled}
+      />
+
       <SettingsCard title={t("qq.credentials")} description={t("qq.credentialsDesc")}>
         <div className="space-y-3">
           <div>
