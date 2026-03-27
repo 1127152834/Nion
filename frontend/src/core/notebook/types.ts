@@ -88,6 +88,20 @@ export interface NotebookCreateInput {
   body: string;
 }
 
+export interface NotebookDirectoryCreateInput {
+  parent_directory: string;
+  name: string;
+}
+
+export interface NotebookDirectoryRenameInput {
+  directory: string;
+  name: string;
+}
+
+export interface NotebookDirectoryDeleteInput {
+  directory: string;
+}
+
 export interface NotebookUpdateInput {
   body: string;
   expected_content_hash: string;

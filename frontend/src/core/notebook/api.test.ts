@@ -3,6 +3,8 @@ import test from "node:test";
 
 const {
   createNotebookNote,
+  createNotebookDirectory,
+  deleteNotebookDirectory,
   getNotebookDeletePreview,
   loadNotebookHistoryDetail,
   loadNotebookNotes,
@@ -13,6 +15,7 @@ const {
   moveNotebookNote,
   previewNotebookAssist,
   applyNotebookAssist,
+  renameNotebookDirectory,
   renameNotebookNote,
   restoreDeletedNotebookNote,
   restoreNotebookVersion,
@@ -47,6 +50,41 @@ void test("loadNotebookTree calls the notebook tree endpoint", async () => {
   try {
     await loadNotebookTree();
     assert.match(seenUrl, /\/api\/notebook\/tree$/);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+void test("notebook directory helpers hit their expected endpoints", async () => {
+  const originalFetch = globalThis.fetch;
+  const requests: string[] = [];
+
+  globalThis.fetch = async (input, init) => {
+    requests.push(`${init?.method ?? "GET"} ${String(input)} ${String(init?.body ?? "")}`);
+    return createJsonResponse({ directory: "projects/beta" });
+  };
+
+  try {
+    const created = await createNotebookDirectory({
+      parent_directory: "projects",
+      name: "alpha",
+    });
+    const renamed = await renameNotebookDirectory({
+      directory: "projects/alpha",
+      name: "beta",
+    });
+    const deleted = await deleteNotebookDirectory({
+      directory: "projects/beta",
+    });
+
+    assert.equal(created, "projects/beta");
+    assert.equal(renamed, "projects/beta");
+    assert.equal(deleted, "projects/beta");
+    assert.deepEqual(requests, [
+      'POST /api/notebook/directories {"parent_directory":"projects","name":"alpha"}',
+      'POST /api/notebook/directories/rename {"directory":"projects/alpha","name":"beta"}',
+      'POST /api/notebook/directories/delete {"directory":"projects/beta"}',
+    ]);
   } finally {
     globalThis.fetch = originalFetch;
   }

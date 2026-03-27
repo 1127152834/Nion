@@ -6,6 +6,9 @@ import type {
   NotebookAssistPreview,
   NotebookAssistPreviewInput,
   NotebookCreateInput,
+  NotebookDirectoryCreateInput,
+  NotebookDirectoryDeleteInput,
+  NotebookDirectoryRenameInput,
   NotebookDeletePreview,
   NotebookDeletedNotePreview,
   NotebookHistoryDetail,
@@ -111,6 +114,66 @@ export async function createNotebookNote(input: NotebookCreateInput): Promise<No
   }
   const json = await readJson<{ note: NotebookNote }>(response);
   return json.note;
+}
+
+export async function createNotebookDirectory(
+  input: NotebookDirectoryCreateInput,
+): Promise<string> {
+  const response = await fetch(`${getBackendBaseURL()}/api/notebook/directories`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) {
+    throw new Error(
+      resolveErrorMessage(
+        await response.text(),
+        `Failed to create notebook directory (${response.status})`,
+      ),
+    );
+  }
+  const json = await readJson<{ directory: string }>(response);
+  return json.directory;
+}
+
+export async function renameNotebookDirectory(
+  input: NotebookDirectoryRenameInput,
+): Promise<string> {
+  const response = await fetch(`${getBackendBaseURL()}/api/notebook/directories/rename`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) {
+    throw new Error(
+      resolveErrorMessage(
+        await response.text(),
+        `Failed to rename notebook directory (${response.status})`,
+      ),
+    );
+  }
+  const json = await readJson<{ directory: string }>(response);
+  return json.directory;
+}
+
+export async function deleteNotebookDirectory(
+  input: NotebookDirectoryDeleteInput,
+): Promise<string> {
+  const response = await fetch(`${getBackendBaseURL()}/api/notebook/directories/delete`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) {
+    throw new Error(
+      resolveErrorMessage(
+        await response.text(),
+        `Failed to delete notebook directory (${response.status})`,
+      ),
+    );
+  }
+  const json = await readJson<{ directory: string }>(response);
+  return json.directory;
 }
 
 export async function updateNotebookNote(

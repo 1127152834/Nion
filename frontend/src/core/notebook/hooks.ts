@@ -2,7 +2,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
   applyNotebookAssist,
+  createNotebookDirectory,
   createNotebookNote,
+  deleteNotebookDirectory,
   deleteNotebookNote,
   getNotebookDeletePreview,
   importNotebookContent,
@@ -14,6 +16,7 @@ import {
   loadNotebookTree,
   moveNotebookNote,
   previewNotebookAssist,
+  renameNotebookDirectory,
   renameNotebookNote,
   restoreDeletedNotebookNote,
   restoreNotebookVersion,
@@ -24,6 +27,9 @@ import type {
   NotebookAssistApplyInput,
   NotebookAssistPreviewInput,
   NotebookCreateInput,
+  NotebookDirectoryCreateInput,
+  NotebookDirectoryDeleteInput,
+  NotebookDirectoryRenameInput,
   NotebookImportInput,
   NotebookMetadataInput,
   NotebookMoveInput,
@@ -116,6 +122,48 @@ export function useCreateNotebookNote() {
     mutationFn: async (input: NotebookCreateInput) => createNotebookNote(input),
     onSuccess: async (note) => {
       await invalidateNotebookQueries(queryClient, note.note_id);
+    },
+  });
+}
+
+export function useCreateNotebookDirectory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: NotebookDirectoryCreateInput) =>
+      createNotebookDirectory(input),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["notebook", "tree"] }),
+        queryClient.invalidateQueries({ queryKey: ["notebook", "notes"] }),
+      ]);
+    },
+  });
+}
+
+export function useRenameNotebookDirectory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: NotebookDirectoryRenameInput) =>
+      renameNotebookDirectory(input),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["notebook", "tree"] }),
+        queryClient.invalidateQueries({ queryKey: ["notebook", "notes"] }),
+      ]);
+    },
+  });
+}
+
+export function useDeleteNotebookDirectory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: NotebookDirectoryDeleteInput) =>
+      deleteNotebookDirectory(input),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["notebook", "tree"] }),
+        queryClient.invalidateQueries({ queryKey: ["notebook", "notes"] }),
+      ]);
     },
   });
 }
