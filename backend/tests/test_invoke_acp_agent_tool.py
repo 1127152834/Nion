@@ -155,3 +155,16 @@ def test_invoke_acp_agent_passes_resolved_env(monkeypatch):
 
     assert result == "hello from acp"
     assert captured["env"]["OPENAI_API_KEY"] == "test-token"
+
+
+def test_get_work_dir_uses_per_thread_path_when_thread_id_given(monkeypatch, tmp_path):
+    from nion.config import paths as paths_module
+    from nion.tools.builtins import invoke_acp_agent_tool as module
+
+    monkeypatch.setattr(module, "get_paths", lambda: paths_module.Paths(base_dir=tmp_path))
+
+    result = module._get_work_dir("thread-abc-123")
+
+    expected = tmp_path / "threads" / "thread-abc-123" / "acp-workspace"
+    assert result == str(expected)
+    assert expected.exists()

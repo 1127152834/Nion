@@ -5,8 +5,10 @@ import pytest
 
 from nion.sandbox.tools import (
     VIRTUAL_PATH_PREFIX,
+    _is_acp_workspace_path,
     _is_skills_path,
     _reject_path_traversal,
+    _resolve_acp_workspace_path,
     _resolve_and_validate_user_data_path,
     _resolve_skills_path,
     mask_local_paths_in_output,
@@ -322,3 +324,65 @@ def test_validate_local_tool_path_skills_custom_container_path() -> None:
                 _THREAD_DATA,
                 read_only=True,
             )
+
+
+# ---------- ACP workspace path tests ----------
+
+
+def test_is_acp_workspace_path_recognises_prefix() -> None:
+    assert _is_acp_workspace_path("/mnt/acp-workspace") is True
+    assert _is_acp_workspace_path("/mnt/acp-workspace/hello.py") is True
+    assert _is_acp_workspace_path("/mnt/acp-workspace-extra/foo") is False
+    assert _is_acp_workspace_path("/mnt/user-data/workspace") is False
+
+
+def test_validate_local_tool_path_allows_acp_workspace_read_only() -> None:
+    validate_local_tool_path(
+        "/mnt/acp-workspace/hello_world.py",
+        _THREAD_DATA,
+        read_only=True,
+    )
+
+
+def test_validate_local_tool_path_blocks_acp_workspace_write() -> None:
+    with pytest.raises(PermissionError, match="Write access to ACP workspace is not allowed"):
+        validate_local_tool_path(
+            "/mnt/acp-workspace/hello_world.py",
+            _THREAD_DATA,
+            read_only=False,
+        )
+
+
+def test_validate_local_bash_command_paths_allows_acp_workspace() -> None:
+    validate_local_bash_command_paths(
+        "cp /mnt/acp-workspace/hello_world.py /mnt/user-data/outputs/hello_world.py",
+        _THREAD_DATA,
+    )
+
+
+def test_resolve_acp_workspace_path_resolves_correctly(tmp_path: Path) -> None:
+    acp_dir = tmp_path / "acp-workspace"
+    acp_dir.mkdir()
+    with patch("nion.sandbox.tools._get_acp_workspace_host_path", return_value=str(acp_dir)):
+        resolved = _resolve_acp_workspace_path("/mnt/acp-workspace/hello.py")
+        assert resolved == str(acp_dir / "hello.py")
+
+
+def test_replace_virtual_paths_in_command_replaces_acp_workspace() -> None:
+    acp_host = "/home/user/.nion-data/threads/t1/acp-workspace"
+    with patch("nion.sandbox.tools._get_acp_workspace_host_path", return_value=acp_host):
+        cmd = "cp /mnt/acp-workspace/hello.py /mnt/user-data/outputs/hello.py"
+        result = replace_virtual_paths_in_command(cmd, _THREAD_DATA)
+        assert "/mnt/acp-workspace" not in result
+        assert f"{acp_host}/hello.py" in result
+        assert "/tmp/nion/threads/t1/user-data/outputs/hello.py" in result
+
+
+def test_mask_local_paths_in_output_hides_acp_workspace_host_paths() -> None:
+    acp_host = "/tmp/nion/threads/t1/acp-workspace"
+    with patch("nion.sandbox.tools._get_acp_workspace_host_path", return_value=acp_host):
+        output = f"Copied: {acp_host}/hello.py"
+        masked = mask_local_paths_in_output(output, _THREAD_DATA)
+
+        assert acp_host not in masked
+        assert "/mnt/acp-workspace/hello.py" in masked

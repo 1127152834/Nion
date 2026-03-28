@@ -23,9 +23,17 @@ class _InvokeACPAgentInput(BaseModel):
     prompt: str = Field(description="The concise task prompt to send to the agent")
 
 
-def _get_work_dir() -> str:
-    """Return the ACP workspace used before thread-scoped workspaces land."""
-    work_dir = get_paths().base_dir / "acp-workspace"
+def _get_work_dir(thread_id: str | None) -> str:
+    """Return the ACP workspace, preferring a thread-scoped directory."""
+    paths = get_paths()
+    if thread_id:
+        try:
+            work_dir = paths.acp_workspace_dir(thread_id)
+        except ValueError:
+            logger.warning("Invalid thread_id %r for ACP workspace, falling back to global", thread_id)
+            work_dir = paths.base_dir / "acp-workspace"
+    else:
+        work_dir = paths.base_dir / "acp-workspace"
     work_dir.mkdir(parents=True, exist_ok=True)
     return str(work_dir)
 
@@ -110,6 +118,7 @@ def build_invoke_acp_agent_tool(
             available = ", ".join(sorted(agents))
             return f"Unknown ACP agent '{agent}'. Configured agents: {available or '(none)'}"
 
+        thread_id: str | None = ((config or {}).get("configurable") or {}).get("thread_id")
         cmd = agent_config.command
         if shutil.which(cmd) is None:
             return (
@@ -148,7 +157,7 @@ def build_invoke_acp_agent_tool(
         client = _CollectingClient()
         process_env = os.environ.copy()
         process_env.update(_resolve_agent_env(agent_config))
-        physical_cwd = _get_work_dir()
+        physical_cwd = _get_work_dir(thread_id)
 
         try:
             async with spawn_agent_process(
