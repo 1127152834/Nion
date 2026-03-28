@@ -27,9 +27,10 @@ type UseTerminalInput = {
 };
 
 export function useTerminal({ cwd, sessionId }: UseTerminalInput) {
-  const desktopWindow = window as TerminalWindow;
+  const desktopWindow =
+    typeof window !== "undefined" ? (window as TerminalWindow) : null;
   const [isDesktop] = useState(
-    () => typeof window !== "undefined" && Boolean(desktopWindow.nionDesktop?.terminal),
+    () => Boolean(desktopWindow?.nionDesktop?.terminal),
   );
   const [connected, setConnected] = useState(false);
   const [exited, setExited] = useState(false);
@@ -39,7 +40,7 @@ export function useTerminal({ cwd, sessionId }: UseTerminalInput) {
   const unsubExitRef = useRef<(() => void) | null>(null);
 
   const create = async (cols: number, rows: number) => {
-    const api = desktopWindow.nionDesktop?.terminal;
+    const api = desktopWindow?.nionDesktop?.terminal;
     if (!api || !cwd) {
       return;
     }
@@ -71,7 +72,7 @@ export function useTerminal({ cwd, sessionId }: UseTerminalInput) {
   };
 
   const write = (data: string) => {
-    const api = desktopWindow.nionDesktop?.terminal;
+    const api = desktopWindow?.nionDesktop?.terminal;
     if (!api || !terminalIdRef.current) {
       return;
     }
@@ -79,7 +80,7 @@ export function useTerminal({ cwd, sessionId }: UseTerminalInput) {
   };
 
   const resize = async (cols: number, rows: number) => {
-    const api = desktopWindow.nionDesktop?.terminal;
+    const api = desktopWindow?.nionDesktop?.terminal;
     if (!api || !terminalIdRef.current) {
       return;
     }
@@ -87,7 +88,7 @@ export function useTerminal({ cwd, sessionId }: UseTerminalInput) {
   };
 
   const kill = async () => {
-    const api = desktopWindow.nionDesktop?.terminal;
+    const api = desktopWindow?.nionDesktop?.terminal;
     if (!api || !terminalIdRef.current) {
       return;
     }
@@ -108,7 +109,7 @@ export function useTerminal({ cwd, sessionId }: UseTerminalInput) {
     return () => {
       unsubDataRef.current?.();
       unsubExitRef.current?.();
-      if (terminalIdRef.current && desktopWindow.nionDesktop?.terminal) {
+      if (terminalIdRef.current && desktopWindow?.nionDesktop?.terminal) {
         void desktopWindow.nionDesktop.terminal.kill(terminalIdRef.current);
       }
     };
