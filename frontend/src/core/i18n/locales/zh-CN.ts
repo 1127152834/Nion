@@ -564,12 +564,32 @@ export const zhCN: Translations = {
       tools: "工具",
       search: "搜索",
       cliTools: "CLI 工具",
+      agentIntegrations: "Agent 集成",
       mcpServers: "MCP 服务器",
       skills: "技能",
       sandbox: "沙箱",
       notification: "通知",
       daemon: "守护进程",
       about: "关于",
+    },
+    agentIntegrations: {
+      title: "Agent 集成",
+      description: "先把外部 ACP 兼容 Agent 的配置入口落到设置页，再接运行时能力。",
+      empty:
+        "当前还没有配置 ACP 适配器。这里会成为 Codex 和 Claude Code 集成的设置入口。",
+      knownAgents: {
+        codex: "Codex",
+        claudeCode: "Claude Code",
+      },
+      fields: {
+        enabled: "启用",
+        command: "命令",
+        args: "参数",
+        description: "描述",
+        model: "模型",
+        autoApprovePermissions: "自动批准权限",
+        env: "环境变量",
+      },
     },
     daemon: {
       title: "守护进程",

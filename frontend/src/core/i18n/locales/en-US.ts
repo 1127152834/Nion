@@ -590,12 +590,33 @@ export const enUS: Translations = {
       tools: "Tools",
       search: "Search",
       cliTools: "CLI Tools",
+      agentIntegrations: "Agent Integrations",
       mcpServers: "MCP servers",
       skills: "Skills",
       sandbox: "Sandbox",
       notification: "Notification",
       daemon: "Daemon",
       about: "About",
+    },
+    agentIntegrations: {
+      title: "Agent Integrations",
+      description:
+        "Configure external ACP-compatible agents before wiring runtime behavior.",
+      empty:
+        "No ACP adapter is configured yet. This page will become the home for Codex and Claude Code integrations.",
+      knownAgents: {
+        codex: "Codex",
+        claudeCode: "Claude Code",
+      },
+      fields: {
+        enabled: "Enabled",
+        command: "Command",
+        args: "Arguments",
+        description: "Description",
+        model: "Model",
+        autoApprovePermissions: "Auto-approve permissions",
+        env: "Environment variables",
+      },
     },
     daemon: {
       title: "Daemon",

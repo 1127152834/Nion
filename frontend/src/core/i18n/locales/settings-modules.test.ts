@@ -153,6 +153,25 @@ const EXPECTED_DAEMON_SHAPE = {
   allowBackgroundRunningHint: true,
 } as const;
 
+const EXPECTED_AGENT_INTEGRATIONS_SHAPE = {
+  title: true,
+  description: true,
+  empty: true,
+  knownAgents: {
+    codex: true,
+    claudeCode: true,
+  },
+  fields: {
+    enabled: true,
+    command: true,
+    args: true,
+    description: true,
+    model: true,
+    autoApprovePermissions: true,
+    env: true,
+  },
+} as const;
+
 function shapeOf(value: unknown): true | Record<string, true | Record<string, unknown>> {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return true;
@@ -173,7 +192,7 @@ function assertSectionShape(
   assert.deepEqual(shapeOf(value), expected, `${label} shape mismatch`);
 }
 
-void test("search, cliTools, and daemon expose the full settings i18n contract", () => {
+void test("search, cliTools, daemon, and agentIntegrations expose the full settings i18n contract", () => {
   assertSectionShape("enUS.settings.search", enUS.settings.search, EXPECTED_SEARCH_SHAPE);
   assertSectionShape("zhCN.settings.search", zhCN.settings.search, EXPECTED_SEARCH_SHAPE);
   assertSectionShape(
@@ -195,5 +214,15 @@ void test("search, cliTools, and daemon expose the full settings i18n contract",
     "zhCN.settings.daemon",
     zhCN.settings.daemon,
     EXPECTED_DAEMON_SHAPE,
+  );
+  assertSectionShape(
+    "enUS.settings.agentIntegrations",
+    enUS.settings.agentIntegrations,
+    EXPECTED_AGENT_INTEGRATIONS_SHAPE,
+  );
+  assertSectionShape(
+    "zhCN.settings.agentIntegrations",
+    zhCN.settings.agentIntegrations,
+    EXPECTED_AGENT_INTEGRATIONS_SHAPE,
   );
 });
