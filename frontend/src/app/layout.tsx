@@ -12,10 +12,10 @@ export const metadata: Metadata = {
   description: "一念之间，万事即达。你的专属 AI 智能助手，懂你所想，为你而行。",
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const locale = await detectLocaleServer();
+  const locale = detectLocaleServer();
   return (
     <html lang={locale} suppressContentEditableWarning suppressHydrationWarning>
       <body>

@@ -601,10 +601,12 @@ export function InputBox({
         .sort(([left], [right]) => left.localeCompare(right))
         .map(([toolId, tool]) => ({
           id: `cli:${toolId}`,
-          label: toolId,
+          label: tool.displayName?.trim() || toolId,
           value: toolId,
           kind: "cli" as const,
-          description: tool.description,
+          description: tool.version
+            ? `v${tool.version} · ${tool.description}`
+            : tool.description,
         })),
     [cliConfig?.clis],
   );
@@ -1619,8 +1621,22 @@ export function InputBox({
               </div>
               <div className="max-h-60 overflow-auto">
                 {filteredCliSelectorOptions.length === 0 ? (
-                  <div className="text-muted-foreground px-3 py-2 text-xs">
-                    No CLI tools available
+                  <div className="px-3 py-3 text-xs text-muted-foreground">
+                    <div>No CLI tools available</div>
+                    <button
+                      type="button"
+                      className="mt-2 text-primary hover:underline"
+                      onClick={() => {
+                        window.dispatchEvent(
+                          new CustomEvent("nion-open-settings", {
+                            detail: { section: "cliTools" },
+                          }),
+                        );
+                        setCliSelectorOpen(false);
+                      }}
+                    >
+                      Go install CLI tools
+                    </button>
                   </div>
                 ) : (
                   filteredCliSelectorOptions.map((option) => (
@@ -1653,6 +1669,23 @@ export function InputBox({
                     </DropdownMenuItem>
                   ))
                 )}
+              </div>
+              <div className="border-t px-3 py-2">
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                  onClick={() => {
+                    window.dispatchEvent(
+                      new CustomEvent("nion-open-settings", {
+                        detail: { section: "cliTools" },
+                      }),
+                    );
+                    setCliSelectorOpen(false);
+                  }}
+                >
+                  <SquareTerminalIcon className="size-3" />
+                  Manage CLI tools
+                </button>
               </div>
             </DropdownMenuContent>
           </DropdownMenu>

@@ -3,6 +3,12 @@ export const DESKTOP_IPC_CHANNELS = {
   checkForUpdates: "desktop:check-for-updates",
   quitAndInstallUpdate: "desktop:quit-and-install-update",
   openFolder: "desktop:open-folder",
+  terminalCreate: "desktop:terminal-create",
+  terminalWrite: "desktop:terminal-write",
+  terminalResize: "desktop:terminal-resize",
+  terminalKill: "desktop:terminal-kill",
+  terminalOnData: "desktop:terminal-data",
+  terminalOnExit: "desktop:terminal-exit",
 } as const;
 
 export type DesktopRuntimeInfo = {
@@ -23,6 +29,16 @@ export type DesktopUpdateResult = {
 export type DesktopOpenFolderResult = {
   canceled: boolean;
   filePaths: string[];
+};
+
+export type DesktopTerminalDataEvent = {
+  id: string;
+  data: string;
+};
+
+export type DesktopTerminalExitEvent = {
+  id: string;
+  code: number;
 };
 
 export type DesktopBridgeStatus = {
@@ -86,6 +102,23 @@ declare global {
           defaultPath?: string;
           title?: string;
         }) => Promise<DesktopOpenFolderResult>;
+      };
+      terminal?: {
+        create: (options: {
+          id: string;
+          cwd: string;
+          cols: number;
+          rows: number;
+        }) => Promise<void>;
+        write: (id: string, data: string) => void;
+        resize: (id: string, cols: number, rows: number) => Promise<void>;
+        kill: (id: string) => Promise<void>;
+        onData: (
+          callback: (payload: DesktopTerminalDataEvent) => void,
+        ) => () => void;
+        onExit: (
+          callback: (payload: DesktopTerminalExitEvent) => void,
+        ) => () => void;
       };
       bridge: {
         getSettings: () => Promise<Record<string, string>>;

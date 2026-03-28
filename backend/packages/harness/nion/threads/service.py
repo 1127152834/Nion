@@ -51,6 +51,15 @@ class ThreadService:
         config = request.config
         latest_values: dict[str, Any] | None = None
 
+        selected_cli_tools = _extract_selected_cli_tools(request.messages)
+        if selected_cli_tools:
+            message_text = (
+                f"{message_text}\n\n<selected_cli_tools>\n"
+                f"Prefer using these CLI tools when they are relevant to the task: "
+                f"{', '.join(selected_cli_tools)}.\n"
+                f"</selected_cli_tools>"
+            ).strip()
+
         for event in self._client.stream(
             message_text,
             thread_id=thread_id,
@@ -95,6 +104,22 @@ def _extract_message_text(messages: list[dict[str, Any]]) -> str:
                     text_parts.append(text)
         return "\n".join(text_parts)
     return str(content)
+
+
+def _extract_selected_cli_tools(messages: list[dict[str, Any]]) -> list[str]:
+    if not messages:
+        return []
+    first = messages[0]
+    additional_kwargs = first.get("additional_kwargs", {})
+    if not isinstance(additional_kwargs, dict):
+        return []
+    shortcut_selections = additional_kwargs.get("shortcut_selections", {})
+    if not isinstance(shortcut_selections, dict):
+        return []
+    cli_tools = shortcut_selections.get("cliTools", [])
+    if not isinstance(cli_tools, list):
+        return []
+    return [item for item in cli_tools if isinstance(item, str) and item.strip()]
 
 
 _thread_service: ThreadService | None = None

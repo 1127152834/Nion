@@ -62,6 +62,18 @@ export function WorkspaceNavMenu() {
     setMounted(true);
   }, []);
 
+  useEffect(() => {
+    const onOpenSettings = (event: Event) => {
+      const customEvent = event as CustomEvent<{ section?: SettingsSection }>;
+      setSettingsDefaultSection(customEvent.detail?.section ?? "appearance");
+      setSettingsOpen(true);
+    };
+    window.addEventListener("nion-open-settings", onOpenSettings as EventListener);
+    return () => {
+      window.removeEventListener("nion-open-settings", onOpenSettings as EventListener);
+    };
+  }, []);
+
   return (
     <>
       <SettingsDialog

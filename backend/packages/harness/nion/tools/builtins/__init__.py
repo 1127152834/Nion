@@ -1,4 +1,12 @@
 from .clarification_tool import ask_clarification_tool
+from .cli_tools import (
+    cli_tools_add_tool,
+    cli_tools_check_updates_tool,
+    cli_tools_install_tool,
+    cli_tools_list_tool,
+    cli_tools_remove_tool,
+    cli_tools_update_tool,
+)
 from .control_plane_tools import (
     approve_channel_pair_request_tool,
     diagnose_incident_tool,
@@ -34,6 +42,12 @@ __all__ = [
     "setup_agent",
     "present_file_tool",
     "ask_clarification_tool",
+    "cli_tools_list_tool",
+    "cli_tools_install_tool",
+    "cli_tools_add_tool",
+    "cli_tools_remove_tool",
+    "cli_tools_check_updates_tool",
+    "cli_tools_update_tool",
     "view_image_tool",
     "task_tool",
     "get_runtime_status_tool",

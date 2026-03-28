@@ -16,6 +16,7 @@ import { ThreadContext } from "@/components/workspace/messages/context";
 import { NewChatStage } from "@/components/workspace/new-chat-stage";
 import { RuntimeModeToggle } from "@/components/workspace/runtime-mode-toggle";
 import { SaveToNotebookTrigger } from "@/components/workspace/save-to-notebook-trigger";
+import { TerminalDrawer } from "@/components/workspace/terminal";
 import { ThreadRequestErrorAlert } from "@/components/workspace/thread-request-error-alert";
 import { ThreadTitle } from "@/components/workspace/thread-title";
 import { TodoList } from "@/components/workspace/todo-list";
@@ -36,6 +37,8 @@ import { useThreadStream } from "@/core/threads/hooks";
 import { pathOfThread, textOfMessage } from "@/core/threads/utils";
 import { env } from "@/env";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { SquareTerminalIcon } from "lucide-react";
 
 export default function ChatThreadPage() {
   const { t } = useI18n();
@@ -54,6 +57,7 @@ export default function ChatThreadPage() {
   });
   const [runtimeProfileLoading, setRuntimeProfileLoading] = useState(false);
   const [runtimeProfileSaving, setRuntimeProfileSaving] = useState(false);
+  const [terminalOpen, setTerminalOpen] = useState(false);
 
   useEffect(() => {
     if (isMock) {
@@ -236,6 +240,16 @@ export default function ChatThreadPage() {
               <WorkingDirectoryTrigger />
               {!isNewThread ? <ExportTrigger threadId={threadId} /> : null}
               {!isNewThread ? <SaveToNotebookTrigger threadId={threadId} /> : null}
+              {!isNewThread ? (
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => setTerminalOpen((value) => !value)}
+                  title="Terminal"
+                >
+                  <SquareTerminalIcon className="size-4" />
+                </Button>
+              ) : null}
             </div>
           </header>
 
@@ -321,6 +335,11 @@ export default function ChatThreadPage() {
               </div>
             </main>
           )}
+          <TerminalDrawer
+            open={terminalOpen}
+            onOpenChange={setTerminalOpen}
+            threadId={threadId}
+          />
         </div>
       </ChatBox>
     </ThreadContext.Provider>
