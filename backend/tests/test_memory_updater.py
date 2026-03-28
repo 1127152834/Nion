@@ -272,7 +272,10 @@ class TestUpdateMemoryStructuredResponse:
             patch.object(updater, "_get_model", return_value=self._make_mock_model(valid_json)),
             patch("nion.agents.memory.updater.get_memory_config", return_value=_memory_config(enabled=True)),
             patch("nion.agents.memory.updater.get_memory_data", return_value=_make_memory()),
-            patch("nion.agents.memory.updater._save_memory_to_file", return_value=True),
+            patch(
+                "nion.agents.memory.updater.get_memory_storage",
+                return_value=MagicMock(save=MagicMock(return_value=True)),
+            ),
         ):
             msg = MagicMock()
             msg.type = "human"
@@ -295,7 +298,10 @@ class TestUpdateMemoryStructuredResponse:
             patch.object(updater, "_get_model", return_value=self._make_mock_model(list_content)),
             patch("nion.agents.memory.updater.get_memory_config", return_value=_memory_config(enabled=True)),
             patch("nion.agents.memory.updater.get_memory_data", return_value=_make_memory()),
-            patch("nion.agents.memory.updater._save_memory_to_file", return_value=True),
+            patch(
+                "nion.agents.memory.updater.get_memory_storage",
+                return_value=MagicMock(save=MagicMock(return_value=True)),
+            ),
         ):
             msg = MagicMock()
             msg.type = "human"
