@@ -142,9 +142,17 @@ def _build_schema() -> ConfigSchemaResponse:
             title="Models",
             description="Configure available LLM models.",
         ),
+        "agent_integrations": ConfigSectionSchema(
+            title="Agent integrations",
+            description="Configure ACP-compatible external agent adapters.",
+        ),
         "session_policy": ConfigSectionSchema(
             title="Session policy",
             description="Configure title, summarization, and subagent policy.",
+        ),
+        "memory": ConfigSectionSchema(
+            title="Memory",
+            description="Configure memory persistence and injection behavior.",
         ),
         "tools": ConfigSectionSchema(
             title="Tools",
@@ -178,7 +186,9 @@ def _build_schema() -> ConfigSchemaResponse:
     order = [
         "appearance",
         "models",
+        "agent_integrations",
         "session_policy",
+        "memory",
         "tools",
         "mcp",
         "skills",
