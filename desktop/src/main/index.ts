@@ -21,13 +21,16 @@ import { registerDesktopProtocol } from "./protocol.js";
 import { shouldKeepPrimaryInstance } from "./single-instance.js";
 import { createDesktopUpdater, registerUpdaterHandlers } from "./updater.js";
 import { createMainWindow, focusMainWindow } from "./window.js";
+import { TerminalManager } from "./terminal-manager.js";
 import { DESKTOP_BRIDGE_IPC_CHANNELS } from "../shared/bridge-ipc.js";
+import { DESKTOP_IPC_CHANNELS } from "../shared/ipc.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 let mainWindow: BrowserWindow | null = null;
 let clientSession: ElectronClientSession | null = null;
 let runtimeInfo: import("../shared/ipc.js").DesktopRuntimeInfo | null = null;
+const terminalManager = new TerminalManager();
 
 const MASKED_SETTING_KEYS = new Set([
   "telegram_bot_token",
@@ -323,6 +326,35 @@ export async function startDesktopMain(): Promise<void> {
       throw new Error("Desktop runtime info is unavailable");
     }
     return runtimeInfo;
+  });
+
+  terminalManager.setOnData((id, data) => {
+    mainWindow?.webContents.send(DESKTOP_IPC_CHANNELS.terminalOnData, { id, data });
+  });
+  terminalManager.setOnExit((id, code) => {
+    mainWindow?.webContents.send(DESKTOP_IPC_CHANNELS.terminalOnExit, { id, code });
+  });
+
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.terminalCreate,
+    async (_event, options: { id: string; cwd: string; cols: number; rows: number }) => {
+      terminalManager.create(options.id, options);
+    },
+  );
+  ipcMain.on(
+    DESKTOP_IPC_CHANNELS.terminalWrite,
+    (_event, payload: { id: string; data: string }) => {
+      terminalManager.write(payload.id, payload.data);
+    },
+  );
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.terminalResize,
+    async (_event, payload: { id: string; cols: number; rows: number }) => {
+      terminalManager.resize(payload.id, payload.cols, payload.rows);
+    },
+  );
+  ipcMain.handle(DESKTOP_IPC_CHANNELS.terminalKill, async (_event, id: string) => {
+    terminalManager.kill(id);
   });
 
   const bridgeSettingsStore = createBridgeSettingsStore(
@@ -648,6 +680,7 @@ export async function startDesktopMain(): Promise<void> {
   });
 
   mainWindow.on("closed", () => {
+    terminalManager.killAll();
     void clientSession?.dispose();
     clientSession = null;
     mainWindow = null;

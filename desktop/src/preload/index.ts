@@ -16,6 +16,32 @@ export function registerPreloadBridge(): void {
       openFolder: (options?: { defaultPath?: string; title?: string }) =>
         ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.openFolder, options),
     },
+    terminal: {
+      create: (options: { id: string; cwd: string; cols: number; rows: number }) =>
+        ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.terminalCreate, options),
+      write: (id: string, data: string) =>
+        ipcRenderer.send(DESKTOP_IPC_CHANNELS.terminalWrite, { id, data }),
+      resize: (id: string, cols: number, rows: number) =>
+        ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.terminalResize, { id, cols, rows }),
+      kill: (id: string) =>
+        ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.terminalKill, id),
+      onData: (callback: (payload: { id: string; data: string }) => void) => {
+        const listener = (_event: unknown, payload: { id: string; data: string }) =>
+          callback(payload);
+        ipcRenderer.on(DESKTOP_IPC_CHANNELS.terminalOnData, listener);
+        return () => {
+          ipcRenderer.removeListener(DESKTOP_IPC_CHANNELS.terminalOnData, listener);
+        };
+      },
+      onExit: (callback: (payload: { id: string; code: number }) => void) => {
+        const listener = (_event: unknown, payload: { id: string; code: number }) =>
+          callback(payload);
+        ipcRenderer.on(DESKTOP_IPC_CHANNELS.terminalOnExit, listener);
+        return () => {
+          ipcRenderer.removeListener(DESKTOP_IPC_CHANNELS.terminalOnExit, listener);
+        };
+      },
+    },
     bridge: {
       getSettings: () => ipcRenderer.invoke(DESKTOP_BRIDGE_IPC_CHANNELS.getSettings),
       saveSettings: (updates: Record<string, string>) =>

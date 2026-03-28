@@ -1,44 +1,56 @@
-"""Minimal CLI catalog APIs for runtime-visible composer lane support."""
+"""CLI catalog compatibility routes plus full CodePilot-style CLI tools APIs."""
 
 from __future__ import annotations
 
-from shutil import which
+import json
+from collections.abc import AsyncIterator
 from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
+from starlette.responses import StreamingResponse
 
+from nion.cli_tools import CliToolsService
+from nion.cli_tools.models import CliToolCatalogProjectionItem
 from nion.config import ConfigRepository
 
 router = APIRouter(prefix="/api", tags=["cli"])
 
-DEFAULT_CLI_CANDIDATES = [
-    ("python3", "Python runtime"),
-    ("node", "Node.js runtime"),
-    ("git", "Git version control"),
-    ("pnpm", "pnpm package manager"),
-    ("uv", "uv Python package manager"),
-]
-
-
-class CliCatalogItem(BaseModel):
-    id: str
-    enabled: bool = True
-    allowed: bool = True
-    installed: bool = False
-    configured: bool = False
-    source: str = "host-detected"
-    description: str = ""
-    path: str | None = None
-
 
 class CliCatalogResponse(BaseModel):
-    clis: dict[str, CliCatalogItem] = Field(default_factory=dict)
+    clis: dict[str, CliToolCatalogProjectionItem] = Field(default_factory=dict)
 
 
 class CliCatalogUpdateRequest(BaseModel):
     enabled: bool = True
     description: str | None = None
+
+
+class CliToolsCatalogResponse(BaseModel):
+    tools: list[dict[str, Any]] = Field(default_factory=list)
+
+
+class CliToolsInstalledResponse(BaseModel):
+    tools: list[dict[str, Any]] = Field(default_factory=list)
+    extra: list[dict[str, Any]] = Field(default_factory=list)
+    custom: list[dict[str, Any]] = Field(default_factory=list)
+    descriptions: dict[str, dict[str, Any]] = Field(default_factory=dict)
+    platform: str
+    hasBrew: bool = False
+
+
+class CliToolCustomCreateRequest(BaseModel):
+    binPath: str
+    name: str | None = None
+
+
+class CliToolsBulkDescriptionsRequest(BaseModel):
+    descriptions: dict[str, dict[str, str]]
+
+
+class CliToolDescribeRequest(BaseModel):
+    providerId: str | None = None
+    model: str | None = None
 
 
 def _load_cli_tool_overrides() -> tuple[dict[str, dict[str, Any]], str]:
@@ -60,10 +72,7 @@ def _load_cli_tool_overrides() -> tuple[dict[str, dict[str, Any]], str]:
     return normalized, version
 
 
-def _save_cli_tool_override(
-    cli_id: str,
-    payload: CliCatalogUpdateRequest,
-) -> None:
+def _save_cli_tool_override(cli_id: str, payload: CliCatalogUpdateRequest) -> None:
     repo = ConfigRepository()
     config, version, _ = repo.read()
 
@@ -75,9 +84,7 @@ def _save_cli_tool_override(
     if not isinstance(tools, dict):
         tools = {}
 
-    override: dict[str, Any] = {
-        "enabled": payload.enabled,
-    }
+    override: dict[str, Any] = {"enabled": payload.enabled}
     description = (payload.description or "").strip()
     if description:
         override["description"] = description
@@ -88,50 +95,32 @@ def _save_cli_tool_override(
     repo.write_with_warnings(config_dict=config, expected_version=version)
 
 
-def _build_cli_catalog() -> dict[str, CliCatalogItem]:
-    overrides, _ = _load_cli_tool_overrides()
-    defaults = {cli_name: description for cli_name, description in DEFAULT_CLI_CANDIDATES}
-    candidate_ids = sorted(set(defaults) | set(overrides))
-
-    clis: dict[str, CliCatalogItem] = {}
-    for cli_id in candidate_ids:
-        detected_path = which(cli_id)
-        override = overrides.get(cli_id, {})
-        allowed = bool(override.get("enabled", True))
-        installed = detected_path is not None
-        description = str(override.get("description") or defaults.get(cli_id) or "CLI tool").strip()
-        source = "configured" if cli_id in overrides else "host-detected"
-        clis[cli_id] = CliCatalogItem(
-            id=cli_id,
-            enabled=bool(installed and allowed),
-            allowed=allowed,
-            installed=installed,
-            configured=cli_id in overrides,
-            source=source,
-            description=description,
-            path=detected_path,
-        )
-    return clis
+def _get_cli_tools_service() -> CliToolsService:
+    return CliToolsService()
 
 
 @router.get("/cli/catalog", response_model=CliCatalogResponse)
 async def get_cli_catalog() -> CliCatalogResponse:
-    return CliCatalogResponse(clis=_build_cli_catalog())
+    service = _get_cli_tools_service()
+    overrides, _ = _load_cli_tool_overrides()
+    return CliCatalogResponse(clis=service.list_catalog_projection(overrides=overrides))
 
 
-@router.put("/cli/catalog/{cli_id}", response_model=CliCatalogItem)
+@router.put("/cli/catalog/{cli_id}", response_model=CliToolCatalogProjectionItem)
 async def update_cli_catalog_item(
     cli_id: str,
     payload: CliCatalogUpdateRequest,
-) -> CliCatalogItem:
+) -> CliToolCatalogProjectionItem:
     normalized_id = cli_id.strip()
     if not normalized_id:
-        raise ValueError("cli_id must not be empty")
+        raise HTTPException(status_code=400, detail="cli_id must not be empty")
     _save_cli_tool_override(normalized_id, payload)
-    catalog = _build_cli_catalog()
+    service = _get_cli_tools_service()
+    overrides, _ = _load_cli_tool_overrides()
+    catalog = service.list_catalog_projection(overrides=overrides)
     return catalog.get(
         normalized_id,
-        CliCatalogItem(
+        CliToolCatalogProjectionItem(
             id=normalized_id,
             enabled=False,
             allowed=payload.enabled,
@@ -142,3 +131,128 @@ async def update_cli_catalog_item(
             path=None,
         ),
     )
+
+
+@router.get("/cli-tools/catalog", response_model=CliToolsCatalogResponse)
+async def get_cli_tools_catalog() -> CliToolsCatalogResponse:
+    service = _get_cli_tools_service()
+    return CliToolsCatalogResponse(tools=service.list_catalog())
+
+
+@router.get("/cli-tools/installed", response_model=CliToolsInstalledResponse)
+async def get_cli_tools_installed() -> CliToolsInstalledResponse:
+    service = _get_cli_tools_service()
+    return CliToolsInstalledResponse.model_validate(service.list_installed_payload())
+
+
+@router.get("/cli-tools/describe-options")
+async def get_cli_tools_describe_options() -> dict[str, Any]:
+    return _get_cli_tools_service().list_describe_option_groups()
+
+
+@router.post("/cli-tools/descriptions")
+async def migrate_cli_tool_descriptions(
+    payload: CliToolsBulkDescriptionsRequest,
+) -> dict[str, int]:
+    entries = []
+    for tool_id, item in payload.descriptions.items():
+        zh = str(item.get("zh", "")).strip()
+        en = str(item.get("en", "")).strip()
+        if not tool_id.strip() or not zh or not en:
+            continue
+        entries.append((tool_id.strip(), zh, en))
+    _get_cli_tools_service().bulk_upsert_descriptions(entries)
+    return {"migrated": len(entries)}
+
+
+@router.get("/cli-tools/custom")
+async def list_custom_cli_tools() -> dict[str, list[dict[str, Any]]]:
+    service = _get_cli_tools_service()
+    tools = [item.model_dump() for item in service.list_custom_tools()]
+    return {"tools": tools}
+
+
+@router.post("/cli-tools/custom")
+async def create_custom_cli_tool(payload: CliToolCustomCreateRequest) -> dict[str, Any]:
+    service = _get_cli_tools_service()
+    try:
+        tool = service.create_custom_tool(
+            bin_path=payload.binPath,
+            name=payload.name,
+        )
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+    return {"tool": tool.model_dump()}
+
+
+@router.delete("/cli-tools/custom/{tool_id}")
+async def delete_custom_cli_tool(tool_id: str) -> dict[str, bool]:
+    service = _get_cli_tools_service()
+    if service.get_custom_tool(tool_id) is None:
+        raise HTTPException(status_code=404, detail="Custom tool not found")
+    service.delete_custom_tool(tool_id)
+    return {"deleted": True}
+
+
+@router.get("/cli-tools/{tool_id}/status")
+async def get_cli_tool_status(tool_id: str) -> dict[str, Any]:
+    runtime = _get_cli_tools_service().get_tool_status(tool_id)
+    if runtime is None:
+        raise HTTPException(status_code=404, detail="Tool not found")
+    return runtime.model_dump()
+
+
+@router.get("/cli-tools/{tool_id}/detail")
+async def get_cli_tool_detail(tool_id: str) -> dict[str, Any]:
+    detail = _get_cli_tools_service().get_catalog_detail(tool_id)
+    if detail is None:
+        raise HTTPException(status_code=404, detail="Tool not found")
+    return detail
+
+
+@router.post("/cli-tools/{tool_id}/install")
+async def install_cli_tool(tool_id: str, payload: dict[str, str]) -> StreamingResponse:
+    method = str(payload.get("method", "")).strip()
+    if not method:
+        raise HTTPException(status_code=400, detail="method is required")
+
+    service = _get_cli_tools_service()
+
+    async def event_stream() -> AsyncIterator[str]:
+        try:
+            for event_name, data in service.iter_install_stream(tool_id=tool_id, method=method):
+                yield f"event: {event_name}\ndata: {json.dumps(data)}\n\n"
+        except ValueError as error:
+            yield f"event: error\ndata: {json.dumps(str(error))}\n\n"
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+        },
+    )
+
+
+@router.post("/cli-tools/{tool_id}/describe")
+async def describe_cli_tool(
+    tool_id: str,
+    payload: CliToolDescribeRequest,
+) -> dict[str, Any]:
+    service = _get_cli_tools_service()
+    try:
+        record = service.describe_tool(tool_id=tool_id, model_name=payload.model)
+    except ValueError as error:
+        detail = str(error)
+        status_code = 404 if detail == "Tool not found" else 400
+        raise HTTPException(status_code=status_code, detail=detail) from error
+    except Exception as error:  # pragma: no cover - runtime/provider failure path
+        raise HTTPException(status_code=502, detail=str(error) or "Description generation failed") from error
+    response: dict[str, Any] = {
+        "zh": record.zh,
+        "en": record.en,
+    }
+    if record.structured is not None:
+        response["structured"] = record.structured.model_dump()
+    return {"description": response}
