@@ -1,7 +1,7 @@
 import { getLocaleFromCookie } from "./cookies";
 import { normalizeLocale, type Locale } from "./locale";
 
-export async function detectLocaleServer(): Promise<Locale> {
+export function detectLocaleServer(): Locale {
   if (typeof window !== "undefined") {
     const cookieLocale = getLocaleFromCookie();
     if (cookieLocale) {
