@@ -7,91 +7,20 @@ import { Switch } from "@/components/ui/switch";
 import { useI18n } from "@/core/i18n/hooks";
 
 import { buildAgentIntegrationsCopy } from "./agent-integrations-settings-page.copy";
+import {
+  formatArgs,
+  formatEnv,
+  getAgentConfig,
+  parseArgs,
+  parseEnv,
+  setAgentConfig,
+  type AgentConfigKey,
+} from "./agent-integrations-settings-page.state";
 import { ConfigValidationErrors } from "./config-validation-errors";
 import { ConfigSaveBar } from "./configuration/config-save-bar";
-import {
-  asObject,
-  asString,
-  cloneConfig,
-  type ConfigDraft,
-} from "./configuration/shared";
+import { asString } from "./configuration/shared";
 import { SettingsSection } from "./settings-section";
 import { useConfigEditor } from "./use-config-editor";
-
-type AgentConfigKey = "codex" | "claude_code";
-
-function formatArgs(value: unknown): string {
-  if (!Array.isArray(value)) {
-    return "";
-  }
-  return value
-    .map((item) => asString(item).trim())
-    .filter((item) => item.length > 0)
-    .join("\n");
-}
-
-function parseArgs(raw: string): string[] {
-  return raw
-    .split("\n")
-    .map((item) => item.trim())
-    .filter((item) => item.length > 0);
-}
-
-function formatEnv(value: unknown): string {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return "";
-  }
-  return Object.entries(value as Record<string, unknown>)
-    .map(([key, rawValue]) => `${key}=${asString(rawValue)}`)
-    .join("\n");
-}
-
-function parseEnv(raw: string): Record<string, string> {
-  const env: Record<string, string> = {};
-  for (const line of raw.split("\n")) {
-    const trimmed = line.trim();
-    if (!trimmed) {
-      continue;
-    }
-    const separator = trimmed.indexOf("=");
-    if (separator <= 0) {
-      continue;
-    }
-    const key = trimmed.slice(0, separator).trim();
-    const value = trimmed.slice(separator + 1).trim();
-    if (key) {
-      env[key] = value;
-    }
-  }
-  return env;
-}
-
-function getAgentConfig(
-  config: ConfigDraft,
-  agentKey: AgentConfigKey,
-): Record<string, unknown> {
-  return asObject(asObject(config.acp_agents)[agentKey]);
-}
-
-function setAgentConfig(
-  config: ConfigDraft,
-  agentKey: AgentConfigKey,
-  nextValue: Record<string, unknown> | null,
-): ConfigDraft {
-  const next = cloneConfig(config);
-  const agents = asObject(next.acp_agents);
-  if (nextValue == null) {
-    delete agents[agentKey];
-  } else {
-    agents[agentKey] = nextValue;
-  }
-  if (Object.keys(agents).length === 0) {
-    delete next.acp_agents;
-  } else {
-    next.acp_agents = agents;
-  }
-  return next;
-}
 
 export function AgentIntegrationsSettingsPage() {
   const { t } = useI18n();
