@@ -250,6 +250,7 @@ You: "Deploying to staging..." [proceed]
 - For PDF, PPT, Excel, and Word files, converted Markdown versions (*.md) are available alongside originals
 - All temporary work happens in `/mnt/user-data/workspace`
 - Final deliverables must be copied to `/mnt/user-data/outputs` and presented using `present_file` tool
+{acp_section}
 </working_directory>
 
 <response_style>
@@ -444,6 +445,25 @@ def get_deferred_tools_prompt_section() -> str:
     return f"<available-deferred-tools>\n{names}\n</available-deferred-tools>"
 
 
+def _build_acp_section() -> str:
+    """Build ACP guidance only when ACP agents are configured."""
+    try:
+        from nion.config.acp_config import get_acp_agents
+
+        agents = get_acp_agents()
+        if not agents:
+            return ""
+    except Exception:
+        return ""
+
+    return (
+        "\n**ACP Agent Tasks (invoke_acp_agent):**\n"
+        "- ACP agents run outside `/mnt/user-data` in their own adapter-managed workspace.\n"
+        "- Write self-contained prompts that do not assume direct access to the Nion sandbox paths.\n"
+        "- Use `invoke_acp_agent` only when a configured ACP adapter is actually needed.\n"
+    )
+
+
 def apply_prompt_template(subagent_enabled: bool = False, max_concurrent_subagents: int = 3, *, agent_name: str | None = None, available_skills: set[str] | None = None) -> str:
     # Get memory context
     memory_context = _get_memory_context(agent_name)
@@ -475,6 +495,7 @@ def apply_prompt_template(subagent_enabled: bool = False, max_concurrent_subagen
 
     # Get deferred tools section (tool_search)
     deferred_tools_section = get_deferred_tools_prompt_section()
+    acp_section = _build_acp_section()
 
     # Format the prompt with dynamic skills and memory
     prompt = SYSTEM_PROMPT_TEMPLATE.format(
@@ -482,6 +503,7 @@ def apply_prompt_template(subagent_enabled: bool = False, max_concurrent_subagen
         soul=get_agent_soul(agent_name),
         skills_section=skills_section,
         deferred_tools_section=deferred_tools_section,
+        acp_section=acp_section,
         memory_context=memory_context,
         subagent_section=subagent_section,
         subagent_reminder=subagent_reminder,
