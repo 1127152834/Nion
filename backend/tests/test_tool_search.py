@@ -302,20 +302,21 @@ def test_get_available_tools_includes_invoke_acp_agent_when_agents_configured(mo
 
     assert "invoke_acp_agent" in [tool.name for tool in tools]
 
-    def test_lists_tool_names(self, registry, monkeypatch):
-        from nion.agents.lead_agent.prompt import get_deferred_tools_prompt_section
-        from nion.config import get_app_config
 
-        monkeypatch.setattr(get_app_config().tool_search, "enabled", True)
-        set_deferred_registry(registry)
-        section = get_deferred_tools_prompt_section()
-        assert "<available-deferred-tools>" in section
-        assert "</available-deferred-tools>" in section
-        assert "github_create_issue" in section
-        assert "slack_send_message" in section
-        assert "sentry_list_issues" in section
-        # Should only have names, no descriptions
-        assert "Create a new issue" not in section
+def test_lists_tool_names(registry, monkeypatch):
+    from nion.agents.lead_agent.prompt import get_deferred_tools_prompt_section
+    from nion.config import get_app_config
+
+    monkeypatch.setattr(get_app_config().tool_search, "enabled", True)
+    set_deferred_registry(registry)
+    section = get_deferred_tools_prompt_section()
+    assert "<available-deferred-tools>" in section
+    assert "</available-deferred-tools>" in section
+    assert "github_create_issue" in section
+    assert "slack_send_message" in section
+    assert "sentry_list_issues" in section
+    # Should only have names, no descriptions
+    assert "Create a new issue" not in section
 
 
 # ── DeferredToolFilterMiddleware Tests ──
