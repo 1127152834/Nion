@@ -9,7 +9,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
-from langchain_core.messages import AIMessage, HumanMessage, ToolMessage  # noqa: F401
+from langchain_core.messages import AIMessage, AIMessageChunk, HumanMessage, ToolMessage  # noqa: F401
 
 from app.gateway.routers.mcp import McpConfigResponse
 from app.gateway.routers.memory import MemoryConfigResponse, MemoryStatusResponse
@@ -321,6 +321,23 @@ class TestStream:
 
         msg_events = _ai_events(events)
         assert [event.data["content"] for event in msg_events] == ["Hel", "Hello!"]
+
+    def test_messages_stream_chunks_are_emitted_incrementally(self, client):
+        chunks = [
+            ("messages", (AIMessageChunk(content="Hel", id="ai-1"), {"langgraph_node": "model"})),
+            ("messages", (AIMessageChunk(content="lo", id="ai-1"), {"langgraph_node": "model"})),
+            {"messages": [HumanMessage(content="hi", id="h-1"), AIMessage(content="Hello", id="ai-1")]},
+        ]
+        agent = _make_agent_mock(chunks)
+
+        with (
+            patch.object(client, "_ensure_agent"),
+            patch.object(client, "_agent", agent),
+        ):
+            events = list(client.stream("hi", thread_id="t4-chunks"))
+
+        msg_events = _ai_events(events)
+        assert [event.data["content"] for event in msg_events[:2]] == ["Hel", "Hello"]
 
     def test_auto_thread_id(self, client):
         """stream() auto-generates a thread_id if not provided."""

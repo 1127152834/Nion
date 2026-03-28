@@ -33,6 +33,27 @@ export function createWeixinAuthManager(options: {
 }) {
   const sessions = new Map<string, WeixinQrLoginSession>();
 
+  const renderQrPageToDataUrl = async (pageUrl: string) => {
+    const { BrowserWindow } = await import("electron");
+    const window = new BrowserWindow({
+      show: false,
+      width: 420,
+      height: 520,
+      webPreferences: {
+        sandbox: true,
+      },
+    });
+
+    try {
+      await window.loadURL(pageUrl);
+      await new Promise((resolve) => setTimeout(resolve, 1800));
+      const image = await window.webContents.capturePage();
+      return image.toDataURL();
+    } finally {
+      window.destroy();
+    }
+  };
+
   const startLogin = async () => {
     const response = await startWeixinLoginQr();
     if (!response.qrcode || !response.qrcode_img_content) {
@@ -42,7 +63,9 @@ export function createWeixinAuthManager(options: {
     const sessionId = `wx-login-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const qrImage = response.qrcode_img_content.startsWith("data:")
       ? response.qrcode_img_content
-      : await downloadWeixinQrImageDataUrl(response.qrcode_img_content);
+      : response.qrcode_img_content.startsWith("http")
+        ? await renderQrPageToDataUrl(response.qrcode_img_content)
+        : await downloadWeixinQrImageDataUrl(response.qrcode_img_content);
 
     const session: WeixinQrLoginSession = {
       sessionId,

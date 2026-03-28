@@ -31,7 +31,7 @@ from pathlib import Path
 from typing import Any
 
 from langchain.agents import create_agent
-from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
+from langchain_core.messages import AIMessage, AIMessageChunk, HumanMessage, SystemMessage, ToolMessage
 from langchain_core.runnables import RunnableConfig
 
 from nion.agents.lead_agent.agent import _build_middlewares
@@ -435,11 +435,57 @@ class NionClient:
             context["agent_name"] = self._agent_name
 
         seen_signatures: dict[str, str] = {}
+        cumulative_ai_content: dict[str, str] = {}
         cumulative_usage: dict[str, int] = {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0}
 
         try:
             ai_message_count = 0
-            for chunk in self._agent.stream(state, config=config, context=context, stream_mode="values"):
+            for raw_chunk in self._agent.stream(
+                state,
+                config=config,
+                context=context,
+                stream_mode=["values", "messages", "custom"],
+            ):
+                stream_mode = "values"
+                chunk = raw_chunk
+                if (
+                    isinstance(raw_chunk, tuple)
+                    and len(raw_chunk) == 2
+                    and isinstance(raw_chunk[0], str)
+                ):
+                    stream_mode = raw_chunk[0]
+                    chunk = raw_chunk[1]
+
+                if stream_mode == "messages":
+                    if (
+                        isinstance(chunk, tuple)
+                        and len(chunk) == 2
+                        and isinstance(chunk[0], AIMessageChunk)
+                    ):
+                        message_chunk, metadata = chunk
+                        msg_id = getattr(message_chunk, "id", None)
+                        text = self._extract_text(message_chunk.content)
+                        if text and msg_id:
+                            cumulative_text = cumulative_ai_content.get(msg_id, "") + text
+                            cumulative_ai_content[msg_id] = cumulative_text
+                            yield StreamEvent(
+                                type="messages-tuple",
+                                data={
+                                    "type": "ai",
+                                    "content": cumulative_text,
+                                    "id": msg_id,
+                                    **(
+                                        {"response_metadata": metadata}
+                                        if isinstance(metadata, dict) and metadata
+                                        else {}
+                                    ),
+                                },
+                            )
+                    continue
+
+                if stream_mode != "values" or not isinstance(chunk, dict):
+                    continue
+
                 messages = chunk.get("messages", [])
 
                 for msg in messages:
@@ -476,6 +522,8 @@ class NionClient:
 
                         text = self._extract_text(msg.content)
                         if text:
+                            if msg_id:
+                                cumulative_ai_content[msg_id] = text
                             event_data: dict[str, Any] = {"type": "ai", "content": text, "id": msg_id}
                             if usage:
                                 event_data["usage_metadata"] = {
