@@ -209,6 +209,7 @@ export function createBridgeManager(options: {
   ) => BridgeBinding;
   defaultWorkingDirectory?: () => string;
   backendBaseUrl?: string;
+  clientId?: string;
   adapters?: BaseBridgeAdapter[];
   threadClient?: BridgeThreadClient;
   offsetStore?: {
@@ -249,7 +250,9 @@ export function createBridgeManager(options: {
   });
   const threadClient =
     options.threadClient ??
-    createNionThreadClient(options.backendBaseUrl ?? "http://127.0.0.1:43115");
+    createNionThreadClient(options.backendBaseUrl ?? "http://127.0.0.1:43115", {
+      clientId: options.clientId,
+    });
   const recordObservation = (observation: BridgeObservationInput) => {
     options.recordObservation?.(observation);
   };

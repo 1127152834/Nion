@@ -130,9 +130,24 @@ void test("desktop thread client surfaces SSE error events", async () => {
 void test("desktop thread client resolves permission through thread-level permission route", async () => {
   const originalFetch = globalThis.fetch;
   let requestedUrl = "";
+  let capturedHeaders: HeadersInit | undefined;
+
+  const originalWindow = globalThis.window;
+  Object.defineProperty(globalThis, "window", {
+    configurable: true,
+    value: {
+      nionDesktop: {
+        getRuntimeInfo: async () => ({
+          baseUrl: "http://127.0.0.1:43115",
+          clientId: "desktop-client-1",
+        }),
+      },
+    },
+  });
 
   globalThis.fetch = async (input, init) => {
     requestedUrl = String(input);
+    capturedHeaders = init?.headers;
     return new Response(
       JSON.stringify({
         ok: true,
@@ -192,6 +207,12 @@ void test("desktop thread client resolves permission through thread-level permis
       },
     },
   });
+  const headers = new Headers(capturedHeaders);
+  assert.equal(headers.get("X-Nion-Client-Id"), "desktop-client-1");
 
   globalThis.fetch = originalFetch;
+  Object.defineProperty(globalThis, "window", {
+    configurable: true,
+    value: originalWindow,
+  });
 });

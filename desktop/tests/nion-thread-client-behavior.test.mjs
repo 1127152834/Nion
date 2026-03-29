@@ -133,3 +133,27 @@ test("nion thread client streamMessage surfaces SSE error events", async () => {
 
   globalThis.fetch = originalFetch;
 });
+
+test("nion thread client forwards client id on bridge permission resolve", async () => {
+  const createNionThreadClient = await loadThreadClientFactory();
+  const originalFetch = globalThis.fetch;
+  let capturedHeaders;
+
+  globalThis.fetch = async (_input, init) => {
+    capturedHeaders = init?.headers;
+    return new Response(
+      JSON.stringify({ ok: true }),
+      { status: 200, headers: { "Content-Type": "application/json" } },
+    );
+  };
+
+  const client = createNionThreadClient("http://127.0.0.1:43115", {
+    clientId: "desktop-client-1",
+  });
+  await client.resolvePermission("t-1", "perm-1", "allow");
+
+  const headers = new Headers(capturedHeaders);
+  assert.equal(headers.get("X-Nion-Client-Id"), "desktop-client-1");
+
+  globalThis.fetch = originalFetch;
+});

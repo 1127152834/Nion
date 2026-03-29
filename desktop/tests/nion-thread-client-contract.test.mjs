@@ -14,4 +14,5 @@ test("desktop nion thread client contract exists", () => {
   assert.match(source, /streamMessage/);
   assert.match(source, /uploadFiles/);
   assert.match(source, /resolvePermission/);
+  assert.match(source, /X-Nion-Client-Id/);
 });

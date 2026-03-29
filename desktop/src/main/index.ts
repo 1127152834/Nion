@@ -384,6 +384,7 @@ export async function startDesktopMain(): Promise<void> {
     upsertBinding: (binding) => bridgeBindingsStore.upsertBinding(binding),
     defaultWorkingDirectory: () => "",
     backendBaseUrl: runtimeInfo.baseUrl,
+    clientId: runtimeInfo.clientId ?? undefined,
     offsetStore: bridgeOffsetStore,
     weixinStore: weixinBridgeStore,
     recordObservation: (observation) => bridgeObservationsStore.appendObservation(observation),

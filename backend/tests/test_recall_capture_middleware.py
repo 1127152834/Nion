@@ -3,6 +3,8 @@ from langgraph.runtime import Runtime
 
 from nion.agents.middlewares.continuity_middleware import ContinuityMiddleware
 from nion.agents.middlewares.recall_capture_middleware import RecallCaptureMiddleware
+from nion.notebook.service import NotebookService
+from nion.openviking.notebook_ingest import EmbeddedNotebookIngestService
 
 
 def _runtime(thread_id: str) -> Runtime:
@@ -106,3 +108,25 @@ def test_before_model_injects_thread_scoped_continuity_block(tmp_path):
     assert "continuity_context" in str(injected.content).lower()
     assert "staging token" in str(injected.content)
     assert "production token" not in str(injected.content)
+
+
+def test_before_model_injects_notebook_context_when_query_matches(tmp_path):
+    notebook = NotebookService(base_dir=tmp_path)
+    notebook.create_note(
+        directory="projects/alpha",
+        title="Roadmap",
+        body="# Roadmap\n\nAlpha launch depends on onboarding quality.",
+    )
+    EmbeddedNotebookIngestService(base_dir=tmp_path).reindex_all()
+
+    middleware = ContinuityMiddleware(base_dir=tmp_path)
+    update = middleware.before_model(
+        {"messages": [HumanMessage(content="Alpha 项目的 onboarding 方案是什么？", id="h-3")]},
+        _runtime("thread-1"),
+    )
+
+    assert update is not None
+    injected = update["messages"][0]
+    assert isinstance(injected, SystemMessage)
+    assert "projects/alpha/roadmap.md" in str(injected.content)
+    assert "onboarding quality" in str(injected.content)

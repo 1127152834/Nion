@@ -112,6 +112,28 @@ async function getDesktopBackendBaseURLAsync(): Promise<string> {
   return "";
 }
 
+let runtimeInfoClientIdPromise: Promise<string> | null = null;
+
+async function getDesktopClientIdAsync(): Promise<string> {
+  const desktopBridge =
+    typeof window !== "undefined"
+      ? (window as Window & {
+          nionDesktop?: {
+            getRuntimeInfo: () => Promise<{ clientId?: string | null }>;
+          };
+        }).nionDesktop
+      : undefined;
+
+  if (desktopBridge?.getRuntimeInfo) {
+    runtimeInfoClientIdPromise ??= desktopBridge
+      .getRuntimeInfo()
+      .then((runtimeInfo) => runtimeInfo.clientId ?? "");
+    return runtimeInfoClientIdPromise;
+  }
+
+  return "";
+}
+
 function getThreadsBaseURL(isMock?: boolean): string {
   if (isMock) {
     if (typeof window !== "undefined") {
@@ -367,10 +389,12 @@ export function createDesktopThreadClient(
       decision: "allow" | "allow_session" | "deny",
     ) {
       const baseUrl = await resolveThreadsBaseURL(false, options?.getBaseURL);
+      const clientId = await getDesktopClientIdAsync();
       return requestJSON<PermissionResolution>(
         `${baseUrl}/${threadId}/permissions/${permissionRequestId}/resolve`,
         {
           method: "POST",
+          headers: clientId ? { "X-Nion-Client-Id": clientId } : undefined,
           body: JSON.stringify({ decision }),
         },
       );

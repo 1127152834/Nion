@@ -203,6 +203,7 @@ async def _resolve_permission_request(
     payload: BridgePermissionResolveRequest,
     *,
     expect_bridge_thread: bool,
+    client_id: str | None,
 ) -> tuple[dict[str, Any], bool]:
     decision = payload.decision
     if decision not in {"allow", "allow_session", "deny"}:
@@ -230,6 +231,25 @@ async def _resolve_permission_request(
             },
             True,
         )
+    owner_client_id = (
+        thread_record.values.owner_client_id
+        if thread_record is not None
+        else None
+    )
+    if (
+        isinstance(owner_client_id, str)
+        and owner_client_id.strip()
+        and isinstance(client_id, str)
+        and client_id.strip()
+        and owner_client_id != client_id
+    ):
+        return (
+            {
+                "ok": False,
+                "message": "Permission request does not belong to this client",
+            },
+            True,
+        )
 
     record = resolve_thread_permission_request(
         thread_id=thread_id,
@@ -251,12 +271,17 @@ async def _resolve_permission_request(
     )
     if permission_request_id not in existing_resolved_ids:
         existing_resolved_ids.append(permission_request_id)
-    repository.update_state(
-        thread_id,
-        {
-            "resolved_permission_request_ids": existing_resolved_ids,
-        },
-    )
+    state_update: dict[str, Any] = {
+        "resolved_permission_request_ids": existing_resolved_ids,
+    }
+    if (
+        existing_record is not None
+        and not existing_record.values.owner_client_id
+        and isinstance(client_id, str)
+        and client_id.strip()
+    ):
+        state_update["owner_client_id"] = client_id
+    repository.update_state(thread_id, state_update)
     if latest and latest.tool_name.startswith("codepilot_cli_tools_"):
         record = repository.get_thread(thread_id)
         if record is not None:
@@ -307,12 +332,15 @@ async def resolve_thread_permission(
     thread_id: str,
     permission_request_id: str,
     payload: BridgePermissionResolveRequest,
+    request: Request,
 ) -> dict[str, Any]:
+    client_id = request.headers.get("X-Nion-Client-Id")
     response, is_authz_failure = await _resolve_permission_request(
         thread_id=thread_id,
         permission_request_id=permission_request_id,
         payload=payload,
         expect_bridge_thread=False,
+        client_id=client_id,
     )
     if response.get("ok") is False and is_authz_failure:
         raise HTTPException(status_code=403, detail=response["message"])
@@ -324,12 +352,15 @@ async def resolve_bridge_permission(
     thread_id: str,
     permission_request_id: str,
     payload: BridgePermissionResolveRequest,
+    request: Request,
 ) -> dict[str, Any]:
+    client_id = request.headers.get("X-Nion-Client-Id")
     response, is_authz_failure = await _resolve_permission_request(
         thread_id=thread_id,
         permission_request_id=permission_request_id,
         payload=payload,
         expect_bridge_thread=True,
+        client_id=client_id,
     )
     if response.get("ok") is False and is_authz_failure:
         raise HTTPException(status_code=403, detail=response["message"])

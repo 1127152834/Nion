@@ -167,7 +167,10 @@ async function consumeSSE(
   };
 }
 
-export function createNionThreadClient(baseUrl: string) {
+export function createNionThreadClient(
+  baseUrl: string,
+  options: { clientId?: string } = {},
+) {
   const threadsBaseUrl = `${baseUrl.replace(/\/$/, "")}/api/threads`;
 
   const searchThread = async (threadId: string): Promise<ThreadSearchRecord | null> => {
@@ -256,7 +259,10 @@ export function createNionThreadClient(baseUrl: string) {
       `${threadsBaseUrl}/${threadId}/bridge/permissions/${permissionRequestId}/resolve`,
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(options.clientId ? { "X-Nion-Client-Id": options.clientId } : {}),
+        },
         body: JSON.stringify({ decision }),
       },
     );

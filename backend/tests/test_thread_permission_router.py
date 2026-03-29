@@ -182,3 +182,105 @@ def test_workspace_permission_resolve_missing_request_stays_non_authz_error(
         "ok": False,
         "message": "Permission request not found",
     }
+
+
+def test_workspace_permission_resolve_rejects_foreign_owner_client(
+    tmp_path,
+    monkeypatch,
+):
+    monkeypatch.setenv("NION_HOME", str(tmp_path / "nion-home"))
+    repository = ThreadRepository(base_dir=tmp_path / "nion-home")
+    repository.upsert_thread(
+        "thread-owned",
+        values={
+            "messages": [],
+            "artifacts": [],
+            "owner_client_id": "client-owner",
+        },
+    )
+
+    request = create_thread_permission_request(
+        thread_id="thread-owned",
+        tool_name="bash",
+        tool_input={"command": "echo hi"},
+        original_message_text="run bash",
+    )
+
+    with TestClient(create_app()) as client:
+        response = client.post(
+            f"/api/threads/thread-owned/permissions/{request.id}/resolve",
+            headers={"X-Nion-Client-Id": "client-other"},
+            json={"decision": "allow"},
+        )
+
+    assert response.status_code == 403
+    assert response.json() == {
+        "detail": "Permission request does not belong to this client",
+    }
+
+
+def test_workspace_permission_resolve_allows_matching_owner_client(
+    tmp_path,
+    monkeypatch,
+):
+    monkeypatch.setenv("NION_HOME", str(tmp_path / "nion-home"))
+    repository = ThreadRepository(base_dir=tmp_path / "nion-home")
+    repository.upsert_thread(
+        "thread-owned-ok",
+        values={
+            "messages": [],
+            "artifacts": [],
+            "owner_client_id": "client-owner",
+        },
+    )
+
+    request = create_thread_permission_request(
+        thread_id="thread-owned-ok",
+        tool_name="bash",
+        tool_input={"command": "echo hi"},
+        original_message_text="run bash",
+    )
+
+    with TestClient(create_app()) as client:
+        response = client.post(
+            f"/api/threads/thread-owned-ok/permissions/{request.id}/resolve",
+            headers={"X-Nion-Client-Id": "client-owner"},
+            json={"decision": "allow"},
+        )
+
+    assert response.status_code == 200
+    assert response.json()["ok"] is True
+
+
+def test_workspace_permission_resolve_persists_owner_client_on_first_success(
+    tmp_path,
+    monkeypatch,
+):
+    monkeypatch.setenv("NION_HOME", str(tmp_path / "nion-home"))
+    repository = ThreadRepository(base_dir=tmp_path / "nion-home")
+    repository.upsert_thread(
+        "thread-owner-bind",
+        values={
+            "messages": [],
+            "artifacts": [],
+        },
+    )
+
+    request = create_thread_permission_request(
+        thread_id="thread-owner-bind",
+        tool_name="bash",
+        tool_input={"command": "echo hi"},
+        original_message_text="run bash",
+    )
+
+    with TestClient(create_app()) as client:
+        response = client.post(
+            f"/api/threads/thread-owner-bind/permissions/{request.id}/resolve",
+            headers={"X-Nion-Client-Id": "client-owner"},
+            json={"decision": "allow"},
+        )
+
+    assert response.status_code == 200
+    updated = repository.get_thread("thread-owner-bind")
+    assert updated is not None
+    assert updated.values.owner_client_id == "client-owner"
