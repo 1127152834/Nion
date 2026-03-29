@@ -383,6 +383,7 @@ class NionClient:
         message: str,
         *,
         thread_id: str | None = None,
+        human_message_payload: dict[str, Any] | None = None,
         **kwargs,
     ) -> Generator[StreamEvent, None, None]:
         """Stream a conversation turn, yielding events incrementally.
@@ -438,7 +439,19 @@ class NionClient:
             },
         )
 
-        state: dict[str, Any] = {"messages": [HumanMessage(content=message)]}
+        human_payload = human_message_payload or {}
+        human_content = human_payload.get("content", message)
+        human_additional_kwargs = human_payload.get("additional_kwargs")
+        state: dict[str, Any] = {
+            "messages": [
+                HumanMessage(
+                    content=human_content,
+                    additional_kwargs=human_additional_kwargs
+                    if isinstance(human_additional_kwargs, dict)
+                    else None,
+                )
+            ]
+        }
         context = {"thread_id": thread_id}
         if self._agent_name:
             context["agent_name"] = self._agent_name

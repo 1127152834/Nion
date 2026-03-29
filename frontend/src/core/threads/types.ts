@@ -70,6 +70,17 @@ export interface ThreadSubmitPayload {
   }>;
 }
 
+export type PermissionReplayPayload = {
+  text: string;
+  files: Array<{
+    filename: string;
+    path?: string;
+    size?: number;
+    status?: string;
+  }>;
+  additional_kwargs?: Record<string, unknown>;
+};
+
 export interface ThreadSubmitOptions {
   threadId: string;
   streamSubgraphs?: boolean;
@@ -119,6 +130,10 @@ export type PendingPermissionRequest = {
   toolName: string;
   toolInput: Record<string, unknown>;
   options: string[];
+  actions: Array<{
+    key: "allow" | "allow_session" | "deny";
+    label: string;
+  }>;
   reasonCode?: string;
   reasonMessage?: string;
 };

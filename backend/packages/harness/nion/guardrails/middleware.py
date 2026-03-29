@@ -3,7 +3,7 @@
 import logging
 from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
-from typing import override
+from typing import Any, override
 
 from langchain.agents import AgentState
 from langchain.agents.middleware import AgentMiddleware
@@ -13,10 +13,10 @@ from langgraph.graph import END
 from langgraph.prebuilt.tool_node import ToolCallRequest
 from langgraph.types import Command
 
-from nion.bridge_permissions import (
-    consume_bridge_pending_allow,
-    create_bridge_permission_request,
-    get_bridge_permission_profile,
+from nion.thread_permissions import (
+    consume_thread_pending_allow,
+    create_thread_permission_request,
+    get_thread_permission_profile,
 )
 from nion.guardrails.provider import GuardrailDecision, GuardrailProvider, GuardrailReason, GuardrailRequest
 
@@ -72,6 +72,45 @@ class GuardrailMiddleware(AgentMiddleware[AgentState]):
                 return content if isinstance(content, str) else str(content)
         return ""
 
+    def _extract_latest_human_replay_payload(
+        self,
+        request: ToolCallRequest,
+    ) -> dict[str, Any]:
+        state = getattr(request, "state", {}) or {}
+        messages = state.get("messages", [])
+        for message in reversed(messages):
+            if isinstance(message, HumanMessage):
+                content = getattr(message, "content", "")
+                additional_kwargs = getattr(message, "additional_kwargs", None) or {}
+                text = content if isinstance(content, str) else str(content)
+                files = additional_kwargs.get("files", [])
+                return {
+                    "text": text,
+                    "files": files if isinstance(files, list) else [],
+                    "additional_kwargs": additional_kwargs,
+                }
+            if isinstance(message, dict) and message.get("type") == "human":
+                content = message.get("content", "")
+                additional_kwargs = message.get("additional_kwargs", {})
+                text = content if isinstance(content, str) else str(content)
+                files = (
+                    additional_kwargs.get("files", [])
+                    if isinstance(additional_kwargs, dict)
+                    else []
+                )
+                return {
+                    "text": text,
+                    "files": files if isinstance(files, list) else [],
+                    "additional_kwargs": additional_kwargs
+                    if isinstance(additional_kwargs, dict)
+                    else {},
+                }
+        return {
+            "text": "",
+            "files": [],
+            "additional_kwargs": {},
+        }
+
     def _build_permission_request_command(
         self,
         request: ToolCallRequest,
@@ -82,11 +121,13 @@ class GuardrailMiddleware(AgentMiddleware[AgentState]):
         tool_call_id = str(request.tool_call.get("id", "missing_id"))
         tool_input = request.tool_call.get("args", {}) or {}
         original_message_text = self._extract_latest_human_message(request)
-        permission_request = create_bridge_permission_request(
+        replay_payload = self._extract_latest_human_replay_payload(request)
+        permission_request = create_thread_permission_request(
             thread_id=thread_id,
             tool_name=tool_name,
             tool_input=tool_input,
             original_message_text=original_message_text,
+            replay_payload=replay_payload,
         )
 
         summary = str(tool_input)
@@ -113,6 +154,11 @@ class GuardrailMiddleware(AgentMiddleware[AgentState]):
                     "id": permission_request.id,
                     "tool_name": tool_name,
                     "tool_input": tool_input,
+                    "actions": [
+                        {"key": "allow", "label": "Allow"},
+                        {"key": "allow_session", "label": "Allow Session"},
+                        {"key": "deny", "label": "Deny"},
+                    ],
                     "options": ["Allow", "Allow Session", "Deny"],
                     "reason_code": decision.reasons[0].code if decision.reasons else "oap.approval_required",
                     "reason_message": decision.reasons[0].message if decision.reasons else "",
@@ -141,9 +187,9 @@ class GuardrailMiddleware(AgentMiddleware[AgentState]):
     ) -> ToolMessage | Command:
         gr = self._build_request(request)
         if self._is_bridge_surface(request) and gr.thread_id:
-            if get_bridge_permission_profile(gr.thread_id) == "full_access":
+            if get_thread_permission_profile(gr.thread_id) == "full_access":
                 return handler(request)
-            if consume_bridge_pending_allow(
+            if consume_thread_pending_allow(
                 thread_id=gr.thread_id,
                 tool_name=gr.tool_name,
                 tool_input=gr.tool_input,
@@ -175,9 +221,9 @@ class GuardrailMiddleware(AgentMiddleware[AgentState]):
     ) -> ToolMessage | Command:
         gr = self._build_request(request)
         if self._is_bridge_surface(request) and gr.thread_id:
-            if get_bridge_permission_profile(gr.thread_id) == "full_access":
+            if get_thread_permission_profile(gr.thread_id) == "full_access":
                 return await handler(request)
-            if consume_bridge_pending_allow(
+            if consume_thread_pending_allow(
                 thread_id=gr.thread_id,
                 tool_name=gr.tool_name,
                 tool_input=gr.tool_input,

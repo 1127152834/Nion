@@ -3,11 +3,12 @@ from __future__ import annotations
 import json
 import re
 from collections.abc import Generator
+from datetime import UTC, datetime
 from typing import Any
 
 from nion.client import NionClient, StreamEvent
 
-from .models import ThreadSearchParams, ThreadStreamRequest
+from .models import ThreadCliManagementState, ThreadSearchParams, ThreadStreamRequest
 from .repository import ThreadRepository
 
 
@@ -47,6 +48,7 @@ class ThreadService:
         thread_id: str,
         request: ThreadStreamRequest,
     ) -> Generator[StreamEvent, None, None]:
+        human_payload = _extract_human_message_payload(request.messages)
         message_text = _extract_message_text(request.messages)
         context = request.context
         config = request.config
@@ -65,10 +67,12 @@ class ThreadService:
                 f"{', '.join(selected_cli_tools)}.\n"
                 f"</selected_cli_tools>"
             ).strip()
+            human_payload["content"] = message_text
 
         for event in self._client.stream(
             message_text,
             thread_id=thread_id,
+            human_message_payload=human_payload,
             model_name=context.get("model_name"),
             thinking_enabled=bool(context.get("thinking_enabled", True)),
             plan_mode=bool(context.get("is_plan_mode", False)),
@@ -87,6 +91,11 @@ class ThreadService:
             yield event
 
         if latest_values is not None:
+            latest_values["cli_management"] = self._next_cli_management_state(
+                message_text=message_text,
+                cli_tools_enabled=cli_tools_enabled,
+                previous_state=self._get_cli_management_state(thread_id),
+            ).model_dump()
             self._repository.upsert_thread(
                 thread_id,
                 agent_name=str(context.get("agent_name") or "lead_agent"),
@@ -110,7 +119,69 @@ class ThreadService:
         if record is None:
             return False
 
-        return _thread_history_has_cli_tools_intent(record.values.messages)
+        cli_management = record.values.cli_management
+        if cli_management.phase == "awaiting_permission":
+            return True
+        if cli_management.active and cli_management.followup_turns_remaining > 0:
+            return True
+
+        return False
+
+    def _get_cli_management_state(self, thread_id: str) -> ThreadCliManagementState:
+        record = self._repository.get_thread(thread_id)
+        if record is None:
+            return ThreadCliManagementState()
+        return record.values.cli_management
+
+    def _next_cli_management_state(
+        self,
+        *,
+        message_text: str,
+        cli_tools_enabled: bool,
+        previous_state: ThreadCliManagementState,
+    ) -> ThreadCliManagementState:
+        now = datetime.now(UTC).isoformat()
+        if cli_tools_enabled:
+            return ThreadCliManagementState(
+                active=True,
+                phase="managing",
+                last_trigger="selected_cli_or_cli_intent",
+                last_intent=_infer_cli_intent(message_text),
+                followup_turns_remaining=2,
+                updated_at=now,
+            )
+
+        if previous_state.phase == "awaiting_permission":
+            return ThreadCliManagementState(
+                active=True,
+                phase="awaiting_permission",
+                last_trigger=previous_state.last_trigger or "follow_up",
+                last_intent=previous_state.last_intent,
+                pending_permission_request_id=previous_state.pending_permission_request_id,
+                followup_turns_remaining=previous_state.followup_turns_remaining,
+                updated_at=now,
+            )
+
+        if previous_state.active and previous_state.followup_turns_remaining > 0:
+            return ThreadCliManagementState(
+                active=True,
+                phase="managing",
+                last_trigger=previous_state.last_trigger or "follow_up",
+                last_intent=previous_state.last_intent,
+                pending_permission_request_id=None,
+                followup_turns_remaining=max(previous_state.followup_turns_remaining - 1, 0),
+                updated_at=now,
+            )
+
+        return ThreadCliManagementState(
+            active=False,
+            phase="inactive",
+            last_trigger="exited",
+            last_intent=previous_state.last_intent,
+            pending_permission_request_id=None,
+            followup_turns_remaining=0,
+            updated_at=now,
+        )
 
 
 def _extract_message_text(messages: list[dict[str, Any]]) -> str:
@@ -146,6 +217,19 @@ def _extract_selected_cli_tools(messages: list[dict[str, Any]]) -> list[str]:
     if not isinstance(cli_tools, list):
         return []
     return [item for item in cli_tools if isinstance(item, str) and item.strip()]
+
+
+def _extract_human_message_payload(messages: list[dict[str, Any]]) -> dict[str, Any]:
+    if not messages:
+        return {"content": "", "additional_kwargs": {}}
+
+    first = messages[0]
+    content = first.get("content", "")
+    additional_kwargs = first.get("additional_kwargs", {})
+    return {
+        "content": content,
+        "additional_kwargs": additional_kwargs if isinstance(additional_kwargs, dict) else {},
+    }
 
 
 _CLI_TOOLS_INTENT_PATTERNS = [
@@ -201,6 +285,19 @@ def _message_text_from_history_content(content: Any) -> str:
                     parts.append(text)
         return "\n".join(parts)
     return ""
+
+
+def _infer_cli_intent(message_text: str) -> str:
+    normalized = message_text.strip().lower()
+    if "install" in normalized or "安装" in normalized:
+        return "install"
+    if "update" in normalized or "upgrade" in normalized or "更新" in normalized or "升级" in normalized:
+        return "update"
+    if "remove" in normalized or "卸载" in normalized or "删除" in normalized:
+        return "remove"
+    if "add" in normalized or "添加" in normalized:
+        return "add"
+    return "manage"
 
 
 _thread_service: ThreadService | None = None

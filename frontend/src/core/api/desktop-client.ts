@@ -2,6 +2,7 @@
 
 import type {
   AgentThreadState,
+  PermissionReplayPayload,
   ThreadSubmitOptions,
   ThreadSubmitPayload,
 } from "../threads/types";
@@ -18,6 +19,15 @@ type StreamHandlers = {
   signal?: AbortSignal;
   onCreated?: (threadId: string) => void;
   onEvent?: (event: string, data: Record<string, unknown>) => void;
+};
+
+export type PermissionResolution = {
+  ok: boolean;
+  decision?: "allow" | "allow_session" | "deny";
+  consumed?: boolean;
+  original_message_text?: string;
+  replay_payload?: PermissionReplayPayload;
+  tool_name?: string;
 };
 
 export type DesktopThreadRecord<TState extends Record<string, unknown> = AgentThreadState> = {
@@ -49,7 +59,7 @@ export type DesktopThreadClient = {
     threadId: string,
     permissionRequestId: string,
     decision: "allow" | "allow_session" | "deny",
-  ): Promise<Record<string, unknown>>;
+  ): Promise<PermissionResolution>;
 };
 
 function getDesktopBackendBaseURL(): string {
@@ -357,7 +367,7 @@ export function createDesktopThreadClient(
       decision: "allow" | "allow_session" | "deny",
     ) {
       const baseUrl = await resolveThreadsBaseURL(false, options?.getBaseURL);
-      return requestJSON<Record<string, unknown>>(
+      return requestJSON<PermissionResolution>(
         `${baseUrl}/${threadId}/permissions/${permissionRequestId}/resolve`,
         {
           method: "POST",

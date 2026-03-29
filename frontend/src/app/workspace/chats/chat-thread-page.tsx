@@ -35,6 +35,7 @@ import { useLocalSettings } from "@/core/settings";
 import {
   derivePendingClarification,
   derivePendingPermissionRequest,
+  type PermissionReplayPayload,
 } from "@/core/threads";
 import { getThreadRequestErrorCopy } from "@/core/threads/error-copy";
 import { useThreadStream } from "@/core/threads/hooks";
@@ -62,6 +63,8 @@ export default function ChatThreadPage() {
   const [runtimeProfileLoading, setRuntimeProfileLoading] = useState(false);
   const [runtimeProfileSaving, setRuntimeProfileSaving] = useState(false);
   const [terminalOpen, setTerminalOpen] = useState(false);
+  const [isResolvingPermission, setIsResolvingPermission] = useState(false);
+  const [resolvedPermissionRequestIds, setResolvedPermissionRequestIds] = useState<string[]>([]);
 
   useEffect(() => {
     if (isMock) {
@@ -180,8 +183,14 @@ export default function ChatThreadPage() {
     [thread.messages],
   );
   const pendingPermissionRequest = useMemo(
-    () => derivePendingPermissionRequest(thread.messages),
-    [thread.messages],
+    () => {
+      const derived = derivePendingPermissionRequest(thread.messages);
+      if (!derived) {
+        return null;
+      }
+      return resolvedPermissionRequestIds.includes(derived.requestId) ? null : derived;
+    },
+    [resolvedPermissionRequestIds, thread.messages],
   );
 
   const handleSwitchMode = useCallback(
@@ -222,34 +231,133 @@ export default function ChatThreadPage() {
     [handleSubmit],
   );
 
+  const handleReplaySubmit = useCallback(
+    (payload: PermissionReplayPayload) => {
+      const additionalKwargs =
+        payload.additional_kwargs && typeof payload.additional_kwargs === "object"
+          ? { ...payload.additional_kwargs }
+          : {};
+      if (payload.files.length > 0 && !("files" in additionalKwargs)) {
+        additionalKwargs.files = payload.files;
+      }
+
+      const shortcutSelections =
+        additionalKwargs.shortcut_selections &&
+        typeof additionalKwargs.shortcut_selections === "object"
+          ? (additionalKwargs.shortcut_selections as {
+              contexts?: Array<{ value: string; kind: "file" | "directory" }>;
+              skills?: string[];
+              mcpTools?: string[];
+              cliTools?: string[];
+            })
+          : undefined;
+      const implicitMentions =
+        Array.isArray(additionalKwargs.implicit_mentions)
+          ? additionalKwargs.implicit_mentions
+          : [];
+
+      void thread.submit(
+        {
+          messages: [
+            {
+              type: "human",
+              content: [
+                {
+                  type: "text",
+                  text: payload.text,
+                },
+              ],
+              additional_kwargs: additionalKwargs,
+            },
+          ],
+        },
+        {
+          threadId,
+          streamSubgraphs: true,
+          streamResumable: true,
+          config: {
+            recursion_limit: 1000,
+          },
+          context: {
+            ...settings.context,
+            ...threadRuntimeContext,
+            requested_skills: shortcutSelections?.skills ?? [],
+            selected_contexts: shortcutSelections?.contexts ?? [],
+            selected_mcp_tools: shortcutSelections?.mcpTools ?? [],
+            selected_cli_tools: shortcutSelections?.cliTools ?? [],
+            implicit_mentions: implicitMentions,
+            thinking_enabled: currentMode !== "flash",
+            is_plan_mode: currentMode === "pro" || currentMode === "ultra",
+            subagent_enabled: currentMode === "ultra",
+            reasoning_effort:
+              settings.context.reasoning_effort ??
+              (currentMode === "ultra"
+                ? "high"
+                : currentMode === "pro"
+                  ? "medium"
+                  : currentMode === "thinking"
+                    ? "low"
+                    : undefined),
+            thread_id: threadId,
+          },
+        },
+      );
+    },
+    [
+      currentMode,
+      settings.context,
+      thread,
+      threadId,
+      threadRuntimeContext,
+    ],
+  );
+
   const handlePermissionDecision = useCallback(
     async (decision: "allow" | "allow_session" | "deny") => {
       if (!pendingPermissionRequest) {
         return;
       }
       try {
+        setIsResolvingPermission(true);
         const resolution = await getAPIClient(isMock).resolvePermission(
           threadId,
           pendingPermissionRequest.requestId,
           decision,
         ) as {
           original_message_text?: string;
+          consumed?: boolean;
+          replay_payload?: PermissionReplayPayload;
         };
+        setResolvedPermissionRequestIds((current) =>
+          current.includes(pendingPermissionRequest.requestId)
+            ? current
+            : [...current, pendingPermissionRequest.requestId],
+        );
         if (
           (decision === "allow" || decision === "allow_session") &&
+          resolution.consumed === true &&
+          resolution.replay_payload
+        ) {
+          handleReplaySubmit(resolution.replay_payload);
+        } else if (
+          (decision === "allow" || decision === "allow_session") &&
+          resolution.consumed === true &&
           typeof resolution.original_message_text === "string" &&
           resolution.original_message_text.trim().length > 0
         ) {
-          handleSubmit({
+          handleReplaySubmit({
             text: resolution.original_message_text,
             files: [],
+            additional_kwargs: {},
           });
         }
       } catch (error) {
         console.error("Failed to resolve permission request:", error);
+      } finally {
+        setIsResolvingPermission(false);
       }
     },
-    [handleSubmit, isMock, pendingPermissionRequest, threadId],
+    [handleReplaySubmit, isMock, pendingPermissionRequest, threadId],
   );
 
   return (
@@ -337,6 +445,7 @@ export default function ChatThreadPage() {
                   pendingPermissionRequest={pendingPermissionRequest}
                   onClarificationSelect={handleClarificationSelect}
                   onPermissionDecision={handlePermissionDecision}
+                  isResolvingPermission={isResolvingPermission}
                 />
               </div>
               <div className="absolute right-0 bottom-0 left-0 z-30 flex justify-center px-4">

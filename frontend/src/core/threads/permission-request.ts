@@ -4,6 +4,7 @@ type PermissionRequestPayload = {
   id?: unknown;
   tool_name?: unknown;
   tool_input?: unknown;
+  actions?: unknown;
   options?: unknown;
   reason_code?: unknown;
   reason_message?: unknown;
@@ -34,11 +35,29 @@ function normalizePermissionRequestPayload(
     payload.tool_input && typeof payload.tool_input === "object"
       ? (payload.tool_input as Record<string, unknown>)
       : {};
+  const actions = Array.isArray(payload.actions)
+    ? payload.actions.filter(
+        (
+          action,
+        ): action is {
+          key: "allow" | "allow_session" | "deny";
+          label: string;
+        } =>
+          typeof action === "object" &&
+          action !== null &&
+          "key" in action &&
+          "label" in action &&
+          (action.key === "allow" ||
+            action.key === "allow_session" ||
+            action.key === "deny") &&
+          typeof action.label === "string",
+      )
+    : [];
   const options = Array.isArray(payload.options)
     ? payload.options.filter((option): option is string => typeof option === "string")
     : [];
 
-  if (!requestId || !toolName || options.length === 0) {
+  if (!requestId || !toolName || (actions.length === 0 && options.length === 0)) {
     return null;
   }
 
@@ -57,6 +76,18 @@ function normalizePermissionRequestPayload(
     requestId,
     toolName,
     toolInput,
+    actions:
+      actions.length > 0
+        ? actions
+        : options.map((option) => ({
+            key:
+              option === "Allow Session"
+                ? "allow_session"
+                : option === "Deny"
+                  ? "deny"
+                  : "allow",
+            label: option,
+          })),
     options,
     ...(reasonCode ? { reasonCode } : {}),
     ...(reasonMessage ? { reasonMessage } : {}),
@@ -66,6 +97,7 @@ function normalizePermissionRequestPayload(
 export function derivePendingPermissionRequest(
   messages: Message[],
 ): PendingPermissionRequest | null {
+  let latestPermissionRequest: PendingPermissionRequest | null = null;
   for (let index = messages.length - 1; index >= 0; index -= 1) {
     const message = messages[index];
     if (!message) {
@@ -73,14 +105,15 @@ export function derivePendingPermissionRequest(
     }
 
     if (message.type === "human") {
-      return null;
+      continue;
     }
 
     const permissionRequest = normalizePermissionRequestPayload(message);
     if (permissionRequest) {
-      return permissionRequest;
+      latestPermissionRequest = permissionRequest;
+      break;
     }
   }
 
-  return null;
+  return latestPermissionRequest;
 }

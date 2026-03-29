@@ -3,17 +3,33 @@ from __future__ import annotations
 from fastapi.testclient import TestClient
 
 from app.gateway.app import create_app
-from nion.bridge_permissions import create_bridge_permission_request
+from nion.thread_permissions import create_thread_permission_request
 
 
 def test_workspace_permission_resolve_route_retries_original_message(tmp_path, monkeypatch):
     monkeypatch.setenv("NION_HOME", str(tmp_path / "nion-home"))
 
-    request = create_bridge_permission_request(
+    request = create_thread_permission_request(
         thread_id="thread-1",
         tool_name="codepilot_cli_tools_install",
         tool_input={"command": "brew install stripe/stripe-cli/stripe"},
         original_message_text="帮我安装 stripe CLI",
+        replay_payload={
+            "text": "帮我安装 stripe CLI",
+            "files": [
+                {
+                    "filename": "notes.txt",
+                    "path": "/mnt/user-data/uploads/notes.txt",
+                    "size": 12,
+                    "status": "uploaded",
+                }
+            ],
+            "additional_kwargs": {
+                "shortcut_selections": {
+                    "cliTools": ["stripe"],
+                }
+            },
+        },
     )
 
     with TestClient(create_app()) as client:
@@ -24,5 +40,48 @@ def test_workspace_permission_resolve_route_retries_original_message(tmp_path, m
 
     assert response.status_code == 200
     assert response.json()["ok"] is True
+    assert response.json()["consumed"] is True
+    assert response.json()["replay_payload"] == {
+        "text": "帮我安装 stripe CLI",
+        "files": [
+            {
+                "filename": "notes.txt",
+                "path": "/mnt/user-data/uploads/notes.txt",
+                "size": 12,
+                "status": "uploaded",
+            }
+        ],
+        "additional_kwargs": {
+            "shortcut_selections": {
+                "cliTools": ["stripe"],
+            }
+        },
+    }
     assert response.json()["original_message_text"] == "帮我安装 stripe CLI"
     assert response.json()["tool_name"] == "codepilot_cli_tools_install"
+
+
+def test_workspace_permission_second_allow_is_not_retried(tmp_path, monkeypatch):
+    monkeypatch.setenv("NION_HOME", str(tmp_path / "nion-home"))
+
+    request = create_thread_permission_request(
+        thread_id="thread-2",
+        tool_name="codepilot_cli_tools_install",
+        tool_input={"command": "brew install stripe/stripe-cli/stripe"},
+        original_message_text="帮我安装 stripe CLI",
+    )
+
+    with TestClient(create_app()) as client:
+        first = client.post(
+            f"/api/threads/thread-2/permissions/{request.id}/resolve",
+            json={"decision": "allow"},
+        )
+        second = client.post(
+            f"/api/threads/thread-2/permissions/{request.id}/resolve",
+            json={"decision": "allow"},
+        )
+
+    assert first.status_code == 200
+    assert first.json()["consumed"] is True
+    assert second.status_code == 200
+    assert second.json()["consumed"] is False

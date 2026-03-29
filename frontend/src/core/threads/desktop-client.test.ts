@@ -126,3 +126,72 @@ void test("desktop thread client surfaces SSE error events", async () => {
 
   globalThis.fetch = originalFetch;
 });
+
+void test("desktop thread client resolves permission through thread-level permission route", async () => {
+  const originalFetch = globalThis.fetch;
+  let requestedUrl = "";
+
+  globalThis.fetch = async (input, init) => {
+    requestedUrl = String(input);
+    return new Response(
+      JSON.stringify({
+        ok: true,
+        consumed: true,
+        original_message_text: "帮我安装 stripe CLI",
+        replay_payload: {
+          text: "帮我安装 stripe CLI",
+          files: [
+            {
+              filename: "notes.txt",
+              path: "/mnt/user-data/uploads/notes.txt",
+              size: 12,
+              status: "uploaded",
+            },
+          ],
+          additional_kwargs: {
+            shortcut_selections: {
+              cliTools: ["stripe"],
+            },
+          },
+        },
+      }),
+      {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      },
+    );
+  };
+
+  const client = createDesktopThreadClient({
+    getBaseURL: () => "http://127.0.0.1:43115/api/threads",
+  });
+
+  const result = await client.resolvePermission("t-1", "perm-1", "allow");
+
+  assert.match(requestedUrl, /\/api\/threads\/t-1\/permissions\/perm-1\/resolve$/);
+  assert.deepEqual(result, {
+    ok: true,
+    consumed: true,
+    original_message_text: "帮我安装 stripe CLI",
+    replay_payload: {
+      text: "帮我安装 stripe CLI",
+      files: [
+        {
+          filename: "notes.txt",
+          path: "/mnt/user-data/uploads/notes.txt",
+          size: 12,
+          status: "uploaded",
+        },
+      ],
+      additional_kwargs: {
+        shortcut_selections: {
+          cliTools: ["stripe"],
+        },
+      },
+    },
+  });
+
+  globalThis.fetch = originalFetch;
+});
