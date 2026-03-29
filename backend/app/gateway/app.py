@@ -109,6 +109,10 @@ This gateway provides custom endpoints for models, MCP configuration, skills, an
                 "description": "Manage the personal desktop notebook knowledge base",
             },
             {
+                "name": "openviking",
+                "description": "Embedded OpenViking notebook ingest and retrieval surfaces",
+            },
+            {
                 "name": "recall",
                 "description": "Search transcript recall results independently from structured memory",
             },

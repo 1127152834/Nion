@@ -172,3 +172,36 @@ def test_describe_tool_persists_structured_payload(monkeypatch, tmp_path) -> Non
     assert record.structured.intro.en == "English intro"
     assert stored.structured is not None
     assert stored.structured.examplePrompts[0].label == "Try"
+
+
+def test_describe_tool_resolves_model_from_provider_and_model(monkeypatch, tmp_path) -> None:
+    repo = CliToolsRepository(tmp_path / "cli.sqlite3")
+    service = CliToolsService(repository=repo)
+
+    registry = SimpleNamespace(
+        get_default_model=lambda: SimpleNamespace(runtime_name="gpt-5.4"),
+    )
+    captured: dict[str, str | None] = {}
+    model = SimpleNamespace(
+        invoke=lambda messages: SimpleNamespace(
+            content="""{
+  "intro": { "zh": "中文简介", "en": "English intro" },
+  "useCases": { "zh": ["用例1"], "en": ["Use case 1"] },
+  "guideSteps": { "zh": ["步骤1"], "en": ["Step 1"] },
+  "examplePrompts": []
+}"""
+        )
+    )
+
+    monkeypatch.setattr("nion.cli_tools.service.get_model_registry_service", lambda: registry)
+    monkeypatch.setattr(
+        "nion.cli_tools.service.create_chat_model",
+        lambda **kwargs: captured.update({"name": kwargs.get("name")}) or model,
+    )
+
+    service.describe_tool(
+        tool_id="ffmpeg",
+        model_name="anthropic:claude-sonnet",
+    )
+
+    assert captured["name"] == "anthropic:claude-sonnet"

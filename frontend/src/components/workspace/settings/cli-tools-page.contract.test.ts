@@ -18,4 +18,7 @@ void test("CLI tools manager stays reusable outside settings shell", async () =>
   );
 
   assert.doesNotMatch(source, /<SettingsSection/);
+  assert.doesNotMatch(source, /View CodePilot docs|查看 CodePilot 文档/);
+  assert.doesNotMatch(source, /Manage local CLI tools so Nion can discover, install, update, and use them in chat\.|管理本机 CLI 工具，让 Nion 在对话中识别、安装、更新并使用它们。/);
+  assert.doesNotMatch(source, /Add Tool|添加工具/);
 });

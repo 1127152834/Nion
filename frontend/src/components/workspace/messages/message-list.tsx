@@ -43,6 +43,7 @@ export function MessageList({
   pendingPermissionRequest = null,
   onClarificationSelect,
   onPermissionDecision,
+  isResolvingPermission = false,
   paddingBottom = 160,
 }: {
   className?: string;
@@ -52,6 +53,7 @@ export function MessageList({
   pendingPermissionRequest?: PendingPermissionRequest | null;
   onClarificationSelect?: (option: string) => void;
   onPermissionDecision?: (decision: "allow" | "allow_session" | "deny") => void;
+  isResolvingPermission?: boolean;
   paddingBottom?: number;
 }) {
   const { t } = useI18n();
@@ -113,6 +115,7 @@ export function MessageList({
                   key={group.id}
                   permissionRequest={pendingPermissionRequest}
                   onDecision={onPermissionDecision}
+                  isResolving={isResolvingPermission}
                 />
               );
             }

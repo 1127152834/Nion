@@ -7,24 +7,22 @@ import { useI18n } from "@/core/i18n/hooks";
 import type { PendingPermissionRequest } from "@/core/threads";
 import { cn } from "@/lib/utils";
 
-const BUTTON_MODE_OPTIONS = ["Allow", "Allow Session", "Deny"];
-
 export function PermissionRequestCard({
   permissionRequest,
   className,
   onDecision,
+  isResolving = false,
 }: {
   permissionRequest: PendingPermissionRequest;
   className?: string;
   onDecision?: (decision: "allow" | "allow_session" | "deny") => void;
+  isResolving?: boolean;
 }) {
   const { t } = useI18n();
   const [selectedOption, setSelectedOption] = useState<string>("");
   const useButtonMode = useMemo(
-    () =>
-      permissionRequest.options.length === BUTTON_MODE_OPTIONS.length &&
-      permissionRequest.options.every((option, index) => option === BUTTON_MODE_OPTIONS[index]),
-    [permissionRequest.options],
+    () => permissionRequest.actions.length <= 3,
+    [permissionRequest.actions],
   );
 
   return (
@@ -52,20 +50,18 @@ export function PermissionRequestCard({
 
       {useButtonMode ? (
         <div className="flex flex-wrap gap-2" data-permission-mode="buttons">
-          <Button type="button" variant="outline" className="rounded-full" onClick={() => onDecision?.("allow")}>
-            Allow
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            className="rounded-full"
-            onClick={() => onDecision?.("allow_session")}
-          >
-            Allow Session
-          </Button>
-          <Button type="button" variant="outline" className="rounded-full" onClick={() => onDecision?.("deny")}>
-            Deny
-          </Button>
+          {permissionRequest.actions.map((action) => (
+            <Button
+              key={action.key}
+              type="button"
+              variant="outline"
+              className="rounded-full"
+              disabled={isResolving}
+              onClick={() => onDecision?.(action.key)}
+            >
+              {action.label}
+            </Button>
+          ))}
         </div>
       ) : (
         <div className="flex flex-col gap-3" data-permission-mode="select">
@@ -73,11 +69,11 @@ export function PermissionRequestCard({
             Choose an action
           </div>
           <div className="flex flex-col gap-2">
-            {permissionRequest.options.map((option) => {
-              const checked = selectedOption === option;
+            {permissionRequest.actions.map((action) => {
+              const checked = selectedOption === action.key;
               return (
                 <label
-                  key={option}
+                  key={action.key}
                   className={cn(
                     "border-border/70 hover:bg-accent/40 flex cursor-pointer items-start gap-3 rounded-xl border px-3 py-2 transition-colors",
                     checked && "border-foreground/30 bg-accent/30",
@@ -86,12 +82,12 @@ export function PermissionRequestCard({
                   <input
                     type="radio"
                     name={`permission-${permissionRequest.requestId}`}
-                    value={option}
+                    value={action.key}
                     checked={checked}
-                    onChange={() => setSelectedOption(option)}
+                    onChange={() => setSelectedOption(action.key)}
                     className="mt-1"
                   />
-                  <span className="text-sm leading-6">{option}</span>
+                  <span className="text-sm leading-6">{action.label}</span>
                 </label>
               );
             })}
@@ -99,14 +95,10 @@ export function PermissionRequestCard({
           <div>
             <Button
               type="button"
-              disabled={!selectedOption}
+              disabled={!selectedOption || isResolving}
               onClick={() => {
-                if (selectedOption === "Allow") {
-                  onDecision?.("allow");
-                } else if (selectedOption === "Allow Session") {
-                  onDecision?.("allow_session");
-                } else if (selectedOption === "Deny") {
-                  onDecision?.("deny");
+                if (selectedOption === "allow" || selectedOption === "allow_session" || selectedOption === "deny") {
+                  onDecision?.(selectedOption);
                 }
               }}
             >

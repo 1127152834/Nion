@@ -38,6 +38,9 @@ coverage/
 skills/custom/*
 !skills/custom/openspace-capability-rebuild/
 !skills/custom/openspace-capability-rebuild/SKILL.md
+docs/*
+!docs/test/
+!docs/test/**
 logs/
 log/
 

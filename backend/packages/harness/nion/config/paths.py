@@ -108,6 +108,26 @@ class Paths:
         return self.base_dir / "recall.sqlite3"
 
     @property
+    def openviking_dir(self) -> Path:
+        """Embedded OpenViking runtime root: `{base_dir}/openviking`."""
+        return self.base_dir / "openviking"
+
+    @property
+    def openviking_resources_db_file(self) -> Path:
+        """Path to the embedded OpenViking resource registry database."""
+        return self.openviking_dir / "resources.sqlite3"
+
+    @property
+    def openviking_chunks_db_file(self) -> Path:
+        """Path to the embedded OpenViking chunk/search database."""
+        return self.openviking_dir / "chunks.sqlite3"
+
+    @property
+    def openviking_ingest_state_db_file(self) -> Path:
+        """Path to the embedded OpenViking ingest state database."""
+        return self.openviking_dir / "ingest-state.sqlite3"
+
+    @property
     def telemetry_db_file(self) -> Path:
         """Path to the local telemetry database: `{base_dir}/telemetry.sqlite3`."""
         return self.base_dir / "telemetry.sqlite3"
@@ -240,6 +260,10 @@ class Paths:
             self.notebook_index_dir,
         ]:
             directory.mkdir(parents=True, exist_ok=True)
+
+    def ensure_openviking_dirs(self) -> None:
+        """Create standard directories for the embedded OpenViking runtime."""
+        self.openviking_dir.mkdir(parents=True, exist_ok=True)
 
     def resolve_virtual_path(self, thread_id: str, virtual_path: str) -> Path:
         """Resolve a sandbox virtual path to the actual host filesystem path.

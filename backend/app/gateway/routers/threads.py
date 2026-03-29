@@ -4,7 +4,7 @@ import json
 import logging
 from typing import Any, Literal
 
-from fastapi import APIRouter, Depends, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel
 from starlette.responses import StreamingResponse
 
@@ -175,10 +175,29 @@ async def _resolve_permission_request(
     thread_id: str,
     permission_request_id: str,
     payload: BridgePermissionResolveRequest,
+    *,
+    expect_bridge_thread: bool,
 ) -> dict[str, Any]:
     decision = payload.decision
     if decision not in {"allow", "allow_session", "deny"}:
         return {"ok": False, "message": "Invalid permission decision"}
+
+    repository = ThreadRepository()
+    thread_record = repository.get_thread(thread_id)
+    bridge_info = thread_record.values.bridge if thread_record is not None else None
+    is_bridge_thread = (
+        isinstance(bridge_info, dict) and bridge_info.get("source") == "bridge"
+    )
+    if expect_bridge_thread and not is_bridge_thread:
+        return {
+            "ok": False,
+            "message": "Workspace permission requests must use the workspace resolve route",
+        }
+    if not expect_bridge_thread and is_bridge_thread:
+        return {
+            "ok": False,
+            "message": "Bridge permission requests must use the bridge resolve route",
+        }
 
     record = resolve_thread_permission_request(
         thread_id=thread_id,
@@ -192,7 +211,6 @@ async def _resolve_permission_request(
         thread_id=thread_id,
         permission_request_id=permission_request_id,
     )
-    repository = ThreadRepository()
     existing_record = repository.get_thread(thread_id)
     existing_resolved_ids = (
         list(existing_record.values.resolved_permission_request_ids)
@@ -255,11 +273,15 @@ async def resolve_thread_permission(
     permission_request_id: str,
     payload: BridgePermissionResolveRequest,
 ) -> dict[str, Any]:
-    return await _resolve_permission_request(
+    response = await _resolve_permission_request(
         thread_id=thread_id,
         permission_request_id=permission_request_id,
         payload=payload,
+        expect_bridge_thread=False,
     )
+    if response.get("ok") is False:
+        raise HTTPException(status_code=403, detail=response["message"])
+    return response
 
 
 @router.post("/{thread_id}/bridge/permissions/{permission_request_id}/resolve")
@@ -268,8 +290,12 @@ async def resolve_bridge_permission(
     permission_request_id: str,
     payload: BridgePermissionResolveRequest,
 ) -> dict[str, Any]:
-    return await _resolve_permission_request(
+    response = await _resolve_permission_request(
         thread_id=thread_id,
         permission_request_id=permission_request_id,
         payload=payload,
+        expect_bridge_thread=True,
     )
+    if response.get("ok") is False:
+        raise HTTPException(status_code=403, detail=response["message"])
+    return response

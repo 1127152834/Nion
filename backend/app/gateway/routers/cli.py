@@ -241,8 +241,11 @@ async def describe_cli_tool(
     payload: CliToolDescribeRequest,
 ) -> dict[str, Any]:
     service = _get_cli_tools_service()
+    resolved_model_name = payload.model
+    if payload.providerId and payload.model:
+        resolved_model_name = f"{payload.providerId}:{payload.model}"
     try:
-        record = service.describe_tool(tool_id=tool_id, model_name=payload.model)
+        record = service.describe_tool(tool_id=tool_id, model_name=resolved_model_name)
     except ValueError as error:
         detail = str(error)
         status_code = 404 if detail == "Tool not found" else 400

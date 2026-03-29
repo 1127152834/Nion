@@ -29,4 +29,7 @@ void test("workspace CLI tools page renders the manager shell", async () => {
 
   assert.match(source, /CliToolsManager/);
   assert.match(source, /flex h-full flex-col/);
+  assert.match(source, /Add by Path|按路径添加/);
+  assert.match(source, /AI Describe|AI 批量描述/);
+  assert.match(source, /Add Tool|添加工具/);
 });

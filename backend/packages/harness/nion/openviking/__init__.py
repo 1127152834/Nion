@@ -1,0 +1,25 @@
+"""Embedded OpenViking notebook ingest and retrieval runtime."""
+
+from nion.openviking.contracts import OpenVikingResourceDomain, OpenVikingSourceKind
+from nion.openviking.chunk_store import NotebookChunkSearchResult, OpenVikingChunkStore
+from nion.openviking.chunker import NotebookChunk, chunk_notebook_markdown
+from nion.openviking.models import NotebookResourceRecord
+from nion.openviking.notebook_ingest import EmbeddedNotebookIngestService, NotebookIngestResult
+from nion.openviking.notebook_projection import project_notebook_note
+from nion.openviking.resource_store import OpenVikingResourceStore
+from nion.openviking.uri import notebook_resource_uri
+
+__all__ = [
+    "NotebookChunk",
+    "NotebookChunkSearchResult",
+    "NotebookIngestResult",
+    "NotebookResourceRecord",
+    "EmbeddedNotebookIngestService",
+    "OpenVikingResourceDomain",
+    "OpenVikingChunkStore",
+    "OpenVikingResourceStore",
+    "OpenVikingSourceKind",
+    "chunk_notebook_markdown",
+    "notebook_resource_uri",
+    "project_notebook_note",
+]

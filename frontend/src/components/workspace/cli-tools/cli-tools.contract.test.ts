@@ -7,8 +7,10 @@ void test("CLI tools manager keeps installed and recommended sections", async ()
 
   assert.match(source, /已安装|Installed/);
   assert.match(source, /推荐工具|Recommended/);
-  assert.match(source, /AI 批量描述|AI Describe/);
-  assert.match(source, /按路径添加|Add by Path/);
+  assert.match(source, /installedActions/);
+  assert.match(source, /emptyAction/);
+  assert.match(source, /title\?/);
+  assert.match(source, /description\?/);
 });
 
 void test("CLI install dialog keeps streamed install phases", async () => {

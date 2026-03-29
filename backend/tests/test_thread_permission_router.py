@@ -96,3 +96,65 @@ def test_workspace_permission_second_allow_is_not_retried(tmp_path, monkeypatch)
     updated = repository.get_thread("thread-2")
     assert updated is not None
     assert updated.values.resolved_permission_request_ids == [request.id]
+
+
+def test_workspace_permission_resolve_rejects_bridge_thread(tmp_path, monkeypatch):
+    monkeypatch.setenv("NION_HOME", str(tmp_path / "nion-home"))
+    repository = ThreadRepository(base_dir=tmp_path / "nion-home")
+    repository.upsert_thread(
+        "thread-bridge",
+        values={
+            "messages": [],
+            "artifacts": [],
+            "bridge": {
+                "source": "bridge",
+                "platform": "telegram",
+                "chatId": "123",
+            },
+        },
+    )
+
+    request = create_thread_permission_request(
+        thread_id="thread-bridge",
+        tool_name="bash",
+        tool_input={"command": "echo hi"},
+        original_message_text="run bash",
+    )
+
+    with TestClient(create_app()) as client:
+        response = client.post(
+            f"/api/threads/thread-bridge/permissions/{request.id}/resolve",
+            json={"decision": "allow"},
+        )
+
+    assert response.status_code == 403
+    assert response.json() == {
+        "detail": "Bridge permission requests must use the bridge resolve route",
+    }
+
+
+def test_bridge_permission_resolve_rejects_non_bridge_thread(tmp_path, monkeypatch):
+    monkeypatch.setenv("NION_HOME", str(tmp_path / "nion-home"))
+    repository = ThreadRepository(base_dir=tmp_path / "nion-home")
+    repository.upsert_thread(
+        "thread-workspace",
+        values={"messages": [], "artifacts": []},
+    )
+
+    request = create_thread_permission_request(
+        thread_id="thread-workspace",
+        tool_name="bash",
+        tool_input={"command": "echo hi"},
+        original_message_text="run bash",
+    )
+
+    with TestClient(create_app()) as client:
+        response = client.post(
+            f"/api/threads/thread-workspace/bridge/permissions/{request.id}/resolve",
+            json={"decision": "allow"},
+        )
+
+    assert response.status_code == 403
+    assert response.json() == {
+        "detail": "Workspace permission requests must use the workspace resolve route",
+    }

@@ -1,10 +1,8 @@
 "use client";
 
-import { ArrowUpRightIcon, PlusIcon, SparklesIcon, TerminalIcon, Trash2Icon, TriangleAlertIcon } from "lucide-react";
+import { Trash2Icon, TriangleAlertIcon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 
-import { Button } from "@/components/ui/button";
 import {
   deleteCustomCliTool,
   loadCliToolsCatalog,
@@ -15,7 +13,6 @@ import {
   type CustomCliTool,
 } from "@/core/cli";
 import { useI18n } from "@/core/i18n/hooks";
-import { pathOfNewThread } from "@/core/navigation/desktop-routes";
 
 import { CliToolAddDialog } from "./cli-tool-add-dialog";
 import { CliToolBatchDescribeDialog } from "./cli-tool-batch-describe-dialog";
@@ -26,8 +23,19 @@ import { CliToolInstallDialog } from "./cli-tool-install-dialog";
 
 type AutoDescCache = Record<string, CliToolDescriptionRecord>;
 
-export function CliToolsManager() {
-  const router = useRouter();
+type CliToolsManagerProps = {
+  title?: React.ReactNode;
+  description?: React.ReactNode;
+  emptyAction?: React.ReactNode;
+  installedActions?: React.ReactNode;
+};
+
+export function CliToolsManager({
+  title,
+  description,
+  emptyAction,
+  installedActions,
+}: CliToolsManagerProps) {
   const { locale } = useI18n();
   const isZh = locale === "zh-CN";
 
@@ -78,6 +86,18 @@ export function CliToolsManager() {
     void fetchData();
   }, []);
 
+  useEffect(() => {
+    const handleOpenAdd = () => setAddDialogOpen(true);
+    const handleOpenBatchDescribe = () => setBatchDescribeOpen(true);
+
+    window.addEventListener("nion-open-cli-tool-add", handleOpenAdd);
+    window.addEventListener("nion-open-cli-batch-describe", handleOpenBatchDescribe);
+    return () => {
+      window.removeEventListener("nion-open-cli-tool-add", handleOpenAdd);
+      window.removeEventListener("nion-open-cli-batch-describe", handleOpenBatchDescribe);
+    };
+  }, []);
+
   const getRuntimeInfo = (toolId: string) =>
     runtimeInfos.find((item) => item.id === toolId);
 
@@ -113,33 +133,15 @@ export function CliToolsManager() {
       <div className="flex flex-col gap-6 overflow-y-auto">
           <div className="flex items-start justify-between">
             <div>
-              <h2 className="text-xl font-semibold">
-                {isZh ? "CLI 工具" : "CLI Tools"}
-              </h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {isZh
-                  ? "管理本机 CLI 工具，让 Nion 在对话中识别、安装、更新并使用它们。"
-                  : "Manage local CLI tools so Nion can discover, install, update, and use them in chat."}
-              </p>
+              {title ? <div className="text-xl font-semibold">{title}</div> : null}
+              {description ? (
+                <div className="mt-1 text-sm text-muted-foreground">{description}</div>
+              ) : null}
             </div>
             {installedCatalogTools.length === 0 &&
               extraDetected.length === 0 &&
-              customTools.length === 0 && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-1.5"
-                  onClick={() => {
-                    const prefill = isZh
-                      ? "我想安装一个新的 CLI 工具并添加到工具库。\n工具名称：\n安装命令（如 brew install xxx）："
-                      : "I want to install a new CLI tool and add it to my tool library.\nTool name:\nInstall command (e.g. brew install xxx):";
-                    router.push(pathOfNewThread({ draft: prefill }));
-                  }}
-                >
-                  <PlusIcon className="size-4" />
-                  {isZh ? "添加工具" : "Add Tool"}
-                </Button>
-              )}
+              customTools.length === 0 &&
+              emptyAction}
           </div>
 
           {(installedCatalogTools.length > 0 ||
@@ -150,40 +152,7 @@ export function CliToolsManager() {
                 <h3 className="text-sm font-medium text-muted-foreground">
                   {isZh ? "已安装" : "Installed"}
                 </h3>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-1.5"
-                    onClick={() => {
-                      const prefill = isZh
-                        ? "我想安装一个新的 CLI 工具并添加到工具库。\n工具名称：\n安装命令（如 brew install xxx）："
-                        : "I want to install a new CLI tool and add it to my tool library.\nTool name:\nInstall command (e.g. brew install xxx):";
-                      router.push(pathOfNewThread({ draft: prefill }));
-                    }}
-                  >
-                    <PlusIcon className="size-4" />
-                    {isZh ? "添加工具" : "Add Tool"}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-1.5"
-                    onClick={() => setAddDialogOpen(true)}
-                  >
-                    <TerminalIcon className="size-4" />
-                    {isZh ? "按路径添加" : "Add by Path"}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-1.5"
-                    onClick={() => setBatchDescribeOpen(true)}
-                  >
-                    <SparklesIcon className="size-4" />
-                    {isZh ? "AI 批量描述" : "AI Describe"}
-                  </Button>
-                </div>
+                {installedActions}
               </div>
 
               <div className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-3">
@@ -345,22 +314,6 @@ export function CliToolsManager() {
               </p>
             )}
           </section>
-
-          <div className="flex items-center gap-1.5 pt-2 text-xs text-muted-foreground">
-            <ArrowUpRightIcon className="size-3.5" />
-            <a
-              href={
-                isZh
-                  ? "https://www.codepilot.sh/zh/docs"
-                  : "https://www.codepilot.sh/docs"
-              }
-              target="_blank"
-              rel="noreferrer"
-              className="transition-colors hover:text-foreground hover:underline"
-            >
-              {isZh ? "查看 CodePilot 文档" : "View CodePilot docs"}
-            </a>
-          </div>
 
           {detailTool && (
             <CliToolDetailDialog

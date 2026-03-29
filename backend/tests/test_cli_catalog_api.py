@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 
 from app.gateway.app import create_app
 from nion.cli_tools.models import CliToolRuntimeInfo
+from nion.cli_tools.models import CliToolDescriptionRecord
 from nion.cli_tools.repository import CliToolsRepository
 from nion.config.app_config import reset_app_config
 from nion.config.extensions_config import reset_extensions_config
@@ -197,6 +198,34 @@ def test_cli_tools_installed_filters_shadow_custom_tools(monkeypatch, tmp_path):
                 }
             ]
             assert payload["descriptions"][visible.id]["en"] == "Visible tool"
+    finally:
+        reset_app_config()
+        reset_extensions_config()
+
+
+def test_cli_tool_describe_route_passes_provider_qualified_model(monkeypatch, tmp_path):
+    _configure_store(monkeypatch, tmp_path)
+    captured: dict[str, str | None] = {}
+
+    class StubService:
+        def describe_tool(self, *, tool_id: str, model_name: str | None = None):
+            captured["tool_id"] = tool_id
+            captured["model_name"] = model_name
+            return CliToolDescriptionRecord(zh="中文", en="English", structured=None)
+
+    monkeypatch.setattr("app.gateway.routers.cli._get_cli_tools_service", lambda: StubService())
+
+    try:
+        with TestClient(create_app()) as client:
+            response = client.post(
+                "/api/cli-tools/ffmpeg/describe",
+                json={"providerId": "anthropic", "model": "claude-sonnet"},
+            )
+            assert response.status_code == 200
+            assert captured == {
+                "tool_id": "ffmpeg",
+                "model_name": "anthropic:claude-sonnet",
+            }
     finally:
         reset_app_config()
         reset_extensions_config()
