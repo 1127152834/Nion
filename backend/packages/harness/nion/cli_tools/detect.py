@@ -18,25 +18,40 @@ def _resolve_path(bin_name: str) -> str | None:
 
 
 def _extract_version(bin_path: str) -> str | None:
-    try:
-        result = subprocess.run(
-            [bin_path, "--version"],
-            capture_output=True,
-            text=True,
-            timeout=5,
-            check=False,
-        )
-    except Exception:
-        return None
-
-    version_text = (result.stdout or result.stderr or "").strip()
-    if not version_text:
-        return None
-    first_line = version_text.splitlines()[0].strip()
+    command_variants = [
+        [bin_path, "--version"],
+        [bin_path, "-version"],
+        [bin_path, "version"],
+        [bin_path, "-v"],
+        [bin_path, "-V"],
+    ]
     import re
 
-    match = re.search(r"(\d+\.\d+[\w.\-]*)", first_line)
-    return match.group(1) if match is not None else first_line[:50]
+    for command in command_variants:
+        try:
+            result = subprocess.run(
+                command,
+                capture_output=True,
+                text=True,
+                timeout=5,
+                check=False,
+            )
+        except Exception:
+            continue
+
+        version_text = (result.stdout or result.stderr or "").strip()
+        if not version_text:
+            continue
+        first_line = version_text.splitlines()[0].strip()
+        lowered = first_line.lower()
+        if "unknown option" in lowered or "unknown flag" in lowered:
+            continue
+        match = re.search(r"(\d+\.\d+[\w.\-]*)", first_line)
+        if match is not None:
+            return match.group(1)
+        if result.returncode == 0:
+            return first_line[:50]
+    return None
 
 
 def detect_catalog_tool(tool: CliToolDefinition) -> CliToolRuntimeInfo:
