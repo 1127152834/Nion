@@ -137,6 +137,7 @@ src/
 - Set `NION_STATIC_EXPORT=1` only when you intentionally need a static export build
 - The settings dialog shell is grouped into Experience / Knowledge & Memory / Tools & Skills and preloads Config Center state when opened
 - The chat page now exposes a runtime toggle plus Context / Skill / MCP / CLI shortcut lanes
+- The settings dialog now includes an **Agent Integrations** page for ACP adapters and a **Memory** storage selector that maps UI-safe modes onto Config Center state
 
 ## License
 
