@@ -171,7 +171,16 @@ function SkillSettingsList({
                 checked={skill.enabled}
                 disabled={env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY === "true"}
                 onCheckedChange={(checked) =>
-                  enableSkill({ skillName: skill.name, enabled: checked })
+                  enableSkill(
+                    { skillName: skill.name, enabled: checked },
+                    {
+                      onError: (error) => {
+                        toast.error(
+                          error instanceof Error ? error.message : "Failed to update skill",
+                        );
+                      },
+                    },
+                  )
                 }
               />
               {skill.category === "custom" && (

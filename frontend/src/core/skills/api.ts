@@ -21,6 +21,14 @@ export async function enableSkill(skillName: string, enabled: boolean) {
       }),
     },
   );
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    const errorMessage =
+      errorData.detail ?? `HTTP ${response.status}: ${response.statusText}`;
+    throw new Error(errorMessage);
+  }
+
   return response.json();
 }
 

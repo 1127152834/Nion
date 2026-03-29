@@ -24,9 +24,14 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["skills"])
 
 
+def _resolve_or_initialize_extensions_config_path() -> Path:
+    return ExtensionsConfig.initialize_config_path()
+
+
 class SkillResponse(BaseModel):
     """Response model for skill information."""
 
+    id: str = Field(..., description="Stable skill identifier")
     name: str = Field(..., description="Name of the skill")
     description: str = Field(..., description="Description of what the skill does")
     license: str | None = Field(None, description="License information")
@@ -70,6 +75,7 @@ class SkillDeleteResponse(BaseModel):
 def _skill_to_response(skill: Skill) -> SkillResponse:
     """Convert a Skill object to a SkillResponse."""
     return SkillResponse(
+        id=f"{skill.category}:{skill.skill_path}",
         name=skill.name,
         description=skill.description,
         license=skill.license,
@@ -278,11 +284,7 @@ async def update_skill(
             raise HTTPException(status_code=404, detail=f"Skill '{skill_name}' not found")
 
         # Get or create config path
-        config_path = ExtensionsConfig.resolve_config_path()
-        if config_path is None:
-            # Create new config file in parent directory (project root)
-            config_path = Path.cwd().parent / "extensions_config.json"
-            logger.info(f"No existing extensions config found. Creating new config at: {config_path}")
+        config_path = _resolve_or_initialize_extensions_config_path()
 
         # Load current configuration
         extensions_config = get_extensions_config()

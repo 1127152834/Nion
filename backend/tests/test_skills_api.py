@@ -40,10 +40,6 @@ def test_skills_api_list_update_install_delete(monkeypatch, tmp_path: Path):
 
     monkeypatch.setenv("NION_EXTENSIONS_CONFIG_PATH", str(extensions_path))
     monkeypatch.setattr(
-        "app.gateway.routers.skills.get_skills_root_path",
-        lambda: skills_root,
-    )
-    monkeypatch.setattr(
         "app.gateway.routers.skills.load_skills",
         lambda enabled_only=False: load_skills(
             skills_path=skills_root,
@@ -54,6 +50,13 @@ def test_skills_api_list_update_install_delete(monkeypatch, tmp_path: Path):
     monkeypatch.setattr(
         "app.gateway.routers.skills.resolve_thread_virtual_path",
         lambda thread_id, path: archive_path,
+    )
+    monkeypatch.setattr(
+        "app.gateway.routers.skills.install_skill_from_archive",
+        lambda path: __import__("nion.skills.installer", fromlist=["install_skill_from_archive"]).install_skill_from_archive(
+            path,
+            skills_root=skills_root,
+        ),
     )
     reset_extensions_config()
 
@@ -87,5 +90,41 @@ def test_skills_api_list_update_install_delete(monkeypatch, tmp_path: Path):
 
             reject_public = client.delete("/api/skills/public-skill")
             assert reject_public.status_code == 400
+    finally:
+        reset_extensions_config()
+
+
+def test_skills_update_initializes_config_with_shared_resolver(monkeypatch, tmp_path: Path):
+    extensions_path = tmp_path / "extensions_config.json"
+    skills_root = tmp_path / "skills"
+    custom_dir = skills_root / "custom" / "custom-skill"
+    _write_skill(custom_dir, "custom-skill", "Custom skill")
+
+    monkeypatch.delenv("NION_EXTENSIONS_CONFIG_PATH", raising=False)
+    monkeypatch.setattr(
+        "app.gateway.routers.skills.load_skills",
+        lambda enabled_only=False: load_skills(
+            skills_path=skills_root,
+            use_config=False,
+            enabled_only=enabled_only,
+        ),
+    )
+    monkeypatch.setattr(
+        "app.gateway.routers.skills._resolve_or_initialize_extensions_config_path",
+        lambda: extensions_path,
+    )
+    reset_extensions_config()
+
+    try:
+        with TestClient(create_app()) as client:
+            response = client.put(
+                "/api/skills/custom-skill",
+                json={"enabled": False},
+            )
+
+        assert response.status_code == 200
+        assert extensions_path.exists()
+        payload = json.loads(extensions_path.read_text(encoding="utf-8"))
+        assert payload["skills"]["custom-skill"]["enabled"] is False
     finally:
         reset_extensions_config()

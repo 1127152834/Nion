@@ -195,12 +195,7 @@ async def update_mcp_configuration(request: McpConfigUpdateRequest) -> McpConfig
     """
     try:
         # Get the current config path (or determine where to save it)
-        config_path = ExtensionsConfig.resolve_config_path()
-
-        # If no config file exists, create one in the parent directory (project root)
-        if config_path is None:
-            config_path = Path.cwd().parent / "extensions_config.json"
-            logger.info(f"No existing extensions config found. Creating new config at: {config_path}")
+        config_path = ExtensionsConfig.initialize_config_path()
 
         # Load current config to preserve skills configuration
         current_config = get_extensions_config()

@@ -85,3 +85,28 @@ def test_load_skills_descends_into_symlinked_custom_skill(tmp_path: Path):
     skills = load_skills(skills_path=skills_root, use_config=False, enabled_only=False)
 
     assert "linked-skill" in {skill.name for skill in skills}
+
+
+def test_load_skills_parses_multiline_yaml_frontmatter_description(tmp_path: Path):
+    skills_root = tmp_path / "skills"
+    skill_dir = skills_root / "public" / "yaml-skill"
+    skill_dir.mkdir(parents=True, exist_ok=True)
+    (skill_dir / "SKILL.md").write_text(
+        """---
+name: yaml-skill
+description: |
+  First line
+  Second line
+license: MIT
+---
+
+# YAML Skill
+""",
+        encoding="utf-8",
+    )
+
+    skills = load_skills(skills_path=skills_root, use_config=False, enabled_only=False)
+    skill = next((item for item in skills if item.name == "yaml-skill"), None)
+
+    assert skill is not None
+    assert skill.description == "First line\nSecond line"
