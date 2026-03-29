@@ -2,6 +2,11 @@
 
 from nion.openviking.chunk_store import NotebookChunkSearchResult, OpenVikingChunkStore
 from nion.openviking.chunker import NotebookChunk, chunk_notebook_markdown
+from nion.openviking.context_pack import (
+    NotebookContextPack,
+    NotebookContextPackItem,
+    build_context_pack_markdown,
+)
 from nion.openviking.contracts import OpenVikingResourceDomain, OpenVikingSourceKind
 from nion.openviking.models import NotebookResourceRecord
 from nion.openviking.notebook_ingest import EmbeddedNotebookIngestService, NotebookIngestResult
@@ -13,6 +18,8 @@ from nion.openviking.uri import notebook_resource_uri
 __all__ = [
     "NotebookChunk",
     "NotebookChunkSearchResult",
+    "NotebookContextPack",
+    "NotebookContextPackItem",
     "NotebookIngestResult",
     "NotebookResourceRecord",
     "EmbeddedNotebookIngestService",
@@ -21,6 +28,7 @@ __all__ = [
     "OpenVikingResourceStore",
     "OpenVikingSourceKind",
     "RetrievalIntent",
+    "build_context_pack_markdown",
     "classify_retrieval_intent",
     "chunk_notebook_markdown",
     "notebook_resource_uri",
