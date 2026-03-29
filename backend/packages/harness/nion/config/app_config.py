@@ -9,6 +9,7 @@ from typing import Any, Self
 from dotenv import load_dotenv
 from pydantic import BaseModel, ConfigDict, Field
 
+from nion.config.acp_config import ACPAgentConfig, load_acp_config_from_dict
 from nion.config.automation_config import AutomationConfig, load_automation_config_from_dict
 from nion.config.checkpointer_config import CheckpointerConfig, load_checkpointer_config_from_dict
 from nion.config.config_store import (
@@ -55,6 +56,10 @@ class AppConfig(BaseModel):
     """Config for the Nion application"""
 
     models: list[ModelConfig] = Field(default_factory=list, description="Available models")
+    acp_agents: dict[str, ACPAgentConfig] = Field(
+        default_factory=dict,
+        description="Configured ACP-compatible external agents",
+    )
     title: TitleConfig = Field(default_factory=TitleConfig, description="Thread title generation policy")
     summarization: SummarizationConfig = Field(
         default_factory=SummarizationConfig,
@@ -92,6 +97,7 @@ class AppConfig(BaseModel):
     @classmethod
     def _hydrate_auxiliary_configs(cls, config_data: dict[str, Any]) -> None:
         """Load singleton sub-configs from the config payload."""
+        load_acp_config_from_dict(config_data.get("acp_agents") or {})
         load_title_config_from_dict(config_data.get("title") or {})
         load_summarization_config_from_dict(config_data.get("summarization") or {})
         if "memory" in config_data:

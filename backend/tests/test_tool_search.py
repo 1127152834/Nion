@@ -258,20 +258,65 @@ class TestDeferredToolsPromptSection:
         section = get_deferred_tools_prompt_section()
         assert section == ""
 
-    def test_lists_tool_names(self, registry, monkeypatch):
-        from nion.agents.lead_agent.prompt import get_deferred_tools_prompt_section
-        from nion.config import get_app_config
 
-        monkeypatch.setattr(get_app_config().tool_search, "enabled", True)
-        set_deferred_registry(registry)
-        section = get_deferred_tools_prompt_section()
-        assert "<available-deferred-tools>" in section
-        assert "</available-deferred-tools>" in section
-        assert "github_create_issue" in section
-        assert "slack_send_message" in section
-        assert "sentry_list_issues" in section
-        # Should only have names, no descriptions
-        assert "Create a new issue" not in section
+def test_get_available_tools_includes_invoke_acp_agent_when_agents_configured(monkeypatch):
+    from unittest.mock import MagicMock
+
+    from nion.config.acp_config import load_acp_config_from_dict
+    from nion.tools.tools import get_available_tools
+
+    load_acp_config_from_dict(
+        {
+            "codex": {
+                "command": "codex-acp",
+                "description": "Codex ACP adapter",
+            }
+        }
+    )
+
+    fake_config = MagicMock()
+    fake_config.tools = []
+    fake_config.tool_groups = []
+    fake_config.surface_policy.get_rule.return_value = MagicMock(
+        allowed_groups=[],
+        denied_groups=[],
+        allowed_tools=[],
+        denied_tools=[],
+    )
+    fake_config.tool_search.enabled = False
+
+    fake_registry = MagicMock()
+    fake_registry.get_default_model.side_effect = ValueError("no default model")
+
+    monkeypatch.setattr("nion.tools.tools.get_app_config", lambda: fake_config)
+    monkeypatch.setattr(
+        "nion.tools.tools.build_configured_tool_catalog",
+        lambda _config: {},
+    )
+    monkeypatch.setattr(
+        "nion.tools.tools.get_model_registry_service",
+        lambda app_config_provider=None: fake_registry,
+    )
+
+    tools = get_available_tools(include_mcp=False, subagent_enabled=False)
+
+    assert "invoke_acp_agent" in [tool.name for tool in tools]
+
+
+def test_lists_tool_names(registry, monkeypatch):
+    from nion.agents.lead_agent.prompt import get_deferred_tools_prompt_section
+    from nion.config import get_app_config
+
+    monkeypatch.setattr(get_app_config().tool_search, "enabled", True)
+    set_deferred_registry(registry)
+    section = get_deferred_tools_prompt_section()
+    assert "<available-deferred-tools>" in section
+    assert "</available-deferred-tools>" in section
+    assert "github_create_issue" in section
+    assert "slack_send_message" in section
+    assert "sentry_list_issues" in section
+    # Should only have names, no descriptions
+    assert "Create a new issue" not in section
 
 
 # ── DeferredToolFilterMiddleware Tests ──

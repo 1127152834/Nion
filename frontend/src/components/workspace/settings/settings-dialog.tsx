@@ -24,6 +24,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { SidebarGroupLabel } from "@/components/ui/sidebar";
 import { AppearanceSettingsPage } from "@/components/workspace/settings/appearance-settings-page";
+import { AgentIntegrationsSettingsPage } from "@/components/workspace/settings/agent-integrations-settings-page";
 import { CLIToolsPage } from "@/components/workspace/settings/cli-tools-page";
 import { DaemonSettingsPage } from "@/components/workspace/settings/daemon-settings-page";
 import { MCPServersPage } from "@/components/workspace/settings/mcp-servers-page";
@@ -136,6 +137,11 @@ export function SettingsDialog(props: SettingsDialogProps) {
           label: t.settings.sections.cliTools,
           icon: SquareTerminalIcon,
         },
+        agentIntegrations: {
+          id: "agentIntegrations",
+          label: t.settings.sections.agentIntegrations,
+          icon: BotIcon,
+        },
         mcpServers: {
           id: "mcpServers",
           label: t.settings.sections.mcpServers,
@@ -172,7 +178,14 @@ export function SettingsDialog(props: SettingsDialogProps) {
         {
           id: "capabilities",
           title: t.settings.navGroups.capabilities,
-          items: [items.tools, items.search, items.cliTools, items.mcpServers, items.skills],
+          items: [
+            items.tools,
+            items.search,
+            items.cliTools,
+            items.agentIntegrations,
+            items.mcpServers,
+            items.skills,
+          ],
         },
         {
           id: "system",
@@ -191,6 +204,7 @@ export function SettingsDialog(props: SettingsDialogProps) {
       t.settings.sections.tools,
       t.settings.sections.search,
       t.settings.sections.cliTools,
+      t.settings.sections.agentIntegrations,
       t.settings.sections.mcpServers,
       t.settings.sections.skills,
       t.settings.sections.sandbox,
@@ -278,6 +292,9 @@ export function SettingsDialog(props: SettingsDialogProps) {
                 {activeSection === "tools" && <ToolSettingsPage />}
                 {activeSection === "search" && <SearchSettingsPage />}
                 {activeSection === "cliTools" && <CLIToolsPage />}
+                {activeSection === "agentIntegrations" && (
+                  <AgentIntegrationsSettingsPage />
+                )}
                 {activeSection === "mcpServers" && <MCPServersPage />}
                 {activeSection === "skills" && (
                   <SkillSettingsPage

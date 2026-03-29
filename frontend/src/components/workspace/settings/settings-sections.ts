@@ -8,6 +8,7 @@ export const SETTINGS_SECTIONS = [
   "tools",
   "search",
   "cliTools",
+  "agentIntegrations",
   "mcpServers",
   "skills",
   "sandbox",

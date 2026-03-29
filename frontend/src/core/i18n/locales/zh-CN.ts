@@ -564,12 +564,32 @@ export const zhCN: Translations = {
       tools: "工具",
       search: "搜索",
       cliTools: "CLI 工具",
+      agentIntegrations: "Agent 集成",
       mcpServers: "MCP 服务器",
       skills: "技能",
       sandbox: "沙箱",
       notification: "通知",
       daemon: "守护进程",
       about: "关于",
+    },
+    agentIntegrations: {
+      title: "Agent 集成",
+      description: "先把外部 ACP 兼容 Agent 的配置入口落到设置页，再接运行时能力。",
+      empty:
+        "当前还没有配置 ACP 适配器。这里会成为 Codex 和 Claude Code 集成的设置入口。",
+      knownAgents: {
+        codex: "Codex",
+        claudeCode: "Claude Code",
+      },
+      fields: {
+        enabled: "启用",
+        command: "命令",
+        args: "参数",
+        description: "描述",
+        model: "模型",
+        autoApprovePermissions: "自动批准权限",
+        env: "环境变量",
+      },
     },
     daemon: {
       title: "守护进程",
@@ -584,6 +604,16 @@ export const zhCN: Translations = {
         "Nion 会在后台不断从你的对话中自动学习。这些记忆能帮助 Nion 更好地理解你，并提供更个性化的体验。",
       empty: "暂无可展示的记忆数据。",
       rawJson: "原始 JSON",
+      storage: {
+        title: "记忆存储",
+        description: "选择长期记忆更新的持久化 provider。",
+        modeLabel: "存储模式",
+        fileMode: "文件存储",
+        customMode: "自定义 provider",
+        customClassLabel: "自定义存储类",
+        customClassPlaceholder:
+          "nion.agents.memory.storage.FileMemoryStorage",
+      },
       recall: {
         title: "记忆检索",
         description:

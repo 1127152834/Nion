@@ -182,6 +182,14 @@ Config DB priority:
 
 `get_app_config()` now reads the SQLite store, records runtime load status per process, and can boot with minimal defaults even when no local `config.yaml` exists.
 
+Config Center-owned surfaces now include:
+- `acp_agents` for external ACP-compatible adapters such as Codex and Claude Code
+- `memory.storage_class` for memory persistence provider selection
+
+Contributor rule:
+- Prefer `/api/config` plus the frontend settings pages for ACP and memory-provider changes
+- Do not reintroduce handwritten `config.yaml` edits as the primary runtime path for those features
+
 **Legacy YAML compatibility**:
 - `AppConfig.from_file()` still exists as an explicit legacy escape hatch
 - `config.example.yaml` and `make config-upgrade` remain available for old environments

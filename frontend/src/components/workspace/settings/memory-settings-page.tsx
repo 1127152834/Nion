@@ -6,6 +6,13 @@ import { Streamdown } from "streamdown";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useI18n } from "@/core/i18n/hooks";
 import { useMemory } from "@/core/memory/hooks";
 import {
@@ -18,7 +25,17 @@ import { streamdownPlugins } from "@/core/streamdown/plugins";
 import { pathOfThread } from "@/core/threads/utils";
 import { formatTimeAgo } from "@/core/utils/datetime";
 
+import { ConfigValidationErrors } from "./config-validation-errors";
+import { ConfigSaveBar } from "./configuration/config-save-bar";
+import { asObject, asString, cloneConfig } from "./configuration/shared";
+import {
+  FILE_MEMORY_STORAGE_CLASS,
+  inferMemoryStorageMode,
+  resolveMemoryStorageModeSelection,
+  type MemoryStorageMode,
+} from "./memory-settings-page.storage";
 import { SettingsSection } from "./settings-section";
+import { useConfigEditor } from "./use-config-editor";
 
 function confidenceToLevelKey(confidence: unknown): {
   key: "veryHigh" | "high" | "normal" | "unknown";
@@ -170,9 +187,40 @@ function memoryToMarkdown(
 export function MemorySettingsPage() {
   const { t } = useI18n();
   const { memory, isLoading, error } = useMemory();
+  const {
+    configData,
+    draftConfig,
+    validationErrors,
+    validationWarnings,
+    isLoading: isConfigLoading,
+    error: configError,
+    dirty,
+    disabled,
+    saving,
+    onConfigChange,
+    onDiscard,
+    onSave,
+  } = useConfigEditor();
   const [draftQuery, setDraftQuery] = useState("");
   const [submittedQuery, setSubmittedQuery] = useState("");
   const recall = useRecallSearch(submittedQuery, 5);
+  const [storageModeOverride, setStorageModeOverride] =
+    useState<MemoryStorageMode | null>(null);
+  const [customStorageDraft, setCustomStorageDraft] = useState("");
+  const memoryConfigDraft = asObject(draftConfig.memory);
+  const storageClass =
+    asString(memoryConfigDraft.storage_class).trim() ||
+    FILE_MEMORY_STORAGE_CLASS;
+  const storageMode = storageModeOverride ?? inferMemoryStorageMode(storageClass);
+  const customStorageClass =
+    storageMode === "custom"
+      ? customStorageDraft || (inferMemoryStorageMode(storageClass) === "custom"
+          ? storageClass
+          : FILE_MEMORY_STORAGE_CLASS)
+      : "";
+  const persistedStorageClass =
+    asString(asObject(asObject(configData?.config).memory).storage_class).trim() ||
+    FILE_MEMORY_STORAGE_CLASS;
   const searchLabels = useMemo<StructuredMemorySearchLabels>(
     () => ({
       work: t.settings.memory.markdown.work,
@@ -206,11 +254,106 @@ export function MemorySettingsPage() {
     setSubmittedQuery(draftQuery.trim());
   }
 
+  function onMemoryConfigChange(nextStorageClass: string) {
+    const nextConfig = cloneConfig(draftConfig);
+    const nextMemory = asObject(nextConfig.memory);
+    nextMemory.storage_class = nextStorageClass;
+    nextConfig.memory = nextMemory;
+    onConfigChange(nextConfig);
+  }
+
+  function resetStorageEditorState(nextStorageClass: string) {
+    setStorageModeOverride(null);
+    setCustomStorageDraft(
+      inferMemoryStorageMode(nextStorageClass) === "custom"
+        ? nextStorageClass
+        : "",
+    );
+  }
+
   return (
     <SettingsSection
       title={t.settings.memory.title}
       description={t.settings.memory.description}
     >
+      <div className="rounded-xl border bg-background/80 p-5 shadow-sm">
+        {isConfigLoading ? (
+          <div className="text-muted-foreground text-sm">{t.common.loading}</div>
+        ) : configError ? (
+          <div className="text-destructive text-sm">
+            {configError instanceof Error
+              ? configError.message
+              : t.settings.memory.storage.description}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="space-y-1">
+              <h3 className="text-base font-medium">
+                {t.settings.memory.storage.title}
+              </h3>
+              <p className="text-muted-foreground text-sm">
+                {t.settings.memory.storage.description}
+              </p>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-[220px_1fr]">
+              <label className="space-y-1.5">
+                <div className="text-xs font-medium">
+                  {t.settings.memory.storage.modeLabel}
+                </div>
+                <Select
+                  value={storageMode}
+                  onValueChange={(value) => {
+                    const next = resolveMemoryStorageModeSelection(
+                      value as MemoryStorageMode,
+                      storageClass,
+                      customStorageDraft,
+                    );
+                    setStorageModeOverride(next.nextModeOverride);
+                    setCustomStorageDraft(next.nextCustomDraft);
+                    if (next.nextStoredClass !== storageClass) {
+                      onMemoryConfigChange(next.nextStoredClass);
+                    }
+                  }}
+                >
+                  <SelectTrigger disabled={disabled}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="file">
+                      {t.settings.memory.storage.fileMode}
+                    </SelectItem>
+                    <SelectItem value="custom">
+                      {t.settings.memory.storage.customMode}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </label>
+
+              {storageMode === "custom" ? (
+                <label className="space-y-1.5">
+                  <div className="text-xs font-medium">
+                    {t.settings.memory.storage.customClassLabel}
+                  </div>
+                  <Input
+                    value={customStorageClass}
+                    disabled={disabled}
+                    placeholder={t.settings.memory.storage.customClassPlaceholder}
+                    onChange={(event) => {
+                      setStorageModeOverride("custom");
+                      setCustomStorageDraft(event.target.value);
+                      onMemoryConfigChange(
+                        event.target.value.trim() || FILE_MEMORY_STORAGE_CLASS,
+                      )
+                    }}
+                  />
+                </label>
+              ) : null}
+            </div>
+          </div>
+        )}
+      </div>
+
       <div className="rounded-xl border bg-muted/20 p-5 sm:p-6">
         <div className="space-y-1">
           <h3 className="text-base font-medium">
@@ -350,6 +493,27 @@ export function MemorySettingsPage() {
           </Streamdown>
         )}
       </div>
+
+      <ConfigValidationErrors
+        errors={validationErrors}
+        warnings={validationWarnings}
+      />
+      <ConfigSaveBar
+        dirty={dirty}
+        disabled={disabled}
+        saving={saving}
+        onDiscard={() => {
+          resetStorageEditorState(persistedStorageClass);
+          onDiscard();
+        }}
+        onSave={() => {
+          void onSave().then((saved) => {
+            if (saved) {
+              resetStorageEditorState(storageClass);
+            }
+          });
+        }}
+      />
     </SettingsSection>
   );
 }

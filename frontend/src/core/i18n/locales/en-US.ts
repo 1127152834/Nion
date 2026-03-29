@@ -590,12 +590,33 @@ export const enUS: Translations = {
       tools: "Tools",
       search: "Search",
       cliTools: "CLI Tools",
+      agentIntegrations: "Agent Integrations",
       mcpServers: "MCP servers",
       skills: "Skills",
       sandbox: "Sandbox",
       notification: "Notification",
       daemon: "Daemon",
       about: "About",
+    },
+    agentIntegrations: {
+      title: "Agent Integrations",
+      description:
+        "Configure external ACP-compatible agents before wiring runtime behavior.",
+      empty:
+        "No ACP adapter is configured yet. This page will become the home for Codex and Claude Code integrations.",
+      knownAgents: {
+        codex: "Codex",
+        claudeCode: "Claude Code",
+      },
+      fields: {
+        enabled: "Enabled",
+        command: "Command",
+        args: "Arguments",
+        description: "Description",
+        model: "Model",
+        autoApprovePermissions: "Auto-approve permissions",
+        env: "Environment variables",
+      },
     },
     daemon: {
       title: "Daemon",
@@ -611,6 +632,17 @@ export const enUS: Translations = {
         "Nion automatically learns from your conversations in the background. These memories help Nion understand you better and deliver a more personalized experience.",
       empty: "No memory data to display.",
       rawJson: "Raw JSON",
+      storage: {
+        title: "Memory storage",
+        description:
+          "Choose the persistence provider that stores long-term memory updates.",
+        modeLabel: "Storage mode",
+        fileMode: "File storage",
+        customMode: "Custom provider",
+        customClassLabel: "Custom storage class",
+        customClassPlaceholder:
+          "nion.agents.memory.storage.FileMemoryStorage",
+      },
       recall: {
         title: "Memory Search",
         description:

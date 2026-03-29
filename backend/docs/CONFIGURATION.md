@@ -165,6 +165,34 @@ At runtime, the active tool list is usually loaded through the Config Center /
 SQLite-backed `AppConfig`, with YAML serving as schema documentation, bootstrap,
 and fallback input when needed.
 
+### Agent Integrations
+
+Nion can register ACP-compatible external agents through the Config Center-backed
+`acp_agents` payload. In normal product workflows, configure these adapters from
+the frontend **Agent Integrations** settings page instead of hand-editing YAML.
+
+Each configured ACP agent can provide:
+- `command`
+- `args`
+- `description`
+- `model`
+- `env`
+- `auto_approve_permissions`
+
+The runtime now injects ACP subprocess environment variables after resolving
+`$ENV_VAR` placeholders with the same config-center env resolution rules used by
+the rest of `AppConfig`.
+
+### Memory Storage Provider
+
+The long-term memory system still defaults to file-backed persistence, but the
+stored config payload now accepts `memory.storage_class` for alternate provider
+implementations.
+
+In normal product workflows, switch this from the frontend **Memory** settings
+page rather than exposing raw Python class paths to end users. The UI maps safe
+storage modes onto the backend-compatible `storage_class` value.
+
 **Built-in Tools**:
 - `web_search` - Search the web (Tavily)
 - `web_fetch` - Fetch web pages (Jina AI)

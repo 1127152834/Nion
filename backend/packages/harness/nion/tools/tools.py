@@ -3,6 +3,7 @@ import logging
 from langchain.tools import BaseTool
 
 from nion.config import get_app_config
+from nion.config.acp_config import get_acp_agents
 from nion.model_management.service import get_model_registry_service
 from nion.reflection import resolve_variable
 from nion.tools.builtins import (
@@ -41,6 +42,7 @@ from nion.tools.builtins import (
     update_skill_tool,
     view_image_tool,
 )
+from nion.tools.builtins.invoke_acp_agent_tool import build_invoke_acp_agent_tool
 from nion.tools.builtins.tool_search import reset_deferred_registry
 from nion.tools.catalog import ToolCatalogEntry, build_configured_tool_catalog
 
@@ -116,6 +118,11 @@ def get_available_tools(
 
     # Conditionally add tools based on config
     builtin_tools = BUILTIN_TOOLS.copy()
+
+    acp_agents = get_acp_agents()
+    if acp_agents:
+        builtin_tools.append(build_invoke_acp_agent_tool(acp_agents))
+        logger.info("Including ACP invocation tool for %d configured ACP agent(s)", len(acp_agents))
 
     # Add subagent tools only if enabled via runtime parameter
     if subagent_enabled:

@@ -614,12 +614,31 @@ export interface Translations {
       tools: string;
       search: string;
       cliTools: string;
+      agentIntegrations: string;
       mcpServers: string;
       skills: string;
       sandbox: string;
       notification: string;
       daemon: string;
       about: string;
+    };
+    agentIntegrations: {
+      title: string;
+      description: string;
+      empty: string;
+      knownAgents: {
+        codex: string;
+        claudeCode: string;
+      };
+      fields: {
+        enabled: string;
+        command: string;
+        args: string;
+        description: string;
+        model: string;
+        autoApprovePermissions: string;
+        env: string;
+      };
     };
     daemon: {
       title: string;
@@ -632,6 +651,15 @@ export interface Translations {
       description: string;
       empty: string;
       rawJson: string;
+      storage: {
+        title: string;
+        description: string;
+        modeLabel: string;
+        fileMode: string;
+        customMode: string;
+        customClassLabel: string;
+        customClassPlaceholder: string;
+      };
       recall: {
         title: string;
         description: string;

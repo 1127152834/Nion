@@ -190,6 +190,10 @@ class Paths:
         """
         return self.thread_dir(thread_id) / "user-data"
 
+    def acp_workspace_dir(self, thread_id: str) -> Path:
+        """Host path for ACP adapter output for a specific thread."""
+        return self.thread_dir(thread_id) / "acp-workspace"
+
     def ensure_thread_dirs(self, thread_id: str) -> None:
         """Create all standard sandbox directories for a thread.
 
@@ -215,6 +219,7 @@ class Paths:
         for d in [
             self.sandbox_uploads_dir(thread_id),
             self.sandbox_outputs_dir(thread_id),
+            self.acp_workspace_dir(thread_id),
         ]:
             d.mkdir(parents=True, exist_ok=True)
             d.chmod(0o777)

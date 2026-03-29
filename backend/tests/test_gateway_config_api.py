@@ -50,8 +50,12 @@ def test_gateway_config_api_round_trip(monkeypatch, tmp_path):
             schema_response = client.get("/api/config/schema")
             assert schema_response.status_code == 200
             schema_payload = schema_response.json()
+            assert "agent_integrations" in schema_payload["sections"]
+            assert "agent_integrations" in schema_payload["order"]
             assert "daemon" in schema_payload["sections"]
             assert "daemon" in schema_payload["order"]
+            assert "memory" in schema_payload["sections"]
+            assert "memory" in schema_payload["order"]
             assert "models" in schema_payload["sections"]
             assert "sandbox" in schema_payload["order"]
 
