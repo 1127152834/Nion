@@ -7,6 +7,7 @@ from nion.openviking.models import NotebookResourceRecord
 from nion.openviking.notebook_ingest import EmbeddedNotebookIngestService, NotebookIngestResult
 from nion.openviking.notebook_projection import project_notebook_note
 from nion.openviking.resource_store import OpenVikingResourceStore
+from nion.openviking.retrieval_intent import RetrievalIntent, classify_retrieval_intent
 from nion.openviking.uri import notebook_resource_uri
 
 __all__ = [
@@ -19,6 +20,8 @@ __all__ = [
     "OpenVikingChunkStore",
     "OpenVikingResourceStore",
     "OpenVikingSourceKind",
+    "RetrievalIntent",
+    "classify_retrieval_intent",
     "chunk_notebook_markdown",
     "notebook_resource_uri",
     "project_notebook_note",
