@@ -1177,7 +1177,6 @@ export function InputBox({
                 : t.inputBox.placeholder
             }
             autoFocus={autoFocus}
-            defaultValue={initialValue}
             onClick={handleMentionSelectionSync}
             onKeyDown={handleMentionKeyDown}
             onKeyUp={handleMentionSelectionSync}

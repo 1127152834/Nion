@@ -9,6 +9,12 @@ export function getBackendBaseURL() {
     window.__NION_BACKEND_BASE_URL__.length > 0
   ) {
     return window.__NION_BACKEND_BASE_URL__;
+  } else if (
+    typeof window !== "undefined" &&
+    (window.location.hostname === "127.0.0.1" ||
+      window.location.hostname === "localhost")
+  ) {
+    return "http://localhost:8001";
   } else {
     return "";
   }
