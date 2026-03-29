@@ -47,6 +47,7 @@
 - [2026-03-30 Project 模块脑暴纪要](./00-brainstorming/2026-03-30-project-module-brainstorming.md)
 - [2026-03-30 Project 模块信息架构与状态机设计](./01-design/2026-03-30-project-module-information-architecture-design.md)
 - [2026-03-30 Project 模块数据模型设计](./01-design/2026-03-30-project-module-data-model-design.md)
+- [2026-03-30 Project 模块 API 契约设计](./01-design/2026-03-30-project-module-api-contract-design.md)
 
 ## 当前共识摘要
 
