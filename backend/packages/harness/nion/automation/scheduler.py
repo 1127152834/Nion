@@ -17,6 +17,9 @@ def format_automation_datetime(value: datetime) -> str:
 
 
 def compute_next_run_at(job: AutomationJob, *, now: datetime) -> str | None:
+    if job.schedule_kind == "event":
+        return None
+
     if job.schedule_kind == "once":
         if not job.schedule_value:
             return None
@@ -100,6 +103,9 @@ class AutomationScheduler:
 
         if run.status == "failed":
             job.state = "error"
+            job.next_run_at = None
+        elif job.schedule_kind == "event":
+            job.state = "scheduled"
             job.next_run_at = None
         elif job.schedule_kind == "once":
             job.enabled = False

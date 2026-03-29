@@ -209,6 +209,15 @@ make docker-start
 └── docs/           # 架构、接口与实施文档
 ```
 
+## 测试文档
+
+仓库内按真实业务模块拆分的测试交接文档位于 `docs/test/`。
+
+- 总览索引：`docs/test/README.md`
+- 模块文档：`docs/test/<模块目录>/README.md`
+
+这些文档面向 Codex 或其他 agent，包含接口测试、UI 测试、agent-browser E2E、回归与自动化建议，可直接作为后续测试执行输入。
+
 ### 运行时参数约定
 
 - Web / LangGraph SDK 请求统一通过 `context` 传递运行时字段，如 `thread_id`、`model_name`、`thinking_enabled`、`is_plan_mode`、`subagent_enabled`、`agent_name`、`session_mode`、`memory_read`、`memory_write`。

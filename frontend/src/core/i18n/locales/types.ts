@@ -915,6 +915,12 @@ export interface Translations {
         overview: string;
         reminders: string;
         tasks: string;
+        events: string;
+        workflow: string;
+        templates: string;
+        governance: string;
+        platform: string;
+        eventCenter: string;
         history: string;
       };
       overview: {
@@ -932,15 +938,37 @@ export interface Translations {
         reminderDescription: string;
         taskTitle: string;
         taskDescription: string;
+        eventTitle: string;
+        eventDescription: string;
         cadenceLabel: string;
         timeLabel: string;
+        eventTypeLabel: string;
+        eventActionLabel: string;
+        eventPromptLabel: string;
+        eventPromptPlaceholder: string;
         cadenceOptions: {
           daily: string;
           weekdays: string;
           weekly: string;
         };
+        eventOptions: {
+          agentRunCompleted: string;
+          agentRunFailed: string;
+          clarificationRequested: string;
+          permissionRequested: string;
+          automationRunFailed: string;
+          threadFinished: string;
+          threadFailed: string;
+        };
+        eventActionOptions: {
+          notify: string;
+          playSound: string;
+          notebookWrite: string;
+          agentPrompt: string;
+        };
         createReminder: string;
         createTask: string;
+        createEvent: string;
         advancedOptions: string;
       };
       sections: {
@@ -948,14 +976,19 @@ export interface Translations {
         remindersDescription: string;
         tasksTitle: string;
         tasksDescription: string;
+        eventsTitle: string;
+        eventsDescription: string;
         historyTitle: string;
         historyDescription: string;
         emptyReminders: string;
         emptyTasks: string;
+        emptyEvents: string;
         emptyHistory: string;
         scheduleLabel: string;
         nextRunLabel: string;
         lastResultLabel: string;
+        actionLabel: string;
+        viewDetails: string;
         notScheduled: string;
         noSummary: string;
         startedLabel: string;
@@ -966,6 +999,7 @@ export interface Translations {
         weekdaysPrefix: string;
         weeklyPrefix: string;
         oncePrefix: string;
+        eventPrefix: string;
         everyMinutesTemplate: string;
       };
     };

@@ -1,6 +1,7 @@
 "use client";
 
 import { PauseIcon, PlayIcon, Trash2Icon, ZapIcon } from "lucide-react";
+import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,7 +14,8 @@ import {
   ItemHeader,
   ItemTitle,
 } from "@/components/ui/item";
-import { formatScheduleLabel } from "@/core/automation/presentation";
+import { useRequestAutomationApproval } from "@/core/automation/hooks";
+import { formatActionLabel, formatScheduleLabel } from "@/core/automation/presentation";
 import type { AutomationJob } from "@/core/automation/types";
 import { useI18n } from "@/core/i18n/hooks";
 
@@ -22,6 +24,7 @@ type AutomationJobSectionProps = {
   description: string;
   emptyMessage: string;
   jobs: AutomationJob[];
+  onRequestApproval?: (jobId: string) => Promise<unknown>;
   onPause: (jobId: string) => Promise<unknown>;
   onResume: (jobId: string) => Promise<unknown>;
   onRun: (jobId: string) => Promise<unknown>;
@@ -33,6 +36,7 @@ export function AutomationJobSection({
   description,
   emptyMessage,
   jobs,
+  onRequestApproval,
   onPause,
   onResume,
   onRun,
@@ -40,6 +44,7 @@ export function AutomationJobSection({
 }: AutomationJobSectionProps) {
   const { t } = useI18n();
   const copy = t.settings.automation;
+  const requestApproval = useRequestAutomationApproval();
   const workspaceCopy = t.settings.automationWorkspace.sections;
   const scheduleLabelCopy = {
     dailyPrefix: workspaceCopy.dailyPrefix,
@@ -47,6 +52,7 @@ export function AutomationJobSection({
     weeklyPrefix: workspaceCopy.weeklyPrefix,
     oncePrefix: workspaceCopy.oncePrefix,
     everyMinutesTemplate: workspaceCopy.everyMinutesTemplate,
+    eventPrefix: workspaceCopy.eventPrefix,
   };
 
   return (
@@ -75,6 +81,15 @@ export function AutomationJobSection({
                       <Badge variant="secondary">
                         {copy.stateLabels[job.state] ?? job.state}
                       </Badge>
+                      {job.owner_id ? (
+                        <Badge variant="outline">owner_id: {job.owner_id}</Badge>
+                      ) : null}
+                      {job.visibility ? (
+                        <Badge variant="outline">visibility: {job.visibility}</Badge>
+                      ) : null}
+                      {job.approval_policy?.required ? (
+                        <Badge variant="outline">approval_policy: required</Badge>
+                      ) : null}
                       <Badge variant="outline">
                         {formatScheduleLabel(job, scheduleLabelCopy)}
                       </Badge>
@@ -109,6 +124,23 @@ export function AutomationJobSection({
                       <ZapIcon className="size-4" />
                       {copy.runNow}
                     </Button>
+                    {job.approval_policy?.required ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() =>
+                          onRequestApproval
+                            ? void onRequestApproval(job.id)
+                            : void requestApproval.mutateAsync({
+                                jobId: job.id,
+                                actor_id: "requester-ui",
+                                reason: "High-risk action",
+                              })
+                        }
+                      >
+                        Request approval
+                      </Button>
+                    ) : null}
                     <Button
                       size="sm"
                       variant="ghost"
@@ -117,6 +149,13 @@ export function AutomationJobSection({
                       <Trash2Icon className="size-4" />
                       {copy.remove}
                     </Button>
+                    {job.job_kind === "event_task" || job.job_kind === "workflow" ? (
+                      <Button size="sm" variant="ghost" asChild>
+                        <Link href={job.job_kind === "workflow" ? `/workspace/automation/workflows/${job.id}` : `/workspace/automation/${job.id}`}>
+                          {workspaceCopy.viewDetails}
+                        </Link>
+                      </Button>
+                    ) : null}
                   </ItemActions>
                 </ItemHeader>
                 <div className="text-muted-foreground grid gap-3 pt-3 text-xs md:grid-cols-3">
@@ -134,9 +173,15 @@ export function AutomationJobSection({
                   </div>
                   <div>
                     <div className="font-medium text-foreground/80">
-                      {workspaceCopy.lastResultLabel}
+                      {job.job_kind === "event_task"
+                        ? workspaceCopy.actionLabel
+                        : workspaceCopy.lastResultLabel}
                     </div>
-                    <div>{job.last_result_summary ?? workspaceCopy.noSummary}</div>
+                    <div>
+                      {job.job_kind === "event_task"
+                        ? formatActionLabel(job)
+                        : job.last_result_summary ?? workspaceCopy.noSummary}
+                    </div>
                   </div>
                 </div>
               </ItemContent>

@@ -8,6 +8,9 @@ Nion Frontend is a Next.js 16 web interface for an AI agent system. It communica
 
 **Stack**: Next.js 16, React 19, TypeScript 5.8, Tailwind CSS 4, pnpm 10.26.2
 
+Business-module test handoff docs live under `docs/test/`.
+When frontend behavior changes across chat, CLI tools, settings, notebook, agents, automation, or desktop/bridge surfaces, update the matching module document and `docs/test/README.md`.
+
 ## Commands
 
 | Command | Purpose |

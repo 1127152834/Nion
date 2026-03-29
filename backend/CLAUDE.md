@@ -73,6 +73,9 @@ When making code changes, you MUST update the relevant documentation:
 - Keep documentation synchronized with the codebase at all times
 - Ensure accuracy and timeliness of all documentation
 
+Testing handoff docs for real business modules live under `docs/test/`.
+If feature behavior, routes, or module boundaries change, update the relevant module document and the overview index at `docs/test/README.md`.
+
 ## Commands
 
 **Root directory** (for full application):

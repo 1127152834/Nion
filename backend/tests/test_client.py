@@ -285,6 +285,76 @@ class TestStream:
         assert custom_events[0].data["question"] == "Which option do you want?"
         assert custom_events[0].data["options"] == ["A", "B"]
 
+    def test_clarification_tool_dispatches_automation_event(self, client):
+        tool = ToolMessage(
+            content="❓ Which option do you want?",
+            id="tm-clarify",
+            tool_call_id="tc-clarify",
+            name="ask_clarification",
+            additional_kwargs={
+                "clarification": {
+                    "question": "Which option do you want?",
+                    "clarification_type": "approach_choice",
+                    "options": ["A", "B"],
+                }
+            },
+        )
+        agent = _make_agent_mock([{"messages": [HumanMessage(content="choose", id="h-1"), tool]}])
+
+        with (
+            patch.object(client, "_ensure_agent"),
+            patch.object(client, "_agent", agent),
+            patch("nion.client.dispatch_automation_event") as dispatch_mock,
+        ):
+            list(client.stream("choose", thread_id="t-clarify"))
+
+        dispatch_mock.assert_any_call(
+            "clarification.requested",
+            {
+                "thread_id": "t-clarify",
+                "surface": "workspace",
+                "agent_name": "lead_agent",
+                "question": "Which option do you want?",
+                "clarification_type": "approach_choice",
+                "options": ["A", "B"],
+            },
+        )
+
+    def test_permission_tool_dispatches_automation_event(self, client):
+        tool = ToolMessage(
+            content="Permission requested",
+            id="tm-permission",
+            tool_call_id="tc-permission",
+            name="permission_request",
+            additional_kwargs={
+                "permission_request": {
+                    "id": "perm-1",
+                    "tool_name": "bash",
+                    "original_message_text": "Run bash",
+                }
+            },
+        )
+        agent = _make_agent_mock([{"messages": [HumanMessage(content="run", id="h-1"), tool]}])
+
+        with (
+            patch.object(client, "_ensure_agent"),
+            patch.object(client, "_agent", agent),
+            patch("nion.client.dispatch_automation_event") as dispatch_mock,
+        ):
+            list(client.stream("run", thread_id="t-permission"))
+
+        dispatch_mock.assert_any_call(
+            "permission.requested",
+            {
+                "thread_id": "t-permission",
+                "surface": "workspace",
+                "agent_name": "lead_agent",
+                "id": "perm-1",
+                "tool_name": "bash",
+                "original_message_text": "Run bash",
+            },
+        )
+
     def test_deduplication(self, client):
         """Messages with the same id are not emitted twice."""
         ai = AIMessage(content="Hello!", id="ai-1")

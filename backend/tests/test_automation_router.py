@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -92,6 +93,22 @@ class FakeAutomationService:
 
     def list_runs(self):
         return list(self.runs)
+
+    def resume_workflow_run(self, job_id: str, run_id: str, payload: dict):
+        self.calls.append(("resume_workflow_run", job_id, run_id, payload))
+        return AutomationRun(
+            id=run_id,
+            job_id=job_id,
+            started_at="2026-03-24T01:00:00Z",
+            finished_at="2026-03-24T01:05:00Z",
+            status="succeeded",
+            result_summary="Workflow completed",
+            current_step_id=None,
+            step_results=[
+                {"step_id": "step-notify", "status": "succeeded", "attempts": 1},
+                {"step_id": "step-wait", "status": "succeeded", "attempts": 1},
+            ],
+        )
 
     def get_status(self):
         return {
@@ -229,3 +246,108 @@ def test_create_automation_job_rejects_invalid_schedule_kind():
       )
 
     assert response.status_code == 422
+
+
+def test_create_event_task_job():
+    service = FakeAutomationService()
+    with _client(service) as client:
+        response = client.post(
+            "/api/automation/jobs",
+            json={
+                "name": "Reply finished alert",
+                "prompt": "Tell me when replies finish",
+                "job_kind": "event_task",
+                "trigger_kind": "event",
+                "trigger_spec": {"event_name": "agent.run.completed"},
+                "action_kind": "agent_prompt",
+                "action_spec": {"channel": "desktop_notification"},
+                "delivery_mode": "local",
+                "delivery_targets": [],
+            },
+        )
+
+    assert response.status_code == 201
+    assert response.json()["job"]["job_kind"] == "event_task"
+    assert service.calls[0][1]["trigger_kind"] == "event"
+    assert service.calls[0][1]["trigger_spec"]["event_name"] == "agent.run.completed"
+
+
+def test_update_event_task_job():
+    service = FakeAutomationService()
+
+    def update_job(job_id: str, payload):
+        service.calls.append(("update", job_id, payload))
+        job = service.jobs[job_id]
+        job.name = payload.get("name", job.name)
+        job.trigger_spec = payload.get("trigger_spec", job.trigger_spec)
+        job.action_kind = payload.get("action_kind", job.action_kind)
+        return job
+
+    service.update_job = update_job  # type: ignore[attr-defined]
+
+    with _client(service) as client:
+        response = client.patch(
+            "/api/automation/jobs/job-1",
+            json={
+                "name": "Updated event task",
+                "trigger_spec": {"event_name": "thread.finished"},
+                "action_kind": "notebook_write",
+            },
+        )
+
+    assert response.status_code == 200
+    assert response.json()["job"]["name"] == "Updated event task"
+    assert service.calls[0][0] == "update"
+    assert service.calls[0][2]["trigger_spec"]["event_name"] == "thread.finished"
+
+
+def test_serve_automation_package_file():
+    service = FakeAutomationService()
+    package_dir = Path("/tmp/automation-hook")
+    package_dir.mkdir(parents=True, exist_ok=True)
+    (package_dir / "tone.mp3").write_bytes(b"audio")
+    service.jobs["job-1"].package_dir = str(package_dir)
+
+    with _client(service) as client:
+        response = client.get("/api/automation/jobs/job-1/package/files/tone.mp3")
+
+    assert response.status_code == 200
+    assert response.content == b"audio"
+
+
+def test_create_workflow_job():
+    service = FakeAutomationService()
+    with _client(service) as client:
+        response = client.post(
+            "/api/automation/jobs",
+            json={
+                "name": "Reply follow-up workflow",
+                "prompt": "Run workflow",
+                "job_kind": "workflow",
+                "trigger_kind": "event",
+                "trigger_spec": {"event_name": "agent.run.completed"},
+                "workflow_steps": [
+                    {"id": "step-notify", "kind": "notify", "config": {"title": "Reply finished"}},
+                    {"id": "step-wait", "kind": "wait_for_user", "config": {"prompt": "Continue?"}},
+                ],
+                "delivery_mode": "local",
+                "delivery_targets": [],
+            },
+        )
+
+    assert response.status_code == 201
+    assert service.calls[0][1]["job_kind"] == "workflow"
+    assert service.calls[0][1]["workflow_steps"][1]["kind"] == "wait_for_user"
+
+
+def test_resume_workflow_run():
+    service = FakeAutomationService()
+    with _client(service) as client:
+        response = client.post(
+            "/api/automation/jobs/job-1/runs/run-1/resume",
+            json={"payload": {"answer": "continue"}},
+        )
+
+    assert response.status_code == 200
+    assert response.json()["run"]["status"] == "succeeded"
+    assert service.calls[0] == ("resume_workflow_run", "job-1", "run-1", {"answer": "continue"})

@@ -13,12 +13,15 @@ type ScheduleLabelCopy = {
   weeklyPrefix: string;
   oncePrefix: string;
   everyMinutesTemplate: string;
+  eventPrefix: string;
 };
 
 export function splitJobsByKind(jobs: AutomationJob[]) {
   return {
     reminders: jobs.filter((job) => job.job_kind === "reminder"),
     tasks: jobs.filter((job) => job.job_kind === "scheduled_task"),
+    events: jobs.filter((job) => job.job_kind === "event_task"),
+    workflows: jobs.filter((job) => job.job_kind === "workflow"),
   };
 }
 
@@ -30,9 +33,15 @@ export function formatScheduleLabel(
     weeklyPrefix: "Weekly at",
     oncePrefix: "Once at",
     everyMinutesTemplate: "Every {minutes} min",
+    eventPrefix: "On",
   },
 ) {
   const timeOfDay = readString(job.schedule_metadata.time_of_day);
+  const eventName = readKnownString(job.trigger_spec, "event_name");
+
+  if (job.schedule_preset === "event" && eventName) {
+    return `${copy.eventPrefix} ${eventName}`;
+  }
 
   if (job.schedule_preset === "daily" && timeOfDay) {
     return `${copy.dailyPrefix} ${timeOfDay}`;
@@ -53,6 +62,17 @@ export function formatScheduleLabel(
       : job.schedule_value;
   }
   return job.schedule_value;
+}
+
+export function formatActionLabel(job: AutomationJob) {
+  if (job.action_kind === "script") {
+    const entrypoint = readKnownString(job.action_spec, "entrypoint");
+    return entrypoint ? `Script: ${entrypoint}` : "Script";
+  }
+  if (job.action_kind === "agent_prompt") {
+    return "Agent prompt";
+  }
+  return job.action_kind;
 }
 
 export function summarizeHistory(runs: AutomationRun[]) {
@@ -90,4 +110,8 @@ function makeCard(id: string, value: number, tone: AutomationOverviewCardTone) {
 
 function readString(value: unknown) {
   return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function readKnownString(record: Record<string, unknown>, key: string) {
+  return readString(record[key]);
 }
