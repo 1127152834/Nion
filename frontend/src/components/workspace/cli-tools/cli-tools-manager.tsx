@@ -3,6 +3,7 @@
 import { Trash2Icon, TriangleAlertIcon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
+import { Button } from "@/components/ui/button";
 import {
   deleteCustomCliTool,
   loadCliToolsCatalog,
@@ -98,25 +99,27 @@ export function CliToolsManager({
     };
   }, []);
 
-  const getRuntimeInfo = (toolId: string) =>
-    runtimeInfos.find((item) => item.id === toolId);
+  const runtimeInfoById = useMemo(
+    () => new Map(runtimeInfos.map((item) => [item.id, item])),
+    [runtimeInfos],
+  );
 
   const installedCatalogTools = useMemo(
     () =>
       catalog.filter((tool) => {
-        const runtime = getRuntimeInfo(tool.id);
+        const runtime = runtimeInfoById.get(tool.id);
         return runtime && runtime.status !== "not_installed";
       }),
-    [catalog, runtimeInfos],
+    [catalog, runtimeInfoById],
   );
 
   const recommendedTools = useMemo(
     () =>
       catalog.filter((tool) => {
-        const runtime = getRuntimeInfo(tool.id);
+        const runtime = runtimeInfoById.get(tool.id);
         return !runtime || runtime.status === "not_installed";
       }),
-    [catalog, runtimeInfos],
+    [catalog, runtimeInfoById],
   );
 
   const batchDescribeToolIds = useMemo(
@@ -160,7 +163,7 @@ export function CliToolsManager({
                   <CliToolCard
                     key={tool.id}
                     tool={tool}
-                    runtimeInfo={getRuntimeInfo(tool.id)}
+                    runtimeInfo={runtimeInfoById.get(tool.id)}
                     variant="installed"
                     autoDescription={autoDescriptions[tool.id]}
                     onDetail={() => setDetailTool({ tool, canInstall: false })}
@@ -170,7 +173,7 @@ export function CliToolsManager({
                 ))}
 
                 {extraDetected.map((runtime) => {
-                  const displayName = runtime.displayName || runtime.id;
+                  const displayName = runtime.displayName ?? runtime.id;
                   return (
                     <div
                       key={runtime.id}
@@ -294,7 +297,7 @@ export function CliToolsManager({
                 <CliToolCard
                   key={tool.id}
                   tool={tool}
-                  runtimeInfo={getRuntimeInfo(tool.id)}
+                  runtimeInfo={runtimeInfoById.get(tool.id)}
                   variant="recommended"
                   onDetail={() => setDetailTool({ tool, canInstall: true })}
                   onInstall={(selectedTool, method) =>

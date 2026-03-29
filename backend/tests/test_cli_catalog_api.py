@@ -5,8 +5,7 @@ import json
 from fastapi.testclient import TestClient
 
 from app.gateway.app import create_app
-from nion.cli_tools.models import CliToolRuntimeInfo
-from nion.cli_tools.models import CliToolDescriptionRecord
+from nion.cli_tools.models import CliToolDescriptionRecord, CliToolRuntimeInfo
 from nion.cli_tools.repository import CliToolsRepository
 from nion.config.app_config import reset_app_config
 from nion.config.extensions_config import reset_extensions_config

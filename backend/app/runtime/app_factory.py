@@ -9,7 +9,6 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.gateway.config import get_gateway_config
 
-
 SharedLifespan = AbstractAsyncContextManager[AsyncGenerator[None, None], bool]
 DEV_RENDERER_ORIGINS = ("http://127.0.0.1:5173", "http://localhost:5173")
 

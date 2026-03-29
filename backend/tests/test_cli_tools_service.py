@@ -3,7 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 from types import SimpleNamespace
 
-from nion.cli_tools.models import CliToolRuntimeInfo
 from nion.cli_tools.repository import CliToolsRepository
 from nion.cli_tools.service import CliToolsService
 

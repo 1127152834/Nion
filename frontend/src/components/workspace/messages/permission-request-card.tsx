@@ -38,7 +38,7 @@ export function PermissionRequestCard({
           {t.toolCalls.needYourHelp}
         </div>
         <p className="text-foreground text-[15px] leading-7">
-          {permissionRequest.reasonMessage || "Permission required to continue."}
+          {permissionRequest.reasonMessage ?? "Permission required to continue."}
         </p>
         <p className="text-muted-foreground text-sm leading-6">
           {permissionRequest.toolName}
