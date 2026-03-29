@@ -362,6 +362,7 @@ export interface Translations {
     pendingReply: string;
     agents: string;
     automation: string;
+    cliTools: string;
     notebook: string;
   };
 

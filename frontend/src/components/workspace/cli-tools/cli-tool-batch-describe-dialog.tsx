@@ -110,6 +110,7 @@ export function CliToolBatchDescribeDialog({
 
   const successCount = toolResults.filter((item) => item.status === "success").length;
   const errorCount = toolResults.filter((item) => item.status === "error").length;
+  const existingCount = toolIds.filter((toolId) => Boolean(existingDescriptions[toolId])).length;
 
   return (
     <Dialog
@@ -199,6 +200,17 @@ export function CliToolBatchDescribeDialog({
                 </span>
               </label>
             )}
+
+            <p className="text-xs text-muted-foreground">
+              {isZh
+                ? `将处理 ${toolsToProcess.length}/${toolIds.length} 个工具`
+                : `${toolsToProcess.length}/${toolIds.length} tools will be processed`}
+              {existingCount > 0
+                ? isZh
+                  ? `，其中 ${existingCount} 个已有描述`
+                  : `, ${existingCount} already have descriptions`
+                : ""}
+            </p>
           </div>
         )}
 
@@ -226,6 +238,11 @@ export function CliToolBatchDescribeDialog({
                     <XCircleIcon className="size-4 text-destructive" />
                   )}
                 </span>
+                {result.status === "error" && result.error && (
+                  <span className="ml-auto truncate pl-2 text-xs text-destructive">
+                    {result.error}
+                  </span>
+                )}
               </div>
             ))}
           </div>
@@ -239,6 +256,9 @@ export function CliToolBatchDescribeDialog({
             <div>
               {isZh ? "失败" : "Failed"}: {errorCount}
             </div>
+            {successCount === 0 && errorCount === 0 && (
+              <div>{isZh ? "没有需要处理的工具" : "Nothing to process"}</div>
+            )}
           </div>
         )}
 
@@ -254,6 +274,7 @@ export function CliToolBatchDescribeDialog({
                 onClick={async () => {
                   const controller = new AbortController();
                   abortControllerRef.current = controller;
+                  resultsRef.current = {};
                   const pendingResults = toolsToProcess.map((id) => ({
                     id,
                     status: "pending" as const,
@@ -274,6 +295,9 @@ export function CliToolBatchDescribeDialog({
                         providerId: selectedProviderId,
                         model: selectedModel,
                       });
+                      if (controller.signal.aborted) {
+                        break;
+                      }
                       resultsRef.current[toolId] = description;
                       setToolResults((current) =>
                         current.map((item, itemIndex) =>
@@ -302,8 +326,12 @@ export function CliToolBatchDescribeDialog({
                       );
                     }
                   }
-                  onComplete(resultsRef.current);
-                  setPhase("done");
+                  if (!controller.signal.aborted && Object.keys(resultsRef.current).length > 0) {
+                    onComplete(resultsRef.current);
+                  }
+                  if (!controller.signal.aborted) {
+                    setPhase("done");
+                  }
                 }}
               >
                 {isZh ? "开始生成" : "Start"}

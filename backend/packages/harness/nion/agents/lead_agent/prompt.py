@@ -237,6 +237,8 @@ You: "Deploying to staging..." [proceed]
 
 {deferred_tools_section}
 
+{cli_tools_capability_section}
+
 {subagent_section}
 
 <working_directory existed="true">
@@ -464,7 +466,26 @@ def _build_acp_section() -> str:
     )
 
 
-def apply_prompt_template(subagent_enabled: bool = False, max_concurrent_subagents: int = 3, *, agent_name: str | None = None, available_skills: set[str] | None = None) -> str:
+CLI_TOOLS_CAPABILITY_PROMPT = """<cli-tools-capability>
+You have CLI tool management capabilities:
+- codepilot_cli_tools_list: Query installed tools (supports format="json" for structured output)
+- codepilot_cli_tools_install: Install new tools via package-manager shell command
+- codepilot_cli_tools_add: Register an already-installed tool and save its description
+- codepilot_cli_tools_remove: Remove a custom tool
+- codepilot_cli_tools_check_updates: Check which tools have available updates
+- codepilot_cli_tools_update: Update a tool to its latest version
+After installing a tool, save a bilingual description when useful. If the tool requires authentication, guide the user through the setup steps.
+</cli-tools-capability>"""
+
+
+def apply_prompt_template(
+    subagent_enabled: bool = False,
+    max_concurrent_subagents: int = 3,
+    *,
+    cli_tools_enabled: bool = False,
+    agent_name: str | None = None,
+    available_skills: set[str] | None = None,
+) -> str:
     # Get memory context
     memory_context = _get_memory_context(agent_name)
 
@@ -496,6 +517,9 @@ def apply_prompt_template(subagent_enabled: bool = False, max_concurrent_subagen
     # Get deferred tools section (tool_search)
     deferred_tools_section = get_deferred_tools_prompt_section()
     acp_section = _build_acp_section()
+    cli_tools_capability_section = (
+        CLI_TOOLS_CAPABILITY_PROMPT if cli_tools_enabled else ""
+    )
 
     # Format the prompt with dynamic skills and memory
     prompt = SYSTEM_PROMPT_TEMPLATE.format(
@@ -503,6 +527,7 @@ def apply_prompt_template(subagent_enabled: bool = False, max_concurrent_subagen
         soul=get_agent_soul(agent_name),
         skills_section=skills_section,
         deferred_tools_section=deferred_tools_section,
+        cli_tools_capability_section=cli_tools_capability_section,
         acp_section=acp_section,
         memory_context=memory_context,
         subagent_section=subagent_section,

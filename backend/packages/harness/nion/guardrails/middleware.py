@@ -51,6 +51,13 @@ class GuardrailMiddleware(AgentMiddleware[AgentState]):
         context = getattr(request, "context", {}) or {}
         return context.get("surface") == "bridge"
 
+    def _supports_permission_request(self, request: ToolCallRequest, decision: GuardrailDecision) -> bool:
+        reason_code = decision.reasons[0].code if decision.reasons else ""
+        if reason_code != "oap.approval_required":
+            return False
+        context = getattr(request, "context", {}) or {}
+        return bool(context.get("thread_id"))
+
     def _extract_latest_human_message(self, request: ToolCallRequest) -> str:
         state = getattr(request, "state", {}) or {}
         messages = state.get("messages", [])
@@ -154,7 +161,7 @@ class GuardrailMiddleware(AgentMiddleware[AgentState]):
             else:
                 return handler(request)
         if not decision.allow:
-            if self._is_bridge_surface(request) and decision.metadata.get("bridge_behavior") == "request_approval":
+            if self._supports_permission_request(request, decision):
                 return self._build_permission_request_command(request, decision)
             logger.warning("Guardrail denied: tool=%s policy=%s code=%s", gr.tool_name, decision.policy_id, decision.reasons[0].code if decision.reasons else "unknown")
             return self._build_denied_message(request, decision)
@@ -188,7 +195,7 @@ class GuardrailMiddleware(AgentMiddleware[AgentState]):
             else:
                 return await handler(request)
         if not decision.allow:
-            if self._is_bridge_surface(request) and decision.metadata.get("bridge_behavior") == "request_approval":
+            if self._supports_permission_request(request, decision):
                 return self._build_permission_request_command(request, decision)
             logger.warning("Guardrail denied: tool=%s policy=%s code=%s", gr.tool_name, decision.policy_id, decision.reasons[0].code if decision.reasons else "unknown")
             return self._build_denied_message(request, decision)

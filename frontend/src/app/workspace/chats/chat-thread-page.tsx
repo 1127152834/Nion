@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { type PromptInputMessage } from "@/components/ai-elements/prompt-input";
+import { getAPIClient } from "@/core/api";
 import {
   WorkingDirectoryTrigger,
 } from "@/components/workspace/artifacts";
@@ -31,7 +32,10 @@ import {
   updateRuntimeProfile,
 } from "@/core/runtime";
 import { useLocalSettings } from "@/core/settings";
-import { derivePendingClarification } from "@/core/threads";
+import {
+  derivePendingClarification,
+  derivePendingPermissionRequest,
+} from "@/core/threads";
 import { getThreadRequestErrorCopy } from "@/core/threads/error-copy";
 import { useThreadStream } from "@/core/threads/hooks";
 import { pathOfThread, textOfMessage } from "@/core/threads/utils";
@@ -175,6 +179,10 @@ export default function ChatThreadPage() {
     () => derivePendingClarification(thread.messages),
     [thread.messages],
   );
+  const pendingPermissionRequest = useMemo(
+    () => derivePendingPermissionRequest(thread.messages),
+    [thread.messages],
+  );
 
   const handleSwitchMode = useCallback(
     async (mode: "sandbox" | "host") => {
@@ -212,6 +220,36 @@ export default function ChatThreadPage() {
       });
     },
     [handleSubmit],
+  );
+
+  const handlePermissionDecision = useCallback(
+    async (decision: "allow" | "allow_session" | "deny") => {
+      if (!pendingPermissionRequest) {
+        return;
+      }
+      try {
+        const resolution = await getAPIClient(isMock).resolvePermission(
+          threadId,
+          pendingPermissionRequest.requestId,
+          decision,
+        ) as {
+          original_message_text?: string;
+        };
+        if (
+          (decision === "allow" || decision === "allow_session") &&
+          typeof resolution.original_message_text === "string" &&
+          resolution.original_message_text.trim().length > 0
+        ) {
+          handleSubmit({
+            text: resolution.original_message_text,
+            files: [],
+          });
+        }
+      } catch (error) {
+        console.error("Failed to resolve permission request:", error);
+      }
+    },
+    [handleSubmit, isMock, pendingPermissionRequest, threadId],
   );
 
   return (
@@ -296,7 +334,9 @@ export default function ChatThreadPage() {
                   threadId={threadId}
                   thread={thread}
                   pendingClarification={pendingClarification}
+                  pendingPermissionRequest={pendingPermissionRequest}
                   onClarificationSelect={handleClarificationSelect}
+                  onPermissionDecision={handlePermissionDecision}
                 />
               </div>
               <div className="absolute right-0 bottom-0 left-0 z-30 flex justify-center px-4">

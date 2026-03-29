@@ -6,7 +6,7 @@ import { createDesktopThreadClient } from "../api/desktop-client.ts";
 
 void test("shared thread model files avoid explicit any", async () => {
   const files = [
-    new URL("../types.ts", import.meta.url),
+    new URL("./types.ts", import.meta.url),
     new URL("../api/desktop-client.ts", import.meta.url),
     new URL("../../../next-shims.d.ts", import.meta.url),
   ];
@@ -17,7 +17,7 @@ void test("shared thread model files avoid explicit any", async () => {
   }
 });
 
-void test("desktop thread client exposes search/getState/update/delete/stream", () => {
+void test("desktop thread client exposes search/getState/update/delete/stream/resolvePermission", () => {
   const client = createDesktopThreadClient({
     getBaseURL: () => "http://127.0.0.1:43115/api/threads",
   });
@@ -26,6 +26,7 @@ void test("desktop thread client exposes search/getState/update/delete/stream", 
   assert.equal(typeof client.updateState, "function");
   assert.equal(typeof client.deleteThread, "function");
   assert.equal(typeof client.streamRun, "function");
+  assert.equal(typeof client.resolvePermission, "function");
 });
 
 void test("desktop thread client forwards custom SSE events to handlers", async () => {
@@ -44,6 +45,7 @@ void test("desktop thread client forwards custom SSE events to handlers", async 
                 "",
                 'event: custom',
                 'data: {"type":"clarification_request","question":"Continue?"}',
+                "",
                 "",
               ].join("\n"),
             ),
@@ -74,7 +76,7 @@ void test("desktop thread client forwards custom SSE events to handlers", async 
     },
   );
 
-  assert.deepEqual(seen.at(-1), {
+  assert.deepEqual(seen.find((entry) => entry.event === "custom"), {
     event: "custom",
     data: {
       type: "clarification_request",

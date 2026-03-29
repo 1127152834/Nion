@@ -500,7 +500,7 @@ class TestEnsureAgent:
         """_ensure_agent does not recreate if config key unchanged."""
         mock_agent = MagicMock()
         client._agent = mock_agent
-        client._agent_config_key = (None, True, False, False, "workspace")
+        client._agent_config_key = (None, True, False, False, False, "workspace")
 
         config = client._get_runnable_config("t1")
         client._ensure_agent(config)

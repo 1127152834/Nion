@@ -14,6 +14,10 @@ from langgraph.types import Command
 logger = logging.getLogger(__name__)
 
 _MISSING_TOOL_CALL_ID = "missing_tool_call_id"
+_CLI_APPROVAL_TOOLS = [
+    "codepilot_cli_tools_install",
+    "codepilot_cli_tools_update",
+]
 
 
 class ToolErrorHandlingMiddleware(AgentMiddleware[AgentState]):
@@ -120,7 +124,15 @@ def _build_runtime_middlewares(
         from nion.guardrails.middleware import GuardrailMiddleware
 
         provider = AllowlistProvider(
-            approval_tools=["bash", "write_file", "str_replace"],
+            approval_tools=["bash", "write_file", "str_replace", *_CLI_APPROVAL_TOOLS],
+        )
+        middlewares.append(GuardrailMiddleware(provider, fail_closed=True, passport=None))
+    elif surface == "workspace":
+        from nion.guardrails.builtin import AllowlistProvider
+        from nion.guardrails.middleware import GuardrailMiddleware
+
+        provider = AllowlistProvider(
+            approval_tools=[*_CLI_APPROVAL_TOOLS],
         )
         middlewares.append(GuardrailMiddleware(provider, fail_closed=True, passport=None))
 

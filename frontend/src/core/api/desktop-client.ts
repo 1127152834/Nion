@@ -45,6 +45,11 @@ export type DesktopThreadClient = {
     options: ThreadSubmitOptions,
     handlers?: StreamHandlers,
   ): Promise<void>;
+  resolvePermission(
+    threadId: string,
+    permissionRequestId: string,
+    decision: "allow" | "allow_session" | "deny",
+  ): Promise<Record<string, unknown>>;
 };
 
 function getDesktopBackendBaseURL(): string {
@@ -344,6 +349,21 @@ export function createDesktopThreadClient(
       }
 
       await consumeSSE(response, handlers);
+    },
+
+    async resolvePermission(
+      threadId: string,
+      permissionRequestId: string,
+      decision: "allow" | "allow_session" | "deny",
+    ) {
+      const baseUrl = await resolveThreadsBaseURL(false, options?.getBaseURL);
+      return requestJSON<Record<string, unknown>>(
+        `${baseUrl}/${threadId}/bridge/permissions/${permissionRequestId}/resolve`,
+        {
+          method: "POST",
+          body: JSON.stringify({ decision }),
+        },
+      );
     },
   };
 }

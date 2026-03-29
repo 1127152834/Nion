@@ -121,6 +121,29 @@ class TestAllowlistProvider:
         decision = asyncio.run(provider.aevaluate(req))
         assert decision.allow is False
 
+    def test_approval_tools_require_explicit_approval(self):
+        provider = AllowlistProvider(
+            approval_tools=[
+                "codepilot_cli_tools_install",
+                "codepilot_cli_tools_update",
+            ]
+        )
+
+        install_decision = provider.evaluate(
+            GuardrailRequest(tool_name="codepilot_cli_tools_install", tool_input={})
+        )
+        update_decision = provider.evaluate(
+            GuardrailRequest(tool_name="codepilot_cli_tools_update", tool_input={})
+        )
+
+        assert install_decision.allow is False
+        assert install_decision.reasons[0].code == "oap.approval_required"
+        assert install_decision.metadata["bridge_behavior"] == "request_approval"
+
+        assert update_decision.allow is False
+        assert update_decision.reasons[0].code == "oap.approval_required"
+        assert update_decision.metadata["bridge_behavior"] == "request_approval"
+
 
 # --- GuardrailMiddleware tests ---
 
@@ -286,6 +309,21 @@ class TestGuardrailMiddleware:
         tool_message = result.update["messages"][0]
         assert tool_message.name == "permission_request"
         assert tool_message.additional_kwargs["permission_request"]["tool_name"] == "bash"
+
+    def test_workspace_surface_cli_install_can_become_permission_request(self):
+        mw = GuardrailMiddleware(_ApprovalProvider())
+        req = _make_tool_call_request(
+            "codepilot_cli_tools_install",
+            {"command": "brew install stripe/stripe-cli/stripe"},
+        )
+        req.context = {"thread_id": "t-workspace", "surface": "workspace"}
+        req.state = {"messages": [HumanMessage(content="帮我安装 stripe CLI", id="h-1")]}
+
+        result = mw.wrap_tool_call(req, MagicMock())
+        assert hasattr(result, "goto")
+        tool_message = result.update["messages"][0]
+        assert tool_message.name == "permission_request"
+        assert tool_message.additional_kwargs["permission_request"]["tool_name"] == "codepilot_cli_tools_install"
 
     def test_graph_bubble_up_not_swallowed(self):
         """GraphBubbleUp (LangGraph interrupt/pause) must propagate, not be caught."""

@@ -20,6 +20,7 @@ import type {
   AgentThreadState,
   BaseStream,
   PendingClarification,
+  PendingPermissionRequest,
 } from "@/core/threads";
 import { cn } from "@/lib/utils";
 
@@ -30,6 +31,7 @@ import { ClarificationCard } from "./clarification-card";
 import { MarkdownContent } from "./markdown-content";
 import { MessageGroup } from "./message-group";
 import { MessageListItem } from "./message-list-item";
+import { PermissionRequestCard } from "./permission-request-card";
 import { MessageListSkeleton } from "./skeleton";
 import { SubtaskCard } from "./subtask-card";
 
@@ -38,14 +40,18 @@ export function MessageList({
   threadId,
   thread,
   pendingClarification = null,
+  pendingPermissionRequest = null,
   onClarificationSelect,
+  onPermissionDecision,
   paddingBottom = 160,
 }: {
   className?: string;
   threadId: string;
   thread: BaseStream<AgentThreadState>;
   pendingClarification?: PendingClarification | null;
+  pendingPermissionRequest?: PendingPermissionRequest | null;
   onClarificationSelect?: (option: string) => void;
+  onPermissionDecision?: (decision: "allow" | "allow_session" | "deny") => void;
   paddingBottom?: number;
 }) {
   const { t } = useI18n();
@@ -82,6 +88,31 @@ export function MessageList({
                   key={group.id}
                   clarification={pendingClarification}
                   onSelect={onClarificationSelect}
+                />
+              );
+            }
+            if (message && hasContent(message)) {
+              return (
+                <MarkdownContent
+                  key={group.id}
+                  content={extractContentFromMessage(message)}
+                  isLoading={thread.isLoading}
+                  rehypePlugins={rehypePlugins}
+                />
+              );
+            }
+            return null;
+          } else if (group.type === "assistant:permission-request") {
+            const message = group.messages[0];
+            if (
+              pendingPermissionRequest &&
+              message?.id === pendingPermissionRequest.toolMessageId
+            ) {
+              return (
+                <PermissionRequestCard
+                  key={group.id}
+                  permissionRequest={pendingPermissionRequest}
+                  onDecision={onPermissionDecision}
                 />
               );
             }

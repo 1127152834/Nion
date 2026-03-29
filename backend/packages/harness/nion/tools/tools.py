@@ -48,15 +48,9 @@ from nion.tools.catalog import ToolCatalogEntry, build_configured_tool_catalog
 
 logger = logging.getLogger(__name__)
 
-BUILTIN_TOOLS = [
+BASE_BUILTIN_TOOLS = [
     present_file_tool,
     ask_clarification_tool,
-    cli_tools_list_tool,
-    cli_tools_install_tool,
-    cli_tools_add_tool,
-    cli_tools_remove_tool,
-    cli_tools_check_updates_tool,
-    cli_tools_update_tool,
     get_runtime_status_tool,
     diagnose_incident_tool,
     list_incidents_tool,
@@ -83,6 +77,15 @@ BUILTIN_TOOLS = [
     update_config_tool,
 ]
 
+CLI_BUILTIN_TOOLS = [
+    cli_tools_list_tool,
+    cli_tools_install_tool,
+    cli_tools_add_tool,
+    cli_tools_remove_tool,
+    cli_tools_check_updates_tool,
+    cli_tools_update_tool,
+]
+
 SUBAGENT_TOOLS = [
     task_tool,
     # task_status_tool is no longer exposed to LLM (backend handles polling internally)
@@ -94,6 +97,7 @@ def get_available_tools(
     include_mcp: bool = True,
     model_name: str | None = None,
     subagent_enabled: bool = False,
+    cli_tools_enabled: bool = False,
     surface: str = "workspace",
 ) -> list[BaseTool]:
     """Get all available tools from config.
@@ -106,6 +110,7 @@ def get_available_tools(
         include_mcp: Whether to include tools from MCP servers (default: True).
         model_name: Optional model name to determine if vision tools should be included.
         subagent_enabled: Whether to include subagent tools (task, task_status).
+        cli_tools_enabled: Whether to include CodePilot-style CLI management tools.
         surface: Runtime surface used for configured-tool filtering.
 
     Returns:
@@ -117,7 +122,9 @@ def get_available_tools(
     loaded_tools = _apply_surface_policy(config, surface, loaded_tools, configured_catalog)
 
     # Conditionally add tools based on config
-    builtin_tools = BUILTIN_TOOLS.copy()
+    builtin_tools = BASE_BUILTIN_TOOLS.copy()
+    if cli_tools_enabled:
+        builtin_tools.extend(CLI_BUILTIN_TOOLS)
 
     acp_agents = get_acp_agents()
     if acp_agents:

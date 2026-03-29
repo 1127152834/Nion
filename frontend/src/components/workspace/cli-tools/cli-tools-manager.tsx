@@ -5,7 +5,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
-import { SettingsSection } from "@/components/workspace/settings/settings-section";
 import {
   deleteCustomCliTool,
   loadCliToolsCatalog,
@@ -106,20 +105,12 @@ export function CliToolsManager() {
   );
 
   return (
-    <SettingsSection
-      title={isZh ? "CLI 工具" : "CLI Tools"}
-      description={
-        isZh
-          ? "复刻 CodePilot 的 CLI Tools 管理体验，并与 Nion 的聊天入口联动。"
-          : "Full-parity CLI tools management modeled on CodePilot, wired into Nion chat."
-      }
-    >
-      {loading ? (
-        <div className="text-sm text-muted-foreground">
-          {isZh ? "加载中..." : "Loading..."}
-        </div>
-      ) : (
-        <div className="flex flex-col gap-6 overflow-y-auto">
+    loading ? (
+      <div className="text-sm text-muted-foreground">
+        {isZh ? "加载中..." : "Loading..."}
+      </div>
+    ) : (
+      <div className="flex flex-col gap-6 overflow-y-auto">
           <div className="flex items-start justify-between">
             <div>
               <h2 className="text-xl font-semibold">
@@ -429,8 +420,7 @@ export function CliToolsManager() {
             onComplete={() => void fetchData()}
             locale={locale}
           />
-        </div>
-      )}
-    </SettingsSection>
+      </div>
+    )
   );
 }

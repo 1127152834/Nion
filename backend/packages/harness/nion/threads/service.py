@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Generator
 from typing import Any
 
@@ -52,6 +53,11 @@ class ThreadService:
         latest_values: dict[str, Any] | None = None
 
         selected_cli_tools = _extract_selected_cli_tools(request.messages)
+        cli_tools_enabled = self._should_enable_cli_tools_for_request(
+            message_text,
+            thread_id=thread_id,
+            selected_cli_tools=selected_cli_tools,
+        )
         if selected_cli_tools:
             message_text = (
                 f"{message_text}\n\n<selected_cli_tools>\n"
@@ -67,6 +73,7 @@ class ThreadService:
             thinking_enabled=bool(context.get("thinking_enabled", True)),
             plan_mode=bool(context.get("is_plan_mode", False)),
             subagent_enabled=bool(context.get("subagent_enabled", False)),
+            cli_tools_enabled=cli_tools_enabled,
             agent_name=context.get("agent_name"),
             recursion_limit=config.get("recursion_limit", 100),
             surface=context.get("surface", "workspace"),
@@ -85,6 +92,25 @@ class ThreadService:
                 agent_name=str(context.get("agent_name") or "lead_agent"),
                 values=latest_values,
             )
+
+    def _should_enable_cli_tools_for_request(
+        self,
+        message_text: str,
+        *,
+        thread_id: str,
+        selected_cli_tools: list[str] | None = None,
+    ) -> bool:
+        if should_enable_cli_tools_for_request(
+            message_text,
+            selected_cli_tools=selected_cli_tools,
+        ):
+            return True
+
+        record = self._repository.get_thread(thread_id)
+        if record is None:
+            return False
+
+        return _thread_history_has_cli_tools_intent(record.values.messages)
 
 
 def _extract_message_text(messages: list[dict[str, Any]]) -> str:
@@ -120,6 +146,61 @@ def _extract_selected_cli_tools(messages: list[dict[str, Any]]) -> list[str]:
     if not isinstance(cli_tools, list):
         return []
     return [item for item in cli_tools if isinstance(item, str) and item.strip()]
+
+
+_CLI_TOOLS_INTENT_PATTERNS = [
+    r"\bcli tool(s)?\b",
+    r"\btool library\b",
+    r"\bcodepilot_cli_tools_[a-z_]+\b",
+    r"\b(?:install|uninstall|remove|add|update|upgrade|check)\b.{0,40}\b(?:cli|tool|tools)\b",
+    r"\b(?:brew|pipx|pip3?|npm|cargo|apt(?:-get)?)\s+(?:install|uninstall|remove|update|upgrade)\b",
+    r"(?:CLI工具|CLI 工具|工具库)",
+    r"(?:安装|卸载|删除|添加|更新|升级|检查).{0,12}(?:CLI|工具)",
+    r"(?:帮我装|帮我安装|帮我更新|帮我升级).{0,12}(?:CLI|工具)?",
+]
+
+
+def should_enable_cli_tools_for_request(
+    message_text: str,
+    *,
+    selected_cli_tools: list[str] | None = None,
+) -> bool:
+    if selected_cli_tools:
+        return True
+
+    normalized = message_text.strip()
+    if not normalized:
+        return False
+
+    return any(
+        re.search(pattern, normalized, flags=re.IGNORECASE) is not None
+        for pattern in _CLI_TOOLS_INTENT_PATTERNS
+    )
+
+
+def _thread_history_has_cli_tools_intent(messages: list[dict[str, Any]]) -> bool:
+    for message in reversed(messages):
+        content = message.get("content", "")
+        text = _message_text_from_history_content(content)
+        if not text:
+            continue
+        if should_enable_cli_tools_for_request(text):
+            return True
+    return False
+
+
+def _message_text_from_history_content(content: Any) -> str:
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts: list[str] = []
+        for item in content:
+            if isinstance(item, dict) and item.get("type") == "text":
+                text = item.get("text")
+                if isinstance(text, str):
+                    parts.append(text)
+        return "\n".join(parts)
+    return ""
 
 
 _thread_service: ThreadService | None = None

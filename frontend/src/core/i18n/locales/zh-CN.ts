@@ -167,6 +167,7 @@ export const zhCN: Translations = {
     pendingReply: "待回复",
     agents: "智能体",
     automation: "自动化",
+    cliTools: "CLI 工具",
     notebook: "笔记",
   },
 

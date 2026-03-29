@@ -16,7 +16,7 @@ import {
   XIcon,
   ZapIcon,
 } from "lucide-react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   useCallback,
   useEffect,
@@ -473,6 +473,7 @@ export function InputBox({
   onStop?: () => void;
 }) {
   const { t } = useI18n();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [modelDialogOpen, setModelDialogOpen] = useState(false);
   const { models } = useModels();
@@ -1626,11 +1627,7 @@ export function InputBox({
                       type="button"
                       className="mt-2 text-primary hover:underline"
                       onClick={() => {
-                        window.dispatchEvent(
-                          new CustomEvent("nion-open-settings", {
-                            detail: { section: "cliTools" },
-                          }),
-                        );
+                        router.push("/workspace/cli-tools");
                         setCliSelectorOpen(false);
                       }}
                     >
@@ -1674,11 +1671,7 @@ export function InputBox({
                   type="button"
                   className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
                   onClick={() => {
-                    window.dispatchEvent(
-                      new CustomEvent("nion-open-settings", {
-                        detail: { section: "cliTools" },
-                      }),
-                    );
+                    router.push("/workspace/cli-tools");
                     setCliSelectorOpen(false);
                   }}
                 >

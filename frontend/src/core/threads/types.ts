@@ -111,3 +111,14 @@ export interface AgentThreadContext extends Record<string, unknown> {
     mention: string;
   }>;
 }
+
+export type PendingPermissionRequest = {
+  toolMessageId?: string;
+  toolCallId?: string;
+  requestId: string;
+  toolName: string;
+  toolInput: Record<string, unknown>;
+  options: string[];
+  reasonCode?: string;
+  reasonMessage?: string;
+};
