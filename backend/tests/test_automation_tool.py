@@ -1,6 +1,8 @@
 import importlib
 from types import SimpleNamespace
 
+from langgraph.types import Command
+
 from nion.automation.models import AutomationJob, AutomationRun
 
 automation_tool_module = importlib.import_module("nion.tools.builtins.automation_tool")
@@ -111,3 +113,84 @@ def test_automation_tool_is_blocked_inside_automation_runtime(monkeypatch):
     assert result["ok"] is False
     assert result["code"] == "automation.recursive_call_blocked"
     assert service.calls == []
+
+
+def test_automation_tool_create_event_task_calls_service(monkeypatch):
+    service = FakeAutomationService()
+    monkeypatch.setattr(automation_tool_module, "get_automation_tool_service", lambda runtime=None: service)
+
+    result = automation_tool_module.automation_tool.func(
+        runtime=_runtime(),
+        action="create",
+        name="Reply finished alert",
+        prompt="Tell me when replies finish",
+        job_kind="event_task",
+        trigger_kind="event",
+        trigger_spec={"event_name": "agent.run.completed"},
+        action_kind="script",
+        action_spec={"entrypoint": "play_sound.py"},
+        package_files=[
+            {"path": "play_sound.py", "content": "print('ding')\n"},
+        ],
+        delivery_mode="local",
+        delivery_targets=[],
+        skills=[],
+    )
+
+    assert result["job"]["id"] == "job-1"
+    assert service.calls[0][0] == "create"
+    assert service.calls[0][1]["job_kind"] == "event_task"
+    assert service.calls[0][1]["package_files"][0]["path"] == "play_sound.py"
+
+
+def test_automation_tool_draft_action_returns_event_task_draft_command(monkeypatch):
+    service = FakeAutomationService()
+    monkeypatch.setattr(automation_tool_module, "get_automation_tool_service", lambda runtime=None: service)
+
+    result = automation_tool_module.automation_tool.func(
+        runtime=_runtime(),
+        action="draft",
+        name="Reply finished draft",
+        prompt="Tell me when the reply finishes",
+        job_kind="event_task",
+        trigger_kind="event",
+        trigger_spec={"event_name": "agent.run.completed"},
+        action_kind="notify",
+        action_spec={"title": "Reply finished"},
+        package_files=[{"path": "ding.mp3", "content": "fake-audio"}],
+        delivery_mode="local",
+        delivery_targets=[],
+        skills=[],
+    )
+
+    assert isinstance(result, Command)
+    tool_message = result.update["messages"][0]
+    assert tool_message.name == "automation"
+    assert tool_message.additional_kwargs["element"] == "event_task_draft"
+    assert tool_message.additional_kwargs["draft"]["job_kind"] == "event_task"
+
+
+def test_automation_tool_create_workflow_calls_service(monkeypatch):
+    service = FakeAutomationService()
+    monkeypatch.setattr(automation_tool_module, "get_automation_tool_service", lambda runtime=None: service)
+
+    result = automation_tool_module.automation_tool.func(
+        runtime=_runtime(),
+        action="create",
+        name="Reply follow-up workflow",
+        prompt="Run workflow",
+        job_kind="workflow",
+        trigger_kind="event",
+        trigger_spec={"event_name": "agent.run.completed"},
+        workflow_steps=[
+            {"id": "step-notify", "kind": "notify", "config": {"title": "Reply finished"}},
+            {"id": "step-wait", "kind": "wait_for_user", "config": {"prompt": "Continue?"}},
+        ],
+        delivery_mode="local",
+        delivery_targets=[],
+        skills=[],
+    )
+
+    assert result["job"]["id"] == "job-1"
+    assert service.calls[0][1]["job_kind"] == "workflow"
+    assert service.calls[0][1]["workflow_steps"][0]["kind"] == "notify"

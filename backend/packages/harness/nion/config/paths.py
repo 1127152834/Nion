@@ -122,6 +122,22 @@ class Paths:
         """Root directory for all custom agents: `{base_dir}/agents/`."""
         return self.base_dir / "agents"
 
+    @property
+    def automation_dir(self) -> Path:
+        """Root directory for automation-domain state and packages."""
+        return self.base_dir / "automation"
+
+    @property
+    def automation_hooks_dir(self) -> Path:
+        """Root directory for event-task package folders."""
+        return self.automation_dir / "hooks"
+
+    def automation_hook_dir(self, hook_id: str) -> Path:
+        """Directory for a specific event-task package."""
+        if not _SAFE_THREAD_ID_RE.match(hook_id):
+            raise ValueError(f"Invalid hook_id {hook_id!r}: only alphanumeric characters, hyphens, and underscores are allowed.")
+        return self.automation_hooks_dir / hook_id
+
     def agent_dir(self, name: str) -> Path:
         """Directory for a specific agent: `{base_dir}/agents/{name}/`."""
         return self.agents_dir / name.lower()

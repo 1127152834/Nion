@@ -25,6 +25,12 @@ export function pathOfNotebook(
   return withQuery("/workspace/notebook", extra);
 }
 
+export function pathOfAutomation(
+  extra: Record<string, string | undefined> = {},
+) {
+  return withQuery("/workspace/automation", extra);
+}
+
 export function pathOfNotebookTrash(
   extra: Record<string, string | undefined> = {},
 ) {

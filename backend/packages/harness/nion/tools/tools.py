@@ -8,6 +8,7 @@ from nion.reflection import resolve_variable
 from nion.tools.builtins import (
     approve_channel_pair_request_tool,
     ask_clarification_tool,
+    automation_tool,
     diagnose_incident_tool,
     dismiss_incident_tool,
     get_channel_diagnostics_tool,
@@ -41,6 +42,7 @@ from nion.tools.catalog import ToolCatalogEntry, build_configured_tool_catalog
 logger = logging.getLogger(__name__)
 
 BUILTIN_TOOLS = [
+    automation_tool,
     present_file_tool,
     ask_clarification_tool,
     get_runtime_status_tool,

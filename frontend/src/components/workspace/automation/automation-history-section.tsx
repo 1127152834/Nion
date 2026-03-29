@@ -14,10 +14,12 @@ import { useI18n } from "@/core/i18n/hooks";
 
 type AutomationHistorySectionProps = {
   runs: AutomationRun[];
+  highlightedRunId?: string | null;
 };
 
 export function AutomationHistorySection({
   runs,
+  highlightedRunId,
 }: AutomationHistorySectionProps) {
   const { t } = useI18n();
   const copy = t.settings.automationWorkspace.sections;
@@ -38,8 +40,13 @@ export function AutomationHistorySection({
           {runs.map((run) => (
             <Item
               key={run.id}
+              id={`run-${run.id}`}
               variant="outline"
-              className="items-start gap-4 rounded-xl"
+              className={
+                run.id === highlightedRunId
+                  ? "border-primary/50 bg-primary/5 items-start gap-4 rounded-xl"
+                  : "items-start gap-4 rounded-xl"
+              }
             >
               <ItemContent className="w-full">
                 <ItemHeader className="items-start">

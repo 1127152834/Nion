@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, Request, Response
 from pydantic import BaseModel
 from starlette.responses import StreamingResponse
 
+from nion.automation.event_dispatch import dispatch_automation_event
 from nion.bridge_permissions import (
     get_bridge_permission_request,
     resolve_bridge_permission_request,
@@ -142,6 +143,14 @@ async def stream_thread(
                 "agent_name": payload.context.get("agent_name"),
             },
         )
+        dispatch_automation_event(
+            "thread.started",
+            {
+                "thread_id": thread_id,
+                "surface": payload.context.get("surface"),
+                "agent_name": payload.context.get("agent_name"),
+            },
+        )
         yield f"event: created\ndata: {json.dumps({'thread_id': thread_id})}\n\n"
         try:
             for event in service.stream(thread_id, payload):
@@ -154,6 +163,14 @@ async def stream_thread(
                 message=f"Thread stream finished for {thread_id}",
                 details={"message_count": len(payload.messages)},
             )
+            dispatch_automation_event(
+                "thread.finished",
+                {
+                    "thread_id": thread_id,
+                    "surface": payload.context.get("surface"),
+                    "agent_name": payload.context.get("agent_name"),
+                },
+            )
         except Exception as error:
             logger.exception("Thread stream failed for %s", thread_id)
             _record_thread_event(
@@ -163,6 +180,15 @@ async def stream_thread(
                 thread_id=thread_id,
                 message=f"Thread stream failed for {thread_id}",
                 details={"reason": str(error) or "Thread stream failed"},
+            )
+            dispatch_automation_event(
+                "thread.failed",
+                {
+                    "thread_id": thread_id,
+                    "surface": payload.context.get("surface"),
+                    "agent_name": payload.context.get("agent_name"),
+                    "reason": str(error) or "Thread stream failed",
+                },
             )
             yield f"event: error\ndata: {json.dumps({'message': str(error) or 'Thread stream failed'})}\n\n"
 

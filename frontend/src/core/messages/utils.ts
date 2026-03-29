@@ -20,13 +20,17 @@ interface AssistantClarificationGroup extends GenericMessageGroup<"assistant:cla
 
 interface AssistantSubagentGroup extends GenericMessageGroup<"assistant:subagent"> {}
 
+interface AssistantAutomationDraftGroup
+  extends GenericMessageGroup<"assistant:automation-draft"> {}
+
 type MessageGroup =
   | HumanMessageGroup
   | AssistantProcessingGroup
   | AssistantMessageGroup
   | AssistantPresentFilesGroup
   | AssistantClarificationGroup
-  | AssistantSubagentGroup;
+  | AssistantSubagentGroup
+  | AssistantAutomationDraftGroup;
 
 export function groupMessages<T>(
   messages: Message[],
@@ -75,6 +79,13 @@ export function groupMessages<T>(
         groups.push({
           id: message.id,
           type: "assistant:clarification",
+          messages: [message],
+        });
+      } else if (isAutomationDraftToolMessage(message)) {
+        lastOpenGroup()?.messages.push(message);
+        groups.push({
+          id: message.id,
+          type: "assistant:automation-draft",
           messages: [message],
         });
       } else {
@@ -305,6 +316,14 @@ export function hasPresentFiles(message: Message) {
 
 export function isClarificationToolMessage(message: Message) {
   return message.type === "tool" && message.name === "ask_clarification";
+}
+
+export function isAutomationDraftToolMessage(message: Message) {
+  return (
+    message.type === "tool" &&
+    message.name === "automation" &&
+    message.additional_kwargs?.element === "event_task_draft"
+  );
 }
 
 export function extractPresentFilesFromMessage(message: Message) {

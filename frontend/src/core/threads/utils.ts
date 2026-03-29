@@ -2,6 +2,7 @@ import { isInternalSummaryMessage } from "../messages/utils";
 
 import type { AgentThread, Message } from "./types";
 export {
+  pathOfAutomation,
   pathOfAgentThread,
   pathOfNewAgentThread,
   pathOfNewThread,

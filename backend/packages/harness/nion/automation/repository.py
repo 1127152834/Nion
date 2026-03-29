@@ -2,7 +2,13 @@ import sqlite3
 from collections.abc import Iterable
 from pathlib import Path
 
-from nion.automation.models import AutomationJob, AutomationRun
+from nion.automation.models import (
+    AutomationApproval,
+    AutomationAuditEvent,
+    AutomationJob,
+    AutomationRun,
+    AutomationTemplate,
+)
 
 
 class AutomationRepository:
@@ -55,6 +61,36 @@ class AutomationRepository:
                 """
             )
             connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS automation_templates (
+                    id TEXT PRIMARY KEY,
+                    payload TEXT NOT NULL,
+                    scope TEXT NOT NULL
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS automation_approvals (
+                    id TEXT PRIMARY KEY,
+                    job_id TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    payload TEXT NOT NULL
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS automation_audit_events (
+                    id TEXT PRIMARY KEY,
+                    job_id TEXT NOT NULL,
+                    action TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    payload TEXT NOT NULL
+                )
+                """
+            )
+            connection.execute(
                 "CREATE INDEX IF NOT EXISTS idx_automation_runs_job_id ON automation_runs(job_id)"
             )
             connection.execute(
@@ -63,9 +99,18 @@ class AutomationRepository:
             connection.execute(
                 "CREATE INDEX IF NOT EXISTS idx_automation_job_claims_claimed_until ON automation_job_claims(claimed_until)"
             )
+            connection.execute(
+                "CREATE INDEX IF NOT EXISTS idx_automation_templates_scope ON automation_templates(scope)"
+            )
+            connection.execute(
+                "CREATE INDEX IF NOT EXISTS idx_automation_approvals_job_id ON automation_approvals(job_id)"
+            )
+            connection.execute(
+                "CREATE INDEX IF NOT EXISTS idx_automation_audit_events_job_id ON automation_audit_events(job_id)"
+            )
 
     @staticmethod
-    def _serialize(model: AutomationJob | AutomationRun) -> str:
+    def _serialize(model: AutomationJob | AutomationRun | AutomationTemplate | AutomationApproval | AutomationAuditEvent) -> str:
         return model.model_dump_json()
 
     @staticmethod
@@ -75,6 +120,18 @@ class AutomationRepository:
     @staticmethod
     def _deserialize_run(payload: str) -> AutomationRun:
         return AutomationRun.model_validate_json(payload)
+
+    @staticmethod
+    def _deserialize_template(payload: str) -> AutomationTemplate:
+        return AutomationTemplate.model_validate_json(payload)
+
+    @staticmethod
+    def _deserialize_approval(payload: str) -> AutomationApproval:
+        return AutomationApproval.model_validate_json(payload)
+
+    @staticmethod
+    def _deserialize_audit_event(payload: str) -> AutomationAuditEvent:
+        return AutomationAuditEvent.model_validate_json(payload)
 
     def save_job(self, job: AutomationJob) -> AutomationJob:
         with self._connect() as connection:
@@ -195,3 +252,93 @@ class AutomationRepository:
                 "DELETE FROM automation_job_claims WHERE job_id = ?",
                 (job_id,),
             )
+
+    def save_template(self, template: AutomationTemplate) -> AutomationTemplate:
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO automation_templates (id, payload, scope)
+                VALUES (?, ?, ?)
+                ON CONFLICT(id) DO UPDATE SET
+                    payload = excluded.payload,
+                    scope = excluded.scope
+                """,
+                (template.id, self._serialize(template), template.scope),
+            )
+        return template
+
+    def list_templates(self, *, scope: str | None = None) -> list[AutomationTemplate]:
+        query = "SELECT payload FROM automation_templates"
+        params: tuple[str, ...] = ()
+        if scope is not None:
+            query += " WHERE scope = ?"
+            params = (scope,)
+        query += " ORDER BY id ASC"
+        with self._connect() as connection:
+            rows = connection.execute(query, params).fetchall()
+        return [self._deserialize_template(row["payload"]) for row in rows]
+
+    def get_template(self, template_id: str) -> AutomationTemplate | None:
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT payload FROM automation_templates WHERE id = ?",
+                (template_id,),
+            ).fetchone()
+        if row is None:
+            return None
+        return self._deserialize_template(row["payload"])
+
+    def save_approval(self, approval: AutomationApproval) -> AutomationApproval:
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO automation_approvals (id, job_id, status, payload)
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT(id) DO UPDATE SET
+                    job_id = excluded.job_id,
+                    status = excluded.status,
+                    payload = excluded.payload
+                """,
+                (approval.id, approval.job_id, approval.status, self._serialize(approval)),
+            )
+        return approval
+
+    def get_approval(self, approval_id: str) -> AutomationApproval | None:
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT payload FROM automation_approvals WHERE id = ?",
+                (approval_id,),
+            ).fetchone()
+        if row is None:
+            return None
+        return self._deserialize_approval(row["payload"])
+
+    def list_approvals(self) -> list[AutomationApproval]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                "SELECT payload FROM automation_approvals ORDER BY id ASC"
+            ).fetchall()
+        return [self._deserialize_approval(row["payload"]) for row in rows]
+
+    def save_audit_event(self, event: AutomationAuditEvent) -> AutomationAuditEvent:
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO automation_audit_events (id, job_id, action, created_at, payload)
+                VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(id) DO UPDATE SET
+                    job_id = excluded.job_id,
+                    action = excluded.action,
+                    created_at = excluded.created_at,
+                    payload = excluded.payload
+                """,
+                (event.id, event.job_id, event.action, event.created_at, self._serialize(event)),
+            )
+        return event
+
+    def list_audit_events(self) -> list[AutomationAuditEvent]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                "SELECT payload FROM automation_audit_events ORDER BY created_at ASC, id ASC"
+            ).fetchall()
+        return [self._deserialize_audit_event(row["payload"]) for row in rows]

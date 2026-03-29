@@ -1,3 +1,4 @@
+from .automation_tool import automation_tool
 from .clarification_tool import ask_clarification_tool
 from .control_plane_tools import (
     approve_channel_pair_request_tool,
@@ -32,6 +33,7 @@ from .view_image_tool import view_image_tool
 
 __all__ = [
     "setup_agent",
+    "automation_tool",
     "present_file_tool",
     "ask_clarification_tool",
     "view_image_tool",

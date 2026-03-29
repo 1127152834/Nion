@@ -1,10 +1,18 @@
 from typing import Any, Literal
 
 from langchain.tools import ToolRuntime, tool
+from langchain_core.messages import ToolMessage
+from langgraph.types import Command
 from langgraph.typing import ContextT
 
 from nion.agents.thread_state import ThreadState
-from nion.automation.models import AutomationDeliveryMode, AutomationScheduleKind
+from nion.automation.models import (
+    AutomationActionKind,
+    AutomationDeliveryMode,
+    AutomationJobKind,
+    AutomationScheduleKind,
+    AutomationTriggerKind,
+)
 from nion.automation.policies import automation_tool_enabled
 from nion.automation.service import create_default_automation_service
 
@@ -30,12 +38,19 @@ def get_automation_tool_service(runtime: ToolRuntime[ContextT, ThreadState] | No
 @tool("automation", parse_docstring=True)
 def automation_tool(
     runtime: ToolRuntime[ContextT, ThreadState],
-    action: Literal["create", "list", "pause", "resume", "run", "remove"],
+    action: Literal["create", "draft", "list", "pause", "resume", "run", "remove"],
     job_id: str | None = None,
     name: str | None = None,
     prompt: str | None = None,
+    job_kind: AutomationJobKind = "scheduled_task",
     schedule_kind: AutomationScheduleKind | None = None,
     schedule_value: str | None = None,
+    trigger_kind: AutomationTriggerKind | None = None,
+    trigger_spec: dict[str, Any] | None = None,
+    action_kind: AutomationActionKind | None = None,
+    action_spec: dict[str, Any] | None = None,
+    workflow_steps: list[dict[str, Any]] | None = None,
+    package_files: list[dict[str, Any]] | None = None,
     delivery_mode: AutomationDeliveryMode = "local",
     delivery_targets: list[dict[str, Any]] | None = None,
     skills: list[str] | None = None,
@@ -70,14 +85,54 @@ def automation_tool(
             {
                 "name": name,
                 "prompt": prompt,
+                "job_kind": job_kind,
                 "schedule_kind": schedule_kind,
                 "schedule_value": schedule_value,
+                "trigger_kind": trigger_kind,
+                "trigger_spec": trigger_spec or {},
+                "action_kind": action_kind,
+                "action_spec": action_spec or {},
+                "workflow_steps": workflow_steps or [],
+                "package_files": package_files or [],
                 "delivery_mode": delivery_mode,
                 "delivery_targets": delivery_targets or [],
                 "skills": skills or [],
             }
         )
         return {"ok": True, "job": job.model_dump()}
+
+    if action == "draft":
+        draft = {
+            "name": name,
+            "prompt": prompt,
+            "job_kind": job_kind,
+            "schedule_kind": schedule_kind,
+            "schedule_value": schedule_value,
+            "trigger_kind": trigger_kind,
+            "trigger_spec": trigger_spec or {},
+            "action_kind": action_kind,
+            "action_spec": action_spec or {},
+            "workflow_steps": workflow_steps or [],
+            "package_files": package_files or [],
+            "delivery_mode": delivery_mode,
+            "delivery_targets": delivery_targets or [],
+            "skills": skills or [],
+        }
+        return Command(
+            update={
+                "messages": [
+                    ToolMessage(
+                        content="Prepared event task draft",
+                        tool_call_id=runtime.tool_call_id,
+                        name="automation",
+                        additional_kwargs={
+                            "element": "event_task_draft",
+                            "draft": draft,
+                        },
+                    )
+                ]
+            }
+        )
 
     if action == "list":
         return {"ok": True, "jobs": [job.model_dump() for job in service.list_jobs()]}
