@@ -20,6 +20,10 @@ import {
   type StructuredMemorySearchLabels,
 } from "@/core/memory/search";
 import type { UserMemory } from "@/core/memory/types";
+import {
+  useNotebookResourceSearch,
+  useReindexNotebookResources,
+} from "@/core/openviking";
 import { useRecallSearch } from "@/core/recall/hooks";
 import { streamdownPlugins } from "@/core/streamdown/plugins";
 import { pathOfThread } from "@/core/threads/utils";
@@ -36,6 +40,13 @@ import {
 } from "./memory-settings-page.storage";
 import { SettingsSection } from "./settings-section";
 import { useConfigEditor } from "./use-config-editor";
+
+const OPENVIKING_FALLBACK_COPY = {
+  title: "Reindex notebook",
+  titleZh: "重新索引笔记",
+  search: "Search notebook resources",
+  searchZh: "搜索笔记资源",
+};
 
 function confidenceToLevelKey(confidence: unknown): {
   key: "veryHigh" | "high" | "normal" | "unknown";
@@ -202,8 +213,12 @@ export function MemorySettingsPage() {
     onSave,
   } = useConfigEditor();
   const [draftQuery, setDraftQuery] = useState("");
+  const [draftNotebookQuery, setDraftNotebookQuery] = useState("");
   const [submittedQuery, setSubmittedQuery] = useState("");
+  const [submittedNotebookQuery, setSubmittedNotebookQuery] = useState("");
   const recall = useRecallSearch(submittedQuery, 5);
+  const notebookSearch = useNotebookResourceSearch(submittedNotebookQuery, 5);
+  const reindexNotebook = useReindexNotebookResources();
   const [storageModeOverride, setStorageModeOverride] =
     useState<MemoryStorageMode | null>(null);
   const [customStorageDraft, setCustomStorageDraft] = useState("");
@@ -252,6 +267,11 @@ export function MemorySettingsPage() {
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmittedQuery(draftQuery.trim());
+  }
+
+  function handleNotebookSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSubmittedNotebookQuery(draftNotebookQuery.trim());
   }
 
   function onMemoryConfigChange(nextStorageClass: string) {
@@ -463,6 +483,97 @@ export function MemorySettingsPage() {
                 )}
               </div>
             </>
+          )}
+        </div>
+      </div>
+
+      <div className="rounded-xl border bg-muted/20 p-5 sm:p-6">
+        <div className="space-y-1">
+          <h3 className="text-base font-medium">
+            {t.settings.memory.openviking.title || OPENVIKING_FALLBACK_COPY.title}
+          </h3>
+          <p className="text-muted-foreground text-sm">
+            {t.settings.memory.openviking.description}
+          </p>
+        </div>
+
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <Button
+            onClick={() => void reindexNotebook.mutateAsync()}
+            disabled={reindexNotebook.isPending}
+          >
+            {reindexNotebook.isPending
+              ? t.settings.memory.openviking.reindexingButton
+              : t.settings.memory.openviking.reindexButton || OPENVIKING_FALLBACK_COPY.titleZh}
+          </Button>
+          {reindexNotebook.data ? (
+            <span className="text-muted-foreground text-sm">
+              {t.settings.memory.openviking.reindexResult.replace(
+                "{count}",
+                String(reindexNotebook.data.notes_indexed),
+              )}
+            </span>
+          ) : null}
+        </div>
+
+        <form className="mt-4 flex gap-2" onSubmit={handleNotebookSubmit}>
+          <Input
+            placeholder={
+              t.settings.memory.openviking.searchPlaceholder ||
+              OPENVIKING_FALLBACK_COPY.search
+            }
+            value={draftNotebookQuery}
+            onChange={(event) => setDraftNotebookQuery(event.target.value)}
+          />
+          <Button type="submit">
+            {t.settings.memory.openviking.searchButton || OPENVIKING_FALLBACK_COPY.searchZh}
+          </Button>
+        </form>
+
+        <div className="mt-5 space-y-3">
+          {!submittedNotebookQuery ? (
+            <div className="text-muted-foreground text-sm">
+              {t.settings.memory.openviking.idle}
+            </div>
+          ) : notebookSearch.isLoading || notebookSearch.isFetching ? (
+            <div className="text-muted-foreground text-sm">{t.common.loading}</div>
+          ) : notebookSearch.error ? (
+            <div className="text-destructive text-sm">
+              {t.settings.memory.openviking.loadFailed}
+            </div>
+          ) : (notebookSearch.data?.items.length ?? 0) === 0 ? (
+            <div className="text-muted-foreground text-sm">
+              {t.settings.memory.openviking.empty}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {notebookSearch.data?.items.map((item) => (
+                <div
+                  key={`${item.resource_uri}-${item.char_start}`}
+                  className="rounded-md border bg-background p-3"
+                >
+                  <div className="mb-2 flex flex-wrap items-center gap-2">
+                    <Badge variant="outline">{item.title}</Badge>
+                    <span className="text-muted-foreground text-xs">
+                      {item.source_relative_path}
+                    </span>
+                  </div>
+                  <p className="mb-2 text-sm leading-6">{item.snippet}</p>
+                  <div className="text-muted-foreground flex flex-wrap gap-x-3 gap-y-1 text-xs">
+                    <span>
+                      {t.settings.memory.openviking.headingLabel}:{" "}
+                      {item.heading_path.length > 0
+                        ? item.heading_path.join(" / ")
+                        : "-"}
+                    </span>
+                    <span>
+                      {t.settings.memory.openviking.rangeLabel}: {item.char_start}-
+                      {item.char_end}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
         </div>
       </div>

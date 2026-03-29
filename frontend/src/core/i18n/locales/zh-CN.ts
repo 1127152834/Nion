@@ -633,6 +633,21 @@ export const zhCN: Translations = {
         threadLabel: "线程",
         agentLabel: "智能体",
       },
+      openviking: {
+        title: "嵌入式 OpenViking 笔记资源",
+        description:
+          "内部操作面板，用于重建 notebook 资源索引并检查嵌入式 OpenViking 的检索结果。",
+        reindexButton: "重新索引笔记",
+        reindexingButton: "正在重新索引...",
+        reindexResult: "本次已索引 {count} 篇笔记",
+        searchPlaceholder: "搜索笔记资源",
+        searchButton: "搜索笔记资源",
+        idle: "输入关键词后，从嵌入式 OpenViking notebook 资源层中检索。",
+        empty: "没有找到匹配的笔记资源。",
+        loadFailed: "笔记资源结果暂时加载失败。",
+        headingLabel: "标题路径",
+        rangeLabel: "字符范围",
+      },
       markdown: {
         overview: "概览",
         userContext: "用户上下文",

@@ -678,6 +678,20 @@ export interface Translations {
         threadLabel: string;
         agentLabel: string;
       };
+      openviking: {
+        title: string;
+        description: string;
+        reindexButton: string;
+        reindexingButton: string;
+        reindexResult: string;
+        searchPlaceholder: string;
+        searchButton: string;
+        idle: string;
+        empty: string;
+        loadFailed: string;
+        headingLabel: string;
+        rangeLabel: string;
+      };
       markdown: {
         overview: string;
         userContext: string;
