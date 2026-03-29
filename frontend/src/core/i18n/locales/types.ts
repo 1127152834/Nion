@@ -651,6 +651,15 @@ export interface Translations {
       description: string;
       empty: string;
       rawJson: string;
+      storage: {
+        title: string;
+        description: string;
+        modeLabel: string;
+        fileMode: string;
+        customMode: string;
+        customClassLabel: string;
+        customClassPlaceholder: string;
+      };
       recall: {
         title: string;
         description: string;

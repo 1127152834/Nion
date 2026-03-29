@@ -604,6 +604,16 @@ export const zhCN: Translations = {
         "Nion 会在后台不断从你的对话中自动学习。这些记忆能帮助 Nion 更好地理解你，并提供更个性化的体验。",
       empty: "暂无可展示的记忆数据。",
       rawJson: "原始 JSON",
+      storage: {
+        title: "记忆存储",
+        description: "选择长期记忆更新的持久化 provider。",
+        modeLabel: "存储模式",
+        fileMode: "文件存储",
+        customMode: "自定义 provider",
+        customClassLabel: "自定义存储类",
+        customClassPlaceholder:
+          "nion.agents.memory.storage.FileMemoryStorage",
+      },
       recall: {
         title: "记忆检索",
         description:
