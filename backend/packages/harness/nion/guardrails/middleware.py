@@ -18,6 +18,7 @@ from nion.thread_permissions import (
     create_thread_permission_request,
     get_thread_permission_profile,
 )
+from nion.threads.repository import ThreadRepository
 from nion.guardrails.provider import GuardrailDecision, GuardrailProvider, GuardrailReason, GuardrailRequest
 
 logger = logging.getLogger(__name__)
@@ -57,6 +58,9 @@ class GuardrailMiddleware(AgentMiddleware[AgentState]):
             return False
         context = getattr(request, "context", {}) or {}
         return bool(context.get("thread_id"))
+
+    def _is_cli_management_tool(self, tool_name: str) -> bool:
+        return tool_name.startswith("codepilot_cli_tools_")
 
     def _extract_latest_human_message(self, request: ToolCallRequest) -> str:
         state = getattr(request, "state", {}) or {}
@@ -129,6 +133,21 @@ class GuardrailMiddleware(AgentMiddleware[AgentState]):
             original_message_text=original_message_text,
             replay_payload=replay_payload,
         )
+        if thread_id and self._is_cli_management_tool(tool_name):
+            ThreadRepository().update_state(
+                thread_id,
+                {
+                    "cli_management": {
+                        "active": True,
+                        "phase": "awaiting_permission",
+                        "last_trigger": "permission_request",
+                        "last_intent": "install",
+                        "pending_permission_request_id": permission_request.id,
+                        "followup_turns_remaining": 1,
+                        "updated_at": datetime.now(UTC).isoformat(),
+                    }
+                },
+            )
 
         summary = str(tool_input)
         if isinstance(tool_input, dict):

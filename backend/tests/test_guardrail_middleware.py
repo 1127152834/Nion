@@ -12,6 +12,7 @@ from langgraph.errors import GraphBubbleUp
 from nion.guardrails.builtin import AllowlistProvider
 from nion.guardrails.middleware import GuardrailMiddleware
 from nion.guardrails.provider import GuardrailDecision, GuardrailReason, GuardrailRequest
+from nion.threads.repository import ThreadRepository
 
 # --- Helpers ---
 
@@ -324,6 +325,50 @@ class TestGuardrailMiddleware:
         tool_message = result.update["messages"][0]
         assert tool_message.name == "permission_request"
         assert tool_message.additional_kwargs["permission_request"]["tool_name"] == "codepilot_cli_tools_install"
+
+    def test_permission_request_payload_exposes_decision_keys(self):
+        mw = GuardrailMiddleware(_ApprovalProvider())
+        req = _make_tool_call_request(
+            "codepilot_cli_tools_install",
+            {"command": "brew install stripe/stripe-cli/stripe"},
+        )
+        req.context = {"thread_id": "t-workspace", "surface": "workspace"}
+        req.state = {"messages": [HumanMessage(content="帮我安装 stripe CLI", id="h-1")]}
+
+        result = mw.wrap_tool_call(req, MagicMock())
+        tool_message = result.update["messages"][0]
+        assert tool_message.additional_kwargs["permission_request"]["actions"] == [
+            {"key": "allow", "label": "Allow"},
+            {"key": "allow_session", "label": "Allow Session"},
+            {"key": "deny", "label": "Deny"},
+        ]
+
+    def test_cli_permission_request_marks_thread_state_awaiting_permission(
+        self,
+        tmp_path,
+        monkeypatch,
+    ):
+        monkeypatch.setenv("NION_HOME", str(tmp_path / "nion-home"))
+
+        mw = GuardrailMiddleware(_ApprovalProvider())
+        req = _make_tool_call_request(
+            "codepilot_cli_tools_install",
+            {"command": "brew install stripe/stripe-cli/stripe"},
+        )
+        req.context = {"thread_id": "t-cli", "surface": "workspace"}
+        req.state = {"messages": [HumanMessage(content="帮我安装 stripe CLI", id="h-1")]}
+
+        result = mw.wrap_tool_call(req, MagicMock())
+        tool_message = result.update["messages"][0]
+        permission_request_id = tool_message.additional_kwargs["permission_request"]["id"]
+
+        thread = ThreadRepository(base_dir=tmp_path / "nion-home").get_thread("t-cli")
+        assert thread is not None
+        assert thread.values.cli_management.phase == "awaiting_permission"
+        assert thread.values.cli_management.active is True
+        assert thread.values.cli_management.pending_permission_request_id == permission_request_id
+        assert thread.values.cli_management.last_trigger == "permission_request"
+        assert thread.values.cli_management.last_intent == "install"
 
     def test_graph_bubble_up_not_swallowed(self):
         """GraphBubbleUp (LangGraph interrupt/pause) must propagate, not be caught."""

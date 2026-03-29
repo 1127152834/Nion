@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from fastapi.testclient import TestClient
+
+from app.gateway.app import create_app
+from nion.thread_permissions import create_thread_permission_request
 from nion.agents.lead_agent.prompt import apply_prompt_template
 from nion.threads.repository import ThreadRepository
 from nion.threads.service import ThreadService
@@ -67,8 +71,15 @@ def test_thread_service_keeps_cli_tools_enabled_for_follow_up_turns(tmp_path) ->
                 {
                     "type": "human",
                     "content": "帮我安装 stripe CLI",
-                }
-            ]
+                    }
+                ],
+                "cli_management": {
+                    "active": True,
+                    "phase": "managing",
+                    "last_trigger": "install_intent",
+                    "followup_turns_remaining": 2,
+                    "updated_at": "2026-03-29T00:00:00+00:00",
+                },
         },
     )
 
@@ -82,3 +93,177 @@ def test_thread_service_keeps_cli_tools_enabled_for_follow_up_turns(tmp_path) ->
         )
         is True
     )
+
+
+def test_thread_service_cli_context_enters_on_cli_management_turn(tmp_path) -> None:
+    repository = ThreadRepository(base_dir=tmp_path)
+    service = ThreadService(repository=repository)
+
+    state = service.update_state(
+        "thread-ctx-enter",
+        {
+            "cli_management": {
+                "active": True,
+                "phase": "managing",
+                "last_trigger": "install_intent",
+                "last_intent": "install",
+                "followup_turns_remaining": 2,
+                "updated_at": "2026-03-29T00:00:00+00:00",
+            }
+        },
+    )
+
+    assert state["values"]["cli_management"]["active"] is True
+    assert state["values"]["cli_management"]["phase"] == "managing"
+    assert state["values"]["cli_management"]["last_trigger"] == "install_intent"
+
+
+def test_thread_service_cli_context_stays_active_for_short_follow_up(tmp_path) -> None:
+    repository = ThreadRepository(base_dir=tmp_path)
+    repository.upsert_thread(
+        "thread-ctx-follow",
+        values={
+            "messages": [{"type": "human", "content": "帮我安装 stripe CLI"}],
+            "cli_management": {
+                "active": True,
+                "phase": "managing",
+                "last_trigger": "install_intent",
+                "last_intent": "install",
+                "followup_turns_remaining": 2,
+                "updated_at": "2026-03-29T00:00:00+00:00",
+            },
+        },
+    )
+    service = ThreadService(repository=repository)
+
+    assert (
+        service._should_enable_cli_tools_for_request(
+            "继续",
+            thread_id="thread-ctx-follow",
+            selected_cli_tools=[],
+        )
+        is True
+    )
+
+
+def test_thread_service_cli_context_exits_after_non_cli_turn(tmp_path) -> None:
+    repository = ThreadRepository(base_dir=tmp_path)
+    repository.upsert_thread(
+        "thread-ctx-exit",
+        values={
+            "messages": [{"type": "human", "content": "帮我安装 stripe CLI"}],
+            "cli_management": {
+                "active": False,
+                "phase": "inactive",
+                "last_trigger": "completed",
+                "followup_turns_remaining": 0,
+                "updated_at": "2026-03-29T00:00:00+00:00",
+            },
+        },
+    )
+    service = ThreadService(repository=repository)
+
+    assert (
+        service._should_enable_cli_tools_for_request(
+            "帮我总结今天的会议",
+            thread_id="thread-ctx-exit",
+            selected_cli_tools=[],
+        )
+        is False
+    )
+
+
+def test_thread_service_cli_context_stays_active_when_permission_retry_pending(tmp_path) -> None:
+    repository = ThreadRepository(base_dir=tmp_path)
+    repository.upsert_thread(
+        "thread-ctx-perm",
+        values={
+            "messages": [{"type": "human", "content": "帮我安装 stripe CLI"}],
+            "cli_management": {
+                "active": True,
+                "phase": "awaiting_permission",
+                "last_trigger": "permission_request",
+                "last_intent": "install",
+                "pending_permission_request_id": "perm-1",
+                "followup_turns_remaining": 1,
+                "updated_at": "2026-03-29T00:00:00+00:00",
+            },
+        },
+    )
+    service = ThreadService(repository=repository)
+
+    assert (
+        service._should_enable_cli_tools_for_request(
+            "好的",
+            thread_id="thread-ctx-perm",
+            selected_cli_tools=[],
+        )
+        is True
+    )
+
+
+def test_cli_permission_resolve_clears_pending_state_and_restores_managing(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv("NION_HOME", str(tmp_path / "nion-home"))
+
+    repository = ThreadRepository(base_dir=tmp_path / "nion-home")
+    repository.upsert_thread(
+        "thread-cli-resolve",
+        values={
+            "messages": [{"type": "human", "content": "帮我安装 stripe CLI"}],
+            "cli_management": {
+                "active": True,
+                "phase": "awaiting_permission",
+                "last_trigger": "permission_request",
+                "last_intent": "install",
+                "pending_permission_request_id": "perm-placeholder",
+                "followup_turns_remaining": 1,
+                "updated_at": "2026-03-29T00:00:00+00:00",
+            },
+        },
+    )
+    request = create_thread_permission_request(
+        thread_id="thread-cli-resolve",
+        tool_name="codepilot_cli_tools_install",
+        tool_input={"command": "brew install stripe/stripe-cli/stripe"},
+        original_message_text="帮我安装 stripe CLI",
+        replay_payload={
+            "text": "帮我安装 stripe CLI",
+            "files": [],
+            "additional_kwargs": {
+                "shortcut_selections": {
+                    "cliTools": ["stripe"],
+                }
+            },
+        },
+    )
+    repository.update_state(
+        "thread-cli-resolve",
+        {
+            "cli_management": {
+                "active": True,
+                "phase": "awaiting_permission",
+                "last_trigger": "permission_request",
+                "last_intent": "install",
+                "pending_permission_request_id": request.id,
+                "followup_turns_remaining": 1,
+                "updated_at": "2026-03-29T00:00:00+00:00",
+            }
+        },
+    )
+
+    with TestClient(create_app()) as client:
+        response = client.post(
+            f"/api/threads/thread-cli-resolve/permissions/{request.id}/resolve",
+            json={"decision": "allow"},
+        )
+
+    assert response.status_code == 200
+
+    updated = repository.get_thread("thread-cli-resolve")
+    assert updated is not None
+    assert updated.values.cli_management.phase == "managing"
+    assert updated.values.cli_management.active is True
+    assert updated.values.cli_management.pending_permission_request_id is None

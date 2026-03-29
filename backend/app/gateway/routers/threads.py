@@ -16,6 +16,7 @@ from nion.thread_permissions import (
 from nion.config.paths import get_paths
 from nion.telemetry.logger import make_event
 from nion.telemetry.store import TelemetryStore
+from nion.threads.repository import ThreadRepository
 from nion.threads.models import ThreadSearchParams, ThreadStreamRequest
 from nion.threads.service import ThreadService, create_default_thread_service
 
@@ -191,6 +192,27 @@ async def _resolve_permission_request(
         thread_id=thread_id,
         permission_request_id=permission_request_id,
     )
+    if latest and latest.tool_name.startswith("codepilot_cli_tools_"):
+        repository = ThreadRepository()
+        record = repository.get_thread(thread_id)
+        if record is not None:
+            cli_management = record.values.cli_management.model_dump()
+            cli_management["updated_at"] = record.updated_at
+            cli_management["pending_permission_request_id"] = None
+            if decision in {"allow", "allow_session"}:
+                cli_management["active"] = True
+                cli_management["phase"] = "managing"
+                cli_management["last_trigger"] = "permission_resolved"
+                cli_management["followup_turns_remaining"] = max(
+                    int(cli_management.get("followup_turns_remaining") or 0),
+                    1,
+                )
+            else:
+                cli_management["active"] = False
+                cli_management["phase"] = "inactive"
+                cli_management["last_trigger"] = "permission_denied"
+                cli_management["followup_turns_remaining"] = 0
+            repository.update_state(thread_id, {"cli_management": cli_management})
     consumed = (
         consume_thread_permission_once(
             thread_id=thread_id,
