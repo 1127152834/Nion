@@ -68,6 +68,28 @@ Use this file as the evidence ledger for implementation and benchmarking.
   - The lane remains additive and low-risk
   - Next step should focus on real source taxonomy and benchmark consumption, not UI changes
 
+## E-005: Runtime path tagging completed for initial Wave 0 sources
+
+- Date: `2026-03-29`
+- Scope: Wave 0 / source-tagged token tracker / runtime path coverage
+- Change or test:
+  - Added token source contexts for:
+    - `lead_agent`
+    - `subagent`
+    - `title_generation`
+    - `memory_update`
+    - `cli_tool_describe`
+  - Added focused tests for helper paths and runtime paths
+- Evidence:
+  - `backend/tests/test_token_source_contexts.py`
+  - `backend/tests/test_token_source_runtime_paths.py`
+  - Verification command: `cd backend && uv run pytest tests/test_token_source_tracker.py tests/test_model_factory_token_source.py tests/test_token_source_contexts.py tests/test_token_source_runtime_paths.py -q`
+- Result:
+  - Initial end-to-end source tagging now covers the most important existing model call paths
+  - Existing thread-level token passthrough and UI remain unchanged
+- Decision impact:
+  - Wave 0 can now move from instrumentation wiring to taxonomy and benchmark consumption
+
 ## Template
 
 ### E-XXX: [Experiment name]

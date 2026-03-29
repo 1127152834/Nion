@@ -26,6 +26,12 @@ Use this file to avoid repeating architecture debates.
 - Decision: OpenSpace-inspired work should use the `openspace-capability-rebuild` skill as the workflow guardrail for lane selection, evidence recording, and document usage.
 - Why: Prevents drift, repeated research, and undocumented progress.
 
+## D-005: Wave 0 starts with additive token source attribution
+
+- Date: `2026-03-29`
+- Decision: The first Wave 0 implementation slice is limited to additive token source attribution across existing model call paths. No UI changes, no benchmark output changes, and no runtime semantic changes are included in this slice.
+- Why: Keeps the first measurement lane low-risk and makes verification unambiguous.
+
 ## Update Rule
 
 - Add one short entry per meaningful product or architecture decision.

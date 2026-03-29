@@ -18,6 +18,8 @@ interface AssistantPresentFilesGroup extends GenericMessageGroup<"assistant:pres
 
 interface AssistantClarificationGroup extends GenericMessageGroup<"assistant:clarification"> {}
 
+interface AssistantPermissionRequestGroup extends GenericMessageGroup<"assistant:permission-request"> {}
+
 interface AssistantSubagentGroup extends GenericMessageGroup<"assistant:subagent"> {}
 
 type MessageGroup =
@@ -26,6 +28,7 @@ type MessageGroup =
   | AssistantMessageGroup
   | AssistantPresentFilesGroup
   | AssistantClarificationGroup
+  | AssistantPermissionRequestGroup
   | AssistantSubagentGroup;
 
 export function groupMessages<T>(
@@ -75,6 +78,13 @@ export function groupMessages<T>(
         groups.push({
           id: message.id,
           type: "assistant:clarification",
+          messages: [message],
+        });
+      } else if (isPermissionRequestToolMessage(message)) {
+        lastOpenGroup()?.messages.push(message);
+        groups.push({
+          id: message.id,
+          type: "assistant:permission-request",
           messages: [message],
         });
       } else {
@@ -305,6 +315,10 @@ export function hasPresentFiles(message: Message) {
 
 export function isClarificationToolMessage(message: Message) {
   return message.type === "tool" && message.name === "ask_clarification";
+}
+
+export function isPermissionRequestToolMessage(message: Message) {
+  return message.type === "tool" && message.name === "permission_request";
 }
 
 export function extractPresentFilesFromMessage(message: Message) {

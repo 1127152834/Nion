@@ -18,9 +18,9 @@
 
 ## Next Actions
 
-- Extend source tagging from factory-level callback injection to actual call-site categories
 - Decide the first stable source vocabulary for `nion`
-- Define how Wave 0 benchmark output should read this attribution data
+- Persist or expose attribution results in a benchmark-friendly form
+- Design the next Wave 0 slice: cold/warm benchmark harness
 
 ## Blockers
 
@@ -37,6 +37,8 @@
 - Added a minimal source-tagged token callback module
 - Injected the callback into `create_chat_model()`
 - Verified isolated backend tests pass for callback aggregation and factory injection
+- Added token source contexts for title generation, memory update, CLI tool description, lead-agent runs, and subagent runs
+- Verified the current Wave 0 slice with focused backend tests
 
 ## Update Rule
 
