@@ -8,6 +8,8 @@ from langchain.chat_models import BaseChatModel
 from nion.config.app_config import AppConfig
 from nion.config.model_config import ModelConfig
 from nion.config.sandbox_config import SandboxConfig
+from nion.model_management.models import ProviderInstance, ProviderModel, ProviderTemplate
+from nion.model_management.service import ResolvedRuntimeModel
 from nion.models import factory as factory_module
 from nion.models import openai_codex_provider as codex_provider_module
 
@@ -74,6 +76,74 @@ def _patch_factory(monkeypatch, app_config: AppConfig, model_class=FakeChatModel
     monkeypatch.setattr(factory_module, "get_app_config", lambda: app_config)
     monkeypatch.setattr(factory_module, "resolve_class", lambda path, base: model_class)
     monkeypatch.setattr(factory_module, "is_tracing_enabled", lambda: False)
+
+    runtime_models = []
+    for index, model in enumerate(app_config.models):
+        runtime_models.append(
+            ResolvedRuntimeModel(
+                runtime_name=model.name,
+                binding_key=None,
+                source_kind="legacy",
+                provider=ProviderInstance(
+                    id=f"provider-{index}",
+                    provider_template_id=None,
+                    kind="builtin",
+                    display_name=model.display_name or model.name,
+                    status="active",
+                    protocol_override="openai-compatible",
+                    base_url_override=None,
+                    api_key_encrypted=None,
+                    created_at="2026-03-29T00:00:00Z",
+                    updated_at="2026-03-29T00:00:00Z",
+                ),
+                template=ProviderTemplate(
+                    id=f"template-{index}",
+                    code=f"template-{index}",
+                    name=f"Template {index}",
+                    protocol="openai-compatible",
+                    base_url_mode="editable",
+                    base_url=None,
+                    description=None,
+                    created_at="2026-03-29T00:00:00Z",
+                    updated_at="2026-03-29T00:00:00Z",
+                ),
+                model=ProviderModel(
+                    id=f"model-{index}",
+                    provider_instance_id=f"provider-{index}",
+                    model_id=model.model,
+                    display_name=model.display_name or model.model,
+                    source="manual",
+                    is_enabled=True,
+                    is_primary=index == 0,
+                    supports_thinking=model.supports_thinking,
+                    supports_reasoning_effort=model.supports_reasoning_effort,
+                    supports_vision=model.supports_vision,
+                    priority_order=index,
+                    metadata_json={},
+                    created_at="2026-03-29T00:00:00Z",
+                    updated_at="2026-03-29T00:00:00Z",
+                ),
+                runtime_model_config=model,
+                api_key=None,
+                api_base=None,
+            )
+        )
+
+    class FakeRegistry:
+        def resolve_model(self, identity: str):
+            for item in runtime_models:
+                if item.runtime_name == identity:
+                    return item
+            raise ValueError(f"Runtime model '{identity}' not found")
+
+        def get_default_model(self):
+            return runtime_models[0]
+
+    monkeypatch.setattr(
+        factory_module,
+        "get_model_registry_service",
+        lambda app_config_provider=None: FakeRegistry(),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -660,3 +730,24 @@ def test_openai_responses_api_settings_are_passed_to_chatopenai(monkeypatch):
 
     assert captured.get("use_responses_api") is True
     assert captured.get("output_version") == "responses/v1"
+
+
+def test_token_source_callback_is_attached_without_dropping_existing_callbacks(monkeypatch):
+    cfg = _make_app_config([_make_model("callback-test")])
+    _patch_factory(monkeypatch, cfg)
+
+    captured: dict = {}
+
+    class CapturingModel(FakeChatModel):
+        def __init__(self, **kwargs):
+            captured.update(kwargs)
+            BaseChatModel.__init__(self, **kwargs)
+            self.callbacks = ["existing-callback"]
+
+    monkeypatch.setattr(factory_module, "resolve_class", lambda path, base: CapturingModel)
+
+    model = factory_module.create_chat_model(name="callback-test")
+
+    callback_types = {type(cb).__name__ for cb in (model.callbacks or [])}
+    assert "TokenSourceCallbackHandler" in callback_types
+    assert "existing-callback" in model.callbacks

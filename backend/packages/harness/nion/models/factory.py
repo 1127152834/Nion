@@ -9,6 +9,7 @@ from nion.config import (
 from nion.config.app_config import ensure_latest_app_config
 from nion.model_management.service import get_model_registry_service
 from nion.reflection import resolve_class
+from nion.telemetry.token_source import TokenSourceCallbackHandler
 
 logger = logging.getLogger(__name__)
 
@@ -148,6 +149,9 @@ def create_chat_model(name: str | None = None, thinking_enabled: bool = False, *
             model_settings_from_config["reasoning_effort"] = "medium"
 
     model_instance = model_class(**kwargs, **model_settings_from_config)
+
+    existing_callbacks = model_instance.callbacks or []
+    model_instance.callbacks = [*existing_callbacks, TokenSourceCallbackHandler()]
 
     if is_tracing_enabled():
         try:
