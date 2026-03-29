@@ -110,3 +110,44 @@ license: MIT
 
     assert skill is not None
     assert skill.description == "First line\nSecond line"
+
+
+def test_load_skills_rejects_frontmatter_with_unexpected_keys(tmp_path: Path):
+    skills_root = tmp_path / "skills"
+    skill_dir = skills_root / "public" / "bad-skill"
+    skill_dir.mkdir(parents=True, exist_ok=True)
+    (skill_dir / "SKILL.md").write_text(
+        """---
+name: bad-skill
+description: Demo skill
+unsupported: true
+---
+
+# Bad Skill
+""",
+        encoding="utf-8",
+    )
+
+    skills = load_skills(skills_path=skills_root, use_config=False, enabled_only=False)
+
+    assert "bad-skill" not in {skill.name for skill in skills}
+
+
+def test_load_skills_rejects_frontmatter_with_invalid_name(tmp_path: Path):
+    skills_root = tmp_path / "skills"
+    skill_dir = skills_root / "public" / "bad-name"
+    skill_dir.mkdir(parents=True, exist_ok=True)
+    (skill_dir / "SKILL.md").write_text(
+        """---
+name: Bad Skill
+description: Demo skill
+---
+
+# Bad Skill
+""",
+        encoding="utf-8",
+    )
+
+    skills = load_skills(skills_path=skills_root, use_config=False, enabled_only=False)
+
+    assert "Bad Skill" not in {skill.name for skill in skills}

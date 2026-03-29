@@ -125,7 +125,7 @@ def test_skills_update_initializes_config_with_shared_resolver(monkeypatch, tmp_
         assert response.status_code == 200
         assert extensions_path.exists()
         payload = json.loads(extensions_path.read_text(encoding="utf-8"))
-        assert payload["skills"]["custom-skill"]["enabled"] is False
+        assert payload["skills"]["custom:custom-skill"]["enabled"] is False
     finally:
         reset_extensions_config()
 
@@ -146,3 +146,56 @@ def test_initialize_extensions_config_path_creates_missing_explicit_target(
     assert explicit_path.exists()
     payload = json.loads(explicit_path.read_text(encoding="utf-8"))
     assert payload == {"mcpServers": {}, "skills": {}}
+
+
+def test_initialize_extensions_config_path_defaults_to_project_root_parent(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    backend_dir = tmp_path / "backend"
+    backend_dir.mkdir(parents=True, exist_ok=True)
+
+    monkeypatch.chdir(backend_dir)
+    monkeypatch.delenv("NION_EXTENSIONS_CONFIG_PATH", raising=False)
+
+    from nion.config.extensions_config import ExtensionsConfig
+
+    resolved = ExtensionsConfig.initialize_config_path()
+
+    assert resolved == tmp_path / "extensions_config.json"
+    assert resolved.exists()
+
+
+def test_skills_update_supports_skill_id_path_and_persists_id_key(
+    monkeypatch,
+    tmp_path: Path,
+):
+    extensions_path = tmp_path / "extensions_config.json"
+    skills_root = tmp_path / "skills"
+    custom_dir = skills_root / "custom" / "team" / "custom-skill"
+    _write_skill(custom_dir, "custom-skill", "Custom skill")
+    _write_extensions_config(extensions_path)
+
+    monkeypatch.setenv("NION_EXTENSIONS_CONFIG_PATH", str(extensions_path))
+    monkeypatch.setattr(
+        "app.gateway.routers.skills.load_skills",
+        lambda enabled_only=False: load_skills(
+            skills_path=skills_root,
+            use_config=False,
+            enabled_only=enabled_only,
+        ),
+    )
+    reset_extensions_config()
+
+    try:
+        with TestClient(create_app()) as client:
+            response = client.put(
+                "/api/skills/custom%3Ateam%3A%3Acustom-skill",
+                json={"enabled": False},
+            )
+
+        assert response.status_code == 200
+        payload = json.loads(extensions_path.read_text(encoding="utf-8"))
+        assert payload["skills"]["custom:team::custom-skill"]["enabled"] is False
+    finally:
+        reset_extensions_config()

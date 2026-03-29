@@ -28,6 +28,30 @@ def _resolve_or_initialize_extensions_config_path() -> Path:
     return ExtensionsConfig.initialize_config_path()
 
 
+def _resolve_skill_identifier(
+    skills: list[Skill],
+    identifier: str,
+) -> Skill | None:
+    for skill in skills:
+        skill_id = _skill_response_id(skill)
+        legacy_skill_id = _skill_legacy_id(skill)
+        if identifier == skill_id or identifier == legacy_skill_id or identifier == skill.name:
+            return skill
+    return None
+
+
+def _skill_config_key(skill: Skill) -> str:
+    return _skill_response_id(skill)
+
+
+def _skill_response_id(skill: Skill) -> str:
+    return f"{skill.category}:{skill.skill_path.replace('/', '::')}"
+
+
+def _skill_legacy_id(skill: Skill) -> str:
+    return f"{skill.category}:{skill.skill_path}"
+
+
 class SkillResponse(BaseModel):
     """Response model for skill information."""
 
@@ -75,7 +99,7 @@ class SkillDeleteResponse(BaseModel):
 def _skill_to_response(skill: Skill) -> SkillResponse:
     """Convert a Skill object to a SkillResponse."""
     return SkillResponse(
-        id=f"{skill.category}:{skill.skill_path}",
+        id=_skill_response_id(skill),
         name=skill.name,
         description=skill.description,
         license=skill.license,
@@ -202,7 +226,7 @@ async def get_skill(skill_name: str, request: Request) -> SkillResponse:
     """
     try:
         skills = load_skills(enabled_only=False)
-        skill = next((s for s in skills if s.name == skill_name), None)
+        skill = _resolve_skill_identifier(skills, skill_name)
 
         if skill is None:
             raise HTTPException(status_code=404, detail=f"Skill '{skill_name}' not found")
@@ -278,7 +302,7 @@ async def update_skill(
         )
         # Find the skill to verify it exists
         skills = load_skills(enabled_only=False)
-        skill = next((s for s in skills if s.name == skill_name), None)
+        skill = _resolve_skill_identifier(skills, skill_name)
 
         if skill is None:
             raise HTTPException(status_code=404, detail=f"Skill '{skill_name}' not found")
@@ -290,7 +314,10 @@ async def update_skill(
         extensions_config = get_extensions_config()
 
         # Update the skill's enabled status
-        extensions_config.skills[skill_name] = SkillStateConfig(enabled=request.enabled)
+        config_key = _skill_config_key(skill)
+        extensions_config.skills.pop(skill.name, None)
+        extensions_config.skills.pop(_skill_legacy_id(skill), None)
+        extensions_config.skills[config_key] = SkillStateConfig(enabled=request.enabled)
 
         # Convert to JSON format (preserve MCP servers config)
         config_data = {
@@ -309,7 +336,7 @@ async def update_skill(
 
         # Reload the skills to get the updated status (for API response)
         skills = load_skills(enabled_only=False)
-        updated_skill = next((s for s in skills if s.name == skill_name), None)
+        updated_skill = _resolve_skill_identifier(skills, skill_name)
 
         if updated_skill is None:
             raise HTTPException(status_code=500, detail=f"Failed to reload skill '{skill_name}' after update")
@@ -470,7 +497,7 @@ async def delete_skill(skill_name: str, request: Request) -> SkillDeleteResponse
             details={},
         )
         skills = load_skills(enabled_only=False)
-        skill = next((s for s in skills if s.name == skill_name), None)
+        skill = _resolve_skill_identifier(skills, skill_name)
         if skill is None:
             raise HTTPException(status_code=404, detail=f"Skill '{skill_name}' not found")
         if skill.category != "custom":
@@ -485,7 +512,9 @@ async def delete_skill(skill_name: str, request: Request) -> SkillDeleteResponse
         config_path = ExtensionsConfig.resolve_config_path()
         if config_path is not None:
             extensions_config = get_extensions_config()
-            extensions_config.skills.pop(skill_name, None)
+            extensions_config.skills.pop(_skill_config_key(skill), None)
+            extensions_config.skills.pop(_skill_legacy_id(skill), None)
+            extensions_config.skills.pop(skill.name, None)
             config_data = {
                 "mcpServers": {
                     name: server.model_dump()

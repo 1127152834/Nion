@@ -81,7 +81,7 @@ function SkillSettingsList({
   };
   const router = useRouter();
   const [filter, setFilter] = useState<string>("public");
-  const [pendingDeleteSkillName, setPendingDeleteSkillName] =
+  const [pendingDeleteSkillId, setPendingDeleteSkillId] =
     useState<string | null>(null);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const { mutate: enableSkill } = useEnableSkill();
@@ -98,15 +98,15 @@ function SkillSettingsList({
   };
 
   const handleConfirmDeleteSkill = () => {
-    if (!pendingDeleteSkillName) {
+    if (!pendingDeleteSkillId) {
       return;
     }
     deleteSkill(
-      { skillName: pendingDeleteSkillName },
+      { skillName: pendingDeleteSkillId },
       {
         onSuccess: () => {
           toast.success(copy.skillDeleted);
-          setPendingDeleteSkillName(null);
+          setPendingDeleteSkillId(null);
         },
         onError: (error) => {
           toast.error(
@@ -157,7 +157,7 @@ function SkillSettingsList({
 
       {filteredSkills.length > 0 &&
         filteredSkills.map((skill) => (
-          <Item className="w-full" variant="outline" key={skill.name}>
+          <Item className="w-full" variant="outline" key={skill.id}>
             <ItemContent>
               <ItemTitle>
                 <div className="flex items-center gap-2">{skill.name}</div>
@@ -172,7 +172,7 @@ function SkillSettingsList({
                 disabled={env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY === "true"}
                 onCheckedChange={(checked) =>
                   enableSkill(
-                    { skillName: skill.name, enabled: checked },
+                    { skillName: skill.id, enabled: checked },
                     {
                       onError: (error) => {
                         toast.error(
@@ -193,7 +193,7 @@ function SkillSettingsList({
                     deletingSkill
                   }
                   onClick={() => {
-                    setPendingDeleteSkillName(skill.name);
+                    setPendingDeleteSkillId(skill.id);
                   }}
                 >
                   <Trash2Icon className="size-4" />
@@ -204,16 +204,16 @@ function SkillSettingsList({
         ))}
 
       <ConfirmActionDialog
-        open={pendingDeleteSkillName !== null}
+        open={pendingDeleteSkillId !== null}
         onOpenChange={(open) => {
           if (!open) {
-            setPendingDeleteSkillName(null);
+            setPendingDeleteSkillId(null);
           }
         }}
         title={copy.deleteConfirmTitle}
         description={copy.deleteConfirmDescription.replaceAll(
           "{name}",
-          pendingDeleteSkillName ?? "",
+          filteredSkills.find((skill) => skill.id === pendingDeleteSkillId)?.name ?? "",
         )}
         cancelText={copy.cancelAction}
         confirmText={copy.confirmDeleteAction}

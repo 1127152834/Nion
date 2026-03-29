@@ -76,7 +76,7 @@ class ExtensionsConfig(BaseModel):
             resolved = cls.resolve_config_path()
             if resolved is not None:
                 return resolved
-            path = Path(os.getcwd()) / "extensions_config.json"
+            path = Path(os.getcwd()).parent / "extensions_config.json"
 
         path.parent.mkdir(parents=True, exist_ok=True)
         if not path.exists():
@@ -202,7 +202,13 @@ class ExtensionsConfig(BaseModel):
         """
         return {name: config for name, config in self.mcp_servers.items() if config.enabled}
 
-    def is_skill_enabled(self, skill_name: str, skill_category: str) -> bool:
+    def is_skill_enabled(
+        self,
+        skill_name: str,
+        skill_category: str,
+        skill_id: str | None = None,
+        legacy_skill_id: str | None = None,
+    ) -> bool:
         """Check if a skill is enabled.
 
         Args:
@@ -212,7 +218,13 @@ class ExtensionsConfig(BaseModel):
         Returns:
             True if enabled, False otherwise
         """
-        skill_config = self.skills.get(skill_name)
+        skill_config = None
+        if skill_id:
+            skill_config = self.skills.get(skill_id)
+        if skill_config is None and legacy_skill_id:
+            skill_config = self.skills.get(legacy_skill_id)
+        if skill_config is None:
+            skill_config = self.skills.get(skill_name)
         if skill_config is None:
             # Default to enable for public & custom skill
             return skill_category in ("public", "custom")

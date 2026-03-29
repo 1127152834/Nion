@@ -1,9 +1,8 @@
 import re
 from pathlib import Path
 
-import yaml
-
 from .types import Skill
+from .validation import parse_and_validate_skill_frontmatter_text
 
 
 def parse_skill_file(skill_file: Path, category: str, relative_path: Path | None = None) -> Skill | None:
@@ -32,8 +31,8 @@ def parse_skill_file(skill_file: Path, category: str, relative_path: Path | None
 
         front_matter = front_matter_match.group(1)
 
-        metadata = yaml.safe_load(front_matter)
-        if not isinstance(metadata, dict):
+        valid, _message, metadata = parse_and_validate_skill_frontmatter_text(content)
+        if not valid or metadata is None:
             return None
 
         # Extract required fields

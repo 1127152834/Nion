@@ -18,3 +18,14 @@ void test("skill settings page reports toggle failures with toast error", async 
   assert.match(source, /onError:/);
   assert.match(source, /toast\.error\(/);
 });
+
+void test("skill settings page uses skill.id as item key and mutation identifier", async () => {
+  const source = await readFile(
+    new URL("../../components/workspace/settings/skill-settings-page.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /key=\{skill\.id\}/);
+  assert.match(source, /skillName: skill\.id/);
+  assert.match(source, /pendingDeleteSkillId/);
+});
