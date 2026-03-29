@@ -128,6 +128,16 @@ class Paths:
         return self.openviking_dir / "ingest-state.sqlite3"
 
     @property
+    def autodream_journal_dir(self) -> Path:
+        """Agent-owned AutoDream journal root under embedded OpenViking."""
+        return self.openviking_dir / "journal" / "autodream"
+
+    @property
+    def autodream_state_file(self) -> Path:
+        """Path to the AutoDream runtime state file."""
+        return self.openviking_dir / "autodream-state.json"
+
+    @property
     def telemetry_db_file(self) -> Path:
         """Path to the local telemetry database: `{base_dir}/telemetry.sqlite3`."""
         return self.base_dir / "telemetry.sqlite3"
@@ -280,6 +290,11 @@ class Paths:
     def ensure_openviking_dirs(self) -> None:
         """Create standard directories for the embedded OpenViking runtime."""
         self.openviking_dir.mkdir(parents=True, exist_ok=True)
+        self.autodream_journal_dir.mkdir(parents=True, exist_ok=True)
+
+    def ensure_autodream_dirs(self) -> None:
+        """Create standard directories for AutoDream journal artifacts."""
+        self.autodream_journal_dir.mkdir(parents=True, exist_ok=True)
 
     def resolve_virtual_path(self, thread_id: str, virtual_path: str) -> Path:
         """Resolve a sandbox virtual path to the actual host filesystem path.
