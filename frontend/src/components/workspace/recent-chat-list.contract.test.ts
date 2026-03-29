@@ -25,3 +25,14 @@ void test("recent chat list marks bridge conversations with a platform badge", a
   assert.match(source, /bridge\.bridgeChatBadge/);
   assert.match(source, /bridgeLabel/);
 });
+
+void test("recent chat list marks project conversations with a project badge and project route", async () => {
+  const source = await readFile(
+    new URL("./recent-chat-list.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /projectInfoOfThread/);
+  assert.match(source, /项目 ·/);
+  assert.match(source, /pathOfProjectThread/);
+});

@@ -56,7 +56,13 @@ import {
   useThreads,
 } from "@/core/threads/hooks";
 import type { AgentThread, AgentThreadState } from "@/core/threads/types";
-import { bridgeInfoOfThread, pathOfThread, titleOfThread } from "@/core/threads/utils";
+import {
+  bridgeInfoOfThread,
+  pathOfProjectThread,
+  pathOfThread,
+  projectInfoOfThread,
+  titleOfThread,
+} from "@/core/threads/utils";
 import { env } from "@/env";
 
 import { useBridgeTranslation } from "./bridge/useBridgeTranslation";
@@ -77,11 +83,20 @@ export function RecentChatList() {
       pendingClarification: derivePendingClarification(
         thread.values?.messages ?? [],
       ),
+      project: projectInfoOfThread(thread),
+      bridge: bridgeInfoOfThread(thread),
     }));
 
     const pending = enriched.filter((entry) => entry.pendingClarification);
     const regular = enriched.filter((entry) => !entry.pendingClarification);
-    return [...pending, ...regular];
+    return [...pending, ...regular].sort((a, b) => {
+      const aProject = Boolean(a.project);
+      const bProject = Boolean(b.project);
+      if (aProject !== bProject) {
+        return aProject ? -1 : 1;
+      }
+      return 0;
+    });
   }, [threads]);
 
   // Rename dialog state
@@ -190,6 +205,7 @@ export function RecentChatList() {
                   pathname === "/workspace/chats" &&
                   searchParams.get("thread") === thread.thread_id;
                 const bridgeInfo = bridgeInfoOfThread(thread);
+                const projectInfo = projectInfoOfThread(thread);
                 const bridgeLabel = bridgeInfo
                   ? bridgeInfo.platform === "telegram"
                     ? bt("bridge.telegramChannel")
@@ -212,10 +228,22 @@ export function RecentChatList() {
                       <div>
                         <Link
                           className="text-muted-foreground block w-full overflow-hidden group-hover/side-menu-item:overflow-hidden"
-                          href={pathOfThread(thread.thread_id)}
+                          href={
+                            projectInfo
+                              ? pathOfProjectThread(projectInfo.project_id, thread.thread_id)
+                              : pathOfThread(thread.thread_id)
+                          }
                         >
                           <span className="flex items-center gap-2 overflow-hidden">
                             <span className="truncate">{titleOfThread(thread)}</span>
+                            {projectInfo ? (
+                              <Badge
+                                variant="outline"
+                                className="gap-1 rounded-full px-2 py-0 text-[10px]"
+                              >
+                                项目 · {projectInfo.project_name}
+                              </Badge>
+                            ) : null}
                             {bridgeInfo ? (
                               <Badge
                                 variant="outline"

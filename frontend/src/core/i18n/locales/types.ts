@@ -361,6 +361,7 @@ export interface Translations {
     demoChats: string;
     pendingReply: string;
     agents: string;
+    projects: string;
     automation: string;
     cliTools: string;
     notebook: string;

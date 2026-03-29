@@ -166,6 +166,7 @@ export const zhCN: Translations = {
     demoChats: "演示对话",
     pendingReply: "待回复",
     agents: "智能体",
+    projects: "项目",
     automation: "自动化",
     cliTools: "CLI 工具",
     notebook: "笔记",

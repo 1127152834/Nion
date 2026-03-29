@@ -172,6 +172,7 @@ export const enUS: Translations = {
     demoChats: "Demo chats",
     pendingReply: "Pending reply",
     agents: "Agents",
+    projects: "Projects",
     automation: "Automation",
     cliTools: "CLI Tools",
     notebook: "Notebook",

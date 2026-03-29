@@ -109,6 +109,10 @@ This gateway provides custom endpoints for models, MCP configuration, skills, an
                 "description": "Manage the personal desktop notebook knowledge base",
             },
             {
+                "name": "projects",
+                "description": "Manage project work containers, execution plans, project threads, and project timeline state",
+            },
+            {
                 "name": "openviking",
                 "description": "Embedded OpenViking notebook ingest and retrieval surfaces",
             },
