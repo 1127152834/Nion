@@ -47,6 +47,10 @@ def reset_token_source(token: Token[str]) -> None:
     _TOKEN_SOURCE.reset(token)
 
 
+def get_current_token_source() -> str:
+    return _TOKEN_SOURCE.get()
+
+
 @contextmanager
 def token_source_context(source: str):
     token = set_token_source(source)

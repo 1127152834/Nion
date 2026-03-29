@@ -14,6 +14,7 @@ from langchain_core.messages import HumanMessage
 
 from nion.model_management.service import get_model_registry_service
 from nion.models import create_chat_model
+from nion.telemetry.token_source import token_source_context
 
 from .catalog import get_catalog_tool, list_catalog_tools, list_extra_well_known_bins
 from .detect import detect_all_cli_tools, detect_brew, detect_catalog_tool, invalidate_detect_cache
@@ -264,7 +265,8 @@ Respond in this exact JSON format (no markdown, no code fences, just raw JSON):
 
         resolved_model_name = model_name or get_model_registry_service().get_default_model().runtime_name
         model = create_chat_model(name=resolved_model_name, thinking_enabled=False)
-        raw = model.invoke([HumanMessage(content=prompt)])
+        with token_source_context("cli_tool_describe"):
+            raw = model.invoke([HumanMessage(content=prompt)])
         text = _extract_text(raw)
         payload = _extract_json(text)
         structured = CliToolStructuredDesc.model_validate(payload)

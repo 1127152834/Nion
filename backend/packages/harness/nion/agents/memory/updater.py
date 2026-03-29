@@ -15,6 +15,7 @@ from nion.agents.memory.storage import get_memory_storage
 from nion.config.memory_config import get_memory_config
 from nion.models import create_chat_model
 from nion.models.factory import resolve_model_name_with_fallback
+from nion.telemetry.token_source import token_source_context
 
 logger = logging.getLogger(__name__)
 
@@ -184,7 +185,8 @@ class MemoryUpdater:
 
             # Call LLM
             model = self._get_model()
-            response = model.invoke(prompt)
+            with token_source_context("memory_update"):
+                response = model.invoke(prompt)
             response_text = _extract_text(response.content).strip()
 
             # Parse response
