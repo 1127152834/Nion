@@ -41,6 +41,7 @@ import {
   useNotebookResourceSearch,
   useReindexNotebookResources,
 } from "@/core/openviking";
+import { useAutoDreamRun } from "@/core/autodream";
 import { useRecallSearch } from "@/core/recall/hooks";
 import { streamdownPlugins } from "@/core/streamdown/plugins";
 import { pathOfThread } from "@/core/threads/utils";
@@ -65,6 +66,13 @@ const OPENVIKING_FALLBACK_COPY = {
   searchZh: "搜索笔记资源",
   preview: "Preview context",
   previewZh: "预览上下文",
+};
+
+const AUTODREAM_FALLBACK_COPY = {
+  title: "Run AutoDream now",
+  titleZh: "立即运行 AutoDream",
+  preview: "Dream Log",
+  previewZh: "梦境日志",
 };
 
 type MemoryViewFilter = "all" | "facts" | "summaries";
@@ -266,6 +274,8 @@ export function MemorySettingsPage() {
     5,
   );
   const reindexNotebook = useReindexNotebookResources();
+  const runAutoDream = useAutoDreamRun();
+  const [dreamQuery, setDreamQuery] = useState("");
   const [storageModeOverride, setStorageModeOverride] =
     useState<MemoryStorageMode | null>(null);
   const [customStorageDraft, setCustomStorageDraft] = useState("");
@@ -358,6 +368,17 @@ export function MemorySettingsPage() {
   function handleNotebookSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmittedNotebookQuery(draftNotebookQuery.trim());
+  }
+
+  async function handleRunAutoDream(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    try {
+      await runAutoDream.mutateAsync({
+        query: dreamQuery.trim() || submittedNotebookQuery || "recent project work",
+      });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    }
   }
 
   function onMemoryConfigChange(nextStorageClass: string) {
@@ -594,6 +615,70 @@ export function MemorySettingsPage() {
             </>
           )}
         </div>
+      </div>
+
+      <div className="rounded-xl border bg-muted/20 p-5 sm:p-6">
+        <div className="space-y-1">
+          <h3 className="text-base font-medium">
+            {AUTODREAM_FALLBACK_COPY.titleZh}
+          </h3>
+          <p className="text-muted-foreground text-sm">
+            触发一次 AutoDream，生成一条 Dream Log，并查看本轮提出的记忆与行动建议。
+          </p>
+        </div>
+
+        <form className="mt-4 flex gap-2" onSubmit={handleRunAutoDream}>
+          <Input
+            placeholder="输入本轮反思关键词"
+            value={dreamQuery}
+            onChange={(event) => setDreamQuery(event.target.value)}
+          />
+          <Button type="submit" disabled={runAutoDream.isPending}>
+            {runAutoDream.isPending ? "Running AutoDream..." : "Run AutoDream now"}
+          </Button>
+        </form>
+
+        {runAutoDream.data ? (
+          <div className="mt-5 space-y-3">
+            <h4 className="text-sm font-medium">
+              {AUTODREAM_FALLBACK_COPY.previewZh}
+            </h4>
+            <div className="rounded-md border bg-background p-3 text-sm leading-6">
+              <div className="mb-2 font-medium">
+                {runAutoDream.data.entry.summary || "No summary"}
+              </div>
+              <div className="text-muted-foreground text-xs">
+                {runAutoDream.data.entry_path}
+              </div>
+            </div>
+
+            <div className="rounded-md border bg-background p-3">
+              <div className="mb-2 text-sm font-medium">agent_memory_updates</div>
+              {runAutoDream.data.agent_memory_updates.length > 0 ? (
+                <ul className="list-disc pl-5 text-sm leading-6">
+                  {runAutoDream.data.agent_memory_updates.map((item, index) => (
+                    <li key={`${item}-${index}`}>{item}</li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="text-muted-foreground text-sm">No updates</div>
+              )}
+            </div>
+
+            <div className="rounded-md border bg-background p-3">
+              <div className="mb-2 text-sm font-medium">action_proposals</div>
+              {runAutoDream.data.action_proposals.length > 0 ? (
+                <ul className="list-disc pl-5 text-sm leading-6">
+                  {runAutoDream.data.action_proposals.map((item, index) => (
+                    <li key={`${item}-${index}`}>{item}</li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="text-muted-foreground text-sm">No proposals</div>
+              )}
+            </div>
+          </div>
+        ) : null}
       </div>
 
       <div className="rounded-xl border bg-muted/20 p-5 sm:p-6">

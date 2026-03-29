@@ -38,6 +38,7 @@ def create_runtime_app(
     from app.gateway.routers import (
         agents,
         artifacts,
+        autodream,
         automation,
         cli,
         config,
@@ -100,6 +101,7 @@ def create_runtime_app(
         artifacts.router,
         uploads.router,
         agents.router,
+        autodream.router,
         suggestions.router,
         threads.router,
     ):
