@@ -36,6 +36,8 @@ coverage/
 .deer-flow/
 .claude/
 skills/custom/*
+!skills/custom/openspace-capability-rebuild/
+!skills/custom/openspace-capability-rebuild/SKILL.md
 logs/
 log/
 
