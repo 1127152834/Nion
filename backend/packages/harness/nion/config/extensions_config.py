@@ -68,15 +68,14 @@ class ExtensionsConfig(BaseModel):
 
     @classmethod
     def initialize_config_path(cls, config_path: str | None = None) -> Path:
-        resolved = cls.resolve_config_path(config_path)
-        if resolved is not None:
-            return resolved
-
         if config_path:
             path = Path(config_path)
         elif os.getenv("NION_EXTENSIONS_CONFIG_PATH"):
             path = Path(os.getenv("NION_EXTENSIONS_CONFIG_PATH"))
         else:
+            resolved = cls.resolve_config_path()
+            if resolved is not None:
+                return resolved
             path = Path(os.getcwd()) / "extensions_config.json"
 
         path.parent.mkdir(parents=True, exist_ok=True)

@@ -128,3 +128,21 @@ def test_skills_update_initializes_config_with_shared_resolver(monkeypatch, tmp_
         assert payload["skills"]["custom-skill"]["enabled"] is False
     finally:
         reset_extensions_config()
+
+
+def test_initialize_extensions_config_path_creates_missing_explicit_target(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    explicit_path = tmp_path / "nested" / "extensions_config.json"
+
+    monkeypatch.delenv("NION_EXTENSIONS_CONFIG_PATH", raising=False)
+
+    from nion.config.extensions_config import ExtensionsConfig
+
+    resolved = ExtensionsConfig.initialize_config_path(str(explicit_path))
+
+    assert resolved == explicit_path
+    assert explicit_path.exists()
+    payload = json.loads(explicit_path.read_text(encoding="utf-8"))
+    assert payload == {"mcpServers": {}, "skills": {}}
