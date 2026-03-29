@@ -47,6 +47,7 @@ export interface AgentThreadState extends Record<string, unknown> {
   messages: Message[];
   artifacts: string[];
   todos?: Todo[];
+  resolved_permission_request_ids?: string[];
   bridge?: {
     source: "bridge";
     platform: string;

@@ -20,6 +20,7 @@ void test("chat thread page derives and wires pending permission request state",
   );
 
   assert.match(source, /derivePendingPermissionRequest\(thread\.messages\)/);
+  assert.match(source, /thread\.values\.resolved_permission_request_ids/);
   assert.match(source, /pendingPermissionRequest=\{pendingPermissionRequest\}/);
   assert.match(source, /onPermissionDecision=\{handlePermissionDecision\}/);
   assert.match(source, /resolution\.replay_payload/);

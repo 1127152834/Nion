@@ -68,13 +68,26 @@ class GuardrailMiddleware(AgentMiddleware[AgentState]):
         for message in reversed(messages):
             if isinstance(message, HumanMessage):
                 content = getattr(message, "content", "")
-                if isinstance(content, str):
-                    return content
-                return str(content)
+                return self._extract_human_text_content(content)
             if isinstance(message, dict) and message.get("type") == "human":
                 content = message.get("content", "")
-                return content if isinstance(content, str) else str(content)
+                return self._extract_human_text_content(content)
         return ""
+
+    def _extract_human_text_content(self, content: Any) -> str:
+        if isinstance(content, str):
+            return content
+        if isinstance(content, list):
+            text_parts: list[str] = []
+            for part in content:
+                if isinstance(part, dict) and part.get("type") == "text":
+                    text = part.get("text")
+                    if isinstance(text, str):
+                        text_parts.append(text)
+                elif isinstance(part, str):
+                    text_parts.append(part)
+            return "\n".join(text_parts)
+        return str(content)
 
     def _extract_latest_human_replay_payload(
         self,
@@ -86,7 +99,7 @@ class GuardrailMiddleware(AgentMiddleware[AgentState]):
             if isinstance(message, HumanMessage):
                 content = getattr(message, "content", "")
                 additional_kwargs = getattr(message, "additional_kwargs", None) or {}
-                text = content if isinstance(content, str) else str(content)
+                text = self._extract_human_text_content(content)
                 files = additional_kwargs.get("files", [])
                 return {
                     "text": text,
@@ -96,7 +109,7 @@ class GuardrailMiddleware(AgentMiddleware[AgentState]):
             if isinstance(message, dict) and message.get("type") == "human":
                 content = message.get("content", "")
                 additional_kwargs = message.get("additional_kwargs", {})
-                text = content if isinstance(content, str) else str(content)
+                text = self._extract_human_text_content(content)
                 files = (
                     additional_kwargs.get("files", [])
                     if isinstance(additional_kwargs, dict)

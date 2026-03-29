@@ -4,10 +4,13 @@ from fastapi.testclient import TestClient
 
 from app.gateway.app import create_app
 from nion.thread_permissions import create_thread_permission_request
+from nion.threads.repository import ThreadRepository
 
 
 def test_workspace_permission_resolve_route_retries_original_message(tmp_path, monkeypatch):
     monkeypatch.setenv("NION_HOME", str(tmp_path / "nion-home"))
+    repository = ThreadRepository(base_dir=tmp_path / "nion-home")
+    repository.upsert_thread("thread-1", values={"messages": [], "artifacts": []})
 
     request = create_thread_permission_request(
         thread_id="thread-1",
@@ -59,10 +62,15 @@ def test_workspace_permission_resolve_route_retries_original_message(tmp_path, m
     }
     assert response.json()["original_message_text"] == "帮我安装 stripe CLI"
     assert response.json()["tool_name"] == "codepilot_cli_tools_install"
+    updated = repository.get_thread("thread-1")
+    assert updated is not None
+    assert updated.values.resolved_permission_request_ids == [request.id]
 
 
 def test_workspace_permission_second_allow_is_not_retried(tmp_path, monkeypatch):
     monkeypatch.setenv("NION_HOME", str(tmp_path / "nion-home"))
+    repository = ThreadRepository(base_dir=tmp_path / "nion-home")
+    repository.upsert_thread("thread-2", values={"messages": [], "artifacts": []})
 
     request = create_thread_permission_request(
         thread_id="thread-2",
@@ -85,3 +93,6 @@ def test_workspace_permission_second_allow_is_not_retried(tmp_path, monkeypatch)
     assert first.json()["consumed"] is True
     assert second.status_code == 200
     assert second.json()["consumed"] is False
+    updated = repository.get_thread("thread-2")
+    assert updated is not None
+    assert updated.values.resolved_permission_request_ids == [request.id]

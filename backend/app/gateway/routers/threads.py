@@ -192,8 +192,22 @@ async def _resolve_permission_request(
         thread_id=thread_id,
         permission_request_id=permission_request_id,
     )
+    repository = ThreadRepository()
+    existing_record = repository.get_thread(thread_id)
+    existing_resolved_ids = (
+        list(existing_record.values.resolved_permission_request_ids)
+        if existing_record is not None
+        else []
+    )
+    if permission_request_id not in existing_resolved_ids:
+        existing_resolved_ids.append(permission_request_id)
+    repository.update_state(
+        thread_id,
+        {
+            "resolved_permission_request_ids": existing_resolved_ids,
+        },
+    )
     if latest and latest.tool_name.startswith("codepilot_cli_tools_"):
-        repository = ThreadRepository()
         record = repository.get_thread(thread_id)
         if record is not None:
             cli_management = record.values.cli_management.model_dump()

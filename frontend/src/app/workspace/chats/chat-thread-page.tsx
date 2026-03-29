@@ -188,9 +188,13 @@ export default function ChatThreadPage() {
       if (!derived) {
         return null;
       }
-      return resolvedPermissionRequestIds.includes(derived.requestId) ? null : derived;
+      const persistedResolvedIds = thread.values.resolved_permission_request_ids ?? [];
+      return resolvedPermissionRequestIds.includes(derived.requestId) ||
+          persistedResolvedIds.includes(derived.requestId)
+        ? null
+        : derived;
     },
-    [resolvedPermissionRequestIds, thread.messages],
+    [resolvedPermissionRequestIds, thread.messages, thread.values.resolved_permission_request_ids],
   );
 
   const handleSwitchMode = useCallback(
@@ -324,22 +328,27 @@ export default function ChatThreadPage() {
           pendingPermissionRequest.requestId,
           decision,
         ) as {
+          ok?: boolean;
           original_message_text?: string;
           consumed?: boolean;
           replay_payload?: PermissionReplayPayload;
         };
-        setResolvedPermissionRequestIds((current) =>
-          current.includes(pendingPermissionRequest.requestId)
-            ? current
-            : [...current, pendingPermissionRequest.requestId],
-        );
+        if (resolution.ok === true) {
+          setResolvedPermissionRequestIds((current) =>
+            current.includes(pendingPermissionRequest.requestId)
+              ? current
+              : [...current, pendingPermissionRequest.requestId],
+          );
+        }
         if (
+          resolution.ok === true &&
           (decision === "allow" || decision === "allow_session") &&
           resolution.consumed === true &&
           resolution.replay_payload
         ) {
           handleReplaySubmit(resolution.replay_payload);
         } else if (
+          resolution.ok === true &&
           (decision === "allow" || decision === "allow_session") &&
           resolution.consumed === true &&
           typeof resolution.original_message_text === "string" &&

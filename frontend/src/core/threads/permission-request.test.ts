@@ -36,3 +36,34 @@ void test("derivePendingPermissionRequest keeps latest unresolved permission req
   assert.equal(pending?.requestId, "perm-1");
   assert.equal(pending?.toolMessageId, "tool-1");
 });
+
+void test("derivePendingPermissionRequest keeps latest permission request when a resolved human follow-up exists, leaving hiding to persisted resolution state", () => {
+  const pending = derivePendingPermissionRequest([
+    {
+      type: "tool",
+      id: "tool-1",
+      name: "permission_request",
+      tool_call_id: "call-1",
+      content: "permission needed",
+      additional_kwargs: {
+        permission_request: {
+          id: "perm-1",
+          tool_name: "codepilot_cli_tools_install",
+          tool_input: { command: "brew install stripe" },
+          actions: [
+            { key: "allow", label: "Allow" },
+            { key: "allow_session", label: "Allow Session" },
+            { key: "deny", label: "Deny" },
+          ],
+        },
+      },
+    },
+    {
+      type: "human",
+      id: "human-after-resolve",
+      content: "继续执行吧",
+    },
+  ]);
+
+  assert.equal(pending?.requestId, "perm-1");
+});
