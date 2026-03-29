@@ -637,6 +637,7 @@ export const zhCN: Translations = {
         title: "嵌入式 OpenViking 笔记资源",
         description:
           "内部操作面板，用于重建 notebook 资源索引并检查嵌入式 OpenViking 的检索结果。",
+        previewTitle: "预览上下文",
         reindexButton: "重新索引笔记",
         reindexingButton: "正在重新索引...",
         reindexResult: "本次已索引 {count} 篇笔记",

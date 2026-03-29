@@ -17,3 +17,8 @@ export interface OpenVikingNotebookSearchResponse {
 export interface OpenVikingNotebookReindexResponse {
   notes_indexed: number;
 }
+
+export interface OpenVikingNotebookContextPreviewResponse {
+  items: OpenVikingNotebookSearchItem[];
+  markdown: string;
+}

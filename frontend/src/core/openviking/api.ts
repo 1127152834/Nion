@@ -1,6 +1,7 @@
 import { getBackendBaseURL } from "../config/index.ts";
 
 import type {
+  OpenVikingNotebookContextPreviewResponse,
   OpenVikingNotebookReindexResponse,
   OpenVikingNotebookSearchResponse,
 } from "./types.ts";
@@ -32,4 +33,21 @@ export async function searchNotebookResources(
     throw new Error(`Failed to search notebook resources (${response.status})`);
   }
   return readJson<OpenVikingNotebookSearchResponse>(response);
+}
+
+export async function loadNotebookContextPreview(
+  query: string,
+  limit = 5,
+): Promise<OpenVikingNotebookContextPreviewResponse> {
+  const params = new URLSearchParams({
+    query,
+    limit: String(limit),
+  });
+  const response = await fetch(
+    `${getBackendBaseURL()}/api/openviking/notebook/context-preview?${params.toString()}`,
+  );
+  if (!response.ok) {
+    throw new Error(`Failed to preview notebook context (${response.status})`);
+  }
+  return readJson<OpenVikingNotebookContextPreviewResponse>(response);
 }

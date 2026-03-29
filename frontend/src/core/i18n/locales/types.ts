@@ -681,6 +681,7 @@ export interface Translations {
       openviking: {
         title: string;
         description: string;
+        previewTitle: string;
         reindexButton: string;
         reindexingButton: string;
         reindexResult: string;

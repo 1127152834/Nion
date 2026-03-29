@@ -667,6 +667,7 @@ export const enUS: Translations = {
         title: "Embedded OpenViking Notebook Resources",
         description:
           "Internal operator surface for rebuilding the notebook resource index and inspecting embedded OpenViking retrieval results.",
+        previewTitle: "Preview context",
         reindexButton: "Reindex notebook",
         reindexingButton: "Reindexing notebook...",
         reindexResult: "Indexed {count} notes in this run",

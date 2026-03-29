@@ -29,3 +29,12 @@ def test_openviking_router_can_reindex_and_search_notebook(monkeypatch, tmp_path
         payload = search.json()
         assert len(payload["items"]) == 1
         assert payload["items"][0]["source_relative_path"] == "projects/alpha/roadmap.md"
+
+        preview = client.get(
+            "/api/openviking/notebook/context-preview",
+            params={"query": "onboarding quality", "limit": 3},
+        )
+        assert preview.status_code == 200
+        preview_payload = preview.json()
+        assert len(preview_payload["items"]) == 1
+        assert "projects/alpha/roadmap.md" in preview_payload["markdown"]

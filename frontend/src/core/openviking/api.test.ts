@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-const { reindexNotebookResources, searchNotebookResources } = await import(
+const {
+  loadNotebookContextPreview,
+  reindexNotebookResources,
+  searchNotebookResources,
+} = await import(
   new URL("./api.ts", import.meta.url).href
 );
 
@@ -13,7 +17,7 @@ function createJsonResponse(payload: unknown, init?: ResponseInit) {
   });
 }
 
-void test("openviking notebook api hits reindex and search endpoints", async () => {
+void test("openviking notebook api hits reindex, search, and context-preview endpoints", async () => {
   const originalFetch = globalThis.fetch;
   const urls: string[] = [];
 
@@ -25,9 +29,11 @@ void test("openviking notebook api hits reindex and search endpoints", async () 
   try {
     await reindexNotebookResources();
     await searchNotebookResources("alpha", 3);
+    await loadNotebookContextPreview("alpha", 3);
     assert.deepEqual(urls, [
       "POST /api/openviking/notebook/reindex",
       "GET /api/openviking/notebook/search?query=alpha&limit=3",
+      "GET /api/openviking/notebook/context-preview?query=alpha&limit=3",
     ]);
   } finally {
     globalThis.fetch = originalFetch;

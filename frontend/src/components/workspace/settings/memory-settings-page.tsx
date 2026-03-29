@@ -21,6 +21,7 @@ import {
 } from "@/core/memory/search";
 import type { UserMemory } from "@/core/memory/types";
 import {
+  useNotebookContextPreview,
   useNotebookResourceSearch,
   useReindexNotebookResources,
 } from "@/core/openviking";
@@ -46,6 +47,8 @@ const OPENVIKING_FALLBACK_COPY = {
   titleZh: "重新索引笔记",
   search: "Search notebook resources",
   searchZh: "搜索笔记资源",
+  preview: "Preview context",
+  previewZh: "预览上下文",
 };
 
 function confidenceToLevelKey(confidence: unknown): {
@@ -218,6 +221,10 @@ export function MemorySettingsPage() {
   const [submittedNotebookQuery, setSubmittedNotebookQuery] = useState("");
   const recall = useRecallSearch(submittedQuery, 5);
   const notebookSearch = useNotebookResourceSearch(submittedNotebookQuery, 5);
+  const notebookContextPreview = useNotebookContextPreview(
+    submittedNotebookQuery,
+    5,
+  );
   const reindexNotebook = useReindexNotebookResources();
   const [storageModeOverride, setStorageModeOverride] =
     useState<MemoryStorageMode | null>(null);
@@ -576,6 +583,29 @@ export function MemorySettingsPage() {
             </div>
           )}
         </div>
+
+        {submittedNotebookQuery ? (
+          <div className="mt-5 space-y-2">
+            <h4 className="text-sm font-medium">
+              {t.settings.memory.openviking.previewTitle ||
+                OPENVIKING_FALLBACK_COPY.previewZh}
+            </h4>
+            {notebookContextPreview.isLoading ||
+            notebookContextPreview.isFetching ? (
+              <div className="text-muted-foreground text-sm">
+                {t.common.loading}
+              </div>
+            ) : notebookContextPreview.error ? (
+              <div className="text-destructive text-sm">
+                {t.settings.memory.openviking.loadFailed}
+              </div>
+            ) : notebookContextPreview.data ? (
+              <pre className="overflow-x-auto rounded-md border bg-background p-3 text-xs leading-6 whitespace-pre-wrap">
+                {notebookContextPreview.data.markdown}
+              </pre>
+            ) : null}
+          </div>
+        ) : null}
       </div>
 
       <div className="mt-6 space-y-2">
