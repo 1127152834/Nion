@@ -748,6 +748,20 @@ class NionClient:
 
         return get_memory_data()
 
+    def clear_memory(self) -> dict:
+        """Clear all persisted memory data."""
+
+        from nion.agents.memory.updater import clear_memory_data
+
+        return clear_memory_data()
+
+    def delete_memory_fact(self, fact_id: str) -> dict:
+        """Delete a single fact from memory by fact id."""
+
+        from nion.agents.memory.updater import delete_memory_fact
+
+        return delete_memory_fact(fact_id)
+
     def get_model(self, name: str) -> dict | None:
         """Get a specific runtime model configuration by name.
 

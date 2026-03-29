@@ -605,6 +605,25 @@ export const zhCN: Translations = {
         "Nion 会在后台不断从你的对话中自动学习。这些记忆能帮助 Nion 更好地理解你，并提供更个性化的体验。",
       empty: "暂无可展示的记忆数据。",
       rawJson: "原始 JSON",
+      clearAll: "清空全部记忆",
+      clearAllConfirmTitle: "确认清空全部记忆？",
+      clearAllConfirmDescription:
+        "这会删除所有已保存的摘要和事实，且无法撤销。",
+      clearAllSuccess: "已清空全部记忆",
+      factDeleteConfirmTitle: "确认删除这条事实？",
+      factDeleteConfirmDescription:
+        "这条事实会立刻从记忆中移除，且无法撤销。",
+      factDeleteSuccess: "事实已删除",
+      noFacts: "还没有保存的事实。",
+      summaryReadOnly:
+        "摘要分区当前仍是只读。现在支持清空全部记忆，以及删除单条事实。",
+      memoryFullyEmpty: "当前还没有保存任何记忆。",
+      factPreviewLabel: "待删除事实",
+      searchPlaceholder: "搜索当前记忆",
+      filterAll: "全部",
+      filterFacts: "事实",
+      filterSummaries: "摘要",
+      noMatches: "没有找到匹配的记忆。",
       storage: {
         title: "记忆存储",
         description: "选择长期记忆更新的持久化 provider。",

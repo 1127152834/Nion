@@ -227,7 +227,7 @@ FastAPI application on port 8001 with health check at `GET /health`.
 | **Models** (`/api/models`) | Runtime-catalog compatibility surface backed by the model registry: `GET /` - list runtime models; `GET /{name}` - model details. Probe helpers remain at `POST /test-connection`, `POST /provider-models`, and `POST /model-metadata`. |
 | **MCP** (`/api/mcp`) | `GET /config` - get config; `PUT /config` - update config (saves to extensions_config.json) |
 | **Skills** (`/api/skills`) | `GET /` - list skills; `GET /{name}` - details; `PUT /{name}` - update enabled; `POST /install` - install from .skill archive (accepts standard optional frontmatter like `version`, `author`, `compatibility`) |
-| **Memory** (`/api/memory`) | `GET /` - memory data; `POST /reload` - force reload; `GET /config` - config; `GET /status` - config + data |
+| **Memory** (`/api/memory`) | `GET /` - memory data; `POST /reload` - force reload; `DELETE /` - clear all memory; `DELETE /facts/{fact_id}` - delete a fact; `GET /config` - config; `GET /status` - config + data |
 | **Notebook** (`/api/notebook`) | `GET /tree`; `GET /notes`; `GET /notes/{note_id}`; `POST /notes`; `PUT /notes/{note_id}`; `POST /notes/{note_id}/rename`; `POST /notes/{note_id}/move`; `PATCH /notes/{note_id}/metadata`; `GET /notes/{note_id}/history`; `GET /notes/{note_id}/history/{version_id}`; `POST /notes/{note_id}/restore`; `GET /notes/{note_id}/delete-preview`; `POST /notes/{note_id}/delete`; `POST /notes/{note_id}/restore-deleted`; `GET /trash`; `POST /directories`; `POST /directories/rename`; `POST /directories/delete`; `POST /notes/{note_id}/assist-preview`; `POST /notes/{note_id}/assist-apply`; `POST /notes/{note_id}/import` |
 | **Uploads** (`/api/threads/{id}/uploads`) | `POST /` - upload files (auto-converts PDF/PPT/Excel/Word); `GET /list` - list; `DELETE /{filename}` - delete |
 | **Artifacts** (`/api/threads/{id}/artifacts`) | `GET /{path}` - serve artifacts; `?download=true` for file download |
@@ -390,7 +390,7 @@ Legacy IM channel runtime references below describe a removed subsystem. This br
 ### Memory System (`packages/harness/nion/agents/memory/`)
 
 **Components**:
-- `updater.py` - LLM-based memory updates with fact extraction, whitespace-normalized fact deduplication (trims leading/trailing whitespace before comparing), and atomic file I/O
+- `updater.py` - LLM-based memory updates with fact extraction, whitespace-normalized fact deduplication (trims leading/trailing whitespace before comparing), plus clear-all / fact-delete helpers built on the configured storage provider
 - `queue.py` - Debounced update queue (per-thread deduplication, configurable wait time)
 - `prompt.py` - Prompt templates for memory updates
 
@@ -463,7 +463,7 @@ Both can be modified at runtime via Gateway API endpoints or `NionClient` method
 | Models | `list_models()`, `get_model(name)` | `{"models": [...]}`, `{name, display_name, ...}` |
 | MCP | `get_mcp_config()`, `update_mcp_config(servers)` | `{"mcp_servers": {...}}` |
 | Skills | `list_skills()`, `get_skill(name)`, `update_skill(name, enabled)`, `install_skill(path)` | `{"skills": [...]}` |
-| Memory | `get_memory()`, `reload_memory()`, `get_memory_config()`, `get_memory_status()` | dict |
+| Memory | `get_memory()`, `reload_memory()`, `clear_memory()`, `delete_memory_fact(fact_id)`, `get_memory_config()`, `get_memory_status()` | dict |
 | Uploads | `upload_files(thread_id, files)`, `list_uploads(thread_id)`, `delete_upload(thread_id, filename)` | `{"success": true, "files": [...]}`, `{"files": [...], "count": N}` |
 | Artifacts | `get_artifact(thread_id, path)` → `(bytes, mime_type)` | tuple |
 

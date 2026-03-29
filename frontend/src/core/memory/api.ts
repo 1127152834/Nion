@@ -52,23 +52,47 @@ function isUserMemory(value: unknown): value is UserMemory {
 
 function getErrorMessage(status: number, payload: unknown): string {
   if (isObjectRecord(payload) && typeof payload.detail === "string") {
-    return `Failed to load memory (${status}): ${payload.detail}`;
+    return `Memory request failed (${status}): ${payload.detail}`;
   }
 
-  return `Failed to load memory (${status})`;
+  return `Memory request failed (${status})`;
 }
 
-export async function loadMemory() {
-  const memory = await fetch(`${getBackendBaseURL()}/api/memory`);
-  const payload = (await memory.json().catch(() => null)) as unknown;
+async function readMemoryResponse(
+  response: Response,
+  actionLabel: string,
+): Promise<UserMemory> {
+  const payload = (await response.json().catch(() => null)) as unknown;
 
-  if (!memory.ok) {
-    throw new Error(getErrorMessage(memory.status, payload));
+  if (!response.ok) {
+    throw new Error(getErrorMessage(response.status, payload));
   }
 
   if (!isUserMemory(payload)) {
-    throw new Error("Invalid memory payload");
+    throw new Error(`Invalid memory payload returned from ${actionLabel}`);
   }
 
   return payload;
+}
+
+export async function loadMemory() {
+  const response = await fetch(`${getBackendBaseURL()}/api/memory`);
+  return readMemoryResponse(response, "loadMemory");
+}
+
+export async function clearMemory() {
+  const response = await fetch(`${getBackendBaseURL()}/api/memory`, {
+    method: "DELETE",
+  });
+  return readMemoryResponse(response, "clearMemory");
+}
+
+export async function deleteMemoryFact(factId: string) {
+  const response = await fetch(
+    `${getBackendBaseURL()}/api/memory/facts/${encodeURIComponent(factId)}`,
+    {
+      method: "DELETE",
+    },
+  );
+  return readMemoryResponse(response, "deleteMemoryFact");
 }

@@ -139,6 +139,23 @@ class TestConfigQueries:
             mock_mem.assert_called_once()
         assert result == memory
 
+    def test_clear_memory(self, client):
+        memory = {"version": "1.0", "facts": []}
+        with patch("nion.agents.memory.updater.clear_memory_data", return_value=memory) as mock_mem:
+            result = client.clear_memory()
+            mock_mem.assert_called_once()
+        assert result == memory
+
+    def test_delete_memory_fact(self, client):
+        memory = {"version": "1.0", "facts": [{"id": "fact_keep"}]}
+        with patch(
+            "nion.agents.memory.updater.delete_memory_fact",
+            return_value=memory,
+        ) as mock_mem:
+            result = client.delete_memory_fact("fact_delete")
+            mock_mem.assert_called_once_with("fact_delete")
+        assert result == memory
+
 
 # ---------------------------------------------------------------------------
 # stream / chat
