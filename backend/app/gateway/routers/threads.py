@@ -177,10 +177,10 @@ async def _resolve_permission_request(
     payload: BridgePermissionResolveRequest,
     *,
     expect_bridge_thread: bool,
-) -> dict[str, Any]:
+) -> tuple[dict[str, Any], bool]:
     decision = payload.decision
     if decision not in {"allow", "allow_session", "deny"}:
-        return {"ok": False, "message": "Invalid permission decision"}
+        return {"ok": False, "message": "Invalid permission decision"}, False
 
     repository = ThreadRepository()
     thread_record = repository.get_thread(thread_id)
@@ -189,15 +189,21 @@ async def _resolve_permission_request(
         isinstance(bridge_info, dict) and bridge_info.get("source") == "bridge"
     )
     if expect_bridge_thread and not is_bridge_thread:
-        return {
-            "ok": False,
-            "message": "Workspace permission requests must use the workspace resolve route",
-        }
+        return (
+            {
+                "ok": False,
+                "message": "Workspace permission requests must use the workspace resolve route",
+            },
+            True,
+        )
     if not expect_bridge_thread and is_bridge_thread:
-        return {
-            "ok": False,
-            "message": "Bridge permission requests must use the bridge resolve route",
-        }
+        return (
+            {
+                "ok": False,
+                "message": "Bridge permission requests must use the bridge resolve route",
+            },
+            True,
+        )
 
     record = resolve_thread_permission_request(
         thread_id=thread_id,
@@ -205,7 +211,7 @@ async def _resolve_permission_request(
         decision=decision,
     )
     if record is None:
-        return {"ok": False, "message": "Permission request not found"}
+        return {"ok": False, "message": "Permission request not found"}, False
 
     latest = get_thread_permission_request(
         thread_id=thread_id,
@@ -253,18 +259,21 @@ async def _resolve_permission_request(
         if decision in {"allow", "allow_session"}
         else False
     )
-    return {
-        "ok": True,
-        "decision": decision,
-        "consumed": consumed,
-        "original_message_text": latest.original_message_text if latest else "",
-        "replay_payload": latest.replay_payload if latest else {
-            "text": "",
-            "files": [],
-            "additional_kwargs": {},
+    return (
+        {
+            "ok": True,
+            "decision": decision,
+            "consumed": consumed,
+            "original_message_text": latest.original_message_text if latest else "",
+            "replay_payload": latest.replay_payload if latest else {
+                "text": "",
+                "files": [],
+                "additional_kwargs": {},
+            },
+            "tool_name": latest.tool_name if latest else "",
         },
-        "tool_name": latest.tool_name if latest else "",
-    }
+        False,
+    )
 
 
 @router.post("/{thread_id}/permissions/{permission_request_id}/resolve")
@@ -273,13 +282,13 @@ async def resolve_thread_permission(
     permission_request_id: str,
     payload: BridgePermissionResolveRequest,
 ) -> dict[str, Any]:
-    response = await _resolve_permission_request(
+    response, is_authz_failure = await _resolve_permission_request(
         thread_id=thread_id,
         permission_request_id=permission_request_id,
         payload=payload,
         expect_bridge_thread=False,
     )
-    if response.get("ok") is False:
+    if response.get("ok") is False and is_authz_failure:
         raise HTTPException(status_code=403, detail=response["message"])
     return response
 
@@ -290,12 +299,12 @@ async def resolve_bridge_permission(
     permission_request_id: str,
     payload: BridgePermissionResolveRequest,
 ) -> dict[str, Any]:
-    response = await _resolve_permission_request(
+    response, is_authz_failure = await _resolve_permission_request(
         thread_id=thread_id,
         permission_request_id=permission_request_id,
         payload=payload,
         expect_bridge_thread=True,
     )
-    if response.get("ok") is False:
+    if response.get("ok") is False and is_authz_failure:
         raise HTTPException(status_code=403, detail=response["message"])
     return response

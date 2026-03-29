@@ -158,3 +158,27 @@ def test_bridge_permission_resolve_rejects_non_bridge_thread(tmp_path, monkeypat
     assert response.json() == {
         "detail": "Workspace permission requests must use the workspace resolve route",
     }
+
+
+def test_workspace_permission_resolve_missing_request_stays_non_authz_error(
+    tmp_path,
+    monkeypatch,
+):
+    monkeypatch.setenv("NION_HOME", str(tmp_path / "nion-home"))
+    repository = ThreadRepository(base_dir=tmp_path / "nion-home")
+    repository.upsert_thread(
+        "thread-missing",
+        values={"messages": [], "artifacts": []},
+    )
+
+    with TestClient(create_app()) as client:
+        response = client.post(
+            "/api/threads/thread-missing/permissions/perm-missing/resolve",
+            json={"decision": "allow"},
+        )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "ok": False,
+        "message": "Permission request not found",
+    }
