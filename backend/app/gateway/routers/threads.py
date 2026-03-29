@@ -169,8 +169,7 @@ async def stream_thread(
     return StreamingResponse(event_stream(), media_type="text/event-stream")
 
 
-@router.post("/{thread_id}/bridge/permissions/{permission_request_id}/resolve")
-async def resolve_bridge_permission(
+async def _resolve_permission_request(
     thread_id: str,
     permission_request_id: str,
     payload: BridgePermissionResolveRequest,
@@ -197,3 +196,29 @@ async def resolve_bridge_permission(
         "original_message_text": latest.original_message_text if latest else "",
         "tool_name": latest.tool_name if latest else "",
     }
+
+
+@router.post("/{thread_id}/permissions/{permission_request_id}/resolve")
+async def resolve_thread_permission(
+    thread_id: str,
+    permission_request_id: str,
+    payload: BridgePermissionResolveRequest,
+) -> dict[str, Any]:
+    return await _resolve_permission_request(
+        thread_id=thread_id,
+        permission_request_id=permission_request_id,
+        payload=payload,
+    )
+
+
+@router.post("/{thread_id}/bridge/permissions/{permission_request_id}/resolve")
+async def resolve_bridge_permission(
+    thread_id: str,
+    permission_request_id: str,
+    payload: BridgePermissionResolveRequest,
+) -> dict[str, Any]:
+    return await _resolve_permission_request(
+        thread_id=thread_id,
+        permission_request_id=permission_request_id,
+        payload=payload,
+    )

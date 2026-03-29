@@ -358,7 +358,7 @@ export function createDesktopThreadClient(
     ) {
       const baseUrl = await resolveThreadsBaseURL(false, options?.getBaseURL);
       return requestJSON<Record<string, unknown>>(
-        `${baseUrl}/${threadId}/bridge/permissions/${permissionRequestId}/resolve`,
+        `${baseUrl}/${threadId}/permissions/${permissionRequestId}/resolve`,
         {
           method: "POST",
           body: JSON.stringify({ decision }),

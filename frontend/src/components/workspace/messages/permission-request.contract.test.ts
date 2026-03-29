@@ -24,4 +24,5 @@ void test("chat thread page derives and wires pending permission request state",
   assert.match(source, /onPermissionDecision=\{handlePermissionDecision\}/);
   assert.match(source, /resolution\.original_message_text/);
   assert.match(source, /text: resolution\.original_message_text/);
+  assert.match(source, /resolvePermission\(/);
 });
