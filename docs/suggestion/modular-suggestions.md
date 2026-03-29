@@ -137,14 +137,14 @@
 
 ### 当前主要问题
 1. skill toggle 前端失败处理已经修正，但仍需补更完整的行为测试覆盖。
-2. skill identity 已新增最小铺垫字段 `id`，但后端内部仍主要按 `name` 查找，重名歧义未彻底消除。
+2. skill identity 已切到稳定 `id`（`category + relative path`）作为前端交互主键，后端读/改/删也已兼容 `id`、legacy id 与旧 `name`；当前剩余的是长期兼容层是否继续保留，而不是重名歧义未解。
 3. skill parser 与 validation 的 frontmatter 解析语义已统一为 YAML 解析；validation 仍保留更严格约束。
 4. skills router / mcp router 在无 config 时已统一走 `ExtensionsConfig.initialize_config_path()`。
 5. desktop compatibility 的测试资产存在，但仍需结合统一契约加强行为级测试，而不只是接口存在性。
 
 ### 建议事项
 - 保持 skill enable/disable 的前端 mutation 以 `response.ok` 或明确错误响应为准，失败时要有稳定的错误反馈。
-- 继续把 skill 的唯一标识从单纯 `name` 升级为更稳定的键；本轮已新增 `id` 铺垫，后续需要让内部查找逻辑也摆脱 `name` 唯一化假设。
+- 保持 skill 的稳定 `id` 作为前后端主交互键，并在兼容期内继续支持旧 `name` / legacy id 读取，避免迁移期行为漂移。
 - 保持同一套 YAML 解析逻辑贯通 skill validate / install / load，避免“装得进、读不全”。
 - skills router 创建/写入配置文件时统一走 `ExtensionsConfig.initialize_config_path()`，避免重引入 cwd 敏感 fallback。
 - 对 desktop-client 与 web client 的共享线程接口建立更强的行为对齐测试。
@@ -153,7 +153,6 @@
 - **已完成 / P0 已落地**：修 skill toggle 错误处理。
 - **已完成 / P1 已落地**：统一 parser/validation 行为。
 - **已完成 / P1 已落地**：统一 skills config 路径解析。
-- **剩余 P1**：统一 skill identity 的内部查找与写入逻辑。
 - **剩余 P1**：加强 desktop/web 行为契约测试。
 
 ### 推荐补充验证
@@ -169,7 +168,7 @@
 ### 第一优先级（建议立刻处理）
 1. resolve 接口补 authz。
 2. 统一 permission approval 语义（特别是 `allow_session`）并补文档。
-3. 统一 skill identity 的内部查找与写入逻辑。
+3. 将 `replay_payload`、`allow_session` 与 skills `id` 兼容策略正式写入接口/产品文档。
 
 ### 第二优先级（建议尽快处理）
 1. 收窄 `allow_session` 权限范围，或明确文案就是线程级授权。
