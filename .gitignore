@@ -41,6 +41,8 @@ skills/custom/*
 docs/*
 !docs/test/
 !docs/test/**
+!docs/project/
+!docs/project/**
 logs/
 log/
 
