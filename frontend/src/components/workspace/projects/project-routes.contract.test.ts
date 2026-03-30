@@ -20,8 +20,14 @@ void test("project thread page reuses the shared chat thread page", async () => 
     "utf8",
   );
 
+  assert.match(source, /PromptInputProvider/);
+  assert.match(source, /ArtifactsProvider/);
+  assert.match(source, /SubtasksProvider/);
   assert.match(source, /import ChatThreadPage from "@\/app\/workspace\/chats\/chat-thread-page"/);
-  assert.match(source, /return <ChatThreadPage \/>/);
+  assert.match(source, /<SubtasksProvider>/);
+  assert.match(source, /<ArtifactsProvider>/);
+  assert.match(source, /<PromptInputProvider>/);
+  assert.match(source, /<ChatThreadPage \/>/);
 });
 
 void test("input box wires @project-thread mentions through project thread import hooks", async () => {
