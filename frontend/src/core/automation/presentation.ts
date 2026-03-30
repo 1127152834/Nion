@@ -36,6 +36,8 @@ export function formatScheduleLabel(
   },
 ) {
   const timeOfDay = readString(job.schedule_metadata.time_of_day);
+  const runAt = readString(job.schedule_metadata.run_at) ?? readString(job.schedule_value);
+  const weekdays = readNumberArray(job.schedule_metadata.weekdays);
   const eventName = readKnownString(job.trigger_spec, "event_name");
 
   if (job.schedule_preset === "event" && eventName) {
@@ -49,10 +51,13 @@ export function formatScheduleLabel(
     return `${copy.weekdaysPrefix} ${timeOfDay}`;
   }
   if (job.schedule_preset === "weekly" && timeOfDay) {
-    return `${copy.weeklyPrefix} ${timeOfDay}`;
+    const weekdayText = weekdays ? formatWeekdayList(weekdays) : null;
+    return weekdayText
+      ? `${copy.weeklyPrefix} ${weekdayText} ${timeOfDay}`
+      : `${copy.weeklyPrefix} ${timeOfDay}`;
   }
-  if (job.schedule_preset === "once") {
-    return `${copy.oncePrefix} ${job.schedule_value}`;
+  if (job.schedule_preset === "once" && runAt) {
+    return `${copy.oncePrefix} ${formatDateTime(runAt)}`;
   }
   if (job.schedule_preset === "interval") {
     const everyMinutes = Number.parseInt(job.schedule_value, 10) / 60;
@@ -114,3 +119,37 @@ function readString(value: unknown) {
 function readKnownString(record: Record<string, unknown>, key: string) {
   return readString(record[key]);
 }
+
+function readNumberArray(value: unknown) {
+  if (!Array.isArray(value)) {
+    return null;
+  }
+  const numbers = value.filter(
+    (item): item is number => Number.isInteger(item) && item >= 0 && item <= 6,
+  );
+  return numbers.length > 0 ? numbers : null;
+}
+
+function formatWeekdayList(weekdays: number[]) {
+  const labels = weekdays
+    .map((weekday) => WEEKDAY_LABELS[weekday])
+    .filter(Boolean);
+  return labels.join(", ");
+}
+
+function formatDateTime(value: string) {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+  return parsed.toLocaleString("zh-CN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+}
+
+const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];

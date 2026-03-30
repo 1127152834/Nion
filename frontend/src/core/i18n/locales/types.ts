@@ -1017,6 +1017,7 @@ export interface Translations {
         nextRunLabel: string;
         lastResultLabel: string;
         actionLabel: string;
+        summaryLabel: string;
         viewDetails: string;
         notScheduled: string;
         noSummary: string;

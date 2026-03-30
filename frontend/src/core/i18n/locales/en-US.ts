@@ -1308,6 +1308,7 @@ export const enUS: Translations = {
         nextRunLabel: "Next run",
         lastResultLabel: "Last result",
         actionLabel: "Action",
+        summaryLabel: "Summary",
         viewDetails: "View details",
         notScheduled: "Not scheduled",
         noSummary: "No summary yet.",

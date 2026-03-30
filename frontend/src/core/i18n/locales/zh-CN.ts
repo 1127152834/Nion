@@ -1254,6 +1254,7 @@ export const zhCN: Translations = {
         nextRunLabel: "下次运行",
         lastResultLabel: "最近结果",
         actionLabel: "动作",
+        summaryLabel: "摘要",
         viewDetails: "查看详情",
         notScheduled: "未安排",
         noSummary: "暂无摘要。",

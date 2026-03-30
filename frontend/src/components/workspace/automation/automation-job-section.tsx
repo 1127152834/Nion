@@ -77,11 +77,12 @@ export function AutomationJobSection({
                       <Badge variant="secondary">
                         {copy.stateLabels[job.state] ?? job.state}
                       </Badge>
-                      <Badge variant="outline">
-                        {formatScheduleLabel(job, scheduleLabelCopy)}
-                      </Badge>
                     </ItemTitle>
-                    <ItemDescription>{job.prompt}</ItemDescription>
+                    <ItemDescription>
+                      {job.next_run_at
+                        ? `${workspaceCopy.nextRunLabel}: ${job.next_run_at}`
+                        : `${workspaceCopy.nextRunLabel}: ${workspaceCopy.notScheduled}`}
+                    </ItemDescription>
                   </div>
                   <ItemActions className="flex-wrap justify-end">
                     {job.state === "paused" ? (
@@ -137,9 +138,9 @@ export function AutomationJobSection({
                   </div>
                   <div>
                     <div className="font-medium text-foreground/80">
-                      {workspaceCopy.nextRunLabel}
+                      {workspaceCopy.summaryLabel}
                     </div>
-                    <div>{job.next_run_at ?? workspaceCopy.notScheduled}</div>
+                    <div>{job.prompt}</div>
                   </div>
                   <div>
                     <div className="font-medium text-foreground/80">
