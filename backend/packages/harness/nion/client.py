@@ -42,6 +42,7 @@ from nion.config.agents_config import AGENT_NAME_PATTERN
 from nion.config.app_config import get_app_config
 from nion.config.extensions_config import ExtensionsConfig, SkillStateConfig, get_extensions_config, reload_extensions_config
 from nion.config.paths import get_paths
+from nion.memory_os.service import MemoryOSService
 from nion.model_management.service import get_model_registry_service
 from nion.models import create_chat_model
 from nion.telemetry.logger import make_event
@@ -744,23 +745,15 @@ class NionClient:
         Returns:
             Memory data dict (see src/agents/memory/updater.py for structure).
         """
-        from nion.agents.memory.updater import get_memory_data
-
-        return get_memory_data()
+        return MemoryOSService().get_memory_payload()
 
     def clear_memory(self) -> dict:
         """Clear all persisted memory data."""
-
-        from nion.agents.memory.updater import clear_memory_data
-
-        return clear_memory_data()
+        return MemoryOSService().clear_memory_payload()
 
     def delete_memory_fact(self, fact_id: str) -> dict:
         """Delete a single fact from memory by fact id."""
-
-        from nion.agents.memory.updater import delete_memory_fact
-
-        return delete_memory_fact(fact_id)
+        return MemoryOSService().delete_memory_fact(fact_id)
 
     def get_model(self, name: str) -> dict | None:
         """Get a specific runtime model configuration by name.
@@ -983,9 +976,7 @@ class NionClient:
         Returns:
             The reloaded memory data dict.
         """
-        from nion.agents.memory.updater import reload_memory_data
-
-        return reload_memory_data()
+        return MemoryOSService().reload_memory_payload()
 
     def get_memory_config(self) -> dict:
         """Get memory system configuration.

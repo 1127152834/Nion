@@ -172,6 +172,12 @@
   - OpenViking 模式文案显示 `embedded / remote`
   - 不得破坏现有 legacy memory、OpenViking、AutoDream 卡片
 
+### Memory OS Runtime Migration 增量覆盖
+
+- `/api/memory` 仍然存在，但应验证它已经是 Memory OS compatibility bridge
+- prompt 注入和 memory middleware 的运行时路径应通过 provider 间接生效
+- 前端 `core/memory/*` 兼容调用不应因 runtime migration 被打断
+
 ## 10. 风险与优先级
 - P0 必测项：config read/update/runtime-status、409/422。
 - P1 高价值项：sandbox/daemon/tool/session-policy 分区。

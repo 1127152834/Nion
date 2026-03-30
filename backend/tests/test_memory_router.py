@@ -41,7 +41,13 @@ def test_clear_memory_route_returns_cleared_memory() -> None:
     app = FastAPI()
     app.include_router(memory.router)
 
-    with patch("app.gateway.routers.memory.clear_memory_data", return_value=_sample_memory()):
+    fake_service = type(
+        "FakeService",
+        (),
+        {"clear_memory_payload": lambda self: _sample_memory()},
+    )()
+
+    with patch("app.gateway.routers.memory.MemoryOSService", return_value=fake_service):
         with TestClient(app) as client:
             response = client.delete("/api/memory")
 
@@ -65,7 +71,13 @@ def test_delete_memory_fact_route_returns_updated_memory() -> None:
         ]
     )
 
-    with patch("app.gateway.routers.memory.delete_memory_fact", return_value=updated_memory):
+    fake_service = type(
+        "FakeService",
+        (),
+        {"delete_memory_fact": lambda self, fact_id: updated_memory},
+    )()
+
+    with patch("app.gateway.routers.memory.MemoryOSService", return_value=fake_service):
         with TestClient(app) as client:
             response = client.delete("/api/memory/facts/fact_delete")
 
@@ -77,7 +89,11 @@ def test_delete_memory_fact_route_returns_404_for_missing_fact() -> None:
     app = FastAPI()
     app.include_router(memory.router)
 
-    with patch("app.gateway.routers.memory.delete_memory_fact", side_effect=KeyError("fact_missing")):
+    class FakeService:
+        def delete_memory_fact(self, fact_id: str):
+            raise KeyError("fact_missing")
+
+    with patch("app.gateway.routers.memory.MemoryOSService", return_value=FakeService()):
         with TestClient(app) as client:
             response = client.delete("/api/memory/facts/fact_missing")
 

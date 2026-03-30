@@ -134,26 +134,38 @@ class TestConfigQueries:
 
     def test_get_memory(self, client):
         memory = {"version": "1.0", "facts": []}
-        with patch("nion.agents.memory.updater.get_memory_data", return_value=memory) as mock_mem:
+        fake_service = type(
+            "FakeService",
+            (),
+            {"get_memory_payload": lambda self, agent_name=None, base_dir=None: memory},
+        )()
+        with patch("nion.client.MemoryOSService", return_value=fake_service) as mock_service:
             result = client.get_memory()
-            mock_mem.assert_called_once()
+            mock_service.assert_called_once()
         assert result == memory
 
     def test_clear_memory(self, client):
         memory = {"version": "1.0", "facts": []}
-        with patch("nion.agents.memory.updater.clear_memory_data", return_value=memory) as mock_mem:
+        fake_service = type(
+            "FakeService",
+            (),
+            {"clear_memory_payload": lambda self, agent_name=None, base_dir=None: memory},
+        )()
+        with patch("nion.client.MemoryOSService", return_value=fake_service) as mock_service:
             result = client.clear_memory()
-            mock_mem.assert_called_once()
+            mock_service.assert_called_once()
         assert result == memory
 
     def test_delete_memory_fact(self, client):
         memory = {"version": "1.0", "facts": [{"id": "fact_keep"}]}
-        with patch(
-            "nion.agents.memory.updater.delete_memory_fact",
-            return_value=memory,
-        ) as mock_mem:
+        fake_service = type(
+            "FakeService",
+            (),
+            {"delete_memory_fact": lambda self, fact_id, agent_name=None, base_dir=None: memory},
+        )()
+        with patch("nion.client.MemoryOSService", return_value=fake_service) as mock_service:
             result = client.delete_memory_fact("fact_delete")
-            mock_mem.assert_called_once_with("fact_delete")
+            mock_service.assert_called_once()
         assert result == memory
 
 
@@ -799,7 +811,12 @@ class TestSkillsManagement:
 class TestMemoryManagement:
     def test_reload_memory(self, client):
         data = {"version": "1.0", "facts": []}
-        with patch("nion.agents.memory.updater.reload_memory_data", return_value=data):
+        fake_service = type(
+            "FakeService",
+            (),
+            {"reload_memory_payload": lambda self, agent_name=None, base_dir=None: data},
+        )()
+        with patch("nion.client.MemoryOSService", return_value=fake_service):
             result = client.reload_memory()
         assert result == data
 
@@ -833,7 +850,14 @@ class TestMemoryManagement:
 
         with (
             patch("nion.config.memory_config.get_memory_config", return_value=config),
-            patch("nion.agents.memory.updater.get_memory_data", return_value=data),
+            patch(
+                "nion.client.MemoryOSService",
+                return_value=type(
+                    "FakeService",
+                    (),
+                    {"get_memory_payload": lambda self, agent_name=None, base_dir=None: data},
+                )(),
+            ),
         ):
             result = client.get_memory_status()
 
@@ -1511,17 +1535,38 @@ class TestScenarioMemoryWorkflow:
         config.injection_enabled = True
         config.max_injection_tokens = 2000
 
-        with patch("nion.agents.memory.updater.get_memory_data", return_value=initial_data):
+        with patch(
+            "nion.client.MemoryOSService",
+            return_value=type(
+                "FakeService",
+                (),
+                {"get_memory_payload": lambda self, agent_name=None, base_dir=None: initial_data},
+            )(),
+        ):
             mem = client.get_memory()
         assert len(mem["facts"]) == 1
 
-        with patch("nion.agents.memory.updater.reload_memory_data", return_value=updated_data):
+        with patch(
+            "nion.client.MemoryOSService",
+            return_value=type(
+                "FakeService",
+                (),
+                {"reload_memory_payload": lambda self, agent_name=None, base_dir=None: updated_data},
+            )(),
+        ):
             refreshed = client.reload_memory()
         assert len(refreshed["facts"]) == 2
 
         with (
             patch("nion.config.memory_config.get_memory_config", return_value=config),
-            patch("nion.agents.memory.updater.get_memory_data", return_value=updated_data),
+            patch(
+                "nion.client.MemoryOSService",
+                return_value=type(
+                    "FakeService",
+                    (),
+                    {"get_memory_payload": lambda self, agent_name=None, base_dir=None: updated_data},
+                )(),
+            ),
         ):
             status = client.get_memory_status()
         assert status["config"]["enabled"] is True

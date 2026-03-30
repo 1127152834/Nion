@@ -3,13 +3,8 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from nion.agents.memory.updater import (
-    clear_memory_data,
-    delete_memory_fact,
-    get_memory_data,
-    reload_memory_data,
-)
 from nion.config.memory_config import get_memory_config
+from nion.memory_os.service import MemoryOSService
 
 router = APIRouter(prefix="/api", tags=["memory"])
 
@@ -117,7 +112,7 @@ async def get_memory() -> MemoryResponse:
         }
         ```
     """
-    memory_data = get_memory_data()
+    memory_data = MemoryOSService().get_memory_payload()
     return MemoryResponse(**memory_data)
 
 
@@ -136,7 +131,7 @@ async def reload_memory() -> MemoryResponse:
     Returns:
         The reloaded memory data.
     """
-    memory_data = reload_memory_data()
+    memory_data = MemoryOSService().reload_memory_payload()
     return MemoryResponse(**memory_data)
 
 
@@ -150,7 +145,7 @@ async def clear_memory() -> MemoryResponse:
     """Clear all persisted memory data."""
 
     try:
-        memory_data = clear_memory_data()
+        memory_data = MemoryOSService().clear_memory_payload()
     except OSError as exc:
         raise HTTPException(status_code=500, detail="Failed to clear memory data.") from exc
 
@@ -167,7 +162,7 @@ async def delete_memory_fact_endpoint(fact_id: str) -> MemoryResponse:
     """Delete a single fact from memory by fact id."""
 
     try:
-        memory_data = delete_memory_fact(fact_id)
+        memory_data = MemoryOSService().delete_memory_fact(fact_id)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=f"Memory fact '{fact_id}' not found.") from exc
     except OSError as exc:
@@ -226,7 +221,7 @@ async def get_memory_status() -> MemoryStatusResponse:
         Combined memory configuration and current data.
     """
     config = get_memory_config()
-    memory_data = get_memory_data()
+    memory_data = MemoryOSService().get_memory_payload()
 
     return MemoryStatusResponse(
         config=MemoryConfigResponse(

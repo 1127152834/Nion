@@ -282,6 +282,15 @@ Memory OS M0 provider-foundation rules:
 - do not migrate runtime memory reads/writes off the legacy memory path in this milestone
 - do not remove `/api/memory` in this milestone
 
+Memory OS M1 runtime-migration rules:
+
+- `/api/memory` remains public, but must be treated as a compatibility bridge over Memory OS
+- prompt memory injection must resolve through Memory OS rather than direct legacy helper calls
+- `MemoryMiddleware` must hand post-chat capture to the active provider rather than talking to queue/updater directly
+- embedded client memory methods must resolve through Memory OS
+- the built-in provider may still internally reuse legacy storage/update code in this milestone
+- do not claim `memory.json` is removed from disk yet; the rule is that it leaves the runtime hot path
+
 Program 03B extends that contract to delegated execution:
 
 - use `run_id` as the delegated task correlation key

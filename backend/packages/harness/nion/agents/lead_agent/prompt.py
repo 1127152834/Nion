@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from nion.config.agents_config import load_agent_soul
+from nion.memory_os.service import MemoryOSService
 from nion.skills import load_skills
 
 
@@ -348,14 +349,14 @@ def _get_memory_context(agent_name: str | None = None) -> str:
         Formatted memory context string wrapped in XML tags, or empty string if disabled.
     """
     try:
-        from nion.agents.memory import format_memory_for_injection, get_memory_data
+        from nion.agents.memory import format_memory_for_injection
         from nion.config.memory_config import get_memory_config
 
         config = get_memory_config()
         if not config.enabled or not config.injection_enabled:
             return ""
 
-        memory_data = get_memory_data(agent_name)
+        memory_data = MemoryOSService().get_memory_payload(agent_name=agent_name)
         memory_content = format_memory_for_injection(memory_data, max_tokens=config.max_injection_tokens)
 
         if not memory_content.strip():

@@ -72,7 +72,13 @@ class MemoryOSService:
         provider = self.resolve_active_memory_provider(base_dir=base_dir)
         return provider.clear_memory()  # type: ignore[no-any-return]
 
-    def delete_memory_fact(self, fact_id: str, *, agent_name=None, base_dir=None) -> dict:
+    def delete_memory_fact(
+        self,
+        fact_id: str,
+        *,
+        agent_name=None,
+        base_dir=None,
+    ) -> dict:
         provider = self.resolve_active_memory_provider(base_dir=base_dir)
         return provider.delete_fact(fact_id)  # type: ignore[no-any-return]
 

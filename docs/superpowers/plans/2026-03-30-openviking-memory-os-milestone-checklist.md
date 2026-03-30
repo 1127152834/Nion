@@ -5,7 +5,7 @@
 ## Program Status
 
 - Overall status: `in_progress`
-- Current focus milestone: `M0`
+- Current focus milestone: `M1`
 - Design source:
   - [2026-03-30-openviking-memory-os-design.md](/Users/zhangtiancheng/Documents/项目/agent/nion/docs/superpowers/specs/2026-03-30-openviking-memory-os-design.md)
 - Roadmap source:
@@ -143,9 +143,9 @@
   - prompt memory injection now routes through Memory OS
   - `MemoryMiddleware` now routes through Memory OS
   - embedded client memory methods now route through Memory OS
+  - legacy import path formalized through `import_legacy_memory_file()` in Memory OS service
 - Current M1 verification evidence:
   - targeted backend memory/runtime bridge tests: `29 passed`
   - frontend compatibility tests: `10 passed`
   - backend lint: passed
-- Legacy import path formalized through `import_legacy_memory_file()` in Memory OS service.
 - M1 milestone gates are now complete in the worktree and ready for merge back to `electron`.

@@ -61,6 +61,14 @@ Program 04 begins the Memory OS transition:
 - this milestone only introduces provider metadata and active binding state
 - runtime hot paths still use the legacy memory path in this milestone
 
+Program 04B starts the runtime migration off `memory.json`:
+
+- `/api/memory` remains available, but now acts as a compatibility bridge over Memory OS
+- prompt memory injection now resolves through Memory OS
+- `MemoryMiddleware` now routes post-chat capture through the active provider
+- the embedded Python client now routes memory reads/writes through Memory OS
+- the active runtime provider for this milestone is still Built-in
+
 ---
 
 ## Architecture
@@ -203,6 +211,12 @@ FastAPI application providing REST endpoints for frontend integration:
 ### Bridge Transition
 
 The legacy IM channel runtime has been removed from this branch. A new desktop-first Bridge subsystem is replacing it, with current work focused on desktop-backed bridge state, adapter lifecycles, settings, and external messaging integration.
+
+Memory compatibility note:
+
+- the legacy `memory.json` shape is still the built-in provider's compatibility payload in this milestone
+- runtime code should not call the legacy updater/storage helpers directly anymore
+- direct `memory.json` semantics are now considered internal implementation detail of the built-in provider bridge
 
 ---
 
