@@ -40,7 +40,7 @@
 - 本地 daemon 必须与 renderer 需要的 gateway 路由保持同步，包括 `/api/model-admin/*` 与 `/api/threads/{thread_id}/runtime-profile`
 - `electron-builder` 默认发布到 GitHub Releases；只有设置 `NION_UPDATE_BASE_URL` 时才会额外写入 generic/CDN 更新源
 - `make build-desktop` 只做桌面编译；`make desktop-dev` 会在编译后直接拉起 Electron
-- `make desktop-dev` 现在会先检查 `127.0.0.1:5173`；如果已有旧的 Vite renderer 占用端口会直接失败，避免 Electron 误连到上一轮开发会话的旧前端
+- `make desktop-dev` 现在会在启动前自动强制停止占用 `127.0.0.1:5173` 的旧 Vite renderer，避免 Electron 误连到上一轮开发会话的旧前端
 - `make desktop-start` 会直接启动已编译好的桌面端，不再重复编译
 - `nion daemon status` 与 `nion daemon stop` 提供本地 daemon 管理入口
 

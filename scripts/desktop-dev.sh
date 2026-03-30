@@ -5,9 +5,11 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 
-if lsof -tiTCP:5173 -sTCP:LISTEN >/dev/null 2>&1; then
-  echo "desktop-dev: port 5173 is already in use. Stop the existing Vite renderer before starting a new desktop dev session." >&2
-  exit 1
+EXISTING_RENDERER_PIDS="$(lsof -tiTCP:5173 -sTCP:LISTEN 2>/dev/null || true)"
+if [ -n "$EXISTING_RENDERER_PIDS" ]; then
+  echo "desktop-dev: Stopping existing Vite renderer on port 5173..." >&2
+  echo "$EXISTING_RENDERER_PIDS" | xargs kill -9 2>/dev/null || true
+  sleep 1
 fi
 
 cleanup() {
