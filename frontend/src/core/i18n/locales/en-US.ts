@@ -496,7 +496,7 @@ export const enUS: Translations = {
     recentTitle: "Recent notes",
     preview: "Preview",
     edit: "Edit",
-    askTab: "Ask",
+    askTab: "Notebook Assistant",
     historyTab: "History",
     infoTab: "Info",
     infoNoteId: "Note ID",

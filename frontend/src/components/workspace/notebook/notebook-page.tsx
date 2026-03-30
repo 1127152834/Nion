@@ -634,13 +634,6 @@ export function NotebookPage() {
               collapsed={rightRailCollapsed}
               copy={{
                 askTab: copy.askTab,
-                assistActionItems: copy.assistActionItems,
-                assistChecklist: copy.assistChecklist,
-                assistDescription: copy.assistDescription,
-                assistExpand: copy.assistExpand,
-                assistRewrite: copy.assistRewrite,
-                assistSummarize: copy.assistSummarize,
-                assistTitle: copy.assistTitle,
                 historyTab: copy.historyTab,
                 historyTitle: copy.historyTitle,
                 infoContentHash: copy.infoContentHash,
@@ -653,17 +646,13 @@ export function NotebookPage() {
                 restore: copy.restore,
                 selectNote: copy.selectNote,
               }}
-              currentContentHash={draftHash}
-              currentBody={draftBody}
               entries={entries}
               note={note}
               notePath={selectedFile?.path ?? null}
-              selection={editorSelection}
               noteTitle={draftTitle}
               notebookAssistantSessionId={notebookAssistantSessionId}
               onActiveTabChange={setContextTab}
               onApplyNote={syncNotebookDraft}
-              onStartConversation={handleAssist}
               onStartNewConversation={startNotebookAssistantConversation}
               onToggleCollapse={() => setRightRailCollapsed((value) => !value)}
             />

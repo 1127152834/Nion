@@ -4,20 +4,12 @@ import { ChevronLeftIcon, ChevronRightIcon, History, Info, Minus, Sparkles, Tag,
 import { useMemo, useState } from "react";
 
 import { Input } from "@/components/ui/input";
-import type {
-  NotebookAssistAction,
-  NotebookHistoryEntry,
-  NotebookMetadataInput,
-  NotebookNote,
-  NotebookSelection,
-} from "@/core/notebook";
+import type { NotebookHistoryEntry, NotebookMetadataInput, NotebookNote } from "@/core/notebook";
 import { useNotebookHistoryDetail, useUpdateNotebookMetadata } from "@/core/notebook";
 import { formatTimeAgo } from "@/core/utils/datetime";
 
 import { NotebookAssistantPanel } from "./notebook-assistant-panel";
 import { summarizeNotebookHistoryEntry } from "./notebook-history-summary";
-
-const aiPreviewLegacyMarker = "ask-tab replaced by notebook assistant";
 
 type NotebookContextTab = "ask" | "history" | "info";
 
@@ -47,21 +39,13 @@ type NotebookContextPanelProps = {
   activeTab: NotebookContextTab;
   collapsed: boolean;
   copy: NotebookContextPanelCopy;
-  currentBody: string;
-  currentContentHash: string;
   entries: NotebookHistoryEntry[];
   note: NotebookNote | null;
   notePath: string | null;
-  selection: NotebookSelection | null;
   noteTitle: string;
   notebookAssistantSessionId: string | null;
   onActiveTabChange: (tab: NotebookContextTab) => void;
   onApplyNote: (note: NotebookNote) => void;
-  onStartConversation: (input: {
-    action: NotebookAssistAction;
-    mode?: "note" | "selection" | "preview";
-    previewContent?: string;
-  }) => void;
   onStartNewConversation: () => void;
   onToggleCollapse: () => void;
 };
@@ -70,17 +54,13 @@ export function NotebookContextPanel({
   activeTab,
   collapsed,
   copy,
-  currentBody,
-  currentContentHash,
   entries,
   note,
   notePath,
-  selection,
   noteTitle,
   notebookAssistantSessionId,
   onActiveTabChange,
   onApplyNote,
-  onStartConversation,
   onStartNewConversation,
   onToggleCollapse,
 }: NotebookContextPanelProps) {

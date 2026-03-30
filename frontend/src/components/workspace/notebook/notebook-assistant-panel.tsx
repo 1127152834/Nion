@@ -31,6 +31,7 @@ export function NotebookAssistantPanel({
 }: NotebookAssistantPanelProps) {
   const createOrResumeSession = useCreateOrResumeNotebookAssistantSession();
   const [threadId, setThreadId] = useState<string | null>(null);
+  const [sessionError, setSessionError] = useState<string | null>(null);
   const [thread, sendMessage] = useThreadStream({
     threadId,
     context: {
@@ -44,18 +45,33 @@ export function NotebookAssistantPanel({
   });
 
   useEffect(() => {
+    let cancelled = false;
+    setSessionError(null);
+    setThreadId(null);
+
     if (!noteId || !sessionId) {
-      setThreadId(null);
       return;
     }
+
     void createOrResumeSession
       .mutateAsync({
         noteId,
         sessionId,
       })
       .then((session) => {
-        setThreadId(session.thread_id);
+        if (!cancelled) {
+          setThreadId(session.thread_id);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setSessionError(error instanceof Error ? error.message : "连接笔记助手失败");
+        }
       });
+
+    return () => {
+      cancelled = true;
+    };
   }, [createOrResumeSession, noteId, sessionId]);
 
   const pendingClarification = useMemo(
@@ -109,7 +125,11 @@ export function NotebookAssistantPanel({
       </section>
 
       <section className="min-h-0 flex-1 overflow-hidden rounded-[1.25rem] border border-[var(--notebook-border)] bg-[var(--notebook-panel)]">
-        {!thread.threadId ? (
+        {sessionError ? (
+          <div className="flex h-full items-center justify-center px-6 text-center text-sm text-[var(--notebook-soft-text)]">
+            {sessionError}
+          </div>
+        ) : !thread.threadId ? (
           <div className="flex h-full items-center justify-center px-6 text-center text-sm text-[var(--notebook-soft-text)]">
             正在连接笔记助手会话…
           </div>

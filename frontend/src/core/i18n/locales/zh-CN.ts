@@ -474,7 +474,7 @@ export const zhCN: Translations = {
     recentTitle: "最近使用",
     preview: "预览",
     edit: "编辑",
-    askTab: "协作",
+    askTab: "笔记助手",
     historyTab: "历史",
     infoTab: "信息",
     infoNoteId: "笔记 ID",
