@@ -16,6 +16,9 @@ void test("NotebookContextPanel matches the reference collaboration rail structu
   assert.doesNotMatch(source, /编辑<\/button>/);
   assert.match(source, /NotebookAssistantPanel/);
   assert.doesNotMatch(source, /aiPreview/);
+  assert.doesNotMatch(source, /pendingRewrite/);
+  assert.doesNotMatch(source, /onConfirmPendingRewrite/);
+  assert.doesNotMatch(source, /onCancelPendingRewrite/);
   assert.match(source, /tags/);
   assert.match(source, /collapsed: boolean/);
   assert.match(source, /rounded-\[1\.5rem\]/);

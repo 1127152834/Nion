@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { getBackendBaseURL } from "@/core/config";
 import { useI18n } from "@/core/i18n/hooks";
 import { pathOfNotebookTrash } from "@/core/navigation/desktop-routes";
 import {
@@ -23,6 +24,7 @@ import {
   useMoveNotebookNoteAction,
   useNotebookDeletePreview,
   useNotebookHistory,
+  useNotebookPendingRewrite,
   useNotebookNotes,
   useNotebookNote,
   useNotebookTree,
@@ -40,6 +42,10 @@ import { NotebookDialogShell } from "./notebook-dialog-shell";
 import { NotebookEditorPane } from "./notebook-editor-pane";
 import { NotebookFolderDialog } from "./notebook-folder-dialog";
 import { NotebookFolderPicker } from "./notebook-folder-picker";
+import {
+  cancelNotebookPendingRewrite,
+  confirmNotebookPendingRewrite,
+} from "./notebook-pending-rewrite";
 import { NotebookQuickCaptureDialog } from "./notebook-quick-capture-dialog";
 import { NotebookSidebar } from "./notebook-sidebar";
 import { notebookThemeStyle } from "./notebook-theme";
@@ -112,7 +118,10 @@ export function NotebookPage() {
   });
 
   const { notes: noteSummaries } = useNotebookNotes();
-  const { note, isLoading: noteLoading } = useNotebookNote(selectedNoteId);
+  const { note, pendingRewrite: initialPendingRewrite, isLoading: noteLoading } =
+    useNotebookNote(selectedNoteId);
+  const { pendingRewrite, clearPendingRewrite } =
+    useNotebookPendingRewrite(initialPendingRewrite);
   const { entries } = useNotebookHistory(selectedNoteId);
   const { preview } = useNotebookDeletePreview(selectedNoteId);
   const { notes: deletedNotes } = useNotebookTrash();
@@ -329,6 +338,66 @@ export function NotebookPage() {
     setSavedBody(nextNote.body);
     setSaveState("saved");
     setEditorSelection(null);
+  }
+
+  async function submitPendingRewriteSession(action: "confirm" | "cancel") {
+    if (!selectedNoteId) {
+      return null;
+    }
+    const response = await fetch(
+      `${getBackendBaseURL()}/api/notebook/notes/${selectedNoteId}/rewrite/${action}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      },
+    );
+    if (!response.ok) {
+      const detail = (await response.text()).trim();
+      throw new Error(detail || `Failed to ${action} notebook rewrite (${response.status})`);
+    }
+    return (await response.json()) as {
+      note: { title: string; body: string; content_hash: string };
+      pending_rewrite: null;
+    };
+  }
+
+  async function handleConfirmPendingRewrite() {
+    if (!pendingRewrite) {
+      return;
+    }
+    try {
+      const confirmedBody = confirmNotebookPendingRewrite(pendingRewrite);
+      setDraftBody(confirmedBody);
+      setSavedBody(confirmedBody);
+      const payload = await submitPendingRewriteSession("confirm");
+      if (payload) {
+        syncNotebookDraft(payload.note);
+      }
+      clearPendingRewrite();
+      toast.success("已保留改写结果");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  async function handleCancelPendingRewrite() {
+    if (!pendingRewrite) {
+      return;
+    }
+    try {
+      const restoredBody = cancelNotebookPendingRewrite(pendingRewrite);
+      setDraftBody(restoredBody);
+      setSavedBody(restoredBody);
+      const payload = await submitPendingRewriteSession("cancel");
+      if (payload) {
+        syncNotebookDraft(payload.note);
+      }
+      clearPendingRewrite();
+      toast.success("已回滚到原文");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    }
   }
 
   useEffect(() => {
@@ -615,7 +684,10 @@ export function NotebookPage() {
               isLoading={noteLoading}
               loadingLabel={t.common.loading}
               note={note}
+              pendingRewrite={pendingRewrite}
               saveState={saveState}
+              onCancelPendingRewrite={() => void handleCancelPendingRewrite()}
+              onConfirmPendingRewrite={() => void handleConfirmPendingRewrite()}
               onDraftBodyChange={setDraftBody}
               onDraftTitleChange={setDraftTitle}
               onOpenDelete={() => setDeleteOpen(true)}
