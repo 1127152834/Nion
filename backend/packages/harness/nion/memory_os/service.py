@@ -6,6 +6,7 @@ from pathlib import Path
 from nion.memory_os.builtin_provider import BuiltinMemoryProvider
 from nion.memory_os.config_state import load_memory_os_state, save_memory_os_state
 from nion.memory_os.contracts import ProviderFamilyMeta
+from nion.memory_os.openviking_provider import OpenVikingMemoryProvider
 from nion.memory_os.providers import MemoryOSState
 
 
@@ -88,8 +89,19 @@ class MemoryOSService:
 
             base_dir = get_paths().base_dir
         state = self.get_state(base_dir=base_dir)
+        provider_config = {}
+        if state.active_provider_id:
+            for provider in state.providers:
+                if provider.id == state.active_provider_id:
+                    provider_config = provider.config
+                    break
         if state.active_provider_family == "builtin":
             return BuiltinMemoryProvider(base_dir=base_dir)
+        if state.active_provider_family == "openviking":
+            return OpenVikingMemoryProvider(
+                base_dir=base_dir,
+                config=provider_config or {"mode": "embedded"},
+            )
         return BuiltinMemoryProvider(base_dir=base_dir)
 
     def import_legacy_memory_file(self, *, base_dir=None) -> bool:

@@ -3,6 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
+from nion.memory_os.providers import ProviderInstanceConfig
 from nion.memory_os.service import MemoryOSService
 
 router = APIRouter(prefix="/api/memory-os", tags=["memory-os"])
@@ -21,6 +22,7 @@ class MemoryProviderStateResponse(BaseModel):
 class MemoryProviderStateUpdateRequest(BaseModel):
     active_provider_family: str
     active_provider_id: str | None = None
+    providers: list[ProviderInstanceConfig] = Field(default_factory=list)
 
 
 @router.get("/providers/families", response_model=MemoryProviderFamiliesResponse)
@@ -50,6 +52,7 @@ async def update_provider_state(
             update={
                 "active_provider_family": payload.active_provider_family,
                 "active_provider_id": payload.active_provider_id,
+                "providers": payload.providers,
             }
         )
     )

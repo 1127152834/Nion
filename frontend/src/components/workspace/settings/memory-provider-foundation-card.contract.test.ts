@@ -12,5 +12,6 @@ void test(
 
     assert.match(source, /Built-in|Mem0|OpenViking/);
     assert.match(source, /embedded|remote/i);
+    assert.match(source, /Embedded OpenViking|Remote OpenViking|describeOpenVikingMode/);
   },
 );

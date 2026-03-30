@@ -2,10 +2,23 @@
 
 import { Badge } from "@/components/ui/badge";
 import { useMemoryProviderFamilies, useMemoryProviderState } from "@/core/memory-os/hooks";
+import {
+  describeOpenVikingMode,
+  getActiveOpenVikingProvider,
+} from "@/core/memory-os/openviking-mode";
 
 export function MemoryProviderFoundationCard() {
   const families = useMemoryProviderFamilies();
   const state = useMemoryProviderState();
+  const activeOpenVikingProvider = getActiveOpenVikingProvider(
+    state.data?.providers ?? [],
+    state.data?.active_provider_id ?? null,
+  );
+  const openVikingMode = describeOpenVikingMode(
+    (activeOpenVikingProvider?.config as { mode?: string; base_url?: string }) ?? {
+      mode: "embedded",
+    },
+  );
 
   return (
     <div className="rounded-xl border bg-background/80 p-5 shadow-sm">
@@ -26,6 +39,10 @@ export function MemoryProviderFoundationCard() {
 
       <div className="text-muted-foreground mt-4 text-xs">
         OpenViking modes: embedded / remote
+      </div>
+
+      <div className="text-muted-foreground mt-2 text-xs">
+        Active OpenViking mode: {openVikingMode}
       </div>
     </div>
   );
