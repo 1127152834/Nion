@@ -21,3 +21,14 @@ test("desktop package exposes dedicated renderer and main dev scripts", () => {
   assert.match(source, /"dev:main"/);
   assert.match(source, /"dev:electron"/);
 });
+
+test("desktop dev launcher fails fast when the renderer port is already occupied", () => {
+  const source = fs.readFileSync(
+    new URL("../../scripts/desktop-dev.sh", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /lsof -tiTCP:5173/);
+  assert.match(source, /already in use/);
+  assert.match(source, /exit 1/);
+});
