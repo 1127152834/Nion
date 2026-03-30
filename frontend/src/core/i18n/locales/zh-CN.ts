@@ -609,6 +609,15 @@ export const zhCN: Translations = {
       running: "运行中",
       idle: "空闲",
     },
+    compaction: {
+      title: "压缩整理",
+      logs: "压缩日志",
+      clearLogs: "清空压缩日志",
+      usage: "记忆用量",
+      compactNow: "立即压缩",
+      supported: "支持",
+      unsupported: "不支持",
+    },
     memory: {
       title: "记忆",
       description:

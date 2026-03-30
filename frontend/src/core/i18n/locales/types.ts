@@ -657,6 +657,15 @@ export interface Translations {
       running: string;
       idle: string;
     };
+    compaction: {
+      title: string;
+      logs: string;
+      clearLogs: string;
+      usage: string;
+      compactNow: string;
+      supported: string;
+      unsupported: string;
+    };
     memory: {
       title: string;
       description: string;

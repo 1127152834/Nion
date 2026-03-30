@@ -70,6 +70,12 @@ class MemoryStatusResponse(BaseModel):
 
     config: MemoryConfigResponse
     data: MemoryResponse
+    runtime: dict[str, object] = Field(default_factory=dict)
+
+
+class MemoryCompactRequest(BaseModel):
+    ratio: float
+    decay_days: int = 0
 
 
 @router.get(
@@ -222,6 +228,7 @@ async def get_memory_status() -> MemoryStatusResponse:
     """
     config = get_memory_config()
     memory_data = MemoryOSService().get_memory_payload()
+    runtime_status = MemoryOSService().get_memory_runtime_status()
 
     return MemoryStatusResponse(
         config=MemoryConfigResponse(
@@ -234,4 +241,32 @@ async def get_memory_status() -> MemoryStatusResponse:
             max_injection_tokens=config.max_injection_tokens,
         ),
         data=MemoryResponse(**memory_data),
+        runtime=runtime_status,
     )
+
+
+@router.post(
+    "/memory/compact",
+    summary="Compact Memory",
+    description="Compact structured long-term memory and record a compaction log.",
+)
+async def compact_memory(payload: MemoryCompactRequest) -> dict:
+    try:
+        return MemoryOSService().compact_memory(
+            ratio=payload.ratio,
+            decay_days=payload.decay_days,
+        )
+    except NotImplementedError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get(
+    "/memory/usage",
+    summary="Get Memory Usage",
+    description="Retrieve estimated usage information for current structured memory.",
+)
+async def get_memory_usage() -> dict:
+    try:
+        return MemoryOSService().get_memory_usage()
+    except NotImplementedError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc

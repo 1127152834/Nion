@@ -204,6 +204,17 @@
 - 前端需验证 heartbeat data layer 不破坏现有桌面 backend URL fallback
 - 自我维护相关测试需与 notebook / second-brain 测试分离，不再把 notebook operator 当成 memory page 的一部分
 
+### Memory Compaction 增量覆盖
+
+- 后端接口：
+  - `POST /api/memory/compact`
+  - `GET /api/memory/compact/logs`
+  - `DELETE /api/memory/compact/logs`
+  - `GET /api/memory/usage`
+- 后端需验证 compaction 结果会记录日志，并且不会把 notebook 当成 compaction 输入
+- 后端需验证 heartbeat 可以触发 maintenance runner 后的 compaction 路径
+- 桌面端需验证 compaction API 在 `make desktop-dev` 启动后可访问
+
 ## 10. 风险与优先级
 - P0 必测项：config read/update/runtime-status、409/422。
 - P1 高价值项：sandbox/daemon/tool/session-policy 分区。

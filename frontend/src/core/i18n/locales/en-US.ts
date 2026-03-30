@@ -637,6 +637,15 @@ export const enUS: Translations = {
       running: "Running",
       idle: "Idle",
     },
+    compaction: {
+      title: "Compaction",
+      logs: "Compaction logs",
+      clearLogs: "Clear compaction logs",
+      usage: "Memory usage",
+      compactNow: "Compact now",
+      supported: "Supported",
+      unsupported: "Unsupported",
+    },
     memory: {
       title: "Memory",
       description:

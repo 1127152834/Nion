@@ -105,6 +105,28 @@ class OpenVikingMemoryProvider:
         queue = self._get_queue()
         queue.add(thread_id=thread_id, messages=messages, agent_name=agent_name)
 
+    def compact(self, *, ratio: float, decay_days: int = 0) -> dict:
+        from nion.compaction.service import CompactionService
+
+        return CompactionService(base_dir=self._base_dir).compact(
+            ratio=ratio,
+            decay_days=decay_days,
+        )
+
+    def usage(self) -> dict:
+        from nion.compaction.service import CompactionService
+
+        usage = CompactionService(base_dir=self._base_dir).usage()
+        usage["provider"] = "openviking"
+        return usage
+
+    def status(self) -> dict:
+        from nion.compaction.service import CompactionService
+
+        status = CompactionService(base_dir=self._base_dir).status()
+        status["provider"] = "openviking"
+        return status
+
     def _create_empty_memory(self):
         return _create_empty_memory()
 

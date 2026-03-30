@@ -83,6 +83,31 @@ class MemoryOSService:
         provider = self.resolve_active_memory_provider(base_dir=base_dir)
         return provider.delete_fact(fact_id)  # type: ignore[no-any-return]
 
+    def compact_memory(
+        self,
+        *,
+        ratio: float,
+        decay_days: int = 0,
+        agent_name=None,
+        base_dir=None,
+    ) -> dict:
+        provider = self.resolve_active_memory_provider(base_dir=base_dir)
+        if not hasattr(provider, "compact"):
+            raise NotImplementedError("Active memory provider does not support compaction.")
+        return provider.compact(ratio=ratio, decay_days=decay_days)  # type: ignore[no-any-return]
+
+    def get_memory_usage(self, *, agent_name=None, base_dir=None) -> dict:
+        provider = self.resolve_active_memory_provider(base_dir=base_dir)
+        if not hasattr(provider, "usage"):
+            raise NotImplementedError("Active memory provider does not support usage reporting.")
+        return provider.usage()  # type: ignore[no-any-return]
+
+    def get_memory_runtime_status(self, *, agent_name=None, base_dir=None) -> dict:
+        provider = self.resolve_active_memory_provider(base_dir=base_dir)
+        if not hasattr(provider, "status"):
+            raise NotImplementedError("Active memory provider does not support runtime status.")
+        return provider.status()  # type: ignore[no-any-return]
+
     def resolve_active_memory_provider(self, *, base_dir=None):
         if base_dir is None:
             from nion.config.paths import get_paths
@@ -102,6 +127,8 @@ class MemoryOSService:
                 base_dir=base_dir,
                 config=provider_config or {"mode": "embedded"},
             )
+        if state.active_provider_family == "mem0":
+            raise NotImplementedError("Mem0 provider runtime is not implemented yet.")
         return BuiltinMemoryProvider(base_dir=base_dir)
 
     def import_legacy_memory_file(self, *, base_dir=None) -> bool:
