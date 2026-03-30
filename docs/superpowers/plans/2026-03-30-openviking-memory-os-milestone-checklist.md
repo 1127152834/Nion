@@ -54,15 +54,15 @@
 
 - [x] OpenViking provider supports `embedded` mode end-to-end
 - [x] OpenViking provider supports `remote` mode configuration and status
-- [ ] `notebook` domain flows through OpenViking provider
+- [x] `notebook` domain flows through OpenViking provider
 - [ ] `user_memory` domain flows through OpenViking provider
 - [ ] `agent_memory` domain flows through OpenViking provider
-- [ ] `autodream_journal` domain flows through OpenViking provider
+- [x] `autodream_journal` domain flows through OpenViking provider
 - [ ] Capability surface distinguishes native/adapted/mirrored support
 - [x] Provider health/status is visible in API
 - [x] Regression tests pass
 - [x] Docs updated
-- [x] Milestone review completed
+- [ ] Milestone review completed
 
 ### M3: Memory Console Product Surface
 
@@ -157,8 +157,12 @@
   - remote OpenViking transport bridge implemented
   - Memory OS provider state can now carry OpenViking mode config
   - provider foundation card now surfaces active OpenViking mode
+  - embedded OpenViking provider now exposes notebook resource listing
+  - embedded OpenViking provider now exposes autodream journal listing
+  - embedded OpenViking provider now round-trips user memory payloads
+  - embedded OpenViking provider now round-trips agent memory payloads
 - Current M2 verification evidence:
-  - targeted backend OpenViking provider tests: `9 passed`
+  - targeted backend OpenViking provider tests: `13 passed`
   - targeted frontend OpenViking mode tests: `3 passed`
   - backend lint: passed
 - M2 current phase merged back to `electron` in `671b1e37` and `13c2cca9`.

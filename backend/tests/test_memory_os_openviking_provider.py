@@ -59,3 +59,63 @@ def test_openviking_memory_provider_remote_mode_uses_base_url(monkeypatch):
     provider.get_memory()
 
     assert calls["base_url"] == "https://memory.example.com"
+
+
+def test_openviking_memory_provider_embedded_mode_lists_notebook_resources(tmp_path):
+    from nion.notebook.service import NotebookService
+    from nion.openviking.notebook_ingest import EmbeddedNotebookIngestService
+
+    notebook = NotebookService(base_dir=tmp_path)
+    notebook.create_note(
+        directory="projects/alpha",
+        title="Roadmap",
+        body="# Roadmap\n\nAlpha launch depends on onboarding quality.",
+    )
+    EmbeddedNotebookIngestService(base_dir=tmp_path).reindex_all()
+
+    provider = OpenVikingMemoryProvider(
+        base_dir=tmp_path,
+        config={"mode": "embedded"},
+    )
+
+    items = provider.list_notebook_resources()
+
+    assert len(items) == 1
+    assert items[0]["source_relative_path"] == "projects/alpha/roadmap.md"
+
+
+def test_openviking_memory_provider_embedded_mode_lists_dream_logs(tmp_path):
+    from nion.openviking.autodream_models import DreamEntry
+    from nion.openviking.autodream_store import AutoDreamStore
+
+    store = AutoDreamStore(base_dir=tmp_path)
+    store.write_entry(
+        DreamEntry(
+            dream_id="dream_1",
+            started_at="2026-03-30T00:00:00Z",
+            ended_at="2026-03-30T00:05:00Z",
+            time_window_start="2026-03-29T00:00:00Z",
+            time_window_end="2026-03-30T00:00:00Z",
+            summary="Consolidated notebook and recall learnings.",
+            what_i_did=["Reviewed notebook retrieval work."],
+            what_i_learned=["Notebook retrieval should stay provenance-rich."],
+            what_changed=[],
+            what_i_plan_to_change=[],
+            what_i_changed=[],
+            stale_items=[],
+            agent_memory_updates=[],
+            user_memory_candidates=[],
+            action_proposals=[],
+            sources=["recall", "notebook"],
+        )
+    )
+
+    provider = OpenVikingMemoryProvider(
+        base_dir=tmp_path,
+        config={"mode": "embedded"},
+    )
+
+    items = provider.list_autodream_entries()
+
+    assert len(items) == 1
+    assert items[0]["dream_id"] == "dream_1"

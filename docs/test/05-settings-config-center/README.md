@@ -183,6 +183,7 @@
 - `memory-os` provider state必须能表达 OpenViking 的 `embedded / remote` 模式
 - provider foundation 卡片必须能展示当前 OpenViking 模式
 - backend 需验证 OpenViking provider family 的 embedded 和 remote 行为
+- backend 需验证 embedded OpenViking provider 至少能列出 notebook 资源和 dream log
 
 ## 10. 风险与优先级
 - P0 必测项：config read/update/runtime-status、409/422。

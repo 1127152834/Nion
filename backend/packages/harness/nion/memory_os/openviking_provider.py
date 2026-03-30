@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from nion.memory_os.openviking_models import OpenVikingProviderConfig
 from nion.memory_os.openviking_remote_client import OpenVikingRemoteClient
 
@@ -28,6 +30,32 @@ class OpenVikingMemoryProvider:
             "agent_memory",
             "autodream_journal",
         ]
+
+    def list_notebook_resources(self) -> list[dict]:
+        from nion.config.paths import Paths
+        from nion.openviking.resource_store import OpenVikingResourceStore
+
+        paths = Paths(base_dir=self._base_dir)
+        store = OpenVikingResourceStore(paths.openviking_resources_db_file)
+        return [item.model_dump() for item in store.list_resources()]
+
+    def list_autodream_entries(self) -> list[dict]:
+        from nion.config.paths import Paths
+
+        paths = Paths(base_dir=self._base_dir)
+        if not paths.autodream_journal_dir.exists():
+            return []
+
+        items: list[dict] = []
+        for path in sorted(paths.autodream_journal_dir.rglob("*.md")):
+            dream_id = Path(path).stem
+            items.append(
+                {
+                    "dream_id": dream_id,
+                    "path": str(path),
+                }
+            )
+        return items
 
     def _create_empty_memory(self):
         from nion.agents.memory.storage import create_empty_memory
