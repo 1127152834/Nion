@@ -91,6 +91,15 @@ Implement Memoh-style heartbeat as a first-class always-on continuity mechanism 
 - heartbeat logs are queryable
 - heartbeat is visible in status surfaces
 
+**Current evidence**
+
+- minimal heartbeat service/store/router backbone implemented in Nion
+- backend targeted tests passing for:
+  - heartbeat store
+  - heartbeat service
+  - heartbeat router
+- frontend heartbeat data layer added
+
 ## Milestone M2: Memory Compaction
 
 **Objective**

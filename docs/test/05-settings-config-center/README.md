@@ -194,6 +194,16 @@
 - `Agent Core` 承担 AutoDream 与 OpenViking operator surfaces
 - OpenViking 与 AutoDream 文案必须保留 operator / inspect 语义，不能伪装成最终 end-user product
 
+### Heartbeat Backbone 增量覆盖
+
+- 后端接口：
+  - `GET /api/heartbeat/status`
+  - `GET /api/heartbeat/logs`
+  - `DELETE /api/heartbeat/logs`
+- 后端需验证 daemon runtime 已拥有 heartbeat 服务，而不是只依赖 AutoDream scheduler
+- 前端需验证 heartbeat data layer 不破坏现有桌面 backend URL fallback
+- 自我维护相关测试需与 notebook / second-brain 测试分离，不再把 notebook operator 当成 memory page 的一部分
+
 ## 10. 风险与优先级
 - P0 必测项：config read/update/runtime-status、409/422。
 - P1 高价值项：sandbox/daemon/tool/session-policy 分区。

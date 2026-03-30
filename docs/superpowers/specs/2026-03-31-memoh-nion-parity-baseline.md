@@ -25,10 +25,10 @@ Parity vocabulary:
 | Memory Rebuild | OpenAPI `/bots/{bot_id}/memory/rebuild`; SDK `postBotsByBotIdMemoryRebuild` | No memory rebuild API/service; only notebook reindex and provider round-trip pieces | `not_started` | Planned future milestone |
 | Memory Status | OpenAPI `/bots/{bot_id}/memory/status`; SDK `getBotsByBotIdMemoryStatus` | `/api/memory/status` exists, but mostly legacy config+payload view | `partial` | Does not yet mirror Memoh runtime health/index/source counts |
 | Memory Usage | OpenAPI `/bots/{bot_id}/memory/usage`; SDK `getBotsByBotIdMemoryUsage` | No memory usage API in Nion | `not_started` | Planned future milestone |
-| Heartbeat Service | README "Automation" feature; `cmd/agent/main.go` starts `heartbeat.Service`; `internal/heartbeat/` package | No first-class heartbeat product/runtime capability in Nion | `not_started` | This is the main backbone gap |
-| Heartbeat Logs | OpenAPI `/bots/{bot_id}/heartbeat/logs`; SDK `getBotsByBotIdHeartbeatLogs` | No dedicated heartbeat logs in Nion | `not_started` | Planned future milestone |
-| Always-On Continuity | README “always-on continuity” framing; heartbeat + memory engineering together | Nion has daemon runtime and partial AutoDream scheduler | `partial` | Continuity exists operationally, but not yet as a coherent memory maintenance backbone |
-| Reflective Maintenance | Memoh source suggests heartbeat/autonomous activity backbone; no standalone AutoDream concept in primary surface | Nion has AutoDream scheduler/service and reflective ideas | `partial` | Useful ideas exist, but should be integrated into heartbeat-driven self-maintenance |
+| Heartbeat Service | README "Automation" feature; `cmd/agent/main.go` starts `heartbeat.Service`; `internal/heartbeat/` package | `nion.heartbeat.service.HeartbeatService` now exists and daemon owns heartbeat status/tick path | `partial` | Minimal backbone exists, but Memoh-style trigger richness is not complete |
+| Heartbeat Logs | OpenAPI `/bots/{bot_id}/heartbeat/logs`; SDK `getBotsByBotIdHeartbeatLogs` | Nion now exposes `/api/heartbeat/logs` with SQLite-backed log storage | `partial` | Log backbone exists, but parity is still narrower than Memoh |
+| Always-On Continuity | README “always-on continuity” framing; heartbeat + memory engineering together | Nion daemon now has an explicit heartbeat backbone instead of relying only on AutoDream polling | `partial` | Continuity backbone is improving, but compaction/rebuild still missing |
+| Reflective Maintenance | Memoh source suggests heartbeat/autonomous activity backbone; no standalone AutoDream concept in primary surface | Heartbeat now exists as the primary backbone, but reflective maintenance is still mostly represented by transitional AutoDream pieces | `partial` | Needs follow-up milestone integration |
 | Provider Status | OpenAPI `/memory-providers/{id}/status`; SDK `getMemoryProvidersByIdStatus` | Memory OS provider family and binding state exist | `partial` | Detailed provider runtime status not yet mirrored |
 | Knowledge Base / Notebook Separation | Memoh shell is bot memory-centric; notebook-as-second-brain is not its primary product model | Nion design explicitly separates Notebook as `Knowledge Base` | `replicated` | This is an intentional Nion adaptation, not a gap |
 | Project Domain Separation | Not a primary Memoh shell distinction | Nion design reserves separate `Projects` domain | `replicated` | Intentional Nion adaptation |
@@ -86,8 +86,6 @@ Parity vocabulary:
 
 ### Not started
 
-- heartbeat backbone
-- heartbeat logs
 - memory compaction
 - memory rebuild
 - memory usage
