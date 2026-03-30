@@ -37,6 +37,7 @@ def test_get_builtin_agent_returns_catalog_entry(tmp_path):
     payload = response.json()
     assert payload["name"] == "笔记助手"
     assert payload["id"] == "builtin:notebook-assistant"
+    assert payload["slug"] == "notebook-chat"
     assert payload["kind"] == "builtin"
     assert payload["visibility"] == "public"
     assert payload["can_delete"] is False
@@ -75,6 +76,7 @@ def test_list_builtin_agents_includes_notebook_assistant(tmp_path):
     notebook_agent = next(agent for agent in agents if agent["id"] == "builtin:notebook-assistant")
 
     assert notebook_agent["name"] == "笔记助手"
+    assert notebook_agent["slug"] == "notebook-chat"
     assert notebook_agent["kind"] == "builtin"
     assert notebook_agent["visibility"] == "public"
     assert notebook_agent["entrypoint"] == "notebook-chat"

@@ -9,6 +9,7 @@ class BuiltinAgentConfig(BaseModel):
     """Configuration for a built-in agent exposed in the catalog."""
 
     id: str
+    slug: str
     name: str
     description: str = ""
     model: str | None = None
@@ -24,6 +25,7 @@ class BuiltinAgentConfig(BaseModel):
 
 NOTEBOOK_ASSISTANT = BuiltinAgentConfig(
     id="builtin:notebook-assistant",
+    slug="notebook-chat",
     name="笔记助手",
     description="内置的笔记工作流助手，作为公开 catalog agent 出现在 Agent 页面。",
     entrypoint="notebook-chat",

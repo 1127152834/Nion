@@ -24,6 +24,7 @@ class AgentConfig(BaseModel):
     model: str | None = None
     tool_groups: list[str] | None = None
     id: str | None = None
+    slug: str | None = None
     kind: str = "custom"
     visibility: str = "internal"
     can_delete: bool = True
@@ -40,14 +41,14 @@ def list_builtin_agents() -> list[AgentConfig]:
 
 
 def get_builtin_agent(identifier: str | None) -> AgentConfig | None:
-    """Lookup a built-in agent by catalog display name or entrypoint."""
+    """Lookup a built-in agent by stable API slug, entrypoint, or id suffix."""
 
     if identifier is None:
         return None
 
     normalized = identifier.strip().lower()
     for agent in BUILTIN_AGENTS:
-        if normalized in {agent.name.lower(), agent.entrypoint.lower()}:
+        if normalized in {agent.slug.lower(), agent.entrypoint.lower(), agent.id.removeprefix("builtin:").lower()}:
             return AgentConfig(**agent.model_dump())
     return None
 
@@ -99,6 +100,7 @@ def load_agent_config(name: str | None) -> AgentConfig | None:
     if "name" not in data:
         data["name"] = name
     data.setdefault("id", f"custom:{data['name']}")
+    data.setdefault("slug", data["name"])
     data.setdefault("kind", "custom")
     data.setdefault("visibility", "internal")
     data.setdefault("can_delete", True)

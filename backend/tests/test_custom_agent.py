@@ -76,6 +76,7 @@ class TestAgentConfig:
 
         cfg = AgentConfig(name="my-agent")
         assert cfg.name == "my-agent"
+        assert cfg.slug is None
         assert cfg.description == ""
         assert cfg.model is None
         assert cfg.tool_groups is None
@@ -382,6 +383,7 @@ class TestAgentsAPI:
         assert response.status_code == 200
         data = response.json()
         assert len(data["agents"]) == 1
+        assert data["agents"][0]["slug"] == "notebook-chat"
         assert data["agents"][0]["entrypoint"] == "notebook-chat"
         assert data["agents"][0]["kind"] == "builtin"
 

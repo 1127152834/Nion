@@ -4,11 +4,12 @@ export interface Agent {
   model: string | null;
   tool_groups: string[] | null;
   id: string;
+  slug: string;
   kind: "builtin" | "custom";
   visibility: "public" | "internal";
   can_delete: boolean;
   can_edit: boolean;
-  entrypoint: "full-chat" | "notebook-chat";
+  entrypoint: string | null;
   tool_policy: string | null;
   soul?: string | null;
 }

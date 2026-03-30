@@ -32,6 +32,7 @@ class AgentResponse(BaseModel):
     model: str | None = Field(default=None, description="Optional model override")
     tool_groups: list[str] | None = Field(default=None, description="Optional tool group whitelist")
     id: str = Field(..., description="Stable catalog identifier")
+    slug: str = Field(..., description="Stable API path identifier")
     kind: str = Field(..., description="Catalog kind: builtin or custom")
     visibility: str = Field(..., description="Catalog visibility: public or internal")
     can_delete: bool = Field(..., description="Whether the agent can be deleted")
@@ -102,6 +103,7 @@ def _agent_config_to_response(agent_cfg: AgentConfig, include_soul: bool = False
         model=agent_cfg.model,
         tool_groups=agent_cfg.tool_groups,
         id=agent_cfg.id or f"{agent_cfg.kind}:{agent_cfg.entrypoint or agent_cfg.name}",
+        slug=agent_cfg.slug or agent_cfg.name,
         kind=agent_cfg.kind,
         visibility=agent_cfg.visibility,
         can_delete=agent_cfg.can_delete,
@@ -162,10 +164,10 @@ async def check_agent_name(name: str) -> dict:
     description="Retrieve details and SOUL.md content for a specific built-in or custom agent.",
 )
 async def get_agent(name: str) -> AgentResponse:
-    """Get a specific agent by name.
+    """Get a specific agent by stable path identifier.
 
     Args:
-        name: The agent name.
+        name: Stable ASCII slug for built-in agents, or custom agent filesystem name.
 
     Returns:
         Agent details including SOUL.md content.
