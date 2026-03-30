@@ -23,6 +23,7 @@ export const zhCN: Translations = {
     home: "首页",
     settings: "设置",
     delete: "删除",
+    select: "选择",
     rename: "重命名",
     share: "分享",
     openInNewWindow: "在新窗口打开",
@@ -263,6 +264,7 @@ export const zhCN: Translations = {
   // Chats
   chats: {
     searchChats: "搜索对话",
+    selectedCount: "已选择 {count} 项",
   },
 
   bridge: {

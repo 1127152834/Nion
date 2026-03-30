@@ -23,6 +23,7 @@ export const enUS: Translations = {
     home: "Home",
     settings: "Settings",
     delete: "Delete",
+    select: "Select",
     rename: "Rename",
     share: "Share",
     openInNewWindow: "Open in new window",
@@ -274,6 +275,7 @@ export const enUS: Translations = {
   // Chats
   chats: {
     searchChats: "Search chats",
+    selectedCount: "{count} selected",
   },
 
   bridge: {

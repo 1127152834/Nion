@@ -255,6 +255,7 @@ export interface Translations {
     home: string;
     settings: string;
     delete: string;
+    select: string;
     rename: string;
     share: string;
     openInNewWindow: string;
@@ -443,6 +444,7 @@ export interface Translations {
   // Chats
   chats: {
     searchChats: string;
+    selectedCount: string;
   };
 
   bridge: BridgeTranslations;
