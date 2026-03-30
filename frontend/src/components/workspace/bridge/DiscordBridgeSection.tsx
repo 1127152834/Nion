@@ -19,6 +19,7 @@ import {
   BridgePlatformRuntimeCard,
   CheckCircle,
   FieldRow,
+  isBridgePlatformVerified,
   SettingsCard,
   SpinnerGap,
   StatusBanner,
@@ -74,6 +75,7 @@ export function DiscordBridgeSection() {
   } | null>(null);
   const [bridgeEnabled, setBridgeEnabled] = useState(false);
   const [channelEnabled, setChannelEnabled] = useState(false);
+  const [connectionVerified, setConnectionVerified] = useState(false);
 
   const fetchSettings = useCallback(async () => {
     const client = createBridgeClient();
@@ -82,6 +84,7 @@ export function DiscordBridgeSection() {
     setSettings(next);
     setBridgeEnabled(next.remote_bridge_enabled === "true");
     setChannelEnabled(next.bridge_discord_enabled === "true");
+    setConnectionVerified(isBridgePlatformVerified(data, "discord"));
     setBotToken(next.bridge_discord_bot_token);
     setAllowedUsers(next.bridge_discord_allowed_users);
     setAllowedChannels(next.bridge_discord_allowed_channels);
@@ -130,6 +133,10 @@ export function DiscordBridgeSection() {
   };
 
   const handleVerify = async () => {
+    await ensureDiscordVerifiedBeforeEnable();
+  };
+
+  const ensureDiscordVerifiedBeforeEnable = async () => {
     setVerifying(true);
     setVerifyResult(null);
     try {
@@ -138,7 +145,7 @@ export function DiscordBridgeSection() {
           ok: false,
           message: t("discord.enterTokenFirst"),
         });
-        return;
+        return false;
       }
 
       const result = await createBridgeClient().verifyDiscord({
@@ -152,15 +159,20 @@ export function DiscordBridgeSection() {
             ? t("discord.verifiedAs", { name: result.botName })
             : t("discord.verified"),
         });
-        return;
+        await fetchSettings();
+        return true;
       }
 
       setVerifyResult({
         ok: false,
         message: result.error?.trim() ? result.error : t("discord.verifyFailed"),
       });
+      await fetchSettings();
+      return false;
     } catch {
       setVerifyResult({ ok: false, message: t("discord.verifyFailed") });
+      await fetchSettings();
+      return false;
     } finally {
       setVerifying(false);
     }
@@ -172,12 +184,23 @@ export function DiscordBridgeSection() {
         title={t("bridge.discordChannel")}
         description={t("bridge.discordChannelDesc")}
         enabled={channelEnabled}
+        verified={connectionVerified}
+        verificationHint={t("bridge.enableRequiresVerification")}
         saving={saving}
         onToggle={(checked) =>
-          void saveSettings({
-            bridge_discord_enabled: checked ? "true" : "",
-            ...(checked ? { remote_bridge_enabled: "true" } : {}),
-          })
+          void (async () => {
+            if (checked) {
+              const verified = await ensureDiscordVerifiedBeforeEnable();
+              if (!verified) {
+                return;
+              }
+            }
+            await saveSettings({
+              bridge_discord_enabled: checked ? "true" : "",
+              ...(checked ? { remote_bridge_enabled: "true" } : {}),
+            });
+            await fetchSettings();
+          })()
         }
       />
 
@@ -185,6 +208,7 @@ export function DiscordBridgeSection() {
         platform="discord"
         bridgeEnabled={bridgeEnabled}
         channelEnabled={channelEnabled}
+        connectionVerified={connectionVerified}
       />
 
       <SettingsCard

@@ -20,6 +20,7 @@ import { createBridgeClient, type WeixinBridgeAccount } from "@/core/bridge/clie
 import {
   BridgePlatformEnableCard,
   BridgePlatformRuntimeCard,
+  isBridgePlatformVerified,
   normalizeQrImageSrc,
   useBridgeTranslation,
 } from "./bridge-shared";
@@ -29,6 +30,7 @@ export function WeixinBridgeSection() {
   const [accounts, setAccounts] = useState<WeixinBridgeAccount[]>([]);
   const [bridgeEnabled, setBridgeEnabled] = useState(false);
   const [channelEnabled, setChannelEnabled] = useState(false);
+  const [weixinConnectionVerified, setWeixinConnectionVerified] = useState(false);
   const [qrImage, setQrImage] = useState<string | null>(null);
   const [qrSessionId, setQrSessionId] = useState<string | null>(null);
   const [qrStatus, setQrStatus] = useState("");
@@ -42,6 +44,7 @@ export function WeixinBridgeSection() {
     const settings = await client.getSettings();
     setBridgeEnabled(settings.remote_bridge_enabled === "true");
     setChannelEnabled(settings.bridge_weixin_enabled === "true");
+    setWeixinConnectionVerified(isBridgePlatformVerified(settings, "weixin"));
     setAccounts(await client.listWeixinAccounts());
   }, []);
 
@@ -190,6 +193,17 @@ export function WeixinBridgeSection() {
     }
   };
 
+  const ensureWeixinVerifiedBeforeEnable = async () => {
+    const client = createBridgeClient();
+    const result = await client.verifyWeixin();
+    await fetchAccounts();
+    if (!result.verified) {
+      toast.error(result.error?.trim() ? result.error : t("bridge.errorChannelNotVerified"));
+      return false;
+    }
+    return true;
+  };
+
   void qrSessionId;
 
   return (
@@ -198,14 +212,23 @@ export function WeixinBridgeSection() {
         title={t("bridge.weixinChannel")}
         description={t("bridge.weixinChannelDesc")}
         enabled={channelEnabled}
+        verified={weixinConnectionVerified}
+        verificationHint={t("bridge.enableRequiresVerification")}
         saving={qrLoading}
         onToggle={(checked) => {
-          void createBridgeClient()
-            .saveSettings({
+          void (async () => {
+            if (checked) {
+              const verified = await ensureWeixinVerifiedBeforeEnable();
+              if (!verified) {
+                return;
+              }
+            }
+            await createBridgeClient().saveSettings({
               bridge_weixin_enabled: checked ? "true" : "",
               ...(checked ? { remote_bridge_enabled: "true" } : {}),
-            })
-            .then(fetchAccounts);
+            });
+            await fetchAccounts();
+          })();
         }}
       />
 
@@ -213,6 +236,7 @@ export function WeixinBridgeSection() {
         platform="weixin"
         bridgeEnabled={bridgeEnabled}
         channelEnabled={channelEnabled}
+        connectionVerified={weixinConnectionVerified}
       />
 
       <StatusBanner variant="warning" className="text-sm">

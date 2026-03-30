@@ -14,6 +14,7 @@ export const DESKTOP_BRIDGE_IPC_CHANNELS = {
   verifyDiscord: "bridge:verify-discord",
   verifyFeishu: "bridge:verify-feishu",
   verifyQq: "bridge:verify-qq",
+  verifyWeixin: "bridge:verify-weixin",
   listWeixinAccounts: "bridge:list-weixin-accounts",
   startWeixinLogin: "bridge:start-weixin-login",
   waitForWeixinLogin: "bridge:wait-for-weixin-login",

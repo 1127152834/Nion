@@ -142,7 +142,7 @@ test("bridge manager background loop processes one inbound message and stops cle
   const adapter = createStubAdapter("telegram");
   const streamCalls = [];
   const manager = createBridgeManager({
-    loadSettings: () => ({ settings: { remote_bridge_enabled: "true" } }),
+    loadSettings: () => ({ settings: { remote_bridge_enabled: "true", bridge_telegram_verified: "true" } }),
     adapters: [adapter],
     listBindings: () => [],
     upsertBinding: (binding) => ({
@@ -212,7 +212,7 @@ test("bridge manager does not send adapter output when streamMessage returns emp
   });
 
   const manager = createBridgeManager({
-    loadSettings: () => ({ settings: { remote_bridge_enabled: "true" } }),
+    loadSettings: () => ({ settings: { remote_bridge_enabled: "true", bridge_telegram_verified: "true" } }),
     adapters: [adapter],
     listBindings: () => [],
     upsertBinding: (binding) => ({
@@ -236,6 +236,26 @@ test("bridge manager does not send adapter output when streamMessage returns emp
   const handled = await manager.processNextInboundMessage();
   assert.equal(handled, true);
   assert.equal(adapter.sent.length, 0);
+});
+
+test("bridge manager refuses to start a platform that has not been verified", async () => {
+  const createBridgeManager = await loadBridgeManagerFactory();
+  const adapter = createStubAdapter("telegram");
+
+  const manager = createBridgeManager({
+    loadSettings: () => ({
+      settings: {
+        remote_bridge_enabled: "true",
+        bridge_telegram_enabled: "true",
+        bridge_telegram_verified: "",
+      },
+    }),
+    adapters: [adapter],
+  });
+
+  const reason = await manager.startPlatform("telegram");
+  assert.equal(reason, "channel_not_verified");
+  assert.equal(adapter.running, false);
 });
 
 test("bridge manager streams Feishu replies through the card controller and finalizes success", async () => {
@@ -758,6 +778,7 @@ test("bridge manager /stop aborts an in-flight task while the adapter loop keeps
       settings: {
         remote_bridge_enabled: "true",
         bridge_default_work_dir: "/tmp/project",
+        bridge_telegram_verified: "true",
       },
     }),
     adapters: [adapter],

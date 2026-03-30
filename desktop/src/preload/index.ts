@@ -84,6 +84,8 @@ export function registerPreloadBridge(): void {
         ipcRenderer.invoke(DESKTOP_BRIDGE_IPC_CHANNELS.verifyFeishu, payload),
       verifyQq: (payload: Record<string, unknown>) =>
         ipcRenderer.invoke(DESKTOP_BRIDGE_IPC_CHANNELS.verifyQq, payload),
+      verifyWeixin: () =>
+        ipcRenderer.invoke(DESKTOP_BRIDGE_IPC_CHANNELS.verifyWeixin),
       listWeixinAccounts: () =>
         ipcRenderer.invoke(DESKTOP_BRIDGE_IPC_CHANNELS.listWeixinAccounts),
       startWeixinLogin: () =>

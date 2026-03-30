@@ -14,6 +14,7 @@ import { createBridgeClient } from "@/core/bridge/client";
 import {
   BridgePlatformEnableCard,
   BridgePlatformRuntimeCard,
+  isBridgePlatformVerified,
   useBridgeTranslation,
 } from "./useBridgeTranslation";
 
@@ -53,6 +54,7 @@ export function QqBridgeSection() {
   } | null>(null);
   const [bridgeEnabled, setBridgeEnabled] = useState(false);
   const [channelEnabled, setChannelEnabled] = useState(false);
+  const [connectionVerified, setConnectionVerified] = useState(false);
 
   const fetchSettings = useCallback(async () => {
     const client = createBridgeClient();
@@ -61,6 +63,7 @@ export function QqBridgeSection() {
     setSettings(next);
     setBridgeEnabled(next.remote_bridge_enabled === "true");
     setChannelEnabled(next.bridge_qq_enabled === "true");
+    setConnectionVerified(isBridgePlatformVerified(data, "qq"));
     setAppId(next.bridge_qq_app_id);
     setAppSecret(next.bridge_qq_app_secret);
     setAllowedUsers(next.bridge_qq_allowed_users);
@@ -107,6 +110,10 @@ export function QqBridgeSection() {
   };
 
   const handleVerify = async () => {
+    await ensureQqVerifiedBeforeEnable();
+  };
+
+  const ensureQqVerifiedBeforeEnable = async () => {
     setVerifying(true);
     setVerifyResult(null);
     try {
@@ -115,7 +122,7 @@ export function QqBridgeSection() {
           ok: false,
           message: t("qq.enterCredentialsFirst"),
         });
-        return;
+        return false;
       }
 
       const client = createBridgeClient();
@@ -126,15 +133,20 @@ export function QqBridgeSection() {
 
       if (result.verified) {
         setVerifyResult({ ok: true, message: t("qq.verified") });
-        return;
+        await fetchSettings();
+        return true;
       }
 
       setVerifyResult({
         ok: false,
         message: result.error?.trim() ? result.error : t("qq.verifyFailed"),
       });
+      await fetchSettings();
+      return false;
     } catch {
       setVerifyResult({ ok: false, message: t("qq.verifyFailed") });
+      await fetchSettings();
+      return false;
     } finally {
       setVerifying(false);
     }
@@ -146,12 +158,23 @@ export function QqBridgeSection() {
         title={t("bridge.qqChannel")}
         description={t("bridge.qqChannelDesc")}
         enabled={channelEnabled}
+        verified={connectionVerified}
+        verificationHint={t("bridge.enableRequiresVerification")}
         saving={saving}
         onToggle={(checked) =>
-          void saveSettings({
-            bridge_qq_enabled: checked ? "true" : "",
-            ...(checked ? { remote_bridge_enabled: "true" } : {}),
-          })
+          void (async () => {
+            if (checked) {
+              const verified = await ensureQqVerifiedBeforeEnable();
+              if (!verified) {
+                return;
+              }
+            }
+            await saveSettings({
+              bridge_qq_enabled: checked ? "true" : "",
+              ...(checked ? { remote_bridge_enabled: "true" } : {}),
+            });
+            await fetchSettings();
+          })()
         }
       />
 
@@ -159,6 +182,7 @@ export function QqBridgeSection() {
         platform="qq"
         bridgeEnabled={bridgeEnabled}
         channelEnabled={channelEnabled}
+        connectionVerified={connectionVerified}
       />
 
       <SettingsCard title={t("qq.credentials")} description={t("qq.credentialsDesc")}>

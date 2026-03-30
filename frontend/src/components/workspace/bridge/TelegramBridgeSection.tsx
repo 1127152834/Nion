@@ -10,6 +10,7 @@ import {
   BridgePlatformEnableCard,
   BridgePlatformRuntimeCard,
   CheckCircle,
+  isBridgePlatformVerified,
   SettingsCard,
   SpinnerGap,
   StatusBanner,
@@ -44,6 +45,7 @@ export function TelegramBridgeSection() {
   const [allowedUsers, setAllowedUsers] = useState("");
   const [bridgeEnabled, setBridgeEnabled] = useState(false);
   const [channelEnabled, setChannelEnabled] = useState(false);
+  const [connectionVerified, setConnectionVerified] = useState(false);
   const [saving, setSaving] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [detecting, setDetecting] = useState(false);
@@ -74,6 +76,7 @@ export function TelegramBridgeSection() {
     };
     setBridgeEnabled(settings.remote_bridge_enabled === "true");
     setChannelEnabled(settings.bridge_telegram_enabled === "true");
+    setConnectionVerified(isBridgePlatformVerified(data, "telegram"));
     setBotToken(settings.telegram_bot_token);
     setChatId(settings.telegram_chat_id);
     setAllowedUsers(settings.telegram_bridge_allowed_users);
@@ -110,6 +113,12 @@ export function TelegramBridgeSection() {
     if (!client) {
       return;
     }
+    if (checked) {
+      const verified = await ensureTelegramVerifiedBeforeEnable();
+      if (!verified) {
+        return;
+      }
+    }
     setSaving(true);
     try {
       await client.saveSettings({
@@ -119,6 +128,45 @@ export function TelegramBridgeSection() {
       await fetchSettings();
     } finally {
       setSaving(false);
+    }
+  };
+
+  const ensureTelegramVerifiedBeforeEnable = async () => {
+    setVerifying(true);
+    setVerifyResult(null);
+    try {
+      if (!botToken) {
+        setVerifyResult({
+          ok: false,
+          message: t("telegram.enterTokenFirst"),
+        });
+        return false;
+      }
+
+      const result = await client.verifyTelegram({
+        bot_token: botToken,
+        chat_id: chatId || undefined,
+      });
+
+      if (!result.verified) {
+        setVerifyResult({
+          ok: false,
+          message: result.error?.trim() ? result.error : t("telegram.verifyFailed"),
+        });
+        await fetchSettings();
+        return false;
+      }
+
+      setVerifyResult({
+        ok: true,
+        message: result.botName
+          ? t("telegram.verifiedAs", { name: result.botName })
+          : t("telegram.verified"),
+      });
+      await fetchSettings();
+      return true;
+    } finally {
+      setVerifying(false);
     }
   };
 
@@ -160,38 +208,7 @@ export function TelegramBridgeSection() {
   };
 
   const handleVerify = async () => {
-    setVerifying(true);
-    setVerifyResult(null);
-    try {
-      if (!botToken) {
-        setVerifyResult({
-          ok: false,
-          message: t("telegram.enterTokenFirst"),
-        });
-        return;
-      }
-
-      const result = await client.verifyTelegram({
-        bot_token: botToken,
-        chat_id: chatId || undefined,
-      });
-
-      if (result.verified) {
-        setVerifyResult({
-          ok: true,
-          message: result.botName
-            ? t("telegram.verifiedAs", { name: result.botName })
-            : t("telegram.verified"),
-        });
-      } else {
-        setVerifyResult({
-          ok: false,
-          message: result.error?.trim() ? result.error : t("telegram.verifyFailed"),
-        });
-      }
-    } finally {
-      setVerifying(false);
-    }
+    await ensureTelegramVerifiedBeforeEnable();
   };
 
   return (
@@ -200,6 +217,8 @@ export function TelegramBridgeSection() {
         title={t("bridge.telegramChannel")}
         description={t("bridge.telegramChannelDesc")}
         enabled={channelEnabled}
+        verified={connectionVerified}
+        verificationHint={t("bridge.enableRequiresVerification")}
         saving={saving}
         onToggle={(checked) => void handleToggleChannel(checked)}
       />
@@ -208,6 +227,7 @@ export function TelegramBridgeSection() {
         platform="telegram"
         bridgeEnabled={bridgeEnabled}
         channelEnabled={channelEnabled}
+        connectionVerified={connectionVerified}
       />
 
       <SettingsCard

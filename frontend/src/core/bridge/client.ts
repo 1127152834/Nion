@@ -196,6 +196,7 @@ export type BridgeClient = {
     app_id?: string;
     app_secret?: string;
   }): Promise<BridgeVerifyResult>;
+  verifyWeixin(): Promise<BridgeVerifyResult>;
   listWeixinAccounts(): Promise<WeixinBridgeAccount[]>;
   startWeixinLogin(): Promise<WeixinBridgeLoginSession>;
   waitForWeixinLogin(sessionId: string): Promise<WeixinBridgeLoginSession>;
@@ -247,6 +248,7 @@ function resolveDesktopBridge() {
                   app_id?: string;
                   app_secret?: string;
                 }) => Promise<BridgeVerifyResult>;
+                verifyWeixin: () => Promise<BridgeVerifyResult>;
                 listWeixinAccounts: () => Promise<WeixinBridgeAccount[]>;
                 startWeixinLogin: () => Promise<WeixinBridgeLoginSession>;
                 waitForWeixinLogin: (sessionId: string) => Promise<WeixinBridgeLoginSession>;
@@ -294,6 +296,7 @@ export function getBridgeClient(): BridgeClient | null {
     verifyDiscord: (payload) => bridge.verifyDiscord(payload),
     verifyFeishu: (payload) => bridge.verifyFeishu(payload),
     verifyQq: (payload) => bridge.verifyQq(payload),
+    verifyWeixin: () => bridge.verifyWeixin(),
     listWeixinAccounts: () => bridge.listWeixinAccounts(),
     startWeixinLogin: () => bridge.startWeixinLogin(),
     waitForWeixinLogin: (sessionId) => bridge.waitForWeixinLogin(sessionId),
