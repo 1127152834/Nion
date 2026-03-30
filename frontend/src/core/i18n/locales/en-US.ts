@@ -42,6 +42,7 @@ export const enUS: Translations = {
     code: "Code",
     preview: "Preview",
     cancel: "Cancel",
+    select: "Select",
     save: "Save",
     install: "Install",
     create: "Create",
@@ -266,6 +267,7 @@ export const enUS: Translations = {
   // Chats
   chats: {
     searchChats: "Search chats",
+    selectedCount: "{count} selected",
   },
 
   bridge: {
@@ -1211,6 +1213,16 @@ export const enUS: Translations = {
       title: "Automation",
       description:
         "Organize recurring work into clear reminders and scheduled tasks without hunting through settings.",
+      hero: {
+        eyebrow: "Automation workbench",
+        quickActions: ["Create a reminder", "Plan a recurring task", "Inspect recent runs"],
+        statusLabel: "Scheduler status",
+        nextLabel: "Next up",
+        attentionLabel: "Needs attention",
+        attentionHint: "Failed runs and blocked automations show up here first.",
+        nonePlanned: "Nothing scheduled yet",
+        surfaceHint: "Use tabs to switch between planning, event-driven rules, and recent execution history.",
+      },
       tabs: {
         overview: "Overview",
         reminders: "Reminders",

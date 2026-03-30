@@ -275,6 +275,7 @@ export interface Translations {
     code: string;
     preview: string;
     cancel: string;
+    select: string;
     save: string;
     install: string;
     create: string;
@@ -441,6 +442,7 @@ export interface Translations {
   // Chats
   chats: {
     searchChats: string;
+    selectedCount: string;
   };
 
   bridge: BridgeTranslations;
@@ -929,6 +931,16 @@ export interface Translations {
     automationWorkspace: {
       title: string;
       description: string;
+      hero: {
+        eyebrow: string;
+        quickActions: string[];
+        statusLabel: string;
+        nextLabel: string;
+        attentionLabel: string;
+        attentionHint: string;
+        nonePlanned: string;
+        surfaceHint: string;
+      };
       tabs: {
         overview: string;
         reminders: string;

@@ -62,24 +62,29 @@ export function AutomationOverviewCards({
   return (
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
       {cards.map((card) => (
-        <Card key={card.id} className="gap-3 py-0">
+        <Card
+          key={card.id}
+          className="gap-3 overflow-hidden rounded-[26px] border-stone-200/80 bg-[linear-gradient(180deg,rgba(255,252,245,0.95),rgba(248,243,233,0.92))] py-0 shadow-[0_18px_48px_rgba(98,74,37,0.08)]"
+        >
           <CardHeader className="px-5 pt-5 pb-0">
-            <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-              <card.icon className="size-4" />
+            <CardTitle className="flex items-center gap-2 text-sm font-medium text-stone-500">
+              <span className="flex size-8 items-center justify-center rounded-full border border-stone-200 bg-white/90 text-stone-700 shadow-xs">
+                <card.icon className="size-4" />
+              </span>
               {card.label}
             </CardTitle>
           </CardHeader>
           <CardContent className="px-5 pb-5">
-            <div className="text-2xl font-semibold tracking-tight">
+            <div className="text-3xl font-semibold tracking-tight text-stone-900">
               {card.value}
             </div>
             {card.id === "scheduler" ? (
-              <div className="text-muted-foreground mt-2 text-xs">
+              <div className="mt-3 text-xs text-stone-500">
                 {copy.lastSuccess}: {summary.lastSuccessAt ?? copy.notRecordedYet}
               </div>
             ) : null}
             {card.id === "active" && summary.nextJob ? (
-              <div className="text-muted-foreground mt-2 text-xs">
+              <div className="mt-3 rounded-2xl border border-stone-200/80 bg-white/70 px-3 py-2 text-xs text-stone-600">
                 {copy.nextRun}: {summary.nextJob.name} · {summary.nextJob.nextRunAt}
               </div>
             ) : null}

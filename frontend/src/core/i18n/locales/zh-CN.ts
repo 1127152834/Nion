@@ -42,6 +42,7 @@ export const zhCN: Translations = {
     code: "代码",
     preview: "预览",
     cancel: "取消",
+    select: "选择",
     save: "保存",
     install: "安装",
     create: "创建",
@@ -255,6 +256,7 @@ export const zhCN: Translations = {
   // Chats
   chats: {
     searchChats: "搜索对话",
+    selectedCount: "已选 {count} 项",
   },
 
   bridge: {
@@ -1160,6 +1162,16 @@ export const zhCN: Translations = {
       title: "自动化",
       description:
         "把重复工作整理成清晰的提醒事项和定时任务，不再需要先钻进设置页才能管理。",
+      hero: {
+        eyebrow: "自动化工作台",
+        quickActions: ["创建提醒事项", "规划循环任务", "查看最近执行"],
+        statusLabel: "调度状态",
+        nextLabel: "接下来",
+        attentionLabel: "需要关注",
+        attentionHint: "失败执行和异常自动化会优先显示在这里。",
+        nonePlanned: "还没有安排任务",
+        surfaceHint: "用上面的分段导航在计划、事件响应和执行记录之间切换。",
+      },
       tabs: {
         overview: "概览",
         reminders: "提醒事项",
