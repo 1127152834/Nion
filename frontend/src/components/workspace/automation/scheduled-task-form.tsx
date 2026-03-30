@@ -21,8 +21,8 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import {
   buildAutomationDraftRequest,
-  type AutomationDraftCadence,
 } from "@/core/automation/draft-builder";
+import type { AutomationScheduleDefinition } from "@/core/automation/schedule-definition";
 import type {
   AutomationDeliveryMode,
   AutomationJobCreateInput,
@@ -43,7 +43,7 @@ export function ScheduledTaskForm({
   const copy = t.settings.automationWorkspace.forms;
   const [name, setName] = useState("");
   const [prompt, setPrompt] = useState("");
-  const [cadence, setCadence] = useState<AutomationDraftCadence>("weekdays");
+  const [cadence, setCadence] = useState<"daily" | "weekdays" | "weekly">("weekdays");
   const [timeOfDay, setTimeOfDay] = useState("09:00");
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [deliveryMode, setDeliveryMode] =
@@ -60,14 +60,26 @@ export function ScheduledTaskForm({
       return;
     }
 
+    const schedule: AutomationScheduleDefinition =
+      cadence === "weekly"
+        ? {
+            preset: "weekly",
+            timezone,
+            timeOfDay,
+            weekdays: [1],
+          }
+        : {
+            preset: cadence,
+            timezone,
+            timeOfDay,
+          };
+
     await onSubmit(
       buildAutomationDraftRequest({
         kind: "scheduled_task",
         name,
         prompt,
-        cadence,
-        timeOfDay,
-        timezone,
+        schedule,
         deliveryMode,
         skills: skillsText
           .split(",")
@@ -106,7 +118,9 @@ export function ScheduledTaskForm({
             </label>
             <Select
               value={cadence}
-              onValueChange={(value) => setCadence(value as AutomationDraftCadence)}
+              onValueChange={(value) =>
+                setCadence(value as "daily" | "weekdays" | "weekly")
+              }
             >
               <SelectTrigger aria-labelledby="task-cadence-label">
                 <SelectValue />

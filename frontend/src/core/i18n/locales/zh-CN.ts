@@ -1193,11 +1193,13 @@ export const zhCN: Translations = {
           "创建一个在运行时事件发生时自动触发的任务，而不是按固定时间执行。",
         cadenceLabel: "重复方式",
         timeLabel: "时间",
+        dateTimeLabel: "日期和时间",
         eventTypeLabel: "事件",
         eventActionLabel: "动作",
         eventPromptLabel: "提示词",
         eventPromptPlaceholder: "当这个事件发生时，Nion 应该做什么？",
         cadenceOptions: {
+          once: "单次",
           daily: "每天",
           weekdays: "工作日",
           weekly: "每周",

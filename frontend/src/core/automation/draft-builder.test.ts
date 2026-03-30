@@ -5,14 +5,35 @@ const { buildAutomationDraftRequest } = await import(
   new URL("./draft-builder.ts", import.meta.url).href
 );
 
+void test("builds a one-time reminder request from schedule definition", () => {
+  const draft = buildAutomationDraftRequest({
+    kind: "reminder",
+    name: "报销截止提醒",
+    prompt: "提醒我今天下班前提交报销",
+    schedule: {
+      preset: "once",
+      timezone: "Asia/Shanghai",
+      runAt: "2026-04-03T12:00:00Z",
+    },
+  });
+
+  assert.equal(draft.schedule_kind, "once");
+  assert.equal(draft.schedule_value, "2026-04-03T12:00:00Z");
+  assert.deepEqual(draft.schedule_metadata, {
+    run_at: "2026-04-03T12:00:00Z",
+  });
+});
+
 void test("builds a weekday reminder request from simple form inputs", () => {
   const draft = buildAutomationDraftRequest({
     kind: "reminder",
     name: "晚间复盘",
     prompt: "提醒我回顾今天最重要的三件事",
-    cadence: "weekdays",
-    timeOfDay: "21:00",
-    timezone: "Asia/Shanghai",
+    schedule: {
+      preset: "weekdays",
+      timezone: "Asia/Shanghai",
+      timeOfDay: "21:00",
+    },
   });
 
   assert.equal(draft.job_kind, "reminder");
@@ -27,10 +48,12 @@ void test("builds a weekly scheduled task request with advanced fields", () => {
     kind: "scheduled_task",
     name: "Weekly review",
     prompt: "Summarize the week and prepare next actions",
-    cadence: "weekly",
-    timeOfDay: "09:30",
-    timezone: "UTC",
-    dayOfWeek: 1,
+    schedule: {
+      preset: "weekly",
+      timezone: "UTC",
+      timeOfDay: "09:30",
+      weekdays: [1],
+    },
     deliveryMode: "thread",
     skills: ["memory", "calendar"],
   });

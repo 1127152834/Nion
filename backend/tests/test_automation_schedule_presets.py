@@ -1,6 +1,7 @@
 from datetime import UTC, datetime
 
 from nion.automation.repository import AutomationRepository
+from nion.automation.schedule_presets import build_schedule_fields
 from nion.automation.scheduler import AutomationScheduler
 from nion.automation.service import AutomationService
 
@@ -10,31 +11,51 @@ def _dt(value: str) -> datetime:
 
 
 def test_daily_preset_builds_cron_and_timezone():
-    from nion.automation.schedule_presets import build_schedule_fields
-
-    schedule = build_schedule_fields(
+    fields = build_schedule_fields(
         preset="daily",
         timezone="Asia/Shanghai",
         time_of_day="09:30",
     )
 
-    assert schedule.schedule_kind == "cron"
-    assert schedule.schedule_value == "30 9 * * *"
-    assert schedule.schedule_timezone == "Asia/Shanghai"
+    assert fields.schedule_kind == "cron"
+    assert fields.schedule_value == "30 9 * * *"
+    assert fields.schedule_timezone == "Asia/Shanghai"
 
 
 def test_weekday_preset_skips_weekends():
-    from nion.automation.schedule_presets import build_schedule_fields
-
-    schedule = build_schedule_fields(
+    fields = build_schedule_fields(
         preset="weekdays",
         timezone="Asia/Shanghai",
         time_of_day="18:00",
     )
 
-    assert schedule.schedule_kind == "cron"
-    assert schedule.schedule_value == "0 18 * * 1-5"
-    assert schedule.schedule_timezone == "Asia/Shanghai"
+    assert fields.schedule_kind == "cron"
+    assert fields.schedule_value == "0 18 * * 1-5"
+    assert fields.schedule_timezone == "Asia/Shanghai"
+
+
+def test_build_schedule_fields_supports_once_preset_with_run_at():
+    fields = build_schedule_fields(
+        preset="once",
+        timezone="Asia/Shanghai",
+        run_at="2026-04-03T12:00:00Z",
+    )
+
+    assert fields.schedule_kind == "once"
+    assert fields.schedule_value == "2026-04-03T12:00:00Z"
+    assert fields.schedule_metadata == {"run_at": "2026-04-03T12:00:00Z"}
+
+
+def test_build_schedule_fields_supports_custom_cron_expression():
+    fields = build_schedule_fields(
+        preset="cron",
+        timezone="UTC",
+        cron_expression="0 9 1 * *",
+    )
+
+    assert fields.schedule_kind == "cron"
+    assert fields.schedule_value == "0 9 1 * *"
+    assert fields.schedule_metadata == {"cron_expression": "0 9 1 * *"}
 
 
 def test_service_derives_low_level_schedule_from_friendly_fields(tmp_path):

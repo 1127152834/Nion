@@ -959,11 +959,13 @@ export interface Translations {
         eventDescription: string;
         cadenceLabel: string;
         timeLabel: string;
+        dateTimeLabel: string;
         eventTypeLabel: string;
         eventActionLabel: string;
         eventPromptLabel: string;
         eventPromptPlaceholder: string;
         cadenceOptions: {
+          once: string;
           daily: string;
           weekdays: string;
           weekly: string;

@@ -170,6 +170,33 @@ def test_create_automation_job_keeps_low_level_schedule_contract():
     assert service.calls[0][1]["schedule_value"] == "900"
 
 
+def test_create_automation_job_accepts_once_preset_with_run_at():
+    service = FakeAutomationService()
+    with _client(service) as client:
+        response = client.post(
+            "/api/automation/jobs",
+            json={
+                "name": "报销提醒",
+                "prompt": "提醒我提交报销",
+                "job_kind": "reminder",
+                "schedule_preset": "once",
+                "schedule_timezone": "Asia/Shanghai",
+                "schedule_metadata": {"run_at": "2026-04-03T12:00:00Z"},
+                "delivery_mode": "local",
+                "delivery_targets": [],
+                "skills": [],
+            },
+        )
+
+    assert response.status_code == 201
+    assert response.json()["job"]["schedule_preset"] == "once"
+    assert response.json()["job"]["schedule_timezone"] == "Asia/Shanghai"
+    assert service.calls[0][1]["schedule_preset"] == "once"
+    assert service.calls[0][1]["schedule_metadata"] == {
+        "run_at": "2026-04-03T12:00:00Z"
+    }
+
+
 def test_pause_resume_run_and_delete_actions():
     service = FakeAutomationService()
     with _client(service) as client:

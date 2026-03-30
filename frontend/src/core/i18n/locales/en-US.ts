@@ -1244,12 +1244,14 @@ export const enUS: Translations = {
           "Create an automation that reacts to a runtime event instead of a clock schedule.",
         cadenceLabel: "Repeats",
         timeLabel: "Time",
+        dateTimeLabel: "Date and time",
         eventTypeLabel: "Event",
         eventActionLabel: "Action",
         eventPromptLabel: "Prompt",
         eventPromptPlaceholder:
           "What should Nion do when this event happens?",
         cadenceOptions: {
+          once: "Once",
           daily: "Every day",
           weekdays: "Weekdays",
           weekly: "Weekly",
