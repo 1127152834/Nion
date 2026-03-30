@@ -10,5 +10,5 @@ export function mergePendingRewriteWithInitial(
   if (initialPendingRewrite !== null) {
     return initialPendingRewrite;
   }
-  return currentPendingRewrite;
+  return null;
 }

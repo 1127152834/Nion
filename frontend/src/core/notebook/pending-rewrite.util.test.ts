@@ -31,10 +31,10 @@ void test("mergePendingRewriteWithInitial retains current when references match"
   assert.strictEqual(result, baseRewrite);
 });
 
-void test("mergePendingRewriteWithInitial returns non-null current when initial null", () => {
+void test("mergePendingRewriteWithInitial clears stale rewrite when initial null", () => {
   const result = mergePendingRewriteWithInitial(null, baseRewrite);
 
-  assert.strictEqual(result, baseRewrite);
+  assert.strictEqual(result, null);
 });
 
 void test("mergePendingRewriteWithInitial returns null when both null", () => {

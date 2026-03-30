@@ -367,9 +367,6 @@ export function NotebookPage() {
       return;
     }
     try {
-      const confirmedBody = confirmNotebookPendingRewrite(pendingRewrite);
-      setDraftBody(confirmedBody);
-      setSavedBody(confirmedBody);
       const payload = await submitPendingRewriteSession("confirm");
       if (payload) {
         syncNotebookDraft(payload.note);
@@ -386,9 +383,6 @@ export function NotebookPage() {
       return;
     }
     try {
-      const restoredBody = cancelNotebookPendingRewrite(pendingRewrite);
-      setDraftBody(restoredBody);
-      setSavedBody(restoredBody);
       const payload = await submitPendingRewriteSession("cancel");
       if (payload) {
         syncNotebookDraft(payload.note);
