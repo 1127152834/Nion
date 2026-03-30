@@ -22,7 +22,6 @@ export interface NotebookAssistantSessionInput {
 
 export interface NotebookAssistantRewriteInput {
   noteId: string;
-  sessionId: string;
   content: string;
   expectedContentHash: string;
   selectionStart?: number;

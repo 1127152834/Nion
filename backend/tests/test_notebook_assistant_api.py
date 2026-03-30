@@ -142,7 +142,6 @@ def test_notebook_assistant_rewrite_api_round_trip(
         applied = client.post(
             f"/api/notebook/notes/{note_id}/rewrite/apply",
             json={
-                "session_id": "session-1",
                 "content": "clean body",
                 "expected_content_hash": note["content_hash"],
             },
@@ -154,7 +153,7 @@ def test_notebook_assistant_rewrite_api_round_trip(
 
         confirmed = client.post(
             f"/api/notebook/notes/{note_id}/rewrite/confirm",
-            json={"session_id": "session-1"},
+            json={},
         )
         assert confirmed.status_code == 200
         assert confirmed.json()["pending_rewrite"] is None
@@ -180,7 +179,6 @@ def test_notebook_assistant_rewrite_cancel_keeps_note_body(
         applied = client.post(
             f"/api/notebook/notes/{note_id}/rewrite/apply",
             json={
-                "session_id": "session-1",
                 "content": "clean body",
                 "expected_content_hash": note["content_hash"],
             },
@@ -190,14 +188,14 @@ def test_notebook_assistant_rewrite_cancel_keeps_note_body(
 
         cancelled = client.post(
             f"/api/notebook/notes/{note_id}/rewrite/cancel",
-            json={"session_id": "session-1"},
+            json={},
         )
         assert cancelled.status_code == 200
         assert cancelled.json()["pending_rewrite"] is None
         assert cancelled.json()["note"]["body"] == "draft body"
 
 
-def test_notebook_assistant_rewrite_sessions_do_not_override_each_other(
+def test_notebook_assistant_rewrite_sessions_share_note_scoped_pending_state(
     monkeypatch,
     tmp_path,
 ):
@@ -216,7 +214,6 @@ def test_notebook_assistant_rewrite_sessions_do_not_override_each_other(
         session_a = client.post(
             f"/api/notebook/notes/{note_id}/rewrite/apply",
             json={
-                "session_id": "session-a",
                 "content": "rewrite from a",
                 "expected_content_hash": note["content_hash"],
             },
@@ -227,7 +224,6 @@ def test_notebook_assistant_rewrite_sessions_do_not_override_each_other(
         session_b = client.post(
             f"/api/notebook/notes/{note_id}/rewrite/apply",
             json={
-                "session_id": "session-b",
                 "content": "rewrite from b",
                 "expected_content_hash": session_a.json()["note"]["content_hash"],
             },
@@ -237,14 +233,14 @@ def test_notebook_assistant_rewrite_sessions_do_not_override_each_other(
 
         confirmed_a = client.post(
             f"/api/notebook/notes/{note_id}/rewrite/confirm",
-            json={"session_id": "session-a"},
+            json={},
         )
         assert confirmed_a.status_code == 200
         assert confirmed_a.json()["note"]["body"] == "rewrite from b"
+        assert confirmed_a.json()["pending_rewrite"] is None
 
         cancelled_b = client.post(
             f"/api/notebook/notes/{note_id}/rewrite/cancel",
-            json={"session_id": "session-b"},
+            json={},
         )
-        assert cancelled_b.status_code == 200
-        assert cancelled_b.json()["note"]["body"] == "rewrite from a"
+        assert cancelled_b.status_code == 404

@@ -20,7 +20,6 @@ export function buildNotebookRewriteRequest(
   input: NotebookAssistantRewriteInput,
 ) {
   return {
-    session_id: input.sessionId,
     content: input.content,
     expected_content_hash: input.expectedContentHash,
     selection_start: input.selectionStart,
