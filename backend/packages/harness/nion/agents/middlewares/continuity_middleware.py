@@ -8,7 +8,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.runtime import Runtime
 
 from nion.config.paths import Paths, get_paths
-from nion.openviking import build_context_pack_markdown, classify_retrieval_intent
+from nion.openviking import build_continuity_context_block, classify_retrieval_intent
 from nion.openviking.runtime_retriever import RuntimeNotebookRetriever
 from nion.recall.local_archive import LocalRecallArchive
 
@@ -38,20 +38,17 @@ class ContinuityMiddleware(AgentMiddleware[AgentState]):
 
         latest_content = str(latest_human.content)
         recall_results = self._search_candidates(thread_id, latest_content)
-        notebook_context = self._search_notebook_context(latest_content)
-        if not recall_results and not notebook_context:
+        notebook_items = self._search_notebook_context_items(latest_content)
+        if not recall_results and not notebook_items:
             return None
 
-        blocks: list[str] = []
-        if recall_results:
-            summary = "\n".join(f"- {row.snippet}" for row in recall_results)
-            blocks.append(summary)
-        if notebook_context:
-            blocks.append(notebook_context)
         return {
             "messages": [
                 SystemMessage(
-                    content=f"<continuity_context>\n" + "\n\n".join(blocks) + "\n</continuity_context>"
+                    content=build_continuity_context_block(
+                        recall_results=recall_results,
+                        notebook_items=notebook_items,
+                    )
                 )
             ]
         }
@@ -72,10 +69,10 @@ class ContinuityMiddleware(AgentMiddleware[AgentState]):
                 return results
         return []
 
-    def _search_notebook_context(self, content: str) -> str:
+    def _search_notebook_context_items(self, content: str):
         intent = classify_retrieval_intent(content)
         if not intent.search_notebook:
-            return ""
+            return []
         queries = self._notebook_queries(content)
         pack = None
         for query in queries:
@@ -84,8 +81,8 @@ class ContinuityMiddleware(AgentMiddleware[AgentState]):
                 pack = candidate
                 break
         if pack is None:
-            return ""
-        return build_context_pack_markdown(pack.items)
+            return []
+        return pack.items
 
     def _notebook_queries(self, content: str) -> list[str]:
         raw = content.strip()

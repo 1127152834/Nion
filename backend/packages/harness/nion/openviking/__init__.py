@@ -1,6 +1,7 @@
 """Embedded OpenViking notebook ingest and retrieval runtime."""
 
 from nion.openviking.chunk_store import NotebookChunkSearchResult, OpenVikingChunkStore
+from nion.openviking.context_assembler import build_continuity_context_block
 from nion.openviking.chunker import NotebookChunk, chunk_notebook_markdown
 from nion.openviking.context_pack import (
     NotebookContextPack,
@@ -30,6 +31,7 @@ __all__ = [
     "OpenVikingSourceKind",
     "RuntimeNotebookRetriever",
     "RetrievalIntent",
+    "build_continuity_context_block",
     "build_context_pack_markdown",
     "classify_retrieval_intent",
     "chunk_notebook_markdown",
