@@ -32,3 +32,15 @@ test("desktop dev launcher force-stops an occupied renderer port before restart"
   assert.match(source, /kill -9/);
   assert.match(source, /Stopping existing Vite renderer/);
 });
+
+test("desktop dev launcher also clears stale electron and daemon processes", () => {
+  const source = fs.readFileSync(
+    new URL("../../scripts/desktop-dev.sh", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /pkill -f "electron dist\/main\/index\.js"/);
+  assert.match(source, /lsof -tiTCP:43115/);
+  assert.match(source, /Stopping existing desktop Electron process/);
+  assert.match(source, /Stopping existing local daemon on port 43115/);
+});

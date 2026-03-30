@@ -12,6 +12,17 @@ if [ -n "$EXISTING_RENDERER_PIDS" ]; then
   sleep 1
 fi
 
+echo "desktop-dev: Stopping existing desktop Electron process..." >&2
+pkill -f "electron dist/main/index.js" 2>/dev/null || true
+sleep 1
+
+EXISTING_DAEMON_PIDS="$(lsof -tiTCP:43115 -sTCP:LISTEN 2>/dev/null || true)"
+if [ -n "$EXISTING_DAEMON_PIDS" ]; then
+  echo "desktop-dev: Stopping existing local daemon on port 43115..." >&2
+  echo "$EXISTING_DAEMON_PIDS" | xargs kill -9 2>/dev/null || true
+  sleep 1
+fi
+
 cleanup() {
   trap - EXIT INT TERM
   if [ -n "${MAIN_WATCH_PID:-}" ]; then
