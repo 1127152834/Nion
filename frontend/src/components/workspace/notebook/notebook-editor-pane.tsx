@@ -59,6 +59,7 @@ type NotebookEditorPaneProps = {
   loadingLabel: string;
   note: NotebookNote | null;
   pendingRewrite: NotebookPendingRewrite | null;
+  pendingRewriteActionPending?: boolean;
   saveState: "saved" | "unsaved" | "saving";
   onCancelPendingRewrite: () => void;
   onConfirmPendingRewrite: () => void;
@@ -83,6 +84,7 @@ export function NotebookEditorPane({
   loadingLabel,
   note,
   pendingRewrite,
+  pendingRewriteActionPending = false,
   saveState,
   onCancelPendingRewrite,
   onConfirmPendingRewrite,
@@ -268,17 +270,19 @@ export function NotebookEditorPane({
                       variant="outline"
                       className="border-[var(--notebook-border)] bg-[var(--notebook-panel)] text-[var(--notebook-ink)] hover:bg-[var(--notebook-hover)]"
                       onClick={onCancelPendingRewrite}
+                      disabled={pendingRewriteActionPending}
                     >
                       <XCircle className="mr-1.5 size-4" />
-                      取消
+                      {pendingRewriteActionPending ? "处理中…" : "取消"}
                     </Button>
                     <Button
                       type="button"
                       className="bg-[var(--notebook-brand)] text-[var(--notebook-panel)] hover:opacity-90"
                       onClick={onConfirmPendingRewrite}
+                      disabled={pendingRewriteActionPending}
                     >
                       <CheckCircle2 className="mr-1.5 size-4" />
-                      确认
+                      {pendingRewriteActionPending ? "处理中…" : "确认"}
                     </Button>
                   </div>
                 </div>

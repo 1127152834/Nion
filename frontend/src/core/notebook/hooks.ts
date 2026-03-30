@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 
 import {
   applyNotebookAssist,
+  cancelNotebookRewrite,
   createNotebookDirectory,
   createNotebookNote,
   deleteNotebookDirectory,
@@ -19,6 +20,7 @@ import {
   moveNotebookDirectory,
   moveNotebookNote,
   previewNotebookAssist,
+  confirmNotebookRewrite,
   renameNotebookDirectory,
   renameNotebookNote,
   restoreDeletedNotebookNote,
@@ -321,6 +323,26 @@ export function useImportNotebookContent(noteId: string) {
       importNotebookContent(noteId, input),
     onSuccess: async (note) => {
       await invalidateNotebookQueries(queryClient, note.note_id);
+    },
+  });
+}
+
+export function useConfirmNotebookRewrite(noteId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => confirmNotebookRewrite(noteId),
+    onSuccess: async (payload) => {
+      await invalidateNotebookQueries(queryClient, payload.note.note_id);
+    },
+  });
+}
+
+export function useCancelNotebookRewrite(noteId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => cancelNotebookRewrite(noteId),
+    onSuccess: async (payload) => {
+      await invalidateNotebookQueries(queryClient, payload.note.note_id);
     },
   });
 }
