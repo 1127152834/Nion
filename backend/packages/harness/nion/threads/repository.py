@@ -99,7 +99,11 @@ class ThreadRepository:
     ) -> list[dict[str, Any]]:
         if thread_id:
             record = self.get_thread(thread_id)
-            return [record.model_dump()] if record is not None else []
+            if record is None:
+                return []
+            if scope != "all" and record.values.scope != scope:
+                return []
+            return [record.model_dump()]
 
         threads_root = self._paths.base_dir / "threads"
         if not threads_root.exists():

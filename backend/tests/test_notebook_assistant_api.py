@@ -40,6 +40,36 @@ def test_notebook_assistant_threads_are_excluded_from_general_search(
     assert [item["thread_id"] for item in response.json()] == ["workspace-thread"]
 
 
+def test_notebook_assistant_thread_id_filter_respects_scope(
+    monkeypatch,
+    tmp_path,
+):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+
+    repository = ThreadRepository(base_dir=tmp_path)
+    repository.upsert_thread(
+        "notebook-thread",
+        title="Notebook Assistant",
+        values={
+            "messages": [],
+            "artifacts": [],
+            "scope": "notebook_assistant",
+            "note_id": "note-1",
+            "notebook_session_id": "session-1",
+        },
+    )
+
+    with TestClient(create_app()) as client:
+        response = client.post(
+            "/api/threads/search",
+            json={"thread_id": "notebook-thread", "scope": "general", "limit": 10},
+        )
+
+    assert response.status_code == 200
+    assert response.json() == []
+
+
 def test_notebook_assistant_session_bootstrap_reuses_existing_thread(
     monkeypatch,
     tmp_path,

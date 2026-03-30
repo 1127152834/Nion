@@ -11,49 +11,22 @@ void test("notebook assistant query key includes note_id and session_id", () => 
 });
 
 void test("notebook assistant API uses the dedicated session bootstrap route", async () => {
-  const requests: Array<{ url: string; init?: RequestInit }> = [];
-  const originalFetch = globalThis.fetch;
+  const { readFile } = await import("node:fs/promises");
+  const apiSource = await readFile(new URL("./api.ts", import.meta.url), "utf8");
+  const desktopClientSource = await readFile(
+    new URL("../api/desktop-client.ts", import.meta.url),
+    "utf8",
+  );
 
-  globalThis.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
-    requests.push({
-      url: typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url,
-      init,
-    });
-    return new Response(
-      JSON.stringify({
-        thread_id: "thread-1",
-        created: true,
-        values: {
-          scope: "notebook_assistant",
-          note_id: "note-1",
-          notebook_session_id: "session-1",
-        },
-      }),
-      {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      },
-    );
-  }) as typeof fetch;
-
-  try {
-    const { createOrResumeNotebookAssistantSession } = await import("./api.ts");
-
-    const result = await createOrResumeNotebookAssistantSession({
-      noteId: "note-1",
-      sessionId: "session-1",
-    });
-
-    assert.equal(requests.length, 1);
-    assert.match(requests[0]!.url, /\/api\/threads\/notebook-assistant\/session$/);
-    assert.equal(requests[0]!.init?.method, "POST");
-    assert.equal(
-      requests[0]!.init?.body,
-      JSON.stringify({ note_id: "note-1", session_id: "session-1" }),
-    );
-    assert.equal(result.values.note_id, "note-1");
-    assert.equal(result.values.notebook_session_id, "session-1");
-  } finally {
-    globalThis.fetch = originalFetch;
-  }
+  assert.match(apiSource, /createThreadClient/);
+  assert.match(
+    apiSource,
+    /client\.createOrResumeNotebookAssistantSession\(\{\s*note_id: input\.noteId,\s*session_id: input\.sessionId,\s*\}\)/s,
+  );
+  assert.doesNotMatch(apiSource, /getBackendBaseURL/);
+  assert.doesNotMatch(apiSource, /fetch\(/);
+  assert.match(desktopClientSource, /async createOrResumeNotebookAssistantSession/);
+  assert.match(desktopClientSource, /resolveThreadsBaseURL\(false, options\?\.getBaseURL\)/);
+  assert.match(desktopClientSource, /requestJSON<Record<string, unknown>>\(/);
+  assert.match(desktopClientSource, /\$\{baseUrl\}\/notebook-assistant\/session/);
 });

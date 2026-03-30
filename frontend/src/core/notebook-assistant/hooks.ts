@@ -1,6 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
 
-import { createOrResumeNotebookAssistantSession } from "./api.ts";
 import type { NotebookAssistantSessionInput } from "./types.ts";
 
 export const notebookAssistantQueryKeys = {
@@ -10,7 +9,9 @@ export const notebookAssistantQueryKeys = {
 
 export function useCreateOrResumeNotebookAssistantSession() {
   return useMutation({
-    mutationFn: async (input: NotebookAssistantSessionInput) =>
-      createOrResumeNotebookAssistantSession(input),
+    mutationFn: async (input: NotebookAssistantSessionInput) => {
+      const { createOrResumeNotebookAssistantSession } = await import("./api.ts");
+      return createOrResumeNotebookAssistantSession(input);
+    },
   });
 }

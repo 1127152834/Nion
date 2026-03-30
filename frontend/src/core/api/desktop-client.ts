@@ -37,6 +37,14 @@ export type DesktopThreadRecord<TState extends Record<string, unknown> = AgentTh
   values: TState;
 };
 
+export type NotebookAssistantSessionBootstrapRecord<
+  TState extends Record<string, unknown> = AgentThreadState,
+> = DesktopThreadRecord<TState> & {
+  agent_name?: string;
+  deleted?: boolean;
+  created: boolean;
+};
+
 export type DesktopThreadClient = {
   search<TState extends Record<string, unknown> = AgentThreadState>(
     params: DesktopThreadSearchParams,
@@ -60,6 +68,14 @@ export type DesktopThreadClient = {
     permissionRequestId: string,
     decision: "allow" | "allow_session" | "deny",
   ): Promise<PermissionResolution>;
+  createOrResumeNotebookAssistantSession<
+    TState extends Record<string, unknown> = AgentThreadState,
+  >(
+    payload: {
+      note_id: string;
+      session_id: string;
+    },
+  ): Promise<NotebookAssistantSessionBootstrapRecord<TState>>;
 };
 
 function getDesktopBackendBaseURL(): string {
@@ -398,6 +414,27 @@ export function createDesktopThreadClient(
           body: JSON.stringify({ decision }),
         },
       );
+    },
+
+    async createOrResumeNotebookAssistantSession<
+      TState extends Record<string, unknown> = AgentThreadState,
+    >(payload: { note_id: string; session_id: string }) {
+      const baseUrl = await resolveThreadsBaseURL(false, options?.getBaseURL);
+      const result = await requestJSON<Record<string, unknown>>(
+        `${baseUrl}/notebook-assistant/session`,
+        {
+          method: "POST",
+          body: JSON.stringify(payload),
+        },
+      );
+      const normalized = normalizeThreadRecord<TState>(result);
+      return {
+        ...normalized,
+        agent_name:
+          typeof result.agent_name === "string" ? result.agent_name : undefined,
+        deleted: typeof result.deleted === "boolean" ? result.deleted : undefined,
+        created: result.created === true,
+      };
     },
   };
 }
