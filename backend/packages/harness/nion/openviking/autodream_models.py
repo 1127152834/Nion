@@ -25,3 +25,7 @@ class DreamEntry(BaseModel):
 class AutoDreamRunState(BaseModel):
     last_run_at: str | None = None
     session_count_since_last_run: int = 0
+    running: bool = False
+    last_run_status: str | None = None
+    last_run_summary: str | None = None
+    last_query: str | None = None

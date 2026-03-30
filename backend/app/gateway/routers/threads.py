@@ -165,6 +165,12 @@ async def stream_thread(
                 message=f"Thread stream finished for {thread_id}",
                 details={"message_count": len(payload.messages)},
             )
+            daemon_service = getattr(request.app.state, "daemon_service", None)
+            if daemon_service is not None and hasattr(
+                daemon_service,
+                "record_autodream_session_completed",
+            ):
+                daemon_service.record_autodream_session_completed()
             dispatch_automation_event(
                 "thread.finished",
                 {

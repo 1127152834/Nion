@@ -6,6 +6,7 @@ from collections.abc import Awaitable, Callable
 from typing import Any
 
 from nion.config import get_app_config
+from nion.openviking.autodream_scheduler import AutoDreamScheduler
 from nion.telemetry.logger import make_event
 from nion.telemetry.store import TelemetryStore
 
@@ -13,6 +14,8 @@ from .session_registry import SessionRegistry
 
 
 class LocalDaemonService:
+    AUTODREAM_POLL_INTERVAL_SECONDS = 60.0
+
     def __init__(
         self,
         *,
@@ -29,9 +32,12 @@ class LocalDaemonService:
             allow_background_running=allow_background_running,
             shutdown_grace_period_seconds=shutdown_grace_period_seconds,
         )
+        self._autodream_scheduler = AutoDreamScheduler()
         self._telemetry_store: TelemetryStore | None = None
         self._shutdown_callback: Callable[[], Awaitable[None] | None] | None = None
         self._shutdown_task: asyncio.Task[None] | None = None
+        self._autodream_task: asyncio.Task[None] | None = None
+        self._active_thread_streams: set[str] = set()
 
     @classmethod
     def from_app_config(cls) -> LocalDaemonService:
@@ -101,6 +107,42 @@ class LocalDaemonService:
             "should_exit": self.registry.should_exit(),
             "clients": self.registry.snapshot(),
         }
+
+    def autodream_status(self) -> dict[str, object]:
+        return self._autodream_scheduler.status()
+
+    def record_autodream_session_completed(self) -> dict[str, object]:
+        state = self._autodream_scheduler.record_session_completed()
+        return {
+            "last_run_at": state.last_run_at,
+            "session_count_since_last_run": state.session_count_since_last_run,
+        }
+
+    def has_active_runtime_work(self) -> bool:
+        return bool(self._active_thread_streams)
+
+    def record_thread_event(
+        self,
+        *,
+        level: str,
+        event_type: str,
+        thread_id: str,
+        message: str,
+        details: dict[str, Any] | None = None,
+    ) -> None:
+        if event_type == "thread_stream_started":
+            self._active_thread_streams.add(thread_id)
+        elif event_type in {"thread_stream_finished", "thread_stream_failed"}:
+            self._active_thread_streams.discard(thread_id)
+        self._record_event(
+            category="thread",
+            level=level,
+            event_type=event_type,
+            actor="system",
+            thread_id=thread_id,
+            message=message,
+            details=details,
+        )
 
     def set_shutdown_callback(
         self,
@@ -173,17 +215,57 @@ class LocalDaemonService:
                     return
 
         self._shutdown_task = asyncio.create_task(monitor(), name="local-daemon-shutdown-monitor")
+        self._autodream_task = asyncio.create_task(
+            self._autodream_monitor(),
+            name="local-daemon-autodream-monitor",
+        )
 
     async def stop(self) -> None:
         task = self._shutdown_task
+        autodream_task = self._autodream_task
         self._shutdown_task = None
+        self._autodream_task = None
         if task is None:
-            return
-        task.cancel()
-        try:
-            await task
-        except asyncio.CancelledError:
-            pass
+            if autodream_task is None:
+                return
+        for pending in (task, autodream_task):
+            if pending is None:
+                continue
+            pending.cancel()
+        for pending in (task, autodream_task):
+            if pending is None:
+                continue
+            try:
+                await pending
+            except asyncio.CancelledError:
+                pass
+
+    async def _autodream_monitor(self) -> None:
+        while True:
+            await asyncio.sleep(self.AUTODREAM_POLL_INTERVAL_SECONDS)
+            if self.has_active_runtime_work():
+                continue
+            try:
+                did_run = self._autodream_scheduler.tick()
+            except Exception:
+                self._record_event(
+                    category="autodream",
+                    level="error",
+                    event_type="autodream_run_failed",
+                    actor="system",
+                    message="AutoDream scheduler tick failed",
+                    details=self.autodream_status(),
+                )
+                continue
+            if did_run:
+                self._record_event(
+                    category="autodream",
+                    level="info",
+                    event_type="autodream_run_completed",
+                    actor="system",
+                    message="AutoDream scheduler completed a background run",
+                    details=self.autodream_status(),
+                )
 
     def _record_event(
         self,

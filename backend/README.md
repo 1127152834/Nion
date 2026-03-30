@@ -42,6 +42,15 @@ Program 03D-A extends that surface to incident workflow:
 - a desktop diagnostics center is designed to consume incident records later, but it is not implemented in this phase
 - bridge/channel incidents, `daemon_runtime` playbooks, and auto-remediation remain out of scope for 03D-A
 
+Program 03E extends the same local-daemon surface to AutoDream:
+
+- AutoDream remains an embedded OpenViking capability, not an external service
+- manual runs stay available at `POST /api/autodream/run`
+- the daemon now owns a background scheduler loop for AutoDream
+- eligibility stays on the `24h + 5 completed sessions` rule
+- idle gating is based on active thread-stream work, not desktop process presence
+- scheduler state is exposed at `GET /api/autodream/status`
+
 ---
 
 ## Architecture
@@ -172,6 +181,8 @@ FastAPI application providing REST endpoints for frontend integration:
 | `POST /api/memory/reload` | Force memory reload |
 | `GET /api/memory/config` | Memory configuration |
 | `GET /api/memory/status` | Combined config + data |
+| `POST /api/autodream/run` | Trigger an AutoDream run manually |
+| `GET /api/autodream/status` | Inspect daemon-owned AutoDream scheduler state |
 | `POST /api/threads/{id}/uploads` | Upload files (auto-converts PDF/PPT/Excel/Word to Markdown, rejects directory paths) |
 | `GET /api/threads/{id}/uploads/list` | List uploaded files |
 | `GET /api/threads/{id}/artifacts/{path}` | Serve generated artifacts |

@@ -228,6 +228,7 @@ FastAPI application on port 8001 with health check at `GET /health`.
 | **MCP** (`/api/mcp`) | `GET /config` - get config; `PUT /config` - update config (saves to extensions_config.json) |
 | **Skills** (`/api/skills`) | `GET /` - list skills; `GET /{name}` - details; `PUT /{name}` - update enabled; `POST /install` - install from .skill archive (accepts standard optional frontmatter like `version`, `author`, `compatibility`) |
 | **Memory** (`/api/memory`) | `GET /` - memory data; `POST /reload` - force reload; `DELETE /` - clear all memory; `DELETE /facts/{fact_id}` - delete a fact; `GET /config` - config; `GET /status` - config + data |
+| **AutoDream** (`/api/autodream`) | `POST /run` - run AutoDream manually; `GET /status` - inspect daemon-owned scheduler state (`running`, `last_run_at`, `last_run_status`, `last_run_summary`, `session_count_since_last_run`, `next_eligibility_hint`) |
 | **Notebook** (`/api/notebook`) | `GET /tree`; `GET /notes`; `GET /notes/{note_id}`; `POST /notes`; `PUT /notes/{note_id}`; `POST /notes/{note_id}/rename`; `POST /notes/{note_id}/move`; `PATCH /notes/{note_id}/metadata`; `GET /notes/{note_id}/history`; `GET /notes/{note_id}/history/{version_id}`; `POST /notes/{note_id}/restore`; `GET /notes/{note_id}/delete-preview`; `POST /notes/{note_id}/delete`; `POST /notes/{note_id}/restore-deleted`; `GET /trash`; `POST /directories`; `POST /directories/rename`; `POST /directories/delete`; `POST /notes/{note_id}/assist-preview`; `POST /notes/{note_id}/assist-apply`; `POST /notes/{note_id}/import` |
 | **Uploads** (`/api/threads/{id}/uploads`) | `POST /` - upload files (auto-converts PDF/PPT/Excel/Word); `GET /list` - list; `DELETE /{filename}` - delete |
 | **Artifacts** (`/api/threads/{id}/artifacts`) | `GET /{path}` - serve artifacts; `?download=true` for file download |
@@ -256,6 +257,14 @@ Program 03 adds a daemon control plane backed by `telemetry.sqlite3` under the
 resolved Nion app data root. Keep telemetry human-readable in `message`,
 machine-readable in structured `details`, and prefer querying through daemon APIs
 or built-in control-plane tools instead of direct database scraping.
+
+AutoDream scheduler behavior is also daemon-owned in desktop mode:
+
+- keep AutoDream out of the automation job system
+- count only successful completed thread streams as meaningful sessions
+- do not count failed streams, client register/unregister events, or heartbeats
+- treat idle as "no active thread stream is being processed", not "no client connected"
+- keep manual `/api/autodream/run` behavior intact even when scheduler status exists
 
 Program 03B extends that contract to delegated execution:
 
