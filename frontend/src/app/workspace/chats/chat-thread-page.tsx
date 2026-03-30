@@ -444,7 +444,7 @@ export default function ChatThreadPage() {
                 />
               </div>
               <div className="shrink-0 px-4 pb-4">
-                <div className="relative w-full max-w-(--container-width-md)">
+                <div className="mx-auto flex w-full max-w-(--container-width-md) flex-col gap-3 pt-4">
                   <div className="absolute -top-4 right-0 left-0 z-0">
                     <div className="absolute right-0 bottom-0 left-0">
                       <TodoList
@@ -458,23 +458,21 @@ export default function ChatThreadPage() {
                     </div>
                   </div>
 
-                  <div className="flex w-full flex-col gap-3 pt-4">
-                    {threadError ? <ThreadRequestErrorAlert error={threadError} /> : null}
-                    <InputBox
-                      className="bg-background/5 w-full"
-                      isNewThread={isNewThread}
-                      threadId={threadId}
-                      initialValue={seededDraft}
-                      status={inputStatus}
-                      disabled={inputDisabled}
-                      pendingClarification={pendingClarification}
-                      workspacePaths={workspacePaths}
-                      context={settings.context}
-                      onContextChange={(context) => setSettings("context", context)}
-                      onSubmit={handleSubmit}
-                      onStop={handleStop}
-                    />
-                  </div>
+                  {threadError ? <ThreadRequestErrorAlert error={threadError} /> : null}
+                  <InputBox
+                    className="bg-background/5 w-full"
+                    isNewThread={isNewThread}
+                    threadId={threadId}
+                    initialValue={seededDraft}
+                    status={inputStatus}
+                    disabled={inputDisabled}
+                    pendingClarification={pendingClarification}
+                    workspacePaths={workspacePaths}
+                    context={settings.context}
+                    onContextChange={(context) => setSettings("context", context)}
+                    onSubmit={handleSubmit}
+                    onStop={handleStop}
+                  />
                 </div>
               </div>
             </main>

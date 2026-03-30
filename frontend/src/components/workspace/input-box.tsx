@@ -16,7 +16,7 @@ import {
   XIcon,
   ZapIcon,
 } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import {
   useCallback,
   useEffect,
@@ -473,7 +473,6 @@ export function InputBox({
   onStop?: () => void;
 }) {
   const { t } = useI18n();
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [modelDialogOpen, setModelDialogOpen] = useState(false);
   const { models } = useModels();
@@ -602,7 +601,7 @@ export function InputBox({
         .sort(([left], [right]) => left.localeCompare(right))
         .map(([toolId, tool]) => ({
           id: `cli:${toolId}`,
-          label: tool.displayName?.trim() || toolId,
+          label: tool.displayName?.trim() ?? toolId,
           value: toolId,
           kind: "cli" as const,
           description: tool.version
@@ -1975,33 +1974,26 @@ export function InputBox({
             onOpenChange={setModelDialogOpen}
           >
             <ModelSelectorTrigger asChild>
-              <PromptInputButton>
-                <div className="flex min-w-0 flex-col items-start text-left">
-                  <ModelSelectorName className="text-xs font-normal">
+              <PromptInputButton className="min-w-0 rounded-full px-3">
+                <div className="flex min-w-0 items-center text-left">
+                  <ModelSelectorName className="text-[13px] font-medium text-foreground/78">
                     {selectedModel?.display_name}
                   </ModelSelectorName>
-                  {selectedModel?.model && (
-                    <span className="text-muted-foreground w-full truncate text-[10px] leading-none">
-                      {selectedModel.model}
-                    </span>
-                  )}
                 </div>
               </PromptInputButton>
             </ModelSelectorTrigger>
-            <ModelSelectorContent>
+            <ModelSelectorContent className="max-w-sm rounded-2xl border border-border/50 shadow-2xl">
               <ModelSelectorInput placeholder={t.inputBox.searchModels} />
               <ModelSelectorList>
                 {models.map((m) => (
                   <ModelSelectorItem
                     key={m.name}
                     value={m.name}
+                    className="rounded-xl px-3 py-3"
                     onSelect={() => handleModelSelect(m.name)}
                   >
-                    <div className="flex min-w-0 flex-1 flex-col">
+                    <div className="flex min-w-0 flex-1 items-center">
                       <ModelSelectorName>{m.display_name}</ModelSelectorName>
-                      <span className="text-muted-foreground truncate text-[10px]">
-                        {m.model}
-                      </span>
                     </div>
                     {m.name === context.model_name ? (
                       <CheckIcon className="ml-auto size-4" />
