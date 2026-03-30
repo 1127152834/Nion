@@ -2,6 +2,8 @@ import { getBackendBaseURL } from "@/core/config";
 
 import type {
   ExecutionPlan,
+  ManagedArtifact,
+  ProjectArtifactDetail,
   ProjectDashboard,
   ProjectDecisionRequest,
   ProjectListResponse,
@@ -221,4 +223,47 @@ export async function listProjectTimeline(projectId: string): Promise<{
     cache: "no-store",
   });
   return parseJson<{ items: ProjectTimelineEvent[]; next_cursor: string | null }>(response);
+}
+
+export async function listProjectArtifacts(projectId: string): Promise<{
+  items: ManagedArtifact[];
+}> {
+  const response = await fetch(`${projectsBaseUrl()}/${projectId}/artifacts`, {
+    cache: "no-store",
+  });
+  return parseJson<{ items: ManagedArtifact[] }>(response);
+}
+
+export async function getProjectArtifact(
+  projectId: string,
+  artifactId: string,
+): Promise<ProjectArtifactDetail> {
+  const response = await fetch(
+    `${projectsBaseUrl()}/${projectId}/artifacts/${artifactId}`,
+    {
+      cache: "no-store",
+    },
+  );
+  return parseJson<ProjectArtifactDetail>(response);
+}
+
+export async function restoreProjectArtifact(
+  projectId: string,
+  artifactId: string,
+  input: {
+    version_id: string;
+    restore_reason?: string;
+  },
+) {
+  const response = await fetch(
+    `${projectsBaseUrl()}/${projectId}/artifacts/${artifactId}/restore`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(input),
+    },
+  );
+  return parseJson<ProjectArtifactDetail["versions"][number]>(response);
 }

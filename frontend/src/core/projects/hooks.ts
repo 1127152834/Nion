@@ -7,13 +7,16 @@ import {
   createReworkPlan,
   createProjectThread,
   getProjectDashboard,
+  getProjectArtifact,
   listProjectDecisions,
+  listProjectArtifacts,
   listProjectPlans,
   listProjects,
   listProjectTimeline,
   listProjectThreads,
   requestProjectCompletion,
   resolveProjectDecision,
+  restoreProjectArtifact,
   setPrimaryProjectPlan,
   setPrimaryProjectThread,
   startProjectPlan,
@@ -63,6 +66,25 @@ export function useProjectTimeline(projectId: string | null | undefined) {
     queryKey: ["projects", projectId, "timeline"],
     queryFn: () => listProjectTimeline(projectId!),
     enabled: Boolean(projectId),
+  });
+}
+
+export function useProjectArtifacts(projectId: string | null | undefined) {
+  return useQuery({
+    queryKey: ["projects", projectId, "artifacts"],
+    queryFn: () => listProjectArtifacts(projectId!),
+    enabled: Boolean(projectId),
+  });
+}
+
+export function useProjectArtifact(
+  projectId: string | null | undefined,
+  artifactId: string | null | undefined,
+) {
+  return useQuery({
+    queryKey: ["projects", projectId, "artifacts", artifactId],
+    queryFn: () => getProjectArtifact(projectId!, artifactId!),
+    enabled: Boolean(projectId && artifactId),
   });
 }
 
@@ -183,6 +205,36 @@ export function useCreateReworkPlan(projectId: string) {
         queryClient.invalidateQueries({ queryKey: ["projects", projectId, "dashboard"] }),
         queryClient.invalidateQueries({ queryKey: ["projects", projectId, "plans"] }),
         queryClient.invalidateQueries({ queryKey: ["projects", projectId, "timeline"] }),
+        queryClient.invalidateQueries({ queryKey: ["projects", projectId, "decisions"] }),
+      ]);
+    },
+  });
+}
+
+export function useRestoreProjectArtifact(projectId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      artifactId,
+      versionId,
+      restoreReason,
+    }: {
+      artifactId: string;
+      versionId: string;
+      restoreReason?: string;
+    }) =>
+      restoreProjectArtifact(projectId, artifactId, {
+        version_id: versionId,
+        restore_reason: restoreReason,
+      }),
+    onSuccess: async (_, variables) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["projects", projectId, "dashboard"] }),
+        queryClient.invalidateQueries({ queryKey: ["projects", projectId, "timeline"] }),
+        queryClient.invalidateQueries({ queryKey: ["projects", projectId, "artifacts"] }),
+        queryClient.invalidateQueries({
+          queryKey: ["projects", projectId, "artifacts", variables.artifactId],
+        }),
         queryClient.invalidateQueries({ queryKey: ["projects", projectId, "decisions"] }),
       ]);
     },

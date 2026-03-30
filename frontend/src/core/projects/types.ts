@@ -130,6 +130,38 @@ export type ProjectTimelineEvent = {
   payload?: Record<string, unknown>;
 };
 
+export type ManagedArtifactVersion = {
+  id: string;
+  artifact_id: string;
+  version_number: number;
+  created_at: string;
+  created_by: string;
+  change_type: "create" | "update" | "restore" | "rework_output";
+  summary: string;
+  content_ref?: string | null;
+  diff_ref?: string | null;
+  related_plan_id?: string | null;
+  restored_from_version_id?: string | null;
+  restore_reason?: string | null;
+};
+
+export type ManagedArtifact = {
+  id: string;
+  project_id: string;
+  artifact_type: "document" | "code" | "config" | "table" | "report" | "automation" | "other";
+  title: string;
+  path: string;
+  mime_type?: string | null;
+  is_managed: boolean;
+  primary_plan_id?: string | null;
+  linked_plan_ids: string[];
+  current_version_id?: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  archived_at?: string | null;
+};
+
 export type ProjectMemorySummary = {
   brief: string[];
   decisions: string[];
@@ -201,3 +233,7 @@ export type ProjectListResponse = {
   next_cursor: string | null;
 };
 
+export type ProjectArtifactDetail = {
+  artifact: ManagedArtifact;
+  versions: ManagedArtifactVersion[];
+};

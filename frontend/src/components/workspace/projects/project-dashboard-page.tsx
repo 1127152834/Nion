@@ -33,12 +33,15 @@ import {
   useCreateProjectPlan,
   useCreateProjectThread,
   useCreateReworkPlan,
+  useProjectArtifact,
+  useProjectArtifacts,
   useProjectDashboard,
   useProjectDecisions,
   useProjectPlans,
   useProjectTimeline,
   useRequestProjectCompletion,
   useResolveProjectDecision,
+  useRestoreProjectArtifact,
   useSetPrimaryProjectPlan,
   useSetPrimaryProjectThread,
   useStartProjectPlan,
@@ -52,10 +55,12 @@ export function ProjectDashboardPage({ projectId }: { projectId: string }) {
   const { data: plansData } = useProjectPlans(projectId);
   const { data: decisionsData } = useProjectDecisions(projectId);
   const { data: timelineData } = useProjectTimeline(projectId);
+  const { data: artifactsData } = useProjectArtifacts(projectId);
 
   const createThread = useCreateProjectThread(projectId);
   const createPlan = useCreateProjectPlan(projectId);
   const createReworkPlan = useCreateReworkPlan(projectId);
+  const restoreArtifact = useRestoreProjectArtifact(projectId);
   const requestProjectCompletion = useRequestProjectCompletion(projectId);
   const startPlan = useStartProjectPlan(projectId);
   const setPrimaryPlan = useSetPrimaryProjectPlan(projectId);
@@ -66,6 +71,7 @@ export function ProjectDashboardPage({ projectId }: { projectId: string }) {
   const plans = plansData?.items ?? [];
   const decisions = decisionsData?.items ?? data?.pending_confirmations ?? [];
   const timeline = timelineData?.items ?? data?.recent_timeline ?? [];
+  const artifacts = artifactsData?.items ?? [];
   const currentPrimaryPlan = data?.current_primary_plan ?? null;
   const recentThreads = data?.recent_threads ?? [];
   const currentPrimaryThread = useMemo(
@@ -411,6 +417,37 @@ export function ProjectDashboardPage({ projectId }: { projectId: string }) {
             <div className="space-y-6">
               <Card>
                 <CardHeader>
+                  <CardTitle>受管产物</CardTitle>
+                  <CardDescription>
+                    这里展示 Nion 直接创建或修改的受管产物，以及它们的主归属计划和恢复动作。
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {artifacts.length === 0 ? (
+                    <div className="text-sm text-muted-foreground">
+                      当前还没有受管产物。后续计划输出会逐步沉淀在这里。
+                    </div>
+                  ) : (
+                    artifacts.map((artifact) => (
+                      <ArtifactCard
+                        key={artifact.id}
+                        artifactId={artifact.id}
+                        projectId={projectId}
+                        onRestore={(versionId) =>
+                          restoreArtifact.mutate({
+                            artifactId: artifact.id,
+                            versionId,
+                            restoreReason: "从项目驾驶舱恢复历史版本",
+                          })
+                        }
+                      />
+                    ))
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
                   <CardTitle>项目会话</CardTitle>
                   <CardDescription>
                     每个项目有独立的会话集合，主会话负责承接当前主计划。
@@ -526,5 +563,68 @@ export function ProjectDashboardPage({ projectId }: { projectId: string }) {
         </div>
       </WorkspaceBody>
     </WorkspaceContainer>
+  );
+}
+
+function ArtifactCard({
+  artifactId,
+  projectId,
+  onRestore,
+}: {
+  artifactId: string;
+  projectId: string;
+  onRestore: (versionId: string) => void;
+}) {
+  const { data } = useProjectArtifact(projectId, artifactId);
+
+  if (!data) {
+    return (
+      <div className="rounded-2xl border p-3 text-sm text-muted-foreground">
+        正在加载产物…
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-2xl border p-3">
+      <div className="flex items-start justify-between gap-3">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <div className="font-medium">{data.artifact.title}</div>
+            <Badge variant="outline">{data.artifact.artifact_type}</Badge>
+          </div>
+          <div className="text-sm text-muted-foreground">{data.artifact.path}</div>
+          <div className="text-xs text-muted-foreground">
+            主归属计划：{data.artifact.primary_plan_id ?? "暂无"}
+          </div>
+        </div>
+      </div>
+      <div className="mt-3 space-y-2">
+        {data.versions.length === 0 ? (
+          <div className="text-sm text-muted-foreground">暂无版本记录。</div>
+        ) : (
+          data.versions.slice(0, 3).map((version) => (
+            <div
+              key={version.id}
+              className="flex items-center justify-between gap-3 rounded-xl border px-3 py-2 text-sm"
+            >
+              <div className="min-w-0">
+                <div className="font-medium">版本 #{version.version_number}</div>
+                <div className="truncate text-muted-foreground">
+                  {version.summary || version.change_type}
+                </div>
+              </div>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => onRestore(version.id)}
+              >
+                恢复
+              </Button>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
   );
 }
