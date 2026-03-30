@@ -17,6 +17,7 @@ import type {
   NotebookImportSourcesResponse,
   NotebookMetadataInput,
   NotebookMoveInput,
+  NotebookNoteDetail,
   NotebookNote,
   NotebookNoteSummary,
   NotebookRenameInput,
@@ -86,7 +87,7 @@ export async function loadNotebookTrash(): Promise<NotebookDeletedNotePreview[]>
   return json.notes;
 }
 
-export async function loadNotebookNote(noteId: string): Promise<NotebookNote> {
+export async function loadNotebookNote(noteId: string): Promise<NotebookNoteDetail> {
   const response = await fetch(`${getBackendBaseURL()}/api/notebook/notes/${noteId}`);
   if (!response.ok) {
     throw new Error(
@@ -96,8 +97,7 @@ export async function loadNotebookNote(noteId: string): Promise<NotebookNote> {
       ),
     );
   }
-  const json = await readJson<{ note: NotebookNote }>(response);
-  return json.note;
+  return readJson<NotebookNoteDetail>(response);
 }
 
 export async function createNotebookNote(input: NotebookCreateInput): Promise<NotebookNote> {

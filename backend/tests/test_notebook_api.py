@@ -568,6 +568,15 @@ def test_notebook_rewrite_apply_overwrites_existing_pending_rewrite(monkeypatch,
         reloaded = client.get(f"/api/notebook/notes/{note_id}")
         assert reloaded.status_code == 200
         assert reloaded.json()["note"]["body"] == "line one\nsecond rewrite"
+        assert reloaded.json()["pending_rewrite"] == {
+            "note_id": note_id,
+            "original_content": "line one\nline two",
+            "original_content_hash": note["content_hash"],
+            "applied_content": "line one\nsecond rewrite",
+            "selection_start": 9,
+            "selection_end": 17,
+            "updated_at": second_payload["pending_rewrite"]["updated_at"],
+        }
 
 
 def test_notebook_rewrite_cancel_discards_pending_rewrite(monkeypatch, tmp_path):

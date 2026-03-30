@@ -89,7 +89,12 @@ export function useNotebookNote(noteId: string | null) {
     enabled: Boolean(noteId),
     refetchOnWindowFocus: false,
   });
-  return { note: data ?? null, isLoading, error };
+  return {
+    note: data?.note ?? null,
+    pendingRewrite: data?.pending_rewrite ?? null,
+    isLoading,
+    error,
+  };
 }
 
 export function useNotebookHistory(noteId: string | null) {

@@ -479,13 +479,14 @@ async def list_notebook_notes() -> NotebookNotesResponse:
     return NotebookNotesResponse(notes=notes)
 
 
-@router.get("/notes/{note_id}", response_model=NotebookNoteResponse)
-async def get_notebook_note(note_id: str) -> NotebookNoteResponse:
+@router.get("/notes/{note_id}", response_model=NotebookPendingRewriteResponse)
+async def get_notebook_note(note_id: str) -> NotebookPendingRewriteResponse:
     try:
         note = NotebookHistoryService()._service.read_note(note_id)
     except NotebookNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
-    return NotebookNoteResponse(note=note)
+    pending_rewrite = NotebookAssistantService().get_pending_rewrite(note_id)
+    return NotebookPendingRewriteResponse(note=note, pending_rewrite=pending_rewrite)
 
 
 @router.put("/notes/{note_id}", response_model=NotebookNoteResponse)

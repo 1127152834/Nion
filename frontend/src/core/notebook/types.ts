@@ -168,10 +168,18 @@ export interface NotebookAssistApplyInput {
 }
 
 export interface NotebookPendingRewrite {
+  note_id?: string;
   original_content: string;
+  original_content_hash?: string;
   applied_content: string;
   selection_start?: number | null;
   selection_end?: number | null;
+  updated_at?: string;
+}
+
+export interface NotebookNoteDetail {
+  note: NotebookNote;
+  pending_rewrite: NotebookPendingRewrite | null;
 }
 
 export interface NotebookImportInput {
