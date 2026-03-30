@@ -1,5 +1,6 @@
 import {
   CompassIcon,
+  FolderKanbanIcon,
   GraduationCapIcon,
   ImageIcon,
   MicroscopeIcon,
@@ -154,6 +155,12 @@ export const enUS: Translations = {
       },
       {
         type: "separator",
+      },
+      {
+        suggestion: "Project",
+        prompt: "Create a new long-running project for [goal]",
+        icon: FolderKanbanIcon,
+        action: "create-project",
       },
       {
         suggestion: "Skill",

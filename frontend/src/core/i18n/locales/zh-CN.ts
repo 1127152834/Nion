@@ -1,5 +1,6 @@
 import {
   CompassIcon,
+  FolderKanbanIcon,
   GraduationCapIcon,
   ImageIcon,
   MicroscopeIcon,
@@ -148,6 +149,12 @@ export const zhCN: Translations = {
       },
       {
         type: "separator",
+      },
+      {
+        suggestion: "项目",
+        prompt: "创建一个关于[目标]的长期项目",
+        icon: FolderKanbanIcon,
+        action: "create-project",
       },
       {
         suggestion: "技能",

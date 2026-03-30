@@ -15,6 +15,7 @@ def test_web_mode_exposes_shared_routes_without_daemon_runtime() -> None:
 
     assert client.get("/health").status_code == 200
     assert client.post("/api/threads/search", json={"limit": 1}).status_code == 200
+    assert client.get("/api/projects").status_code == 200
     assert client.get("/api/desktop/runtime-info").status_code == 200
     assert client.get("/api/daemon/runtime-info").status_code == 404
 
@@ -52,6 +53,7 @@ def test_desktop_mode_exposes_shared_routes_and_daemon_runtime() -> None:
 
     assert client.get("/health").status_code == 200
     assert client.post("/api/threads/search", json={"limit": 1}).status_code == 200
+    assert client.get("/api/projects").status_code == 200
     assert client.get("/api/daemon/runtime-info").status_code == 200
 
 

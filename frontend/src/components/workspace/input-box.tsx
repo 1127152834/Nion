@@ -5,6 +5,7 @@ import {
   CheckIcon,
   FileIcon,
   FolderIcon,
+  FolderKanbanIcon,
   GraduationCapIcon,
   LightbulbIcon,
   PaperclipIcon,
@@ -64,6 +65,7 @@ import { getBackendBaseURL } from "@/core/config";
 import { useI18n } from "@/core/i18n/hooks";
 import { useMCPConfig } from "@/core/mcp/hooks";
 import { useModels } from "@/core/models/hooks";
+import { useCreateProject } from "@/core/projects";
 import { useSkills } from "@/core/skills/hooks";
 import type { Skill } from "@/core/skills/type";
 import type { AgentThreadContext } from "@/core/threads";
@@ -2085,6 +2087,8 @@ export function InputBox({
 
 function SuggestionList() {
   const { t } = useI18n();
+  const router = useRouter();
+  const createProject = useCreateProject();
   const { textInput } = usePromptInputController();
   const handleSuggestionClick = useCallback(
     (prompt: string | undefined) => {
@@ -2137,7 +2141,17 @@ function SuggestionList() {
                 !("type" in suggestion) && (
                   <DropdownMenuItem
                     key={suggestion.suggestion}
-                    onClick={() => handleSuggestionClick(suggestion.prompt)}
+                    onClick={async () => {
+                      if (suggestion.action === "create-project") {
+                        const created = await createProject.mutateAsync({
+                          name: "新项目",
+                          goal: suggestion.prompt,
+                        });
+                        router.push(`/workspace/projects/${created.id}`);
+                        return;
+                      }
+                      handleSuggestionClick(suggestion.prompt);
+                    }}
                   >
                     {suggestion.icon && <suggestion.icon className="size-4" />}
                     {suggestion.suggestion}
