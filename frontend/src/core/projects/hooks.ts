@@ -12,6 +12,7 @@ import {
   listProjects,
   listProjectTimeline,
   listProjectThreads,
+  requestProjectCompletion,
   resolveProjectDecision,
   setPrimaryProjectPlan,
   setPrimaryProjectThread,
@@ -71,6 +72,19 @@ export function useCreateProject() {
     mutationFn: createProject,
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["projects"] });
+    },
+  });
+}
+
+export function useRequestProjectCompletion(projectId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => requestProjectCompletion(projectId),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["projects", projectId, "dashboard"] }),
+        queryClient.invalidateQueries({ queryKey: ["projects", projectId, "decisions"] }),
+      ]);
     },
   });
 }

@@ -113,3 +113,37 @@ def test_confirm_plan_outcome_creates_pending_decision_candidates(tmp_path, monk
         assert dashboard["current_primary_plan"]["outcome_status"] == "done"
         memory = client.get(f"/api/projects/{project['id']}/memory").json()
         assert "Execution finished" in memory["summary"]["handoff"]
+
+
+def test_request_project_completion_creates_decision_and_followup_extraction_decisions(
+    tmp_path,
+    monkeypatch,
+):
+    monkeypatch.setenv("NION_HOME", str(tmp_path / "nion-home"))
+
+    with TestClient(create_app()) as client:
+        project = client.post("/api/projects", json={"name": "Project Alpha"}).json()
+
+        response = client.post(f"/api/projects/{project['id']}/complete")
+        assert response.status_code == 200
+        completion_decision = response.json()
+        assert completion_decision["type"] == "complete_project"
+
+        decisions = client.get(f"/api/projects/{project['id']}/decisions").json()["items"]
+        decision_ids = {item["id"] for item in decisions}
+        assert completion_decision["id"] in decision_ids
+
+        resolved = client.post(
+            f"/api/projects/{project['id']}/decisions/{completion_decision['id']}/resolve",
+            json={"action_id": "approve", "payload": {}},
+        )
+        assert resolved.status_code == 200
+
+        dashboard = client.get(f"/api/projects/{project['id']}").json()
+        assert dashboard["project"]["lifecycle_status"] == "completed"
+        assert dashboard["project"]["current_phase"] == "完成"
+
+        pending = client.get(f"/api/projects/{project['id']}/decisions").json()["items"]
+        pending_types = {item["type"] for item in pending}
+        assert "extract_long_term_memory" in pending_types
+        assert "extract_skill" in pending_types

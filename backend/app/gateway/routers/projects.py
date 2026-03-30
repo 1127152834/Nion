@@ -148,6 +148,17 @@ async def update_project(
         raise HTTPException(status_code=404, detail="Project not found") from exc
 
 
+@router.post("/{project_id}/complete")
+async def request_project_completion(
+    project_id: str,
+    service: ProjectService = Depends(get_project_service),
+) -> dict[str, Any]:
+    try:
+        return service.request_project_completion(project_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="Project not found") from exc
+
+
 @router.get("/{project_id}/plans")
 async def list_project_plans(project_id: str, service: ProjectService = Depends(get_project_service)) -> dict[str, Any]:
     return service.list_plans(project_id)
@@ -463,4 +474,3 @@ async def resolve_project_decision(
         )
     except KeyError as exc:
         raise HTTPException(status_code=404, detail="Decision not found") from exc
-

@@ -37,6 +37,7 @@ import {
   useProjectDecisions,
   useProjectPlans,
   useProjectTimeline,
+  useRequestProjectCompletion,
   useResolveProjectDecision,
   useSetPrimaryProjectPlan,
   useSetPrimaryProjectThread,
@@ -55,6 +56,7 @@ export function ProjectDashboardPage({ projectId }: { projectId: string }) {
   const createThread = useCreateProjectThread(projectId);
   const createPlan = useCreateProjectPlan(projectId);
   const createReworkPlan = useCreateReworkPlan(projectId);
+  const requestProjectCompletion = useRequestProjectCompletion(projectId);
   const startPlan = useStartProjectPlan(projectId);
   const setPrimaryPlan = useSetPrimaryProjectPlan(projectId);
   const confirmPlanOutcome = useConfirmProjectPlanOutcome(projectId);
@@ -140,6 +142,13 @@ export function ProjectDashboardPage({ projectId }: { projectId: string }) {
                 <Button variant="outline" onClick={handleCreatePlan}>
                   <ListTreeIcon className="size-4" />
                   新建实施计划
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => requestProjectCompletion.mutate()}
+                >
+                  <CheckCircle2Icon className="size-4" />
+                  标记完成
                 </Button>
               </div>
             </div>

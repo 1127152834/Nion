@@ -477,6 +477,18 @@ class ProjectService:
     def list_decisions(self, project_id: str) -> dict[str, Any]:
         return {"items": [decision.model_dump(mode="json") for decision in self._repository.list_decisions(project_id, status="pending")]}
 
+    def request_project_completion(self, project_id: str) -> dict[str, Any]:
+        project = self._repository.get_project(project_id)
+        if project is None:
+            raise KeyError(project_id)
+        decision = self._create_decision(
+            project_id=project_id,
+            decision_type="complete_project",
+            title="确认标记项目完成",
+            summary=f"项目 {project.name} 将进入完成阶段，并生成长期记忆/Skill 提炼建议。",
+        )
+        return decision.model_dump(mode="json")
+
     def resolve_decision(self, project_id: str, decision_id: str, *, action_id: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
         decision = self._repository.resolve_decision(project_id, decision_id, action_id=action_id, payload=payload)
         if decision.type == "create_rework_plan" and action_id == "approve":

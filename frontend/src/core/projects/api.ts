@@ -48,6 +48,13 @@ export async function getProjectDashboard(projectId: string): Promise<ProjectDas
   return parseJson<ProjectDashboard>(response);
 }
 
+export async function requestProjectCompletion(projectId: string) {
+  const response = await fetch(`${projectsBaseUrl()}/${projectId}/complete`, {
+    method: "POST",
+  });
+  return parseJson<ProjectDecisionRequest>(response);
+}
+
 export async function listProjectThreads(projectId: string): Promise<{ items: ProjectThreadLink[] }> {
   const response = await fetch(`${projectsBaseUrl()}/${projectId}/threads`, {
     cache: "no-store",
