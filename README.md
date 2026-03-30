@@ -17,6 +17,7 @@
 - 快捷入口合同：聊天输入框支持 Context / Skill / MCP / CLI 四类选择入口
 - 上传与产物链路：文件上传、解析、产物访问与下载能力完整闭环
 - Notebook 第二大脑：本地 Markdown 知识库、收件箱闪记、目录管理、版本历史与回收站恢复
+- Projects 长期工作容器：顶层 Projects 模块支持项目列表、项目驾驶舱、实施计划、项目会话、项目时间线、完成阶段提炼建议与受管产物恢复
 - 上下文存储：支持 workspace/thread 级上下文沉淀与召回
 - 临时会话保护：`temporary_chat` 默认允许读取长期记忆但禁止写回，避免污染长期记忆文件
 - 聊天追问建议模型可在“模型设置”页单独指定；未设置时默认跟随当前聊天模型
@@ -166,6 +167,7 @@ make dev
 - Runtime Profile API：`http://localhost:2026/api/threads/{thread_id}/runtime-profile`
 - Thread Files API：`http://localhost:2026/api/threads/{thread_id}/files/*`
 - CLI Catalog API：`http://localhost:2026/api/cli/catalog`
+- Projects API：`http://localhost:2026/api/projects*`
 
 如果只调试 web 前端，也可以直接运行：
 
@@ -202,7 +204,7 @@ make docker-start
 ```text
 .
 ├── backend/        # FastAPI Gateway + LangGraph + 配置/沙箱/上下文存储能力
-├── frontend/       # Next.js 前端工作台
+├── frontend/       # Next.js 前端工作台（Chats / Projects / Automation / Notebook 等顶层模块）
 ├── docker/         # Nginx、开发容器与沙箱相关配置
 ├── scripts/        # 开发与运维脚本
 ├── skills/         # 内置与扩展技能目录
@@ -221,6 +223,7 @@ make docker-start
 ### 运行时参数约定
 
 - Web / LangGraph SDK 请求统一通过 `context` 传递运行时字段，如 `thread_id`、`model_name`、`thinking_enabled`、`is_plan_mode`、`subagent_enabled`、`agent_name`、`session_mode`、`memory_read`、`memory_write`。
+- Project 线程还会通过 `context` 透传 `project_id`、`project_phase`、`primary_plan_id`，用于把项目级共享上下文带入聊天 runtime；Project 的权威状态始终由 `/api/projects/*` 提供。
 - 不要在同一个 HTTP 请求里同时传 `config.configurable` 和 `context`；当前 LangGraph 运行时会拒绝这类请求并返回 400。
 - 嵌入式 Python 客户端会继续保留 `config.configurable.thread_id` 供 checkpointer 使用，其余运行时字段仅通过 `context` 传递。
 

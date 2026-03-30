@@ -10,6 +10,7 @@
 - 模块 07：Automation 定时任务与提醒
 - 模块 08：Custom Agents 自定义智能体
 - 模块 09：Bridge / Desktop Client 差异链路
+- 模块 10：Projects 长期工作容器
 
 ## 模块总览
 
@@ -26,6 +27,7 @@
 | 模块 07 Automation | 创建 reminder/scheduled task、查看状态/历史、暂停恢复立即执行 | `/workspace/automation` | `/api/automation/jobs*`、`/api/automation/runs`、`/api/automation/status` | `frontend/src/core/automation/*`、`frontend/src/components/workspace/automation/*`、`backend/app/gateway/routers/automation.py`、`backend/packages/harness/nion/automation/*` | 中高 | P1 |
 | 模块 08 Custom Agents | 管理自定义 agent 列表、查看详情、bootstrap 创建、删除、进入 agent 专属线程 | `/workspace/agents`、`/workspace/agents/new` | `/api/agents*`、lead agent bootstrap + `setup_agent` tool | `frontend/src/app/workspace/agents/new/page.tsx`、`frontend/src/core/agents/*`、`backend/app/gateway/routers/agents.py`、`backend/packages/harness/nion/tools/builtins/setup_agent_tool.py` | 中高 | P1 |
 | 模块 09 Bridge / Desktop | 桌面端桥接渠道、IPC 能力、daemon diagnostics/incidents、桌面专属 terminal 与路由差异 | `/workspace/bridge`、桌面 renderer 路由、terminal drawer | `/api/desktop/*`、`/api/daemon/*`、bridge 通过 `/api/threads/*` 调线程 | `desktop/src/preload/index.ts`、`desktop/src/main/bridge/*`、`frontend/src/components/workspace/bridge/*`、`backend/app/daemon/routers/*`、`backend/app/gateway/routers/desktop_system.py` | 高 | P1 |
+| 模块 10 Projects | 顶层项目列表、项目驾驶舱、实施计划、项目会话、时间线、决策流、受管产物与完成阶段提炼建议 | `/workspace/projects`、`/workspace/projects/[project_id]`、`/workspace/projects/[project_id]/threads/[thread_id]` | `/api/projects*` | `frontend/src/core/projects/*`、`frontend/src/components/workspace/projects/*`、`frontend/src/app/workspace/projects/*`、`backend/app/gateway/routers/projects.py`、`backend/packages/harness/nion/projects/*` | 高 | P0 |
 
 ### B. 模块划分依据
 - 按用户任务划分，而不是按目录：聊天、授权、CLI 管理、设置、Notebook、Automation、Agent 管理、Bridge 都是用户可以单独感知的业务闭环。
@@ -36,7 +38,7 @@
 - 按耦合关系划分：聊天主链路与权限请求、CLI 选择、Notebook 导入、runtime profile 强耦合，但这些能力都存在独立状态机和接口面，适合作为独立测试包交给不同 agent 并行执行。
 
 ### C. 文档产出计划
-- 总共生成 9 份模块明细测试文档。
+- 总共生成 10 份模块明细测试文档。
 - 文档路径：
   - `docs/test/01-chat-thread-message/README.md`
   - `docs/test/02-permission-request/README.md`
@@ -47,9 +49,11 @@
   - `docs/test/07-automation/README.md`
   - `docs/test/08-custom-agents/README.md`
   - `docs/test/09-bridge-desktop/README.md`
+  - `docs/test/10-projects/README.md`
 - 建议先执行高风险模块：模块 01、02、03、04、05。
 - 第二优先级：模块 06、07、09。
 - 第三优先级：模块 08。
+- 新增高优先级模块：模块 10 Projects。
 
 ### 模块关系图
 ```mermaid
@@ -75,4 +79,3 @@ flowchart LR
 - 后端已覆盖 threads、permission、guardrail、cli tools、runtime profile、files、config、automation、notebook、agents、desktop/daemon 多数路由与 service。
 - 前端以 contract test / node test 为主，重点覆盖 permission request、cli tools routes、notebook 组件 contract、desktop thread client、settings 分区逻辑。
 - 缺口主要在真实 UI 交互与跨模块 E2E；本批文档的价值就是把这些缺口转成可执行任务。
-

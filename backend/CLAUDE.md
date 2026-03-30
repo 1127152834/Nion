@@ -229,6 +229,7 @@ FastAPI application on port 8001 with health check at `GET /health`.
 | **Skills** (`/api/skills`) | `GET /` - list skills; `GET /{name}` - details; `PUT /{name}` - update enabled; `POST /install` - install from .skill archive (accepts standard optional frontmatter like `version`, `author`, `compatibility`) |
 | **Memory** (`/api/memory`) | `GET /` - memory data; `POST /reload` - force reload; `DELETE /` - clear all memory; `DELETE /facts/{fact_id}` - delete a fact; `GET /config` - config; `GET /status` - config + data |
 | **Notebook** (`/api/notebook`) | `GET /tree`; `GET /notes`; `GET /notes/{note_id}`; `POST /notes`; `PUT /notes/{note_id}`; `POST /notes/{note_id}/rename`; `POST /notes/{note_id}/move`; `PATCH /notes/{note_id}/metadata`; `GET /notes/{note_id}/history`; `GET /notes/{note_id}/history/{version_id}`; `POST /notes/{note_id}/restore`; `GET /notes/{note_id}/delete-preview`; `POST /notes/{note_id}/delete`; `POST /notes/{note_id}/restore-deleted`; `GET /trash`; `POST /directories`; `POST /directories/rename`; `POST /directories/delete`; `POST /notes/{note_id}/assist-preview`; `POST /notes/{note_id}/assist-apply`; `POST /notes/{note_id}/import` |
+| **Projects** (`/api/projects`) | `GET /` - list projects; `POST /` - create project; `GET /{project_id}` - dashboard; `PATCH /{project_id}` - update basics; `POST /{project_id}/complete`; `GET/POST /{project_id}/plans*`; `GET/POST /{project_id}/threads*`; `GET /{project_id}/timeline*`; `GET/POST /{project_id}/artifacts*`; `GET/POST /{project_id}/memory*`; `GET/POST /{project_id}/decisions*` |
 | **Uploads** (`/api/threads/{id}/uploads`) | `POST /` - upload files (auto-converts PDF/PPT/Excel/Word); `GET /list` - list; `DELETE /{filename}` - delete |
 | **Artifacts** (`/api/threads/{id}/artifacts`) | `GET /{path}` - serve artifacts; `?download=true` for file download |
 | **Suggestions** (`/api/threads/{id}/suggestions`) | `POST /` - generate follow-up questions; rich list/block model content is normalized before JSON parsing |
@@ -243,6 +244,7 @@ route surface aligned with the renderer expectations, including:
 - `/api/model-admin/*`
 - `/api/threads/{thread_id}/runtime-profile`
 - `/api/models`, `/api/config`, `/api/skills`, `/api/files`, `/api/cli/catalog`
+- `/api/projects`
 - `/api/daemon/logs`, `/api/daemon/logs/tail`
 - `/api/daemon/diagnostics`, `/api/daemon/diagnostics/threads/{thread_id}`, `/api/daemon/diagnostics/skills/{skill_name}`
 - `/api/daemon/diagnostics/tasks/{task_id}`
@@ -284,6 +286,23 @@ Program 03D-A extends the daemon control plane to incident workflow:
 - `daemon_runtime` playbooks are designed into the contract but are not implemented yet
 - bridge/channel incidents are intentionally excluded from this phase
 - a desktop diagnostics center is a future consumer of incident records rather than a second diagnosis engine
+
+### Projects Module
+
+The Project module is a top-level workspace surface for long-running work containers.
+
+Current v1 lane includes:
+
+- top-level workspace route family under `/workspace/projects`
+- independent project chat routes under `/workspace/projects/{project_id}/threads/{thread_id}`
+- gateway-owned SQLite metadata store at `{NION_HOME}/projects.sqlite3`
+- project dashboard, execution plans, project threads, timeline, decisions, managed artifacts, and project memory summaries
+- project thread context propagation through `context.project_id`, `context.project_phase`, and `context.primary_plan_id`
+
+Important boundary:
+
+- Project is not a Notebook replacement and must not auto-write Notebook
+- Project threads are still normal thread runtime flows; `/api/projects/*` owns project state, not `/api/threads/*`
 
 ### Sandbox System (`packages/harness/nion/sandbox/`)
 
