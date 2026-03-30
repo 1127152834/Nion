@@ -9,7 +9,6 @@ import AgentsPage from "@/app/workspace/agents/page";
 import AboutPage from "@/app/workspace/about/page";
 import AutomationPage from "@/app/workspace/automation/page";
 import BridgePage from "@/app/workspace/bridge/page";
-import CliToolsPage from "@/app/workspace/cli-tools/page";
 import NotebookPage from "@/app/workspace/notebook/page";
 import NotebookTrashPage from "@/app/workspace/notebook/trash/page";
 import ToolPolicyPage from "@/app/workspace/tool-policy/page";
@@ -68,14 +67,6 @@ export function DesktopRendererApp() {
                 element={
                   <WorkspaceRoute>
                     <AutomationPage />
-                  </WorkspaceRoute>
-                }
-              />
-              <Route
-                path="/workspace/cli-tools"
-                element={
-                  <WorkspaceRoute>
-                    <CliToolsPage />
                   </WorkspaceRoute>
                 }
               />

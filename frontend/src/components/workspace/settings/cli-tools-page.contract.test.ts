@@ -9,6 +9,9 @@ void test("settings CLI tools page owns the settings section shell", async () =>
   assert.match(source, /CliToolsManager/);
   assert.match(source, /t\.settings\.cliTools\.title/);
   assert.match(source, /t\.settings\.cliTools\.description/);
+  assert.match(source, /Add Tool|添加工具/);
+  assert.match(source, /Add by Path|按路径添加/);
+  assert.match(source, /AI Describe|AI 批量描述/);
 });
 
 void test("CLI tools manager stays reusable outside settings shell", async () => {

@@ -33,7 +33,8 @@ void test("CLI composer popover keeps manage-tools affordance", async () => {
 
   assert.match(source, /Manage CLI tools/);
   assert.match(source, /Go install CLI tools/);
-  assert.match(source, /router\.push\("\/workspace\/cli-tools"\)/);
+  assert.match(source, /new CustomEvent\("nion-open-settings"/);
+  assert.match(source, /detail: \{ section: "cliTools" \}/);
   assert.match(source, /tool\.displayName\?\.trim\(\) \|\| toolId/);
   assert.match(source, /tool\.version/);
 });

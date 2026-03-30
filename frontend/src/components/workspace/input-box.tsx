@@ -1627,7 +1627,11 @@ export function InputBox({
                       type="button"
                       className="mt-2 text-primary hover:underline"
                       onClick={() => {
-                        router.push("/workspace/cli-tools");
+                        window.dispatchEvent(
+                          new CustomEvent("nion-open-settings", {
+                            detail: { section: "cliTools" },
+                          }),
+                        );
                         setCliSelectorOpen(false);
                       }}
                     >
@@ -1671,7 +1675,11 @@ export function InputBox({
                   type="button"
                   className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
                   onClick={() => {
-                    router.push("/workspace/cli-tools");
+                    window.dispatchEvent(
+                      new CustomEvent("nion-open-settings", {
+                        detail: { section: "cliTools" },
+                      }),
+                    );
                     setCliSelectorOpen(false);
                   }}
                 >
