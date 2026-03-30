@@ -41,7 +41,7 @@ export function AgentCard({ agent }: AgentCardProps) {
   const isBuiltInBadgeVisible = isBuiltin && agent.visibility === "public";
 
   function handleChat() {
-    router.push(pathOfNewAgentThread(agent.entrypoint ?? agent.name));
+    router.push(pathOfNewAgentThread(agent.slug));
   }
 
   async function handleDelete() {
@@ -75,7 +75,7 @@ export function AgentCard({ agent }: AgentCardProps) {
                   )}
                   {isBuiltInBadgeVisible && (
                     <Badge variant="secondary" className="text-xs">
-                      系统内置
+                      {t.agents.builtinBadge}
                     </Badge>
                   )}
                 </div>

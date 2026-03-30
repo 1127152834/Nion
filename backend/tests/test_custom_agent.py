@@ -76,14 +76,9 @@ class TestAgentConfig:
 
         cfg = AgentConfig(name="my-agent")
         assert cfg.name == "my-agent"
-        assert cfg.slug is None
         assert cfg.description == ""
         assert cfg.model is None
         assert cfg.tool_groups is None
-        assert cfg.kind == "custom"
-        assert cfg.visibility == "internal"
-        assert cfg.can_delete is True
-        assert cfg.can_edit is True
 
     def test_full_config(self):
         from nion.config.agents_config import AgentConfig

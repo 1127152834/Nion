@@ -27,8 +27,8 @@ AGENT_NAME_PATTERN = re.compile(r"^[A-Za-z0-9-]+$")
 class AgentResponse(BaseModel):
     """Response model for a catalog agent."""
 
-    name: str = Field(..., description="Agent name (hyphen-case)")
-    description: str = Field(default="", description="Agent description")
+    name: str = Field(..., description="Display name shown in the catalog UI")
+    description: str = Field(default="", description="Agent description shown in the catalog UI")
     model: str | None = Field(default=None, description="Optional model override")
     tool_groups: list[str] | None = Field(default=None, description="Optional tool group whitelist")
     id: str = Field(..., description="Stable catalog identifier")
@@ -143,10 +143,10 @@ async def check_agent_name(name: str) -> dict:
     """Check whether an agent name is valid and not yet taken.
 
     Args:
-        name: The agent name to check.
+        name: Candidate ASCII slug for a custom agent.
 
     Returns:
-        ``{"available": true/false, "name": "<normalized>"}``
+        ``{"available": true/false, "name": "<normalized>"}``, where ``name`` is the normalized custom-agent slug.
 
     Raises:
         HTTPException: 422 if the name is invalid.
@@ -161,7 +161,7 @@ async def check_agent_name(name: str) -> dict:
     "/agents/{name}",
     response_model=AgentResponse,
     summary="Get Agent",
-    description="Retrieve details and SOUL.md content for a specific built-in or custom agent.",
+    description="Retrieve details and SOUL.md content for a specific catalog slug.",
 )
 async def get_agent(name: str) -> AgentResponse:
     """Get a specific agent by stable path identifier.

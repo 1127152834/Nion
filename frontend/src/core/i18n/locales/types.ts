@@ -377,6 +377,7 @@ export interface Translations {
     delete: string;
     deleteConfirm: string;
     deleteSuccess: string;
+    builtinBadge: string;
     newChat: string;
     createPageTitle: string;
     createPageSubtitle: string;

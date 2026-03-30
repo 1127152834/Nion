@@ -7,7 +7,8 @@ void test("agent card renders built-in badges and hides delete for locked agents
 
   assert.match(source, /agent\.visibility === "public"/);
   assert.match(source, /agent\.kind === "builtin"/);
-  assert.match(source, /系统内置/);
+  assert.match(source, /t\.agents\.builtinBadge/);
+  assert.match(source, /pathOfNewAgentThread\(agent\.slug\)/);
   assert.match(source, /agent\.can_delete/);
   assert.match(source, /!\s*agent\.can_delete/);
 });
