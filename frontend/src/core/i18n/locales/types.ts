@@ -346,6 +346,7 @@ export interface Translations {
           suggestion: string;
           prompt: string;
           icon: LucideIcon;
+          action?: "create-project";
         }
       | {
           type: "separator";
@@ -361,6 +362,7 @@ export interface Translations {
     demoChats: string;
     pendingReply: string;
     agents: string;
+    projects: string;
     automation: string;
     cliTools: string;
     notebook: string;

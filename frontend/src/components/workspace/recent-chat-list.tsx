@@ -58,7 +58,13 @@ import {
   useThreads,
 } from "@/core/threads/hooks";
 import type { AgentThread, AgentThreadState } from "@/core/threads/types";
-import { bridgeInfoOfThread, pathOfThread, titleOfThread } from "@/core/threads/utils";
+import {
+  bridgeInfoOfThread,
+  pathOfProjectThread,
+  pathOfThread,
+  projectInfoOfThread,
+  titleOfThread,
+} from "@/core/threads/utils";
 import { env } from "@/env";
 
 import { useBridgeTranslation } from "./bridge/useBridgeTranslation";
@@ -74,20 +80,33 @@ export function RecentChatList() {
   const { mutate: deleteThread } = useDeleteThread();
   const { mutate: deleteThreads } = useDeleteThreads();
   const { mutate: renameThread } = useRenameThread();
-  const threadEntries = useMemo(() => {
+  const threadGroups = useMemo(() => {
     const enriched = threads.map((thread) => ({
       thread,
       pendingClarification: derivePendingClarification(
         thread.values?.messages ?? [],
       ),
+      project: projectInfoOfThread(thread),
+      bridge: bridgeInfoOfThread(thread),
     }));
 
     const pending = enriched.filter((entry) => entry.pendingClarification);
     const regular = enriched.filter((entry) => !entry.pendingClarification);
-    return [...pending, ...regular];
+    const ordered = [...pending, ...regular].sort((a, b) => {
+      const aProject = Boolean(a.project);
+      const bProject = Boolean(b.project);
+      if (aProject !== bProject) {
+        return aProject ? -1 : 1;
+      }
+      return 0;
+    });
+    return {
+      project: ordered.filter((entry) => entry.project),
+      bridge: ordered.filter((entry) => !entry.project && entry.bridge),
+      general: ordered.filter((entry) => !entry.project && !entry.bridge),
+    };
   }, [threads]);
 
-  // Rename dialog state
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
   const [renameThreadId, setRenameThreadId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
@@ -98,7 +117,7 @@ export function RecentChatList() {
     (threadId: string) => {
       deleteThread({ threadId });
       if (threadId === threadIdFromPath) {
-        const threadIndex = threads.findIndex((t) => t.thread_id === threadId);
+        const threadIndex = threads.findIndex((thread) => thread.thread_id === threadId);
         let nextThreadId = "new";
         if (threadIndex > -1) {
           if (threads[threadIndex + 1]) {
@@ -169,12 +188,10 @@ export function RecentChatList() {
 
   const handleShare = useCallback(
     async (threadId: string) => {
-      // Always use Vercel URL for sharing so others can access
       const VERCEL_URL = "https://nion-v2.vercel.app";
       const isLocalhost =
-        window.location.hostname === "localhost" ||
-        window.location.hostname === "127.0.0.1";
-      // On localhost: use Vercel URL; On production: use current origin
+        window.location.hostname === "localhost"
+        || window.location.hostname === "127.0.0.1";
       const baseUrl = isLocalhost ? VERCEL_URL : window.location.origin;
       const shareUrl = `${baseUrl}${pathOfThread(threadId)}`;
       try {
@@ -212,9 +229,35 @@ export function RecentChatList() {
     [t],
   );
 
-  if (threadEntries.length === 0) {
+  if (
+    threadGroups.project.length === 0 &&
+    threadGroups.bridge.length === 0 &&
+    threadGroups.general.length === 0
+  ) {
     return null;
   }
+
+  const groups = [
+    {
+      key: "project",
+      label: "项目对话",
+      items: threadGroups.project,
+    },
+    {
+      key: "bridge",
+      label: "桥接对话",
+      items: threadGroups.bridge,
+    },
+    {
+      key: "general",
+      label:
+        env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY !== "true"
+          ? t.sidebar.recentChats
+          : t.sidebar.demoChats,
+      items: threadGroups.general,
+    },
+  ].filter((group) => group.items.length > 0);
+
   return (
     <>
       <SidebarGroup>
@@ -271,198 +314,226 @@ export function RecentChatList() {
               </div>
             </div>
           ) : null}
-          <SidebarMenu>
-            <div className="flex w-full flex-col gap-1">
-              {threadEntries.map(({ thread, pendingClarification }) => {
-                const isActive =
-                  pathname === "/workspace/chats" &&
-                  searchParams.get("thread") === thread.thread_id;
-                const isSelected = selectedThreadIds.includes(thread.thread_id);
-                const bridgeInfo = bridgeInfoOfThread(thread);
-                const bridgeLabel = bridgeInfo
-                  ? bridgeInfo.platform === "telegram"
-                    ? bt("bridge.telegramChannel")
-                    : bridgeInfo.platform === "feishu"
-                      ? bt("bridge.feishuChannel")
-                      : bridgeInfo.platform === "discord"
-                        ? bt("bridge.discordChannel")
-                        : bridgeInfo.platform === "qq"
-                          ? bt("bridge.qqChannel")
-                          : bridgeInfo.platform === "weixin"
-                            ? bt("bridge.weixinChannel")
-                            : bridgeInfo.platform
-                  : "";
-                return (
-                  <SidebarMenuItem
-                    key={thread.thread_id}
-                    className="group/side-menu-item"
-                  >
-                    <SidebarMenuButton isActive={isActive} asChild>
-                      <div>
-                        {selectionMode ? (
-                          <button
-                            type="button"
-                            className="text-muted-foreground flex w-full items-center gap-2 overflow-hidden rounded-2xl px-2 py-1.5 text-left"
-                            onClick={() => toggleThreadSelection(thread.thread_id)}
-                          >
-                            <span
-                              className={`flex size-4 shrink-0 items-center justify-center rounded-full border ${isSelected ? "border-foreground bg-foreground text-background" : "border-border bg-background"}`}
-                            >
-                              {isSelected ? <Check className="size-3" /> : null}
-                            </span>
-                            <span className="flex min-w-0 items-center gap-2 overflow-hidden">
-                              <span className="truncate">{titleOfThread(thread)}</span>
-                              {bridgeInfo ? (
-                                <Badge
-                                  variant="outline"
-                                  className="gap-1 rounded-full px-2 py-0 text-[10px]"
-                                >
-                                  {bt("bridge.bridgeChatBadge")} · {bridgeLabel}
-                                </Badge>
-                              ) : null}
-                              {pendingClarification ? (
-                                <Badge
-                                  variant="outline"
-                                  className="border-foreground/10 bg-accent/40 text-foreground gap-1 rounded-full px-2 py-0 text-[10px]"
-                                  data-pending-reply-label
-                                >
-                                  <span className="bg-foreground/70 size-1.5 rounded-full" />
-                                  {t.sidebar.pendingReply}
-                                </Badge>
-                              ) : null}
-                            </span>
-                          </button>
-                        ) : (
-                          <Link
-                            className="text-muted-foreground block w-full overflow-hidden group-hover/side-menu-item:overflow-hidden"
-                            href={pathOfThread(thread.thread_id)}
-                          >
-                            <span className="flex items-center gap-2 overflow-hidden">
-                              <span className="truncate">{titleOfThread(thread)}</span>
-                              {bridgeInfo ? (
-                                <Badge
-                                  variant="outline"
-                                  className="gap-1 rounded-full px-2 py-0 text-[10px]"
-                                >
-                                  {bt("bridge.bridgeChatBadge")} · {bridgeLabel}
-                                </Badge>
-                              ) : null}
-                              {pendingClarification ? (
-                                <Badge
-                                  variant="outline"
-                                  className="border-foreground/10 bg-accent/40 text-foreground gap-1 rounded-full px-2 py-0 text-[10px]"
-                                  data-pending-reply-label
-                                >
-                                  <span className="bg-foreground/70 size-1.5 rounded-full" />
-                                  {t.sidebar.pendingReply}
-                                </Badge>
-                              ) : null}
-                            </span>
-                          </Link>
-                        )}
-                        {!selectionMode && env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY !== "true" && (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <SidebarMenuAction
-                                showOnHover
-                                className="bg-background/50 hover:bg-background"
-                              >
-                                <MoreHorizontal />
-                                <span className="sr-only">{t.common.more}</span>
-                              </SidebarMenuAction>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent
-                              className="w-48 rounded-lg"
-                              side={"right"}
-                              align={"start"}
-                            >
-                              <DropdownMenuItem
-                                onSelect={() =>
-                                  handleRenameClick(
-                                    thread.thread_id,
-                                    titleOfThread(thread),
-                                  )
-                                }
-                              >
-                                <Pencil className="text-muted-foreground" />
-                                <span>{t.common.rename}</span>
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onSelect={() => handleShare(thread.thread_id)}
-                              >
-                                <Share2 className="text-muted-foreground" />
-                                <span>{t.common.share}</span>
-                              </DropdownMenuItem>
-                              <DropdownMenuSub>
-                                <DropdownMenuSubTrigger>
-                                  <Download className="text-muted-foreground" />
-                                  <span>{t.common.export}</span>
-                                </DropdownMenuSubTrigger>
-                                <DropdownMenuSubContent>
-                                  <DropdownMenuItem
-                                    onSelect={() =>
-                                      handleExport(thread, "markdown")
-                                    }
-                                  >
-                                    <FileText className="text-muted-foreground" />
-                                    <span>{t.common.exportAsMarkdown}</span>
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    onSelect={() =>
-                                      handleExport(thread, "json")
-                                    }
-                                  >
-                                    <FileJson className="text-muted-foreground" />
-                                    <span>{t.common.exportAsJSON}</span>
-                                  </DropdownMenuItem>
-                                </DropdownMenuSubContent>
-                              </DropdownMenuSub>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                onSelect={() => handleDelete(thread.thread_id)}
-                              >
-                                <Trash2 className="text-muted-foreground" />
-                                <span>{t.common.delete}</span>
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        )}
-                      </div>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-            </div>
-          </SidebarMenu>
         </SidebarGroupContent>
       </SidebarGroup>
 
-      {/* Rename Dialog */}
+      {groups.map((group) => (
+        <SidebarGroup key={group.key}>
+          <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+          <SidebarGroupContent className="group-data-[collapsible=icon]:pointer-events-none group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0">
+            <SidebarMenu>
+              <div className="flex w-full flex-col gap-1">
+                {group.items.map(({ thread, pendingClarification }) => {
+                  const isActive =
+                    (pathname === "/workspace/chats" &&
+                      searchParams.get("thread") === thread.thread_id) ||
+                    pathname.endsWith(`/threads/${thread.thread_id}`);
+                  const bridgeInfo = bridgeInfoOfThread(thread);
+                  const projectInfo = projectInfoOfThread(thread);
+                  const isSelected = selectedThreadIds.includes(thread.thread_id);
+                  const bridgeLabel = bridgeInfo
+                    ? bridgeInfo.platform === "telegram"
+                      ? bt("bridge.telegramChannel")
+                      : bridgeInfo.platform === "feishu"
+                        ? bt("bridge.feishuChannel")
+                        : bridgeInfo.platform === "discord"
+                          ? bt("bridge.discordChannel")
+                          : bridgeInfo.platform === "qq"
+                            ? bt("bridge.qqChannel")
+                            : bridgeInfo.platform === "weixin"
+                              ? bt("bridge.weixinChannel")
+                              : bridgeInfo.platform
+                    : "";
+
+                  return (
+                    <SidebarMenuItem
+                      key={thread.thread_id}
+                      className="group/side-menu-item"
+                    >
+                      <SidebarMenuButton isActive={isActive} asChild>
+                        <div>
+                          {selectionMode ? (
+                            <button
+                              type="button"
+                              className="text-muted-foreground flex w-full items-center gap-2 overflow-hidden rounded-2xl px-2 py-1.5 text-left"
+                              onClick={() => toggleThreadSelection(thread.thread_id)}
+                            >
+                              <span
+                                className={`flex size-4 shrink-0 items-center justify-center rounded-full border ${
+                                  isSelected
+                                    ? "border-foreground bg-foreground text-background"
+                                    : "border-border bg-background"
+                                }`}
+                              >
+                                {isSelected ? <Check className="size-3" /> : null}
+                              </span>
+                              <span className="flex min-w-0 items-center gap-2 overflow-hidden">
+                                <span className="truncate">{titleOfThread(thread)}</span>
+                                {projectInfo ? (
+                                  <Badge
+                                    variant="outline"
+                                    className="gap-1 rounded-full px-2 py-0 text-[10px]"
+                                  >
+                                    项目 · {projectInfo.project_name}
+                                  </Badge>
+                                ) : null}
+                                {bridgeInfo ? (
+                                  <Badge
+                                    variant="outline"
+                                    className="gap-1 rounded-full px-2 py-0 text-[10px]"
+                                  >
+                                    {bt("bridge.bridgeChatBadge")} · {bridgeLabel}
+                                  </Badge>
+                                ) : null}
+                                {pendingClarification ? (
+                                  <Badge
+                                    variant="outline"
+                                    className="border-foreground/10 bg-accent/40 text-foreground gap-1 rounded-full px-2 py-0 text-[10px]"
+                                    data-pending-reply-label
+                                  >
+                                    <span className="bg-foreground/70 size-1.5 rounded-full" />
+                                    {t.sidebar.pendingReply}
+                                  </Badge>
+                                ) : null}
+                              </span>
+                            </button>
+                          ) : (
+                            <Link
+                              className="text-muted-foreground block w-full overflow-hidden group-hover/side-menu-item:overflow-hidden"
+                              href={
+                                projectInfo
+                                  ? pathOfProjectThread(
+                                      projectInfo.project_id,
+                                      thread.thread_id,
+                                    )
+                                  : pathOfThread(thread.thread_id)
+                              }
+                            >
+                              <span className="flex items-center gap-2 overflow-hidden">
+                                <span className="truncate">{titleOfThread(thread)}</span>
+                                {projectInfo ? (
+                                  <Badge
+                                    variant="outline"
+                                    className="gap-1 rounded-full px-2 py-0 text-[10px]"
+                                  >
+                                    项目 · {projectInfo.project_name}
+                                  </Badge>
+                                ) : null}
+                                {bridgeInfo ? (
+                                  <Badge
+                                    variant="outline"
+                                    className="gap-1 rounded-full px-2 py-0 text-[10px]"
+                                  >
+                                    {bt("bridge.bridgeChatBadge")} · {bridgeLabel}
+                                  </Badge>
+                                ) : null}
+                                {pendingClarification ? (
+                                  <Badge
+                                    variant="outline"
+                                    className="border-foreground/10 bg-accent/40 text-foreground gap-1 rounded-full px-2 py-0 text-[10px]"
+                                    data-pending-reply-label
+                                  >
+                                    <span className="bg-foreground/70 size-1.5 rounded-full" />
+                                    {t.sidebar.pendingReply}
+                                  </Badge>
+                                ) : null}
+                              </span>
+                            </Link>
+                          )}
+                          {!selectionMode &&
+                          env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY !== "true" ? (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <SidebarMenuAction
+                                  showOnHover
+                                  className="bg-background/50 hover:bg-background"
+                                >
+                                  <MoreHorizontal />
+                                  <span className="sr-only">{t.common.more}</span>
+                                </SidebarMenuAction>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent
+                                className="w-48 rounded-lg"
+                                side="right"
+                                align="start"
+                              >
+                                <DropdownMenuItem
+                                  onSelect={() =>
+                                    handleRenameClick(
+                                      thread.thread_id,
+                                      titleOfThread(thread),
+                                    )
+                                  }
+                                >
+                                  <Pencil className="text-muted-foreground" />
+                                  <span>{t.common.rename}</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onSelect={() => handleShare(thread.thread_id)}
+                                >
+                                  <Share2 className="text-muted-foreground" />
+                                  <span>{t.common.share}</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuSub>
+                                  <DropdownMenuSubTrigger>
+                                    <Download className="text-muted-foreground" />
+                                    <span>{t.common.export}</span>
+                                  </DropdownMenuSubTrigger>
+                                  <DropdownMenuSubContent>
+                                    <DropdownMenuItem
+                                      onSelect={() =>
+                                        handleExport(thread, "markdown")
+                                      }
+                                    >
+                                      <FileText className="text-muted-foreground" />
+                                      <span>{t.common.exportAsMarkdown}</span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onSelect={() =>
+                                        handleExport(thread, "json")
+                                      }
+                                    >
+                                      <FileJson className="text-muted-foreground" />
+                                      <span>{t.common.exportAsJSON}</span>
+                                    </DropdownMenuItem>
+                                  </DropdownMenuSubContent>
+                                </DropdownMenuSub>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  onSelect={() => handleDelete(thread.thread_id)}
+                                >
+                                  <Trash2 className="text-muted-foreground" />
+                                  <span>{t.common.delete}</span>
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          ) : null}
+                        </div>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
+              </div>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      ))}
+
       <Dialog open={renameDialogOpen} onOpenChange={setRenameDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>{t.common.rename}</DialogTitle>
           </DialogHeader>
-          <div className="py-4">
-            <Input
-              value={renameValue}
-              onChange={(e) => setRenameValue(e.target.value)}
-              placeholder={t.common.rename}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  handleRenameSubmit();
-                }
-              }}
-            />
-          </div>
+          <Input
+            value={renameValue}
+            onChange={(event) => setRenameValue(event.target.value)}
+            autoFocus
+          />
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setRenameDialogOpen(false)}
-            >
+            <Button variant="outline" onClick={() => setRenameDialogOpen(false)}>
               {t.common.cancel}
             </Button>
-            <Button onClick={handleRenameSubmit}>{t.common.save}</Button>
+            <Button onClick={handleRenameSubmit}>{t.common.rename}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

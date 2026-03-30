@@ -1,5 +1,6 @@
 import {
   CompassIcon,
+  FolderKanbanIcon,
   GraduationCapIcon,
   ImageIcon,
   MicroscopeIcon,
@@ -156,6 +157,12 @@ export const enUS: Translations = {
         type: "separator",
       },
       {
+        suggestion: "Project",
+        prompt: "Create a new long-running project for [goal]",
+        icon: FolderKanbanIcon,
+        action: "create-project",
+      },
+      {
         suggestion: "Skill",
         prompt:
           "We're going to build a new skill step by step with `skill-creator`. To start, what do you want this skill to do?",
@@ -172,6 +179,7 @@ export const enUS: Translations = {
     demoChats: "Demo chats",
     pendingReply: "Pending reply",
     agents: "Agents",
+    projects: "Projects",
     automation: "Automation",
     cliTools: "CLI Tools",
     notebook: "Notebook",

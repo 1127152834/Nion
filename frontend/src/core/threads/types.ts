@@ -54,6 +54,20 @@ export interface AgentThreadState extends Record<string, unknown> {
     label?: string;
     chatId?: string;
   };
+  project?: {
+    source: "project";
+    project_id: string;
+    project_name: string;
+    project_phase?: string;
+    primary_plan_id?: string | null;
+    inherit_project_context?: boolean;
+  };
+  project_imports?: Array<{
+    source_thread_id: string;
+    source_title: string;
+    message_count: number;
+    summary: string;
+  }>;
 }
 
 export interface Thread<TState extends Record<string, unknown>> {
