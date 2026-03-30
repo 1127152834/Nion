@@ -299,6 +299,7 @@ Memory OS M2 provider-activation rules:
 - remote mode may begin with a conservative transport bridge and limited surface
 - provider-facing embedded reads may expose notebook and autodream journal domain listings in this milestone
 - provider-facing embedded writes may support minimal user-memory and agent-memory round-trips in this milestone
+- when OpenViking is active, runtime memory compatibility must still hold: post-chat capture, clear-memory, and delete-fact operations must target the OpenViking-backed payload instead of falling back to legacy `memory.json`
 - this milestone should focus on provider activation and status exposure, not the final Memory Console redesign
 
 Program 03B extends that contract to delegated execution:

@@ -13,7 +13,7 @@ from nion.agents.memory.prompt import (
     format_conversation_for_update,
 )
 from nion.agents.memory.storage import (
-    FileMemoryStorage,
+    MemoryStorage,
     create_empty_memory,
     get_memory_storage,
 )
@@ -32,10 +32,20 @@ def _create_empty_memory() -> dict[str, Any]:
     return create_empty_memory()
 
 
-def _save_memory_to_file(memory_data: dict[str, Any], agent_name: str | None = None) -> bool:
+def _resolve_memory_storage(memory_storage: MemoryStorage | None = None) -> MemoryStorage:
+    """Resolve the active storage implementation for memory operations."""
+
+    return memory_storage or get_memory_storage()
+
+
+def _save_memory_to_file(
+    memory_data: dict[str, Any],
+    agent_name: str | None = None,
+    memory_storage: MemoryStorage | None = None,
+) -> bool:
     """Backward-compatible wrapper around the configured storage provider save path."""
 
-    return get_memory_storage().save(memory_data, agent_name)
+    return _resolve_memory_storage(memory_storage).save(memory_data, agent_name)
 
 
 def _get_memory_file_path(agent_name: str | None = None):
@@ -51,31 +61,44 @@ def _get_memory_file_path(agent_name: str | None = None):
     return get_paths().memory_file
 
 
-def get_memory_data(agent_name: str | None = None) -> dict[str, Any]:
+def get_memory_data(
+    agent_name: str | None = None,
+    memory_storage: MemoryStorage | None = None,
+) -> dict[str, Any]:
     """Get the current memory data via the configured storage provider."""
 
-    return get_memory_storage().load(agent_name)
+    return _resolve_memory_storage(memory_storage).load(agent_name)
 
 
-def reload_memory_data(agent_name: str | None = None) -> dict[str, Any]:
+def reload_memory_data(
+    agent_name: str | None = None,
+    memory_storage: MemoryStorage | None = None,
+) -> dict[str, Any]:
     """Reload memory data via the configured storage provider."""
 
-    return get_memory_storage().reload(agent_name)
+    return _resolve_memory_storage(memory_storage).reload(agent_name)
 
 
-def clear_memory_data(agent_name: str | None = None) -> dict[str, Any]:
+def clear_memory_data(
+    agent_name: str | None = None,
+    memory_storage: MemoryStorage | None = None,
+) -> dict[str, Any]:
     """Clear all stored memory data and persist an empty structure."""
 
     cleared_memory = _create_empty_memory()
-    if not _save_memory_to_file(cleared_memory, agent_name):
+    if not _save_memory_to_file(cleared_memory, agent_name, memory_storage):
         raise OSError("Failed to save cleared memory data")
     return cleared_memory
 
 
-def delete_memory_fact(fact_id: str, agent_name: str | None = None) -> dict[str, Any]:
+def delete_memory_fact(
+    fact_id: str,
+    agent_name: str | None = None,
+    memory_storage: MemoryStorage | None = None,
+) -> dict[str, Any]:
     """Delete a fact by id and persist the updated memory data."""
 
-    memory_data = get_memory_data(agent_name)
+    memory_data = get_memory_data(agent_name, memory_storage)
     facts = memory_data.get("facts", [])
     updated_facts = [fact for fact in facts if fact.get("id") != fact_id]
     if len(updated_facts) == len(facts):
@@ -84,7 +107,7 @@ def delete_memory_fact(fact_id: str, agent_name: str | None = None) -> dict[str,
     updated_memory = dict(memory_data)
     updated_memory["facts"] = updated_facts
 
-    if not _save_memory_to_file(updated_memory, agent_name):
+    if not _save_memory_to_file(updated_memory, agent_name, memory_storage):
         raise OSError(f"Failed to save memory data after deleting fact '{fact_id}'")
 
     return updated_memory
@@ -191,13 +214,24 @@ def _is_relationship_control_fact(content: Any) -> bool:
 class MemoryUpdater:
     """Updates memory using LLM based on conversation context."""
 
-    def __init__(self, model_name: str | None = None):
+    def __init__(
+        self,
+        model_name: str | None = None,
+        *,
+        memory_storage: MemoryStorage | None = None,
+    ):
         """Initialize the memory updater.
 
         Args:
             model_name: Optional model name to use. If None, uses config or default.
+            memory_storage: Optional storage backend override for runtime-specific
+                memory domains such as OpenViking embedded memory-state.json.
         """
         self._model_name = model_name
+        self._memory_storage = memory_storage
+
+    def _get_memory_storage(self) -> MemoryStorage:
+        return _resolve_memory_storage(self._memory_storage)
 
     def _get_model(self):
         """Get the model for memory updates."""
@@ -227,7 +261,7 @@ class MemoryUpdater:
 
         try:
             # Get current memory
-            current_memory = get_memory_data(agent_name)
+            current_memory = self._get_memory_storage().load(agent_name)
 
             # Format conversation for prompt
             conversation_text = format_conversation_for_update(messages)
@@ -265,7 +299,7 @@ class MemoryUpdater:
             updated_memory = _strip_upload_mentions_from_memory(updated_memory)
 
             # Save
-            return get_memory_storage().save(updated_memory, agent_name)
+            return self._get_memory_storage().save(updated_memory, agent_name)
 
         except json.JSONDecodeError as e:
             logger.warning("Failed to parse LLM response for memory update: %s", e)

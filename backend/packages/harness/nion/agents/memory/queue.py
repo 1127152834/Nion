@@ -2,6 +2,7 @@
 
 import threading
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
@@ -27,12 +28,17 @@ class MemoryUpdateQueue:
     the debounce window are batched together.
     """
 
-    def __init__(self):
+    def __init__(
+        self,
+        *,
+        updater_factory: Callable[[], Any] | None = None,
+    ):
         """Initialize the memory update queue."""
         self._queue: list[ConversationContext] = []
         self._lock = threading.Lock()
         self._timer: threading.Timer | None = None
         self._processing = False
+        self._updater_factory = updater_factory
 
     def add(self, thread_id: str, messages: list[Any], agent_name: str | None = None) -> None:
         """Add a conversation to the update queue.
@@ -83,9 +89,6 @@ class MemoryUpdateQueue:
 
     def _process_queue(self) -> None:
         """Process all queued conversation contexts."""
-        # Import here to avoid circular dependency
-        from nion.agents.memory.updater import MemoryUpdater
-
         with self._lock:
             if self._processing:
                 # Already processing, reschedule
@@ -103,7 +106,7 @@ class MemoryUpdateQueue:
         print(f"Processing {len(contexts_to_process)} queued memory updates")
 
         try:
-            updater = MemoryUpdater()
+            updater = self._create_updater()
 
             for context in contexts_to_process:
                 try:
@@ -127,6 +130,15 @@ class MemoryUpdateQueue:
         finally:
             with self._lock:
                 self._processing = False
+
+    def _create_updater(self):
+        if self._updater_factory is not None:
+            return self._updater_factory()
+
+        # Import here to avoid circular dependency
+        from nion.agents.memory.updater import MemoryUpdater
+
+        return MemoryUpdater()
 
     def flush(self) -> None:
         """Force immediate processing of the queue.

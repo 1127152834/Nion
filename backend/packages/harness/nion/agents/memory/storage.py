@@ -13,6 +13,7 @@ from typing import Any
 from nion.config.agents_config import AGENT_NAME_PATTERN
 from nion.config.memory_config import get_memory_config
 from nion.config.paths import get_paths
+from nion.memory_payloads import create_empty_memory_payload
 
 logger = logging.getLogger(__name__)
 
@@ -20,21 +21,7 @@ logger = logging.getLogger(__name__)
 def create_empty_memory() -> dict[str, Any]:
     """Create an empty memory structure."""
 
-    return {
-        "version": "1.0",
-        "lastUpdated": datetime.utcnow().isoformat() + "Z",
-        "user": {
-            "workContext": {"summary": "", "updatedAt": ""},
-            "personalContext": {"summary": "", "updatedAt": ""},
-            "topOfMind": {"summary": "", "updatedAt": ""},
-        },
-        "history": {
-            "recentMonths": {"summary": "", "updatedAt": ""},
-            "earlierContext": {"summary": "", "updatedAt": ""},
-            "longTermBackground": {"summary": "", "updatedAt": ""},
-        },
-        "facts": [],
-    }
+    return create_empty_memory_payload()
 
 
 class MemoryStorage(abc.ABC):

@@ -81,3 +81,41 @@ def test_memory_middleware_routes_after_chat_capture_through_memory_os(monkeypat
     )
 
     assert called["value"] is True
+
+
+def test_memory_middleware_openviking_provider_exposes_runtime_after_chat(monkeypatch, tmp_path):
+    from types import SimpleNamespace
+
+    from nion.agents.middlewares.memory_middleware import MemoryMiddleware
+    from nion.memory_os.openviking_provider import OpenVikingMemoryProvider
+
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+
+    provider = OpenVikingMemoryProvider(
+        base_dir=tmp_path,
+        config={"mode": "embedded"},
+    )
+    called = {"value": False}
+
+    class FakeQueue:
+        def add(self, thread_id, messages, agent_name=None):
+            called["value"] = True
+            called["thread_id"] = thread_id
+
+    provider._queue = FakeQueue()
+
+    monkeypatch.setattr(
+        "nion.agents.middlewares.memory_middleware.resolve_active_memory_provider",
+        lambda: provider,
+        raising=False,
+    )
+
+    middleware = MemoryMiddleware()
+    middleware.after_agent(
+        {"messages": [HumanMessage(content="hi"), AIMessage(content="hello")]},
+        SimpleNamespace(context={"thread_id": "thread-openviking"}),
+    )
+
+    assert called["value"] is True
+    assert called["thread_id"] == "thread-openviking"
