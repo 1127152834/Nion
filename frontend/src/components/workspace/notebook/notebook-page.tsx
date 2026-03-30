@@ -634,17 +634,12 @@ export function NotebookPage() {
               collapsed={rightRailCollapsed}
               copy={{
                 askTab: copy.askTab,
-                historyTab: copy.historyTab,
-                historyTitle: copy.historyTitle,
                 infoContentHash: copy.infoContentHash,
                 infoCreatedAt: copy.infoCreatedAt,
                 infoNoteId: copy.infoNoteId,
                 infoPath: copy.infoPath,
-                infoTab: copy.infoTab,
                 infoUpdatedAt: copy.infoUpdatedAt,
                 noSelectionDescription: copy.noSelectionDescription,
-                restore: copy.restore,
-                selectNote: copy.selectNote,
               }}
               entries={entries}
               note={note}

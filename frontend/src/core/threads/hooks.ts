@@ -116,8 +116,8 @@ export function useThreadStream({
     if (!normalizedThreadId) {
       // Just reset for new thread creation when threadId becomes null/undefined
       startedRef.current = false;
-      setOnStreamThreadId(normalizedThreadId);
     }
+    setOnStreamThreadId(normalizedThreadId);
     threadIdRef.current = normalizedThreadId;
   }, [threadId]);
 

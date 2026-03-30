@@ -14,25 +14,13 @@ import { summarizeNotebookHistoryEntry } from "./notebook-history-summary";
 type NotebookContextTab = "ask" | "history" | "info";
 
 type NotebookContextPanelCopy = {
-  assistActionItems: string;
-  assistChecklist: string;
-  assistDescription: string;
-  assistExpand: string;
-  assistRewrite: string;
-  assistSummarize: string;
-  assistTitle: string;
   askTab: string;
-  historyTab: string;
   infoContentHash: string;
   infoCreatedAt: string;
   infoNoteId: string;
   infoPath: string;
-  infoTab: string;
   infoUpdatedAt: string;
-  historyTitle: string;
   noSelectionDescription: string;
-  restore: string;
-  selectNote: string;
 };
 
 type NotebookContextPanelProps = {
