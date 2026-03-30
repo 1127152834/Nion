@@ -1974,7 +1974,7 @@ export function InputBox({
             onOpenChange={setModelDialogOpen}
           >
             <ModelSelectorTrigger asChild>
-              <PromptInputButton className="min-w-0 rounded-none px-3">
+              <PromptInputButton className="min-w-0 rounded-full px-3">
                 <div className="flex min-w-0 items-center text-left">
                   <ModelSelectorName className="text-[13px] font-medium text-foreground/78">
                     {selectedModel?.display_name}
@@ -1982,7 +1982,7 @@ export function InputBox({
                 </div>
               </PromptInputButton>
             </ModelSelectorTrigger>
-            <ModelSelectorContent className="max-w-sm rounded-none border border-border/50 shadow-2xl">
+            <ModelSelectorContent className="max-w-sm rounded-2xl border border-border/50 shadow-2xl">
               <ModelSelectorInput placeholder={t.inputBox.searchModels} />
               <ModelSelectorList>
                 {models.map((m) => (
