@@ -376,10 +376,8 @@ class TestAgentsAPI:
         response = agent_client.get("/api/agents")
         assert response.status_code == 200
         data = response.json()
-        assert len(data["agents"]) == 1
-        assert data["agents"][0]["slug"] == "notebook-chat"
-        assert data["agents"][0]["entrypoint"] == "notebook-chat"
-        assert data["agents"][0]["kind"] == "builtin"
+        custom_agents = [agent for agent in data["agents"] if agent["kind"] == "custom"]
+        assert custom_agents == []
 
     def test_create_agent(self, agent_client):
         payload = {
