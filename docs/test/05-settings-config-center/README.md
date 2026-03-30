@@ -35,6 +35,7 @@
   - suggestions model 影响聊天 follow-up。
   - sandbox/daemon/tool settings 影响 runtime 与 tool policy。
   - CLI tools section 复用 CLI manager。
+  - Memory OS provider foundation会在记忆设置页中引入 provider family 与 active binding 状态。
 - 易混淆边界：
   - local settings（主题、语言、sidebar collapsed）与 Config Center 配置不是同一持久化源。
 
@@ -74,6 +75,7 @@
 - 表单校验：dirty 前后按钮状态、validate 失败时显示 path/message。
 - 按钮状态：save/discard 在 clean、dirty、saving 三态下正确启禁。
 - 条件渲染：desktop shell 下 sandbox section 隐藏/提示 AIO provider；CLI tools section 直接嵌入 manager。
+- 条件渲染：记忆页中的 provider foundation 区块必须显示 `Built-in / Mem0 / OpenViking`，且 OpenViking 文案必须提到 `embedded / remote`。
 - 成功反馈：save 后 ConfigSaveBar 回到 clean；version 刷新；runtime status 变化。
 - 失败反馈：409 后重拉；422 后显示 validation。
 - 刷新后状态：已保存配置重进仍保留；discard 后回退到 initialConfig。
@@ -158,6 +160,18 @@
 - 最小回归闭环：save success + 409 + 422。
 - 高收益自动化优先级：P0 是 config API/useConfigEditor；P1 是各 section UI。
 
+### Memory OS Provider Foundation 增量覆盖
+
+- 后端接口：
+  - `GET /api/memory-os/providers/families`
+  - `GET /api/memory-os/providers/state`
+  - `PUT /api/memory-os/providers/state`
+- 前端 contract：
+  - 记忆设置页顶部出现 provider foundation 区块
+  - provider family 至少显示 `Built-in / Mem0 / OpenViking`
+  - OpenViking 模式文案显示 `embedded / remote`
+  - 不得破坏现有 legacy memory、OpenViking、AutoDream 卡片
+
 ## 10. 风险与优先级
 - P0 必测项：config read/update/runtime-status、409/422。
 - P1 高价值项：sandbox/daemon/tool/session-policy 分区。
@@ -165,4 +179,3 @@
 - 最容易漏测的点：save 后 runtime refresh；409 时前端自动 refetch；422 错误结构映射。
 - 最容易出现线上事故的链路：保存成功但 runtime 未同步、错误被吞掉、dirty 状态错误。
 - 上线前必须回归的部分：daemon、session policy、sandbox、tool settings 保存链路。
-

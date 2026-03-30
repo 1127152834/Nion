@@ -228,6 +228,7 @@ FastAPI application on port 8001 with health check at `GET /health`.
 | **MCP** (`/api/mcp`) | `GET /config` - get config; `PUT /config` - update config (saves to extensions_config.json) |
 | **Skills** (`/api/skills`) | `GET /` - list skills; `GET /{name}` - details; `PUT /{name}` - update enabled; `POST /install` - install from .skill archive (accepts standard optional frontmatter like `version`, `author`, `compatibility`) |
 | **Memory** (`/api/memory`) | `GET /` - memory data; `POST /reload` - force reload; `DELETE /` - clear all memory; `DELETE /facts/{fact_id}` - delete a fact; `GET /config` - config; `GET /status` - config + data |
+| **Memory OS** (`/api/memory-os`) | `GET /providers/families` - list provider families and capability metadata; `GET /providers/state` - read active provider binding; `PUT /providers/state` - update active provider binding |
 | **AutoDream** (`/api/autodream`) | `POST /run` - run AutoDream manually; `GET /status` - inspect daemon-owned scheduler state (`running`, `last_run_at`, `last_run_status`, `last_run_summary`, `session_count_since_last_run`, `next_eligibility_hint`) |
 | **Notebook** (`/api/notebook`) | `GET /tree`; `GET /notes`; `GET /notes/{note_id}`; `POST /notes`; `PUT /notes/{note_id}`; `POST /notes/{note_id}/rename`; `POST /notes/{note_id}/move`; `PATCH /notes/{note_id}/metadata`; `GET /notes/{note_id}/history`; `GET /notes/{note_id}/history/{version_id}`; `POST /notes/{note_id}/restore`; `GET /notes/{note_id}/delete-preview`; `POST /notes/{note_id}/delete`; `POST /notes/{note_id}/restore-deleted`; `GET /trash`; `POST /directories`; `POST /directories/rename`; `POST /directories/delete`; `POST /notes/{note_id}/assist-preview`; `POST /notes/{note_id}/assist-apply`; `POST /notes/{note_id}/import` |
 | **Uploads** (`/api/threads/{id}/uploads`) | `POST /` - upload files (auto-converts PDF/PPT/Excel/Word); `GET /list` - list; `DELETE /{filename}` - delete |
@@ -244,6 +245,7 @@ route surface aligned with the renderer expectations, including:
 - `/api/model-admin/*`
 - `/api/threads/{thread_id}/runtime-profile`
 - `/api/models`, `/api/config`, `/api/skills`, `/api/files`, `/api/cli/catalog`
+- `/api/memory-os/providers/families`, `/api/memory-os/providers/state`
 - `/api/daemon/logs`, `/api/daemon/logs/tail`
 - `/api/daemon/diagnostics`, `/api/daemon/diagnostics/threads/{thread_id}`, `/api/daemon/diagnostics/skills/{skill_name}`
 - `/api/daemon/diagnostics/tasks/{task_id}`
@@ -271,6 +273,14 @@ AutoDream scheduler behavior is also daemon-owned in desktop mode:
 - do not count failed streams, client register/unregister events, or heartbeats
 - treat idle as "no active thread stream is being processed", not "no client connected"
 - keep manual `/api/autodream/run` behavior intact even when scheduler status exists
+
+Memory OS M0 provider-foundation rules:
+
+- this milestone adds provider metadata and active-binding state only
+- the three provider families are `builtin`, `mem0`, and `openviking`
+- `openviking` metadata must distinguish `embedded` and `remote` modes
+- do not migrate runtime memory reads/writes off the legacy memory path in this milestone
+- do not remove `/api/memory` in this milestone
 
 Program 03B extends that contract to delegated execution:
 

@@ -15,7 +15,7 @@
 
 | Milestone | Name | Status | Plan | Exit Gate | Notes |
 |---|---|---|---|---|---|
-| M0 | Provider Foundation | `planned` | [M0 Plan](/Users/zhangtiancheng/Documents/项目/agent/nion/docs/superpowers/plans/2026-03-30-openviking-memory-os-m0-provider-foundation-implementation-plan.md) | Provider registry, metadata API, and active binding are live | Current execution target |
+| M0 | Provider Foundation | `in_progress` | [M0 Plan](/Users/zhangtiancheng/Documents/项目/agent/nion/docs/superpowers/plans/2026-03-30-openviking-memory-os-m0-provider-foundation-implementation-plan.md) | Provider registry, metadata API, and active binding are live | Backend and frontend foundation slices are implemented in worktree |
 | M1 | Runtime Migration Off `memory.json` | `not_started` | Not written yet | No runtime hot path reads/writes legacy memory directly | Must follow M0 |
 | M2 | OpenViking Provider Activation | `not_started` | Not written yet | `embedded` and `remote` OpenViking modes work through provider contract | Depends on M1 |
 | M3 | Memory Console Product Surface | `not_started` | Not written yet | Memory UI is split into Provider / Console / Agent Core | Depends on M2 contract stability |
@@ -26,17 +26,17 @@
 
 ### M0: Provider Foundation
 
-- [ ] `MemoryProvider`-level contract exists in backend code
-- [ ] Provider families `builtin`, `mem0`, `openviking` are modeled
-- [ ] OpenViking supports metadata for `embedded` and `remote` modes
-- [ ] Provider registry exists
-- [ ] Active provider binding exists
-- [ ] Shared runtime exposes Memory OS provider API
-- [ ] Frontend can read provider families and active binding
+- [x] `MemoryProvider`-level contract exists in backend code
+- [x] Provider families `builtin`, `mem0`, `openviking` are modeled
+- [x] OpenViking supports metadata for `embedded` and `remote` modes
+- [x] Provider registry exists
+- [x] Active provider binding exists
+- [x] Shared runtime exposes Memory OS provider API
+- [x] Frontend can read provider families and active binding
 - [ ] Current runtime hot path still behaves exactly as before
-- [ ] Backend targeted tests pass
-- [ ] Frontend targeted tests pass
-- [ ] Docs updated
+- [x] Backend targeted tests pass
+- [x] Frontend targeted tests pass
+- [x] Docs updated
 - [ ] Milestone review completed
 
 ### M1: Runtime Migration Off `memory.json`
@@ -118,3 +118,19 @@
 - Memory OS design committed in `0b005cce`.
 - Roadmap and M0 implementation plan committed in `58239a01`.
 - Tracker added so future implementation stays milestone-scoped.
+- M0 execution started in worktree `codex/memory-os-m0-provider-foundation`.
+- Implemented backend foundation slice:
+  - provider family metadata
+  - provider state storage
+  - registry stubs
+  - `/api/memory-os/providers/families`
+  - `/api/memory-os/providers/state`
+  - `PUT /api/memory-os/providers/state`
+- Implemented frontend foundation slice:
+  - `core/memory-os` client and hooks
+  - temporary provider foundation card mounted above the legacy memory settings cards
+- Current verification evidence:
+  - backend: `15 passed`
+  - frontend: `5 passed`
+  - backend lint: passed
+- Fixed test isolation for provider-state persistence so router tests no longer leak state across runs.

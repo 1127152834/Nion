@@ -58,6 +58,7 @@ import {
 } from "./memory-settings-page.storage";
 import { SettingsSection } from "./settings-section";
 import { useConfigEditor } from "./use-config-editor";
+import { MemoryProviderFoundationCard } from "./memory-provider-foundation-card";
 
 const OPENVIKING_FALLBACK_COPY = {
   title: "Reindex notebook",
@@ -426,6 +427,8 @@ export function MemorySettingsPage() {
         title={t.settings.memory.title}
         description={t.settings.memory.description}
       >
+      <MemoryProviderFoundationCard />
+
       <div className="rounded-xl border bg-background/80 p-5 shadow-sm">
         {isConfigLoading ? (
           <div className="text-muted-foreground text-sm">{t.common.loading}</div>

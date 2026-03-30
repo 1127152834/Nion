@@ -53,6 +53,14 @@ Program 03E extends the same local-daemon surface to AutoDream:
 - idle gating is based on active thread-stream work, not desktop process presence
 - scheduler state is exposed at `GET /api/autodream/status`
 
+Program 04 begins the Memory OS transition:
+
+- a new provider foundation now exists under `/api/memory-os/*`
+- provider families currently include `builtin`, `mem0`, and `openviking`
+- OpenViking provider metadata now distinguishes `embedded` and `remote` modes
+- this milestone only introduces provider metadata and active binding state
+- runtime hot paths still use the legacy memory path in this milestone
+
 ---
 
 ## Architecture
@@ -183,6 +191,9 @@ FastAPI application providing REST endpoints for frontend integration:
 | `POST /api/memory/reload` | Force memory reload |
 | `GET /api/memory/config` | Memory configuration |
 | `GET /api/memory/status` | Combined config + data |
+| `GET /api/memory-os/providers/families` | List Memory OS provider families and capabilities |
+| `GET /api/memory-os/providers/state` | Read the active Memory OS binding state |
+| `PUT /api/memory-os/providers/state` | Update the active Memory OS binding state |
 | `POST /api/autodream/run` | Trigger an AutoDream run manually |
 | `GET /api/autodream/status` | Inspect daemon-owned AutoDream scheduler state |
 | `POST /api/threads/{id}/uploads` | Upload files (auto-converts PDF/PPT/Excel/Word to Markdown, rejects directory paths) |

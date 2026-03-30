@@ -105,6 +105,10 @@ This gateway provides custom endpoints for models, MCP configuration, skills, an
                 "description": "Access and manage global memory data for personalized conversations",
             },
             {
+                "name": "memory-os",
+                "description": "Manage pluggable memory provider families, instances, and active binding state",
+            },
+            {
                 "name": "notebook",
                 "description": "Manage the personal desktop notebook knowledge base",
             },
