@@ -121,3 +121,67 @@ def test_notebook_assistant_session_bootstrap_creates_distinct_threads_per_sessi
     assert first.json()["thread_id"] != second.json()["thread_id"]
     assert first.json()["created"] is True
     assert second.json()["created"] is True
+
+
+def test_notebook_assistant_rewrite_api_round_trip(
+    monkeypatch,
+    tmp_path,
+):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+
+    with TestClient(create_app()) as client:
+        created = client.post(
+            "/api/notebook/notes",
+            json={"directory": "", "title": "Assistant Rewrite", "body": "draft body"},
+        )
+        assert created.status_code == 200
+        note = created.json()["note"]
+        note_id = note["note_id"]
+
+        applied = client.post(
+            f"/api/notebook/notes/{note_id}/rewrite/apply",
+            json={
+                "content": "clean body",
+                "expected_content_hash": note["content_hash"],
+            },
+        )
+        assert applied.status_code == 200
+        assert applied.json()["pending_rewrite"]["original_content"] == "draft body"
+        assert applied.json()["pending_rewrite"]["applied_content"] == "clean body"
+
+        confirmed = client.post(f"/api/notebook/notes/{note_id}/rewrite/confirm")
+        assert confirmed.status_code == 200
+        assert confirmed.json()["pending_rewrite"] is None
+        assert confirmed.json()["note"]["body"] == "clean body"
+
+
+def test_notebook_assistant_rewrite_cancel_keeps_note_body(
+    monkeypatch,
+    tmp_path,
+):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+
+    with TestClient(create_app()) as client:
+        created = client.post(
+            "/api/notebook/notes",
+            json={"directory": "", "title": "Assistant Rewrite Cancel", "body": "draft body"},
+        )
+        assert created.status_code == 200
+        note = created.json()["note"]
+        note_id = note["note_id"]
+
+        applied = client.post(
+            f"/api/notebook/notes/{note_id}/rewrite/apply",
+            json={
+                "content": "clean body",
+                "expected_content_hash": note["content_hash"],
+            },
+        )
+        assert applied.status_code == 200
+
+        cancelled = client.post(f"/api/notebook/notes/{note_id}/rewrite/cancel")
+        assert cancelled.status_code == 200
+        assert cancelled.json()["pending_rewrite"] is None
+        assert cancelled.json()["note"]["body"] == "draft body"

@@ -12,6 +12,10 @@ from pydantic import BaseModel, Field
 from nion.config.paths import get_paths
 from nion.models import create_chat_model
 from nion.models.factory import resolve_model_name_with_fallback
+from nion.notebook.assistant_service import (
+    NotebookAssistantService,
+    NotebookPendingRewrite,
+)
 from nion.notebook import (
     ASSIST_SPECS,
     NotebookHistoryService,
@@ -64,6 +68,11 @@ class NotebookTreeResponse(BaseModel):
 
 class NotebookNoteResponse(BaseModel):
     note: NotebookNote
+
+
+class NotebookPendingRewriteResponse(BaseModel):
+    note: NotebookNote
+    pending_rewrite: NotebookPendingRewrite | None = None
 
 
 class NotebookNotesResponse(BaseModel):
@@ -176,6 +185,13 @@ class NotebookAssistApplyRequest(BaseModel):
     content: str
     expected_content_hash: str
     current_body: str | None = None
+    selection_start: int | None = None
+    selection_end: int | None = None
+
+
+class NotebookRewriteApplyRequest(BaseModel):
+    content: str
+    expected_content_hash: str
     selection_start: int | None = None
     selection_end: int | None = None
 
@@ -579,6 +595,53 @@ async def apply_notebook_assist(
     except NotebookNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     return NotebookNoteResponse(note=note)
+
+
+@router.post("/notes/{note_id}/rewrite/apply", response_model=NotebookPendingRewriteResponse)
+async def apply_notebook_rewrite(
+    note_id: str,
+    payload: NotebookRewriteApplyRequest,
+) -> NotebookPendingRewriteResponse:
+    service = NotebookAssistantService()
+    try:
+        note = NotebookHistoryService()._service.read_note(note_id)
+        pending_rewrite = service.apply_rewrite(
+            note_id=note_id,
+            content=payload.content,
+            expected_content_hash=payload.expected_content_hash,
+            selection_start=payload.selection_start,
+            selection_end=payload.selection_end,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except NotebookConflictError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except NotebookNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return NotebookPendingRewriteResponse(note=note, pending_rewrite=pending_rewrite)
+
+
+@router.post("/notes/{note_id}/rewrite/cancel", response_model=NotebookPendingRewriteResponse)
+async def cancel_notebook_rewrite(note_id: str) -> NotebookPendingRewriteResponse:
+    service = NotebookAssistantService()
+    try:
+        note = NotebookHistoryService()._service.read_note(note_id)
+        service.cancel_rewrite(note_id)
+    except NotebookNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return NotebookPendingRewriteResponse(note=note, pending_rewrite=None)
+
+
+@router.post("/notes/{note_id}/rewrite/confirm", response_model=NotebookPendingRewriteResponse)
+async def confirm_notebook_rewrite(note_id: str) -> NotebookPendingRewriteResponse:
+    service = NotebookAssistantService()
+    try:
+        note = service.confirm_rewrite(note_id)
+    except NotebookConflictError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except NotebookNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return NotebookPendingRewriteResponse(note=note, pending_rewrite=None)
 
 
 @router.post("/notes/{note_id}/import", response_model=NotebookNoteResponse)

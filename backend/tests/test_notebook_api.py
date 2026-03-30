@@ -518,6 +518,119 @@ def test_notebook_assist_supports_paragraph_scope_and_action_options(monkeypatch
         assert preview_payload["recommended_mode"] == "insert_after_selection"
 
 
+def test_notebook_rewrite_apply_overwrites_existing_pending_rewrite(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+
+    with TestClient(create_app()) as client:
+        created = client.post(
+            "/api/notebook/notes",
+            json={"directory": "", "title": "Rewrite Note", "body": "line one\nline two"},
+        )
+        assert created.status_code == 200
+        note = created.json()["note"]
+        note_id = note["note_id"]
+
+        first = client.post(
+            f"/api/notebook/notes/{note_id}/rewrite/apply",
+            json={
+                "content": "first rewrite",
+                "expected_content_hash": note["content_hash"],
+                "selection_start": 0,
+                "selection_end": 8,
+            },
+        )
+        assert first.status_code == 200
+        first_payload = first.json()
+        assert first_payload["pending_rewrite"]["original_content"] == "line one\nline two"
+        assert first_payload["pending_rewrite"]["applied_content"] == "first rewrite\nline two"
+        assert first_payload["pending_rewrite"]["selection_start"] == 0
+        assert first_payload["pending_rewrite"]["selection_end"] == 8
+
+        second = client.post(
+            f"/api/notebook/notes/{note_id}/rewrite/apply",
+            json={
+                "content": "second rewrite",
+                "expected_content_hash": note["content_hash"],
+                "selection_start": 9,
+                "selection_end": 17,
+            },
+        )
+        assert second.status_code == 200
+        second_payload = second.json()
+        assert second_payload["pending_rewrite"]["original_content"] == "line one\nline two"
+        assert second_payload["pending_rewrite"]["applied_content"] == "line one\nsecond rewrite"
+        assert second_payload["pending_rewrite"]["selection_start"] == 9
+        assert second_payload["pending_rewrite"]["selection_end"] == 17
+
+
+def test_notebook_rewrite_cancel_discards_pending_rewrite(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+
+    with TestClient(create_app()) as client:
+        created = client.post(
+            "/api/notebook/notes",
+            json={"directory": "", "title": "Cancel Rewrite", "body": "draft body"},
+        )
+        assert created.status_code == 200
+        note = created.json()["note"]
+        note_id = note["note_id"]
+
+        applied = client.post(
+            f"/api/notebook/notes/{note_id}/rewrite/apply",
+            json={
+                "content": "clean body",
+                "expected_content_hash": note["content_hash"],
+            },
+        )
+        assert applied.status_code == 200
+        assert applied.json()["pending_rewrite"]["applied_content"] == "clean body"
+
+        cancelled = client.post(f"/api/notebook/notes/{note_id}/rewrite/cancel")
+        assert cancelled.status_code == 200
+        cancelled_payload = cancelled.json()
+        assert cancelled_payload["note"]["body"] == "draft body"
+        assert cancelled_payload["pending_rewrite"] is None
+
+
+def test_notebook_rewrite_confirm_commits_pending_rewrite(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+
+    with TestClient(create_app()) as client:
+        created = client.post(
+            "/api/notebook/notes",
+            json={"directory": "", "title": "Confirm Rewrite", "body": "draft body"},
+        )
+        assert created.status_code == 200
+        note = created.json()["note"]
+        note_id = note["note_id"]
+
+        applied = client.post(
+            f"/api/notebook/notes/{note_id}/rewrite/apply",
+            json={
+                "content": "final body",
+                "expected_content_hash": note["content_hash"],
+            },
+        )
+        assert applied.status_code == 200
+
+        confirmed = client.post(f"/api/notebook/notes/{note_id}/rewrite/confirm")
+        assert confirmed.status_code == 200
+        confirmed_payload = confirmed.json()
+        assert confirmed_payload["note"]["body"] == "final body"
+        assert confirmed_payload["pending_rewrite"] is None
+
+        reloaded = client.get(f"/api/notebook/notes/{note_id}")
+        assert reloaded.status_code == 200
+        assert reloaded.json()["note"]["body"] == "final body"
+
+        history = client.get(f"/api/notebook/notes/{note_id}/history")
+        assert history.status_code == 200
+        assert history.json()["entries"][0]["actor_type"] == "agent"
+
+
 def test_notebook_directory_api_round_trip(monkeypatch, tmp_path):
     monkeypatch.setenv("NION_HOME", str(tmp_path))
     reset_paths()

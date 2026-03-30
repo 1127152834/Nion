@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 
 import {
   applyNotebookAssist,
@@ -37,6 +38,7 @@ import type {
   NotebookImportSourcesResponse,
   NotebookMetadataInput,
   NotebookMoveInput,
+  NotebookPendingRewrite,
   NotebookRenameInput,
   NotebookRestoreVersionInput,
   NotebookUpdateInput,
@@ -344,4 +346,20 @@ async function invalidateNotebookQueries(
       queryKey: ["notebook", "delete-preview", noteId],
     }),
   ]);
+}
+
+export const notebookPendingRewriteQueryKeys = {
+  note: (noteId: string) => ["notebook", "pending-rewrite", noteId] as const,
+};
+
+export function useNotebookPendingRewrite(initialPendingRewrite: NotebookPendingRewrite | null = null) {
+  const [pendingRewrite, setPendingRewrite] = useState<NotebookPendingRewrite | null>(
+    initialPendingRewrite,
+  );
+
+  return {
+    pendingRewrite,
+    setPendingRewrite,
+    clearPendingRewrite: () => setPendingRewrite(null),
+  };
 }

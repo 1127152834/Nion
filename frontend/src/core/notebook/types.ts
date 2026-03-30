@@ -167,6 +167,13 @@ export interface NotebookAssistApplyInput {
   selection_end?: number;
 }
 
+export interface NotebookPendingRewrite {
+  original_content: string;
+  applied_content: string;
+  selection_start?: number | null;
+  selection_end?: number | null;
+}
+
 export interface NotebookImportInput {
   source: "chat";
   content: string;
