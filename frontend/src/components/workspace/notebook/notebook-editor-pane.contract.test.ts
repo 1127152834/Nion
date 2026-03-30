@@ -9,10 +9,14 @@ void test("NotebookEditorPane matches the reference writing-pane structure", asy
   assert.match(source, /saveState/);
   assert.match(source, /CheckCircle2/);
   assert.match(source, /MoreHorizontal/);
+  assert.match(source, /DropdownMenu/);
+  assert.match(source, /DropdownMenuItem/);
+  assert.match(source, /重命名|copy\.rename/);
   assert.match(source, /Folder/);
   assert.match(source, /Clock/);
   assert.match(source, /onOpenDelete/);
   assert.match(source, /onOpenHistory/);
+  assert.match(source, /onOpenRename/);
   assert.match(source, /onSelectionChange/);
   assert.match(source, /selectionStart/);
   assert.match(source, /previewMode/);

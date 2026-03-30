@@ -21,6 +21,7 @@ void test("NotebookSidebar matches the reference left-rail structure", async () 
   assert.match(source, /MoreHorizontal/);
   assert.match(source, /Nion Notebook/);
   assert.match(source, /NotebookTreeView/);
+  assert.match(source, /flex-1 min-h-0 overflow-y-auto/);
   assert.match(source, /onOpenCreateInDirectory/);
   assert.match(source, /onOpenCreateSubfolder/);
   assert.match(source, /onOpenRenameDirectory/);

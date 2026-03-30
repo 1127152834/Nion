@@ -4,6 +4,12 @@ import { CheckCircle2, Clock, Edit3, Eye, FileText, Folder, History, MoreHorizon
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import type { NotebookNote, NotebookSelection } from "@/core/notebook";
@@ -16,11 +22,13 @@ type NotebookEditorPaneCopy = {
   edit: string;
   history: string;
   lastEditedPrefix: string;
+  move: string;
   noSelectionCta: string;
   noSelectionDescription: string;
   noSelectionTitle: string;
   noteTitlePlaceholder: string;
   preview: string;
+  rename: string;
   saved: string;
   saveDraft: string;
   saving: string;
@@ -43,7 +51,8 @@ type NotebookEditorPaneProps = {
   onDraftTitleChange: (value: string) => void;
   onOpenDelete: () => void;
   onOpenHistory: () => void;
-  onOpenMore: () => void;
+  onOpenRename: () => void;
+  onOpenMove: () => void;
   onPrimaryCreate: () => void;
   onSaveDraft: () => void;
   onSelectionChange: (selection: NotebookSelection | null) => void;
@@ -63,7 +72,8 @@ export function NotebookEditorPane({
   onDraftTitleChange,
   onOpenDelete,
   onOpenHistory,
-  onOpenMore,
+  onOpenRename,
+  onOpenMove,
   onPrimaryCreate,
   onSaveDraft,
   onSelectionChange,
@@ -172,14 +182,28 @@ export function NotebookEditorPane({
                     >
                       <Trash2 className="size-4" />
                     </button>
-                    <button
-                      type="button"
-                      onClick={onOpenMore}
-                      className="rounded-md p-1.5 text-[var(--notebook-soft-text)] transition-colors hover:bg-[var(--notebook-muted)] hover:text-[var(--notebook-ink)]"
-                      title="更多操作"
-                    >
-                      <MoreHorizontal className="size-4" />
-                    </button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          type="button"
+                          className="rounded-md p-1.5 text-[var(--notebook-soft-text)] transition-colors hover:bg-[var(--notebook-muted)] hover:text-[var(--notebook-ink)]"
+                          title="更多操作"
+                        >
+                          <MoreHorizontal className="size-4" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent
+                        align="end"
+                        className="min-w-36 rounded-xl border-[var(--notebook-border)] bg-[var(--notebook-panel)] text-[var(--notebook-ink)]"
+                      >
+                        <DropdownMenuItem onSelect={onOpenRename}>
+                          {copy.rename}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onSelect={onOpenMove}>
+                          {copy.move}
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 )}
               </div>

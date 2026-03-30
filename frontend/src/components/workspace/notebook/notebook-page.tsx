@@ -613,11 +613,13 @@ export function NotebookPage() {
                 edit: copy.edit,
                 history: copy.history,
                 lastEditedPrefix: "最后编辑于",
+                move: copy.move,
                 noSelectionCta: copy.createNote,
                 noSelectionDescription: copy.noSelectionDescription,
                 noSelectionTitle: copy.noSelectionTitle,
                 noteTitlePlaceholder: copy.noteTitlePlaceholder,
                 preview: copy.preview,
+                rename: copy.rename,
                 saved: copy.saved,
                 saveDraft: copy.saveDraft,
                 saving: copy.saving,
@@ -636,7 +638,8 @@ export function NotebookPage() {
               onDraftTitleChange={setDraftTitle}
               onOpenDelete={() => setDeleteOpen(true)}
               onOpenHistory={() => setContextTab("history")}
-              onOpenMore={() => setRenameOpen(true)}
+              onOpenRename={() => setRenameOpen(true)}
+              onOpenMove={() => setMoveOpen(true)}
               onPrimaryCreate={() => openDraftComposer()}
               draftDirectory={draftSession?.directory ?? ""}
               isDraft={isDraft}

@@ -2,11 +2,11 @@
 
 import {
   ArrowRight,
-  Bot,
   CheckSquare,
   ChevronLeftIcon,
   ChevronRightIcon,
   Copy,
+  Minus,
   FileText,
   History,
   Info,
@@ -16,7 +16,7 @@ import {
   Save,
   Sparkles,
   Tag,
-  User,
+  X,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 
@@ -25,21 +25,19 @@ import type {
   NotebookAssistAction,
   NotebookAssistPreview,
   NotebookHistoryEntry,
-  NotebookImportInput,
-  NotebookImportSource,
   NotebookMetadataInput,
   NotebookNote,
   NotebookSelection,
 } from "@/core/notebook";
 import {
   useApplyNotebookAssist,
-  useImportNotebookContent,
   useNotebookHistoryDetail,
-  useNotebookImportSources,
   usePreviewNotebookAssist,
   useUpdateNotebookMetadata,
 } from "@/core/notebook";
 import { formatTimeAgo } from "@/core/utils/datetime";
+
+import { summarizeNotebookHistoryEntry } from "./notebook-history-summary";
 
 type NotebookContextTab = "ask" | "history" | "info";
 
@@ -146,7 +144,6 @@ export function NotebookContextPanel({
   const [assistError, setAssistError] = useState<string | null>(null);
   const [expansionIntent, setExpansionIntent] = useState<"background" | "details" | "examples" | "next_steps">("details");
   const [historyPreviewId, setHistoryPreviewId] = useState<string | null>(null);
-  const [importError, setImportError] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<NotebookAssistAction | null>(null);
   const [previewBaseBody, setPreviewBaseBody] = useState("");
   const [previewSelection, setPreviewSelection] = useState<NotebookSelection | null>(null);
@@ -157,13 +154,6 @@ export function NotebookContextPanel({
   const previewAssist = usePreviewNotebookAssist(note?.note_id ?? "");
   const applyAssist = useApplyNotebookAssist(note?.note_id ?? "");
   const updateMetadata = useUpdateNotebookMetadata(note?.note_id ?? "");
-  const importContent = useImportNotebookContent(note?.note_id ?? "");
-  const {
-    importSources,
-    isLoading: importSourcesLoading,
-    error: importSourcesError,
-    refetch: refetchImportSources,
-  } = useNotebookImportSources("chat");
   const { detail: historyPreview } = useNotebookHistoryDetail(note?.note_id ?? null, historyPreviewId);
 
   const infoRows = useMemo(() => {
@@ -185,7 +175,18 @@ export function NotebookContextPanel({
     return title.length > 0 ? title : "未命名笔记";
   }, [note, noteTitle]);
 
-  const importSourceErrorMessage = importError ?? errorMessage(importSourcesError);
+  const historyItems = useMemo(
+    () =>
+      entries.map((entry) => ({
+        entry,
+        summary: summarizeNotebookHistoryEntry(entry),
+      })),
+    [entries],
+  );
+  const historyPreviewSummary = useMemo(
+    () => (historyPreview ? summarizeNotebookHistoryEntry(historyPreview.entry) : null),
+    [historyPreview],
+  );
   const secondaryApplyMode = aiPreview ? getSecondaryApplyMode(aiPreview) : null;
 
   async function handleAiAction(action: NotebookAssistAction) {
@@ -257,23 +258,6 @@ export function NotebookContextPanel({
     }
   }
 
-  async function handleImportFromChat(source: NotebookImportSource) {
-    if (!note) return;
-    setImportError(null);
-    const payload: NotebookImportInput = {
-      source: "chat",
-      content: source.content,
-      mode: "append",
-      expected_content_hash: currentContentHash,
-    };
-    try {
-      const updated = await importContent.mutateAsync(payload);
-      onApplyNote(updated);
-    } catch (error) {
-      setImportError(errorMessage(error) ?? "导入失败，请稍后重试。");
-    }
-  }
-
   async function handleCopyPreview() {
     if (!aiPreview) {
       return;
@@ -287,15 +271,29 @@ export function NotebookContextPanel({
     }
   }
 
-  async function handleTagSave() {
+  async function updateTags(tags: string[]) {
     if (!note) return;
-    const tags = tagInput
-      .split(",")
-      .map((item) => item.trim())
-      .filter(Boolean);
     const updated = await updateMetadata.mutateAsync({ tags } satisfies NotebookMetadataInput);
     onApplyNote(updated);
+  }
+
+  async function handleTagSubmit(tagValue: string) {
+    if (!note) return;
+    const nextTag = tagValue.trim();
+    if (!nextTag) {
+      return;
+    }
+    if (note.tags.includes(nextTag)) {
+      setTagInput("");
+      return;
+    }
+    await updateTags([...note.tags, nextTag]);
     setTagInput("");
+  }
+
+  async function handleRemoveTag(tagToRemove: string) {
+    if (!note) return;
+    await updateTags(note.tags.filter((tag) => tag !== tagToRemove));
   }
 
   async function handleRestoreVersion() {
@@ -574,75 +572,6 @@ export function NotebookContextPanel({
                 <section className="space-y-2 border-t border-[var(--notebook-border)] pt-4">
                   <div>
                     <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--notebook-ink)]">
-                      从对话导入
-                    </h3>
-                    <p className="mt-1 text-sm text-[var(--notebook-soft-text)]">
-                      从最近的 AI 回复里挑一条，直接补充到当前笔记末尾。
-                    </p>
-                  </div>
-
-                  {importSourceErrorMessage ? (
-                    <InlineFeedbackCard
-                      actionLabel="重新加载"
-                      message={importSourceErrorMessage}
-                      onAction={() => {
-                        setImportError(null);
-                        void refetchImportSources();
-                      }}
-                      tone="error"
-                    />
-                  ) : null}
-
-                  {importSourcesLoading ? (
-                    <div className="rounded-xl border border-[var(--notebook-border)] bg-[var(--notebook-panel)] p-4 text-sm text-[var(--notebook-soft-text)]">
-                      正在读取最近对话...
-                    </div>
-                  ) : importSources.length > 0 ? (
-                    <div className="space-y-2">
-                      {importSources.slice(0, 3).map((source) => (
-                        <div
-                          key={source.id}
-                          className="rounded-xl border border-[var(--notebook-border)] bg-[var(--notebook-panel)] p-3"
-                        >
-                          <div className="mb-2 flex items-start gap-2">
-                            <div className="mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[var(--notebook-muted)]">
-                              <Bot className="size-3 text-[var(--notebook-ink)]" />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center justify-between gap-2">
-                                <div className="truncate text-xs font-medium text-[var(--notebook-ink)]">
-                                  {source.thread_title}
-                                </div>
-                                <div className="text-[11px] text-[var(--notebook-soft-text)]">
-                                  {formatTimeAgo(source.updated_at)}
-                                </div>
-                              </div>
-                              <p className="mt-1 line-clamp-3 text-xs leading-5 text-[var(--notebook-soft-text)]">
-                                {source.preview_text}
-                              </p>
-                            </div>
-                          </div>
-                          <button
-                            onClick={() => void handleImportFromChat(source)}
-                            disabled={importContent.isPending}
-                            className="flex w-full items-center justify-center gap-2 rounded-md border border-[var(--notebook-border)] bg-[var(--notebook-panel)] py-1.5 text-xs font-medium text-[var(--notebook-ink)] transition-colors hover:bg-[var(--notebook-hover)] disabled:cursor-not-allowed disabled:opacity-60"
-                          >
-                            <Save className="size-3" />
-                            <span>追加到当前笔记</span>
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="rounded-xl border border-[var(--notebook-border)] bg-[var(--notebook-panel)] p-4 text-sm text-[var(--notebook-soft-text)]">
-                      暂时没有可导入的对话内容。
-                    </div>
-                  )}
-                </section>
-
-                <section className="space-y-2 border-t border-[var(--notebook-border)] pt-4">
-                  <div>
-                    <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--notebook-ink)]">
                       开启对话
                     </h3>
                     <p className="mt-1 text-sm text-[var(--notebook-soft-text)]">
@@ -688,20 +617,20 @@ export function NotebookContextPanel({
             {!historyPreview ? (
               <div className="relative ml-3 space-y-5 border-l-2 border-[var(--notebook-border)] py-2">
                 {entries.length > 0 ? (
-                  entries.map((entry) => (
+                  historyItems.map(({ entry, summary }) => (
                     <div key={entry.version_id} className="relative pl-6">
                       <div className="absolute -left-[9px] top-1 flex h-4 w-4 items-center justify-center rounded-full border-2 border-[var(--notebook-brand)] bg-[var(--notebook-panel)]">
-                        {entry.actor_type === "agent" ? <Bot className="size-2 text-[var(--notebook-ink)]" /> : <User className="size-2 text-[var(--notebook-ink)]" />}
+                        <Minus className="size-2 text-[var(--notebook-ink)]" />
                       </div>
                       <div
                         className="cursor-pointer rounded-lg border border-[var(--notebook-border)] bg-[var(--notebook-panel)] p-3 transition-all hover:border-[var(--notebook-brand)]"
                         onClick={() => setHistoryPreviewId(entry.version_id)}
                       >
                         <div className="mb-1 flex items-center justify-between">
-                          <span className="text-xs font-medium text-[var(--notebook-ink)]">{entry.actor_type === "agent" ? "Nion" : "你"}</span>
+                          <span className="text-xs font-medium text-[var(--notebook-ink)]">{summary.title}</span>
                           <span className="text-xs text-[var(--notebook-soft-text)]">{formatTimeAgo(entry.timestamp)}</span>
                         </div>
-                        <p className="text-sm text-[var(--notebook-soft-text)]">{entry.operation}</p>
+                        <p className="text-sm text-[var(--notebook-soft-text)]">{summary.description}</p>
                       </div>
                     </div>
                   ))
@@ -723,7 +652,7 @@ export function NotebookContextPanel({
                   <div className="mb-2 flex items-center justify-between text-xs text-[var(--notebook-soft-text)]">
                     <span>{historyPreview.entry ? new Date(historyPreview.entry.timestamp).toLocaleString("zh-CN") : ""}</span>
                     <span className="rounded bg-[var(--notebook-muted)] px-1.5 py-0.5">
-                      {historyPreview.entry?.actor_type === "agent" ? "Nion" : "User"}
+                      {historyPreviewSummary?.description}
                     </span>
                   </div>
                   <div className="custom-scrollbar max-h-64 overflow-y-auto text-sm leading-relaxed whitespace-pre-wrap text-[var(--notebook-ink)]">
@@ -763,14 +692,24 @@ export function NotebookContextPanel({
               <div>
                 <div className="mb-2 flex items-center justify-between">
                   <h4 className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--notebook-soft-text)]">标签</h4>
-                  <button className="text-[var(--notebook-ink)] hover:underline" onClick={() => void handleTagSave()}>编辑</button>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {note.tags.length > 0 ? (
                     note.tags.map((tag) => (
-                      <span key={tag} className="inline-flex items-center rounded-md bg-[var(--notebook-muted)] px-2 py-1 text-xs font-medium text-[var(--notebook-soft-text)]">
+                      <span
+                        key={tag}
+                        className="group inline-flex items-center rounded-md bg-[var(--notebook-muted)] px-2 py-1 text-xs font-medium text-[var(--notebook-soft-text)]"
+                      >
                         <Tag className="mr-1 size-2.5" />
                         {tag}
+                        <button
+                          type="button"
+                          className="ml-1 inline-flex h-4 w-4 items-center justify-center rounded-full text-[var(--notebook-soft-text)] opacity-0 transition-opacity hover:bg-[var(--notebook-hover)] hover:text-[var(--notebook-ink)] group-hover:opacity-100"
+                          onClick={() => void handleRemoveTag(tag)}
+                          aria-label={`删除标签 ${tag}`}
+                        >
+                          <X className="size-3" />
+                        </button>
                       </span>
                     ))
                   ) : (
@@ -779,7 +718,14 @@ export function NotebookContextPanel({
                   <Input
                     value={tagInput}
                     onChange={(event) => setTagInput(event.target.value)}
-                    placeholder="alpha, roadmap"
+                    onKeyDown={(event) => {
+                      if (event.key !== "Enter") {
+                        return;
+                      }
+                      event.preventDefault();
+                      void handleTagSubmit(tagInput);
+                    }}
+                    placeholder="输入标签后按回车"
                     className="h-8 border-dashed border-[var(--notebook-border)] bg-transparent text-xs text-[var(--notebook-ink)] placeholder:text-[var(--notebook-soft-text)]"
                   />
                 </div>

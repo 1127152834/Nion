@@ -85,7 +85,7 @@ export function NotebookSidebar({
   query,
   recentNotes,
   treeNodes,
-  treeFileCount,
+  treeFileCount: _treeFileCount,
   onOpenCreate,
   onOpenCreateFolder,
   onOpenCreateInDirectory,
@@ -135,7 +135,7 @@ export function NotebookSidebar({
   }
 
   return (
-    <aside className="flex h-full w-full min-w-0 flex-col rounded-[1.5rem] border border-[var(--notebook-border)] bg-[var(--notebook-sidebar)] shadow-[0_10px_30px_-24px_rgba(0,0,0,0.35)] transition-[background-color,border-color,box-shadow] duration-300">
+    <aside className="flex h-full w-full min-w-0 min-h-0 flex-col rounded-[1.5rem] border border-[var(--notebook-border)] bg-[var(--notebook-sidebar)] shadow-[0_10px_30px_-24px_rgba(0,0,0,0.35)] transition-[background-color,border-color,box-shadow] duration-300">
       <div className="border-b border-[var(--notebook-border)] p-4 pb-3">
         <div className="mb-4 flex items-center gap-2">
           <div className="flex h-6 w-6 items-center justify-center rounded bg-[var(--notebook-brand)] text-xs font-bold text-[var(--notebook-panel)]">
@@ -182,7 +182,7 @@ export function NotebookSidebar({
         </div>
       </div>
 
-      <div className="custom-scrollbar flex-1 overflow-y-auto px-2.5 py-4">
+      <div className="custom-scrollbar flex-1 min-h-0 overflow-y-auto px-2.5 py-4">
         <div className="space-y-5">
           {visiblePinnedNotes.length > 0 ? (
             <section>
