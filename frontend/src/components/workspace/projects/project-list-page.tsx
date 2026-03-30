@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { FolderKanbanIcon, PlusIcon } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -16,9 +17,12 @@ import {
 import { useProjects } from "@/core/projects";
 import { pathOfProject } from "@/core/navigation/desktop-routes";
 import { formatTimeAgo } from "@/core/utils/datetime";
+import { useCreateProject } from "@/core/projects";
 
 export function ProjectListPage() {
+  const router = useRouter();
   const { data, isLoading } = useProjects();
+  const createProject = useCreateProject();
   const [query, setQuery] = useState("");
 
   const projects = useMemo(() => {
@@ -35,6 +39,17 @@ export function ProjectListPage() {
     });
   }, [data?.items, query]);
 
+  const handleCreateProject = async () => {
+    const created = await createProject.mutateAsync({
+      name: `新项目 ${new Date().toLocaleTimeString("zh-CN", {
+        hour: "2-digit",
+        minute: "2-digit",
+      })}`,
+      goal: "从 Projects 模块启动的新项目",
+    });
+    router.push(pathOfProject(created.id));
+  };
+
   return (
     <WorkspaceContainer>
       <WorkspaceHeader />
@@ -50,7 +65,7 @@ export function ProjectListPage() {
                 管理长期工作的项目容器、实施计划、项目会话与时间线。
               </p>
             </div>
-            <Button disabled>
+            <Button onClick={handleCreateProject} disabled={createProject.isPending}>
               <PlusIcon className="size-4" />
               新建项目
             </Button>
@@ -136,4 +151,3 @@ export function ProjectListPage() {
     </WorkspaceContainer>
   );
 }
-

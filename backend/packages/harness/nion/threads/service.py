@@ -81,6 +81,9 @@ class ThreadService:
             agent_name=context.get("agent_name"),
             recursion_limit=config.get("recursion_limit", 100),
             surface=context.get("surface", "workspace"),
+            project_id=context.get("project_id"),
+            project_phase=context.get("project_phase"),
+            primary_plan_id=context.get("primary_plan_id"),
         ):
             if event.type == "values":
                 latest_values = {
@@ -96,6 +99,15 @@ class ThreadService:
                 cli_tools_enabled=cli_tools_enabled,
                 previous_state=self._get_cli_management_state(thread_id),
             ).model_dump()
+            if context.get("project_id"):
+                latest_values["project"] = {
+                    "source": "project",
+                    "project_id": str(context.get("project_id")),
+                    "project_name": str(context.get("project_name") or latest_values.get("project", {}).get("project_name") or "Project"),
+                    "project_phase": context.get("project_phase"),
+                    "primary_plan_id": context.get("primary_plan_id"),
+                    "inherit_project_context": True,
+                }
             self._repository.upsert_thread(
                 thread_id,
                 agent_name=str(context.get("agent_name") or "lead_agent"),

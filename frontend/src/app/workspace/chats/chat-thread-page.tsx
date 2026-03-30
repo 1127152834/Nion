@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
+import { useParams, usePathname } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { type PromptInputMessage } from "@/components/ai-elements/prompt-input";
@@ -39,7 +40,7 @@ import {
 } from "@/core/threads";
 import { getThreadRequestErrorCopy } from "@/core/threads/error-copy";
 import { useThreadStream } from "@/core/threads/hooks";
-import { pathOfThread, textOfMessage } from "@/core/threads/utils";
+import { pathOfProjectThread, pathOfThread, textOfMessage } from "@/core/threads/utils";
 import { env } from "@/env";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -47,6 +48,8 @@ import { SquareTerminalIcon } from "lucide-react";
 
 export default function ChatThreadPage() {
   const { t } = useI18n();
+  const pathname = usePathname();
+  const params = useParams<{ project_id?: string }>();
   const searchParams = useSearchParams();
   const [settings, setSettings] = useLocalSettings();
 
@@ -129,7 +132,15 @@ export default function ChatThreadPage() {
     isMock,
     onStart: (startedThreadId) => {
       setIsNewThread(false);
-      history.replaceState(null, "", pathOfThread(startedThreadId));
+      if (pathname.startsWith("/workspace/projects/") && params.project_id) {
+        history.replaceState(
+          null,
+          "",
+          pathOfProjectThread(params.project_id, startedThreadId),
+        );
+      } else {
+        history.replaceState(null, "", pathOfThread(startedThreadId));
+      }
     },
     onFinish: (state) => {
       if (document.hidden || !document.hasFocus()) {
@@ -293,6 +304,10 @@ export default function ChatThreadPage() {
             thinking_enabled: currentMode !== "flash",
             is_plan_mode: currentMode === "pro" || currentMode === "ultra",
             subagent_enabled: currentMode === "ultra",
+            project_id: thread.values.project?.project_id,
+            project_phase: thread.values.project?.project_phase,
+            primary_plan_id: thread.values.project?.primary_plan_id,
+            project_name: thread.values.project?.project_name,
             reasoning_effort:
               settings.context.reasoning_effort ??
               (currentMode === "ultra"

@@ -77,7 +77,7 @@ export function RecentChatList() {
   const { data: threads = [] } = useThreads();
   const { mutate: deleteThread } = useDeleteThread();
   const { mutate: renameThread } = useRenameThread();
-  const threadEntries = useMemo(() => {
+  const threadGroups = useMemo(() => {
     const enriched = threads.map((thread) => ({
       thread,
       pendingClarification: derivePendingClarification(
@@ -89,7 +89,7 @@ export function RecentChatList() {
 
     const pending = enriched.filter((entry) => entry.pendingClarification);
     const regular = enriched.filter((entry) => !entry.pendingClarification);
-    return [...pending, ...regular].sort((a, b) => {
+    const ordered = [...pending, ...regular].sort((a, b) => {
       const aProject = Boolean(a.project);
       const bProject = Boolean(b.project);
       if (aProject !== bProject) {
@@ -97,6 +97,11 @@ export function RecentChatList() {
       }
       return 0;
     });
+    return {
+      project: ordered.filter((entry) => entry.project),
+      bridge: ordered.filter((entry) => !entry.project && entry.bridge),
+      general: ordered.filter((entry) => !entry.project && !entry.bridge),
+    };
   }, [threads]);
 
   // Rename dialog state
@@ -186,24 +191,47 @@ export function RecentChatList() {
     [t],
   );
 
-  if (threadEntries.length === 0) {
+  if (
+    threadGroups.project.length === 0 &&
+    threadGroups.bridge.length === 0 &&
+    threadGroups.general.length === 0
+  ) {
     return null;
   }
+
+  const groups = [
+    {
+      key: "project",
+      label: "项目对话",
+      items: threadGroups.project,
+    },
+    {
+      key: "bridge",
+      label: "桥接对话",
+      items: threadGroups.bridge,
+    },
+    {
+      key: "general",
+      label:
+        env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY !== "true"
+          ? t.sidebar.recentChats
+          : t.sidebar.demoChats,
+      items: threadGroups.general,
+    },
+  ].filter((group) => group.items.length > 0);
   return (
     <>
-      <SidebarGroup>
-        <SidebarGroupLabel>
-          {env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY !== "true"
-            ? t.sidebar.recentChats
-            : t.sidebar.demoChats}
-        </SidebarGroupLabel>
-        <SidebarGroupContent className="group-data-[collapsible=icon]:pointer-events-none group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0">
-          <SidebarMenu>
-            <div className="flex w-full flex-col gap-1">
-              {threadEntries.map(({ thread, pendingClarification }) => {
+      {groups.map((group) => (
+        <SidebarGroup key={group.key}>
+          <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+          <SidebarGroupContent className="group-data-[collapsible=icon]:pointer-events-none group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0">
+            <SidebarMenu>
+              <div className="flex w-full flex-col gap-1">
+                {group.items.map(({ thread, pendingClarification }) => {
                 const isActive =
-                  pathname === "/workspace/chats" &&
-                  searchParams.get("thread") === thread.thread_id;
+                  (pathname === "/workspace/chats" &&
+                    searchParams.get("thread") === thread.thread_id) ||
+                  pathname.endsWith(`/threads/${thread.thread_id}`);
                 const bridgeInfo = bridgeInfoOfThread(thread);
                 const projectInfo = projectInfoOfThread(thread);
                 const bridgeLabel = bridgeInfo
@@ -335,11 +363,12 @@ export function RecentChatList() {
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 );
-              })}
-            </div>
-          </SidebarMenu>
-        </SidebarGroupContent>
-      </SidebarGroup>
+                })}
+              </div>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      ))}
 
       {/* Rename Dialog */}
       <Dialog open={renameDialogOpen} onOpenChange={setRenameDialogOpen}>

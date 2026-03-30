@@ -217,6 +217,9 @@ class NionClient:
             "subagent_enabled": overrides.get("subagent_enabled", self._subagent_enabled),
             "cli_tools_enabled": overrides.get("cli_tools_enabled", False),
             "surface": overrides.get("surface", "workspace"),
+            "project_id": overrides.get("project_id"),
+            "project_phase": overrides.get("project_phase"),
+            "primary_plan_id": overrides.get("primary_plan_id"),
         }
         return RunnableConfig(
             configurable=configurable,
