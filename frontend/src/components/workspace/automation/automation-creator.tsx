@@ -121,170 +121,168 @@ export function AutomationCreator({
           </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-6 px-6 pb-6">
-        <div className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
-          <div className="space-y-5 rounded-[24px] border border-stone-200/80 bg-white/72 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-stone-700" id="automation-kind-label">
-                  {copy.creatorKindLabel}
-                </label>
-                <Select
-                  value={kind}
-                  onValueChange={(value) => {
-                    const nextKind =
-                      value as Extract<AutomationJobKind, "reminder" | "scheduled_task">;
-                    setKind(nextKind);
-                    setSchedule((current) => ({
-                      ...current,
-                      preset:
-                        current.preset === "interval" || current.preset === "cron"
-                          ? current.preset
-                          : nextKind === "reminder"
-                            ? "daily"
-                            : "weekdays",
-                      timezone,
-                    }));
-                  }}
-                >
-                  <SelectTrigger aria-labelledby="automation-kind-label" className="h-11 rounded-2xl border-stone-200 bg-stone-50/70">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="reminder">{copy.creatorKinds.reminder}</SelectItem>
-                    <SelectItem value="scheduled_task">
-                      {copy.creatorKinds.task}
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-stone-700" htmlFor="automation-name">
-                  {settingsCopy.nameLabel}
-                </label>
-                <Input
-                  id="automation-name"
-                  value={name}
-                  onChange={(event) => setName(event.target.value)}
-                  placeholder={settingsCopy.namePlaceholder}
-                  className="h-11 rounded-2xl border-stone-200 bg-stone-50/70"
-                />
-              </div>
-            </div>
-
+      <CardContent className="space-y-5 px-6 pb-6">
+        <div className="space-y-5 rounded-[24px] border border-stone-200/80 bg-white/72 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
+          <div className="grid gap-4 md:grid-cols-[0.9fr_1.1fr]">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-stone-700" htmlFor="automation-prompt">
-                {isTask ? copy.taskPromptLabel : settingsCopy.promptLabel}
+              <label className="text-sm font-medium text-stone-700" id="automation-kind-label">
+                {copy.creatorKindLabel}
               </label>
-              <Textarea
-                id="automation-prompt"
-                value={prompt}
-                onChange={(event) => setPrompt(event.target.value)}
-                placeholder={
-                  isTask
-                    ? copy.taskPromptPlaceholder
-                    : settingsCopy.promptPlaceholder
-                }
-                className="min-h-28 rounded-[22px] border-stone-200 bg-stone-50/70"
-              />
+              <Select
+                value={kind}
+                onValueChange={(value) => {
+                  const nextKind =
+                    value as Extract<AutomationJobKind, "reminder" | "scheduled_task">;
+                  setKind(nextKind);
+                  setSchedule((current) => ({
+                    ...current,
+                    preset:
+                      current.preset === "interval" || current.preset === "cron"
+                        ? current.preset
+                        : nextKind === "reminder"
+                          ? "daily"
+                          : "weekdays",
+                    timezone,
+                  }));
+                }}
+              >
+                <SelectTrigger aria-labelledby="automation-kind-label" className="h-11 rounded-2xl border-stone-200 bg-stone-50/70">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="reminder">{copy.creatorKinds.reminder}</SelectItem>
+                  <SelectItem value="scheduled_task">
+                    {copy.creatorKinds.task}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-
-            <div className="rounded-[24px] border border-stone-200/80 bg-[linear-gradient(180deg,rgba(248,244,236,0.85),rgba(255,255,255,0.75))] p-4">
-              <ScheduleBuilder
-                value={{ ...schedule, timezone }}
-                onChange={(next) => setSchedule(next)}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-stone-700" htmlFor="automation-name">
+                {settingsCopy.nameLabel}
+              </label>
+              <Input
+                id="automation-name"
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                placeholder={settingsCopy.namePlaceholder}
+                className="h-11 rounded-2xl border-stone-200 bg-stone-50/70"
               />
             </div>
           </div>
 
-          <div className="space-y-4">
-            <AutomationPreviewCard
-              kind={kind}
-              schedule={{ ...schedule, timezone }}
-              deliveryMode={deliveryMode}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-stone-700" htmlFor="automation-prompt">
+              {isTask ? copy.taskPromptLabel : settingsCopy.promptLabel}
+            </label>
+            <Textarea
+              id="automation-prompt"
+              value={prompt}
+              onChange={(event) => setPrompt(event.target.value)}
+              placeholder={
+                isTask
+                  ? copy.taskPromptPlaceholder
+                  : settingsCopy.promptPlaceholder
+              }
+              className="min-h-32 rounded-[22px] border-stone-200 bg-stone-50/70"
             />
-
-            <div className="rounded-[24px] border border-stone-200/80 bg-white/74 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.68)]">
-              <button
-                type="button"
-                className="flex w-full items-center justify-between text-left text-sm font-medium text-stone-700"
-                onClick={() => setShowAdvanced((value) => !value)}
-              >
-                <span>{copy.advancedOptions}</span>
-                <span className="text-stone-400">{showAdvanced ? "−" : "+"}</span>
-              </button>
-
-              {showAdvanced ? (
-                <div className="mt-4 grid gap-4 rounded-[20px] border border-stone-200/80 bg-stone-50/70 p-4">
-                  <div className="space-y-2">
-                    <label
-                      className="text-sm font-medium text-stone-700"
-                      id="automation-delivery-mode-label"
-                    >
-                      {settingsCopy.deliveryModeLabel}
-                    </label>
-                    <Select
-                      value={deliveryMode}
-                      onValueChange={(value) =>
-                        setDeliveryMode(value as AutomationDeliveryMode)
-                      }
-                    >
-                      <SelectTrigger aria-labelledby="automation-delivery-mode-label" className="h-11 rounded-2xl border-stone-200 bg-white/80">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="local">
-                          {settingsCopy.deliveryModes.local}
-                        </SelectItem>
-                        <SelectItem value="thread">
-                          {settingsCopy.deliveryModes.thread}
-                        </SelectItem>
-                        <SelectItem value="channel">
-                          {settingsCopy.deliveryModes.channel}
-                        </SelectItem>
-                        <SelectItem value="multi">
-                          {settingsCopy.deliveryModes.multi}
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {isTask ? (
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-stone-700" htmlFor="automation-skills">
-                        {settingsCopy.attachedSkillsLabel}
-                      </label>
-                      <Input
-                        id="automation-skills"
-                        value={skillsText}
-                        onChange={(event) => setSkillsText(event.target.value)}
-                        placeholder={settingsCopy.attachedSkillsPlaceholder}
-                        className="h-11 rounded-2xl border-stone-200 bg-white/80"
-                      />
-                    </div>
-                  ) : (
-                    <div className="rounded-[18px] border border-dashed border-stone-200 bg-white/70 px-4 py-3 text-sm leading-6 text-stone-500">
-                      {copy.previewReminderAdvancedHint}
-                    </div>
-                  )}
-                </div>
-              ) : null}
-            </div>
-
-            <div className="flex justify-end">
-              <Button
-                onClick={() => void handleSubmit()}
-                disabled={
-                  isPending ||
-                  !name.trim() ||
-                  !prompt.trim() ||
-                  (schedule.preset === "once" && !schedule.runAt.trim())
-                }
-                className="h-12 rounded-2xl bg-stone-900 px-6 text-white shadow-[0_18px_34px_rgba(45,35,22,0.18)] hover:bg-stone-800"
-              >
-                {isTask ? copy.createTask : copy.createReminder}
-              </Button>
-            </div>
           </div>
+
+          <div className="rounded-[24px] border border-stone-200/80 bg-[linear-gradient(180deg,rgba(248,244,236,0.85),rgba(255,255,255,0.75))] p-4">
+            <ScheduleBuilder
+              value={{ ...schedule, timezone }}
+              onChange={(next) => setSchedule(next)}
+            />
+          </div>
+        </div>
+
+        <div className="grid gap-4 xl:grid-cols-[1fr_0.9fr]">
+          <AutomationPreviewCard
+            kind={kind}
+            schedule={{ ...schedule, timezone }}
+            deliveryMode={deliveryMode}
+          />
+
+          <div className="rounded-[24px] border border-stone-200/80 bg-white/74 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.68)]">
+            <button
+              type="button"
+              className="flex w-full items-center justify-between text-left text-sm font-medium text-stone-700"
+              onClick={() => setShowAdvanced((value) => !value)}
+            >
+              <span>{copy.advancedOptions}</span>
+              <span className="text-stone-400">{showAdvanced ? "−" : "+"}</span>
+            </button>
+
+            {showAdvanced ? (
+              <div className="mt-4 grid gap-4 rounded-[20px] border border-stone-200/80 bg-stone-50/70 p-4">
+                <div className="space-y-2">
+                  <label
+                    className="text-sm font-medium text-stone-700"
+                    id="automation-delivery-mode-label"
+                  >
+                    {settingsCopy.deliveryModeLabel}
+                  </label>
+                  <Select
+                    value={deliveryMode}
+                    onValueChange={(value) =>
+                      setDeliveryMode(value as AutomationDeliveryMode)
+                    }
+                  >
+                    <SelectTrigger aria-labelledby="automation-delivery-mode-label" className="h-11 rounded-2xl border-stone-200 bg-white/80">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="local">
+                        {settingsCopy.deliveryModes.local}
+                      </SelectItem>
+                      <SelectItem value="thread">
+                        {settingsCopy.deliveryModes.thread}
+                      </SelectItem>
+                      <SelectItem value="channel">
+                        {settingsCopy.deliveryModes.channel}
+                      </SelectItem>
+                      <SelectItem value="multi">
+                        {settingsCopy.deliveryModes.multi}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {isTask ? (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-stone-700" htmlFor="automation-skills">
+                      {settingsCopy.attachedSkillsLabel}
+                    </label>
+                    <Input
+                      id="automation-skills"
+                      value={skillsText}
+                      onChange={(event) => setSkillsText(event.target.value)}
+                      placeholder={settingsCopy.attachedSkillsPlaceholder}
+                      className="h-11 rounded-2xl border-stone-200 bg-white/80"
+                    />
+                  </div>
+                ) : (
+                  <div className="rounded-[18px] border border-dashed border-stone-200 bg-white/70 px-4 py-3 text-sm leading-6 text-stone-500">
+                    {copy.previewReminderAdvancedHint}
+                  </div>
+                )}
+              </div>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="flex justify-end">
+          <Button
+            onClick={() => void handleSubmit()}
+            disabled={
+              isPending ||
+              !name.trim() ||
+              !prompt.trim() ||
+              (schedule.preset === "once" && !schedule.runAt.trim())
+            }
+            className="h-12 rounded-2xl bg-stone-900 px-6 text-white shadow-[0_18px_34px_rgba(45,35,22,0.18)] hover:bg-stone-800"
+          >
+            {isTask ? copy.createTask : copy.createReminder}
+          </Button>
         </div>
       </CardContent>
     </Card>
