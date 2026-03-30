@@ -968,6 +968,11 @@ export interface Translations {
         cadenceLabel: string;
         timeLabel: string;
         dateTimeLabel: string;
+        dateTimePlaceholder: string;
+        dateTimeHelper: string;
+        dateTimeToday: string;
+        dateTimeClear: string;
+        dateTimeConfirm: string;
         previewLabel: string;
         previewDeliveryLabel: string;
         previewReminderHint: string;

@@ -28,3 +28,13 @@ void test("shared automation creator composes schedule builder and preview card"
   assert.match(scheduleBuilderSource, /cadenceOptions\.interval/);
   assert.match(scheduleBuilderSource, /cadenceOptions\.custom/);
 });
+
+void test("schedule builder uses a custom date-time picker instead of native datetime-local", async () => {
+  const source = await readFile(
+    new URL("./schedule-builder.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /AutomationDateTimePicker/);
+  assert.doesNotMatch(source, /type="datetime-local"/);
+});

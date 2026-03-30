@@ -11,6 +11,8 @@ import {
 import type { AutomationScheduleDefinition } from "@/core/automation/schedule-definition";
 import { useI18n } from "@/core/i18n/hooks";
 
+import { AutomationDateTimePicker } from "./automation-date-time-picker";
+
 type ScheduleBuilderProps = {
   value: AutomationScheduleDefinition;
   onChange: (next: AutomationScheduleDefinition) => void;
@@ -51,14 +53,13 @@ export function ScheduleBuilder({ value, onChange }: ScheduleBuilderProps) {
           <label className="text-sm font-medium" htmlFor="schedule-builder-run-at">
             {copy.dateTimeLabel}
           </label>
-          <Input
+          <AutomationDateTimePicker
             id="schedule-builder-run-at"
-            type="datetime-local"
-            value={toDateTimeLocalValue(value.runAt)}
-            onChange={(event) =>
+            value={value.runAt}
+            onChange={(next) =>
               onChange({
                 ...value,
-                runAt: normalizeDateTimeLocal(event.target.value),
+                runAt: next,
               })
             }
           />
@@ -217,32 +218,4 @@ function toggleWeekday(current: number[], day: number) {
     return next.length > 0 ? next : current;
   }
   return [...current, day].sort((left, right) => left - right);
-}
-
-function normalizeDateTimeLocal(value: string) {
-  const normalized = value.trim();
-  if (!normalized) {
-    return "";
-  }
-  const asDate = new Date(normalized);
-  if (Number.isNaN(asDate.getTime())) {
-    return "";
-  }
-  return asDate.toISOString().replace(/\.\d{3}Z$/, "Z");
-}
-
-function toDateTimeLocalValue(value: string) {
-  if (!value) {
-    return "";
-  }
-  const asDate = new Date(value);
-  if (Number.isNaN(asDate.getTime())) {
-    return "";
-  }
-  const year = asDate.getFullYear();
-  const month = String(asDate.getMonth() + 1).padStart(2, "0");
-  const day = String(asDate.getDate()).padStart(2, "0");
-  const hours = String(asDate.getHours()).padStart(2, "0");
-  const minutes = String(asDate.getMinutes()).padStart(2, "0");
-  return `${year}-${month}-${day}T${hours}:${minutes}`;
 }
