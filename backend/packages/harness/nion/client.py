@@ -46,7 +46,7 @@ from nion.model_management.service import get_model_registry_service
 from nion.models import create_chat_model
 from nion.telemetry.logger import make_event
 from nion.telemetry.store import TelemetryStore
-from nion.telemetry.token_source import token_source_context
+from nion.telemetry.token_source import iter_with_token_source
 from nion.uploads import (
     PathTraversalError,
     delete_file_safe,
@@ -464,161 +464,161 @@ class NionClient:
 
         try:
             ai_message_count = 0
-            with token_source_context("lead_agent"):
-                for raw_chunk in self._agent.stream(
-                    state,
-                    config=config,
-                    context=context,
-                    stream_mode=["values", "messages", "custom"],
+            agent_stream = self._agent.stream(
+                state,
+                config=config,
+                context=context,
+                stream_mode=["values", "messages", "custom"],
+            )
+            for raw_chunk in iter_with_token_source("lead_agent", agent_stream):
+                stream_mode = "values"
+                chunk = raw_chunk
+                if (
+                    isinstance(raw_chunk, tuple)
+                    and len(raw_chunk) == 2
+                    and isinstance(raw_chunk[0], str)
                 ):
-                    stream_mode = "values"
-                    chunk = raw_chunk
+                    stream_mode = raw_chunk[0]
+                    chunk = raw_chunk[1]
+
+                if stream_mode == "messages":
                     if (
-                        isinstance(raw_chunk, tuple)
-                        and len(raw_chunk) == 2
-                        and isinstance(raw_chunk[0], str)
+                        isinstance(chunk, tuple)
+                        and len(chunk) == 2
+                        and isinstance(chunk[0], AIMessageChunk)
                     ):
-                        stream_mode = raw_chunk[0]
-                        chunk = raw_chunk[1]
-
-                    if stream_mode == "messages":
-                        if (
-                            isinstance(chunk, tuple)
-                            and len(chunk) == 2
-                            and isinstance(chunk[0], AIMessageChunk)
-                        ):
-                            message_chunk, metadata = chunk
-                            msg_id = getattr(message_chunk, "id", None)
-                            text = self._extract_text(message_chunk.content)
-                            if text and msg_id:
-                                cumulative_text = cumulative_ai_content.get(msg_id, "") + text
-                                cumulative_ai_content[msg_id] = cumulative_text
-                                yield StreamEvent(
-                                    type="messages-tuple",
-                                    data={
-                                        "type": "ai",
-                                        "content": cumulative_text,
-                                        "id": msg_id,
-                                        **(
-                                            {"response_metadata": metadata}
-                                            if isinstance(metadata, dict) and metadata
-                                            else {}
-                                        ),
-                                    },
-                                )
-                        continue
-
-                    if stream_mode != "values" or not isinstance(chunk, dict):
-                        continue
-
-                    messages = chunk.get("messages", [])
-
-                    for msg in messages:
-                        msg_id = getattr(msg, "id", None)
-                        if msg_id:
-                            signature = json.dumps(
-                                self._serialize_message(msg),
-                                sort_keys=True,
-                                ensure_ascii=False,
-                            )
-                            if seen_signatures.get(msg_id) == signature:
-                                continue
-                            seen_signatures[msg_id] = signature
-
-                        if isinstance(msg, AIMessage):
-                            ai_message_count += 1
-                            usage = getattr(msg, "usage_metadata", None)
-                            if usage:
-                                cumulative_usage["input_tokens"] += usage.get("input_tokens", 0) or 0
-                                cumulative_usage["output_tokens"] += usage.get("output_tokens", 0) or 0
-                                cumulative_usage["total_tokens"] += usage.get("total_tokens", 0) or 0
-
-                            if msg.tool_calls:
-                                yield StreamEvent(
-                                    type="messages-tuple",
-                                    data={
-                                        "type": "ai",
-                                        "content": "",
-                                        "id": msg_id,
-                                        "tool_calls": [{"name": tc["name"], "args": tc["args"], "id": tc.get("id")} for tc in msg.tool_calls],
-                                    },
-                                )
-
-                            text = self._extract_text(msg.content)
-                            if text:
-                                if msg_id:
-                                    cumulative_ai_content[msg_id] = text
-                                event_data: dict[str, Any] = {"type": "ai", "content": text, "id": msg_id}
-                                if usage:
-                                    event_data["usage_metadata"] = {
-                                        "input_tokens": usage.get("input_tokens", 0) or 0,
-                                        "output_tokens": usage.get("output_tokens", 0) or 0,
-                                        "total_tokens": usage.get("total_tokens", 0) or 0,
-                                    }
-                                yield StreamEvent(type="messages-tuple", data=event_data)
-
-                        elif isinstance(msg, ToolMessage):
-                            additional_kwargs = getattr(msg, "additional_kwargs", None) or {}
+                        message_chunk, metadata = chunk
+                        msg_id = getattr(message_chunk, "id", None)
+                        text = self._extract_text(message_chunk.content)
+                        if text and msg_id:
+                            cumulative_text = cumulative_ai_content.get(msg_id, "") + text
+                            cumulative_ai_content[msg_id] = cumulative_text
                             yield StreamEvent(
                                 type="messages-tuple",
                                 data={
-                                    "type": "tool",
-                                    "content": self._extract_text(msg.content),
-                                    "name": getattr(msg, "name", None),
-                                    "tool_call_id": getattr(msg, "tool_call_id", None),
+                                    "type": "ai",
+                                    "content": cumulative_text,
                                     "id": msg_id,
-                                    **({"additional_kwargs": additional_kwargs} if additional_kwargs else {}),
+                                    **(
+                                        {"response_metadata": metadata}
+                                        if isinstance(metadata, dict) and metadata
+                                        else {}
+                                    ),
                                 },
                             )
-                            clarification = additional_kwargs.get("clarification")
-                            if getattr(msg, "name", None) == "ask_clarification" and isinstance(clarification, dict):
-                                dispatch_automation_event(
-                                    "clarification.requested",
-                                    {
-                                        "thread_id": thread_id,
-                                        "surface": configurable.get("surface"),
-                                        "agent_name": self._agent_name or "lead_agent",
-                                        **clarification,
-                                    },
-                                )
-                                yield StreamEvent(
-                                    type="custom",
-                                    data={
-                                        "type": "clarification_request",
-                                        "id": msg_id,
-                                        "tool_call_id": getattr(msg, "tool_call_id", None),
-                                        **clarification,
-                                    },
-                                )
-                            permission_request = additional_kwargs.get("permission_request")
-                            if getattr(msg, "name", None) == "permission_request" and isinstance(permission_request, dict):
-                                dispatch_automation_event(
-                                    "permission.requested",
-                                    {
-                                        "thread_id": thread_id,
-                                        "surface": configurable.get("surface"),
-                                        "agent_name": self._agent_name or "lead_agent",
-                                        **permission_request,
-                                    },
-                                )
-                                yield StreamEvent(
-                                    type="custom",
-                                    data={
-                                        "type": "permission_request",
-                                        "id": msg_id,
-                                        "tool_call_id": getattr(msg, "tool_call_id", None),
-                                        **permission_request,
-                                    },
-                                )
+                    continue
 
-                    yield StreamEvent(
-                        type="values",
-                        data={
-                            "title": chunk.get("title"),
-                            "messages": [self._serialize_message(m) for m in messages],
-                            "artifacts": chunk.get("artifacts", []),
-                        },
-                    )
+                if stream_mode != "values" or not isinstance(chunk, dict):
+                    continue
+
+                messages = chunk.get("messages", [])
+
+                for msg in messages:
+                    msg_id = getattr(msg, "id", None)
+                    if msg_id:
+                        signature = json.dumps(
+                            self._serialize_message(msg),
+                            sort_keys=True,
+                            ensure_ascii=False,
+                        )
+                        if seen_signatures.get(msg_id) == signature:
+                            continue
+                        seen_signatures[msg_id] = signature
+
+                    if isinstance(msg, AIMessage):
+                        ai_message_count += 1
+                        usage = getattr(msg, "usage_metadata", None)
+                        if usage:
+                            cumulative_usage["input_tokens"] += usage.get("input_tokens", 0) or 0
+                            cumulative_usage["output_tokens"] += usage.get("output_tokens", 0) or 0
+                            cumulative_usage["total_tokens"] += usage.get("total_tokens", 0) or 0
+
+                        if msg.tool_calls:
+                            yield StreamEvent(
+                                type="messages-tuple",
+                                data={
+                                    "type": "ai",
+                                    "content": "",
+                                    "id": msg_id,
+                                    "tool_calls": [{"name": tc["name"], "args": tc["args"], "id": tc.get("id")} for tc in msg.tool_calls],
+                                },
+                            )
+
+                        text = self._extract_text(msg.content)
+                        if text:
+                            if msg_id:
+                                cumulative_ai_content[msg_id] = text
+                            event_data: dict[str, Any] = {"type": "ai", "content": text, "id": msg_id}
+                            if usage:
+                                event_data["usage_metadata"] = {
+                                    "input_tokens": usage.get("input_tokens", 0) or 0,
+                                    "output_tokens": usage.get("output_tokens", 0) or 0,
+                                    "total_tokens": usage.get("total_tokens", 0) or 0,
+                                }
+                            yield StreamEvent(type="messages-tuple", data=event_data)
+
+                    elif isinstance(msg, ToolMessage):
+                        additional_kwargs = getattr(msg, "additional_kwargs", None) or {}
+                        yield StreamEvent(
+                            type="messages-tuple",
+                            data={
+                                "type": "tool",
+                                "content": self._extract_text(msg.content),
+                                "name": getattr(msg, "name", None),
+                                "tool_call_id": getattr(msg, "tool_call_id", None),
+                                "id": msg_id,
+                                **({"additional_kwargs": additional_kwargs} if additional_kwargs else {}),
+                            },
+                        )
+                        clarification = additional_kwargs.get("clarification")
+                        if getattr(msg, "name", None) == "ask_clarification" and isinstance(clarification, dict):
+                            dispatch_automation_event(
+                                "clarification.requested",
+                                {
+                                    "thread_id": thread_id,
+                                    "surface": configurable.get("surface"),
+                                    "agent_name": self._agent_name or "lead_agent",
+                                    **clarification,
+                                },
+                            )
+                            yield StreamEvent(
+                                type="custom",
+                                data={
+                                    "type": "clarification_request",
+                                    "id": msg_id,
+                                    "tool_call_id": getattr(msg, "tool_call_id", None),
+                                    **clarification,
+                                },
+                            )
+                        permission_request = additional_kwargs.get("permission_request")
+                        if getattr(msg, "name", None) == "permission_request" and isinstance(permission_request, dict):
+                            dispatch_automation_event(
+                                "permission.requested",
+                                {
+                                    "thread_id": thread_id,
+                                    "surface": configurable.get("surface"),
+                                    "agent_name": self._agent_name or "lead_agent",
+                                    **permission_request,
+                                },
+                            )
+                            yield StreamEvent(
+                                type="custom",
+                                data={
+                                    "type": "permission_request",
+                                    "id": msg_id,
+                                    "tool_call_id": getattr(msg, "tool_call_id", None),
+                                    **permission_request,
+                                },
+                            )
+
+                yield StreamEvent(
+                    type="values",
+                    data={
+                        "title": chunk.get("title"),
+                        "messages": [self._serialize_message(m) for m in messages],
+                        "artifacts": chunk.get("artifacts", []),
+                    },
+                )
 
             _record_agent_event(
                 event_type="agent_run_completed",

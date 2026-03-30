@@ -23,7 +23,7 @@ from nion.subagents.config import SubagentConfig
 from nion.telemetry.logger import make_event
 from nion.telemetry.models import DiagnosticSnapshot
 from nion.telemetry.store import TelemetryStore
-from nion.telemetry.token_source import token_source_context
+from nion.telemetry.token_source import aiter_with_token_source
 
 logger = logging.getLogger(__name__)
 
@@ -573,32 +573,34 @@ class SubagentExecutor:
             # Use stream instead of invoke to get real-time updates
             # This allows us to collect AI messages as they are generated
             final_state = None
-            with token_source_context("subagent"):
-                async for chunk in agent.astream(state, config=run_config, context=context, stream_mode="values"):  # type: ignore[arg-type]
-                    final_state = chunk
+            async for chunk in aiter_with_token_source(
+                "subagent",
+                agent.astream(state, config=run_config, context=context, stream_mode="values"),  # type: ignore[arg-type]
+            ):
+                final_state = chunk
 
-                    messages = chunk.get("messages", [])
-                    if messages:
-                        last_message = messages[-1]
-                        if isinstance(last_message, AIMessage):
-                            message_dict = last_message.model_dump()
-                            message_id = message_dict.get("id")
-                            is_duplicate = False
-                            if message_id:
-                                is_duplicate = any(msg.get("id") == message_id for msg in result.ai_messages)
-                            else:
-                                is_duplicate = message_dict in result.ai_messages
+                messages = chunk.get("messages", [])
+                if messages:
+                    last_message = messages[-1]
+                    if isinstance(last_message, AIMessage):
+                        message_dict = last_message.model_dump()
+                        message_id = message_dict.get("id")
+                        is_duplicate = False
+                        if message_id:
+                            is_duplicate = any(msg.get("id") == message_id for msg in result.ai_messages)
+                        else:
+                            is_duplicate = message_dict in result.ai_messages
 
-                            if not is_duplicate:
-                                result.ai_messages.append(message_dict)
-                                logger.info(f"[trace={self.trace_id}] Subagent {self.config.name} captured AI message #{len(result.ai_messages)}")
-                                _record_subagent_ai_message(
-                                    task_id=result.task_id,
-                                    thread_id=self.thread_id,
-                                    subagent_name=self.config.name,
-                                    trace_id=self.trace_id,
-                                    ai_message_count=len(result.ai_messages),
-                                )
+                        if not is_duplicate:
+                            result.ai_messages.append(message_dict)
+                            logger.info(f"[trace={self.trace_id}] Subagent {self.config.name} captured AI message #{len(result.ai_messages)}")
+                            _record_subagent_ai_message(
+                                task_id=result.task_id,
+                                thread_id=self.thread_id,
+                                subagent_name=self.config.name,
+                                trace_id=self.trace_id,
+                                ai_message_count=len(result.ai_messages),
+                            )
 
             logger.info(f"[trace={self.trace_id}] Subagent {self.config.name} completed async execution")
 

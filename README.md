@@ -22,6 +22,7 @@
 - 聊天追问建议模型可在“模型设置”页单独指定；未设置时默认跟随当前聊天模型
 - 嵌入式会话契约：`NionClient` 与 scheduler workflow 也支持 `session_mode` / `memory_read` / `memory_write`，与 Web 聊天入口保持一致；带 checkpointer 的多轮线程会继承已持久化的记忆会话策略，不会因后续缺省调用而误恢复长期记忆注入/写回
 - 结构化长期记忆：当前仍以 `/api/memory` 为主入口，记忆设置页支持存储 provider 选择、当前记忆本地筛选、整库清空和单条事实删除，且这些配置均通过设置中心持久化，不回流 `config.yaml`
+- token telemetry：聊天主流与子智能体流式执行会按 chunk 逐步标记 token source，避免跨 Python `Context` 恢复流时触发 telemetry 清理异常
 
 ---
 

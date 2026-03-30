@@ -17,6 +17,8 @@ The next layer is the daemon control plane:
 
 This control plane is designed for both humans and agents. Event messages should remain readable while preserving machine-parseable detail payloads.
 
+Token-source usage accounting is part of that telemetry layer. Non-streaming model calls can use a normal context manager, but streaming `stream()` / `astream()` loops must reapply token-source scope per yielded chunk so cross-context generator resumes do not crash telemetry cleanup.
+
 Program 03B extends that surface with delegated execution observability:
 
 - `run_id` is the correlation key for delegated task execution

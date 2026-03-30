@@ -258,6 +258,12 @@ resolved Nion app data root. Keep telemetry human-readable in `message`,
 machine-readable in structured `details`, and prefer querying through daemon APIs
 or built-in control-plane tools instead of direct database scraping.
 
+Token-source telemetry also has a stream-safety constraint:
+
+- non-streaming model calls may use `token_source_context(...)`
+- streaming `stream()` / `astream()` paths must scope token-source tagging per iteration step via helper wrappers, not with a long-lived context manager spanning generator yields
+- this prevents `ContextVar` token reset failures when stream consumers resume or close generators from a different Python `Context`
+
 AutoDream scheduler behavior is also daemon-owned in desktop mode:
 
 - keep AutoDream out of the automation job system

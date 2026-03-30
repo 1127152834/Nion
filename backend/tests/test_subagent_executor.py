@@ -14,6 +14,7 @@ the real implementation in isolation.
 
 import asyncio
 import sys
+from contextvars import copy_context
 from datetime import datetime
 from unittest.mock import MagicMock, patch
 
@@ -263,6 +264,41 @@ class TestAsyncExecutionPath:
             result = await executor._aexecute("Task")
 
         assert len(result.ai_messages) == 1
+
+    @pytest.mark.anyio
+    async def test_aexecute_stream_can_advance_from_other_context(self, classes, base_config, msg):
+        """Streaming token source should survive context switches between pulls."""
+        from nion.telemetry.token_source import get_current_token_source
+
+        SubagentExecutor = classes["SubagentExecutor"]
+        observed_sources: list[str] = []
+
+        async def cross_context_stream(*args, **kwargs):
+            observed_sources.append(get_current_token_source())
+            yield {"messages": [msg.human("Task"), msg.ai("First response", "msg-1")]}
+
+            next_context = copy_context()
+
+            async def emit_second_chunk():
+                observed_sources.append(get_current_token_source())
+                return {"messages": [msg.human("Task"), msg.ai("Second response", "msg-2")]}
+
+            yield await next_context.run(emit_second_chunk)
+
+        mock_agent = MagicMock()
+        mock_agent.astream = cross_context_stream
+
+        executor = SubagentExecutor(
+            config=base_config,
+            tools=[],
+            thread_id="test-thread",
+        )
+
+        with patch.object(executor, "_create_agent", return_value=mock_agent):
+            result = await executor._aexecute("Task")
+
+        assert result.result == "Second response"
+        assert observed_sources == ["subagent", "subagent"]
 
     @pytest.mark.anyio
     async def test_aexecute_handles_list_content(self, classes, base_config, mock_agent, msg):

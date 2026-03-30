@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from contextlib import contextmanager
+from collections.abc import AsyncIterator, Iterator
+from contextlib import asynccontextmanager, contextmanager
 from contextvars import ContextVar, Token
 from typing import Any
 
@@ -58,6 +59,57 @@ def token_source_context(source: str):
         yield
     finally:
         reset_token_source(token)
+
+
+@contextmanager
+def token_source_scope(source: str):
+    """Temporarily set token source for a single synchronous operation.
+
+    Unlike ``token_source_context`` wrapped around a generator body, this scope is
+    intended to start and finish within the same Python Context so it remains
+    safe when stream consumers resume or close generators from a different
+    Context.
+    """
+    token = set_token_source(source)
+    try:
+        yield
+    finally:
+        reset_token_source(token)
+
+
+def iter_with_token_source(source: str, iterable: Iterator[Any]) -> Iterator[Any]:
+    """Apply token source separately to each synchronous iteration step."""
+    while True:
+        with token_source_scope(source):
+            try:
+                item = next(iterable)
+            except StopIteration:
+                return
+        yield item
+
+
+@asynccontextmanager
+async def token_source_async_scope(source: str):
+    """Temporarily set token source for one awaited async operation."""
+    token = set_token_source(source)
+    try:
+        yield
+    finally:
+        reset_token_source(token)
+
+
+async def aiter_with_token_source(
+    source: str,
+    iterable: AsyncIterator[Any],
+) -> AsyncIterator[Any]:
+    """Apply token source separately to each async iteration step."""
+    while True:
+        try:
+            async with token_source_async_scope(source):
+                item = await anext(iterable)
+        except StopAsyncIteration:
+            return
+        yield item
 
 
 def aggregate_token_usage_by_source() -> dict[str, dict[str, int]]:
