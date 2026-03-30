@@ -1,11 +1,12 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { SquareTerminalIcon } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { type PromptInputMessage } from "@/components/ai-elements/prompt-input";
-import { getAPIClient } from "@/core/api";
+import { Button } from "@/components/ui/button";
 import {
   WorkingDirectoryTrigger,
 } from "@/components/workspace/artifacts";
@@ -23,6 +24,7 @@ import { ThreadTitle } from "@/components/workspace/thread-title";
 import { TodoList } from "@/components/workspace/todo-list";
 import { TokenUsageIndicator } from "@/components/workspace/token-usage-indicator";
 import { Welcome } from "@/components/workspace/welcome";
+import { getAPIClient } from "@/core/api";
 import { loadThreadFilesTree } from "@/core/files";
 import { useI18n } from "@/core/i18n/hooks";
 import { useNotification } from "@/core/notification/hooks";
@@ -42,8 +44,6 @@ import { useThreadStream } from "@/core/threads/hooks";
 import { pathOfThread, textOfMessage } from "@/core/threads/utils";
 import { env } from "@/env";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { SquareTerminalIcon } from "lucide-react";
 
 export default function ChatThreadPage() {
   const { t } = useI18n();
@@ -400,7 +400,7 @@ export default function ChatThreadPage() {
                   variant="ghost"
                   size="icon-sm"
                   onClick={() => setTerminalOpen((value) => !value)}
-                  title="Terminal"
+                  title="Workspace Terminal"
                 >
                   <SquareTerminalIcon className="size-4" />
                 </Button>
@@ -457,7 +457,12 @@ export default function ChatThreadPage() {
                   isResolvingPermission={isResolvingPermission}
                 />
               </div>
-              <div className="absolute right-0 bottom-0 left-0 z-30 flex justify-center px-4">
+              <div
+                className={cn(
+                  "shrink-0 px-4",
+                  terminalOpen ? "pb-0" : "pb-4",
+                )}
+              >
                 <div className="relative w-full max-w-(--container-width-md)">
                   <div className="absolute -top-4 right-0 left-0 z-0">
                     <div className="absolute right-0 bottom-0 left-0">
@@ -472,7 +477,7 @@ export default function ChatThreadPage() {
                     </div>
                   </div>
 
-                  <div className="flex w-full -translate-y-4 flex-col gap-3">
+                  <div className="flex w-full flex-col gap-3 pt-4">
                     {threadError ? <ThreadRequestErrorAlert error={threadError} /> : null}
                     <InputBox
                       className="bg-background/5 w-full"

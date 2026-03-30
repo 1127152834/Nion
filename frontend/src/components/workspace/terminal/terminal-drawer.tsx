@@ -1,12 +1,11 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
 import { ArrowUpDownIcon, SquareTerminalIcon, XIcon } from "lucide-react";
 import { useCallback, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/button";
 import { loadThreadFilesMeta } from "@/core/files";
-import { useI18n } from "@/core/i18n/hooks";
 import { useTerminal } from "@/hooks/use-terminal";
 
 import { TerminalInstance } from "./terminal-instance";
@@ -26,7 +25,6 @@ export function TerminalDrawer({
   onOpenChange,
   threadId,
 }: TerminalDrawerProps) {
-  const { t } = useI18n();
   const [height, setHeight] = useState(DEFAULT_HEIGHT);
   const { data: meta } = useQuery({
     queryKey: ["threadFiles", "meta", threadId, "terminal"],
@@ -66,43 +64,52 @@ export function TerminalDrawer({
 
   return (
     <div
-      className="shrink-0 border-t border-border/40 bg-background"
+      className="shrink-0 bg-background/88 px-4 pb-4 backdrop-blur-sm"
       style={{ height }}
     >
-      <div
-        className="h-1 cursor-row-resize transition-colors hover:bg-primary/20"
-        onMouseDown={handleMouseDown}
-      />
-      <div className="flex h-8 items-center justify-between border-b border-border/40 px-3">
-        <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-          <SquareTerminalIcon className="size-3.5" />
-          {t.pages.appName} Terminal
-        </span>
-        <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            onClick={() => setHeight(DEFAULT_HEIGHT)}
-          >
-            <ArrowUpDownIcon className="size-3.5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            onClick={() => onOpenChange(false)}
-          >
-            <XIcon className="size-3.5" />
-          </Button>
-        </div>
-      </div>
-      <div className="h-[calc(100%-2.25rem-0.25rem)] overflow-hidden">
-        {terminal.isDesktop ? (
-          <TerminalInstance terminal={terminal} />
-        ) : (
-          <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-            Terminal is only available in the desktop app
+      <div className="mx-auto flex h-full w-full max-w-(--container-width-xl) flex-col overflow-hidden rounded-t-2xl border border-border/50 border-b-0 bg-background shadow-2xl">
+        <div
+          className="h-1 cursor-row-resize transition-colors hover:bg-primary/20"
+          onMouseDown={handleMouseDown}
+        />
+        <div className="flex h-12 items-center justify-between border-b border-border/40 px-4">
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <SquareTerminalIcon className="size-3.5" />
+              工作区终端
+            </div>
+            <p className="mt-0.5 truncate text-xs text-muted-foreground/80">
+              在当前线程工作目录中执行命令
+            </p>
           </div>
-        )}
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={() => setHeight(DEFAULT_HEIGHT)}
+              title="重置终端高度"
+            >
+              <ArrowUpDownIcon className="size-3.5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={() => onOpenChange(false)}
+              title="关闭工作区终端"
+            >
+              <XIcon className="size-3.5" />
+            </Button>
+          </div>
+        </div>
+        <div className="min-h-0 flex-1 overflow-hidden">
+          {terminal.isDesktop ? (
+            <TerminalInstance terminal={terminal} />
+          ) : (
+            <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+              工作区终端仅在桌面版可用
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
