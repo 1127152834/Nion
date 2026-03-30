@@ -23,6 +23,7 @@ import type { AutomationActionKind, AutomationJobCreateInput } from "@/core/auto
 import { useI18n } from "@/core/i18n/hooks";
 import { useNotification } from "@/core/notification/hooks";
 
+import { AutomationCreator } from "./automation-creator";
 import { AutomationEventCenterSection } from "./automation-event-center-section";
 import { AutomationHistorySection } from "./automation-history-section";
 import { AutomationJobSection } from "./automation-job-section";
@@ -30,8 +31,6 @@ import { AutomationKindTabs } from "./automation-kind-tabs";
 import { AutomationOverviewCards } from "./automation-overview-cards";
 import { EventTaskDraftCard } from "./event-task-draft-card";
 import { EventTaskForm } from "./event-task-form";
-import { ReminderForm } from "./reminder-form";
-import { ScheduledTaskForm } from "./scheduled-task-form";
 
 const AUTOMATION_TABS = new Set([
   "overview",
@@ -66,9 +65,7 @@ export function AutomationPage() {
     jobsError ??
     runsError ??
     createJob.error ??
-    runJob.error ??
-    requestApproval.error ??
-    decideApproval.error;
+    runJob.error;
   const seenRunIdsRef = useRef<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useState(resolveAutomationTab(searchParams.get("tab")));
   const highlightedRunId = searchParams.get("run");
@@ -141,8 +138,9 @@ export function AutomationPage() {
         </TabsContent>
 
         <TabsContent value="reminders" className="space-y-6">
-          <ReminderForm
+          <AutomationCreator
             isPending={createJob.isPending}
+            defaultKind="reminder"
             onSubmit={handleCreate}
           />
           <AutomationJobSection
@@ -158,8 +156,9 @@ export function AutomationPage() {
         </TabsContent>
 
         <TabsContent value="tasks" className="space-y-6">
-          <ScheduledTaskForm
+          <AutomationCreator
             isPending={createJob.isPending}
+            defaultKind="scheduled_task"
             onSubmit={handleCreate}
           />
           <AutomationJobSection

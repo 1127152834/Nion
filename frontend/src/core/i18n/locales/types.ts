@@ -957,13 +957,23 @@ export interface Translations {
         taskDescription: string;
         eventTitle: string;
         eventDescription: string;
+        creatorTitle: string;
+        creatorDescription: string;
+        creatorKindLabel: string;
+        creatorKinds: {
+          reminder: string;
+          task: string;
+        };
         cadenceLabel: string;
         timeLabel: string;
         dateTimeLabel: string;
+        previewLabel: string;
         eventTypeLabel: string;
         eventActionLabel: string;
         eventPromptLabel: string;
         eventPromptPlaceholder: string;
+        taskPromptLabel: string;
+        taskPromptPlaceholder: string;
         cadenceOptions: {
           once: string;
           daily: string;

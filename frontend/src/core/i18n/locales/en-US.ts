@@ -1242,14 +1242,25 @@ export const enUS: Translations = {
         eventTitle: "New event task",
         eventDescription:
           "Create an automation that reacts to a runtime event instead of a clock schedule.",
+        creatorTitle: "Create automation",
+        creatorDescription:
+          "Use one creator for reminders and scheduled tasks, then open advanced options only when needed.",
+        creatorKindLabel: "Automation type",
+        creatorKinds: {
+          reminder: "Reminder",
+          task: "Scheduled task",
+        },
         cadenceLabel: "Repeats",
         timeLabel: "Time",
         dateTimeLabel: "Date and time",
+        previewLabel: "Quick summary",
         eventTypeLabel: "Event",
         eventActionLabel: "Action",
         eventPromptLabel: "Prompt",
         eventPromptPlaceholder:
           "What should Nion do when this event happens?",
+        taskPromptLabel: "Task prompt",
+        taskPromptPlaceholder: "What should Nion run on this schedule?",
         cadenceOptions: {
           once: "Once",
           daily: "Every day",

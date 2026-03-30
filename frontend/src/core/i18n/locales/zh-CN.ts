@@ -1191,13 +1191,24 @@ export const zhCN: Translations = {
         eventTitle: "新建事件任务",
         eventDescription:
           "创建一个在运行时事件发生时自动触发的任务，而不是按固定时间执行。",
+        creatorTitle: "创建自动化",
+        creatorDescription:
+          "提醒事项和定时任务共用一个创建器，只有在确实需要时才展开高级选项。",
+        creatorKindLabel: "自动化类型",
+        creatorKinds: {
+          reminder: "提醒事项",
+          task: "定时任务",
+        },
         cadenceLabel: "重复方式",
         timeLabel: "时间",
         dateTimeLabel: "日期和时间",
+        previewLabel: "快速预览",
         eventTypeLabel: "事件",
         eventActionLabel: "动作",
         eventPromptLabel: "提示词",
         eventPromptPlaceholder: "当这个事件发生时，Nion 应该做什么？",
+        taskPromptLabel: "任务提示词",
+        taskPromptPlaceholder: "这个定时任务触发时，Nion 应该执行什么？",
         cadenceOptions: {
           once: "单次",
           daily: "每天",
