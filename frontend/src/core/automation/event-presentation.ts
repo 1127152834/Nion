@@ -4,7 +4,10 @@ import { formatTimeAgo } from "../utils/datetime.ts";
 import type { AutomationActionKind } from "./types";
 import type { AutomationEvent } from "./types";
 
-export function summarizeAutomationEvent(event: AutomationEvent, locale = "en-US") {
+export function summarizeAutomationEvent(
+  event: AutomationEvent,
+  locale: "en-US" | "zh-CN" = "en-US",
+) {
   const title =
     typeof event.message === "string" && event.message.trim()
       ? event.message.trim()

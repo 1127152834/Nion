@@ -346,6 +346,7 @@ export interface Translations {
           suggestion: string;
           prompt: string;
           icon: LucideIcon;
+          action?: "create-project";
         }
       | {
           type: "separator";

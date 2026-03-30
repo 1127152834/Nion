@@ -28,6 +28,7 @@ type WorkflowJobSectionProps = {
   onResume: (jobId: string) => Promise<unknown>;
   onRun: (jobId: string) => Promise<unknown>;
   onRemove: (jobId: string) => Promise<unknown>;
+  onRequestApproval?: (jobId: string) => Promise<unknown>;
 };
 
 export function WorkflowJobSection({

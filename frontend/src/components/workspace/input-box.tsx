@@ -2198,7 +2198,10 @@ function SuggestionList() {
                   <DropdownMenuItem
                     key={suggestion.suggestion}
                     onClick={async () => {
-                      if (suggestion.action === "create-project") {
+                      if (
+                        "action" in suggestion &&
+                        suggestion.action === "create-project"
+                      ) {
                         const created = await createProject.mutateAsync({
                           name: "新项目",
                           goal: suggestion.prompt,

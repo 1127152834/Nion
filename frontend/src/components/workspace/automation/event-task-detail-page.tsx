@@ -88,6 +88,9 @@ export function EventTaskDetailPage({ jobId }: { jobId: string }) {
   const relatedRuns = runs.filter((run) => run.job_id === job.id).slice(0, 5);
 
   async function handleSaveChanges() {
+    if (!job) {
+      return;
+    }
     const nextActionSpec =
       actionKind === "script"
         ? { entrypoint: actionTarget || scriptPath }
@@ -116,6 +119,9 @@ export function EventTaskDetailPage({ jobId }: { jobId: string }) {
   }
 
   async function handleCreateScript() {
+    if (!job) {
+      return;
+    }
     await updateJob.mutateAsync({
       jobId: job.id,
       input: {
@@ -132,6 +138,9 @@ export function EventTaskDetailPage({ jobId }: { jobId: string }) {
   }
 
   async function handleRemoveFile(path: string) {
+    if (!job) {
+      return;
+    }
     await updateJob.mutateAsync({
       jobId: job.id,
       input: {
@@ -141,6 +150,9 @@ export function EventTaskDetailPage({ jobId }: { jobId: string }) {
   }
 
   async function handleUpload(fileList: FileList | null) {
+    if (!job) {
+      return;
+    }
     if (!fileList || fileList.length === 0) {
       return;
     }
@@ -151,6 +163,9 @@ export function EventTaskDetailPage({ jobId }: { jobId: string }) {
   }
 
   async function handleDelete() {
+    if (!job) {
+      return;
+    }
     await removeJob.mutateAsync(job.id);
     router.push("/workspace/automation");
   }

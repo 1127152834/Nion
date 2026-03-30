@@ -1,6 +1,7 @@
 "use client";
 
 import { PlayIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +28,7 @@ function readNumber(record: Record<string, unknown>, key: string) {
 }
 
 export function WorkflowDetailPage({ jobId }: { jobId: string }) {
+  const router = useRouter();
   const { job, isLoading, error } = useAutomationJob(jobId);
   const exportTemplate = useExportAutomationJobTemplate(jobId);
   const { runs } = useAutomationRuns();
