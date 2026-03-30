@@ -129,27 +129,45 @@ class OpenVikingChunkStore:
                 )
 
     def search(self, query: str, limit: int = 5) -> list[NotebookChunkSearchResult]:
+        normalized_query = self._normalize_fts_query(query)
         with self._connect() as connection:
-            rows = connection.execute(
-                """
-                SELECT
-                    notebook_chunks.resource_uri,
-                    notebook_chunks.note_id,
-                    notebook_chunks.title,
-                    notebook_chunks.source_relative_path,
-                    notebook_chunks.updated_at,
-                    snippet(notebook_chunks_fts, 4, '', '', '...', 16) AS snippet,
-                    notebook_chunks.heading_path_json,
-                    notebook_chunks.char_start,
-                    notebook_chunks.char_end
-                FROM notebook_chunks_fts
-                JOIN notebook_chunks ON notebook_chunks.rowid = notebook_chunks_fts.rowid
-                WHERE notebook_chunks_fts MATCH ?
-                ORDER BY bm25(notebook_chunks_fts), notebook_chunks.rowid DESC
-                LIMIT ?
-                """,
-                (query, limit),
-            ).fetchall()
+            try:
+                rows = connection.execute(
+                    """
+                    SELECT
+                        notebook_chunks.resource_uri,
+                        notebook_chunks.note_id,
+                        notebook_chunks.title,
+                        notebook_chunks.source_relative_path,
+                        notebook_chunks.updated_at,
+                        snippet(notebook_chunks_fts, 4, '', '', '...', 16) AS snippet,
+                        notebook_chunks.heading_path_json,
+                        notebook_chunks.char_start,
+                        notebook_chunks.char_end
+                    FROM notebook_chunks_fts
+                    JOIN notebook_chunks ON notebook_chunks.rowid = notebook_chunks_fts.rowid
+                    WHERE notebook_chunks_fts MATCH ?
+                    ORDER BY bm25(notebook_chunks_fts), notebook_chunks.rowid DESC
+                    LIMIT ?
+                    """,
+                    (normalized_query, limit),
+                ).fetchall()
+            except sqlite3.OperationalError:
+                fallback = self._fallback_like_search(connection, query, limit)
+                return [
+                    NotebookChunkSearchResult(
+                        resource_uri=row["resource_uri"],
+                        note_id=row["note_id"],
+                        title=row["title"],
+                        source_relative_path=row["source_relative_path"],
+                        updated_at=row["updated_at"],
+                        snippet=row["snippet"],
+                        heading_path=json.loads(row["heading_path_json"]),
+                        char_start=row["char_start"],
+                        char_end=row["char_end"],
+                    )
+                    for row in fallback
+                ]
 
         return [
             NotebookChunkSearchResult(
@@ -165,3 +183,42 @@ class OpenVikingChunkStore:
             )
             for row in rows
         ]
+
+    @staticmethod
+    def _normalize_fts_query(query: str) -> str:
+        tokens = [token.strip() for token in query.replace('"', " ").split() if token.strip()]
+        safe_tokens = [
+            "".join(ch for ch in token if ch.isalnum() or ch in {"_", "-", "."})
+            for token in tokens
+        ]
+        safe_tokens = [token for token in safe_tokens if token]
+        if not safe_tokens:
+            return '""'
+        return " ".join(f'"{token}"' for token in safe_tokens)
+
+    @staticmethod
+    def _fallback_like_search(
+        connection: sqlite3.Connection,
+        query: str,
+        limit: int,
+    ) -> list[sqlite3.Row]:
+        like_query = f"%{query.replace('%', '').replace('_', '').strip()}%"
+        return connection.execute(
+            """
+            SELECT
+                resource_uri,
+                note_id,
+                title,
+                source_relative_path,
+                updated_at,
+                text AS snippet,
+                heading_path_json,
+                char_start,
+                char_end
+            FROM notebook_chunks
+            WHERE title LIKE ? OR source_relative_path LIKE ? OR text LIKE ?
+            ORDER BY updated_at DESC, rowid DESC
+            LIMIT ?
+            """,
+            (like_query, like_query, like_query, limit),
+        ).fetchall()
