@@ -542,6 +542,7 @@ def test_notebook_rewrite_apply_overwrites_existing_pending_rewrite(monkeypatch,
         )
         assert first.status_code == 200
         first_payload = first.json()
+        assert first_payload["note"]["body"] == "first rewrite\nline two"
         assert first_payload["pending_rewrite"]["original_content"] == "line one\nline two"
         assert first_payload["pending_rewrite"]["applied_content"] == "first rewrite\nline two"
         assert first_payload["pending_rewrite"]["selection_start"] == 0
@@ -558,10 +559,15 @@ def test_notebook_rewrite_apply_overwrites_existing_pending_rewrite(monkeypatch,
         )
         assert second.status_code == 200
         second_payload = second.json()
+        assert second_payload["note"]["body"] == "line one\nsecond rewrite"
         assert second_payload["pending_rewrite"]["original_content"] == "line one\nline two"
         assert second_payload["pending_rewrite"]["applied_content"] == "line one\nsecond rewrite"
         assert second_payload["pending_rewrite"]["selection_start"] == 9
         assert second_payload["pending_rewrite"]["selection_end"] == 17
+
+        reloaded = client.get(f"/api/notebook/notes/{note_id}")
+        assert reloaded.status_code == 200
+        assert reloaded.json()["note"]["body"] == "line one\nsecond rewrite"
 
 
 def test_notebook_rewrite_cancel_discards_pending_rewrite(monkeypatch, tmp_path):
@@ -585,6 +591,7 @@ def test_notebook_rewrite_cancel_discards_pending_rewrite(monkeypatch, tmp_path)
             },
         )
         assert applied.status_code == 200
+        assert applied.json()["note"]["body"] == "clean body"
         assert applied.json()["pending_rewrite"]["applied_content"] == "clean body"
 
         cancelled = client.post(f"/api/notebook/notes/{note_id}/rewrite/cancel")
@@ -615,6 +622,7 @@ def test_notebook_rewrite_confirm_commits_pending_rewrite(monkeypatch, tmp_path)
             },
         )
         assert applied.status_code == 200
+        assert applied.json()["note"]["body"] == "final body"
 
         confirmed = client.post(f"/api/notebook/notes/{note_id}/rewrite/confirm")
         assert confirmed.status_code == 200

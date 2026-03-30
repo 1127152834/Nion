@@ -79,12 +79,21 @@ class NotebookAssistantService:
         expected_content_hash: str,
         selection_start: int | None = None,
         selection_end: int | None = None,
-    ) -> NotebookPendingRewrite:
+    ):
         current_note = self._service.read_note(note_id)
-        if current_note.content_hash != expected_content_hash:
-            raise NotebookConflictError("Notebook note was updated before applying rewrite.")
-
         existing = self.get_pending_rewrite(note_id)
+        if existing is None:
+            if current_note.content_hash != expected_content_hash:
+                raise NotebookConflictError("Notebook note was updated before applying rewrite.")
+        else:
+            if current_note.body != existing.applied_content:
+                raise NotebookConflictError("Notebook note changed outside the pending rewrite flow.")
+            if expected_content_hash not in {
+                current_note.content_hash,
+                existing.original_content_hash,
+            }:
+                raise NotebookConflictError("Notebook note was updated before applying rewrite.")
+
         original_content = existing.original_content if existing else current_note.body
         original_content_hash = (
             existing.original_content_hash if existing else current_note.content_hash
@@ -108,6 +117,12 @@ class NotebookAssistantService:
             selection_start=selection_start,
             selection_end=selection_end,
             updated_at=_now_iso(),
+        )
+        note = self._history_service.update_note(
+            note_id=note_id,
+            body=applied_content,
+            expected_content_hash=current_note.content_hash,
+            actor_type="agent",
         )
         with self._connect() as conn:
             conn.execute(
@@ -134,10 +149,22 @@ class NotebookAssistantService:
                     pending.updated_at,
                 ),
             )
-        return pending
+        return note, pending
 
-    def cancel_rewrite(self, note_id: str) -> None:
+    def cancel_rewrite(self, note_id: str):
+        pending = self.get_pending_rewrite(note_id)
+        if pending is None:
+            raise NotebookNotFoundError(f"Notebook pending rewrite not found: {note_id}")
+
+        current_note = self._service.read_note(note_id)
+        note = self._history_service.update_note(
+            note_id=note_id,
+            body=pending.original_content,
+            expected_content_hash=current_note.content_hash,
+            actor_type="agent",
+        )
         self.clear_pending_rewrite(note_id)
+        return note
 
     def clear_pending_rewrite(self, note_id: str) -> None:
         with self._connect() as conn:
@@ -151,15 +178,8 @@ class NotebookAssistantService:
         if pending is None:
             raise NotebookNotFoundError(f"Notebook pending rewrite not found: {note_id}")
 
-        current_note = self._service.read_note(note_id)
-        if current_note.content_hash != pending.original_content_hash:
-            raise NotebookConflictError("Notebook note was updated before confirming rewrite.")
-
-        note = self._history_service.update_note(
-            note_id=note_id,
-            body=pending.applied_content,
-            expected_content_hash=pending.original_content_hash,
-            actor_type="agent",
-        )
+        note = self._service.read_note(note_id)
+        if note.body != pending.applied_content:
+            raise NotebookConflictError("Notebook note no longer matches the pending rewrite.")
         self.clear_pending_rewrite(note_id)
         return note

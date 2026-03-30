@@ -604,8 +604,7 @@ async def apply_notebook_rewrite(
 ) -> NotebookPendingRewriteResponse:
     service = NotebookAssistantService()
     try:
-        note = NotebookHistoryService()._service.read_note(note_id)
-        pending_rewrite = service.apply_rewrite(
+        note, pending_rewrite = service.apply_rewrite(
             note_id=note_id,
             content=payload.content,
             expected_content_hash=payload.expected_content_hash,
@@ -625,8 +624,7 @@ async def apply_notebook_rewrite(
 async def cancel_notebook_rewrite(note_id: str) -> NotebookPendingRewriteResponse:
     service = NotebookAssistantService()
     try:
-        note = NotebookHistoryService()._service.read_note(note_id)
-        service.cancel_rewrite(note_id)
+        note = service.cancel_rewrite(note_id)
     except NotebookNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     return NotebookPendingRewriteResponse(note=note, pending_rewrite=None)

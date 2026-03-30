@@ -147,6 +147,7 @@ def test_notebook_assistant_rewrite_api_round_trip(
             },
         )
         assert applied.status_code == 200
+        assert applied.json()["note"]["body"] == "clean body"
         assert applied.json()["pending_rewrite"]["original_content"] == "draft body"
         assert applied.json()["pending_rewrite"]["applied_content"] == "clean body"
 
@@ -180,6 +181,7 @@ def test_notebook_assistant_rewrite_cancel_keeps_note_body(
             },
         )
         assert applied.status_code == 200
+        assert applied.json()["note"]["body"] == "clean body"
 
         cancelled = client.post(f"/api/notebook/notes/{note_id}/rewrite/cancel")
         assert cancelled.status_code == 200
