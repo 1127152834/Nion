@@ -5,6 +5,8 @@ import type { NotebookAssistantSessionInput } from "./types.ts";
 export const notebookAssistantQueryKeys = {
   session: (noteId: string | null, sessionId: string | null) =>
     ["notebook-assistant", "session", noteId, sessionId] as const,
+  rewrite: (noteId: string | null, sessionId: string | null) =>
+    ["notebook-assistant", "rewrite", noteId, sessionId] as const,
 };
 
 export function useCreateOrResumeNotebookAssistantSession() {

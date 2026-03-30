@@ -19,3 +19,12 @@ export interface NotebookAssistantSessionInput {
   noteId: string;
   sessionId: string;
 }
+
+export interface NotebookAssistantRewriteInput {
+  noteId: string;
+  sessionId: string;
+  content: string;
+  expectedContentHash: string;
+  selectionStart?: number;
+  selectionEnd?: number;
+}

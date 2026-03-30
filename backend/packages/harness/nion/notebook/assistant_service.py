@@ -18,6 +18,7 @@ def _now_iso() -> str:
 
 class NotebookPendingRewrite(BaseModel):
     note_id: str
+    session_id: str
     original_content: str
     original_content_hash: str
     applied_content: str
@@ -47,27 +48,33 @@ class NotebookAssistantService:
             conn.executescript(
                 """
                 CREATE TABLE IF NOT EXISTS notebook_pending_rewrites (
-                    note_id TEXT PRIMARY KEY,
+                    note_id TEXT NOT NULL,
+                    session_id TEXT NOT NULL,
                     original_content TEXT NOT NULL,
                     original_content_hash TEXT NOT NULL,
                     applied_content TEXT NOT NULL,
                     selection_start INTEGER,
                     selection_end INTEGER,
-                    updated_at TEXT NOT NULL
+                    updated_at TEXT NOT NULL,
+                    PRIMARY KEY (note_id, session_id)
                 );
                 """
             )
 
-    def get_pending_rewrite(self, note_id: str) -> NotebookPendingRewrite | None:
+    def get_pending_rewrite(
+        self,
+        note_id: str,
+        session_id: str,
+    ) -> NotebookPendingRewrite | None:
         with self._connect() as conn:
             row = conn.execute(
                 """
-                SELECT note_id, original_content, original_content_hash, applied_content,
+                SELECT note_id, session_id, original_content, original_content_hash, applied_content,
                        selection_start, selection_end, updated_at
                 FROM notebook_pending_rewrites
-                WHERE note_id = ?
+                WHERE note_id = ? AND session_id = ?
                 """,
-                (note_id,),
+                (note_id, session_id),
             ).fetchone()
         return NotebookPendingRewrite.model_validate(dict(row)) if row else None
 
@@ -75,13 +82,14 @@ class NotebookAssistantService:
         self,
         *,
         note_id: str,
+        session_id: str,
         content: str,
         expected_content_hash: str,
         selection_start: int | None = None,
         selection_end: int | None = None,
     ):
         current_note = self._service.read_note(note_id)
-        existing = self.get_pending_rewrite(note_id)
+        existing = self.get_pending_rewrite(note_id, session_id)
         if existing is None:
             if current_note.content_hash != expected_content_hash:
                 raise NotebookConflictError("Notebook note was updated before applying rewrite.")
@@ -111,6 +119,7 @@ class NotebookAssistantService:
         )
         pending = NotebookPendingRewrite(
             note_id=note_id,
+            session_id=session_id,
             original_content=original_content,
             original_content_hash=original_content_hash,
             applied_content=applied_content,
@@ -128,10 +137,10 @@ class NotebookAssistantService:
             conn.execute(
                 """
                 INSERT INTO notebook_pending_rewrites(
-                    note_id, original_content, original_content_hash, applied_content,
+                    note_id, session_id, original_content, original_content_hash, applied_content,
                     selection_start, selection_end, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT(note_id) DO UPDATE SET
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(note_id, session_id) DO UPDATE SET
                     original_content = excluded.original_content,
                     original_content_hash = excluded.original_content_hash,
                     applied_content = excluded.applied_content,
@@ -141,6 +150,7 @@ class NotebookAssistantService:
                 """,
                 (
                     pending.note_id,
+                    pending.session_id,
                     pending.original_content,
                     pending.original_content_hash,
                     pending.applied_content,
@@ -151,10 +161,12 @@ class NotebookAssistantService:
             )
         return note, pending
 
-    def cancel_rewrite(self, note_id: str):
-        pending = self.get_pending_rewrite(note_id)
+    def cancel_rewrite(self, note_id: str, session_id: str):
+        pending = self.get_pending_rewrite(note_id, session_id)
         if pending is None:
-            raise NotebookNotFoundError(f"Notebook pending rewrite not found: {note_id}")
+            raise NotebookNotFoundError(
+                f"Notebook pending rewrite not found: {note_id}/{session_id}"
+            )
 
         current_note = self._service.read_note(note_id)
         note = self._history_service.update_note(
@@ -163,23 +175,26 @@ class NotebookAssistantService:
             expected_content_hash=current_note.content_hash,
             actor_type="agent",
         )
-        self.clear_pending_rewrite(note_id)
+        self.clear_pending_rewrite(note_id, session_id)
         return note
 
-    def clear_pending_rewrite(self, note_id: str) -> None:
+    def clear_pending_rewrite(self, note_id: str, session_id: str) -> None:
         with self._connect() as conn:
             conn.execute(
-                "DELETE FROM notebook_pending_rewrites WHERE note_id = ?",
-                (note_id,),
+                """
+                DELETE FROM notebook_pending_rewrites
+                WHERE note_id = ? AND session_id = ?
+                """,
+                (note_id, session_id),
             )
 
-    def confirm_rewrite(self, note_id: str):
-        pending = self.get_pending_rewrite(note_id)
+    def confirm_rewrite(self, note_id: str, session_id: str):
+        pending = self.get_pending_rewrite(note_id, session_id)
         if pending is None:
-            raise NotebookNotFoundError(f"Notebook pending rewrite not found: {note_id}")
+            raise NotebookNotFoundError(
+                f"Notebook pending rewrite not found: {note_id}/{session_id}"
+            )
 
         note = self._service.read_note(note_id)
-        if note.body != pending.applied_content:
-            raise NotebookConflictError("Notebook note no longer matches the pending rewrite.")
-        self.clear_pending_rewrite(note_id)
+        self.clear_pending_rewrite(note_id, session_id)
         return note

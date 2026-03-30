@@ -534,6 +534,7 @@ def test_notebook_rewrite_apply_overwrites_existing_pending_rewrite(monkeypatch,
         first = client.post(
             f"/api/notebook/notes/{note_id}/rewrite/apply",
             json={
+                "session_id": "session-1",
                 "content": "first rewrite",
                 "expected_content_hash": note["content_hash"],
                 "selection_start": 0,
@@ -551,6 +552,7 @@ def test_notebook_rewrite_apply_overwrites_existing_pending_rewrite(monkeypatch,
         second = client.post(
             f"/api/notebook/notes/{note_id}/rewrite/apply",
             json={
+                "session_id": "session-1",
                 "content": "second rewrite",
                 "expected_content_hash": note["content_hash"],
                 "selection_start": 9,
@@ -586,6 +588,7 @@ def test_notebook_rewrite_cancel_discards_pending_rewrite(monkeypatch, tmp_path)
         applied = client.post(
             f"/api/notebook/notes/{note_id}/rewrite/apply",
             json={
+                "session_id": "session-1",
                 "content": "clean body",
                 "expected_content_hash": note["content_hash"],
             },
@@ -594,7 +597,10 @@ def test_notebook_rewrite_cancel_discards_pending_rewrite(monkeypatch, tmp_path)
         assert applied.json()["note"]["body"] == "clean body"
         assert applied.json()["pending_rewrite"]["applied_content"] == "clean body"
 
-        cancelled = client.post(f"/api/notebook/notes/{note_id}/rewrite/cancel")
+        cancelled = client.post(
+            f"/api/notebook/notes/{note_id}/rewrite/cancel",
+            json={"session_id": "session-1"},
+        )
         assert cancelled.status_code == 200
         cancelled_payload = cancelled.json()
         assert cancelled_payload["note"]["body"] == "draft body"
@@ -617,6 +623,7 @@ def test_notebook_rewrite_confirm_commits_pending_rewrite(monkeypatch, tmp_path)
         applied = client.post(
             f"/api/notebook/notes/{note_id}/rewrite/apply",
             json={
+                "session_id": "session-1",
                 "content": "final body",
                 "expected_content_hash": note["content_hash"],
             },
@@ -624,7 +631,10 @@ def test_notebook_rewrite_confirm_commits_pending_rewrite(monkeypatch, tmp_path)
         assert applied.status_code == 200
         assert applied.json()["note"]["body"] == "final body"
 
-        confirmed = client.post(f"/api/notebook/notes/{note_id}/rewrite/confirm")
+        confirmed = client.post(
+            f"/api/notebook/notes/{note_id}/rewrite/confirm",
+            json={"session_id": "session-1"},
+        )
         assert confirmed.status_code == 200
         confirmed_payload = confirmed.json()
         assert confirmed_payload["note"]["body"] == "final body"

@@ -190,10 +190,15 @@ class NotebookAssistApplyRequest(BaseModel):
 
 
 class NotebookRewriteApplyRequest(BaseModel):
+    session_id: str
     content: str
     expected_content_hash: str
     selection_start: int | None = None
     selection_end: int | None = None
+
+
+class NotebookRewriteSessionRequest(BaseModel):
+    session_id: str
 
 
 class NotebookImportRequest(BaseModel):
@@ -606,6 +611,7 @@ async def apply_notebook_rewrite(
     try:
         note, pending_rewrite = service.apply_rewrite(
             note_id=note_id,
+            session_id=payload.session_id,
             content=payload.content,
             expected_content_hash=payload.expected_content_hash,
             selection_start=payload.selection_start,
@@ -621,20 +627,26 @@ async def apply_notebook_rewrite(
 
 
 @router.post("/notes/{note_id}/rewrite/cancel", response_model=NotebookPendingRewriteResponse)
-async def cancel_notebook_rewrite(note_id: str) -> NotebookPendingRewriteResponse:
+async def cancel_notebook_rewrite(
+    note_id: str,
+    payload: NotebookRewriteSessionRequest,
+) -> NotebookPendingRewriteResponse:
     service = NotebookAssistantService()
     try:
-        note = service.cancel_rewrite(note_id)
+        note = service.cancel_rewrite(note_id, payload.session_id)
     except NotebookNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     return NotebookPendingRewriteResponse(note=note, pending_rewrite=None)
 
 
 @router.post("/notes/{note_id}/rewrite/confirm", response_model=NotebookPendingRewriteResponse)
-async def confirm_notebook_rewrite(note_id: str) -> NotebookPendingRewriteResponse:
+async def confirm_notebook_rewrite(
+    note_id: str,
+    payload: NotebookRewriteSessionRequest,
+) -> NotebookPendingRewriteResponse:
     service = NotebookAssistantService()
     try:
-        note = service.confirm_rewrite(note_id)
+        note = service.confirm_rewrite(note_id, payload.session_id)
     except NotebookConflictError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     except NotebookNotFoundError as exc:

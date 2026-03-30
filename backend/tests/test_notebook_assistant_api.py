@@ -142,6 +142,7 @@ def test_notebook_assistant_rewrite_api_round_trip(
         applied = client.post(
             f"/api/notebook/notes/{note_id}/rewrite/apply",
             json={
+                "session_id": "session-1",
                 "content": "clean body",
                 "expected_content_hash": note["content_hash"],
             },
@@ -151,7 +152,10 @@ def test_notebook_assistant_rewrite_api_round_trip(
         assert applied.json()["pending_rewrite"]["original_content"] == "draft body"
         assert applied.json()["pending_rewrite"]["applied_content"] == "clean body"
 
-        confirmed = client.post(f"/api/notebook/notes/{note_id}/rewrite/confirm")
+        confirmed = client.post(
+            f"/api/notebook/notes/{note_id}/rewrite/confirm",
+            json={"session_id": "session-1"},
+        )
         assert confirmed.status_code == 200
         assert confirmed.json()["pending_rewrite"] is None
         assert confirmed.json()["note"]["body"] == "clean body"
@@ -176,6 +180,7 @@ def test_notebook_assistant_rewrite_cancel_keeps_note_body(
         applied = client.post(
             f"/api/notebook/notes/{note_id}/rewrite/apply",
             json={
+                "session_id": "session-1",
                 "content": "clean body",
                 "expected_content_hash": note["content_hash"],
             },
@@ -183,7 +188,63 @@ def test_notebook_assistant_rewrite_cancel_keeps_note_body(
         assert applied.status_code == 200
         assert applied.json()["note"]["body"] == "clean body"
 
-        cancelled = client.post(f"/api/notebook/notes/{note_id}/rewrite/cancel")
+        cancelled = client.post(
+            f"/api/notebook/notes/{note_id}/rewrite/cancel",
+            json={"session_id": "session-1"},
+        )
         assert cancelled.status_code == 200
         assert cancelled.json()["pending_rewrite"] is None
         assert cancelled.json()["note"]["body"] == "draft body"
+
+
+def test_notebook_assistant_rewrite_sessions_do_not_override_each_other(
+    monkeypatch,
+    tmp_path,
+):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+
+    with TestClient(create_app()) as client:
+        created = client.post(
+            "/api/notebook/notes",
+            json={"directory": "", "title": "Scoped Rewrite", "body": "draft body"},
+        )
+        assert created.status_code == 200
+        note = created.json()["note"]
+        note_id = note["note_id"]
+
+        session_a = client.post(
+            f"/api/notebook/notes/{note_id}/rewrite/apply",
+            json={
+                "session_id": "session-a",
+                "content": "rewrite from a",
+                "expected_content_hash": note["content_hash"],
+            },
+        )
+        assert session_a.status_code == 200
+        assert session_a.json()["note"]["body"] == "rewrite from a"
+
+        session_b = client.post(
+            f"/api/notebook/notes/{note_id}/rewrite/apply",
+            json={
+                "session_id": "session-b",
+                "content": "rewrite from b",
+                "expected_content_hash": session_a.json()["note"]["content_hash"],
+            },
+        )
+        assert session_b.status_code == 200
+        assert session_b.json()["note"]["body"] == "rewrite from b"
+
+        confirmed_a = client.post(
+            f"/api/notebook/notes/{note_id}/rewrite/confirm",
+            json={"session_id": "session-a"},
+        )
+        assert confirmed_a.status_code == 200
+        assert confirmed_a.json()["note"]["body"] == "rewrite from b"
+
+        cancelled_b = client.post(
+            f"/api/notebook/notes/{note_id}/rewrite/cancel",
+            json={"session_id": "session-b"},
+        )
+        assert cancelled_b.status_code == 200
+        assert cancelled_b.json()["note"]["body"] == "rewrite from a"
