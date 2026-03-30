@@ -3,14 +3,12 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useI18n } from "@/core/i18n/hooks";
-import { pathOfNewThread, pathOfNotebookTrash } from "@/core/navigation/desktop-routes";
+import { pathOfNotebookTrash } from "@/core/navigation/desktop-routes";
 import {
-  buildNotebookAssistPrompt,
   buildNotebookDirectoryOptions,
   buildNotebookTree,
   findDefaultNotebookDirectory,
@@ -103,6 +101,7 @@ export function NotebookPage() {
   const [leftRailCollapsed, setLeftRailCollapsed] = useState(false);
   const [rightRailCollapsed, setRightRailCollapsed] = useState(false);
   const [contextTab, setContextTab] = useState<NotebookContextTab>("ask");
+  const [notebookAssistantSessionId, setNotebookAssistantSessionId] = useState<string | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [folderDialog, setFolderDialog] = useState<FolderDialogState>({
     mode: "create",
@@ -310,42 +309,16 @@ export function NotebookPage() {
     }
   }
 
-  function handleAssist(input: NotebookConversationStartInput) {
+  function handleAssist(_input: NotebookConversationStartInput) {
     if (!note && !isDraft) {
       return;
     }
-    const mode = input.mode ?? "note";
-    const selectionForPrompt =
-      mode === "selection" && editorSelection?.text.trim() ? editorSelection : null;
-    const bodyForPrompt =
-      mode === "preview" && input.previewContent?.trim()
-        ? input.previewContent
-        : draftBody;
-    const sourceLabel =
-      mode === "preview"
-        ? "Current AI result"
-        : mode === "selection" && selectionForPrompt
-          ? "Current selected excerpt"
-          : undefined;
-    router.push(
-      pathOfNewThread({
-        draft: buildNotebookAssistPrompt(
-          {
-            title: draftTitle,
-            body: bodyForPrompt,
-          },
-          input.action,
-          {
-            selection:
-              input.action === "rewrite" || input.action === "expand"
-                ? selectionForPrompt
-                : null,
-            sourceLabel,
-            referenceBody: mode === "preview" ? draftBody : null,
-          },
-        ),
-      }),
-    );
+    setContextTab("ask");
+  }
+
+  function startNotebookAssistantConversation() {
+    setNotebookAssistantSessionId(globalThis.crypto.randomUUID());
+    setContextTab("ask");
   }
 
   function syncNotebookDraft(nextNote: { title: string; body: string; content_hash: string }) {
@@ -420,6 +393,7 @@ export function NotebookPage() {
     setSavedBody("");
     setSaveState("unsaved");
     setContextTab("ask");
+    setNotebookAssistantSessionId(globalThis.crypto.randomUUID());
     setEditorSelection(null);
   }
 
@@ -469,8 +443,16 @@ export function NotebookPage() {
     setSavedBody("");
     setSaveState("unsaved");
     setContextTab("ask");
+    setNotebookAssistantSessionId(globalThis.crypto.randomUUID());
     setEditorSelection(null);
   }
+
+  useEffect(() => {
+    if (!selectedNoteId) {
+      return;
+    }
+    setNotebookAssistantSessionId(globalThis.crypto.randomUUID());
+  }, [selectedNoteId]);
 
   function handleSaveDraft() {
     if (!draftSession) {
@@ -678,9 +660,11 @@ export function NotebookPage() {
               notePath={selectedFile?.path ?? null}
               selection={editorSelection}
               noteTitle={draftTitle}
+              notebookAssistantSessionId={notebookAssistantSessionId}
               onActiveTabChange={setContextTab}
               onApplyNote={syncNotebookDraft}
               onStartConversation={handleAssist}
+              onStartNewConversation={startNotebookAssistantConversation}
               onToggleCollapse={() => setRightRailCollapsed((value) => !value)}
             />
           </div>
