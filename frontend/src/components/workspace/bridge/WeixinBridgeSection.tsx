@@ -20,7 +20,6 @@ import { createBridgeClient, type WeixinBridgeAccount } from "@/core/bridge/clie
 import {
   BridgePlatformEnableCard,
   BridgePlatformRuntimeCard,
-  isBridgePlatformVerified,
   normalizeQrImageSrc,
   useBridgeTranslation,
 } from "./bridge-shared";
@@ -30,7 +29,6 @@ export function WeixinBridgeSection() {
   const [accounts, setAccounts] = useState<WeixinBridgeAccount[]>([]);
   const [bridgeEnabled, setBridgeEnabled] = useState(false);
   const [channelEnabled, setChannelEnabled] = useState(false);
-  const [weixinConnectionVerified, setWeixinConnectionVerified] = useState(false);
   const [qrImage, setQrImage] = useState<string | null>(null);
   const [qrSessionId, setQrSessionId] = useState<string | null>(null);
   const [qrStatus, setQrStatus] = useState("");
@@ -38,13 +36,13 @@ export function WeixinBridgeSection() {
   const [qrLoading, setQrLoading] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const weixinConnectionVerified = accounts.some((account) => account.enabled && account.hasToken);
 
   const fetchAccounts = useCallback(async () => {
     const client = createBridgeClient();
     const settings = await client.getSettings();
     setBridgeEnabled(settings.remote_bridge_enabled === "true");
     setChannelEnabled(settings.bridge_weixin_enabled === "true");
-    setWeixinConnectionVerified(isBridgePlatformVerified(settings, "weixin"));
     setAccounts(await client.listWeixinAccounts());
   }, []);
 

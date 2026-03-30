@@ -22,6 +22,7 @@ void test("platform enable cards expose verification-gated toggles", async () =>
   assert.match(source, /verified: boolean/);
   assert.match(source, /verificationHint/);
   assert.match(source, /disabled=\{saving \|\| !verified\}/);
+  assert.match(source, /const effectiveEnabled = enabled && verified/);
 });
 
 void test("telegram bridge section auto-verifies before enabling", async () => {
@@ -70,7 +71,7 @@ void test("weixin bridge section requires a verified account before enabling", a
     "utf8",
   );
 
-  assert.match(source, /weixinConnectionVerified/);
+  assert.match(source, /const weixinConnectionVerified = accounts\.some/);
   assert.match(source, /ensureWeixinVerifiedBeforeEnable/);
   assert.match(source, /await ensureWeixinVerifiedBeforeEnable\(\)/);
 });

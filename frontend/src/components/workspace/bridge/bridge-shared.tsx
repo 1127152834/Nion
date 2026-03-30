@@ -809,10 +809,12 @@ export function BridgePlatformEnableCard({
   saving: boolean;
   onToggle: (checked: boolean) => void;
 }) {
+  const effectiveEnabled = enabled && verified;
+
   return (
-    <SettingsCard className={enabled ? "border-primary/50 bg-primary/5" : undefined}>
+    <SettingsCard className={effectiveEnabled ? "border-primary/50 bg-primary/5" : undefined}>
       <FieldRow label={title} description={description}>
-        <Switch checked={enabled} onCheckedChange={onToggle} disabled={saving || !verified} />
+        <Switch checked={effectiveEnabled} onCheckedChange={onToggle} disabled={saving || !verified} />
       </FieldRow>
       {!verified ? (
         <StatusBanner variant="warning">
