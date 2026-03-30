@@ -42,7 +42,6 @@ export const enUS: Translations = {
     code: "Code",
     preview: "Preview",
     cancel: "Cancel",
-    select: "Select",
     save: "Save",
     install: "Install",
     create: "Create",
@@ -267,7 +266,6 @@ export const enUS: Translations = {
   // Chats
   chats: {
     searchChats: "Search chats",
-    selectedCount: "{count} selected",
   },
 
   bridge: {
@@ -655,6 +653,32 @@ export const enUS: Translations = {
       filterFacts: "Facts",
       filterSummaries: "Summaries",
       noMatches: "No matching memory found.",
+      surfaces: {
+        provider: {
+          title: "Memory Provider",
+          description:
+            "Choose which memory backend powers notebook retrieval, long-term memory, AutoDream, identity, and soul.",
+          modeSummary: "OpenViking modes: embedded / remote",
+          activeModeLabel: "Active OpenViking mode",
+        },
+        console: {
+          title: "Memory Console",
+          description:
+            "Search and inspect the memory Nion is currently using, then clean up stale facts when needed.",
+        },
+        agentCore: {
+          title: "Agent Core",
+          description:
+            "Operator surfaces for AutoDream and embedded OpenViking. This area is for maintenance and inspection, not end-user journaling.",
+        },
+      },
+      autodream: {
+        description:
+          "Run a manual reflective pass and inspect the latest Dream Log summary before future maintenance loops are automated.",
+        runPlaceholder: "Run AutoDream now",
+        runButton: "Run AutoDream now",
+        emptySummary: "No summary",
+      },
       storage: {
         title: "Memory storage",
         description:
@@ -1213,16 +1237,6 @@ export const enUS: Translations = {
       title: "Automation",
       description:
         "Organize recurring work into clear reminders and scheduled tasks without hunting through settings.",
-      hero: {
-        eyebrow: "Automation workbench",
-        quickActions: ["Create a reminder", "Plan a recurring task", "Inspect recent runs"],
-        statusLabel: "Scheduler status",
-        nextLabel: "Next up",
-        attentionLabel: "Needs attention",
-        attentionHint: "Failed runs and blocked automations show up here first.",
-        nonePlanned: "Nothing scheduled yet",
-        surfaceHint: "Use tabs to switch between planning, event-driven rules, and recent execution history.",
-      },
       tabs: {
         overview: "Overview",
         reminders: "Reminders",

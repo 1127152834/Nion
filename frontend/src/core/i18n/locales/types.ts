@@ -275,7 +275,6 @@ export interface Translations {
     code: string;
     preview: string;
     cancel: string;
-    select: string;
     save: string;
     install: string;
     create: string;
@@ -442,7 +441,6 @@ export interface Translations {
   // Chats
   chats: {
     searchChats: string;
-    selectedCount: string;
   };
 
   bridge: BridgeTranslations;
@@ -671,6 +669,28 @@ export interface Translations {
       filterFacts: string;
       filterSummaries: string;
       noMatches: string;
+      surfaces: {
+        provider: {
+          title: string;
+          description: string;
+          modeSummary: string;
+          activeModeLabel: string;
+        };
+        console: {
+          title: string;
+          description: string;
+        };
+        agentCore: {
+          title: string;
+          description: string;
+        };
+      };
+      autodream: {
+        description: string;
+        runPlaceholder: string;
+        runButton: string;
+        emptySummary: string;
+      };
       storage: {
         title: string;
         description: string;
@@ -931,16 +951,6 @@ export interface Translations {
     automationWorkspace: {
       title: string;
       description: string;
-      hero: {
-        eyebrow: string;
-        quickActions: string[];
-        statusLabel: string;
-        nextLabel: string;
-        attentionLabel: string;
-        attentionHint: string;
-        nonePlanned: string;
-        surfaceHint: string;
-      };
       tabs: {
         overview: string;
         reminders: string;

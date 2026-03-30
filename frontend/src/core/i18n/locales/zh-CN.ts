@@ -42,7 +42,6 @@ export const zhCN: Translations = {
     code: "代码",
     preview: "预览",
     cancel: "取消",
-    select: "选择",
     save: "保存",
     install: "安装",
     create: "创建",
@@ -256,7 +255,6 @@ export const zhCN: Translations = {
   // Chats
   chats: {
     searchChats: "搜索对话",
-    selectedCount: "已选 {count} 项",
   },
 
   bridge: {
@@ -627,6 +625,32 @@ export const zhCN: Translations = {
       filterFacts: "事实",
       filterSummaries: "摘要",
       noMatches: "没有找到匹配的记忆。",
+      surfaces: {
+        provider: {
+          title: "记忆提供者",
+          description:
+            "选择当前承载笔记检索、长期记忆、AutoDream、identity 与 soul 的记忆后端。",
+          modeSummary: "OpenViking 模式：embedded / remote",
+          activeModeLabel: "当前 OpenViking 模式",
+        },
+        console: {
+          title: "记忆控制台",
+          description:
+            "检索和查看 Nion 当前正在使用的记忆，并在必要时清理过期事实。",
+        },
+        agentCore: {
+          title: "智能体内核",
+          description:
+            "用于 AutoDream 与嵌入式 OpenViking 的操作面。这里是维护与检查区域，不是最终的用户日志产品界面。",
+        },
+      },
+      autodream: {
+        description:
+          "手动运行一次反思整理流程，并查看最近一次 Dream Log 摘要，后续再接入自动维护闭环。",
+        runPlaceholder: "立即运行 AutoDream",
+        runButton: "立即运行 AutoDream",
+        emptySummary: "暂无摘要",
+      },
       storage: {
         title: "记忆存储",
         description: "选择长期记忆更新的持久化 provider。",
@@ -1162,16 +1186,6 @@ export const zhCN: Translations = {
       title: "自动化",
       description:
         "把重复工作整理成清晰的提醒事项和定时任务，不再需要先钻进设置页才能管理。",
-      hero: {
-        eyebrow: "自动化工作台",
-        quickActions: ["创建提醒事项", "规划循环任务", "查看最近执行"],
-        statusLabel: "调度状态",
-        nextLabel: "接下来",
-        attentionLabel: "需要关注",
-        attentionHint: "失败执行和异常自动化会优先显示在这里。",
-        nonePlanned: "还没有安排任务",
-        surfaceHint: "用上面的分段导航在计划、事件响应和执行记录之间切换。",
-      },
       tabs: {
         overview: "概览",
         reminders: "提醒事项",

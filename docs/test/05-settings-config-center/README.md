@@ -186,6 +186,14 @@
 - backend 需验证 embedded OpenViking provider 至少能列出 notebook 资源和 dream log
 - backend 需验证 embedded OpenViking provider 至少能 round-trip user memory 和 agent memory
 
+### Memory Console Product Surface 增量覆盖
+
+- 记忆页不再是混合卡片堆，必须拆成 `Memory Provider / Memory Console / Agent Core` 三个内部 surface
+- `Memory Provider` 承担 provider family、mode、storage provider 相关配置，不应再和检索/AutoDream 混放
+- `Memory Console` 承担记忆检索、当前记忆概览、facts 管理与清理
+- `Agent Core` 承担 AutoDream 与 OpenViking operator surfaces
+- OpenViking 与 AutoDream 文案必须保留 operator / inspect 语义，不能伪装成最终 end-user product
+
 ## 10. 风险与优先级
 - P0 必测项：config read/update/runtime-status、409/422。
 - P1 高价值项：sandbox/daemon/tool/session-policy 分区。

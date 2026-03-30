@@ -1,6 +1,7 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
+import { useI18n } from "@/core/i18n/hooks";
 import { useMemoryProviderFamilies, useMemoryProviderState } from "@/core/memory-os/hooks";
 import {
   describeOpenVikingMode,
@@ -8,6 +9,7 @@ import {
 } from "@/core/memory-os/openviking-mode";
 
 export function MemoryProviderFoundationCard() {
+  const { t } = useI18n();
   const families = useMemoryProviderFamilies();
   const state = useMemoryProviderState();
   const activeOpenVikingProvider = getActiveOpenVikingProvider(
@@ -23,9 +25,11 @@ export function MemoryProviderFoundationCard() {
   return (
     <div className="rounded-xl border bg-background/80 p-5 shadow-sm">
       <div className="space-y-1">
-        <h3 className="text-base font-medium">Memory Provider</h3>
+        <h3 className="text-base font-medium">
+          {t.settings.memory.surfaces.provider.title}
+        </h3>
         <p className="text-muted-foreground text-sm">
-          Choose the active memory backend that powers notebook, memory, AutoDream, identity, and soul.
+          {t.settings.memory.surfaces.provider.description}
         </p>
       </div>
 
@@ -38,11 +42,11 @@ export function MemoryProviderFoundationCard() {
       </div>
 
       <div className="text-muted-foreground mt-4 text-xs">
-        OpenViking modes: embedded / remote
+        {t.settings.memory.surfaces.provider.modeSummary}
       </div>
 
       <div className="text-muted-foreground mt-2 text-xs">
-        Active OpenViking mode: {openVikingMode}
+        {t.settings.memory.surfaces.provider.activeModeLabel}: {openVikingMode}
       </div>
     </div>
   );

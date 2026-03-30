@@ -58,23 +58,13 @@ import {
 } from "./memory-settings-page.storage";
 import { SettingsSection } from "./settings-section";
 import { useConfigEditor } from "./use-config-editor";
-import { MemoryProviderFoundationCard } from "./memory-provider-foundation-card";
-
-const OPENVIKING_FALLBACK_COPY = {
-  title: "Reindex notebook",
-  titleZh: "重新索引笔记",
-  search: "Search notebook resources",
-  searchZh: "搜索笔记资源",
-  preview: "Preview context",
-  previewZh: "预览上下文",
-};
-
-const AUTODREAM_FALLBACK_COPY = {
-  title: "Run AutoDream now",
-  titleZh: "立即运行 AutoDream",
-  preview: "Dream Log",
-  previewZh: "梦境日志",
-};
+import { MemoryProviderPanel } from "./memory-provider-panel";
+import { MemoryConsolePanel } from "./memory-console-panel";
+import { MemoryAgentCorePanel } from "./memory-agent-core-panel";
+import {
+  MemorySurfaceTabs,
+  type MemorySurfaceKey,
+} from "./memory-surface-tabs";
 
 type MemoryViewFilter = "all" | "facts" | "summaries";
 type MemoryFact = UserMemory["facts"][number];
@@ -216,17 +206,6 @@ function summariesToMarkdown(
   return out.join("\n");
 }
 
-function isMemorySummaryEmpty(memory: UserMemory) {
-  return (
-    memory.user.workContext.summary.trim() === "" &&
-    memory.user.personalContext.summary.trim() === "" &&
-    memory.user.topOfMind.summary.trim() === "" &&
-    memory.history.recentMonths.summary.trim() === "" &&
-    memory.history.earlierContext.summary.trim() === "" &&
-    memory.history.longTermBackground.summary.trim() === ""
-  );
-}
-
 function truncateFactPreview(content: string, maxLength = 140) {
   const normalized = content.replace(/\s+/g, " ").trim();
   if (normalized.length <= maxLength) {
@@ -264,6 +243,7 @@ export function MemorySettingsPage() {
   const [submittedNotebookQuery, setSubmittedNotebookQuery] = useState("");
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<MemoryViewFilter>("all");
+  const [surface, setSurface] = useState<MemorySurfaceKey>("provider");
   const [clearDialogOpen, setClearDialogOpen] = useState(false);
   const [factToDelete, setFactToDelete] = useState<MemoryFact | null>(null);
   const deferredQuery = useDeferredValue(query);
@@ -361,27 +341,6 @@ export function MemorySettingsPage() {
     (showSummaries && filteredSectionGroups.length > 0) ||
     (showFacts && filteredFacts.length > 0);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setSubmittedQuery(draftQuery.trim());
-  }
-
-  function handleNotebookSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setSubmittedNotebookQuery(draftNotebookQuery.trim());
-  }
-
-  async function handleRunAutoDream(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    try {
-      await runAutoDream.mutateAsync({
-        query: dreamQuery.trim() || submittedNotebookQuery || "recent project work",
-      });
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
-    }
-  }
-
   function onMemoryConfigChange(nextStorageClass: string) {
     const nextConfig = cloneConfig(draftConfig);
     const nextMemory = asObject(nextConfig.memory);
@@ -427,553 +386,120 @@ export function MemorySettingsPage() {
         title={t.settings.memory.title}
         description={t.settings.memory.description}
       >
-      <MemoryProviderFoundationCard />
+        <MemorySurfaceTabs value={surface} onChange={setSurface} />
 
-      <div className="rounded-xl border bg-background/80 p-5 shadow-sm">
-        {isConfigLoading ? (
-          <div className="text-muted-foreground text-sm">{t.common.loading}</div>
-        ) : configError ? (
-          <div className="text-destructive text-sm">
-            {configError instanceof Error
-              ? configError.message
-              : t.settings.memory.storage.description}
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="space-y-1">
-              <h3 className="text-base font-medium">
-                {t.settings.memory.storage.title}
-              </h3>
-              <p className="text-muted-foreground text-sm">
-                {t.settings.memory.storage.description}
-              </p>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-[220px_1fr]">
-              <label className="space-y-1.5">
-                <div className="text-xs font-medium">
-                  {t.settings.memory.storage.modeLabel}
-                </div>
-                <Select
-                  value={storageMode}
-                  onValueChange={(value) => {
-                    const next = resolveMemoryStorageModeSelection(
-                      value as MemoryStorageMode,
-                      storageClass,
-                      customStorageDraft,
-                    );
-                    setStorageModeOverride(next.nextModeOverride);
-                    setCustomStorageDraft(next.nextCustomDraft);
-                    if (next.nextStoredClass !== storageClass) {
-                      onMemoryConfigChange(next.nextStoredClass);
-                    }
-                  }}
-                >
-                  <SelectTrigger disabled={disabled}>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="file">
-                      {t.settings.memory.storage.fileMode}
-                    </SelectItem>
-                    <SelectItem value="custom">
-                      {t.settings.memory.storage.customMode}
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </label>
-
-              {storageMode === "custom" ? (
-                <label className="space-y-1.5">
-                  <div className="text-xs font-medium">
-                    {t.settings.memory.storage.customClassLabel}
-                  </div>
-                  <Input
-                    value={customStorageClass}
-                    disabled={disabled}
-                    placeholder={t.settings.memory.storage.customClassPlaceholder}
-                    onChange={(event) => {
-                      setStorageModeOverride("custom");
-                      setCustomStorageDraft(event.target.value);
-                      onMemoryConfigChange(
-                        event.target.value.trim() || FILE_MEMORY_STORAGE_CLASS,
-                      )
-                    }}
-                  />
-                </label>
-              ) : null}
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div className="rounded-xl border bg-muted/20 p-5 sm:p-6">
-        <div className="space-y-1">
-          <h3 className="text-base font-medium">
-            {t.settings.memory.recall.title}
-          </h3>
-          <p className="text-muted-foreground text-sm">
-            {t.settings.memory.recall.description}
-          </p>
-        </div>
-        <form className="mt-4 flex gap-2" onSubmit={handleSubmit}>
-          <Input
-            placeholder={t.settings.memory.recall.placeholder}
-            value={draftQuery}
-            onChange={(event) => setDraftQuery(event.target.value)}
-          />
-          <Button type="submit">{t.settings.memory.recall.searchButton}</Button>
-        </form>
-        <div className="mt-5 space-y-5">
-          {!submittedQuery ? (
-            <div className="text-muted-foreground text-sm">
-              {t.settings.memory.recall.idle}
-            </div>
-          ) : (
-            <>
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <h4 className="text-sm font-medium">
-                    {t.settings.memory.recall.structuredTitle}
-                  </h4>
-                  <Badge variant="secondary">{structuredResults.length}</Badge>
-                </div>
-                {structuredResults.length === 0 ? (
-                  <div className="text-muted-foreground text-sm">
-                    {t.settings.memory.recall.structuredEmpty}
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {structuredResults.map((result) => {
-                      const updatedAtLabel = formatTimeAgo(result.updatedAt);
-
-                      return (
-                        <div
-                          key={result.id}
-                          className="rounded-md border bg-background p-3"
-                        >
-                          <div className="mb-2 flex flex-wrap items-center gap-2">
-                            <Badge variant="outline">{result.title}</Badge>
-                            {updatedAtLabel ? (
-                              <span className="text-muted-foreground text-xs">
-                                {updatedAtLabel}
-                              </span>
-                            ) : null}
-                          </div>
-                          <p className="text-sm leading-6">{result.snippet}</p>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <h4 className="text-sm font-medium">
-                    {t.settings.memory.recall.historyTitle}
-                  </h4>
-                  {!recall.isLoading && !recall.isFetching && !recall.error ? (
-                    <Badge variant="secondary">{recall.results.length}</Badge>
-                  ) : null}
-                </div>
-                {recall.isLoading || recall.isFetching ? (
-                  <div className="text-muted-foreground text-sm">
-                    {t.common.loading}
-                  </div>
-                ) : recall.error ? (
-                  <div className="text-destructive text-sm">
-                    {t.settings.memory.recall.loadFailed}
-                  </div>
-                ) : recall.results.length === 0 ? (
-                  <div className="text-muted-foreground text-sm">
-                    {t.settings.memory.recall.historyEmpty}
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {recall.results.map((result, index) => {
-                      const createdAtLabel = formatTimeAgo(result.created_at);
-
-                      return (
-                        <div
-                          key={`${result.thread_id}-${result.agent_name}-${index}`}
-                          className="rounded-md border bg-background p-3"
-                        >
-                          <div className="text-muted-foreground mb-2 flex flex-wrap gap-x-3 gap-y-1 text-xs">
-                            <span>
-                              {t.settings.memory.recall.threadLabel}: {result.thread_id}
-                            </span>
-                            <span>
-                              {t.settings.memory.recall.agentLabel}: {result.agent_name}
-                            </span>
-                            {createdAtLabel ? <span>{createdAtLabel}</span> : null}
-                          </div>
-                          <p className="text-sm leading-6">{result.snippet}</p>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-
-      <div className="rounded-xl border bg-muted/20 p-5 sm:p-6">
-        <div className="space-y-1">
-          <h3 className="text-base font-medium">
-            {AUTODREAM_FALLBACK_COPY.titleZh}
-          </h3>
-          <p className="text-muted-foreground text-sm">
-            触发一次 AutoDream，生成一条 Dream Log，并查看本轮提出的记忆与行动建议。
-          </p>
-        </div>
-
-        <form className="mt-4 flex gap-2" onSubmit={handleRunAutoDream}>
-          <Input
-            placeholder="输入本轮反思关键词"
-            value={dreamQuery}
-            onChange={(event) => setDreamQuery(event.target.value)}
-          />
-          <Button type="submit" disabled={runAutoDream.isPending}>
-            {runAutoDream.isPending ? "Running AutoDream..." : "Run AutoDream now"}
-          </Button>
-        </form>
-
-        {runAutoDream.data ? (
-          <div className="mt-5 space-y-3">
-            <h4 className="text-sm font-medium">
-              {AUTODREAM_FALLBACK_COPY.previewZh}
-            </h4>
-            <div className="rounded-md border bg-background p-3 text-sm leading-6">
-              <div className="mb-2 font-medium">
-                {runAutoDream.data.entry.summary || "No summary"}
-              </div>
-              <div className="text-muted-foreground text-xs">
-                {runAutoDream.data.entry_path}
-              </div>
-            </div>
-
-            <div className="rounded-md border bg-background p-3">
-              <div className="mb-2 text-sm font-medium">agent_memory_updates</div>
-              {runAutoDream.data.agent_memory_updates.length > 0 ? (
-                <ul className="list-disc pl-5 text-sm leading-6">
-                  {runAutoDream.data.agent_memory_updates.map((item, index) => (
-                    <li key={`${item}-${index}`}>{item}</li>
-                  ))}
-                </ul>
-              ) : (
-                <div className="text-muted-foreground text-sm">No updates</div>
-              )}
-            </div>
-
-            <div className="rounded-md border bg-background p-3">
-              <div className="mb-2 text-sm font-medium">action_proposals</div>
-              {runAutoDream.data.action_proposals.length > 0 ? (
-                <ul className="list-disc pl-5 text-sm leading-6">
-                  {runAutoDream.data.action_proposals.map((item, index) => (
-                    <li key={`${item}-${index}`}>{item}</li>
-                  ))}
-                </ul>
-              ) : (
-                <div className="text-muted-foreground text-sm">No proposals</div>
-              )}
-            </div>
-          </div>
-        ) : null}
-      </div>
-
-      <div className="rounded-xl border bg-muted/20 p-5 sm:p-6">
-        <div className="space-y-1">
-          <h3 className="text-base font-medium">
-            {t.settings.memory.openviking.title || OPENVIKING_FALLBACK_COPY.title}
-          </h3>
-          <p className="text-muted-foreground text-sm">
-            {t.settings.memory.openviking.description}
-          </p>
-        </div>
-
-        <div className="mt-4 flex flex-wrap items-center gap-3">
-          <Button
-            onClick={() => void reindexNotebook.mutateAsync()}
-            disabled={reindexNotebook.isPending}
-          >
-            {reindexNotebook.isPending
-              ? t.settings.memory.openviking.reindexingButton
-              : t.settings.memory.openviking.reindexButton || OPENVIKING_FALLBACK_COPY.titleZh}
-          </Button>
-          {reindexNotebook.data ? (
-            <span className="text-muted-foreground text-sm">
-              {t.settings.memory.openviking.reindexResult.replace(
-                "{count}",
-                String(reindexNotebook.data.notes_indexed),
-              )}
-            </span>
-          ) : null}
-        </div>
-
-        <form className="mt-4 flex gap-2" onSubmit={handleNotebookSubmit}>
-          <Input
-            placeholder={
-              t.settings.memory.openviking.searchPlaceholder ||
-              OPENVIKING_FALLBACK_COPY.search
-            }
-            value={draftNotebookQuery}
-            onChange={(event) => setDraftNotebookQuery(event.target.value)}
-          />
-          <Button type="submit">
-            {t.settings.memory.openviking.searchButton || OPENVIKING_FALLBACK_COPY.searchZh}
-          </Button>
-        </form>
-
-        <div className="mt-5 space-y-3">
-          {!submittedNotebookQuery ? (
-            <div className="text-muted-foreground text-sm">
-              {t.settings.memory.openviking.idle}
-            </div>
-          ) : notebookSearch.isLoading || notebookSearch.isFetching ? (
-            <div className="text-muted-foreground text-sm">{t.common.loading}</div>
-          ) : notebookSearch.error ? (
-            <div className="text-destructive text-sm">
-              {t.settings.memory.openviking.loadFailed}
-            </div>
-          ) : (notebookSearch.data?.items.length ?? 0) === 0 ? (
-            <div className="text-muted-foreground text-sm">
-              {t.settings.memory.openviking.empty}
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {notebookSearch.data?.items.map((item) => (
-                <div
-                  key={`${item.resource_uri}-${item.char_start}`}
-                  className="rounded-md border bg-background p-3"
-                >
-                  <div className="mb-2 flex flex-wrap items-center gap-2">
-                    <Badge variant="outline">{item.title}</Badge>
-                    <span className="text-muted-foreground text-xs">
-                      {item.source_relative_path}
-                    </span>
-                  </div>
-                  <p className="mb-2 text-sm leading-6">{item.snippet}</p>
-                  <div className="text-muted-foreground flex flex-wrap gap-x-3 gap-y-1 text-xs">
-                    <span>
-                      {t.settings.memory.openviking.headingLabel}:{" "}
-                      {item.heading_path.length > 0
-                        ? item.heading_path.join(" / ")
-                        : "-"}
-                    </span>
-                    <span>
-                      {t.settings.memory.openviking.rangeLabel}: {item.char_start}-
-                      {item.char_end}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {submittedNotebookQuery ? (
-          <div className="mt-5 space-y-2">
-            <h4 className="text-sm font-medium">
-              {t.settings.memory.openviking.previewTitle ||
-                OPENVIKING_FALLBACK_COPY.previewZh}
-            </h4>
-            {notebookContextPreview.isLoading ||
-            notebookContextPreview.isFetching ? (
-              <div className="text-muted-foreground text-sm">
-                {t.common.loading}
-              </div>
-            ) : notebookContextPreview.error ? (
-              <div className="text-destructive text-sm">
-                {t.settings.memory.openviking.loadFailed}
-              </div>
-            ) : notebookContextPreview.data ? (
-              <pre className="overflow-x-auto rounded-md border bg-background p-3 text-xs leading-6 whitespace-pre-wrap">
-                {notebookContextPreview.data.markdown}
-              </pre>
-            ) : null}
-          </div>
-        ) : null}
-      </div>
-
-      <div className="mt-6 space-y-2">
-        <h3 className="text-base font-medium">
-          {t.settings.memory.recall.overviewTitle}
-        </h3>
-        <p className="text-muted-foreground text-sm">
-          {t.settings.memory.recall.overviewDescription}
-        </p>
-      </div>
-      <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
-          <Input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder={t.settings.memory.searchPlaceholder}
-            className="sm:max-w-xs"
-          />
-          <ToggleGroup
-            type="single"
-            value={filter}
-            onValueChange={(value) => {
-              if (value) setFilter(value as MemoryViewFilter);
+        {surface === "provider" ? (
+          <MemoryProviderPanel
+            disabled={disabled}
+            storageMode={storageMode}
+            customStorageClass={customStorageClass}
+            customClassPlaceholder={t.settings.memory.storage.customClassPlaceholder}
+            onStorageModeChange={(value) => {
+              const next = resolveMemoryStorageModeSelection(
+                value,
+                storageClass,
+                customStorageDraft,
+              );
+              setStorageModeOverride(next.nextModeOverride);
+              setCustomStorageDraft(next.nextCustomDraft);
+              if (next.nextStoredClass !== storageClass) {
+                onMemoryConfigChange(next.nextStoredClass);
+              }
             }}
-            variant="outline"
-          >
-            <ToggleGroupItem value="all">
-              {t.settings.memory.filterAll}
-            </ToggleGroupItem>
-            <ToggleGroupItem value="facts">
-              {t.settings.memory.filterFacts}
-            </ToggleGroupItem>
-            <ToggleGroupItem value="summaries">
-              {t.settings.memory.filterSummaries}
-            </ToggleGroupItem>
-          </ToggleGroup>
-        </div>
+            onCustomStorageClassChange={(value) => {
+              setStorageModeOverride("custom");
+              setCustomStorageDraft(value);
+              onMemoryConfigChange(value.trim() || FILE_MEMORY_STORAGE_CLASS);
+            }}
+          />
+        ) : null}
 
-        <Button
-          variant="destructive"
-          onClick={() => setClearDialogOpen(true)}
-          disabled={clearMemory.isPending || !memory}
-        >
-          {clearMemory.isPending ? t.common.loading : t.settings.memory.clearAll}
-        </Button>
-      </div>
-      <div className="mt-3 text-muted-foreground text-sm">
-        {t.settings.memory.summaryReadOnly}
-      </div>
-      <div className="mt-4 rounded-lg border p-4">
-        {isLoading ? (
-          <div className="text-muted-foreground text-sm">{t.common.loading}</div>
-        ) : error ? (
-          <div className="text-destructive text-sm">{error.message}</div>
-        ) : !memory ? (
-          <div className="text-muted-foreground text-sm">
-            {t.settings.memory.empty}
-          </div>
-        ) : isMemorySummaryEmpty(memory) && memory.facts.length === 0 ? (
-          <div className="text-muted-foreground text-sm">
-            {t.settings.memory.memoryFullyEmpty}
-          </div>
-        ) : !hasMatchingVisibleContent && normalizedQuery ? (
-          <div className="text-muted-foreground text-sm">
-            {t.settings.memory.noMatches}
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {showSummaries && filteredSectionGroups.length > 0 ? (
-              <Streamdown
-                className="size-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0"
-                {...streamdownPlugins}
-              >
-                {summariesToMarkdown(memory, filteredSectionGroups, t)}
-              </Streamdown>
-            ) : null}
+        {surface === "console" ? (
+          <MemoryConsolePanel
+            memory={memory}
+            isLoading={isLoading}
+            error={error instanceof Error ? error : null}
+            draftQuery={draftQuery}
+            submittedQuery={submittedQuery}
+            onDraftQueryChange={setDraftQuery}
+            onSubmitSearch={() => setSubmittedQuery(draftQuery.trim())}
+            structuredResults={structuredResults}
+            recall={recall}
+            overviewMarkdown={summariesToMarkdown(memory ?? {
+              version: "1.0",
+              lastUpdated: "",
+              user: {
+                workContext: { summary: "", updatedAt: "" },
+                personalContext: { summary: "", updatedAt: "" },
+                topOfMind: { summary: "", updatedAt: "" },
+              },
+              history: {
+                recentMonths: { summary: "", updatedAt: "" },
+                earlierContext: { summary: "", updatedAt: "" },
+                longTermBackground: { summary: "", updatedAt: "" },
+              },
+              facts: [],
+            }, filteredSectionGroups, t)}
+            query={query}
+            filter={filter}
+            filteredFacts={filteredFacts}
+            filteredSectionGroups={filteredSectionGroups}
+            hasMatchingVisibleContent={hasMatchingVisibleContent}
+            normalizedQuery={normalizedQuery}
+            onQueryChange={setQuery}
+            onFilterChange={setFilter}
+            onClearAll={() => setClearDialogOpen(true)}
+            onDeleteFact={setFactToDelete}
+            clearPending={clearMemory.isPending}
+          />
+        ) : null}
 
-            {showFacts ? (
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <h4 className="text-sm font-medium">
-                    {t.settings.memory.markdown.facts}
-                  </h4>
-                  <Badge variant="secondary">{filteredFacts.length}</Badge>
-                </div>
-                {filteredFacts.length === 0 ? (
-                  <div className="text-muted-foreground text-sm">
-                    {normalizedQuery
-                      ? t.settings.memory.noMatches
-                      : t.settings.memory.noFacts}
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {filteredFacts.map((fact) => {
-                      const { key } = confidenceToLevelKey(fact.confidence);
-                      const confidenceText =
-                        t.settings.memory.markdown.table.confidenceLevel[key];
-                      const createdAtLabel = formatTimeAgo(fact.createdAt) || "-";
-
-                      return (
-                        <div
-                          key={fact.id}
-                          className="flex flex-col gap-3 rounded-md border bg-background p-3 sm:flex-row sm:items-start sm:justify-between"
-                        >
-                          <div className="min-w-0 space-y-2">
-                            <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
-                              <span>
-                                <span className="text-muted-foreground">
-                                  {t.settings.memory.markdown.table.category}:
-                                </span>{" "}
-                                {upperFirst(fact.category)}
-                              </span>
-                              <span>
-                                <span className="text-muted-foreground">
-                                  {t.settings.memory.markdown.table.confidence}:
-                                </span>{" "}
-                                {confidenceText}
-                              </span>
-                              <span>
-                                <span className="text-muted-foreground">
-                                  {t.settings.memory.markdown.table.createdAt}:
-                                </span>{" "}
-                                {createdAtLabel}
-                              </span>
-                            </div>
-                            <p className="break-words text-sm leading-6">
-                              {fact.content}
-                            </p>
-                            <Link
-                              href={pathOfThread(fact.source)}
-                              className="text-primary text-sm underline-offset-4 hover:underline"
-                            >
-                              {t.settings.memory.markdown.table.view}
-                            </Link>
-                          </div>
-
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-destructive hover:text-destructive shrink-0"
-                            onClick={() => setFactToDelete(fact)}
-                            disabled={deleteMemoryFact.isPending}
-                            title={t.common.delete}
-                            aria-label={t.common.delete}
-                          >
-                            <Trash2Icon className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            ) : null}
-          </div>
-        )}
-      </div>
-
-      <ConfigValidationErrors
-        errors={validationErrors}
-        warnings={validationWarnings}
-      />
-      <ConfigSaveBar
-        dirty={dirty}
-        disabled={disabled}
-        saving={saving}
-        onDiscard={() => {
-          resetStorageEditorState(persistedStorageClass);
-          onDiscard();
-        }}
-        onSave={() => {
-          void onSave().then((saved) => {
-            if (saved) {
-              resetStorageEditorState(storageClass);
+        {surface === "agent-core" ? (
+          <MemoryAgentCorePanel
+            dreamQuery={dreamQuery}
+            onDreamQueryChange={setDreamQuery}
+            onRunAutoDream={() => {
+              void runAutoDream.mutateAsync({
+                query:
+                  dreamQuery.trim() ||
+                  submittedNotebookQuery ||
+                  "recent project work",
+              });
+            }}
+            runAutoDreamPending={runAutoDream.isPending}
+            runAutoDreamData={runAutoDream.data ?? null}
+            draftNotebookQuery={draftNotebookQuery}
+            onDraftNotebookQueryChange={setDraftNotebookQuery}
+            onNotebookSearch={() =>
+              setSubmittedNotebookQuery(draftNotebookQuery.trim())
             }
-          });
-        }}
-      />
+            reindexPending={reindexNotebook.isPending}
+            reindexData={reindexNotebook.data ?? null}
+            notebookSearch={notebookSearch}
+            notebookContextPreview={notebookContextPreview}
+          />
+        ) : null}
+
+        <ConfigValidationErrors
+          errors={validationErrors}
+          warnings={validationWarnings}
+        />
+        <ConfigSaveBar
+          dirty={dirty}
+          disabled={disabled}
+          saving={saving}
+          onDiscard={() => {
+            resetStorageEditorState(persistedStorageClass);
+            onDiscard();
+          }}
+          onSave={() => {
+            void onSave().then((saved) => {
+              if (saved) {
+                resetStorageEditorState(storageClass);
+              }
+            });
+          }}
+        />
       </SettingsSection>
 
       <Dialog open={clearDialogOpen} onOpenChange={setClearDialogOpen}>

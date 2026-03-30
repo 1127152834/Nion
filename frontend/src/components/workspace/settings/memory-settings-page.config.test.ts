@@ -4,26 +4,24 @@ import test from "node:test";
 
 void test("memory settings page exposes storage mode controls", async () => {
   const source = await readFile(
-    new URL("./memory-settings-page.tsx", import.meta.url),
+    new URL("./memory-provider-panel.tsx", import.meta.url),
     "utf8",
   );
 
-  assert.match(source, /storage_class/);
+  assert.match(source, /storageMode/);
   assert.match(source, /customStorageClass/);
-  assert.match(source, /persistedStorageClass/);
-  assert.match(source, /resetStorageEditorState/);
+  assert.match(source, /onStorageModeChange/);
+  assert.match(source, /onCustomStorageClassChange/);
 });
 
 void test("memory settings page includes memory management actions and local filters", async () => {
   const source = await readFile(
-    new URL("./memory-settings-page.tsx", import.meta.url),
+    new URL("./memory-console-panel.tsx", import.meta.url),
     "utf8",
   );
 
-  assert.match(source, /useClearMemory/);
-  assert.match(source, /useDeleteMemoryFact/);
-  assert.match(source, /clearDialogOpen/);
-  assert.match(source, /factToDelete/);
+  assert.match(source, /onClearAll/);
+  assert.match(source, /onDeleteFact/);
   assert.match(source, /ToggleGroup/);
   assert.match(source, /searchPlaceholder/);
 });
