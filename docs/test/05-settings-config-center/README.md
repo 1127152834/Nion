@@ -178,6 +178,12 @@
 - prompt 注入和 memory middleware 的运行时路径应通过 provider 间接生效
 - 前端 `core/memory/*` 兼容调用不应因 runtime migration 被打断
 
+### OpenViking Provider Activation 增量覆盖
+
+- `memory-os` provider state必须能表达 OpenViking 的 `embedded / remote` 模式
+- provider foundation 卡片必须能展示当前 OpenViking 模式
+- backend 需验证 OpenViking provider family 的 embedded 和 remote 行为
+
 ## 10. 风险与优先级
 - P0 必测项：config read/update/runtime-status、409/422。
 - P1 高价值项：sandbox/daemon/tool/session-policy 分区。

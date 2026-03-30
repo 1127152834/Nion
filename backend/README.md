@@ -69,6 +69,14 @@ Program 04B starts the runtime migration off `memory.json`:
 - the embedded Python client now routes memory reads/writes through Memory OS
 - the active runtime provider for this milestone is still Built-in
 
+Program 04C activates the OpenViking provider family:
+
+- OpenViking is no longer just a provider metadata family; it now has a real provider implementation
+- provider config supports both `embedded` and `remote` modes
+- embedded mode uses the local OpenViking runtime already bundled into Nion
+- remote mode uses a dedicated transport bridge for external OpenViking services
+- this milestone activates provider plumbing and mode/status exposure, but does not yet redesign the memory console
+
 ---
 
 ## Architecture

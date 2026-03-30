@@ -291,6 +291,14 @@ Memory OS M1 runtime-migration rules:
 - the built-in provider may still internally reuse legacy storage/update code in this milestone
 - do not claim `memory.json` is removed from disk yet; the rule is that it leaves the runtime hot path
 
+Memory OS M2 provider-activation rules:
+
+- OpenViking must behave as a real provider implementation, not just provider metadata
+- OpenViking provider config must support both `embedded` and `remote`
+- embedded mode should reuse local OpenViking runtime/storage already present in Nion
+- remote mode may begin with a conservative transport bridge and limited surface
+- this milestone should focus on provider activation and status exposure, not the final Memory Console redesign
+
 Program 03B extends that contract to delegated execution:
 
 - use `run_id` as the delegated task correlation key

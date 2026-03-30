@@ -5,7 +5,7 @@
 ## Program Status
 
 - Overall status: `in_progress`
-- Current focus milestone: `M1`
+- Current focus milestone: `M2`
 - Design source:
   - [2026-03-30-openviking-memory-os-design.md](/Users/zhangtiancheng/Documents/项目/agent/nion/docs/superpowers/specs/2026-03-30-openviking-memory-os-design.md)
 - Roadmap source:
@@ -17,7 +17,7 @@
 |---|---|---|---|---|---|
 | M0 | Provider Foundation | `complete` | [M0 Plan](/Users/zhangtiancheng/Documents/项目/agent/nion/docs/superpowers/plans/2026-03-30-openviking-memory-os-m0-provider-foundation-implementation-plan.md) | Provider registry, metadata API, and active binding are live | M0 merged back to `electron` in `55ef25ad` |
 | M1 | Runtime Migration Off `memory.json` | `complete` | [M1 Plan](/Users/zhangtiancheng/Documents/项目/agent/nion/.worktrees/codex-memory-os-m1/docs/superpowers/plans/2026-03-30-openviking-memory-os-m1-runtime-migration-implementation-plan.md) | No runtime hot path reads/writes legacy memory directly | Runtime bridge and legacy import path are complete in worktree |
-| M2 | OpenViking Provider Activation | `not_started` | Not written yet | `embedded` and `remote` OpenViking modes work through provider contract | Depends on M1 |
+| M2 | OpenViking Provider Activation | `in_progress` | [M2 Plan](/Users/zhangtiancheng/Documents/项目/agent/nion/docs/superpowers/plans/2026-03-30-openviking-memory-os-m2-provider-activation-implementation-plan.md) | `embedded` and `remote` OpenViking modes work through provider contract | Current execution target |
 | M3 | Memory Console Product Surface | `not_started` | Not written yet | Memory UI is split into Provider / Console / Agent Core | Depends on M2 contract stability |
 | M4 | Canonical Asset Domains | `not_started` | Not written yet | Notebook, Dream Log, identity, and soul local ownership enforced | Depends on M2 and M3 |
 | M5 | Heartbeat And Self-Evolution | `not_started` | Not written yet | Heartbeat, AutoDream, compact, and identity/soul proposals form a bounded loop | Final milestone |
@@ -52,15 +52,15 @@
 
 ### M2: OpenViking Provider Activation
 
-- [ ] OpenViking provider supports `embedded` mode end-to-end
-- [ ] OpenViking provider supports `remote` mode configuration and status
+- [x] OpenViking provider supports `embedded` mode end-to-end
+- [x] OpenViking provider supports `remote` mode configuration and status
 - [ ] `notebook` domain flows through OpenViking provider
 - [ ] `user_memory` domain flows through OpenViking provider
 - [ ] `agent_memory` domain flows through OpenViking provider
 - [ ] `autodream_journal` domain flows through OpenViking provider
 - [ ] Capability surface distinguishes native/adapted/mirrored support
-- [ ] Provider health/status is visible in API
-- [ ] Regression tests pass
+- [x] Provider health/status is visible in API
+- [x] Regression tests pass
 - [ ] Docs updated
 - [ ] Milestone review completed
 
@@ -149,3 +149,15 @@
   - frontend compatibility tests: `10 passed`
   - backend lint: passed
 - M1 milestone gates are now complete in the worktree and ready for merge back to `electron`.
+- M2 worktree created at `codex/memory-os-m2-provider-activation`.
+- M2 implementation plan written and execution started.
+- M2 provider activation progress:
+  - OpenViking provider config now supports `embedded` and `remote`
+  - embedded OpenViking provider bridge implemented
+  - remote OpenViking transport bridge implemented
+  - Memory OS provider state can now carry OpenViking mode config
+  - provider foundation card now surfaces active OpenViking mode
+- Current M2 verification evidence:
+  - targeted backend OpenViking provider tests: `9 passed`
+  - targeted frontend OpenViking mode tests: `3 passed`
+  - backend lint: passed
