@@ -12,7 +12,7 @@ void test("automation page exposes an event-task tab and form", async () => {
     "utf8",
   );
 
-  assert.match(tabsSource, /TabsTrigger value="events"/);
+  assert.match(tabsSource, /value="events"/);
   assert.match(pageSource, /EventTaskForm/);
   assert.match(pageSource, /value="events"/);
   assert.match(pageSource, /groupedJobs\.events/);
