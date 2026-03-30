@@ -1,12 +1,10 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { SquareTerminalIcon } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { type PromptInputMessage } from "@/components/ai-elements/prompt-input";
-import { Button } from "@/components/ui/button";
 import {
   WorkingDirectoryTrigger,
 } from "@/components/workspace/artifacts";
@@ -18,7 +16,6 @@ import { ThreadContext } from "@/components/workspace/messages/context";
 import { NewChatStage } from "@/components/workspace/new-chat-stage";
 import { RuntimeModeToggle } from "@/components/workspace/runtime-mode-toggle";
 import { SaveToNotebookTrigger } from "@/components/workspace/save-to-notebook-trigger";
-import { TerminalDrawer } from "@/components/workspace/terminal";
 import { ThreadRequestErrorAlert } from "@/components/workspace/thread-request-error-alert";
 import { ThreadTitle } from "@/components/workspace/thread-title";
 import { TodoList } from "@/components/workspace/todo-list";
@@ -62,7 +59,6 @@ export default function ChatThreadPage() {
   });
   const [runtimeProfileLoading, setRuntimeProfileLoading] = useState(false);
   const [runtimeProfileSaving, setRuntimeProfileSaving] = useState(false);
-  const [terminalOpen, setTerminalOpen] = useState(false);
   const [isResolvingPermission, setIsResolvingPermission] = useState(false);
   const [resolvedPermissionRequestIds, setResolvedPermissionRequestIds] = useState<string[]>([]);
 
@@ -395,16 +391,6 @@ export default function ChatThreadPage() {
               <WorkingDirectoryTrigger />
               {!isNewThread ? <ExportTrigger threadId={threadId} /> : null}
               {!isNewThread ? <SaveToNotebookTrigger threadId={threadId} /> : null}
-              {!isNewThread ? (
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  onClick={() => setTerminalOpen((value) => !value)}
-                  title="Workspace Terminal"
-                >
-                  <SquareTerminalIcon className="size-4" />
-                </Button>
-              ) : null}
             </div>
           </header>
 
@@ -457,12 +443,7 @@ export default function ChatThreadPage() {
                   isResolvingPermission={isResolvingPermission}
                 />
               </div>
-              <div
-                className={cn(
-                  "shrink-0 px-4",
-                  terminalOpen ? "pb-0" : "pb-4",
-                )}
-              >
+              <div className="shrink-0 px-4 pb-4">
                 <div className="relative w-full max-w-(--container-width-md)">
                   <div className="absolute -top-4 right-0 left-0 z-0">
                     <div className="absolute right-0 bottom-0 left-0">
@@ -498,11 +479,6 @@ export default function ChatThreadPage() {
               </div>
             </main>
           )}
-          <TerminalDrawer
-            open={terminalOpen}
-            onOpenChange={setTerminalOpen}
-            threadId={threadId}
-          />
         </div>
       </ChatBox>
     </ThreadContext.Provider>

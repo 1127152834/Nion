@@ -2,15 +2,14 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-void test("chat thread page shows terminal toggle only for existing threads", async () => {
+void test("chat thread page does not expose the workspace terminal toggle", async () => {
   const source = await readFile(
     new URL("../../../app/workspace/chats/chat-thread-page.tsx", import.meta.url),
     "utf8",
   );
 
-  assert.match(source, /!isNewThread \? \(/);
-  assert.match(source, /title="Workspace Terminal"/);
-  assert.match(source, /<TerminalDrawer/);
+  assert.doesNotMatch(source, /title="Workspace Terminal"/);
+  assert.doesNotMatch(source, /<TerminalDrawer/);
 });
 
 void test("terminal drawer exposes desktop-only fallback copy", async () => {
@@ -24,13 +23,12 @@ void test("terminal drawer exposes desktop-only fallback copy", async () => {
   assert.match(source, /工作区终端仅在桌面版可用/);
 });
 
-void test("chat thread page docks terminal below the composer stack instead of overlapping it", async () => {
+void test("chat thread page no longer reserves composer layout for the workspace terminal", async () => {
   const source = await readFile(
     new URL("../../../app/workspace/chats/chat-thread-page.tsx", import.meta.url),
     "utf8",
   );
 
-  assert.doesNotMatch(source, /absolute right-0 bottom-0 left-0 z-30 flex justify-center px-4/);
-  assert.match(source, /"shrink-0 px-4"/);
-  assert.match(source, /terminalOpen \? "pb-0" : "pb-4"/);
+  assert.doesNotMatch(source, /terminalOpen/);
+  assert.doesNotMatch(source, /Workspace Terminal/);
 });
