@@ -184,6 +184,7 @@
 - provider foundation 卡片必须能展示当前 OpenViking 模式
 - backend 需验证 OpenViking provider family 的 embedded 和 remote 行为
 - backend 需验证 embedded OpenViking provider 至少能列出 notebook 资源和 dream log
+- backend 需验证 embedded OpenViking provider 至少能 round-trip user memory 和 agent memory
 
 ## 10. 风险与优先级
 - P0 必测项：config read/update/runtime-status、409/422。

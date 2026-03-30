@@ -55,8 +55,8 @@
 - [x] OpenViking provider supports `embedded` mode end-to-end
 - [x] OpenViking provider supports `remote` mode configuration and status
 - [x] `notebook` domain flows through OpenViking provider
-- [ ] `user_memory` domain flows through OpenViking provider
-- [ ] `agent_memory` domain flows through OpenViking provider
+- [x] `user_memory` domain flows through OpenViking provider
+- [x] `agent_memory` domain flows through OpenViking provider
 - [x] `autodream_journal` domain flows through OpenViking provider
 - [ ] Capability surface distinguishes native/adapted/mirrored support
 - [x] Provider health/status is visible in API

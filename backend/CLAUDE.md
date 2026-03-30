@@ -298,6 +298,7 @@ Memory OS M2 provider-activation rules:
 - embedded mode should reuse local OpenViking runtime/storage already present in Nion
 - remote mode may begin with a conservative transport bridge and limited surface
 - provider-facing embedded reads may expose notebook and autodream journal domain listings in this milestone
+- provider-facing embedded writes may support minimal user-memory and agent-memory round-trips in this milestone
 - this milestone should focus on provider activation and status exposure, not the final Memory Console redesign
 
 Program 03B extends that contract to delegated execution:

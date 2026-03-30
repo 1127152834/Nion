@@ -119,3 +119,68 @@ def test_openviking_memory_provider_embedded_mode_lists_dream_logs(tmp_path):
 
     assert len(items) == 1
     assert items[0]["dream_id"] == "dream_1"
+
+
+def test_openviking_memory_provider_embedded_mode_round_trips_user_memory(tmp_path):
+    provider = OpenVikingMemoryProvider(
+        base_dir=tmp_path,
+        config={"mode": "embedded"},
+    )
+
+    payload = {
+        "version": "1.0",
+        "lastUpdated": "",
+        "user": {
+            "workContext": {"summary": "Working on OpenViking migration", "updatedAt": ""},
+            "personalContext": {"summary": "", "updatedAt": ""},
+            "topOfMind": {"summary": "", "updatedAt": ""},
+        },
+        "history": {
+            "recentMonths": {"summary": "", "updatedAt": ""},
+            "earlierContext": {"summary": "", "updatedAt": ""},
+            "longTermBackground": {"summary": "", "updatedAt": ""},
+        },
+        "facts": [],
+    }
+
+    provider.save_memory(payload)
+    current = provider.get_memory()
+
+    assert current["user"]["workContext"]["summary"] == "Working on OpenViking migration"
+
+
+def test_openviking_memory_provider_embedded_mode_round_trips_agent_memory(tmp_path):
+    provider = OpenVikingMemoryProvider(
+        base_dir=tmp_path,
+        config={"mode": "embedded"},
+    )
+
+    payload = {
+        "version": "1.0",
+        "lastUpdated": "",
+        "user": {
+            "workContext": {"summary": "", "updatedAt": ""},
+            "personalContext": {"summary": "", "updatedAt": ""},
+            "topOfMind": {"summary": "", "updatedAt": ""},
+        },
+        "history": {
+            "recentMonths": {"summary": "", "updatedAt": ""},
+            "earlierContext": {"summary": "", "updatedAt": ""},
+            "longTermBackground": {"summary": "", "updatedAt": ""},
+        },
+        "facts": [
+            {
+                "id": "fact-1",
+                "content": "Use OpenViking provider for notebook-aware retrieval.",
+                "category": "context",
+                "confidence": 0.9,
+                "createdAt": "2026-03-30T00:00:00Z",
+                "source": "agent-memory",
+            }
+        ],
+    }
+
+    provider.save_memory(payload)
+    current = provider.get_memory()
+
+    assert current["facts"][0]["content"] == "Use OpenViking provider for notebook-aware retrieval."

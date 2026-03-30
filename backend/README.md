@@ -76,6 +76,7 @@ Program 04C activates the OpenViking provider family:
 - embedded mode uses the local OpenViking runtime already bundled into Nion
 - remote mode uses a dedicated transport bridge for external OpenViking services
 - embedded provider-facing reads now expose notebook resource listings and AutoDream journal listings
+- embedded provider-facing writes now support minimal user-memory and agent-memory payload round-trips
 - this milestone activates provider plumbing and mode/status exposure, but does not yet redesign the memory console
 
 ---
