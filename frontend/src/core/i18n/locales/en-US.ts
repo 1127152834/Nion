@@ -628,6 +628,15 @@ export const enUS: Translations = {
       allowBackgroundRunningHint:
         "When enabled, closing the Electron window keeps the local daemon alive. When disabled, the daemon exits shortly after the desktop client detaches.",
     },
+    heartbeat: {
+      title: "Heartbeat",
+      status: "Status",
+      logs: "Logs",
+      clearLogs: "Clear logs",
+      lastTick: "Last tick",
+      running: "Running",
+      idle: "Idle",
+    },
     memory: {
       title: "Memory",
       description:

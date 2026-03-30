@@ -648,6 +648,15 @@ export interface Translations {
       allowBackgroundRunningLabel: string;
       allowBackgroundRunningHint: string;
     };
+    heartbeat: {
+      title: string;
+      status: string;
+      logs: string;
+      clearLogs: string;
+      lastTick: string;
+      running: string;
+      idle: string;
+    };
     memory: {
       title: string;
       description: string;

@@ -600,6 +600,15 @@ export const zhCN: Translations = {
       allowBackgroundRunningHint:
         "开启后，关闭 Electron 窗口不会停止本地 daemon。关闭后，桌面客户端断开后 daemon 会在短暂延迟后退出。",
     },
+    heartbeat: {
+      title: "心跳",
+      status: "状态",
+      logs: "日志",
+      clearLogs: "清空日志",
+      lastTick: "最近一次心跳",
+      running: "运行中",
+      idle: "空闲",
+    },
     memory: {
       title: "记忆",
       description:
