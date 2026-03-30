@@ -38,3 +38,14 @@ void test("schedule builder uses a custom date-time picker instead of native dat
   assert.match(source, /AutomationDateTimePicker/);
   assert.doesNotMatch(source, /type="datetime-local"/);
 });
+
+void test("automation date-time picker guards against choosing past times", async () => {
+  const source = await readFile(
+    new URL("./automation-date-time-picker.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /isPastDateTime/);
+  assert.match(source, /disabled=\{isPast\}/);
+  assert.match(source, /minDate/);
+});

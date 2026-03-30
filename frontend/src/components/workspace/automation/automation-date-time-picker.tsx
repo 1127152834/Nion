@@ -21,6 +21,7 @@ export function AutomationDateTimePicker({
 }: AutomationDateTimePickerProps) {
   const { locale, t } = useI18n();
   const copy = t.settings.automationWorkspace.forms;
+  const minDate = new Date();
   const selectedDate = value ? new Date(value) : new Date();
   const [isOpen, setIsOpen] = useState(false);
   const [visibleMonth, setVisibleMonth] = useState(() => startOfMonth(selectedDate));
@@ -46,6 +47,9 @@ export function AutomationDateTimePicker({
         hour12: false,
       }).format(new Date(value))
     : copy.dateTimePlaceholder;
+
+  const pendingDateTime = setDateTime(selectedDate, hour, minute);
+  const canConfirmSelection = !isPastDateTime(pendingDateTime, minDate);
 
   return (
     <div className="relative">
@@ -101,22 +105,28 @@ export function AutomationDateTimePicker({
                   value &&
                   sameCalendarDay(new Date(value), day.date) &&
                   day.inCurrentMonth;
+                const previewSelection = setDateTime(day.date, hour, minute);
+                const isPast = isPastDateTime(previewSelection, minDate);
                 return (
                   <button
                     key={day.key}
                     type="button"
+                    disabled={isPast}
                     className={cn(
                       "flex aspect-square items-center justify-center rounded-2xl text-sm transition",
                       day.inCurrentMonth
                         ? "text-stone-800 hover:bg-amber-50"
                         : "text-stone-300 hover:bg-stone-100/70",
+                      isPast ? "cursor-not-allowed opacity-35 hover:bg-transparent" : "",
                       selected
                         ? "bg-[linear-gradient(180deg,#8b5e3c,#6f4727)] text-white shadow-[0_10px_24px_rgba(111,71,39,0.3)] hover:bg-[linear-gradient(180deg,#8b5e3c,#6f4727)]"
                         : "",
                     )}
                     onClick={() => {
-                      const next = setDateTime(day.date, hour, minute);
-                      onChange(next);
+                      if (isPast) {
+                        return;
+                      }
+                      onChange(previewSelection);
                       setVisibleMonth(startOfMonth(day.date));
                     }}
                   >
@@ -146,21 +156,31 @@ export function AutomationDateTimePicker({
             </div>
 
             <div className="mt-4 grid grid-cols-2 gap-2">
-              {TIME_QUICK_PRESETS.map((preset) => (
-                <button
-                  key={preset.label}
-                  type="button"
-                  className="rounded-2xl border border-stone-200 bg-stone-50/80 px-3 py-2 text-sm text-stone-700 transition hover:border-amber-300 hover:bg-amber-50"
-                  onClick={() => {
-                    setHour(preset.hour);
-                    setMinute(preset.minute);
-                    const next = setDateTime(selectedDate, preset.hour, preset.minute);
-                    onChange(next);
-                  }}
-                >
-                  {preset.label}
-                </button>
-              ))}
+              {TIME_QUICK_PRESETS.map((preset) => {
+                const next = setDateTime(selectedDate, preset.hour, preset.minute);
+                const isPast = isPastDateTime(next, minDate);
+                return (
+                  <button
+                    key={preset.label}
+                    type="button"
+                    disabled={isPast}
+                    className={cn(
+                      "rounded-2xl border border-stone-200 bg-stone-50/80 px-3 py-2 text-sm text-stone-700 transition hover:border-amber-300 hover:bg-amber-50",
+                      isPast ? "cursor-not-allowed opacity-40 hover:border-stone-200 hover:bg-stone-50/80" : "",
+                    )}
+                    onClick={() => {
+                      if (isPast) {
+                        return;
+                      }
+                      setHour(preset.hour);
+                      setMinute(preset.minute);
+                      onChange(next);
+                    }}
+                  >
+                    {preset.label}
+                  </button>
+                );
+              })}
             </div>
 
             <div className="mt-4 rounded-2xl border border-dashed border-stone-200 bg-stone-50/70 px-3 py-3 text-sm text-stone-600">
@@ -182,7 +202,7 @@ export function AutomationDateTimePicker({
                 type="button"
                 className="text-sm text-stone-500 transition hover:text-stone-800"
                 onClick={() => {
-                  const now = new Date();
+                  const now = roundUpToNextMinute(minDate);
                   setVisibleMonth(startOfMonth(now));
                   setHour(String(now.getHours()).padStart(2, "0"));
                   setMinute(String(now.getMinutes()).padStart(2, "0"));
@@ -206,9 +226,12 @@ export function AutomationDateTimePicker({
                 <Button
                   type="button"
                   className="rounded-2xl bg-[linear-gradient(180deg,#8b5e3c,#6f4727)] px-5 text-white shadow-[0_12px_24px_rgba(111,71,39,0.25)] hover:opacity-95"
+                  disabled={!canConfirmSelection}
                   onClick={() => {
-                    const next = setDateTime(selectedDate, hour, minute);
-                    onChange(next);
+                    if (!canConfirmSelection) {
+                      return;
+                    }
+                    onChange(pendingDateTime);
                     setIsOpen(false);
                   }}
                 >
@@ -268,6 +291,23 @@ function setDateTime(baseDate: Date, hour: string, minute: string) {
   const next = new Date(baseDate);
   next.setHours(Number.parseInt(hour || "0", 10), Number.parseInt(minute || "0", 10), 0, 0);
   return next.toISOString().replace(/\.\d{3}Z$/, "Z");
+}
+
+function isPastDateTime(candidateIso: string, minDate: Date) {
+  const candidate = new Date(candidateIso);
+  if (Number.isNaN(candidate.getTime())) {
+    return true;
+  }
+  return candidate.getTime() < minDate.getTime();
+}
+
+function roundUpToNextMinute(value: Date) {
+  const next = new Date(value);
+  next.setSeconds(0, 0);
+  if (next.getTime() < value.getTime()) {
+    next.setMinutes(next.getMinutes() + 1);
+  }
+  return next;
 }
 
 function formatMonthLabel(date: Date, locale: string) {
