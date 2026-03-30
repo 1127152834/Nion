@@ -219,6 +219,12 @@ FastAPI application providing REST endpoints for frontend integration:
 | `GET /api/threads/{id}/uploads/list` | List uploaded files |
 | `GET /api/threads/{id}/artifacts/{path}` | Serve generated artifacts |
 
+Desktop daemon validation note:
+
+- `make desktop-dev` depends on the local daemon booting successfully at `http://127.0.0.1:43115/health`
+- if Electron reports a daemon health timeout, first run `cd backend && uv run python -m app.daemon.main` to expose the real import/startup error
+- changes touching runtime service factories, lead-agent middleware wiring, or gateway router imports should be verified with both the daemon command above and `make desktop-dev`
+
 ### Bridge Transition
 
 The legacy IM channel runtime has been removed from this branch. A new desktop-first Bridge subsystem is replacing it, with current work focused on desktop-backed bridge state, adapter lifecycles, settings, and external messaging integration.

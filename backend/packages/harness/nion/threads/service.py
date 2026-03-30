@@ -380,3 +380,13 @@ def _infer_cli_intent(message_text: str) -> str:
     if "add" in normalized or "添加" in normalized:
         return "add"
     return "manage"
+
+
+_thread_service: ThreadService | None = None
+
+
+def create_default_thread_service() -> ThreadService:
+    global _thread_service
+    if _thread_service is None:
+        _thread_service = ThreadService()
+    return _thread_service

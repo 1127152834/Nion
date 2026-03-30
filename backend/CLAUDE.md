@@ -99,6 +99,15 @@ If a gateway route is added and the Electron renderer consumes it, update
 `app/daemon/app.py` too or the desktop shell will return 404 while the web/gateway
 path keeps working.
 
+When Electron reports `Timed out waiting for daemon health`, treat it as a daemon
+startup regression first, not an Electron-only issue. Validate with:
+
+- `cd backend && uv run python -m app.daemon.main`
+- `make desktop-dev`
+
+This catches truncated service modules, broken runtime factory exports, and
+middleware import regressions before they are misdiagnosed as shell timing issues.
+
 ### Projects Module
 
 The Project module is a top-level workspace surface for long-running work containers.
