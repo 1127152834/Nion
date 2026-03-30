@@ -6,6 +6,11 @@
 
 - Overall status: `in_progress`
 - Current focus milestone: `M2`
+- Strategic note:
+  - Memory OS continues under the newer Memoh-style memory/self-maintenance program.
+  - Future heartbeat / compaction / rebuild / reflective-maintenance work should reference:
+    - [2026-03-31-memoh-style-memory-self-maintenance-roadmap.md](/Users/zhangtiancheng/Documents/项目/agent/nion/docs/superpowers/plans/2026-03-31-memoh-style-memory-self-maintenance-roadmap.md)
+    - [2026-03-31-memoh-nion-parity-baseline.md](/Users/zhangtiancheng/Documents/项目/agent/nion/docs/superpowers/specs/2026-03-31-memoh-nion-parity-baseline.md)
 - Design source:
   - [2026-03-30-openviking-memory-os-design.md](/Users/zhangtiancheng/Documents/项目/agent/nion/docs/superpowers/specs/2026-03-30-openviking-memory-os-design.md)
 - Roadmap source:
