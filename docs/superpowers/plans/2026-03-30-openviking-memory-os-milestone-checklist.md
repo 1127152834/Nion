@@ -17,7 +17,7 @@
 |---|---|---|---|---|---|
 | M0 | Provider Foundation | `complete` | [M0 Plan](/Users/zhangtiancheng/Documents/项目/agent/nion/docs/superpowers/plans/2026-03-30-openviking-memory-os-m0-provider-foundation-implementation-plan.md) | Provider registry, metadata API, and active binding are live | M0 merged back to `electron` in `55ef25ad` |
 | M1 | Runtime Migration Off `memory.json` | `complete` | [M1 Plan](/Users/zhangtiancheng/Documents/项目/agent/nion/.worktrees/codex-memory-os-m1/docs/superpowers/plans/2026-03-30-openviking-memory-os-m1-runtime-migration-implementation-plan.md) | No runtime hot path reads/writes legacy memory directly | Runtime bridge and legacy import path are complete in worktree |
-| M2 | OpenViking Provider Activation | `in_progress` | [M2 Plan](/Users/zhangtiancheng/Documents/项目/agent/nion/docs/superpowers/plans/2026-03-30-openviking-memory-os-m2-provider-activation-implementation-plan.md) | `embedded` and `remote` OpenViking modes work through provider contract | Current execution target |
+| M2 | OpenViking Provider Activation | `complete` | [M2 Plan](/Users/zhangtiancheng/Documents/项目/agent/nion/docs/superpowers/plans/2026-03-30-openviking-memory-os-m2-provider-activation-implementation-plan.md) | `embedded` and `remote` OpenViking modes work through provider contract | Embedded/remote activation merged back to `electron` |
 | M3 | Memory Console Product Surface | `not_started` | Not written yet | Memory UI is split into Provider / Console / Agent Core | Depends on M2 contract stability |
 | M4 | Canonical Asset Domains | `not_started` | Not written yet | Notebook, Dream Log, identity, and soul local ownership enforced | Depends on M2 and M3 |
 | M5 | Heartbeat And Self-Evolution | `not_started` | Not written yet | Heartbeat, AutoDream, compact, and identity/soul proposals form a bounded loop | Final milestone |
@@ -61,8 +61,8 @@
 - [ ] Capability surface distinguishes native/adapted/mirrored support
 - [x] Provider health/status is visible in API
 - [x] Regression tests pass
-- [ ] Docs updated
-- [ ] Milestone review completed
+- [x] Docs updated
+- [x] Milestone review completed
 
 ### M3: Memory Console Product Surface
 
@@ -161,3 +161,4 @@
   - targeted backend OpenViking provider tests: `9 passed`
   - targeted frontend OpenViking mode tests: `3 passed`
   - backend lint: passed
+- M2 current phase merged back to `electron` in `671b1e37` and `13c2cca9`.
