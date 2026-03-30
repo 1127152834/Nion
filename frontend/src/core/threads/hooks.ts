@@ -731,6 +731,32 @@ export function useDeleteThread() {
   });
 }
 
+export function useDeleteThreads() {
+  const queryClient = useQueryClient();
+  const apiClient = getAPIClient();
+  return useMutation({
+    mutationFn: async ({ threadIds }: { threadIds: string[] }) => {
+      await Promise.all(threadIds.map((threadId) => apiClient.deleteThread(threadId)));
+    },
+    onSuccess(_, { threadIds }) {
+      queryClient.setQueriesData(
+        {
+          queryKey: ["threads", "search"],
+          exact: false,
+        },
+        (oldData: Array<AgentThread> | undefined) =>
+          threadIds.reduce(
+            (current, threadId) => removeThreadFromSearchCache(current, threadId),
+            oldData,
+          ),
+      );
+    },
+    onSettled() {
+      void queryClient.invalidateQueries({ queryKey: ["threads", "search"] });
+    },
+  });
+}
+
 export function useRenameThread() {
   const queryClient = useQueryClient();
   const apiClient = getAPIClient();

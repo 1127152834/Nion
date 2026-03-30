@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Check,
   Download,
   FileJson,
   FileText,
@@ -52,6 +53,7 @@ import {
 } from "@/core/threads/export";
 import {
   useDeleteThread,
+  useDeleteThreads,
   useRenameThread,
   useThreads,
 } from "@/core/threads/hooks";
@@ -70,6 +72,7 @@ export function RecentChatList() {
   const threadIdFromPath = searchParams.get("thread");
   const { data: threads = [] } = useThreads();
   const { mutate: deleteThread } = useDeleteThread();
+  const { mutate: deleteThreads } = useDeleteThreads();
   const { mutate: renameThread } = useRenameThread();
   const threadEntries = useMemo(() => {
     const enriched = threads.map((thread) => ({
@@ -88,6 +91,8 @@ export function RecentChatList() {
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
   const [renameThreadId, setRenameThreadId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedThreadIds, setSelectedThreadIds] = useState<string[]>([]);
 
   const handleDelete = useCallback(
     (threadId: string) => {
@@ -107,6 +112,42 @@ export function RecentChatList() {
     },
     [deleteThread, router, threadIdFromPath, threads],
   );
+
+  const resolveNextThreadId = useCallback(
+    (deletedIds: string[]) => {
+      if (!threadIdFromPath || !deletedIds.includes(threadIdFromPath)) {
+        return null;
+      }
+
+      const remainingThreads = threads.filter(
+        (thread) => !deletedIds.includes(thread.thread_id),
+      );
+      return remainingThreads[0]?.thread_id ?? "new";
+    },
+    [threadIdFromPath, threads],
+  );
+
+  const toggleThreadSelection = useCallback((threadId: string) => {
+    setSelectedThreadIds((current) =>
+      current.includes(threadId)
+        ? current.filter((id) => id !== threadId)
+        : [...current, threadId],
+    );
+  }, []);
+
+  const handleDeleteSelected = useCallback(() => {
+    if (selectedThreadIds.length === 0) {
+      return;
+    }
+    const deletedIds = [...selectedThreadIds];
+    const nextThreadId = resolveNextThreadId(deletedIds);
+    deleteThreads({ threadIds: deletedIds });
+    setSelectedThreadIds([]);
+    setSelectionMode(false);
+    if (nextThreadId) {
+      void router.push(pathOfThread(nextThreadId));
+    }
+  }, [deleteThreads, resolveNextThreadId, router, selectedThreadIds]);
 
   const handleRenameClick = useCallback(
     (threadId: string, currentTitle: string) => {
@@ -177,18 +218,66 @@ export function RecentChatList() {
   return (
     <>
       <SidebarGroup>
-        <SidebarGroupLabel>
-          {env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY !== "true"
-            ? t.sidebar.recentChats
-            : t.sidebar.demoChats}
-        </SidebarGroupLabel>
+        <div className="flex items-center justify-between px-2">
+          <SidebarGroupLabel>
+            {env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY !== "true"
+              ? t.sidebar.recentChats
+              : t.sidebar.demoChats}
+          </SidebarGroupLabel>
+          {env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY !== "true" ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 rounded-full px-2 text-xs text-muted-foreground"
+              onClick={() => {
+                setSelectionMode((value) => !value);
+                setSelectedThreadIds([]);
+              }}
+            >
+              {selectionMode ? t.common.cancel : t.common.select}
+            </Button>
+          ) : null}
+        </div>
         <SidebarGroupContent className="group-data-[collapsible=icon]:pointer-events-none group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0">
+          {selectionMode ? (
+            <div className="mb-2 flex items-center justify-between rounded-2xl border border-border/50 bg-background/70 px-3 py-2 text-xs text-muted-foreground">
+              <span>
+                {t.chats.selectedCount.replace(
+                  "{count}",
+                  String(selectedThreadIds.length),
+                )}
+              </span>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 rounded-full px-2 text-xs"
+                  onClick={() => {
+                    setSelectionMode(false);
+                    setSelectedThreadIds([]);
+                  }}
+                >
+                  {t.common.cancel}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 rounded-full px-2 text-xs text-destructive"
+                  disabled={selectedThreadIds.length === 0}
+                  onClick={handleDeleteSelected}
+                >
+                  {t.common.delete}
+                </Button>
+              </div>
+            </div>
+          ) : null}
           <SidebarMenu>
             <div className="flex w-full flex-col gap-1">
               {threadEntries.map(({ thread, pendingClarification }) => {
                 const isActive =
                   pathname === "/workspace/chats" &&
                   searchParams.get("thread") === thread.thread_id;
+                const isSelected = selectedThreadIds.includes(thread.thread_id);
                 const bridgeInfo = bridgeInfoOfThread(thread);
                 const bridgeLabel = bridgeInfo
                   ? bridgeInfo.platform === "telegram"
@@ -210,33 +299,68 @@ export function RecentChatList() {
                   >
                     <SidebarMenuButton isActive={isActive} asChild>
                       <div>
-                        <Link
-                          className="text-muted-foreground block w-full overflow-hidden group-hover/side-menu-item:overflow-hidden"
-                          href={pathOfThread(thread.thread_id)}
-                        >
-                          <span className="flex items-center gap-2 overflow-hidden">
-                            <span className="truncate">{titleOfThread(thread)}</span>
-                            {bridgeInfo ? (
-                              <Badge
-                                variant="outline"
-                                className="gap-1 rounded-full px-2 py-0 text-[10px]"
-                              >
-                                {bt("bridge.bridgeChatBadge")} · {bridgeLabel}
-                              </Badge>
-                            ) : null}
-                            {pendingClarification ? (
-                              <Badge
-                                variant="outline"
-                                className="border-foreground/10 bg-accent/40 text-foreground gap-1 rounded-full px-2 py-0 text-[10px]"
-                                data-pending-reply-label
-                              >
-                                <span className="bg-foreground/70 size-1.5 rounded-full" />
-                                {t.sidebar.pendingReply}
-                              </Badge>
-                            ) : null}
-                          </span>
-                        </Link>
-                        {env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY !== "true" && (
+                        {selectionMode ? (
+                          <button
+                            type="button"
+                            className="text-muted-foreground flex w-full items-center gap-2 overflow-hidden rounded-2xl px-2 py-1.5 text-left"
+                            onClick={() => toggleThreadSelection(thread.thread_id)}
+                          >
+                            <span
+                              className={`flex size-4 shrink-0 items-center justify-center rounded-full border ${isSelected ? "border-foreground bg-foreground text-background" : "border-border bg-background"}`}
+                            >
+                              {isSelected ? <Check className="size-3" /> : null}
+                            </span>
+                            <span className="flex min-w-0 items-center gap-2 overflow-hidden">
+                              <span className="truncate">{titleOfThread(thread)}</span>
+                              {bridgeInfo ? (
+                                <Badge
+                                  variant="outline"
+                                  className="gap-1 rounded-full px-2 py-0 text-[10px]"
+                                >
+                                  {bt("bridge.bridgeChatBadge")} · {bridgeLabel}
+                                </Badge>
+                              ) : null}
+                              {pendingClarification ? (
+                                <Badge
+                                  variant="outline"
+                                  className="border-foreground/10 bg-accent/40 text-foreground gap-1 rounded-full px-2 py-0 text-[10px]"
+                                  data-pending-reply-label
+                                >
+                                  <span className="bg-foreground/70 size-1.5 rounded-full" />
+                                  {t.sidebar.pendingReply}
+                                </Badge>
+                              ) : null}
+                            </span>
+                          </button>
+                        ) : (
+                          <Link
+                            className="text-muted-foreground block w-full overflow-hidden group-hover/side-menu-item:overflow-hidden"
+                            href={pathOfThread(thread.thread_id)}
+                          >
+                            <span className="flex items-center gap-2 overflow-hidden">
+                              <span className="truncate">{titleOfThread(thread)}</span>
+                              {bridgeInfo ? (
+                                <Badge
+                                  variant="outline"
+                                  className="gap-1 rounded-full px-2 py-0 text-[10px]"
+                                >
+                                  {bt("bridge.bridgeChatBadge")} · {bridgeLabel}
+                                </Badge>
+                              ) : null}
+                              {pendingClarification ? (
+                                <Badge
+                                  variant="outline"
+                                  className="border-foreground/10 bg-accent/40 text-foreground gap-1 rounded-full px-2 py-0 text-[10px]"
+                                  data-pending-reply-label
+                                >
+                                  <span className="bg-foreground/70 size-1.5 rounded-full" />
+                                  {t.sidebar.pendingReply}
+                                </Badge>
+                              ) : null}
+                            </span>
+                          </Link>
+                        )}
+                        {!selectionMode && env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY !== "true" && (
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <SidebarMenuAction
