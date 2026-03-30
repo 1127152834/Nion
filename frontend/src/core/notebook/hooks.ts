@@ -354,8 +354,6 @@ async function invalidateNotebookQueries(
   ]);
 }
 
-import { mergePendingRewriteWithInitial } from "./pending-rewrite.util.ts";
-
 export const notebookPendingRewriteQueryKeys = {
   note: (noteId: string) => ["notebook", "pending-rewrite", noteId] as const,
 };
