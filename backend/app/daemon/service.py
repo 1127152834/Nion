@@ -6,6 +6,7 @@ from collections.abc import Awaitable, Callable
 from typing import Any
 
 from nion.config import get_app_config
+from nion.heartbeat.service import HeartbeatService
 from nion.openviking.autodream_scheduler import AutoDreamScheduler
 from nion.telemetry.logger import make_event
 from nion.telemetry.store import TelemetryStore
@@ -32,6 +33,7 @@ class LocalDaemonService:
             allow_background_running=allow_background_running,
             shutdown_grace_period_seconds=shutdown_grace_period_seconds,
         )
+        self._heartbeat_service = HeartbeatService()
         self._autodream_scheduler = AutoDreamScheduler()
         self._telemetry_store: TelemetryStore | None = None
         self._shutdown_callback: Callable[[], Awaitable[None] | None] | None = None
@@ -111,7 +113,11 @@ class LocalDaemonService:
     def autodream_status(self) -> dict[str, object]:
         return self._autodream_scheduler.status()
 
+    def heartbeat_status(self) -> dict[str, object]:
+        return self._heartbeat_service.status()
+
     def record_autodream_session_completed(self) -> dict[str, object]:
+        self._heartbeat_service.record_session_completed()
         state = self._autodream_scheduler.record_session_completed()
         return {
             "last_run_at": state.last_run_at,
@@ -246,6 +252,7 @@ class LocalDaemonService:
             if self.has_active_runtime_work():
                 continue
             try:
+                self._heartbeat_service.tick()
                 did_run = self._autodream_scheduler.tick()
             except Exception:
                 self._record_event(
