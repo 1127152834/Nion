@@ -178,3 +178,9 @@ Each milestone should have:
 - its own commit series
 
 This is required to keep quality high and to avoid a multi-week patch stack that is hard to review or recover from.
+
+## Tracking File
+
+Use this companion checklist as the single execution tracker for milestone progress, exit gates, and review status:
+
+- [2026-03-30-openviking-memory-os-milestone-checklist.md](/Users/zhangtiancheng/Documents/项目/agent/nion/docs/superpowers/plans/2026-03-30-openviking-memory-os-milestone-checklist.md)
