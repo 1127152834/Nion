@@ -77,8 +77,6 @@
   - Lock the new lightweight notebook chat structure.
 - Create: `frontend/src/components/workspace/notebook/notebook-pending-rewrite.test.ts`
   - Cover overwrite and revert behavior in pure helpers.
-- Modify: `frontend/src/components/workspace/agents/agent-card.contract.test.ts` or nearest agent contract test file if present
-  - Assert built-in badge/locked delete behavior.
 
 ### Docs
 
