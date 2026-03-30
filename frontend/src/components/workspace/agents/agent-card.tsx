@@ -37,9 +37,11 @@ export function AgentCard({ agent }: AgentCardProps) {
   const router = useRouter();
   const deleteAgent = useDeleteAgent();
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const isBuiltin = agent.kind === "builtin";
+  const isBuiltInBadgeVisible = isBuiltin && agent.visibility === "public";
 
   function handleChat() {
-    router.push(pathOfNewAgentThread(agent.name));
+    router.push(pathOfNewAgentThread(agent.entrypoint ?? agent.name));
   }
 
   async function handleDelete() {
@@ -65,11 +67,18 @@ export function AgentCard({ agent }: AgentCardProps) {
                 <CardTitle className="truncate text-base">
                   {agent.name}
                 </CardTitle>
-                {agent.model && (
-                  <Badge variant="secondary" className="mt-0.5 text-xs">
-                    {agent.model}
-                  </Badge>
-                )}
+                <div className="mt-0.5 flex flex-wrap gap-1">
+                  {agent.model && (
+                    <Badge variant="secondary" className="text-xs">
+                      {agent.model}
+                    </Badge>
+                  )}
+                  {isBuiltInBadgeVisible && (
+                    <Badge variant="secondary" className="text-xs">
+                      系统内置
+                    </Badge>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -97,22 +106,24 @@ export function AgentCard({ agent }: AgentCardProps) {
             <MessageSquareIcon className="mr-1.5 h-3.5 w-3.5" />
             {t.agents.chat}
           </Button>
-          <div className="flex gap-1">
-            <Button
-              size="icon"
-              variant="ghost"
-              className="text-destructive hover:text-destructive h-8 w-8 shrink-0"
-              onClick={() => setDeleteOpen(true)}
-              title={t.agents.delete}
-            >
-              <Trash2Icon className="h-3.5 w-3.5" />
-            </Button>
-          </div>
+          {!agent.can_delete ? null : (
+            <div className="flex gap-1">
+              <Button
+                size="icon"
+                variant="ghost"
+                className="text-destructive hover:text-destructive h-8 w-8 shrink-0"
+                onClick={() => setDeleteOpen(true)}
+                title={t.agents.delete}
+              >
+                <Trash2Icon className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          )}
         </CardFooter>
       </Card>
 
       {/* Delete Confirm */}
-      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+      <Dialog open={agent.can_delete && deleteOpen} onOpenChange={setDeleteOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{t.agents.delete}</DialogTitle>

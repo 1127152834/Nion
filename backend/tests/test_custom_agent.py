@@ -79,6 +79,10 @@ class TestAgentConfig:
         assert cfg.description == ""
         assert cfg.model is None
         assert cfg.tool_groups is None
+        assert cfg.kind == "custom"
+        assert cfg.visibility == "internal"
+        assert cfg.can_delete is True
+        assert cfg.can_edit is True
 
     def test_full_config(self):
         from nion.config.agents_config import AgentConfig
@@ -304,39 +308,40 @@ class TestListCustomAgents:
 class TestMemoryFilePath:
     def test_global_memory_path(self, tmp_path):
         """None agent_name should return global memory file."""
-        import nion.agents.memory.updater as updater_mod
+        from nion.agents.memory.storage import FileMemoryStorage
         from nion.config.memory_config import MemoryConfig
 
         with (
-            patch("nion.agents.memory.updater.get_paths", return_value=_make_paths(tmp_path)),
-            patch("nion.agents.memory.updater.get_memory_config", return_value=MemoryConfig(storage_path="")),
+            patch("nion.agents.memory.storage.get_paths", return_value=_make_paths(tmp_path)),
+            patch("nion.agents.memory.storage.get_memory_config", return_value=MemoryConfig(storage_path="")),
         ):
-            path = updater_mod._get_memory_file_path(None)
+            path = FileMemoryStorage()._get_memory_file_path(None)
         assert path == tmp_path / "memory.json"
 
     def test_agent_memory_path(self, tmp_path):
         """Providing agent_name should return per-agent memory file."""
-        import nion.agents.memory.updater as updater_mod
+        from nion.agents.memory.storage import FileMemoryStorage
         from nion.config.memory_config import MemoryConfig
 
         with (
-            patch("nion.agents.memory.updater.get_paths", return_value=_make_paths(tmp_path)),
-            patch("nion.agents.memory.updater.get_memory_config", return_value=MemoryConfig(storage_path="")),
+            patch("nion.agents.memory.storage.get_paths", return_value=_make_paths(tmp_path)),
+            patch("nion.agents.memory.storage.get_memory_config", return_value=MemoryConfig(storage_path="")),
         ):
-            path = updater_mod._get_memory_file_path("code-reviewer")
+            path = FileMemoryStorage()._get_memory_file_path("code-reviewer")
         assert path == tmp_path / "agents" / "code-reviewer" / "memory.json"
 
     def test_different_paths_for_different_agents(self, tmp_path):
-        import nion.agents.memory.updater as updater_mod
+        from nion.agents.memory.storage import FileMemoryStorage
         from nion.config.memory_config import MemoryConfig
 
         with (
-            patch("nion.agents.memory.updater.get_paths", return_value=_make_paths(tmp_path)),
-            patch("nion.agents.memory.updater.get_memory_config", return_value=MemoryConfig(storage_path="")),
+            patch("nion.agents.memory.storage.get_paths", return_value=_make_paths(tmp_path)),
+            patch("nion.agents.memory.storage.get_memory_config", return_value=MemoryConfig(storage_path="")),
         ):
-            path_global = updater_mod._get_memory_file_path(None)
-            path_a = updater_mod._get_memory_file_path("agent-a")
-            path_b = updater_mod._get_memory_file_path("agent-b")
+            storage = FileMemoryStorage()
+            path_global = storage._get_memory_file_path(None)
+            path_a = storage._get_memory_file_path("agent-a")
+            path_b = storage._get_memory_file_path("agent-b")
 
         assert path_global != path_a
         assert path_global != path_b
@@ -376,7 +381,9 @@ class TestAgentsAPI:
         response = agent_client.get("/api/agents")
         assert response.status_code == 200
         data = response.json()
-        assert data["agents"] == []
+        assert len(data["agents"]) == 1
+        assert data["agents"][0]["entrypoint"] == "notebook-chat"
+        assert data["agents"][0]["kind"] == "builtin"
 
     def test_create_agent(self, agent_client):
         payload = {
@@ -489,7 +496,6 @@ class TestAgentsAPI:
 
         agent_client.delete("/api/agents/remove-me")
         assert not agent_dir.exists()
-
 
 # ===========================================================================
 # 9. Gateway API – User Profile endpoints

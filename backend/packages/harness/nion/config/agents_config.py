@@ -1,4 +1,4 @@
-"""Configuration and loaders for custom agents."""
+"""Configuration and loaders for built-in and custom agents."""
 
 import logging
 import re
@@ -7,6 +7,7 @@ from typing import Any
 import yaml
 from pydantic import BaseModel
 
+from nion.config.builtin_agents import BUILTIN_AGENTS
 from nion.config.paths import get_paths
 
 logger = logging.getLogger(__name__)
@@ -16,12 +17,48 @@ AGENT_NAME_PATTERN = re.compile(r"^[A-Za-z0-9-]+$")
 
 
 class AgentConfig(BaseModel):
-    """Configuration for a custom agent."""
+    """Configuration for an agent catalog entry."""
 
     name: str
     description: str = ""
     model: str | None = None
     tool_groups: list[str] | None = None
+    id: str | None = None
+    kind: str = "custom"
+    visibility: str = "internal"
+    can_delete: bool = True
+    can_edit: bool = True
+    entrypoint: str | None = None
+    tool_policy: str | None = None
+    soul: str | None = None
+
+
+def list_builtin_agents() -> list[AgentConfig]:
+    """Return all built-in agents as catalog entries."""
+
+    return [AgentConfig(**agent.model_dump()) for agent in BUILTIN_AGENTS]
+
+
+def get_builtin_agent(identifier: str | None) -> AgentConfig | None:
+    """Lookup a built-in agent by catalog display name or entrypoint."""
+
+    if identifier is None:
+        return None
+
+    normalized = identifier.strip().lower()
+    for agent in BUILTIN_AGENTS:
+        if normalized in {agent.name.lower(), agent.entrypoint.lower()}:
+            return AgentConfig(**agent.model_dump())
+    return None
+
+
+def resolve_agent_config(name: str | None) -> AgentConfig | None:
+    """Resolve a catalog entry from built-in agents first, then custom agents."""
+
+    builtin = get_builtin_agent(name)
+    if builtin is not None:
+        return builtin
+    return load_agent_config(name)
 
 
 def load_agent_config(name: str | None) -> AgentConfig | None:
@@ -61,6 +98,13 @@ def load_agent_config(name: str | None) -> AgentConfig | None:
     # Ensure name is set from directory name if not in file
     if "name" not in data:
         data["name"] = name
+    data.setdefault("id", f"custom:{data['name']}")
+    data.setdefault("kind", "custom")
+    data.setdefault("visibility", "internal")
+    data.setdefault("can_delete", True)
+    data.setdefault("can_edit", True)
+    data.setdefault("entrypoint", data["name"])
+    data.setdefault("tool_policy", "custom")
 
     # Strip unknown fields before passing to Pydantic (e.g. legacy prompt_file)
     known_fields = set(AgentConfig.model_fields.keys())
@@ -118,3 +162,9 @@ def list_custom_agents() -> list[AgentConfig]:
             logger.warning(f"Skipping agent '{entry.name}': {e}")
 
     return agents
+
+
+def list_agent_catalog() -> list[AgentConfig]:
+    """Return the unified built-in and custom agent catalog."""
+
+    return [*list_builtin_agents(), *list_custom_agents()]
