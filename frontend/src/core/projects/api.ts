@@ -83,6 +83,19 @@ export async function createProjectThread(
   return parseJson<ProjectThreadLink>(response);
 }
 
+export async function listProjectThreadMentionCandidates(
+  projectId: string,
+  threadId: string,
+): Promise<{ items: ProjectThreadLink[] }> {
+  const response = await fetch(
+    `${projectsBaseUrl()}/${projectId}/threads/${threadId}/mention-candidates`,
+    {
+      cache: "no-store",
+    },
+  );
+  return parseJson<{ items: ProjectThreadLink[] }>(response);
+}
+
 export async function setPrimaryProjectThread(projectId: string, threadId: string) {
   const response = await fetch(
     `${projectsBaseUrl()}/${projectId}/threads/${threadId}/set-primary`,
@@ -91,6 +104,26 @@ export async function setPrimaryProjectThread(projectId: string, threadId: strin
     },
   );
   return parseJson<ProjectThreadLink>(response);
+}
+
+export async function importProjectThreadSnapshot(
+  projectId: string,
+  threadId: string,
+  input: {
+    source_thread_id: string;
+  },
+) {
+  const response = await fetch(
+    `${projectsBaseUrl()}/${projectId}/threads/${threadId}/imports`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(input),
+    },
+  );
+  return parseJson<Record<string, unknown>>(response);
 }
 
 export async function listProjectPlans(projectId: string): Promise<{ items: ExecutionPlan[] }> {

@@ -65,7 +65,11 @@ import { getBackendBaseURL } from "@/core/config";
 import { useI18n } from "@/core/i18n/hooks";
 import { useMCPConfig } from "@/core/mcp/hooks";
 import { useModels } from "@/core/models/hooks";
-import { useCreateProject } from "@/core/projects";
+import {
+  useCreateProject,
+  useImportProjectThreadSnapshot,
+  useProjectThreadMentionCandidates,
+} from "@/core/projects";
 import { useSkills } from "@/core/skills/hooks";
 import type { Skill } from "@/core/skills/type";
 import type { AgentThreadContext } from "@/core/threads";
@@ -101,7 +105,7 @@ type MentionOption = {
   id: string;
   label: string;
   value: string;
-  kind: "file" | "directory" | "skill" | "mcp" | "cli";
+  kind: "file" | "directory" | "skill" | "mcp" | "cli" | "project-thread";
   description?: string;
 };
 
@@ -483,6 +487,7 @@ export function InputBox({
   const { config: mcpConfig } = useMCPConfig();
   const { config: cliConfig } = useCLIConfig();
   const { thread, isMock } = useThread();
+  const projectInfo = thread.values.project;
   const { textInput } = usePromptInputController();
   const promptRootRef = useRef<HTMLDivElement | null>(null);
   const [mentionState, setMentionState] = useState<MentionState | null>(null);
@@ -614,12 +619,35 @@ export function InputBox({
     [cliConfig?.clis],
   );
 
+  const { data: projectThreadCandidates } = useProjectThreadMentionCandidates(
+    projectInfo?.project_id ?? null,
+    projectInfo?.project_id ? threadId : null,
+  );
+  const importProjectThreadSnapshot = useImportProjectThreadSnapshot(
+    projectInfo?.project_id ?? "",
+    threadId,
+  );
+
+  const projectThreadMentionOptions = useMemo<MentionOption[]>(
+    () =>
+      (projectThreadCandidates?.items ?? []).map((item) => ({
+        id: `project-thread:${item.thread_id}`,
+        label: item.thread_id,
+        value: item.thread_id,
+        kind: "project-thread" as const,
+        description: `${item.role} · 项目内会话`,
+      })),
+    [projectThreadCandidates?.items],
+  );
+
   const filteredMentionOptions = useMemo(() => {
     if (!mentionState) {
       return [];
     }
     const source =
-      mentionState.trigger === "@" ? fileMentionOptions : skillMentionOptions;
+      mentionState.trigger === "@"
+        ? [...projectThreadMentionOptions, ...fileMentionOptions]
+        : skillMentionOptions;
     const normalizedQuery = mentionState.query.trim().toLowerCase();
     return source
       .map((option) => ({
@@ -635,7 +663,7 @@ export function InputBox({
       })
       .slice(0, 80)
       .map((item) => item.option);
-  }, [fileMentionOptions, mentionState, skillMentionOptions]);
+  }, [fileMentionOptions, mentionState, projectThreadMentionOptions, skillMentionOptions]);
 
   const mentionGroups = useMemo<MentionGroup[]>(() => {
     if (!mentionState) {
@@ -671,8 +699,18 @@ export function InputBox({
       }
       return groups;
     }
+    const projectThreads = remaining.filter(
+      (item) => item.kind === "project-thread",
+    );
     const directories = remaining.filter((item) => item.kind === "directory");
     const files = remaining.filter((item) => item.kind === "file");
+    if (projectThreads.length > 0) {
+      groups.push({
+        id: "project-threads",
+        label: "Project Threads",
+        options: projectThreads.slice(0, 20),
+      });
+    }
     if (directories.length > 0) {
       groups.push({
         id: "directories",
@@ -872,10 +910,16 @@ export function InputBox({
       textInput.setInput(nextValue);
       pushRecentMention(mentionState.trigger, option.value);
       if (mentionState.trigger === "@") {
-        addSelectedContext(
-          option.value,
-          option.kind === "directory" ? "directory" : "file",
-        );
+        if (option.kind === "project-thread") {
+          if (projectInfo?.project_id) {
+            void importProjectThreadSnapshot.mutateAsync(option.value);
+          }
+        } else {
+          addSelectedContext(
+            option.value,
+            option.kind === "directory" ? "directory" : "file",
+          );
+        }
       } else {
         addSelectedSkill(option.value);
       }
@@ -891,7 +935,16 @@ export function InputBox({
         textarea.setSelectionRange(nextCaret, nextCaret);
       });
     },
-    [addSelectedContext, addSelectedSkill, focusMessageInput, mentionState, pushRecentMention, textInput],
+    [
+      addSelectedContext,
+      addSelectedSkill,
+      focusMessageInput,
+      importProjectThreadSnapshot,
+      mentionState,
+      projectInfo?.project_id,
+      pushRecentMention,
+      textInput,
+    ],
   );
 
   const insertMentionTrigger = useCallback(
@@ -1225,6 +1278,9 @@ export function InputBox({
                                   )}
                                   {option.kind === "file" && (
                                     <FileIcon className="size-3.5" />
+                                  )}
+                                  {option.kind === "project-thread" && (
+                                    <FolderKanbanIcon className="size-3.5" />
                                   )}
                                   {option.kind === "skill" && (
                                     <SparklesIcon className="size-3.5" />

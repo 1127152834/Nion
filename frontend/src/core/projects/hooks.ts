@@ -8,10 +8,12 @@ import {
   createProjectThread,
   getProjectDashboard,
   getProjectArtifact,
+  importProjectThreadSnapshot,
   listProjectDecisions,
   listProjectArtifacts,
   listProjectPlans,
   listProjects,
+  listProjectThreadMentionCandidates,
   listProjectTimeline,
   listProjectThreads,
   requestProjectCompletion,
@@ -50,6 +52,17 @@ export function useProjectThreads(projectId: string | null | undefined) {
     queryKey: ["projects", projectId, "threads"],
     queryFn: () => listProjectThreads(projectId!),
     enabled: Boolean(projectId),
+  });
+}
+
+export function useProjectThreadMentionCandidates(
+  projectId: string | null | undefined,
+  threadId: string | null | undefined,
+) {
+  return useQuery({
+    queryKey: ["projects", projectId, "threads", threadId, "mention-candidates"],
+    queryFn: () => listProjectThreadMentionCandidates(projectId!, threadId!),
+    enabled: Boolean(projectId && threadId),
   });
 }
 
@@ -249,6 +262,21 @@ export function useSetPrimaryProjectThread(projectId: string) {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["projects", projectId, "dashboard"] }),
         queryClient.invalidateQueries({ queryKey: ["projects", projectId, "threads"] }),
+        queryClient.invalidateQueries({ queryKey: ["threads", "search"] }),
+      ]);
+    },
+  });
+}
+
+export function useImportProjectThreadSnapshot(projectId: string, threadId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (sourceThreadId: string) =>
+      importProjectThreadSnapshot(projectId, threadId, {
+        source_thread_id: sourceThreadId,
+      }),
+    onSuccess: async () => {
+      await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["threads", "search"] }),
       ]);
     },

@@ -24,3 +24,14 @@ void test("project thread page reuses the shared chat thread page", async () => 
   assert.match(source, /return <ChatThreadPage \/>/);
 });
 
+void test("input box wires @project-thread mentions through project thread import hooks", async () => {
+  const source = await readFile(
+    new URL("../input-box.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /useProjectThreadMentionCandidates/);
+  assert.match(source, /useImportProjectThreadSnapshot/);
+  assert.match(source, /kind: "project-thread"/);
+  assert.match(source, /label: "Project Threads"/);
+});
