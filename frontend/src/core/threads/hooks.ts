@@ -30,6 +30,10 @@ export type ToolEndEvent = {
   data: unknown;
 };
 
+type ThreadListSearchParams = ThreadClientSearchParams & {
+  scope?: "general" | "notebook_assistant" | "all";
+};
+
 export type ThreadStreamOptions = {
   threadId?: string | null | undefined;
   context: Omit<
@@ -597,8 +601,9 @@ export function useThreadStream({
 }
 
 export function useThreads(
-  params: ThreadClientSearchParams = {
+  params: ThreadListSearchParams = {
     limit: 50,
+    scope: "general",
     sortBy: "updated_at",
     sortOrder: "desc",
     select: ["thread_id", "updated_at", "values"],

@@ -8,7 +8,12 @@ from typing import Any
 
 from nion.client import NionClient, StreamEvent
 
-from .models import ThreadCliManagementState, ThreadSearchParams, ThreadStreamRequest
+from .models import (
+    ThreadCliManagementState,
+    ThreadRecord,
+    ThreadSearchParams,
+    ThreadStreamRequest,
+)
 from .repository import ThreadRepository
 
 
@@ -25,11 +30,37 @@ class ThreadService:
     def search(self, params: ThreadSearchParams) -> list[dict[str, Any]]:
         return self._repository.search(
             thread_id=params.thread_id,
+            scope=params.scope,
             limit=params.limit,
             offset=params.offset,
             sort_by=params.sort_by,
             sort_order=params.sort_order,
         )
+
+    def get_or_create_notebook_assistant_session(
+        self,
+        *,
+        note_id: str,
+        session_id: str,
+    ) -> tuple[ThreadRecord, bool]:
+        thread_id = self._repository.notebook_assistant_thread_id(
+            note_id=note_id,
+            session_id=session_id,
+        )
+        existing = self._repository.get_thread(thread_id)
+        if existing is not None:
+            return existing, False
+
+        created = self._repository.upsert_thread(
+            thread_id,
+            title="Notebook Assistant",
+            values={
+                "scope": "notebook_assistant",
+                "note_id": note_id,
+                "notebook_session_id": session_id,
+            },
+        )
+        return created, True
 
     def get_state(self, thread_id: str) -> dict[str, Any]:
         record = self._repository.get_thread(thread_id)

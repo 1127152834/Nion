@@ -26,6 +26,7 @@ logger = logging.getLogger(__name__)
 
 
 class ThreadsSearchRequest(ThreadSearchParams):
+    scope: Literal["general", "notebook_assistant", "all"] = "general"
     sortBy: Literal["updated_at", "created_at"] = "updated_at"
     sortOrder: Literal["asc", "desc"] = "desc"
 
@@ -36,6 +37,21 @@ class ThreadStateUpdateRequest(dict):
 
 class BridgePermissionResolveRequest(BaseModel):
     decision: Literal["allow", "allow_session", "deny"]
+
+
+class NotebookAssistantSessionRequest(BaseModel):
+    note_id: str
+    session_id: str
+
+
+class NotebookAssistantSessionResponse(BaseModel):
+    thread_id: str
+    agent_name: str
+    created_at: str
+    updated_at: str
+    values: dict[str, Any]
+    deleted: bool = False
+    created: bool
 
 
 def get_thread_service() -> ThreadService:
@@ -89,6 +105,7 @@ async def search_threads(
 ) -> list[dict[str, Any]]:
     params = ThreadSearchParams(
         thread_id=payload.thread_id,
+        scope=payload.scope,
         limit=payload.limit,
         offset=payload.offset,
         sort_by=payload.sortBy,
@@ -96,6 +113,20 @@ async def search_threads(
         select=payload.select,
     )
     return service.search(params)
+
+
+@router.post("/notebook-assistant/session", response_model=NotebookAssistantSessionResponse)
+async def create_or_resume_notebook_assistant_session(
+    payload: NotebookAssistantSessionRequest,
+    service: ThreadService = Depends(get_thread_service),
+) -> dict[str, Any]:
+    record, created = service.get_or_create_notebook_assistant_session(
+        note_id=payload.note_id,
+        session_id=payload.session_id,
+    )
+    response = record.model_dump()
+    response["created"] = created
+    return response
 
 
 @router.get("/{thread_id}/state")
