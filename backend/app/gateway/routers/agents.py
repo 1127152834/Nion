@@ -1,4 +1,4 @@
-"""CRUD API for custom agents."""
+"""CRUD API for the unified built-in and custom agent catalog."""
 
 import logging
 import re
@@ -8,7 +8,14 @@ import yaml
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from nion.config.agents_config import AgentConfig, list_custom_agents, load_agent_config, load_agent_soul
+from nion.config.agents_config import (
+    AgentConfig,
+    get_builtin_agent,
+    list_agent_catalog,
+    load_agent_config,
+    load_agent_soul,
+    resolve_agent_config,
+)
 from nion.config.paths import get_paths
 
 logger = logging.getLogger(__name__)
@@ -18,17 +25,25 @@ AGENT_NAME_PATTERN = re.compile(r"^[A-Za-z0-9-]+$")
 
 
 class AgentResponse(BaseModel):
-    """Response model for a custom agent."""
+    """Response model for a catalog agent."""
 
-    name: str = Field(..., description="Agent name (hyphen-case)")
-    description: str = Field(default="", description="Agent description")
+    name: str = Field(..., description="Display name shown in the catalog UI")
+    description: str = Field(default="", description="Agent description shown in the catalog UI")
     model: str | None = Field(default=None, description="Optional model override")
     tool_groups: list[str] | None = Field(default=None, description="Optional tool group whitelist")
+    id: str = Field(..., description="Stable catalog identifier")
+    slug: str = Field(..., description="Stable API path identifier")
+    kind: str = Field(..., description="Catalog kind: builtin or custom")
+    visibility: str = Field(..., description="Catalog visibility: public or internal")
+    can_delete: bool = Field(..., description="Whether the agent can be deleted")
+    can_edit: bool = Field(..., description="Whether the agent can be edited")
+    entrypoint: str | None = Field(default=None, description="Stable runtime entrypoint")
+    tool_policy: str | None = Field(default=None, description="Tool access policy")
     soul: str | None = Field(default=None, description="SOUL.md content (included on GET /{name})")
 
 
 class AgentsListResponse(BaseModel):
-    """Response model for listing all custom agents."""
+    """Response model for listing the agent catalog."""
 
     agents: list[AgentResponse]
 
@@ -77,13 +92,24 @@ def _agent_config_to_response(agent_cfg: AgentConfig, include_soul: bool = False
     """Convert AgentConfig to AgentResponse."""
     soul: str | None = None
     if include_soul:
-        soul = load_agent_soul(agent_cfg.name) or ""
+        if agent_cfg.kind == "builtin":
+            soul = agent_cfg.soul or ""
+        else:
+            soul = load_agent_soul(agent_cfg.name) or ""
 
     return AgentResponse(
         name=agent_cfg.name,
         description=agent_cfg.description,
         model=agent_cfg.model,
         tool_groups=agent_cfg.tool_groups,
+        id=agent_cfg.id or f"{agent_cfg.kind}:{agent_cfg.entrypoint or agent_cfg.name}",
+        slug=agent_cfg.slug or agent_cfg.name,
+        kind=agent_cfg.kind,
+        visibility=agent_cfg.visibility,
+        can_delete=agent_cfg.can_delete,
+        can_edit=agent_cfg.can_edit,
+        entrypoint=agent_cfg.entrypoint,
+        tool_policy=agent_cfg.tool_policy,
         soul=soul,
     )
 
@@ -91,17 +117,17 @@ def _agent_config_to_response(agent_cfg: AgentConfig, include_soul: bool = False
 @router.get(
     "/agents",
     response_model=AgentsListResponse,
-    summary="List Custom Agents",
-    description="List all custom agents available in the agents directory.",
+    summary="List Agent Catalog",
+    description="List built-in and custom agents available in the unified catalog.",
 )
 async def list_agents() -> AgentsListResponse:
-    """List all custom agents.
+    """List all catalog agents.
 
     Returns:
-        List of all custom agents with their metadata (without soul content).
+        List of all built-in and custom agents with their metadata (without soul content).
     """
     try:
-        agents = list_custom_agents()
+        agents = list_agent_catalog()
         return AgentsListResponse(agents=[_agent_config_to_response(a) for a in agents])
     except Exception as e:
         logger.error(f"Failed to list agents: {e}", exc_info=True)
@@ -117,31 +143,31 @@ async def check_agent_name(name: str) -> dict:
     """Check whether an agent name is valid and not yet taken.
 
     Args:
-        name: The agent name to check.
+        name: Candidate ASCII slug for a custom agent.
 
     Returns:
-        ``{"available": true/false, "name": "<normalized>"}``
+        ``{"available": true/false, "name": "<normalized>"}``, where ``name`` is the normalized custom-agent slug.
 
     Raises:
         HTTPException: 422 if the name is invalid.
     """
     _validate_agent_name(name)
     normalized = _normalize_agent_name(name)
-    available = not get_paths().agent_dir(normalized).exists()
+    available = get_builtin_agent(normalized) is None and not get_paths().agent_dir(normalized).exists()
     return {"available": available, "name": normalized}
 
 
 @router.get(
     "/agents/{name}",
     response_model=AgentResponse,
-    summary="Get Custom Agent",
-    description="Retrieve details and SOUL.md content for a specific custom agent.",
+    summary="Get Agent",
+    description="Retrieve details and SOUL.md content for a specific catalog slug.",
 )
 async def get_agent(name: str) -> AgentResponse:
-    """Get a specific custom agent by name.
+    """Get a specific agent by stable path identifier.
 
     Args:
-        name: The agent name.
+        name: Stable ASCII slug for built-in agents, or custom agent filesystem name.
 
     Returns:
         Agent details including SOUL.md content.
@@ -153,7 +179,9 @@ async def get_agent(name: str) -> AgentResponse:
     name = _normalize_agent_name(name)
 
     try:
-        agent_cfg = load_agent_config(name)
+        agent_cfg = resolve_agent_config(name)
+        if agent_cfg is None:
+            raise FileNotFoundError(name)
         return _agent_config_to_response(agent_cfg, include_soul=True)
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail=f"Agent '{name}' not found")
@@ -245,6 +273,9 @@ async def update_agent(name: str, request: AgentUpdateRequest) -> AgentResponse:
     """
     _validate_agent_name(name)
     name = _normalize_agent_name(name)
+
+    if get_builtin_agent(name) is not None:
+        raise HTTPException(status_code=403, detail=f"Built-in agent '{name}' cannot be edited")
 
     try:
         agent_cfg = load_agent_config(name)
@@ -369,6 +400,9 @@ async def delete_agent(name: str) -> None:
     """
     _validate_agent_name(name)
     name = _normalize_agent_name(name)
+
+    if get_builtin_agent(name) is not None:
+        raise HTTPException(status_code=403, detail=f"Built-in agent '{name}' cannot be deleted")
 
     agent_dir = get_paths().agent_dir(name)
 

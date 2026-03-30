@@ -5,6 +5,9 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field
 
 
+ThreadScope = Literal["general", "notebook_assistant"]
+
+
 class ThreadCliManagementState(BaseModel):
     active: bool = False
     phase: Literal["inactive", "managing", "awaiting_permission"] = "inactive"
@@ -20,6 +23,9 @@ class ThreadValues(BaseModel):
     messages: list[dict[str, Any]] = Field(default_factory=list)
     artifacts: list[str] = Field(default_factory=list)
     todos: list[dict[str, Any]] | None = None
+    scope: ThreadScope = "general"
+    note_id: str | None = None
+    notebook_session_id: str | None = None
     bridge: dict[str, Any] | None = None
     owner_client_id: str | None = None
     cli_management: ThreadCliManagementState = Field(default_factory=ThreadCliManagementState)
@@ -37,6 +43,7 @@ class ThreadRecord(BaseModel):
 
 class ThreadSearchParams(BaseModel):
     thread_id: str | None = None
+    scope: Literal["general", "notebook_assistant", "all"] = "general"
     limit: int = 50
     offset: int = 0
     sort_by: Literal["updated_at", "created_at"] = "updated_at"

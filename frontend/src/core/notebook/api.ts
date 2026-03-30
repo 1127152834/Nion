@@ -17,7 +17,9 @@ import type {
   NotebookImportSourcesResponse,
   NotebookMetadataInput,
   NotebookMoveInput,
+  NotebookNoteDetail,
   NotebookNote,
+  NotebookPendingRewrite,
   NotebookNoteSummary,
   NotebookRenameInput,
   NotebookRestoreVersionInput,
@@ -86,7 +88,7 @@ export async function loadNotebookTrash(): Promise<NotebookDeletedNotePreview[]>
   return json.notes;
 }
 
-export async function loadNotebookNote(noteId: string): Promise<NotebookNote> {
+export async function loadNotebookNote(noteId: string): Promise<NotebookNoteDetail> {
   const response = await fetch(`${getBackendBaseURL()}/api/notebook/notes/${noteId}`);
   if (!response.ok) {
     throw new Error(
@@ -96,8 +98,7 @@ export async function loadNotebookNote(noteId: string): Promise<NotebookNote> {
       ),
     );
   }
-  const json = await readJson<{ note: NotebookNote }>(response);
-  return json.note;
+  return readJson<NotebookNoteDetail>(response);
 }
 
 export async function createNotebookNote(input: NotebookCreateInput): Promise<NotebookNote> {
@@ -464,4 +465,42 @@ export async function importNotebookContent(
   }
   const json = await readJson<{ note: NotebookNote }>(response);
   return json.note;
+}
+
+export async function confirmNotebookRewrite(
+  noteId: string,
+): Promise<{ note: NotebookNote; pending_rewrite: NotebookPendingRewrite | null }> {
+  const response = await fetch(`${getBackendBaseURL()}/api/notebook/notes/${noteId}/rewrite/confirm`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({}),
+  });
+  if (!response.ok) {
+    throw new Error(
+      resolveErrorMessage(
+        await response.text(),
+        `Failed to confirm notebook rewrite (${response.status})`,
+      ),
+    );
+  }
+  return readJson<{ note: NotebookNote; pending_rewrite: NotebookPendingRewrite | null }>(response);
+}
+
+export async function cancelNotebookRewrite(
+  noteId: string,
+): Promise<{ note: NotebookNote; pending_rewrite: NotebookPendingRewrite | null }> {
+  const response = await fetch(`${getBackendBaseURL()}/api/notebook/notes/${noteId}/rewrite/cancel`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({}),
+  });
+  if (!response.ok) {
+    throw new Error(
+      resolveErrorMessage(
+        await response.text(),
+        `Failed to cancel notebook rewrite (${response.status})`,
+      ),
+    );
+  }
+  return readJson<{ note: NotebookNote; pending_rewrite: NotebookPendingRewrite | null }>(response);
 }

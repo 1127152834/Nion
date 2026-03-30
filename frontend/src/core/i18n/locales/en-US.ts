@@ -191,6 +191,7 @@ export const enUS: Translations = {
     deleteConfirm:
       "Are you sure you want to delete this agent? This action cannot be undone.",
     deleteSuccess: "Agent deleted",
+    builtinBadge: "Built-in",
     newChat: "New chat",
     createPageTitle: "Design your Agent",
     createPageSubtitle:
@@ -495,7 +496,7 @@ export const enUS: Translations = {
     recentTitle: "Recent notes",
     preview: "Preview",
     edit: "Edit",
-    askTab: "Ask",
+    askTab: "Notebook Assistant",
     historyTab: "History",
     infoTab: "Info",
     infoNoteId: "Note ID",

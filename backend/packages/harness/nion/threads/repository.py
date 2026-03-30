@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from datetime import UTC, datetime
 from pathlib import Path
@@ -7,7 +8,7 @@ from typing import Any
 
 from nion.config.paths import Paths
 
-from .models import ThreadRecord, ThreadValues
+from .models import ThreadRecord, ThreadScope, ThreadValues
 
 
 def _now_iso() -> str:
@@ -79,6 +80,10 @@ class ThreadRepository:
         )
         return self._write(updated)
 
+    def notebook_assistant_thread_id(self, *, note_id: str, session_id: str) -> str:
+        digest = hashlib.sha256(f"{note_id}\0{session_id}".encode("utf-8")).hexdigest()[:16]
+        return f"notebook-assistant-{digest}"
+
     def delete_thread(self, thread_id: str) -> None:
         self._paths.delete_thread_dir(thread_id)
 
@@ -86,6 +91,7 @@ class ThreadRepository:
         self,
         *,
         thread_id: str | None = None,
+        scope: ThreadScope | str = "general",
         limit: int = 50,
         offset: int = 0,
         sort_by: str = "updated_at",
@@ -93,7 +99,11 @@ class ThreadRepository:
     ) -> list[dict[str, Any]]:
         if thread_id:
             record = self.get_thread(thread_id)
-            return [record.model_dump()] if record is not None else []
+            if record is None:
+                return []
+            if scope != "all" and record.values.scope != scope:
+                return []
+            return [record.model_dump()]
 
         threads_root = self._paths.base_dir / "threads"
         if not threads_root.exists():
@@ -106,6 +116,8 @@ class ThreadRepository:
             except (OSError, json.JSONDecodeError, ValueError):
                 continue
             if record.deleted:
+                continue
+            if scope != "all" and record.values.scope != scope:
                 continue
             records.append(record)
 

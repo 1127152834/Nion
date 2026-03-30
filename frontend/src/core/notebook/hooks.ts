@@ -1,7 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 
 import {
   applyNotebookAssist,
+  cancelNotebookRewrite,
   createNotebookDirectory,
   createNotebookNote,
   deleteNotebookDirectory,
@@ -18,6 +20,7 @@ import {
   moveNotebookDirectory,
   moveNotebookNote,
   previewNotebookAssist,
+  confirmNotebookRewrite,
   renameNotebookDirectory,
   renameNotebookNote,
   restoreDeletedNotebookNote,
@@ -25,6 +28,7 @@ import {
   updateNotebookMetadata,
   updateNotebookNote,
 } from "./api";
+import { mergePendingRewriteWithInitial } from "./pending-rewrite.util.ts";
 import type {
   NotebookAssistApplyInput,
   NotebookAssistPreviewInput,
@@ -37,6 +41,7 @@ import type {
   NotebookImportSourcesResponse,
   NotebookMetadataInput,
   NotebookMoveInput,
+  NotebookPendingRewrite,
   NotebookRenameInput,
   NotebookRestoreVersionInput,
   NotebookUpdateInput,
@@ -87,7 +92,12 @@ export function useNotebookNote(noteId: string | null) {
     enabled: Boolean(noteId),
     refetchOnWindowFocus: false,
   });
-  return { note: data ?? null, isLoading, error };
+  return {
+    note: data?.note ?? null,
+    pendingRewrite: data?.pending_rewrite ?? null,
+    isLoading,
+    error,
+  };
 }
 
 export function useNotebookHistory(noteId: string | null) {
@@ -317,6 +327,26 @@ export function useImportNotebookContent(noteId: string) {
   });
 }
 
+export function useConfirmNotebookRewrite(noteId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => confirmNotebookRewrite(noteId),
+    onSuccess: async (payload) => {
+      await invalidateNotebookQueries(queryClient, payload.note.note_id);
+    },
+  });
+}
+
+export function useCancelNotebookRewrite(noteId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => cancelNotebookRewrite(noteId),
+    onSuccess: async (payload) => {
+      await invalidateNotebookQueries(queryClient, payload.note.note_id);
+    },
+  });
+}
+
 export function useRestoreDeletedNotebookNote(noteId?: string) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -344,4 +374,26 @@ async function invalidateNotebookQueries(
       queryKey: ["notebook", "delete-preview", noteId],
     }),
   ]);
+}
+
+export const notebookPendingRewriteQueryKeys = {
+  note: (noteId: string) => ["notebook", "pending-rewrite", noteId] as const,
+};
+
+export function useNotebookPendingRewrite(initialPendingRewrite: NotebookPendingRewrite | null = null) {
+  const [pendingRewrite, setPendingRewrite] = useState<NotebookPendingRewrite | null>(
+    initialPendingRewrite,
+  );
+
+  useEffect(() => {
+    setPendingRewrite((current) =>
+      mergePendingRewriteWithInitial(initialPendingRewrite, current),
+    );
+  }, [initialPendingRewrite]);
+
+  return {
+    pendingRewrite,
+    setPendingRewrite,
+    clearPendingRewrite: () => setPendingRewrite(null),
+  };
 }

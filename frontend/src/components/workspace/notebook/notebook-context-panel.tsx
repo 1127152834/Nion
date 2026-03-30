@@ -1,158 +1,59 @@
 "use client";
 
-import {
-  ArrowRight,
-  CheckSquare,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  Copy,
-  Minus,
-  FileText,
-  History,
-  Info,
-  List,
-  MessageSquare,
-  RefreshCw,
-  Save,
-  Sparkles,
-  Tag,
-  X,
-} from "lucide-react";
+import { ChevronLeftIcon, ChevronRightIcon, History, Info, Minus, Sparkles, Tag, X } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { Input } from "@/components/ui/input";
-import type {
-  NotebookAssistAction,
-  NotebookAssistPreview,
-  NotebookHistoryEntry,
-  NotebookMetadataInput,
-  NotebookNote,
-  NotebookSelection,
-} from "@/core/notebook";
-import {
-  useApplyNotebookAssist,
-  useNotebookHistoryDetail,
-  usePreviewNotebookAssist,
-  useUpdateNotebookMetadata,
-} from "@/core/notebook";
+import type { NotebookHistoryEntry, NotebookMetadataInput, NotebookNote } from "@/core/notebook";
+import { useNotebookHistoryDetail, useUpdateNotebookMetadata } from "@/core/notebook";
 import { formatTimeAgo } from "@/core/utils/datetime";
 
+import { NotebookAssistantPanel } from "./notebook-assistant-panel";
 import { summarizeNotebookHistoryEntry } from "./notebook-history-summary";
 
 type NotebookContextTab = "ask" | "history" | "info";
 
 type NotebookContextPanelCopy = {
-  assistActionItems: string;
-  assistChecklist: string;
-  assistDescription: string;
-  assistExpand: string;
-  assistRewrite: string;
-  assistSummarize: string;
-  assistTitle: string;
   askTab: string;
-  historyTab: string;
   infoContentHash: string;
   infoCreatedAt: string;
   infoNoteId: string;
   infoPath: string;
-  infoTab: string;
   infoUpdatedAt: string;
-  historyTitle: string;
   noSelectionDescription: string;
-  restore: string;
-  selectNote: string;
 };
 
 type NotebookContextPanelProps = {
   activeTab: NotebookContextTab;
   collapsed: boolean;
   copy: NotebookContextPanelCopy;
-  currentBody: string;
-  currentContentHash: string;
   entries: NotebookHistoryEntry[];
   note: NotebookNote | null;
   notePath: string | null;
-  selection: NotebookSelection | null;
   noteTitle: string;
+  notebookAssistantSessionId: string | null;
   onActiveTabChange: (tab: NotebookContextTab) => void;
   onApplyNote: (note: NotebookNote) => void;
-  onStartConversation: (input: {
-    action: NotebookAssistAction;
-    mode?: "note" | "selection" | "preview";
-    previewContent?: string;
-  }) => void;
+  onStartNewConversation: () => void;
   onToggleCollapse: () => void;
 };
-
-const ASSIST_ACTIONS: Array<{
-  key: NotebookAssistAction;
-  title: string;
-  description: string;
-  icon: React.ReactNode;
-  full?: boolean;
-}> = [
-  {
-    key: "summarize",
-    title: "生成摘要",
-    description: "为当前笔记生成结构化摘要",
-    icon: <FileText className="size-5" />,
-  },
-  {
-    key: "rewrite",
-    title: "重写润色",
-    description: "改善表达但保留原意",
-    icon: <RefreshCw className="size-5" />,
-  },
-  {
-    key: "expand",
-    title: "扩展内容",
-    description: "补充背景、细节和下一步",
-    icon: <ArrowRight className="size-5" />,
-  },
-  {
-    key: "checklist",
-    title: "生成清单",
-    description: "整理成可勾选的执行清单",
-    icon: <CheckSquare className="size-5" />,
-  },
-  {
-    key: "action_items",
-    title: "提取行动项",
-    description: "抽取可执行任务和跟进点",
-    icon: <List className="size-5" />,
-    full: true,
-  },
-];
 
 export function NotebookContextPanel({
   activeTab,
   collapsed,
   copy,
-  currentBody,
-  currentContentHash,
   entries,
   note,
   notePath,
-  selection,
   noteTitle,
+  notebookAssistantSessionId,
   onActiveTabChange,
   onApplyNote,
-  onStartConversation,
+  onStartNewConversation,
   onToggleCollapse,
 }: NotebookContextPanelProps) {
-  const [aiPreview, setAiPreview] = useState<NotebookAssistPreview | null>(null);
-  const [assistError, setAssistError] = useState<string | null>(null);
-  const [expansionIntent, setExpansionIntent] = useState<"background" | "details" | "examples" | "next_steps">("details");
   const [historyPreviewId, setHistoryPreviewId] = useState<string | null>(null);
-  const [pendingAction, setPendingAction] = useState<NotebookAssistAction | null>(null);
-  const [previewBaseBody, setPreviewBaseBody] = useState("");
-  const [previewSelection, setPreviewSelection] = useState<NotebookSelection | null>(null);
-  const [rewriteTone, setRewriteTone] = useState<"clear" | "formal" | "concise">("clear");
-  const [scopePreference, setScopePreference] = useState<"auto" | "selection" | "paragraph" | "whole_note">("auto");
   const [tagInput, setTagInput] = useState("");
-  const [copiedPreview, setCopiedPreview] = useState(false);
-  const previewAssist = usePreviewNotebookAssist(note?.note_id ?? "");
-  const applyAssist = useApplyNotebookAssist(note?.note_id ?? "");
   const updateMetadata = useUpdateNotebookMetadata(note?.note_id ?? "");
   const { detail: historyPreview } = useNotebookHistoryDetail(note?.note_id ?? null, historyPreviewId);
 
@@ -170,11 +71,6 @@ export function NotebookContextPanel({
     ];
   }, [copy, note, notePath]);
 
-  const currentNoteTitle = useMemo(() => {
-    const title = noteTitle.trim() || (note?.title.trim() ?? "");
-    return title.length > 0 ? title : "未命名笔记";
-  }, [note, noteTitle]);
-
   const historyItems = useMemo(
     () =>
       entries.map((entry) => ({
@@ -187,89 +83,6 @@ export function NotebookContextPanel({
     () => (historyPreview ? summarizeNotebookHistoryEntry(historyPreview.entry) : null),
     [historyPreview],
   );
-  const secondaryApplyMode = aiPreview ? getSecondaryApplyMode(aiPreview) : null;
-
-  async function handleAiAction(action: NotebookAssistAction) {
-    if (!note) return;
-    const scope = resolveAssistScope(action, selection, scopePreference);
-    setAssistError(null);
-    setAiPreview(null);
-    setPendingAction(action);
-    try {
-      const preview = await previewAssist.mutateAsync({
-        action,
-        title: currentNoteTitle,
-        body: currentBody,
-        scope,
-        selection_start: scope === "selection" ? selection?.start : undefined,
-        selection_end: scope === "selection" ? selection?.end : selection?.start,
-        options: {
-          rewrite_tone: rewriteTone,
-          expansion_intent: expansionIntent,
-        },
-      });
-      setAiPreview(preview);
-      setPreviewBaseBody(currentBody);
-      setPreviewSelection(
-        preview.source_start !== null && preview.source_start !== undefined
-          ? {
-              start: preview.source_start,
-              end: preview.source_end ?? preview.source_start,
-              text:
-                currentBody.slice(
-                  preview.source_start,
-                  preview.source_end ?? preview.source_start,
-                ),
-            }
-          : null,
-      );
-    } catch (error) {
-      setAssistError(errorMessage(error) ?? "生成失败，请稍后重试。");
-    } finally {
-      setPendingAction(null);
-    }
-  }
-
-  async function handleApplyPreview(
-    mode: "replace" | "insert" | "replace_selection" | "insert_after_selection",
-  ) {
-    if (!note || !aiPreview) return;
-    if (currentBody !== previewBaseBody) {
-      setAssistError("笔记内容已变化，请重新生成结果后再写回。");
-      return;
-    }
-    setAssistError(null);
-    try {
-      const updated = await applyAssist.mutateAsync({
-        action: aiPreview.action as NotebookAssistAction,
-        mode,
-        content: aiPreview.content,
-        expected_content_hash: currentContentHash,
-        current_body: previewBaseBody,
-        selection_start: previewSelection?.start,
-        selection_end: previewSelection?.end,
-      });
-      onApplyNote(updated);
-      setAiPreview(null);
-      setPreviewBaseBody("");
-      setPreviewSelection(null);
-    } catch (error) {
-      setAssistError(errorMessage(error) ?? "写回笔记失败，请稍后重试。");
-    }
-  }
-
-  async function handleCopyPreview() {
-    if (!aiPreview) {
-      return;
-    }
-    try {
-      await navigator.clipboard.writeText(aiPreview.content);
-      setCopiedPreview(true);
-      setTimeout(() => setCopiedPreview(false), 1500);
-    } catch (error) {
-      setAssistError(errorMessage(error) ?? "复制失败，请检查系统剪贴板权限。");
-    }
-  }
 
   async function updateTags(tags: string[]) {
     if (!note) return;
@@ -325,7 +138,7 @@ export function NotebookContextPanel({
     <div className="flex h-full w-full min-w-0 flex-col rounded-[1.5rem] border border-[var(--notebook-border)] bg-[var(--notebook-sidebar)] shadow-[0_10px_30px_-24px_rgba(0,0,0,0.35)] transition-[background-color,border-color,box-shadow] duration-300">
       <div className="flex items-center border-b border-[var(--notebook-border)] px-2 pt-2">
         <TabButton active={activeTab === "ask"} onClick={() => onActiveTabChange("ask")} icon={<Sparkles className="mr-1.5 size-4" />}>
-          Ask Nion
+          {copy.askTab || "笔记助手"}
         </TabButton>
         <TabButton active={activeTab === "history"} onClick={() => onActiveTabChange("history")} icon={<History className="mr-1.5 size-4" />}>
           历史
@@ -347,271 +160,12 @@ export function NotebookContextPanel({
         {!note ? (
           <div className="text-sm text-[var(--notebook-soft-text)]">{copy.noSelectionDescription}</div>
         ) : activeTab === "ask" ? (
-          <div className="space-y-5">
-            <section className="rounded-xl border border-[var(--notebook-border)] bg-[var(--notebook-panel)] p-4">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--notebook-soft-text)]">
-                当前协作上下文
-              </div>
-              <div className="mt-2 text-sm font-medium text-[var(--notebook-ink)]">{currentNoteTitle}</div>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <span className="rounded-full bg-[var(--notebook-muted)] px-2.5 py-1 text-[11px] font-medium text-[var(--notebook-soft-text)]">
-                  {contextAvailabilityLabel(selection)}
-                </span>
-                <span className="rounded-full bg-[var(--notebook-muted)] px-2.5 py-1 text-[11px] font-medium text-[var(--notebook-soft-text)]">
-                  {aiPreview ? assistKindLabel(aiPreview.kind) : "先生成结果，再决定如何写回"}
-                </span>
-              </div>
-            </section>
-
-            {!aiPreview ? (
-              <section className="rounded-xl border border-[var(--notebook-border)] bg-[var(--notebook-panel)] p-4">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--notebook-soft-text)]">
-                  协作参数
-                </div>
-                <div className="mt-3 space-y-3">
-                  <ConfigRow label="作用范围">
-                    {[
-                      { value: "auto", label: "自动" },
-                      { value: "selection", label: "当前选中" },
-                      { value: "paragraph", label: "当前段落" },
-                      { value: "whole_note", label: "整篇笔记" },
-                    ].map((option) => (
-                      <ChipButton
-                        key={option.value}
-                        active={scopePreference === option.value}
-                        label={option.label}
-                        onClick={() =>
-                          setScopePreference(option.value as "auto" | "selection" | "paragraph" | "whole_note")
-                        }
-                      />
-                    ))}
-                  </ConfigRow>
-                  <ConfigRow label="rewriteTone">
-                    {[
-                      { value: "clear", label: "更清晰" },
-                      { value: "formal", label: "更正式" },
-                      { value: "concise", label: "更简洁" },
-                    ].map((option) => (
-                      <ChipButton
-                        key={option.value}
-                        active={rewriteTone === option.value}
-                        label={option.label}
-                        onClick={() =>
-                          setRewriteTone(option.value as "clear" | "formal" | "concise")
-                        }
-                      />
-                    ))}
-                  </ConfigRow>
-                  <ConfigRow label="expansionIntent">
-                    {[
-                      { value: "background", label: "补背景" },
-                      { value: "details", label: "补细节" },
-                      { value: "examples", label: "补例子" },
-                      { value: "next_steps", label: "补下一步" },
-                    ].map((option) => (
-                      <ChipButton
-                        key={option.value}
-                        active={expansionIntent === option.value}
-                        label={option.label}
-                        onClick={() =>
-                          setExpansionIntent(
-                            option.value as "background" | "details" | "examples" | "next_steps",
-                          )
-                        }
-                      />
-                    ))}
-                  </ConfigRow>
-                </div>
-              </section>
-            ) : null}
-
-            {assistError ? (
-              <InlineFeedbackCard
-                actionLabel="重试生成"
-                message={assistError}
-                onAction={() => pendingAction ? void handleAiAction(pendingAction) : setAssistError(null)}
-                tone="error"
-              />
-            ) : null}
-
-            {previewAssist.isPending && pendingAction ? (
-              <section className="rounded-xl border border-[var(--notebook-border)] bg-[var(--notebook-panel)] p-4">
-                <div className="flex items-center gap-2 text-sm font-medium text-[var(--notebook-ink)]">
-                  <Sparkles className="size-4 animate-pulse" />
-                  正在生成 {actionTitleOf(pendingAction)}
-                </div>
-                <p className="mt-2 text-sm text-[var(--notebook-soft-text)]">
-                  Nion 正在分析当前整篇笔记并准备结果，请稍候。
-                </p>
-              </section>
-            ) : aiPreview ? (
-              <div className="animate-in fade-in slide-in-from-right-4 space-y-4 duration-300">
-                <div className="flex items-center justify-between">
-                  <h3 className="flex items-center text-sm font-semibold text-[var(--notebook-ink)]">
-                    <Sparkles className="mr-1.5 size-3.5" />
-                    {aiPreview.action_label} 预览
-                  </h3>
-                  <button
-                    onClick={() => setAiPreview(null)}
-                    className="text-xs text-[var(--notebook-soft-text)] transition-colors hover:text-[var(--notebook-ink)]"
-                  >
-                    返回
-                  </button>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <span className="rounded-full bg-[var(--notebook-muted)] px-2.5 py-1 text-[11px] font-medium text-[var(--notebook-soft-text)]">
-                    {scopeLabel(aiPreview.scope)}
-                  </span>
-                  <span className="rounded-full bg-[var(--notebook-muted)] px-2.5 py-1 text-[11px] font-medium text-[var(--notebook-soft-text)]">
-                    {assistKindLabel(aiPreview.kind)}
-                  </span>
-                </div>
-
-                <div className="grid gap-3">
-                  <div className="rounded-xl border border-[var(--notebook-border)] bg-[var(--notebook-panel)] p-4">
-                    <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--notebook-soft-text)]">
-                      原文片段
-                    </div>
-                    <div className="text-sm leading-relaxed whitespace-pre-wrap text-[var(--notebook-ink)]">
-                      {aiPreview.source_excerpt || "整篇笔记"}
-                    </div>
-                  </div>
-                  <div className="rounded-xl border border-[var(--notebook-border)] bg-[var(--notebook-panel)] p-4">
-                    <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--notebook-soft-text)]">
-                      生成结果
-                    </div>
-                    <div className="text-sm leading-relaxed whitespace-pre-wrap text-[var(--notebook-ink)]">
-                      {aiPreview.content}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <button
-                    onClick={() => void handleApplyPreview(aiPreview.recommended_mode)}
-                    disabled={applyAssist.isPending}
-                    className="flex w-full items-center justify-center gap-2 rounded-md bg-[var(--notebook-brand)] py-2 text-sm font-medium text-[var(--notebook-panel)] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {aiPreview.recommended_mode === "replace" ? (
-                      <RefreshCw className="size-4" />
-                    ) : (
-                      <Save className="size-4" />
-                    )}
-                    <span>{primaryApplyLabel(aiPreview)}</span>
-                  </button>
-
-                  {secondaryApplyMode ? (
-                    <button
-                      onClick={() => void handleApplyPreview(secondaryApplyMode)}
-                      disabled={applyAssist.isPending}
-                      className="flex w-full items-center justify-center gap-2 rounded-md border border-[var(--notebook-border)] bg-[var(--notebook-panel)] py-2 text-sm font-medium text-[var(--notebook-ink)] transition-colors hover:bg-[var(--notebook-hover)] disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      <ArrowRight className="size-4" />
-                      <span>{secondaryApplyLabel(secondaryApplyMode)}</span>
-                    </button>
-                  ) : null}
-
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => void handleCopyPreview()}
-                      className="flex flex-1 items-center justify-center gap-1 rounded-md border border-[var(--notebook-border)] bg-[var(--notebook-panel)] py-1.5 text-xs font-medium text-[var(--notebook-soft-text)] transition-colors hover:bg-[var(--notebook-hover)] hover:text-[var(--notebook-ink)]"
-                    >
-                      <Copy className="size-3" />
-                      <span>{copiedPreview ? "已复制" : "复制结果"}</span>
-                    </button>
-                    <button
-                      onClick={() =>
-                        onStartConversation({
-                          action: aiPreview.action as NotebookAssistAction,
-                          mode: "preview",
-                          previewContent: aiPreview.content,
-                        })
-                      }
-                      className="flex flex-1 items-center justify-center gap-1 rounded-md border border-[var(--notebook-border)] bg-[var(--notebook-panel)] py-1.5 text-xs font-medium text-[var(--notebook-soft-text)] transition-colors hover:bg-[var(--notebook-hover)] hover:text-[var(--notebook-ink)]"
-                    >
-                      <MessageSquare className="size-3" />
-                      <span>带当前结果继续聊</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <>
-                <section className="space-y-3">
-                  <div>
-                    <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--notebook-ink)]">
-                      协作建议
-                    </h3>
-                    <p className="mt-1 text-sm text-[var(--notebook-soft-text)]">
-                      所有动作都基于当前整篇笔记生成真实结果，并保留历史以便回退。
-                    </p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    {ASSIST_ACTIONS.map((action) => (
-                      <button
-                        key={action.key}
-                        onClick={() => void handleAiAction(action.key)}
-                        disabled={previewAssist.isPending || applyAssist.isPending}
-                        className={`flex flex-col items-start justify-between rounded-xl border border-[var(--notebook-border)] bg-[var(--notebook-panel)] p-3 text-left transition-all hover:border-[var(--notebook-brand)] hover:bg-[var(--notebook-hover)] disabled:cursor-not-allowed disabled:opacity-60 ${action.full ? "col-span-2" : ""}`}
-                      >
-                        <div className="mb-3 rounded-lg bg-[var(--notebook-muted)] p-2 text-[var(--notebook-ink)]">
-                          {action.icon}
-                        </div>
-                        <div className="space-y-1">
-                          <div className="text-sm font-medium text-[var(--notebook-ink)]">{action.title}</div>
-                          <div className="text-xs leading-5 text-[var(--notebook-soft-text)]">
-                            {action.description}
-                          </div>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </section>
-
-                <section className="space-y-2 border-t border-[var(--notebook-border)] pt-4">
-                  <div>
-                    <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--notebook-ink)]">
-                      开启对话
-                    </h3>
-                    <p className="mt-1 text-sm text-[var(--notebook-soft-text)]">
-                      带着这篇笔记继续聊，Nion 会把当前笔记作为上下文来继续分析、改写或拆解任务。
-                    </p>
-                  </div>
-                  <div className="rounded-xl border border-[var(--notebook-border)] bg-[var(--notebook-panel)] p-3">
-                    <div className="space-y-2">
-                      {selection?.text.trim() ? (
-                        <button
-                          onClick={() =>
-                            onStartConversation({
-                              action: "rewrite",
-                              mode: "selection",
-                            })
-                          }
-                          className="flex w-full items-center justify-center gap-2 rounded-md border border-[var(--notebook-border)] bg-[var(--notebook-panel)] py-2 text-sm font-medium text-[var(--notebook-ink)] transition-colors hover:bg-[var(--notebook-hover)]"
-                        >
-                          <MessageSquare className="size-4" />
-                          <span>带当前选中继续聊</span>
-                        </button>
-                      ) : null}
-                      <button
-                        onClick={() =>
-                          onStartConversation({
-                            action: "rewrite",
-                            mode: "note",
-                          })
-                        }
-                        className="flex w-full items-center justify-center gap-2 rounded-md bg-[var(--notebook-brand)] py-2 text-sm font-medium text-[var(--notebook-panel)] transition-opacity hover:opacity-90"
-                      >
-                        <MessageSquare className="size-4" />
-                        <span>带整篇笔记继续聊</span>
-                      </button>
-                    </div>
-                  </div>
-                </section>
-              </>
-            )}
-          </div>
+          <NotebookAssistantPanel
+            noteId={note.note_id}
+            noteTitle={noteTitle.trim() || note.title.trim() || "未命名笔记"}
+            sessionId={notebookAssistantSessionId}
+            onStartNewConversation={onStartNewConversation}
+          />
         ) : activeTab === "history" ? (
           <div className="space-y-4">
             {!historyPreview ? (
@@ -741,173 +295,6 @@ export function NotebookContextPanel({
           </div>
         )}
       </div>
-    </div>
-  );
-}
-
-function assistKindLabel(kind: NotebookAssistPreview["kind"]) {
-  return kind === "rewrite" ? "改写类结果" : "派生结果";
-}
-
-function actionTitleOf(action: NotebookAssistAction) {
-  return ASSIST_ACTIONS.find((item) => item.key === action)?.title ?? action;
-}
-
-function primaryApplyLabel(preview: NotebookAssistPreview) {
-  if (preview.recommended_mode === "replace_selection") {
-    return "替换选中内容";
-  }
-  if (preview.recommended_mode === "insert_after_selection") {
-    return "插入到选中内容后";
-  }
-  if (preview.action === "summarize") {
-    return "插入为摘要区块";
-  }
-  if (preview.action === "checklist") {
-    return "插入为清单区块";
-  }
-  if (preview.action === "action_items") {
-    return "插入为行动项";
-  }
-  if (preview.recommended_mode === "replace") {
-    return "替换当前笔记";
-  }
-  return "追加到笔记末尾";
-}
-
-function getSecondaryApplyMode(preview: NotebookAssistPreview) {
-  return preview.available_modes.find((mode) => mode !== preview.recommended_mode) ?? null;
-}
-
-function secondaryApplyLabel(
-  mode: "replace" | "insert" | "replace_selection" | "insert_after_selection",
-) {
-  if (mode === "replace_selection") {
-    return "替换选中内容";
-  }
-  if (mode === "insert_after_selection") {
-    return "插入到选中内容后";
-  }
-  return mode === "replace" ? "替换当前笔记" : "插入到笔记末尾";
-}
-
-function errorMessage(error: unknown) {
-  if (error instanceof Error) {
-    return error.message;
-  }
-  if (typeof error === "string") {
-    return error;
-  }
-  return null;
-}
-
-function resolveAssistScope(
-  action: NotebookAssistAction,
-  selection: NotebookSelection | null,
-  scopePreference: "auto" | "selection" | "paragraph" | "whole_note",
-): "whole_note" | "selection" | "paragraph" {
-  if (scopePreference === "whole_note") {
-    return "whole_note";
-  }
-  if (scopePreference === "selection" && selection?.text.trim()) {
-    return "selection";
-  }
-  if (scopePreference === "paragraph" && selection) {
-    return "paragraph";
-  }
-  if ((action === "rewrite" || action === "expand") && selection?.text.trim()) {
-    return "selection";
-  }
-  if (action === "expand" && selection) {
-    return "paragraph";
-  }
-  return "whole_note";
-}
-
-function scopeLabel(scope: "whole_note" | "selection" | "paragraph") {
-  if (scope === "selection") {
-    return "当前选中";
-  }
-  if (scope === "paragraph") {
-    return "当前段落";
-  }
-  return "整篇笔记";
-}
-
-function contextAvailabilityLabel(selection: NotebookSelection | null) {
-  if (!selection) {
-    return "整篇笔记";
-  }
-  if (selection.text.trim()) {
-    return "当前选中可用";
-  }
-  return "当前段落可用";
-}
-
-function ConfigRow({
-  children,
-  label,
-}: {
-  children: React.ReactNode;
-  label: string;
-}) {
-  return (
-    <div>
-      <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--notebook-soft-text)]">
-        {label}
-      </div>
-      <div className="flex flex-wrap gap-2">{children}</div>
-    </div>
-  );
-}
-
-function ChipButton({
-  active,
-  label,
-  onClick,
-}: {
-  active: boolean;
-  label: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
-        active
-          ? "bg-[var(--notebook-brand)] text-[var(--notebook-panel)]"
-          : "bg-[var(--notebook-muted)] text-[var(--notebook-soft-text)] hover:bg-[var(--notebook-hover)] hover:text-[var(--notebook-ink)]"
-      }`}
-    >
-      {label}
-    </button>
-  );
-}
-
-function InlineFeedbackCard({
-  actionLabel,
-  message,
-  onAction,
-  tone,
-}: {
-  actionLabel: string;
-  message: string;
-  onAction: () => void;
-  tone: "error" | "warning";
-}) {
-  return (
-    <div
-      className={`rounded-xl border p-3 text-sm ${
-        tone === "error"
-          ? "border-[#f4c7cc] bg-[var(--notebook-danger-surface)] text-[var(--notebook-danger)]"
-          : "border-[#ffe58f] bg-[var(--notebook-warning-surface)] text-[var(--notebook-warning)]"
-      }`}
-    >
-      <div>{message}</div>
-      <button onClick={onAction} className="mt-2 text-xs font-medium underline">
-        {actionLabel}
-      </button>
     </div>
   );
 }

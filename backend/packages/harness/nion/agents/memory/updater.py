@@ -5,14 +5,20 @@ import logging
 import re
 import uuid
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 
 from nion.agents.memory.prompt import (
     MEMORY_UPDATE_PROMPT,
     format_conversation_for_update,
 )
-from nion.agents.memory.storage import create_empty_memory, get_memory_storage
+from nion.agents.memory.storage import (
+    FileMemoryStorage,
+    create_empty_memory,
+    get_memory_storage,
+)
 from nion.config.memory_config import get_memory_config
+from nion.config.paths import get_paths
 from nion.models import create_chat_model
 from nion.models.factory import resolve_model_name_with_fallback
 from nion.telemetry.token_source import token_source_context
@@ -30,6 +36,19 @@ def _save_memory_to_file(memory_data: dict[str, Any], agent_name: str | None = N
     """Backward-compatible wrapper around the configured storage provider save path."""
 
     return get_memory_storage().save(memory_data, agent_name)
+
+
+def _get_memory_file_path(agent_name: str | None = None):
+    """Backward-compatible wrapper for legacy tests using file-backed memory paths."""
+
+    if agent_name is not None:
+        return get_paths().agent_memory_file(agent_name)
+
+    config = get_memory_config()
+    if config.storage_path:
+        path = Path(config.storage_path)
+        return path if path.is_absolute() else get_paths().base_dir / path
+    return get_paths().memory_file
 
 
 def get_memory_data(agent_name: str | None = None) -> dict[str, Any]:

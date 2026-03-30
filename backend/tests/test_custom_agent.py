@@ -376,7 +376,8 @@ class TestAgentsAPI:
         response = agent_client.get("/api/agents")
         assert response.status_code == 200
         data = response.json()
-        assert data["agents"] == []
+        custom_agents = [agent for agent in data["agents"] if agent["kind"] == "custom"]
+        assert custom_agents == []
 
     def test_create_agent(self, agent_client):
         payload = {
@@ -489,7 +490,6 @@ class TestAgentsAPI:
 
         agent_client.delete("/api/agents/remove-me")
         assert not agent_dir.exists()
-
 
 # ===========================================================================
 # 9. Gateway API – User Profile endpoints

@@ -1,6 +1,18 @@
 "use client";
 
-import { CheckCircle2, Clock, Edit3, Eye, FileText, Folder, History, MoreHorizontal, Trash2 } from "lucide-react";
+import {
+  AlertCircle,
+  CheckCircle2,
+  Clock,
+  Edit3,
+  Eye,
+  FileText,
+  Folder,
+  History,
+  MoreHorizontal,
+  Trash2,
+  XCircle,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -12,7 +24,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import type { NotebookNote, NotebookSelection } from "@/core/notebook";
+import type { NotebookNote, NotebookPendingRewrite, NotebookSelection } from "@/core/notebook";
 
 import { MarkdownContent } from "../messages/markdown-content";
 
@@ -46,7 +58,11 @@ type NotebookEditorPaneProps = {
   isLoading: boolean;
   loadingLabel: string;
   note: NotebookNote | null;
+  pendingRewrite: NotebookPendingRewrite | null;
+  pendingRewriteActionPending?: boolean;
   saveState: "saved" | "unsaved" | "saving";
+  onCancelPendingRewrite: () => void;
+  onConfirmPendingRewrite: () => void;
   onDraftBodyChange: (value: string) => void;
   onDraftTitleChange: (value: string) => void;
   onOpenDelete: () => void;
@@ -67,7 +83,11 @@ export function NotebookEditorPane({
   isLoading,
   loadingLabel,
   note,
+  pendingRewrite,
+  pendingRewriteActionPending = false,
   saveState,
+  onCancelPendingRewrite,
+  onConfirmPendingRewrite,
   onDraftBodyChange,
   onDraftTitleChange,
   onOpenDelete,
@@ -232,6 +252,42 @@ export function NotebookEditorPane({
           </div>
         ) : (
           <div className="relative mx-auto h-full max-w-[52rem]">
+            {pendingRewrite ? (
+              <div className="mb-4 rounded-2xl border border-[var(--notebook-warning)]/30 bg-[var(--notebook-warning-surface)] px-4 py-3">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 text-sm font-medium text-[var(--notebook-warning)]">
+                      <AlertCircle className="size-4" />
+                      <span>待确认改写</span>
+                    </div>
+                    <p className="mt-1 text-sm text-[var(--notebook-soft-text)]">
+                      当前正文显示的是改写结果。确认会保留它，取消会回滚到原文。
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="border-[var(--notebook-border)] bg-[var(--notebook-panel)] text-[var(--notebook-ink)] hover:bg-[var(--notebook-hover)]"
+                      onClick={onCancelPendingRewrite}
+                      disabled={pendingRewriteActionPending}
+                    >
+                      <XCircle className="mr-1.5 size-4" />
+                      {pendingRewriteActionPending ? "处理中…" : "取消"}
+                    </Button>
+                    <Button
+                      type="button"
+                      className="bg-[var(--notebook-brand)] text-[var(--notebook-panel)] hover:opacity-90"
+                      onClick={onConfirmPendingRewrite}
+                      disabled={pendingRewriteActionPending}
+                    >
+                      <CheckCircle2 className="mr-1.5 size-4" />
+                      {pendingRewriteActionPending ? "处理中…" : "确认"}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ) : null}
             {previewMode ? (
               <MarkdownContent
                 className="prose prose-neutral max-w-none text-[var(--notebook-ink)]"

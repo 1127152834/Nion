@@ -1,0 +1,96 @@
+"""Tests for built-in agent catalog support."""
+
+from __future__ import annotations
+
+from pathlib import Path
+from unittest.mock import patch
+
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
+
+
+def _make_paths(base_dir: Path):
+    from nion.config.paths import Paths
+
+    return Paths(base_dir=base_dir)
+
+
+def _make_test_app():
+    from app.gateway.routers.agents import router
+
+    app = FastAPI()
+    app.include_router(router)
+    return app
+
+
+def test_get_builtin_agent_returns_catalog_entry(tmp_path):
+    paths_instance = _make_paths(tmp_path)
+
+    with patch("nion.config.agents_config.get_paths", return_value=paths_instance), patch(
+        "app.gateway.routers.agents.get_paths",
+        return_value=paths_instance,
+    ):
+        with TestClient(_make_test_app()) as client:
+            response = client.get("/api/agents/notebook-chat")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["name"] == "笔记助手"
+    assert payload["id"] == "builtin:notebook-assistant"
+    assert payload["slug"] == "notebook-chat"
+    assert payload["kind"] == "builtin"
+    assert payload["visibility"] == "public"
+    assert payload["can_delete"] is False
+    assert payload["can_edit"] is False
+    assert payload["entrypoint"] == "notebook-chat"
+    assert payload["tool_policy"] == "notebook-basic"
+    assert payload["soul"] == ""
+
+
+def test_get_builtin_agent_by_legacy_identifier_returns_404(tmp_path):
+    paths_instance = _make_paths(tmp_path)
+
+    with patch("nion.config.agents_config.get_paths", return_value=paths_instance), patch(
+        "app.gateway.routers.agents.get_paths",
+        return_value=paths_instance,
+    ):
+        with TestClient(_make_test_app()) as client:
+            response = client.get("/api/agents/notebook-assistant")
+
+    assert response.status_code == 404
+
+
+def test_delete_builtin_agent_is_forbidden(tmp_path):
+    paths_instance = _make_paths(tmp_path)
+
+    with patch("nion.config.agents_config.get_paths", return_value=paths_instance), patch(
+        "app.gateway.routers.agents.get_paths",
+        return_value=paths_instance,
+    ):
+        with TestClient(_make_test_app()) as client:
+            response = client.delete("/api/agents/notebook-chat")
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Built-in agent 'notebook-chat' cannot be deleted"
+
+
+def test_list_builtin_agents_includes_notebook_assistant(tmp_path):
+    paths_instance = _make_paths(tmp_path)
+
+    with patch("nion.config.agents_config.get_paths", return_value=paths_instance), patch(
+        "app.gateway.routers.agents.get_paths",
+        return_value=paths_instance,
+    ):
+        with TestClient(_make_test_app()) as client:
+            response = client.get("/api/agents")
+
+    assert response.status_code == 200
+    agents = response.json()["agents"]
+    notebook_agent = next(agent for agent in agents if agent["id"] == "builtin:notebook-assistant")
+
+    assert notebook_agent["name"] == "笔记助手"
+    assert notebook_agent["slug"] == "notebook-chat"
+    assert notebook_agent["kind"] == "builtin"
+    assert notebook_agent["visibility"] == "public"
+    assert notebook_agent["entrypoint"] == "notebook-chat"
+    assert notebook_agent["tool_policy"] == "notebook-basic"
