@@ -37,7 +37,7 @@ export function NotebookAssistantPanel({
     context: {
       model_name: undefined,
       mode: "thinking",
-      agent_name: "Notebook Assistant",
+      agent_name: "notebook-chat",
       reasoning_effort: "low",
       execution_mode: "sandbox",
       host_workdir: undefined,
