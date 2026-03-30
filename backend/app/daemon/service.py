@@ -15,7 +15,7 @@ from .session_registry import SessionRegistry
 
 
 class LocalDaemonService:
-    AUTODREAM_POLL_INTERVAL_SECONDS = 60.0
+    HEARTBEAT_POLL_INTERVAL_SECONDS = 60.0
 
     def __init__(
         self,
@@ -33,12 +33,14 @@ class LocalDaemonService:
             allow_background_running=allow_background_running,
             shutdown_grace_period_seconds=shutdown_grace_period_seconds,
         )
-        self._heartbeat_service = HeartbeatService()
         self._autodream_scheduler = AutoDreamScheduler()
+        self._heartbeat_service = HeartbeatService(
+            run_maintenance=lambda: self._autodream_scheduler.tick()
+        )
         self._telemetry_store: TelemetryStore | None = None
         self._shutdown_callback: Callable[[], Awaitable[None] | None] | None = None
         self._shutdown_task: asyncio.Task[None] | None = None
-        self._autodream_task: asyncio.Task[None] | None = None
+        self._heartbeat_task: asyncio.Task[None] | None = None
         self._active_thread_streams: set[str] = set()
 
     @classmethod
@@ -221,24 +223,24 @@ class LocalDaemonService:
                     return
 
         self._shutdown_task = asyncio.create_task(monitor(), name="local-daemon-shutdown-monitor")
-        self._autodream_task = asyncio.create_task(
-            self._autodream_monitor(),
-            name="local-daemon-autodream-monitor",
+        self._heartbeat_task = asyncio.create_task(
+            self._heartbeat_monitor(),
+            name="local-daemon-heartbeat-monitor",
         )
 
     async def stop(self) -> None:
         task = self._shutdown_task
-        autodream_task = self._autodream_task
+        heartbeat_task = self._heartbeat_task
         self._shutdown_task = None
-        self._autodream_task = None
+        self._heartbeat_task = None
         if task is None:
-            if autodream_task is None:
+            if heartbeat_task is None:
                 return
-        for pending in (task, autodream_task):
+        for pending in (task, heartbeat_task):
             if pending is None:
                 continue
             pending.cancel()
-        for pending in (task, autodream_task):
+        for pending in (task, heartbeat_task):
             if pending is None:
                 continue
             try:
@@ -246,33 +248,31 @@ class LocalDaemonService:
             except asyncio.CancelledError:
                 pass
 
-    async def _autodream_monitor(self) -> None:
+    async def _heartbeat_monitor(self) -> None:
         while True:
-            await asyncio.sleep(self.AUTODREAM_POLL_INTERVAL_SECONDS)
+            await asyncio.sleep(self.HEARTBEAT_POLL_INTERVAL_SECONDS)
             if self.has_active_runtime_work():
                 continue
             try:
                 self._heartbeat_service.tick()
-                did_run = self._autodream_scheduler.tick()
             except Exception:
                 self._record_event(
-                    category="autodream",
+                    category="heartbeat",
                     level="error",
-                    event_type="autodream_run_failed",
+                    event_type="heartbeat_tick_failed",
                     actor="system",
-                    message="AutoDream scheduler tick failed",
-                    details=self.autodream_status(),
+                    message="Heartbeat tick failed",
+                    details=self.heartbeat_status(),
                 )
                 continue
-            if did_run:
-                self._record_event(
-                    category="autodream",
-                    level="info",
-                    event_type="autodream_run_completed",
-                    actor="system",
-                    message="AutoDream scheduler completed a background run",
-                    details=self.autodream_status(),
-                )
+            self._record_event(
+                category="heartbeat",
+                level="info",
+                event_type="heartbeat_tick_completed",
+                actor="system",
+                message="Heartbeat tick completed",
+                details=self.heartbeat_status(),
+            )
 
     def _record_event(
         self,
