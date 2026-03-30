@@ -169,28 +169,3 @@ def test_automation_tool_draft_action_returns_event_task_draft_command(monkeypat
     assert tool_message.additional_kwargs["element"] == "event_task_draft"
     assert tool_message.additional_kwargs["draft"]["job_kind"] == "event_task"
 
-
-def test_automation_tool_create_workflow_calls_service(monkeypatch):
-    service = FakeAutomationService()
-    monkeypatch.setattr(automation_tool_module, "get_automation_tool_service", lambda runtime=None: service)
-
-    result = automation_tool_module.automation_tool.func(
-        runtime=_runtime(),
-        action="create",
-        name="Reply follow-up workflow",
-        prompt="Run workflow",
-        job_kind="workflow",
-        trigger_kind="event",
-        trigger_spec={"event_name": "agent.run.completed"},
-        workflow_steps=[
-            {"id": "step-notify", "kind": "notify", "config": {"title": "Reply finished"}},
-            {"id": "step-wait", "kind": "wait_for_user", "config": {"prompt": "Continue?"}},
-        ],
-        delivery_mode="local",
-        delivery_targets=[],
-        skills=[],
-    )
-
-    assert result["job"]["id"] == "job-1"
-    assert service.calls[0][1]["job_kind"] == "workflow"
-    assert service.calls[0][1]["workflow_steps"][0]["kind"] == "notify"

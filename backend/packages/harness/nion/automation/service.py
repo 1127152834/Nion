@@ -1,25 +1,19 @@
-import base64
 import os
 from collections.abc import Callable, Mapping
-from datetime import UTC, datetime, timedelta
-from pathlib import Path
+from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
 
 from nion.automation.delivery import AutomationDeliveryService
 from nion.automation.event_dispatch import dispatch_automation_event
 from nion.automation.executor import (
-    REGISTERED_PLUGIN_ACTIONS,
     AutomationExecutor,
     EmbeddedAutomationRunner,
     LangGraphAutomationRunner,
 )
 from nion.automation.models import (
-    AutomationApproval,
-    AutomationAuditEvent,
     AutomationJob,
     AutomationRun,
-    AutomationTemplate,
 )
 from nion.automation.packages import (
     create_hook_package,
@@ -39,68 +33,7 @@ from nion.config.paths import Paths, get_paths, resolve_path
 from nion.threads.repository import ThreadRepository
 
 SUPPORTED_TEMPLATE_MANIFEST_VERSION = "1"
-SUPPORTED_TEMPLATE_JOB_KINDS = {"event_task", "workflow"}
-SUPPORTED_WORKFLOW_STEP_KINDS = {
-    "notify",
-    "script",
-    "agent_prompt",
-    "play_sound",
-    "delay",
-    "wait_for_user",
-}
-
-DEFAULT_AUTOMATION_TEMPLATES = [
-    {
-        "id": "tpl-official-reply-finished",
-        "name": "Reply finished reminder",
-        "scope": "official",
-        "manifest": {
-            "manifest_version": "1",
-            "job": {
-                "name": "Reply finished reminder",
-                "prompt": "Notify me when the assistant finishes a reply.",
-                "job_kind": "event_task",
-                "schedule_kind": "event",
-                "schedule_value": "agent.run.completed",
-                "schedule_preset": "event",
-                "trigger_kind": "event",
-                "trigger_spec": {"event_name": "agent.run.completed"},
-                "action_kind": "notify",
-                "action_spec": {},
-                "delivery_mode": "local",
-                "delivery_targets": [],
-            },
-            "package": {"files": []},
-        },
-        "files": {},
-    },
-    {
-        "id": "tpl-official-reply-followup-workflow",
-        "name": "Reply follow-up workflow",
-        "scope": "official",
-        "manifest": {
-            "manifest_version": "1",
-            "job": {
-                "name": "Reply follow-up workflow",
-                "prompt": "Run workflow",
-                "job_kind": "workflow",
-                "schedule_kind": "event",
-                "schedule_value": "agent.run.completed",
-                "schedule_preset": "event",
-                "trigger_kind": "event",
-                "trigger_spec": {"event_name": "agent.run.completed"},
-                "workflow_steps": [
-                    {"id": "step-notify", "kind": "notify", "config": {"title": "Reply finished"}},
-                    {"id": "step-wait", "kind": "wait_for_user", "config": {"prompt": "Continue?"}},
-                ],
-                "delivery_mode": "local",
-                "delivery_targets": [],
-            },
-            "package": {"files": []},
-        },
-        "files": {},
-    },
-]
+SUPPORTED_TEMPLATE_JOB_KINDS = {"event_task"}
 
 
 class AutomationService:
@@ -137,22 +70,11 @@ class AutomationService:
         trigger_spec = self._coerce_mapping(payload.get("trigger_spec"))
         action_kind = str(payload.get("action_kind") or "agent_prompt")
         action_spec = self._coerce_mapping(payload.get("action_spec"))
-        workflow_steps = self._coerce_workflow_steps(payload.get("workflow_steps"))
         package_dir = payload.get("package_dir")
         package_manifest = self._coerce_mapping(payload.get("package_manifest"))
         package_files = self._coerce_package_files(payload.get("package_files"))
-        if action_kind == "plugin_action":
-            plugin_id = str(action_spec.get("plugin_id") or "")
-            if plugin_id not in REGISTERED_PLUGIN_ACTIONS:
-                raise ValueError(f"Unknown plugin action: {plugin_id}")
 
         if job_kind == "event_task":
-            schedule_kind = schedule_kind or "event"
-            schedule_value = str(schedule_value or trigger_spec.get("event_name") or "")
-            schedule_timezone = schedule_timezone or "UTC"
-            if not schedule_metadata:
-                schedule_metadata = {"event_name": trigger_spec.get("event_name")}
-        elif job_kind == "workflow":
             schedule_kind = schedule_kind or "event"
             schedule_value = str(schedule_value or trigger_spec.get("event_name") or "")
             schedule_timezone = schedule_timezone or "UTC"
@@ -196,12 +118,8 @@ class AutomationService:
             skills=list(payload.get("skills") or []),
             session_policy=build_automation_session_policy(payload.get("session_policy")),
             toolset_profile=str(payload.get("toolset_profile") or get_automation_config().default_toolset_profile),
-            owner_id=_maybe_str(payload.get("owner_id")),
-            visibility=str(payload.get("visibility") or "private"),
-            approval_policy=self._coerce_mapping(payload.get("approval_policy")),
             package_dir=str(package_dir) if package_dir else None,
             package_manifest=package_manifest,
-            workflow_steps=workflow_steps,
             next_run_at=payload.get("next_run_at"),
             created_at=format_automation_datetime(now),
             updated_at=format_automation_datetime(now),
@@ -254,18 +172,10 @@ class AutomationService:
             job.action_kind = str(payload["action_kind"])
         if "action_spec" in payload:
             job.action_spec = self._coerce_mapping(payload.get("action_spec"))
-        if "workflow_steps" in payload:
-            job.workflow_steps = self._coerce_workflow_steps(payload.get("workflow_steps"))
         if "schedule_metadata" in payload:
             job.schedule_metadata = self._coerce_schedule_metadata(payload.get("schedule_metadata"))
         if "session_policy" in payload:
             job.session_policy = build_automation_session_policy(payload.get("session_policy"))
-        if "owner_id" in payload:
-            job.owner_id = _maybe_str(payload.get("owner_id"))
-        if "visibility" in payload and payload.get("visibility") is not None:
-            job.visibility = str(payload.get("visibility"))
-        if "approval_policy" in payload:
-            job.approval_policy = self._coerce_mapping(payload.get("approval_policy"))
 
         package_files = self._coerce_package_files(payload.get("package_files"))
         delete_package_files = [
@@ -310,11 +220,6 @@ class AutomationService:
             raise RuntimeError("Automation executor is not configured")
 
         job = self.get_job(job_id)
-        if bool(job.approval_policy.get("required")):
-            approvals = [approval for approval in self._repository.list_approvals() if approval.job_id == job.id]
-            latest = approvals[-1] if approvals else None
-            if latest is None or latest.status != "approved":
-                raise PermissionError("Approval is required before this automation can run")
         run_id = f"run-{uuid4().hex[:8]}"
         try:
             run = self._executor.execute_job(job, run_id=run_id)
@@ -354,7 +259,7 @@ class AutomationService:
             job
             for job in self._repository.list_jobs()
             if job.enabled
-            and job.job_kind in {"event_task", "workflow"}
+            and job.job_kind == "event_task"
             and job.trigger_kind == "event"
             and job.trigger_spec.get("event_name") == event_name
         ]
@@ -388,211 +293,6 @@ class AutomationService:
                 self._scheduler.mark_run_finished(job.id, run, finished_at=finished_at)
 
         return runs
-
-    def handle_webhook_event(self, event_name: str, payload: Mapping[str, Any] | None = None) -> list[AutomationRun]:
-        if self._executor is None:
-            return []
-
-        event_payload = dict(payload or {})
-        matching_jobs = [
-            job
-            for job in self._repository.list_jobs()
-            if job.enabled
-            and job.job_kind in {"event_task", "workflow"}
-            and job.trigger_kind == "webhook"
-            and job.trigger_spec.get("event_name") == event_name
-        ]
-
-        runs: list[AutomationRun] = []
-        for job in matching_jobs:
-            run_id = f"run-{uuid4().hex[:8]}"
-            run = self._executor.execute_job(
-                job,
-                run_id=run_id,
-                trigger_event_name=event_name,
-                trigger_event_payload=event_payload,
-            )
-            self._repository.save_run(run)
-            runs.append(run)
-        return runs
-
-    def resume_workflow_run(self, job_id: str, run_id: str, resume_payload: Mapping[str, Any] | None = None) -> AutomationRun:
-        if self._executor is None:
-            raise RuntimeError("Automation executor is not configured")
-
-        job = self.get_job(job_id)
-        run = self._repository.get_run(run_id)
-        if run is None or run.job_id != job_id:
-            raise KeyError(run_id)
-        if run.status != "paused":
-            raise ValueError("Only paused workflow runs can be resumed")
-
-        resumed = self._executor.resume_workflow(
-            job,
-            run,
-            resume_payload=dict(resume_payload or {}),
-        )
-        self._repository.save_run(resumed)
-        if resumed.finished_at:
-            finished_at = datetime.fromisoformat(resumed.finished_at.replace("Z", "+00:00")).astimezone(UTC)
-            self._scheduler.mark_run_finished(job.id, resumed, finished_at=finished_at)
-        return resumed
-
-    def export_job_package(self, job_id: str) -> dict[str, Any]:
-        job = self.get_job(job_id)
-        package_files: dict[str, str] = {}
-        manifest = {
-            "manifest_version": "1",
-            "job": self._exportable_job_payload(job),
-            "package": {
-                "files": list(job.package_manifest.get("files", [])),
-            },
-        }
-        if job.package_dir and job.package_manifest.get("files"):
-            package_dir = Path(job.package_dir)
-            for relative_path in job.package_manifest.get("files", []):
-                file_path = package_dir / str(relative_path)
-                if file_path.is_file():
-                    try:
-                        package_files[str(relative_path)] = file_path.read_text()
-                    except UnicodeDecodeError:
-                        package_files[str(relative_path)] = base64.b64encode(file_path.read_bytes()).decode("ascii")
-        return {
-            "manifest": manifest,
-            "files": package_files,
-        }
-
-    def import_job_package(self, manifest: Mapping[str, Any], files: Mapping[str, Any] | None = None) -> AutomationJob:
-        manifest_payload = dict(manifest)
-        manifest_version = str(manifest_payload.get("manifest_version") or "")
-        if manifest_version != SUPPORTED_TEMPLATE_MANIFEST_VERSION:
-            raise ValueError("Unsupported manifest_version")
-
-        job_payload = manifest_payload.get("job")
-        if not isinstance(job_payload, Mapping):
-            raise ValueError("Template manifest must include a job payload")
-        job_kind = str(job_payload.get("job_kind") or "")
-        if job_kind not in SUPPORTED_TEMPLATE_JOB_KINDS:
-            raise ValueError("Unsupported job_kind in template manifest")
-        if job_kind == "workflow":
-            for step in job_payload.get("workflow_steps", []):
-                if not isinstance(step, Mapping):
-                    raise ValueError("Workflow step payload must be an object")
-                step_kind = str(step.get("kind") or "")
-                if step_kind not in SUPPORTED_WORKFLOW_STEP_KINDS:
-                    raise ValueError(f"Unsupported workflow step kind: {step_kind}")
-
-        package_payload = manifest_payload.get("package")
-        package_files: list[dict[str, Any]] = []
-        manifest_files = []
-        if isinstance(package_payload, Mapping):
-            manifest_files = list(package_payload.get("files", []))
-
-        file_map = dict(files or {})
-        for relative_path in manifest_files:
-            if relative_path not in file_map:
-                continue
-            package_files.append(
-                {
-                    "path": str(relative_path),
-                    "content": str(file_map[relative_path]),
-                }
-            )
-
-        create_payload = dict(job_payload)
-        create_payload.pop("id", None)
-        create_payload.pop("created_at", None)
-        create_payload.pop("updated_at", None)
-        create_payload.pop("package_dir", None)
-        create_payload.pop("package_manifest", None)
-        create_payload["package_files"] = package_files
-        return self.create_job(create_payload)
-
-    def save_template(self, payload: Mapping[str, Any]) -> AutomationTemplate:
-        template = AutomationTemplate(
-            id=str(payload["id"]),
-            name=str(payload["name"]),
-            scope=str(payload["scope"]),
-            manifest=dict(payload.get("manifest") or {}),
-            files=dict(payload.get("files") or {}),
-        )
-        return self._repository.save_template(template)
-
-    def list_templates(self) -> dict[str, list[AutomationTemplate]]:
-        self._seed_default_templates()
-        templates = self._repository.list_templates()
-        return {
-            "official": [template for template in templates if template.scope == "official"],
-            "personal": [template for template in templates if template.scope == "personal"],
-        }
-
-    def get_template(self, template_id: str) -> AutomationTemplate:
-        template = self._repository.get_template(template_id)
-        if template is None:
-            raise KeyError(template_id)
-        return template
-
-    def activate_template(self, template_id: str) -> AutomationJob:
-        template = self.get_template(template_id)
-        return self.import_job_package(template.manifest, template.files)
-
-    def request_approval(self, job_id: str, *, actor_id: str, reason: str) -> AutomationApproval:
-        job = self.get_job(job_id)
-        requested_at = format_automation_datetime(self._clock())
-        approval = AutomationApproval(
-            id=f"approval-{uuid4().hex[:8]}",
-            job_id=job.id,
-            status="pending",
-            requested_by=actor_id,
-            reason=reason,
-            requested_at=requested_at,
-        )
-        self._repository.save_approval(approval)
-        self._repository.save_audit_event(
-            AutomationAuditEvent(
-                id=f"audit-{uuid4().hex[:8]}",
-                job_id=job.id,
-                action="approval.requested",
-                actor_id=actor_id,
-                created_at=requested_at,
-                details={"reason": reason, "approval_id": approval.id},
-            )
-        )
-        return approval
-
-    def decide_approval(self, approval_id: str, *, actor_id: str, decision: str) -> AutomationApproval:
-        approval = self._repository.get_approval(approval_id)
-        if approval is None:
-            raise KeyError(approval_id)
-        approval.status = "approved" if decision == "approved" else "denied"
-        approval.decided_by = actor_id
-        decided_at_dt = self._clock() + timedelta(seconds=1)
-        approval.decided_at = format_automation_datetime(decided_at_dt)
-        self._repository.save_approval(approval)
-        self._repository.save_audit_event(
-            AutomationAuditEvent(
-                id=f"audit-{uuid4().hex[:8]}",
-                job_id=approval.job_id,
-                action=f"approval.{approval.status}",
-                actor_id=actor_id,
-                created_at=approval.decided_at,
-                details={"approval_id": approval.id},
-            )
-        )
-        return approval
-
-    def list_approvals(self) -> list[AutomationApproval]:
-        return self._repository.list_approvals()
-
-    def list_audit_events(self) -> list[AutomationAuditEvent]:
-        return self._repository.list_audit_events()
-
-    def _seed_default_templates(self) -> None:
-        existing_official = self._repository.list_templates(scope="official")
-        if existing_official:
-            return
-        for template in DEFAULT_AUTOMATION_TEMPLATES:
-            self.save_template(template)
 
     def delete_job(self, job_id: str) -> bool:
         job = self._repository.get_job(job_id)
@@ -648,26 +348,6 @@ class AutomationService:
             if isinstance(item, Mapping):
                 files.append(dict(item))
         return files
-
-    @staticmethod
-    def _coerce_workflow_steps(raw_steps: Any) -> list[dict[str, Any]]:
-        if not isinstance(raw_steps, list):
-            return []
-        steps: list[dict[str, Any]] = []
-        for item in raw_steps:
-            if isinstance(item, Mapping):
-                steps.append(dict(item))
-        return steps
-
-    @staticmethod
-    def _exportable_job_payload(job: AutomationJob) -> dict[str, Any]:
-        payload = job.model_dump()
-        payload.pop("id", None)
-        payload.pop("created_at", None)
-        payload.pop("updated_at", None)
-        payload.pop("package_dir", None)
-        return payload
-
 
 class LocalThreadStateClient:
     def __init__(self, repository: ThreadRepository | None = None):

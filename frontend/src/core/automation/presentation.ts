@@ -21,7 +21,6 @@ export function splitJobsByKind(jobs: AutomationJob[]) {
     reminders: jobs.filter((job) => job.job_kind === "reminder"),
     tasks: jobs.filter((job) => job.job_kind === "scheduled_task"),
     events: jobs.filter((job) => job.job_kind === "event_task"),
-    workflows: jobs.filter((job) => job.job_kind === "workflow"),
   };
 }
 

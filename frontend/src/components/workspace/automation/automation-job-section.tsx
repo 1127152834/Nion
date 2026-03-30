@@ -14,7 +14,6 @@ import {
   ItemHeader,
   ItemTitle,
 } from "@/components/ui/item";
-import { useRequestAutomationApproval } from "@/core/automation/hooks";
 import { formatActionLabel, formatScheduleLabel } from "@/core/automation/presentation";
 import type { AutomationJob } from "@/core/automation/types";
 import { useI18n } from "@/core/i18n/hooks";
@@ -24,7 +23,6 @@ type AutomationJobSectionProps = {
   description: string;
   emptyMessage: string;
   jobs: AutomationJob[];
-  onRequestApproval?: (jobId: string) => Promise<unknown>;
   onPause: (jobId: string) => Promise<unknown>;
   onResume: (jobId: string) => Promise<unknown>;
   onRun: (jobId: string) => Promise<unknown>;
@@ -36,7 +34,6 @@ export function AutomationJobSection({
   description,
   emptyMessage,
   jobs,
-  onRequestApproval,
   onPause,
   onResume,
   onRun,
@@ -44,7 +41,6 @@ export function AutomationJobSection({
 }: AutomationJobSectionProps) {
   const { t } = useI18n();
   const copy = t.settings.automation;
-  const requestApproval = useRequestAutomationApproval();
   const workspaceCopy = t.settings.automationWorkspace.sections;
   const scheduleLabelCopy = {
     dailyPrefix: workspaceCopy.dailyPrefix,
@@ -81,15 +77,6 @@ export function AutomationJobSection({
                       <Badge variant="secondary">
                         {copy.stateLabels[job.state] ?? job.state}
                       </Badge>
-                      {job.owner_id ? (
-                        <Badge variant="outline">owner_id: {job.owner_id}</Badge>
-                      ) : null}
-                      {job.visibility ? (
-                        <Badge variant="outline">visibility: {job.visibility}</Badge>
-                      ) : null}
-                      {job.approval_policy?.required ? (
-                        <Badge variant="outline">approval_policy: required</Badge>
-                      ) : null}
                       <Badge variant="outline">
                         {formatScheduleLabel(job, scheduleLabelCopy)}
                       </Badge>
@@ -124,23 +111,6 @@ export function AutomationJobSection({
                       <ZapIcon className="size-4" />
                       {copy.runNow}
                     </Button>
-                    {job.approval_policy?.required ? (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() =>
-                          onRequestApproval
-                            ? void onRequestApproval(job.id)
-                            : void requestApproval.mutateAsync({
-                                jobId: job.id,
-                                actor_id: "requester-ui",
-                                reason: "High-risk action",
-                              })
-                        }
-                      >
-                        Request approval
-                      </Button>
-                    ) : null}
                     <Button
                       size="sm"
                       variant="ghost"
@@ -149,9 +119,9 @@ export function AutomationJobSection({
                       <Trash2Icon className="size-4" />
                       {copy.remove}
                     </Button>
-                    {job.job_kind === "event_task" || job.job_kind === "workflow" ? (
+                    {job.job_kind === "event_task" ? (
                       <Button size="sm" variant="ghost" asChild>
-                        <Link href={job.job_kind === "workflow" ? `/workspace/automation/workflows/${job.id}` : `/workspace/automation/${job.id}`}>
+                        <Link href={`/workspace/automation/${job.id}`}>
                           {workspaceCopy.viewDetails}
                         </Link>
                       </Button>

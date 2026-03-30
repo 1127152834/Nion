@@ -12,10 +12,8 @@ import {
   useAutomationRuns,
   useAutomationStatus,
   useCreateAutomationJob,
-  useDecideAutomationApproval,
   usePauseAutomationJob,
   useRemoveAutomationJob,
-  useRequestAutomationApproval,
   useResumeAutomationJob,
   useRunAutomationJob,
 } from "@/core/automation/hooks";
@@ -25,8 +23,6 @@ import type { AutomationActionKind, AutomationJobCreateInput } from "@/core/auto
 import { useI18n } from "@/core/i18n/hooks";
 import { useNotification } from "@/core/notification/hooks";
 
-import { ApprovalQueueSection } from "./approval-queue-section";
-import { AuditHistorySection } from "./audit-history-section";
 import { AutomationEventCenterSection } from "./automation-event-center-section";
 import { AutomationHistorySection } from "./automation-history-section";
 import { AutomationJobSection } from "./automation-job-section";
@@ -34,22 +30,14 @@ import { AutomationKindTabs } from "./automation-kind-tabs";
 import { AutomationOverviewCards } from "./automation-overview-cards";
 import { EventTaskDraftCard } from "./event-task-draft-card";
 import { EventTaskForm } from "./event-task-form";
-import { OpenPlatformSection } from "./open-platform-section";
 import { ReminderForm } from "./reminder-form";
 import { ScheduledTaskForm } from "./scheduled-task-form";
-import { TemplateLibrarySection } from "./template-library-section";
-import { WorkflowForm } from "./workflow-form";
-import { WorkflowJobSection } from "./workflow-job-section";
 
 const AUTOMATION_TABS = new Set([
   "overview",
   "reminders",
   "tasks",
   "events",
-  "workflow",
-  "templates",
-  "governance",
-  "platform",
   "eventCenter",
   "history",
 ]);
@@ -70,8 +58,6 @@ export function AutomationPage() {
   const { status } = useAutomationStatus();
   const createJob = useCreateAutomationJob();
   const pauseJob = usePauseAutomationJob();
-  const requestApproval = useRequestAutomationApproval();
-  const decideApproval = useDecideAutomationApproval();
   const resumeJob = useResumeAutomationJob();
   const runJob = useRunAutomationJob();
   const removeJob = useRemoveAutomationJob();
@@ -168,13 +154,6 @@ export function AutomationPage() {
             onResume={(jobId) => resumeJob.mutateAsync(jobId)}
             onRun={(jobId) => runJob.mutateAsync(jobId)}
             onRemove={(jobId) => removeJob.mutateAsync(jobId)}
-            onRequestApproval={(jobId) =>
-              requestApproval.mutateAsync({
-                jobId,
-                actor_id: "requester-ui",
-                reason: "High-risk action",
-              })
-            }
           />
         </TabsContent>
 
@@ -192,13 +171,6 @@ export function AutomationPage() {
             onResume={(jobId) => resumeJob.mutateAsync(jobId)}
             onRun={(jobId) => runJob.mutateAsync(jobId)}
             onRemove={(jobId) => removeJob.mutateAsync(jobId)}
-            onRequestApproval={(jobId) =>
-              requestApproval.mutateAsync({
-                jobId,
-                actor_id: "requester-ui",
-                reason: "High-risk action",
-              })
-            }
           />
         </TabsContent>
 
@@ -238,60 +210,7 @@ export function AutomationPage() {
             onResume={(jobId) => resumeJob.mutateAsync(jobId)}
             onRun={(jobId) => runJob.mutateAsync(jobId)}
             onRemove={(jobId) => removeJob.mutateAsync(jobId)}
-            onRequestApproval={(jobId) =>
-              requestApproval.mutateAsync({
-                jobId,
-                actor_id: "requester-ui",
-                reason: "High-risk action",
-              })
-            }
           />
-        </TabsContent>
-
-        <TabsContent value="workflow" className="space-y-6">
-          <WorkflowForm
-            isPending={createJob.isPending}
-            onSubmit={handleCreate}
-          />
-          <WorkflowJobSection
-            title="Workflows"
-            description="Linear multi-step automations with pause, retry, and resume support."
-            emptyMessage="No workflows yet."
-            jobs={groupedJobs.workflows}
-            runs={runs}
-            onPause={(jobId) => pauseJob.mutateAsync(jobId)}
-            onResume={(jobId) => resumeJob.mutateAsync(jobId)}
-            onRun={(jobId) => runJob.mutateAsync(jobId)}
-            onRemove={(jobId) => removeJob.mutateAsync(jobId)}
-            onRequestApproval={(jobId) =>
-              requestApproval.mutateAsync({
-                jobId,
-                actor_id: "requester-ui",
-                reason: "High-risk action",
-              })
-            }
-          />
-        </TabsContent>
-
-        <TabsContent value="templates" className="space-y-6">
-          <TemplateLibrarySection />
-        </TabsContent>
-
-        <TabsContent value="governance" className="space-y-6">
-          <ApprovalQueueSection
-            onDecide={(approvalId, decision) =>
-              decideApproval.mutateAsync({
-                approvalId,
-                actor_id: "approver-ui",
-                decision,
-              })
-            }
-          />
-          <AuditHistorySection />
-        </TabsContent>
-
-        <TabsContent value="platform" className="space-y-6">
-          <OpenPlatformSection />
         </TabsContent>
 
         <TabsContent value="eventCenter" className="space-y-6">

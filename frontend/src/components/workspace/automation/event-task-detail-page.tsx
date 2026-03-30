@@ -18,12 +18,10 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { ConfirmActionDialog } from "@/components/workspace/settings/confirm-action-dialog";
 import {
-  useExportAutomationJobTemplate,
   useAutomationJob,
   useRemoveAutomationJob,
   useAutomationRuns,
   useRunAutomationJob,
-  useSaveAutomationTemplate,
   useUpdateAutomationJob,
   useUploadAutomationPackageFiles,
 } from "@/core/automation/hooks";
@@ -42,10 +40,8 @@ function readKnownString(record: Record<string, unknown>, key: string) {
 export function EventTaskDetailPage({ jobId }: { jobId: string }) {
   const router = useRouter();
   const { job, isLoading, error } = useAutomationJob(jobId);
-  const exportTemplate = useExportAutomationJobTemplate(jobId);
   const { runs } = useAutomationRuns();
   const runJob = useRunAutomationJob();
-  const saveTemplate = useSaveAutomationTemplate();
   const updateJob = useUpdateAutomationJob();
   const uploadPackageFiles = useUploadAutomationPackageFiles();
   const removeJob = useRemoveAutomationJob();
@@ -289,32 +285,6 @@ export function EventTaskDetailPage({ jobId }: { jobId: string }) {
       <div className="flex flex-wrap gap-3">
         <Button type="button" onClick={() => void handleSaveChanges()}>
           Save changes
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => void exportTemplate.mutateAsync()}
-          disabled={exportTemplate.isPending}
-        >
-          Export template
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          disabled={exportTemplate.isPending || saveTemplate.isPending}
-          onClick={async () => {
-            const templatePackage = await exportTemplate.mutateAsync();
-            const template = await saveTemplate.mutateAsync({
-              id: `tpl-${job.id}`,
-              name: `${job.name} template`,
-              scope: "personal",
-              manifest: templatePackage.manifest,
-              files: templatePackage.files,
-            });
-            router.push(`/workspace/automation/templates/${template.id}`);
-          }}
-        >
-          Save as template
         </Button>
         <Button type="button" variant="destructive" onClick={() => setDeleteOpen(true)}>
           Delete event task

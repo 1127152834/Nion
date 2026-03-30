@@ -18,10 +18,9 @@ void test("event-task detail page shows trigger, action, package files, and rece
   assert.match(source, /Create script/);
   assert.match(source, /Remove file/);
   assert.match(source, /ConfirmActionDialog/);
-  assert.match(source, /Export template/);
-  assert.match(source, /Save as template/);
-  assert.match(source, /router\.push/);
-  assert.match(source, /\/workspace\/automation\/templates\//);
-  assert.match(source, /exportTemplate\.mutateAsync/);
-  assert.match(source, /exportAutomationJobTemplate|useExportAutomationJobTemplate/);
+  assert.match(source, /Delete event task/);
+  assert.doesNotMatch(source, /Export template/);
+  assert.doesNotMatch(source, /Save as template/);
+  assert.doesNotMatch(source, /\/workspace\/automation\/templates\//);
+  assert.doesNotMatch(source, /exportAutomationJobTemplate|useExportAutomationJobTemplate/);
 });

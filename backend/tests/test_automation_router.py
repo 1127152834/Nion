@@ -94,22 +94,6 @@ class FakeAutomationService:
     def list_runs(self):
         return list(self.runs)
 
-    def resume_workflow_run(self, job_id: str, run_id: str, payload: dict):
-        self.calls.append(("resume_workflow_run", job_id, run_id, payload))
-        return AutomationRun(
-            id=run_id,
-            job_id=job_id,
-            started_at="2026-03-24T01:00:00Z",
-            finished_at="2026-03-24T01:05:00Z",
-            status="succeeded",
-            result_summary="Workflow completed",
-            current_step_id=None,
-            step_results=[
-                {"step_id": "step-notify", "status": "succeeded", "attempts": 1},
-                {"step_id": "step-wait", "status": "succeeded", "attempts": 1},
-            ],
-        )
-
     def get_status(self):
         return {
             "scheduler_running": True,
@@ -315,10 +299,10 @@ def test_serve_automation_package_file():
     assert response.content == b"audio"
 
 
-def test_create_workflow_job():
+def test_removed_workflow_routes_are_not_available():
     service = FakeAutomationService()
     with _client(service) as client:
-        response = client.post(
+        create_response = client.post(
             "/api/automation/jobs",
             json={
                 "name": "Reply follow-up workflow",
@@ -326,28 +310,14 @@ def test_create_workflow_job():
                 "job_kind": "workflow",
                 "trigger_kind": "event",
                 "trigger_spec": {"event_name": "agent.run.completed"},
-                "workflow_steps": [
-                    {"id": "step-notify", "kind": "notify", "config": {"title": "Reply finished"}},
-                    {"id": "step-wait", "kind": "wait_for_user", "config": {"prompt": "Continue?"}},
-                ],
                 "delivery_mode": "local",
                 "delivery_targets": [],
             },
         )
-
-    assert response.status_code == 201
-    assert service.calls[0][1]["job_kind"] == "workflow"
-    assert service.calls[0][1]["workflow_steps"][1]["kind"] == "wait_for_user"
-
-
-def test_resume_workflow_run():
-    service = FakeAutomationService()
-    with _client(service) as client:
-        response = client.post(
+        resume_response = client.post(
             "/api/automation/jobs/job-1/runs/run-1/resume",
             json={"payload": {"answer": "continue"}},
         )
 
-    assert response.status_code == 200
-    assert response.json()["run"]["status"] == "succeeded"
-    assert service.calls[0] == ("resume_workflow_run", "job-1", "run-1", {"answer": "continue"})
+    assert create_response.status_code == 422
+    assert resume_response.status_code == 404

@@ -1,31 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
-  activateAutomationTemplate,
   createAutomationJob,
-  decideAutomationApproval,
-  exportAutomationJobTemplate,
-  importAutomationTemplate,
-  loadAutomationApprovals,
-  loadAutomationAudit,
   loadAutomationEvent,
   loadAutomationEvents,
   loadAutomationJob,
   loadAutomationJobs,
-  loadAutomationPlatformCapabilities,
-  loadAutomationPlatformConnectors,
   loadAutomationRuns,
   loadAutomationStatus,
-  loadAutomationTemplate,
-  loadAutomationTemplates,
   pauseAutomationJob,
-  requestAutomationApproval,
-  resumeWorkflowRun,
   replayAutomationEvent,
   removeAutomationJob,
   resumeAutomationJob,
   runAutomationJob,
-  saveAutomationTemplate,
   updateAutomationJob,
   uploadAutomationPackageFiles,
 } from "./api";
@@ -106,73 +93,6 @@ export function useAutomationStatus() {
   return { status: data ?? null, isLoading, error };
 }
 
-export function useAutomationApprovals() {
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["automation", "approvals"],
-    queryFn: () => loadAutomationApprovals(),
-    refetchOnWindowFocus: false,
-  });
-  return { approvals: data ?? [], isLoading, error };
-}
-
-export function useAutomationAudit() {
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["automation", "audit"],
-    queryFn: () => loadAutomationAudit(),
-    refetchOnWindowFocus: false,
-  });
-  return { audit: data ?? [], isLoading, error };
-}
-
-export function useAutomationTemplates() {
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["automation", "templates"],
-    queryFn: () => loadAutomationTemplates(),
-    refetchOnWindowFocus: false,
-  });
-  return {
-    templates: data ?? { official: [], personal: [] },
-    isLoading,
-    error,
-  };
-}
-
-export function useAutomationTemplate(templateId: string) {
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["automation", "templates", "detail", templateId],
-    queryFn: () => loadAutomationTemplate(templateId),
-    enabled: Boolean(templateId),
-    refetchOnWindowFocus: false,
-  });
-  return { template: data ?? null, isLoading, error };
-}
-
-export function useAutomationPlatformCapabilities() {
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["automation", "platform", "capabilities"],
-    queryFn: () => loadAutomationPlatformCapabilities(),
-    refetchOnWindowFocus: false,
-  });
-  return {
-    capabilities: data ?? { webhook_event_versions: [], plugin_actions: [] },
-    isLoading,
-    error,
-  };
-}
-
-export function useAutomationPlatformConnectors() {
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["automation", "platform", "connectors"],
-    queryFn: () => loadAutomationPlatformConnectors(),
-    refetchOnWindowFocus: false,
-  });
-  return {
-    connectors: data?.connectors ?? [],
-    isLoading,
-    error,
-  };
-}
-
 export function useCreateAutomationJob() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -181,71 +101,6 @@ export function useCreateAutomationJob() {
     onSuccess: () => {
       void invalidateAutomationQueries(queryClient);
     },
-  });
-}
-
-export function useImportAutomationTemplate() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (input: { manifest: Record<string, unknown>; files: Record<string, string> }) =>
-      importAutomationTemplate(input),
-    onSuccess: () => {
-      void invalidateAutomationQueries(queryClient);
-    },
-  });
-}
-
-export function useSaveAutomationTemplate() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (input: {
-      id: string;
-      name: string;
-      scope: string;
-      manifest: Record<string, unknown>;
-      files: Record<string, string>;
-    }) => saveAutomationTemplate(input),
-    onSuccess: () => {
-      void invalidateAutomationQueries(queryClient);
-    },
-  });
-}
-
-export function useActivateAutomationTemplate() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (templateId: string) => activateAutomationTemplate(templateId),
-    onSuccess: () => {
-      void invalidateAutomationQueries(queryClient);
-    },
-  });
-}
-
-export function useRequestAutomationApproval() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async ({ jobId, actor_id, reason }: { jobId: string; actor_id: string; reason: string }) =>
-      requestAutomationApproval(jobId, { actor_id, reason }),
-    onSuccess: () => {
-      void invalidateAutomationQueries(queryClient);
-    },
-  });
-}
-
-export function useDecideAutomationApproval() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async ({ approvalId, actor_id, decision }: { approvalId: string; actor_id: string; decision: string }) =>
-      decideAutomationApproval(approvalId, { actor_id, decision }),
-    onSuccess: () => {
-      void invalidateAutomationQueries(queryClient);
-    },
-  });
-}
-
-export function useExportAutomationJobTemplate(jobId: string) {
-  return useMutation({
-    mutationFn: async () => exportAutomationJobTemplate(jobId),
   });
 }
 
@@ -293,24 +148,6 @@ export function useRunAutomationJob() {
   return useAutomationJobMutation((jobId) => runAutomationJob(jobId));
 }
 
-export function useResumeWorkflowRun() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async ({
-      jobId,
-      runId,
-      payload,
-    }: {
-      jobId: string;
-      runId: string;
-      payload: Record<string, unknown>;
-    }) => resumeWorkflowRun(jobId, runId, payload),
-    onSuccess: () => {
-      void invalidateAutomationQueries(queryClient);
-    },
-  });
-}
-
 export function useRemoveAutomationJob() {
   return useAutomationJobMutation((jobId) => removeAutomationJob(jobId));
 }
@@ -333,7 +170,5 @@ async function invalidateAutomationQueries(queryClient: ReturnType<typeof useQue
     queryClient.invalidateQueries({ queryKey: ["automation", "events", "detail"], exact: false }),
     queryClient.invalidateQueries({ queryKey: ["automation", "runs"] }),
     queryClient.invalidateQueries({ queryKey: ["automation", "status"] }),
-    queryClient.invalidateQueries({ queryKey: ["automation", "approvals"] }),
-    queryClient.invalidateQueries({ queryKey: ["automation", "audit"] }),
   ]);
 }

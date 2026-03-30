@@ -226,50 +226,28 @@ def test_event_center_flow_can_create_task_replay_event_and_observe_run(tmp_path
     assert runs[0]["result_summary"] == "Handled thread.finished"
 
 
-def test_workflow_api_flow_can_run_pause_and_resume(tmp_path):
+def test_workflow_api_flow_is_removed(tmp_path):
     app = FastAPI()
     app.include_router(automation_router.router)
     repository = AutomationRepository(tmp_path / "automation.sqlite3")
     scheduler = AutomationScheduler(repository, lock_timeout_seconds=300)
 
-    class DummyWorkflowExecutor:
+    class DummyExecutor:
         def execute_job(self, job, *, run_id: str, trigger_event_name: str | None = None, trigger_event_payload=None):
             return AutomationRun(
                 id=run_id,
                 job_id=job.id,
                 started_at="2026-03-29T12:00:00Z",
-                finished_at=None,
-                status="paused",
-                trigger_event_name=trigger_event_name,
-                result_summary="Waiting for user",
-                current_step_id="step-wait",
-                step_results=[
-                    {"step_id": "step-notify", "status": "succeeded", "attempts": 1},
-                    {"step_id": "step-wait", "status": "paused", "attempts": 1},
-                ],
-            )
-
-        def resume_workflow(self, job, run, *, resume_payload: dict):
-            return AutomationRun(
-                id=run.id,
-                job_id=job.id,
-                started_at=run.started_at,
                 finished_at="2026-03-29T12:05:00Z",
                 status="succeeded",
-                trigger_event_name=run.trigger_event_name,
-                result_summary="Workflow completed",
-                current_step_id=None,
-                failed_step_id=None,
-                step_results=[
-                    {"step_id": "step-notify", "status": "succeeded", "attempts": 1},
-                    {"step_id": "step-wait", "status": "succeeded", "attempts": 1, "resume_payload": resume_payload},
-                ],
+                trigger_event_name=trigger_event_name,
+                result_summary="Completed",
             )
 
     service = AutomationService(
         repository=repository,
         scheduler=scheduler,
-        executor=DummyWorkflowExecutor(),
+        executor=DummyExecutor(),
     )
     app.dependency_overrides[automation_router.get_automation_service] = lambda: service
 
@@ -282,33 +260,14 @@ def test_workflow_api_flow_can_run_pause_and_resume(tmp_path):
                 "job_kind": "workflow",
                 "trigger_kind": "event",
                 "trigger_spec": {"event_name": "agent.run.completed"},
-                "workflow_steps": [
-                    {"id": "step-notify", "kind": "notify", "config": {"title": "Reply finished"}},
-                    {"id": "step-wait", "kind": "wait_for_user", "config": {"prompt": "Continue?"}},
-                ],
                 "delivery_mode": "local",
                 "delivery_targets": [],
             },
         )
-        assert create_response.status_code == 201
-        job_id = create_response.json()["job"]["id"]
-
-        run_response = client.post(f"/api/automation/jobs/{job_id}/run")
-        assert run_response.status_code == 200
-        run_id = run_response.json()["run"]["id"]
-        assert run_response.json()["run"]["status"] == "paused"
-
         resume_response = client.post(
-            f"/api/automation/jobs/{job_id}/runs/{run_id}/resume",
+            "/api/automation/jobs/job-1/runs/run-1/resume",
             json={"payload": {"answer": "continue"}},
         )
-        assert resume_response.status_code == 200
-        assert resume_response.json()["run"]["status"] == "succeeded"
 
-        runs_response = client.get("/api/automation/runs")
-
-    assert runs_response.status_code == 200
-    runs = runs_response.json()["runs"]
-    assert runs[0]["id"] == run_id
-    assert runs[0]["status"] == "succeeded"
-    assert runs[0]["step_results"][1]["resume_payload"] == {"answer": "continue"}
+    assert create_response.status_code == 422
+    assert resume_response.status_code == 404

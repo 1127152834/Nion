@@ -11,15 +11,12 @@ from nion.automation.delivery import AutomationChannelDeliveryRequest
 from nion.automation.event_dispatch import dispatch_automation_event
 from nion.automation.models import (
     AutomationActionKind,
-    AutomationApproval,
-    AutomationAuditEvent,
     AutomationDeliveryMode,
     AutomationJob,
     AutomationJobKind,
     AutomationRun,
     AutomationScheduleKind,
     AutomationSchedulePreset,
-    AutomationTemplate,
     AutomationTriggerKind,
 )
 from nion.automation.service import AutomationService, create_default_automation_service
@@ -52,7 +49,6 @@ class AutomationJobCreateRequest(BaseModel):
     trigger_spec: dict = Field(default_factory=dict)
     action_kind: AutomationActionKind | None = None
     action_spec: dict = Field(default_factory=dict)
-    workflow_steps: list[dict] = Field(default_factory=list)
     schedule_timezone: str = "UTC"
     schedule_metadata: dict = Field(default_factory=dict)
     enabled: bool = True
@@ -70,55 +66,16 @@ class AutomationJobResponse(BaseModel):
     job: AutomationJob
 
 
-class AutomationTemplateExportResponse(BaseModel):
-    manifest: dict
-    files: dict = Field(default_factory=dict)
-
-
 class AutomationJobsListResponse(BaseModel):
     jobs: list[AutomationJob]
-
-
-class AutomationTemplatesListResponse(BaseModel):
-    official: list[AutomationTemplate]
-    personal: list[AutomationTemplate]
-
-
-class AutomationTemplateResponse(BaseModel):
-    template: AutomationTemplate
 
 
 class AutomationRunResponse(BaseModel):
     run: AutomationRun
 
 
-class AutomationApprovalResponse(BaseModel):
-    approval: AutomationApproval
-
-
-class AutomationApprovalsListResponse(BaseModel):
-    approvals: list[AutomationApproval]
-
-
-class AutomationAuditEventsListResponse(BaseModel):
-    audit: list[AutomationAuditEvent]
-
-
 class AutomationRunsListResponse(BaseModel):
     runs: list[AutomationRun]
-
-
-class AutomationWebhookDispatchResponse(BaseModel):
-    runs: list[AutomationRun]
-
-
-class AutomationPlatformCapabilitiesResponse(BaseModel):
-    webhook_event_versions: list[str]
-    plugin_actions: list[str]
-
-
-class AutomationPlatformConnectorsResponse(BaseModel):
-    connectors: list[dict]
 
 
 class AutomationJobUpdateRequest(BaseModel):
@@ -128,7 +85,6 @@ class AutomationJobUpdateRequest(BaseModel):
     trigger_spec: dict = Field(default_factory=dict)
     action_kind: AutomationActionKind | None = None
     action_spec: dict = Field(default_factory=dict)
-    workflow_steps: list[dict] = Field(default_factory=list)
     package_files: list[dict] = Field(default_factory=list)
     delete_package_files: list[str] = Field(default_factory=list)
 
@@ -169,39 +125,6 @@ class AutomationEventDetailResponse(BaseModel):
 class AutomationEventReplayRequest(BaseModel):
     event_name: str
     payload: dict = Field(default_factory=dict)
-
-
-class AutomationExternalWebhookEventRequest(BaseModel):
-    version: str
-    event_name: str
-    payload: dict = Field(default_factory=dict)
-
-
-class AutomationWorkflowResumeRequest(BaseModel):
-    payload: dict = Field(default_factory=dict)
-
-
-class AutomationTemplateImportRequest(BaseModel):
-    manifest: dict
-    files: dict = Field(default_factory=dict)
-
-
-class AutomationTemplateSaveRequest(BaseModel):
-    id: str
-    name: str
-    scope: str
-    manifest: dict
-    files: dict = Field(default_factory=dict)
-
-
-class AutomationApprovalRequestCreate(BaseModel):
-    actor_id: str
-    reason: str = ""
-
-
-class AutomationApprovalDecisionRequest(BaseModel):
-    actor_id: str
-    decision: str
 
 
 _automation_service: AutomationService | None = None
@@ -247,113 +170,12 @@ def list_automation_jobs(service: AutomationService = Depends(get_automation_ser
     return AutomationJobsListResponse(jobs=service.list_jobs())
 
 
-@router.get("/templates", response_model=AutomationTemplatesListResponse)
-def list_automation_templates(service: AutomationService = Depends(get_automation_service)) -> AutomationTemplatesListResponse:
-    return AutomationTemplatesListResponse(**service.list_templates())
-
-
-@router.get("/templates/{template_id}", response_model=AutomationTemplateResponse)
-def get_automation_template(template_id: str, service: AutomationService = Depends(get_automation_service)) -> AutomationTemplateResponse:
-    try:
-        template = service.get_template(template_id)
-    except KeyError:
-        raise HTTPException(status_code=404, detail=f"Automation template {template_id} not found")
-    return AutomationTemplateResponse(template=template)
-
-
-@router.post("/templates/{template_id}/activate", response_model=AutomationJobResponse, status_code=201)
-def activate_automation_template(template_id: str, service: AutomationService = Depends(get_automation_service)) -> AutomationJobResponse:
-    try:
-        job = service.activate_template(template_id)
-    except KeyError:
-        raise HTTPException(status_code=404, detail=f"Automation template {template_id} not found")
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
-    return AutomationJobResponse(job=job)
-
-
-@router.post("/webhooks/events", response_model=AutomationWebhookDispatchResponse, status_code=202)
-def ingest_automation_webhook_event(
-    request: AutomationExternalWebhookEventRequest,
-    service: AutomationService = Depends(get_automation_service),
-) -> AutomationWebhookDispatchResponse:
-    if request.version != "1":
-        raise HTTPException(status_code=400, detail="Unsupported webhook event version")
-    runs = service.handle_webhook_event(request.event_name, request.payload)
-    return AutomationWebhookDispatchResponse(runs=runs)
-
-
-@router.get("/platform/capabilities", response_model=AutomationPlatformCapabilitiesResponse)
-def get_automation_platform_capabilities() -> AutomationPlatformCapabilitiesResponse:
-    return AutomationPlatformCapabilitiesResponse(
-        webhook_event_versions=["1"],
-        plugin_actions=["echo.plugin"],
-    )
-
-
-@router.get("/platform/connectors", response_model=AutomationPlatformConnectorsResponse)
-def get_automation_platform_connectors() -> AutomationPlatformConnectorsResponse:
-    return AutomationPlatformConnectorsResponse(
-        connectors=[
-            {
-                "id": "generic_webhook",
-                "label": "Generic Webhook",
-                "status": "available",
-            }
-        ]
-    )
-
-
-@router.post("/templates", response_model=AutomationTemplate, status_code=201)
-def save_automation_template(
-    request: AutomationTemplateSaveRequest,
-    service: AutomationService = Depends(get_automation_service),
-) -> AutomationTemplate:
-    return service.save_template(request.model_dump())
-
-
 @router.post("/jobs", response_model=AutomationJobResponse, status_code=201)
 def create_automation_job(
     request: AutomationJobCreateRequest,
     service: AutomationService = Depends(get_automation_service),
 ) -> AutomationJobResponse:
     return AutomationJobResponse(job=service.create_job(request.model_dump()))
-
-
-@router.post("/jobs/{job_id}/approvals", response_model=AutomationApprovalResponse, status_code=201)
-def request_automation_approval(
-    job_id: str,
-    request: AutomationApprovalRequestCreate,
-    service: AutomationService = Depends(get_automation_service),
-) -> AutomationApprovalResponse:
-    try:
-        approval = service.request_approval(job_id, actor_id=request.actor_id, reason=request.reason)
-    except KeyError:
-        raise HTTPException(status_code=404, detail=f"Automation job {job_id} not found")
-    return AutomationApprovalResponse(approval=approval)
-
-
-@router.post("/approvals/{approval_id}/decision", response_model=AutomationApprovalResponse)
-def decide_automation_approval(
-    approval_id: str,
-    request: AutomationApprovalDecisionRequest,
-    service: AutomationService = Depends(get_automation_service),
-) -> AutomationApprovalResponse:
-    try:
-        approval = service.decide_approval(approval_id, actor_id=request.actor_id, decision=request.decision)
-    except KeyError:
-        raise HTTPException(status_code=404, detail=f"Approval {approval_id} not found")
-    return AutomationApprovalResponse(approval=approval)
-
-
-@router.get("/approvals", response_model=AutomationApprovalsListResponse)
-def list_automation_approvals(service: AutomationService = Depends(get_automation_service)) -> AutomationApprovalsListResponse:
-    return AutomationApprovalsListResponse(approvals=service.list_approvals())
-
-
-@router.get("/audit", response_model=AutomationAuditEventsListResponse)
-def list_automation_audit(service: AutomationService = Depends(get_automation_service)) -> AutomationAuditEventsListResponse:
-    return AutomationAuditEventsListResponse(audit=service.list_audit_events())
 
 
 @router.get("/jobs/{job_id}", response_model=AutomationJobResponse)
@@ -363,15 +185,6 @@ def get_automation_job(job_id: str, service: AutomationService = Depends(get_aut
     except KeyError:
         raise HTTPException(status_code=404, detail=f"Automation job {job_id} not found")
     return AutomationJobResponse(job=job)
-
-
-@router.get("/jobs/{job_id}/export", response_model=AutomationTemplateExportResponse)
-def export_automation_job(job_id: str, service: AutomationService = Depends(get_automation_service)) -> AutomationTemplateExportResponse:
-    try:
-        payload = service.export_job_package(job_id)
-    except KeyError:
-        raise HTTPException(status_code=404, detail=f"Automation job {job_id} not found")
-    return AutomationTemplateExportResponse(**payload)
 
 
 @router.patch("/jobs/{job_id}", response_model=AutomationJobResponse)
@@ -463,34 +276,6 @@ def run_automation_job(job_id: str, service: AutomationService = Depends(get_aut
     except PermissionError as exc:
         raise HTTPException(status_code=403, detail=str(exc))
     return AutomationRunResponse(run=run)
-
-
-@router.post("/jobs/{job_id}/runs/{run_id}/resume", response_model=AutomationRunResponse)
-def resume_workflow_run(
-    job_id: str,
-    run_id: str,
-    request: AutomationWorkflowResumeRequest,
-    service: AutomationService = Depends(get_automation_service),
-) -> AutomationRunResponse:
-    try:
-        run = service.resume_workflow_run(job_id, run_id, request.payload)
-    except KeyError:
-        raise HTTPException(status_code=404, detail=f"Workflow run {run_id} not found")
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
-    return AutomationRunResponse(run=run)
-
-
-@router.post("/templates/import", response_model=AutomationJobResponse, status_code=201)
-def import_automation_template(
-    request: AutomationTemplateImportRequest,
-    service: AutomationService = Depends(get_automation_service),
-) -> AutomationJobResponse:
-    try:
-        job = service.import_job_package(request.manifest, request.files)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
-    return AutomationJobResponse(job=job)
 
 
 @router.delete("/jobs/{job_id}", status_code=204)

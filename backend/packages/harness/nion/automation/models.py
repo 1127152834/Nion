@@ -4,15 +4,12 @@ from pydantic import BaseModel, Field
 
 AutomationScheduleKind = Literal["once", "interval", "cron", "event"]
 AutomationSchedulePreset = Literal["once", "daily", "weekdays", "weekly", "interval", "cron", "event"]
-AutomationJobKind = Literal["reminder", "scheduled_task", "event_task", "workflow"]
+AutomationJobKind = Literal["reminder", "scheduled_task", "event_task"]
 AutomationJobState = Literal["scheduled", "paused", "running", "error"]
 AutomationDeliveryMode = Literal["local", "thread", "channel", "multi"]
-AutomationRunStatus = Literal["running", "succeeded", "failed", "skipped", "paused"]
-AutomationTriggerKind = Literal["schedule", "event", "manual", "webhook"]
-AutomationActionKind = Literal["agent_prompt", "script", "notify", "play_sound", "notebook_write", "plugin_action"]
-AutomationTemplateScope = Literal["official", "personal"]
-AutomationVisibility = Literal["private", "shared", "team"]
-AutomationApprovalStatus = Literal["pending", "approved", "denied"]
+AutomationRunStatus = Literal["running", "succeeded", "failed", "skipped"]
+AutomationTriggerKind = Literal["schedule", "event", "manual"]
+AutomationActionKind = Literal["agent_prompt", "script", "notify", "play_sound", "notebook_write"]
 
 
 class AutomationJob(BaseModel):
@@ -36,12 +33,8 @@ class AutomationJob(BaseModel):
     skills: list[str] = Field(default_factory=list)
     session_policy: dict[str, Any] = Field(default_factory=dict)
     toolset_profile: str = "automation"
-    owner_id: str | None = None
-    visibility: AutomationVisibility = "private"
-    approval_policy: dict[str, Any] = Field(default_factory=dict)
     package_dir: str | None = None
     package_manifest: dict[str, Any] = Field(default_factory=dict)
-    workflow_steps: list[dict[str, Any]] = Field(default_factory=list)
     next_run_at: str | None = None
     last_run_at: str | None = None
     last_status: str | None = None
@@ -58,9 +51,6 @@ class AutomationRun(BaseModel):
     status: AutomationRunStatus
     trigger_event_name: str | None = None
     result_summary: str = ""
-    current_step_id: str | None = None
-    failed_step_id: str | None = None
-    step_results: list[dict[str, Any]] = Field(default_factory=list)
     output_artifacts: list[str] = Field(default_factory=list)
     delivery_results: list[dict[str, Any]] = Field(default_factory=list)
 
@@ -69,31 +59,3 @@ class AutomationExecutionOutput(BaseModel):
     response_text: str = ""
     artifacts: list[str] = Field(default_factory=list)
     isolated_thread_id: str | None = None
-
-
-class AutomationTemplate(BaseModel):
-    id: str
-    name: str
-    scope: AutomationTemplateScope
-    manifest: dict[str, Any] = Field(default_factory=dict)
-    files: dict[str, Any] = Field(default_factory=dict)
-
-
-class AutomationApproval(BaseModel):
-    id: str
-    job_id: str
-    status: AutomationApprovalStatus = "pending"
-    requested_by: str
-    reason: str = ""
-    requested_at: str
-    decided_by: str | None = None
-    decided_at: str | None = None
-
-
-class AutomationAuditEvent(BaseModel):
-    id: str
-    job_id: str
-    action: str
-    actor_id: str
-    created_at: str
-    details: dict[str, Any] = Field(default_factory=dict)

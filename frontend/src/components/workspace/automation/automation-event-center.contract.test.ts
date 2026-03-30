@@ -46,4 +46,13 @@ void test("automation page exposes an event center tab and section", async () =>
   assert.match(pageSource, /searchParams\.get\("run"\)/);
   assert.match(pageSource, /Need my attention/);
   assert.match(pageSource, /Automation failed alert/);
+  assert.doesNotMatch(tabsSource, /TabsTrigger value="workflow"/);
+  assert.doesNotMatch(tabsSource, /TabsTrigger value="templates"/);
+  assert.doesNotMatch(tabsSource, /TabsTrigger value="governance"/);
+  assert.doesNotMatch(tabsSource, /TabsTrigger value="platform"/);
+  assert.doesNotMatch(pageSource, /WorkflowForm/);
+  assert.doesNotMatch(pageSource, /WorkflowJobSection/);
+  assert.doesNotMatch(pageSource, /TemplateLibrarySection/);
+  assert.doesNotMatch(pageSource, /ApprovalQueueSection/);
+  assert.doesNotMatch(pageSource, /OpenPlatformSection/);
 });
