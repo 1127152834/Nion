@@ -28,6 +28,9 @@ import type {
 } from "@/core/automation/types";
 import { useI18n } from "@/core/i18n/hooks";
 
+import { AutomationPreviewCard } from "./automation-preview-card";
+import { ScheduleBuilder } from "./schedule-builder";
+
 type AutomationCreatorProps = {
   isPending: boolean;
   defaultKind?: Extract<AutomationJobKind, "reminder" | "scheduled_task">;
@@ -48,11 +51,6 @@ export function AutomationCreator({
     );
   const [name, setName] = useState("");
   const [prompt, setPrompt] = useState("");
-  const [cadence, setCadence] = useState<
-    "once" | "daily" | "weekdays" | "weekly"
-  >(kind === "reminder" ? "daily" : "weekdays");
-  const [timeOfDay, setTimeOfDay] = useState("09:00");
-  const [runAt, setRunAt] = useState("");
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [deliveryMode, setDeliveryMode] =
     useState<AutomationDeliveryMode>("local");
@@ -62,38 +60,26 @@ export function AutomationCreator({
     () => Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
     [],
   );
+  const [schedule, setSchedule] = useState<AutomationScheduleDefinition>({
+    preset: kind === "reminder" ? "daily" : "weekdays",
+    timezone,
+    timeOfDay: "09:00",
+  });
 
   async function handleSubmit() {
     if (!name.trim() || !prompt.trim()) {
       return;
     }
 
-    const schedule: AutomationScheduleDefinition =
-      cadence === "once"
-        ? {
-            preset: "once",
-            timezone,
-            runAt: normalizeDateTimeLocal(runAt),
-          }
-        : cadence === "weekly"
-          ? {
-              preset: "weekly",
-              timezone,
-              timeOfDay,
-              weekdays: [1],
-            }
-          : {
-              preset: cadence,
-              timezone,
-              timeOfDay,
-            };
-
     await onSubmit(
       buildAutomationDraftRequest({
         kind,
         name,
         prompt,
-        schedule,
+        schedule: {
+          ...schedule,
+          timezone,
+        },
         deliveryMode,
         skills:
           kind === "scheduled_task"
@@ -107,11 +93,9 @@ export function AutomationCreator({
 
     setName("");
     setPrompt("");
-    setRunAt("");
     setSkillsText("");
   }
 
-  const isOnce = cadence === "once";
   const isTask = kind === "scheduled_task";
 
   return (
@@ -128,9 +112,21 @@ export function AutomationCreator({
             </label>
             <Select
               value={kind}
-              onValueChange={(value) =>
-                setKind(value as Extract<AutomationJobKind, "reminder" | "scheduled_task">)
-              }
+              onValueChange={(value) => {
+                const nextKind =
+                  value as Extract<AutomationJobKind, "reminder" | "scheduled_task">;
+                setKind(nextKind);
+                setSchedule((current) => ({
+                  ...current,
+                  preset:
+                    current.preset === "interval" || current.preset === "cron"
+                      ? current.preset
+                      : nextKind === "reminder"
+                        ? "daily"
+                        : "weekdays",
+                  timezone,
+                }));
+              }}
             >
               <SelectTrigger aria-labelledby="automation-kind-label">
                 <SelectValue />
@@ -154,54 +150,6 @@ export function AutomationCreator({
               placeholder={settingsCopy.namePlaceholder}
             />
           </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium" id="automation-cadence-label">
-              {copy.cadenceLabel}
-            </label>
-            <Select
-              value={cadence}
-              onValueChange={(value) =>
-                setCadence(value as "once" | "daily" | "weekdays" | "weekly")
-              }
-            >
-              <SelectTrigger aria-labelledby="automation-cadence-label">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="once">{copy.cadenceOptions.once}</SelectItem>
-                <SelectItem value="daily">{copy.cadenceOptions.daily}</SelectItem>
-                <SelectItem value="weekdays">
-                  {copy.cadenceOptions.weekdays}
-                </SelectItem>
-                <SelectItem value="weekly">{copy.cadenceOptions.weekly}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          {isOnce ? (
-            <div className="space-y-2">
-              <label className="text-sm font-medium" htmlFor="automation-run-at">
-                {copy.dateTimeLabel}
-              </label>
-              <Input
-                id="automation-run-at"
-                type="datetime-local"
-                value={runAt}
-                onChange={(event) => setRunAt(event.target.value)}
-              />
-            </div>
-          ) : (
-            <div className="space-y-2">
-              <label className="text-sm font-medium" htmlFor="automation-time">
-                {copy.timeLabel}
-              </label>
-              <Input
-                id="automation-time"
-                type="time"
-                value={timeOfDay}
-                onChange={(event) => setTimeOfDay(event.target.value)}
-              />
-            </div>
-          )}
           <div className="space-y-2 md:col-span-2">
             <label className="text-sm font-medium" htmlFor="automation-prompt">
               {isTask ? copy.taskPromptLabel : settingsCopy.promptLabel}
@@ -218,7 +166,19 @@ export function AutomationCreator({
               className="min-h-24"
             />
           </div>
+          <div className="md:col-span-2">
+            <ScheduleBuilder
+              value={{ ...schedule, timezone }}
+              onChange={(next) => setSchedule(next)}
+            />
+          </div>
         </div>
+
+        <AutomationPreviewCard
+          kind={kind}
+          schedule={{ ...schedule, timezone }}
+          deliveryMode={deliveryMode}
+        />
 
         <button
           type="button"
@@ -278,12 +238,7 @@ export function AutomationCreator({
               <div className="space-y-2">
                 <div className="text-sm font-medium">{copy.previewLabel}</div>
                 <div className="text-muted-foreground text-sm">
-                  {describeSummary({
-                    kind,
-                    cadence,
-                    timeOfDay,
-                    runAt,
-                  })}
+                  {copy.previewReminderAdvancedHint}
                 </div>
               </div>
             )}
@@ -297,7 +252,7 @@ export function AutomationCreator({
               isPending ||
               !name.trim() ||
               !prompt.trim() ||
-              (isOnce && !runAt.trim())
+              (schedule.preset === "once" && !schedule.runAt.trim())
             }
           >
             {isTask ? copy.createTask : copy.createReminder}
@@ -306,38 +261,4 @@ export function AutomationCreator({
       </CardContent>
     </Card>
   );
-}
-
-function normalizeDateTimeLocal(value: string) {
-  const normalized = value.trim();
-  if (!normalized) {
-    throw new Error("run_at is required for once reminder");
-  }
-  const asDate = new Date(normalized);
-  if (Number.isNaN(asDate.getTime())) {
-    throw new Error("run_at must be a valid local date and time");
-  }
-  return asDate.toISOString().replace(/\.\d{3}Z$/, "Z");
-}
-
-function describeSummary(input: {
-  kind: "reminder" | "scheduled_task";
-  cadence: "once" | "daily" | "weekdays" | "weekly";
-  timeOfDay: string;
-  runAt: string;
-}) {
-  if (input.cadence === "once") {
-    return input.runAt
-      ? `Will run once at ${input.runAt}`
-      : "Choose a date and time for a one-time automation.";
-  }
-  if (input.cadence === "daily") {
-    return `Runs every day at ${input.timeOfDay}.`;
-  }
-  if (input.cadence === "weekdays") {
-    return `Runs every weekday at ${input.timeOfDay}.`;
-  }
-  return `${
-    input.kind === "reminder" ? "Reminder" : "Task"
-  } runs every week at ${input.timeOfDay}.`;
 }

@@ -968,17 +968,34 @@ export interface Translations {
         timeLabel: string;
         dateTimeLabel: string;
         previewLabel: string;
+        previewDeliveryLabel: string;
+        previewReminderHint: string;
+        previewTaskHint: string;
+        previewReminderAdvancedHint: string;
+        previewDeliveryModes: {
+          local: string;
+          thread: string;
+          channel: string;
+          multi: string;
+        };
         eventTypeLabel: string;
         eventActionLabel: string;
         eventPromptLabel: string;
         eventPromptPlaceholder: string;
         taskPromptLabel: string;
         taskPromptPlaceholder: string;
+        intervalLabel: string;
+        weekdayLabel: string;
+        weekdayOptions: string[];
+        customScheduleLabel: string;
+        customSchedulePlaceholder: string;
         cadenceOptions: {
           once: string;
           daily: string;
           weekdays: string;
           weekly: string;
+          interval: string;
+          custom: string;
         };
         eventOptions: {
           agentRunCompleted: string;
