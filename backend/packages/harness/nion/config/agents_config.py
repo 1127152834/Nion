@@ -41,14 +41,14 @@ def list_builtin_agents() -> list[AgentConfig]:
 
 
 def get_builtin_agent(identifier: str | None) -> AgentConfig | None:
-    """Lookup a built-in agent by stable API slug, entrypoint, or id suffix."""
+    """Lookup a built-in agent by stable API slug."""
 
     if identifier is None:
         return None
 
     normalized = identifier.strip().lower()
     for agent in BUILTIN_AGENTS:
-        if normalized in {agent.slug.lower(), agent.entrypoint.lower(), agent.id.removeprefix("builtin:").lower()}:
+        if normalized == agent.slug.lower():
             return AgentConfig(**agent.model_dump())
     return None
 

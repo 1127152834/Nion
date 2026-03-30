@@ -47,6 +47,19 @@ def test_get_builtin_agent_returns_catalog_entry(tmp_path):
     assert payload["soul"] == ""
 
 
+def test_get_builtin_agent_by_legacy_identifier_returns_404(tmp_path):
+    paths_instance = _make_paths(tmp_path)
+
+    with patch("nion.config.agents_config.get_paths", return_value=paths_instance), patch(
+        "app.gateway.routers.agents.get_paths",
+        return_value=paths_instance,
+    ):
+        with TestClient(_make_test_app()) as client:
+            response = client.get("/api/agents/notebook-assistant")
+
+    assert response.status_code == 404
+
+
 def test_delete_builtin_agent_is_forbidden(tmp_path):
     paths_instance = _make_paths(tmp_path)
 

@@ -304,40 +304,39 @@ class TestListCustomAgents:
 class TestMemoryFilePath:
     def test_global_memory_path(self, tmp_path):
         """None agent_name should return global memory file."""
-        from nion.agents.memory.storage import FileMemoryStorage
+        import nion.agents.memory.updater as updater_mod
         from nion.config.memory_config import MemoryConfig
 
         with (
-            patch("nion.agents.memory.storage.get_paths", return_value=_make_paths(tmp_path)),
-            patch("nion.agents.memory.storage.get_memory_config", return_value=MemoryConfig(storage_path="")),
+            patch("nion.agents.memory.updater.get_paths", return_value=_make_paths(tmp_path)),
+            patch("nion.agents.memory.updater.get_memory_config", return_value=MemoryConfig(storage_path="")),
         ):
-            path = FileMemoryStorage()._get_memory_file_path(None)
+            path = updater_mod._get_memory_file_path(None)
         assert path == tmp_path / "memory.json"
 
     def test_agent_memory_path(self, tmp_path):
         """Providing agent_name should return per-agent memory file."""
-        from nion.agents.memory.storage import FileMemoryStorage
+        import nion.agents.memory.updater as updater_mod
         from nion.config.memory_config import MemoryConfig
 
         with (
-            patch("nion.agents.memory.storage.get_paths", return_value=_make_paths(tmp_path)),
-            patch("nion.agents.memory.storage.get_memory_config", return_value=MemoryConfig(storage_path="")),
+            patch("nion.agents.memory.updater.get_paths", return_value=_make_paths(tmp_path)),
+            patch("nion.agents.memory.updater.get_memory_config", return_value=MemoryConfig(storage_path="")),
         ):
-            path = FileMemoryStorage()._get_memory_file_path("code-reviewer")
+            path = updater_mod._get_memory_file_path("code-reviewer")
         assert path == tmp_path / "agents" / "code-reviewer" / "memory.json"
 
     def test_different_paths_for_different_agents(self, tmp_path):
-        from nion.agents.memory.storage import FileMemoryStorage
+        import nion.agents.memory.updater as updater_mod
         from nion.config.memory_config import MemoryConfig
 
         with (
-            patch("nion.agents.memory.storage.get_paths", return_value=_make_paths(tmp_path)),
-            patch("nion.agents.memory.storage.get_memory_config", return_value=MemoryConfig(storage_path="")),
+            patch("nion.agents.memory.updater.get_paths", return_value=_make_paths(tmp_path)),
+            patch("nion.agents.memory.updater.get_memory_config", return_value=MemoryConfig(storage_path="")),
         ):
-            storage = FileMemoryStorage()
-            path_global = storage._get_memory_file_path(None)
-            path_a = storage._get_memory_file_path("agent-a")
-            path_b = storage._get_memory_file_path("agent-b")
+            path_global = updater_mod._get_memory_file_path(None)
+            path_a = updater_mod._get_memory_file_path("agent-a")
+            path_b = updater_mod._get_memory_file_path("agent-b")
 
         assert path_global != path_a
         assert path_global != path_b
