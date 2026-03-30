@@ -37,11 +37,8 @@ import {
 } from "@/core/memory/search";
 import type { UserMemory } from "@/core/memory/types";
 import {
-  useNotebookContextPreview,
-  useNotebookResourceSearch,
-  useReindexNotebookResources,
-} from "@/core/openviking";
-import { useAutoDreamRun } from "@/core/autodream";
+  useAutoDreamRun,
+} from "@/core/autodream";
 import { useRecallSearch } from "@/core/recall/hooks";
 import { streamdownPlugins } from "@/core/streamdown/plugins";
 import { pathOfThread } from "@/core/threads/utils";
@@ -238,9 +235,7 @@ export function MemorySettingsPage() {
     onSave,
   } = useConfigEditor();
   const [draftQuery, setDraftQuery] = useState("");
-  const [draftNotebookQuery, setDraftNotebookQuery] = useState("");
   const [submittedQuery, setSubmittedQuery] = useState("");
-  const [submittedNotebookQuery, setSubmittedNotebookQuery] = useState("");
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<MemoryViewFilter>("all");
   const [surface, setSurface] = useState<MemorySurfaceKey>("provider");
@@ -249,12 +244,6 @@ export function MemorySettingsPage() {
   const deferredQuery = useDeferredValue(query);
   const normalizedQuery = deferredQuery.trim().toLowerCase();
   const recall = useRecallSearch(submittedQuery, 5);
-  const notebookSearch = useNotebookResourceSearch(submittedNotebookQuery, 5);
-  const notebookContextPreview = useNotebookContextPreview(
-    submittedNotebookQuery,
-    5,
-  );
-  const reindexNotebook = useReindexNotebookResources();
   const runAutoDream = useAutoDreamRun();
   const [dreamQuery, setDreamQuery] = useState("");
   const [storageModeOverride, setStorageModeOverride] =
@@ -460,23 +449,11 @@ export function MemorySettingsPage() {
             onDreamQueryChange={setDreamQuery}
             onRunAutoDream={() => {
               void runAutoDream.mutateAsync({
-                query:
-                  dreamQuery.trim() ||
-                  submittedNotebookQuery ||
-                  "recent project work",
+                query: dreamQuery.trim() || "recent project work",
               });
             }}
             runAutoDreamPending={runAutoDream.isPending}
             runAutoDreamData={runAutoDream.data ?? null}
-            draftNotebookQuery={draftNotebookQuery}
-            onDraftNotebookQueryChange={setDraftNotebookQuery}
-            onNotebookSearch={() =>
-              setSubmittedNotebookQuery(draftNotebookQuery.trim())
-            }
-            reindexPending={reindexNotebook.isPending}
-            reindexData={reindexNotebook.data ?? null}
-            notebookSearch={notebookSearch}
-            notebookContextPreview={notebookContextPreview}
           />
         ) : null}
 

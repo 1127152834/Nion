@@ -24,6 +24,11 @@ export function getBackendBaseURL() {
   const desktopRuntimeUrl = getDesktopRuntimeBackendBaseURL();
   if (desktopRuntimeUrl) {
     return desktopRuntimeUrl;
+  } else if (
+    typeof window !== "undefined" &&
+    window.location.protocol === "nion:"
+  ) {
+    return "http://127.0.0.1:43115";
   } else if (env.NEXT_PUBLIC_BACKEND_BASE_URL) {
     return env.NEXT_PUBLIC_BACKEND_BASE_URL;
   } else if (

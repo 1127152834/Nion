@@ -686,6 +686,7 @@ export interface Translations {
         };
       };
       autodream: {
+        title: string;
         description: string;
         runPlaceholder: string;
         runButton: string;

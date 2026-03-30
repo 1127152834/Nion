@@ -639,12 +639,13 @@ export const zhCN: Translations = {
             "检索和查看 Nion 当前正在使用的记忆，并在必要时清理过期事实。",
         },
         agentCore: {
-          title: "智能体内核",
+          title: "自我维护",
           description:
-            "用于 AutoDream 与嵌入式 OpenViking 的操作面。这里是维护与检查区域，不是最终的用户日志产品界面。",
+            "用于智能体自身的反思与维护。这里放 AutoDream 和后续自我升级提案，不放笔记或知识库内容。",
         },
       },
       autodream: {
+        title: "AutoDream",
         description:
           "手动运行一次反思整理流程，并查看最近一次 Dream Log 摘要，后续再接入自动维护闭环。",
         runPlaceholder: "立即运行 AutoDream",

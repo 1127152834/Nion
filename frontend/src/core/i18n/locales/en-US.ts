@@ -667,12 +667,13 @@ export const enUS: Translations = {
             "Search and inspect the memory Nion is currently using, then clean up stale facts when needed.",
         },
         agentCore: {
-          title: "Agent Core",
+          title: "Self-Maintenance",
           description:
-            "Operator surfaces for AutoDream and embedded OpenViking. This area is for maintenance and inspection, not end-user journaling.",
+            "Reflective maintenance for the agent itself. This area is for AutoDream and future self-upgrade proposals, not for notebook content.",
         },
       },
       autodream: {
+        title: "AutoDream",
         description:
           "Run a manual reflective pass and inspect the latest Dream Log summary before future maintenance loops are automated.",
         runPlaceholder: "Run AutoDream now",

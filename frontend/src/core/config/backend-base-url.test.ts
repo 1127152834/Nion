@@ -23,6 +23,13 @@ void test("desktop shell falls back to the local daemon helper port", async () =
   assert.match(source, /return "http:\/\/127\.0\.0\.1:43115";/);
 });
 
+void test("nion desktop protocol also falls back to the local daemon helper port", async () => {
+  const source = await readFile(new URL("./index.ts", import.meta.url), "utf8");
+
+  assert.match(source, /window\.location\.protocol === "nion:"/);
+  assert.match(source, /return "http:\/\/127\.0\.0\.1:43115";/);
+});
+
 void test("plain web localhost still keeps the gateway fallback", async () => {
   const source = await readFile(new URL("./index.ts", import.meta.url), "utf8");
 
