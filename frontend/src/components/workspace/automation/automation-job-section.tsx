@@ -54,31 +54,31 @@ export function AutomationJobSection({
   return (
     <section className="space-y-4">
       <div className="space-y-1">
-        <h2 className="text-xl font-semibold tracking-tight text-stone-900">{title}</h2>
-        <p className="text-sm leading-6 text-stone-500">{description}</p>
+        <h2 className="text-lg font-semibold">{title}</h2>
+        <p className="text-muted-foreground text-sm">{description}</p>
       </div>
       {jobs.length === 0 ? (
-        <div className="rounded-[22px] border border-dashed border-stone-200 bg-stone-50/70 p-6 text-sm text-stone-500">
+        <div className="text-muted-foreground rounded-xl border border-dashed p-5 text-sm">
           {emptyMessage}
         </div>
       ) : (
-        <ItemGroup className="gap-4">
+        <ItemGroup className="gap-3">
           {jobs.map((job) => (
             <Item
               key={job.id}
               variant="outline"
-              className="items-start gap-4 rounded-[24px] border-stone-200/80 bg-[linear-gradient(180deg,rgba(255,252,246,0.96),rgba(248,243,233,0.9))] p-1 shadow-[0_16px_40px_rgba(98,74,37,0.08)]"
+              className="items-start gap-4 rounded-xl"
             >
-              <ItemContent className="w-full rounded-[20px] bg-white/75 p-4">
+              <ItemContent className="w-full">
                 <ItemHeader className="items-start">
                   <div className="space-y-2">
-                    <ItemTitle className="flex flex-wrap items-center gap-2 text-stone-900">
+                    <ItemTitle>
                       <span>{job.name}</span>
-                      <Badge variant="secondary" className="rounded-full bg-stone-900 text-white">
+                      <Badge variant="secondary">
                         {copy.stateLabels[job.state] ?? job.state}
                       </Badge>
                     </ItemTitle>
-                    <ItemDescription className="text-sm text-stone-500">
+                    <ItemDescription>
                       {job.next_run_at
                         ? `${workspaceCopy.nextRunLabel}: ${job.next_run_at}`
                         : `${workspaceCopy.nextRunLabel}: ${workspaceCopy.notScheduled}`}
@@ -89,7 +89,6 @@ export function AutomationJobSection({
                       <Button
                         size="sm"
                         variant="outline"
-                        className="rounded-full border-stone-200 bg-white/80 text-stone-700 hover:bg-stone-100"
                         onClick={() => void onResume(job.id)}
                       >
                         <PlayIcon className="size-4" />
@@ -99,7 +98,6 @@ export function AutomationJobSection({
                       <Button
                         size="sm"
                         variant="outline"
-                        className="rounded-full border-stone-200 bg-white/80 text-stone-700 hover:bg-stone-100"
                         onClick={() => void onPause(job.id)}
                       >
                         <PauseIcon className="size-4" />
@@ -109,7 +107,6 @@ export function AutomationJobSection({
                     <Button
                       size="sm"
                       variant="outline"
-                      className="rounded-full border-stone-200 bg-white/80 text-stone-700 hover:bg-stone-100"
                       onClick={() => void onRun(job.id)}
                     >
                       <ZapIcon className="size-4" />
@@ -118,14 +115,13 @@ export function AutomationJobSection({
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="rounded-full text-stone-500 hover:bg-stone-100"
                       onClick={() => void onRemove(job.id)}
                     >
                       <Trash2Icon className="size-4" />
                       {copy.remove}
                     </Button>
                     {job.job_kind === "event_task" ? (
-                      <Button size="sm" variant="ghost" className="rounded-full text-stone-500 hover:bg-stone-100" asChild>
+                      <Button size="sm" variant="ghost" asChild>
                         <Link href={`/workspace/automation/${job.id}`}>
                           {workspaceCopy.viewDetails}
                         </Link>
@@ -133,26 +129,26 @@ export function AutomationJobSection({
                     ) : null}
                   </ItemActions>
                 </ItemHeader>
-                <div className="grid gap-3 pt-4 text-xs md:grid-cols-3">
+                <div className="text-muted-foreground grid gap-3 pt-3 text-xs md:grid-cols-3">
                   <div>
-                    <div className="font-medium uppercase tracking-[0.16em] text-stone-400">
+                    <div className="font-medium text-foreground/80">
                       {workspaceCopy.scheduleLabel}
                     </div>
-                    <div className="mt-2 text-sm text-stone-700">{formatScheduleLabel(job, scheduleLabelCopy)}</div>
+                    <div>{formatScheduleLabel(job, scheduleLabelCopy)}</div>
                   </div>
                   <div>
-                    <div className="font-medium uppercase tracking-[0.16em] text-stone-400">
+                    <div className="font-medium text-foreground/80">
                       {workspaceCopy.summaryLabel}
                     </div>
-                    <div className="mt-2 text-sm leading-6 text-stone-700">{job.prompt}</div>
+                    <div>{job.prompt}</div>
                   </div>
                   <div>
-                    <div className="font-medium uppercase tracking-[0.16em] text-stone-400">
+                    <div className="font-medium text-foreground/80">
                       {job.job_kind === "event_task"
                         ? workspaceCopy.actionLabel
                         : workspaceCopy.lastResultLabel}
                     </div>
-                    <div className="mt-2 text-sm text-stone-700">
+                    <div>
                       {job.job_kind === "event_task"
                         ? formatActionLabel(job)
                         : job.last_result_summary ?? workspaceCopy.noSummary}

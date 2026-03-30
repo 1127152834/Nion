@@ -116,118 +116,33 @@ export function AutomationPage() {
 
   return (
     <section className="space-y-6">
-      <header className="relative overflow-hidden rounded-[30px] border border-stone-200/80 bg-[radial-gradient(circle_at_top_left,rgba(167,139,88,0.14),transparent_24%),radial-gradient(circle_at_bottom_right,rgba(67,94,79,0.1),transparent_26%),linear-gradient(180deg,rgba(255,252,246,0.98),rgba(246,240,230,0.95))] px-7 py-6 shadow-[0_20px_64px_rgba(96,72,35,0.1)]">
-        <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.28),transparent_55%)]" />
-        <div className="relative grid gap-5 xl:grid-cols-[1.3fr_0.7fr]">
-          <div className="space-y-4">
-            <div className="inline-flex rounded-full border border-stone-200/80 bg-white/80 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.22em] text-stone-500 shadow-xs">
-              {copy.hero.eyebrow}
-            </div>
-            <div className="space-y-2">
-              <div className="text-3xl font-semibold tracking-tight text-stone-950">
-                {copy.title}
-              </div>
-              <p className="max-w-3xl text-sm leading-7 text-stone-600">
-                {copy.description}
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              {copy.hero.quickActions.map((item) => (
-                <button
-                  key={item}
-                  type="button"
-                  className="rounded-full border border-stone-200/80 bg-white/80 px-4 py-2 text-sm font-medium text-stone-700 shadow-xs transition hover:border-stone-300 hover:bg-white"
-                >
-                  {item}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-3">
-            <div className="rounded-[24px] border border-stone-200/80 bg-white/76 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.68)]">
-              <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-stone-400">
-                {copy.hero.statusLabel}
-              </div>
-              <div className="mt-3 text-sm font-medium text-stone-800">
-                {resolvedStatus.scheduler_running ? copy.overview.schedulerRunning : copy.overview.schedulerIdle}
-              </div>
-              <div className="mt-2 text-sm text-stone-500">
-                {copy.overview.lastSuccess}: {resolvedStatus.last_success_at ?? copy.overview.notRecordedYet}
-              </div>
-            </div>
-            <div className="rounded-[24px] border border-stone-200/80 bg-white/76 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.68)]">
-              <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-stone-400">
-                {copy.hero.nextLabel}
-              </div>
-              <div className="mt-3 text-sm font-medium text-stone-800">
-                {jobs.find((job) => job.next_run_at)?.name ?? copy.hero.nonePlanned}
-              </div>
-              <div className="mt-2 text-sm text-stone-500">
-                {jobs.find((job) => job.next_run_at)?.next_run_at ?? copy.sections.notScheduled}
-              </div>
-            </div>
-            <div className="rounded-[24px] border border-stone-200/80 bg-white/76 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.68)]">
-              <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-stone-400">
-                {copy.hero.attentionLabel}
-              </div>
-              <div className="mt-3 text-2xl font-semibold tracking-tight text-stone-900">
-                {resolvedStatus.error_jobs_count + resolvedStatus.failed_runs_count}
-              </div>
-              <div className="mt-2 text-sm text-stone-500">
-                {copy.hero.attentionHint}
-              </div>
-            </div>
-          </div>
-        </div>
+      <header className="space-y-2">
+        <div className="text-2xl font-semibold tracking-tight">{copy.title}</div>
+        <p className="text-muted-foreground max-w-3xl text-sm">
+          {copy.description}
+        </p>
       </header>
 
       {firstError ? (
-        <div className="rounded-[24px] border border-red-300/50 bg-red-50/80 px-5 py-4 text-sm text-red-700 shadow-[0_10px_30px_rgba(185,74,74,0.08)]">
+        <div className="rounded-xl border border-red-500/30 bg-red-500/5 p-4 text-sm">
           {firstError instanceof Error ? firstError.message : String(firstError)}
         </div>
       ) : null}
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="gap-6">
-        <div className="flex items-center justify-between gap-4">
-          <AutomationKindTabs />
-          <div className="hidden text-sm text-stone-500 xl:block">
-            {copy.hero.surfaceHint}
-          </div>
-        </div>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="gap-5">
+        <AutomationKindTabs />
 
         <TabsContent value="overview" className="space-y-6">
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,1.08fr)_minmax(320px,0.92fr)]">
-            <AutomationCreator
-              isPending={createJob.isPending}
-              defaultKind="reminder"
-              onSubmit={handleCreate}
-            />
-            <AutomationOverviewCards status={resolvedStatus} runs={runs} jobs={jobs} />
-          </div>
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-            <AutomationJobSection
-              title={copy.sections.remindersTitle}
-              description={copy.sections.remindersDescription}
-              emptyMessage={copy.sections.emptyReminders}
-              jobs={groupedJobs.reminders}
-              onPause={(jobId) => pauseJob.mutateAsync(jobId)}
-              onResume={(jobId) => resumeJob.mutateAsync(jobId)}
-              onRun={(jobId) => runJob.mutateAsync(jobId)}
-              onRemove={(jobId) => removeJob.mutateAsync(jobId)}
-            />
-            <AutomationHistorySection runs={runs.slice(0, 5)} highlightedRunId={highlightedRunId} />
-          </div>
+          <AutomationOverviewCards status={resolvedStatus} runs={runs} jobs={jobs} />
+          <AutomationHistorySection runs={runs.slice(0, 5)} highlightedRunId={highlightedRunId} />
         </TabsContent>
 
         <TabsContent value="reminders" className="space-y-6">
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,1.08fr)_minmax(320px,0.92fr)]">
-            <AutomationCreator
-              isPending={createJob.isPending}
-              defaultKind="reminder"
-              onSubmit={handleCreate}
-            />
-            <AutomationOverviewCards status={resolvedStatus} runs={runs} jobs={groupedJobs.reminders} />
-          </div>
+          <AutomationCreator
+            isPending={createJob.isPending}
+            defaultKind="reminder"
+            onSubmit={handleCreate}
+          />
           <AutomationJobSection
             title={copy.sections.remindersTitle}
             description={copy.sections.remindersDescription}
@@ -241,14 +156,11 @@ export function AutomationPage() {
         </TabsContent>
 
         <TabsContent value="tasks" className="space-y-6">
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,1.08fr)_minmax(320px,0.92fr)]">
-            <AutomationCreator
-              isPending={createJob.isPending}
-              defaultKind="scheduled_task"
-              onSubmit={handleCreate}
-            />
-            <AutomationOverviewCards status={resolvedStatus} runs={runs} jobs={groupedJobs.tasks} />
-          </div>
+          <AutomationCreator
+            isPending={createJob.isPending}
+            defaultKind="scheduled_task"
+            onSubmit={handleCreate}
+          />
           <AutomationJobSection
             title={copy.sections.tasksTitle}
             description={copy.sections.tasksDescription}

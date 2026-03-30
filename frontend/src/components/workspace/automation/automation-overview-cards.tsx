@@ -38,62 +38,48 @@ export function AutomationOverviewCards({
       label: copy.scheduler,
       value: status.scheduler_running ? copy.schedulerRunning : copy.schedulerIdle,
       icon: PlayCircleIcon,
-      accentClass: "from-stone-100 via-white to-stone-50",
-      iconClass: "text-stone-700",
     },
     {
       id: "active",
       label: copy.active,
       value: summary.cards[0]?.value ?? "0",
       icon: ActivityIcon,
-      accentClass: "from-amber-50 via-white to-stone-50",
-      iconClass: "text-amber-700",
     },
     {
       id: "runs",
       label: copy.runs,
       value: summary.cards[1]?.value ?? "0",
       icon: CheckCircle2Icon,
-      accentClass: "from-emerald-50 via-white to-stone-50",
-      iconClass: "text-emerald-700",
     },
     {
       id: "attention",
       label: copy.attention,
       value: summary.cards[2]?.value ?? "0",
       icon: AlertTriangleIcon,
-      accentClass: "from-rose-50 via-white to-stone-50",
-      iconClass: "text-rose-700",
     },
   ];
 
   return (
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
       {cards.map((card) => (
-        <Card
-          key={card.id}
-          className="gap-3 overflow-hidden rounded-[26px] border-stone-200/80 bg-[linear-gradient(180deg,rgba(255,252,245,0.95),rgba(248,243,233,0.92))] py-0 shadow-[0_18px_48px_rgba(98,74,37,0.08)]"
-        >
-          <div className={`h-1 w-full bg-[linear-gradient(90deg,var(--tw-gradient-stops))] ${card.accentClass}`} />
+        <Card key={card.id} className="gap-3 py-0">
           <CardHeader className="px-5 pt-5 pb-0">
-            <CardTitle className="flex items-center gap-2 text-sm font-medium text-stone-500">
-              <span className={`flex size-8 items-center justify-center rounded-full border border-stone-200 bg-white/90 shadow-xs ${card.iconClass}`}>
-                <card.icon className="size-4" />
-              </span>
+            <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+              <card.icon className="size-4" />
               {card.label}
             </CardTitle>
           </CardHeader>
           <CardContent className="px-5 pb-5">
-            <div className="text-3xl font-semibold tracking-tight text-stone-900">
+            <div className="text-2xl font-semibold tracking-tight">
               {card.value}
             </div>
             {card.id === "scheduler" ? (
-              <div className="mt-3 text-xs text-stone-500">
+              <div className="text-muted-foreground mt-2 text-xs">
                 {copy.lastSuccess}: {summary.lastSuccessAt ?? copy.notRecordedYet}
               </div>
             ) : null}
             {card.id === "active" && summary.nextJob ? (
-              <div className="mt-3 rounded-2xl border border-stone-200/80 bg-white/70 px-3 py-2 text-xs text-stone-600">
+              <div className="text-muted-foreground mt-2 text-xs">
                 {copy.nextRun}: {summary.nextJob.name} · {summary.nextJob.nextRunAt}
               </div>
             ) : null}
