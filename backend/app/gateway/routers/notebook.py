@@ -632,6 +632,8 @@ async def cancel_notebook_rewrite(
     service = NotebookAssistantService()
     try:
         note = service.cancel_rewrite(note_id)
+    except NotebookConflictError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     except NotebookNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     return NotebookPendingRewriteResponse(note=note, pending_rewrite=None)

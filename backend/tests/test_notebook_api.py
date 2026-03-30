@@ -645,6 +645,70 @@ def test_notebook_rewrite_confirm_commits_pending_rewrite(monkeypatch, tmp_path)
         assert history.json()["entries"][0]["actor_type"] == "agent"
 
 
+def test_notebook_rewrite_rejects_confirm_and_cancel_after_manual_edit(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+
+    with TestClient(create_app()) as client:
+        created = client.post(
+            "/api/notebook/notes",
+            json={"directory": "", "title": "Conflict Rewrite", "body": "draft body"},
+        )
+        assert created.status_code == 200
+        note = created.json()["note"]
+        note_id = note["note_id"]
+
+        applied = client.post(
+            f"/api/notebook/notes/{note_id}/rewrite/apply",
+            json={
+                "content": "rewrite body",
+                "expected_content_hash": note["content_hash"],
+            },
+        )
+        assert applied.status_code == 200
+        rewritten_note = applied.json()["note"]
+
+        manual_update = client.put(
+            f"/api/notebook/notes/{note_id}",
+            json={
+                "body": "manual body",
+                "expected_content_hash": rewritten_note["content_hash"],
+            },
+        )
+        assert manual_update.status_code == 200
+
+        confirm = client.post(
+            f"/api/notebook/notes/{note_id}/rewrite/confirm",
+            json={},
+        )
+        assert confirm.status_code == 409
+
+        reapplied = client.post(
+            f"/api/notebook/notes/{note_id}/rewrite/apply",
+            json={
+                "content": "rewrite body 2",
+                "expected_content_hash": manual_update.json()["note"]["content_hash"],
+            },
+        )
+        assert reapplied.status_code == 200
+        rewritten_note_2 = reapplied.json()["note"]
+
+        second_manual_update = client.put(
+            f"/api/notebook/notes/{note_id}",
+            json={
+                "body": "manual body 2",
+                "expected_content_hash": rewritten_note_2["content_hash"],
+            },
+        )
+        assert second_manual_update.status_code == 200
+
+        cancel = client.post(
+            f"/api/notebook/notes/{note_id}/rewrite/cancel",
+            json={},
+        )
+        assert cancel.status_code == 409
+
+
 def test_notebook_directory_api_round_trip(monkeypatch, tmp_path):
     monkeypatch.setenv("NION_HOME", str(tmp_path))
     reset_paths()

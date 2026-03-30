@@ -87,8 +87,12 @@ class NotebookAssistantService:
                 raise NotebookConflictError("Notebook note was updated before applying rewrite.")
         else:
             if current_note.body != existing.applied_content:
-                raise NotebookConflictError("Notebook note changed outside the pending rewrite flow.")
-            if expected_content_hash not in {
+                if current_note.content_hash != expected_content_hash:
+                    raise NotebookConflictError(
+                        "Notebook note changed outside the pending rewrite flow."
+                    )
+                existing = None
+            elif expected_content_hash not in {
                 current_note.content_hash,
                 existing.original_content_hash,
             }:
@@ -157,6 +161,8 @@ class NotebookAssistantService:
             raise NotebookNotFoundError(f"Notebook pending rewrite not found: {note_id}")
 
         current_note = self._service.read_note(note_id)
+        if current_note.body != pending.applied_content:
+            raise NotebookConflictError("Notebook note changed outside the pending rewrite flow.")
         note = self._history_service.update_note(
             note_id=note_id,
             body=pending.original_content,
@@ -179,5 +185,7 @@ class NotebookAssistantService:
             raise NotebookNotFoundError(f"Notebook pending rewrite not found: {note_id}")
 
         note = self._service.read_note(note_id)
+        if note.body != pending.applied_content:
+            raise NotebookConflictError("Notebook note changed outside the pending rewrite flow.")
         self.clear_pending_rewrite(note_id)
         return note
