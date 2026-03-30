@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import {
   applyNotebookAssist,
@@ -26,6 +26,7 @@ import {
   updateNotebookMetadata,
   updateNotebookNote,
 } from "./api";
+import { mergePendingRewriteWithInitial } from "./pending-rewrite.util.ts";
 import type {
   NotebookAssistApplyInput,
   NotebookAssistPreviewInput,
@@ -353,6 +354,8 @@ async function invalidateNotebookQueries(
   ]);
 }
 
+import { mergePendingRewriteWithInitial } from "./pending-rewrite.util.ts";
+
 export const notebookPendingRewriteQueryKeys = {
   note: (noteId: string) => ["notebook", "pending-rewrite", noteId] as const,
 };
@@ -361,6 +364,12 @@ export function useNotebookPendingRewrite(initialPendingRewrite: NotebookPending
   const [pendingRewrite, setPendingRewrite] = useState<NotebookPendingRewrite | null>(
     initialPendingRewrite,
   );
+
+  useEffect(() => {
+    setPendingRewrite((current) =>
+      mergePendingRewriteWithInitial(initialPendingRewrite, current),
+    );
+  }, [initialPendingRewrite]);
 
   return {
     pendingRewrite,
