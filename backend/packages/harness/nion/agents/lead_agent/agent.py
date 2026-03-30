@@ -11,7 +11,6 @@ from nion.agents.middlewares.loop_detection_middleware import LoopDetectionMiddl
 from nion.agents.middlewares.memory_middleware import MemoryMiddleware
 from nion.agents.middlewares.recall_capture_middleware import RecallCaptureMiddleware
 from nion.agents.middlewares.subagent_limit_middleware import SubagentLimitMiddleware
-from nion.agents.middlewares.title_middleware import TitleMiddleware
 from nion.agents.middlewares.todo_middleware import TodoMiddleware
 from nion.agents.middlewares.tool_error_handling_middleware import build_lead_runtime_middlewares
 from nion.agents.middlewares.view_image_middleware import ViewImageMiddleware
@@ -219,8 +218,8 @@ Being proactive with task management demonstrates thoroughness and ensures all r
 # DanglingToolCallMiddleware patches missing ToolMessages before model sees the history
 # SummarizationMiddleware should be early to reduce context before other processing
 # TodoListMiddleware should be before ClarificationMiddleware to allow todo management
-# TitleMiddleware generates title after first exchange
-# MemoryMiddleware queues conversation for memory update (after TitleMiddleware)
+# Title generation now happens out-of-band after the first exchange is persisted
+# MemoryMiddleware queues conversation for memory update after the main reply
 # RecallCaptureMiddleware archives the latest recallable exchange after each run
 # ContinuityMiddleware injects thread-scoped recall before the next model call
 # ViewImageMiddleware should be before ClarificationMiddleware to inject image details before LLM
@@ -250,10 +249,7 @@ def _build_middlewares(config: RunnableConfig, model_name: str | None, agent_nam
     if todo_list_middleware is not None:
         middlewares.append(todo_list_middleware)
 
-    # Add TitleMiddleware
-    middlewares.append(TitleMiddleware())
-
-    # Add MemoryMiddleware (after TitleMiddleware)
+    # Add MemoryMiddleware
     middlewares.append(MemoryMiddleware(agent_name=agent_name))
     middlewares.append(RecallCaptureMiddleware(agent_name=agent_name or "lead_agent"))
     middlewares.append(ContinuityMiddleware())

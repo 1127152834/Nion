@@ -287,6 +287,47 @@ export function useThreadStream({
                 ...valuesRef.current,
                 messages: messagesRef.current,
               });
+
+              const finalThreadId = threadIdRef.current;
+              if (finalThreadId) {
+                void apiClient
+                  .getState<AgentThreadState>(finalThreadId)
+                  .then((state) => {
+                    const snapshotMessages = Array.isArray(state.values?.messages)
+                      ? state.values.messages
+                      : [];
+                    const mergedMessages = mergeMessages(messagesRef.current, snapshotMessages);
+                    setMessages(mergedMessages);
+                    setValues((current) => ({
+                      ...current,
+                      ...(state.values ?? {}),
+                      messages: mergedMessages,
+                    }));
+
+                    const refreshedTitle = state.values?.title;
+                    if (refreshedTitle) {
+                      void queryClient.setQueriesData(
+                        {
+                          queryKey: ["threads", "search"],
+                          exact: false,
+                        },
+                        (oldData: Array<AgentThread> | undefined) =>
+                          oldData?.map((thread) =>
+                            thread.thread_id === finalThreadId
+                              ? {
+                                  ...thread,
+                                  values: {
+                                    ...thread.values,
+                                    title: refreshedTitle,
+                                  },
+                                }
+                              : thread,
+                          ),
+                      );
+                    }
+                  })
+                  .catch(() => undefined);
+              }
             }
           },
         });

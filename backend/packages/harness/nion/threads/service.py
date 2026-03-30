@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import re
 from collections.abc import Generator
 from datetime import UTC, datetime
@@ -15,6 +14,7 @@ from .models import (
     ThreadStreamRequest,
 )
 from .repository import ThreadRepository
+from .title_generation import generate_thread_title_in_background
 
 
 class ThreadService:
@@ -127,11 +127,46 @@ class ThreadService:
                 cli_tools_enabled=cli_tools_enabled,
                 previous_state=self._get_cli_management_state(thread_id),
             ).model_dump()
-            self._repository.upsert_thread(
+            persisted = self._repository.upsert_thread(
                 thread_id,
                 agent_name=str(context.get("agent_name") or "lead_agent"),
                 values=latest_values,
             )
+            self._queue_title_generation(
+                thread_id=thread_id,
+                values=persisted.values.model_dump(),
+                context=context,
+            )
+
+    def _queue_title_generation(
+        self,
+        *,
+        thread_id: str,
+        values: dict[str, Any],
+        context: dict[str, Any],
+    ) -> None:
+        generate_thread_title_in_background(
+            thread_id=thread_id,
+            values=values,
+            context=context,
+            apply_title=self._apply_generated_title,
+        )
+
+    def _apply_generated_title(
+        self,
+        thread_id: str,
+        title: str,
+        context: dict[str, Any],
+    ) -> None:
+        existing = self._repository.get_thread(thread_id)
+        if existing is None:
+            return
+
+        current_title = existing.values.title.strip()
+        if current_title and current_title != "Untitled":
+            return
+
+        self._repository.update_state(thread_id, {"title": title})
 
     def _should_enable_cli_tools_for_request(
         self,
