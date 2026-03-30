@@ -5,6 +5,7 @@ import type {
   ProjectDashboard,
   ProjectDecisionRequest,
   ProjectListResponse,
+  ProjectTimelineEvent,
   ProjectThreadLink,
 } from "./types";
 
@@ -111,11 +112,43 @@ export async function createProjectPlan(
   return parseJson<ExecutionPlan>(response);
 }
 
+export async function setPrimaryProjectPlan(projectId: string, planId: string) {
+  const response = await fetch(
+    `${projectsBaseUrl()}/${projectId}/plans/${planId}/set-primary`,
+    {
+      method: "POST",
+    },
+  );
+  return parseJson<ExecutionPlan>(response);
+}
+
 export async function startProjectPlan(projectId: string, planId: string) {
   const response = await fetch(
     `${projectsBaseUrl()}/${projectId}/plans/${planId}/start`,
     {
       method: "POST",
+    },
+  );
+  return parseJson<ExecutionPlan>(response);
+}
+
+export async function createReworkPlan(
+  projectId: string,
+  planId: string,
+  input: {
+    title: string;
+    description?: string;
+    execution_mode?: "manual" | "auto";
+  },
+) {
+  const response = await fetch(
+    `${projectsBaseUrl()}/${projectId}/plans/${planId}/create-rework`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(input),
     },
   );
   return parseJson<ExecutionPlan>(response);
@@ -171,4 +204,14 @@ export async function resolveProjectDecision(
     },
   );
   return parseJson<ProjectDecisionRequest>(response);
+}
+
+export async function listProjectTimeline(projectId: string): Promise<{
+  items: ProjectTimelineEvent[];
+  next_cursor: string | null;
+}> {
+  const response = await fetch(`${projectsBaseUrl()}/${projectId}/timeline`, {
+    cache: "no-store",
+  });
+  return parseJson<{ items: ProjectTimelineEvent[]; next_cursor: string | null }>(response);
 }

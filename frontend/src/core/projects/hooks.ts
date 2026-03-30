@@ -4,13 +4,16 @@ import {
   confirmProjectPlanOutcome,
   createProject,
   createProjectPlan,
+  createReworkPlan,
   createProjectThread,
   getProjectDashboard,
   listProjectDecisions,
   listProjectPlans,
   listProjects,
+  listProjectTimeline,
   listProjectThreads,
   resolveProjectDecision,
+  setPrimaryProjectPlan,
   setPrimaryProjectThread,
   startProjectPlan,
 } from "./api";
@@ -54,6 +57,14 @@ export function useProjectDecisions(projectId: string | null | undefined) {
   });
 }
 
+export function useProjectTimeline(projectId: string | null | undefined) {
+  return useQuery({
+    queryKey: ["projects", projectId, "timeline"],
+    queryFn: () => listProjectTimeline(projectId!),
+    enabled: Boolean(projectId),
+  });
+}
+
 export function useCreateProject() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -83,6 +94,20 @@ export function useStartProjectPlan(projectId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (planId: string) => startProjectPlan(projectId, planId),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["projects", projectId, "dashboard"] }),
+        queryClient.invalidateQueries({ queryKey: ["projects", projectId, "plans"] }),
+        queryClient.invalidateQueries({ queryKey: ["projects"] }),
+      ]);
+    },
+  });
+}
+
+export function useSetPrimaryProjectPlan(projectId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (planId: string) => setPrimaryProjectPlan(projectId, planId),
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["projects", projectId, "dashboard"] }),
@@ -124,6 +149,27 @@ export function useCreateProjectThread(projectId: string) {
         queryClient.invalidateQueries({ queryKey: ["projects", projectId, "dashboard"] }),
         queryClient.invalidateQueries({ queryKey: ["projects", projectId, "threads"] }),
         queryClient.invalidateQueries({ queryKey: ["threads", "search"] }),
+      ]);
+    },
+  });
+}
+
+export function useCreateReworkPlan(projectId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      planId,
+      input,
+    }: {
+      planId: string;
+      input: Parameters<typeof createReworkPlan>[2];
+    }) => createReworkPlan(projectId, planId, input),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["projects", projectId, "dashboard"] }),
+        queryClient.invalidateQueries({ queryKey: ["projects", projectId, "plans"] }),
+        queryClient.invalidateQueries({ queryKey: ["projects", projectId, "timeline"] }),
+        queryClient.invalidateQueries({ queryKey: ["projects", projectId, "decisions"] }),
       ]);
     },
   });
@@ -171,4 +217,3 @@ export function useResolveProjectDecision(projectId: string) {
     },
   });
 }
-

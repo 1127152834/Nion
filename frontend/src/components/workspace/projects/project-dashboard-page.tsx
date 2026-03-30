@@ -3,11 +3,25 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo } from "react";
-import { CheckCircle2Icon, Clock3Icon, FolderKanbanIcon, ListTreeIcon, MessageSquareTextIcon, PlayIcon } from "lucide-react";
+import {
+  CheckCircle2Icon,
+  Clock3Icon,
+  FolderKanbanIcon,
+  ListTreeIcon,
+  MessageSquareTextIcon,
+  PlayIcon,
+  RotateCcwIcon,
+} from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import {
   WorkspaceBody,
@@ -18,9 +32,13 @@ import {
   useConfirmProjectPlanOutcome,
   useCreateProjectPlan,
   useCreateProjectThread,
+  useCreateReworkPlan,
   useProjectDashboard,
+  useProjectDecisions,
   useProjectPlans,
+  useProjectTimeline,
   useResolveProjectDecision,
+  useSetPrimaryProjectPlan,
   useSetPrimaryProjectThread,
   useStartProjectPlan,
 } from "@/core/projects";
@@ -31,18 +49,26 @@ export function ProjectDashboardPage({ projectId }: { projectId: string }) {
   const router = useRouter();
   const { data, isLoading } = useProjectDashboard(projectId);
   const { data: plansData } = useProjectPlans(projectId);
+  const { data: decisionsData } = useProjectDecisions(projectId);
+  const { data: timelineData } = useProjectTimeline(projectId);
+
   const createThread = useCreateProjectThread(projectId);
   const createPlan = useCreateProjectPlan(projectId);
+  const createReworkPlan = useCreateReworkPlan(projectId);
   const startPlan = useStartProjectPlan(projectId);
+  const setPrimaryPlan = useSetPrimaryProjectPlan(projectId);
   const confirmPlanOutcome = useConfirmProjectPlanOutcome(projectId);
   const resolveDecision = useResolveProjectDecision(projectId);
   const setPrimaryThread = useSetPrimaryProjectThread(projectId);
 
   const plans = plansData?.items ?? [];
+  const decisions = decisionsData?.items ?? data?.pending_confirmations ?? [];
+  const timeline = timelineData?.items ?? data?.recent_timeline ?? [];
   const currentPrimaryPlan = data?.current_primary_plan ?? null;
+  const recentThreads = data?.recent_threads ?? [];
   const currentPrimaryThread = useMemo(
-    () => data?.recent_threads.find((thread) => thread.is_primary_thread) ?? null,
-    [data?.recent_threads],
+    () => recentThreads.find((thread) => thread.is_primary_thread) ?? null,
+    [recentThreads],
   );
 
   if (isLoading || !data) {
@@ -96,11 +122,14 @@ export function ProjectDashboardPage({ projectId }: { projectId: string }) {
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <FolderKanbanIcon className="size-5 text-muted-foreground" />
-                  <h1 className="text-2xl font-semibold tracking-tight">{data.project.name}</h1>
+                  <h1 className="text-2xl font-semibold tracking-tight">
+                    {data.project.name}
+                  </h1>
                   <Badge variant="outline">{data.project.current_phase}</Badge>
                 </div>
                 <p className="text-muted-foreground max-w-3xl text-sm">
-                  {data.project.goal || "还没有项目目标摘要。你可以先从主聊天发起项目创建或在这里补充实施计划。"}
+                  {data.project.goal ||
+                    "还没有项目目标摘要。你可以先从主聊天发起项目创建或在这里补充实施计划。"}
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
@@ -119,13 +148,17 @@ export function ProjectDashboardPage({ projectId }: { projectId: string }) {
               <Card>
                 <CardHeader className="pb-2">
                   <CardDescription>生命周期</CardDescription>
-                  <CardTitle className="text-base">{data.project.lifecycle_status}</CardTitle>
+                  <CardTitle className="text-base">
+                    {data.project.lifecycle_status}
+                  </CardTitle>
                 </CardHeader>
               </Card>
               <Card>
                 <CardHeader className="pb-2">
                   <CardDescription>总体进度</CardDescription>
-                  <CardTitle className="text-base">{data.progress.percent}%</CardTitle>
+                  <CardTitle className="text-base">
+                    {data.progress.percent}%
+                  </CardTitle>
                 </CardHeader>
               </Card>
               <Card>
@@ -159,7 +192,9 @@ export function ProjectDashboardPage({ projectId }: { projectId: string }) {
                   }`}
                 >
                   <div className="font-medium">{item.phase}</div>
-                  <div className="mt-1 text-xs text-muted-foreground">{item.status}</div>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    {item.status}
+                  </div>
                 </div>
               ))}
             </div>
@@ -170,7 +205,9 @@ export function ProjectDashboardPage({ projectId }: { projectId: string }) {
               <Card>
                 <CardHeader>
                   <CardTitle>当前动作与阻塞</CardTitle>
-                  <CardDescription>当前阶段最值得推进的动作，以及需要你处理的阻塞或确认。</CardDescription>
+                  <CardDescription>
+                    当前阶段最值得推进的动作，以及需要你处理的阻塞或确认。
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="rounded-2xl border p-4">
@@ -184,12 +221,19 @@ export function ProjectDashboardPage({ projectId }: { projectId: string }) {
                       <div className="text-sm font-medium">阻塞项</div>
                       <div className="mt-3 space-y-2">
                         {data.blockers.length === 0 ? (
-                          <div className="text-sm text-muted-foreground">当前没有阻塞。</div>
+                          <div className="text-sm text-muted-foreground">
+                            当前没有阻塞。
+                          </div>
                         ) : (
                           data.blockers.map((blocker) => (
-                            <div key={blocker.plan_id} className="rounded-xl border px-3 py-2 text-sm">
+                            <div
+                              key={blocker.plan_id}
+                              className="rounded-xl border px-3 py-2 text-sm"
+                            >
                               <div className="font-medium">{blocker.title}</div>
-                              <div className="mt-1 text-muted-foreground">{blocker.reason}</div>
+                              <div className="mt-1 text-muted-foreground">
+                                {blocker.reason}
+                              </div>
                             </div>
                           ))
                         )}
@@ -198,23 +242,48 @@ export function ProjectDashboardPage({ projectId }: { projectId: string }) {
                     <div className="rounded-2xl border p-4">
                       <div className="text-sm font-medium">待确认事项</div>
                       <div className="mt-3 space-y-2">
-                        {data.pending_confirmations.length === 0 ? (
-                          <div className="text-sm text-muted-foreground">当前没有待确认事项。</div>
+                        {decisions.length === 0 ? (
+                          <div className="text-sm text-muted-foreground">
+                            当前没有待确认事项。
+                          </div>
                         ) : (
-                          data.pending_confirmations.map((decision) => (
-                            <div key={decision.id} className="rounded-xl border px-3 py-2 text-sm">
+                          decisions.map((decision) => (
+                            <div
+                              key={decision.id}
+                              className="rounded-xl border px-3 py-2 text-sm"
+                            >
                               <div className="font-medium">{decision.title}</div>
-                              <div className="mt-1 text-muted-foreground">{decision.summary}</div>
+                              <div className="mt-1 text-muted-foreground">
+                                {decision.summary}
+                              </div>
                               <div className="mt-3 flex flex-wrap gap-2">
                                 {decision.actions.map((action) => (
                                   <Button
                                     key={action.id}
                                     size="sm"
-                                    variant={action.id === "approve" ? "default" : "outline"}
+                                    variant={
+                                      action.id === "approve"
+                                        ? "default"
+                                        : "outline"
+                                    }
                                     onClick={() =>
                                       resolveDecision.mutate({
                                         decisionId: decision.id,
                                         actionId: action.id,
+                                        payload:
+                                          action.id === "approve" &&
+                                          decision.type === "create_rework_plan"
+                                            ? {
+                                                title: `返工：${
+                                                  plans.find(
+                                                    (item) =>
+                                                      item.id ===
+                                                      decision.related_plan_id,
+                                                  )?.title ?? "实施计划"
+                                                }`,
+                                                description: decision.summary,
+                                              }
+                                            : undefined,
                                       })
                                     }
                                   >
@@ -234,11 +303,15 @@ export function ProjectDashboardPage({ projectId }: { projectId: string }) {
               <Card>
                 <CardHeader>
                   <CardTitle>实施计划</CardTitle>
-                  <CardDescription>当前项目下的实施计划列表。V1 先支持主计划、手动启动和结果确认。</CardDescription>
+                  <CardDescription>
+                    当前项目下的实施计划列表。V1 支持主计划、手动启动、结果确认与返工创建。
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {plans.length === 0 ? (
-                    <div className="text-sm text-muted-foreground">还没有实施计划。</div>
+                    <div className="text-sm text-muted-foreground">
+                      还没有实施计划。
+                    </div>
                   ) : (
                     plans.map((plan) => (
                       <div key={plan.id} className="rounded-2xl border p-4">
@@ -248,6 +321,9 @@ export function ProjectDashboardPage({ projectId }: { projectId: string }) {
                               <div className="font-medium">{plan.title}</div>
                               {plan.is_primary ? <Badge>主计划</Badge> : null}
                               <Badge variant="outline">{plan.phase}</Badge>
+                              {plan.is_gate_plan ? (
+                                <Badge variant="secondary">关口计划</Badge>
+                              ) : null}
                             </div>
                             <div className="text-sm text-muted-foreground">
                               {plan.description || "暂无实施计划描述。"}
@@ -256,9 +332,21 @@ export function ProjectDashboardPage({ projectId }: { projectId: string }) {
                               <span>执行方式：{plan.execution_mode}</span>
                               <span>生命周期：{plan.status.lifecycle_status}</span>
                               <span>暂停状态：{plan.status.hold_status}</span>
+                              {plan.outcome_status ? (
+                                <span>结果：{plan.outcome_status}</span>
+                              ) : null}
                             </div>
                           </div>
                           <div className="flex flex-wrap gap-2">
+                            {!plan.is_primary ? (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => setPrimaryPlan.mutate(plan.id)}
+                              >
+                                设为主计划
+                              </Button>
+                            ) : null}
                             {plan.status.lifecycle_status !== "running" ? (
                               <Button
                                 size="sm"
@@ -271,19 +359,36 @@ export function ProjectDashboardPage({ projectId }: { projectId: string }) {
                             ) : null}
                             <Button
                               size="sm"
+                              variant="secondary"
                               onClick={() =>
                                 confirmPlanOutcome.mutate({
                                   planId: plan.id,
                                   outcome: {
-                                  outcome_status: "done",
-                                  outcome_summary: `${plan.title} 已完成`,
+                                    outcome_status: "done",
+                                    outcome_summary: `${plan.title} 已完成`,
                                   },
                                 })
                               }
-                              variant="secondary"
                             >
                               <CheckCircle2Icon className="size-4" />
                               确认结果
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() =>
+                                createReworkPlan.mutate({
+                                  planId: plan.id,
+                                  input: {
+                                    title: `返工：${plan.title}`,
+                                    description: `基于 ${plan.title} 创建返工计划`,
+                                    execution_mode: "manual",
+                                  },
+                                })
+                              }
+                            >
+                              <RotateCcwIcon className="size-4" />
+                              新建返工
                             </Button>
                           </div>
                         </div>
@@ -298,7 +403,9 @@ export function ProjectDashboardPage({ projectId }: { projectId: string }) {
               <Card>
                 <CardHeader>
                   <CardTitle>项目会话</CardTitle>
-                  <CardDescription>每个项目有独立的会话集合，主会话负责承接当前主计划。</CardDescription>
+                  <CardDescription>
+                    每个项目有独立的会话集合，主会话负责承接当前主计划。
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <Button
@@ -306,7 +413,9 @@ export function ProjectDashboardPage({ projectId }: { projectId: string }) {
                     className="w-full"
                     onClick={async () => {
                       const thread = await createThread.mutateAsync({
-                        title: `${data.project.name} 会话 ${data.recent_threads.length + 1}`,
+                        title: `${data.project.name} 会话 ${
+                          recentThreads.length + 1
+                        }`,
                         role: "temporary",
                         inherit_project_context: true,
                       });
@@ -318,10 +427,12 @@ export function ProjectDashboardPage({ projectId }: { projectId: string }) {
                   </Button>
                   <Separator />
                   <div className="space-y-3">
-                    {data.recent_threads.length === 0 ? (
-                      <div className="text-sm text-muted-foreground">当前还没有项目会话。</div>
+                    {recentThreads.length === 0 ? (
+                      <div className="text-sm text-muted-foreground">
+                        当前还没有项目会话。
+                      </div>
                     ) : (
-                      data.recent_threads.map((thread) => (
+                      recentThreads.map((thread) => (
                         <div key={thread.id} className="rounded-2xl border p-3">
                           <div className="flex items-center justify-between gap-3">
                             <div className="min-w-0">
@@ -332,17 +443,24 @@ export function ProjectDashboardPage({ projectId }: { projectId: string }) {
                                 >
                                   {thread.thread_id}
                                 </Link>
-                                {thread.is_primary_thread ? <Badge>主会话</Badge> : null}
+                                {thread.is_primary_thread ? (
+                                  <Badge>主会话</Badge>
+                                ) : null}
                               </div>
                               <div className="mt-1 text-xs text-muted-foreground">
-                                {thread.role} · 最近活跃 {formatTimeAgo(thread.last_active_at || thread.updated_at) || "刚刚"}
+                                {thread.role} · 最近活跃{" "}
+                                {formatTimeAgo(
+                                  thread.last_active_at || thread.updated_at,
+                                ) || "刚刚"}
                               </div>
                             </div>
                             {!thread.is_primary_thread ? (
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                onClick={() => setPrimaryThread.mutate(thread.thread_id)}
+                                onClick={() =>
+                                  setPrimaryThread.mutate(thread.thread_id)
+                                }
                               >
                                 设为主会话
                               </Button>
@@ -358,13 +476,17 @@ export function ProjectDashboardPage({ projectId }: { projectId: string }) {
               <Card>
                 <CardHeader>
                   <CardTitle>最近时间线</CardTitle>
-                  <CardDescription>主视图以实施计划推进事件为核心，帮助你理解项目如何向前推进。</CardDescription>
+                  <CardDescription>
+                    主视图以实施计划推进事件为核心，帮助你理解项目如何向前推进。
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {data.recent_timeline.length === 0 ? (
-                    <div className="text-sm text-muted-foreground">当前还没有时间线事件。</div>
+                  {timeline.length === 0 ? (
+                    <div className="text-sm text-muted-foreground">
+                      当前还没有时间线事件。
+                    </div>
                   ) : (
-                    data.recent_timeline.map((event) => (
+                    timeline.map((event) => (
                       <div key={event.id} className="rounded-2xl border p-3">
                         <div className="flex items-center gap-2 text-sm font-medium">
                           <Clock3Icon className="size-4 text-muted-foreground" />
@@ -372,6 +494,15 @@ export function ProjectDashboardPage({ projectId }: { projectId: string }) {
                         </div>
                         <div className="mt-2 text-sm text-muted-foreground">
                           {event.summary || "暂无摘要"}
+                        </div>
+                        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                          {event.phase ? <span>阶段：{event.phase}</span> : null}
+                          {event.related_plan_id ? (
+                            <span>计划：{event.related_plan_id}</span>
+                          ) : null}
+                          {event.related_thread_id ? (
+                            <span>会话：{event.related_thread_id}</span>
+                          ) : null}
                         </div>
                         <div className="mt-2 text-xs text-muted-foreground">
                           {formatTimeAgo(event.created_at) || "刚刚"}
