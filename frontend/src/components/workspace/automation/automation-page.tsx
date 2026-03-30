@@ -133,7 +133,7 @@ export function AutomationPage() {
         <AutomationKindTabs />
 
         <TabsContent value="overview" className="space-y-6">
-          <AutomationOverviewCards status={resolvedStatus} runs={runs} />
+          <AutomationOverviewCards status={resolvedStatus} runs={runs} jobs={jobs} />
           <AutomationHistorySection runs={runs.slice(0, 5)} highlightedRunId={highlightedRunId} />
         </TabsContent>
 

@@ -948,6 +948,7 @@ export interface Translations {
         runs: string;
         attention: string;
         lastSuccess: string;
+        nextRun: string;
         notRecordedYet: string;
       };
       forms: {
@@ -1042,6 +1043,11 @@ export interface Translations {
         finishedLabel: string;
         jobLabel: string;
         runningLabel: string;
+        historyFilters: {
+          all: string;
+          failed: string;
+          succeeded: string;
+        };
         dailyPrefix: string;
         weekdaysPrefix: string;
         weeklyPrefix: string;

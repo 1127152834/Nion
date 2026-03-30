@@ -14,21 +14,23 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { summarizeOverview } from "@/core/automation/presentation";
-import type { AutomationRun, AutomationStatus } from "@/core/automation/types";
+import type { AutomationJob, AutomationRun, AutomationStatus } from "@/core/automation/types";
 import { useI18n } from "@/core/i18n/hooks";
 
 type AutomationOverviewCardsProps = {
+  jobs?: AutomationJob[];
   runs: AutomationRun[];
   status: AutomationStatus;
 };
 
 export function AutomationOverviewCards({
+  jobs = [],
   runs,
   status,
 }: AutomationOverviewCardsProps) {
   const { t } = useI18n();
   const copy = t.settings.automationWorkspace.overview;
-  const summary = summarizeOverview({ status, runs });
+  const summary = summarizeOverview({ status, runs, jobs });
 
   const cards = [
     {
@@ -74,6 +76,11 @@ export function AutomationOverviewCards({
             {card.id === "scheduler" ? (
               <div className="text-muted-foreground mt-2 text-xs">
                 {copy.lastSuccess}: {summary.lastSuccessAt ?? copy.notRecordedYet}
+              </div>
+            ) : null}
+            {card.id === "active" && summary.nextJob ? (
+              <div className="text-muted-foreground mt-2 text-xs">
+                {copy.nextRun}: {summary.nextJob.name} · {summary.nextJob.nextRunAt}
               </div>
             ) : null}
           </CardContent>

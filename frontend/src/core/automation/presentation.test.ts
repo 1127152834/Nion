@@ -87,6 +87,40 @@ void test("summarizes overview metrics for dashboard cards", () => {
   assert.equal(summary.lastSuccessAt, "2026-03-24T01:01:00Z");
 });
 
+void test("summarizes the next upcoming run from scheduled jobs", () => {
+  const status: AutomationStatus = {
+    scheduler_running: true,
+    total_jobs_count: 2,
+    active_jobs_count: 2,
+    paused_jobs_count: 0,
+    error_jobs_count: 0,
+    run_count: 6,
+    failed_runs_count: 0,
+    last_tick_at: "2026-03-24T01:07:00Z",
+    last_success_at: "2026-03-24T01:01:00Z",
+  };
+
+  const summary = summarizeOverview({
+    status,
+    runs: [makeRun()],
+    jobs: [
+      makeJob({
+        id: "job-1",
+        next_run_at: "2026-03-24T10:00:00Z",
+      }),
+      makeJob({
+        id: "job-2",
+        name: "Standup reminder",
+        next_run_at: "2026-03-24T08:00:00Z",
+      }),
+    ],
+  });
+
+  assert.equal(summary.nextJob?.id, "job-2");
+  assert.equal(summary.nextJob?.name, "Standup reminder");
+  assert.equal(summary.nextJob?.nextRunAt, "2026-03-24T08:00:00Z");
+});
+
 void test("summarizes history using the latest run and grouped counts", () => {
   const summary = summarizeHistory([
     makeRun({ id: "run-2", status: "failed", result_summary: "Timeout", started_at: "2026-03-24T02:00:00Z" }),

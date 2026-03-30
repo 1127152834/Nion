@@ -1179,6 +1179,7 @@ export const zhCN: Translations = {
         runs: "累计运行",
         attention: "需要关注",
         lastSuccess: "最近成功",
+        nextRun: "下一次执行",
         notRecordedYet: "尚未记录",
       },
       forms: {
@@ -1280,6 +1281,11 @@ export const zhCN: Translations = {
         finishedLabel: "结束时间",
         jobLabel: "任务",
         runningLabel: "运行中",
+        historyFilters: {
+          all: "全部",
+          failed: "失败",
+          succeeded: "成功",
+        },
         dailyPrefix: "每天",
         weekdaysPrefix: "工作日",
         weeklyPrefix: "每周",

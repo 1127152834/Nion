@@ -1230,6 +1230,7 @@ export const enUS: Translations = {
         runs: "Recorded runs",
         attention: "Needs attention",
         lastSuccess: "Last success",
+        nextRun: "Next run",
         notRecordedYet: "Not recorded yet",
       },
       forms: {
@@ -1334,6 +1335,11 @@ export const enUS: Translations = {
         finishedLabel: "Finished",
         jobLabel: "Job",
         runningLabel: "Running",
+        historyFilters: {
+          all: "All",
+          failed: "Failed",
+          succeeded: "Succeeded",
+        },
         dailyPrefix: "Daily at",
         weekdaysPrefix: "Weekdays at",
         weeklyPrefix: "Weekly at",

@@ -1,6 +1,7 @@
 import type { AutomationJob, AutomationRun, AutomationStatus } from "./types";
 
 type AutomationOverviewInput = {
+  jobs?: AutomationJob[];
   status: AutomationStatus;
   runs: AutomationRun[];
 };
@@ -38,7 +39,7 @@ export function formatScheduleLabel(
   const timeOfDay = readString(job.schedule_metadata.time_of_day);
   const runAt = readString(job.schedule_metadata.run_at) ?? readString(job.schedule_value);
   const weekdays = readNumberArray(job.schedule_metadata.weekdays);
-  const eventName = readKnownString(job.trigger_spec, "event_name");
+  const eventName = readKnownString(job.trigger_spec ?? {}, "event_name");
 
   if (job.schedule_preset === "event" && eventName) {
     return `${copy.eventPrefix} ${eventName}`;
@@ -89,6 +90,8 @@ export function summarizeHistory(runs: AutomationRun[]) {
 }
 
 export function summarizeOverview(input: AutomationOverviewInput) {
+  const nextJob = pickNextJob(input.jobs ?? []);
+
   return {
     cards: [
       makeCard("active", input.status.active_jobs_count, "default"),
@@ -101,6 +104,7 @@ export function summarizeOverview(input: AutomationOverviewInput) {
     ],
     lastSuccessAt: input.status.last_success_at ?? null,
     latestRun: input.runs[0] ?? null,
+    nextJob,
   };
 }
 
@@ -118,6 +122,30 @@ function readString(value: unknown) {
 
 function readKnownString(record: Record<string, unknown>, key: string) {
   return readString(record[key]);
+}
+
+function pickNextJob(jobs: AutomationJob[]) {
+  const nextJobs = jobs
+    .filter((job) => typeof job.next_run_at === "string" && job.next_run_at)
+    .map((job) => ({
+      id: job.id,
+      name: job.name,
+      nextRunAt: job.next_run_at!,
+      timestamp: Date.parse(job.next_run_at!),
+    }))
+    .filter((job) => Number.isFinite(job.timestamp))
+    .sort((left, right) => left.timestamp - right.timestamp);
+
+  const first = nextJobs[0];
+  if (!first) {
+    return null;
+  }
+
+  return {
+    id: first.id,
+    name: first.name,
+    nextRunAt: first.nextRunAt,
+  };
 }
 
 function readNumberArray(value: unknown) {
