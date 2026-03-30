@@ -15,8 +15,8 @@
 
 | Milestone | Name | Status | Plan | Exit Gate | Notes |
 |---|---|---|---|---|---|
-| M0 | Provider Foundation | `in_progress` | [M0 Plan](/Users/zhangtiancheng/Documents/项目/agent/nion/docs/superpowers/plans/2026-03-30-openviking-memory-os-m0-provider-foundation-implementation-plan.md) | Provider registry, metadata API, and active binding are live | Backend and frontend foundation slices are implemented in worktree |
-| M1 | Runtime Migration Off `memory.json` | `not_started` | Not written yet | No runtime hot path reads/writes legacy memory directly | Must follow M0 |
+| M0 | Provider Foundation | `complete` | [M0 Plan](/Users/zhangtiancheng/Documents/项目/agent/nion/docs/superpowers/plans/2026-03-30-openviking-memory-os-m0-provider-foundation-implementation-plan.md) | Provider registry, metadata API, and active binding are live | M0 merged back to `electron` in `55ef25ad` |
+| M1 | Runtime Migration Off `memory.json` | `complete` | [M1 Plan](/Users/zhangtiancheng/Documents/项目/agent/nion/.worktrees/codex-memory-os-m1/docs/superpowers/plans/2026-03-30-openviking-memory-os-m1-runtime-migration-implementation-plan.md) | No runtime hot path reads/writes legacy memory directly | Runtime bridge and legacy import path are complete in worktree |
 | M2 | OpenViking Provider Activation | `not_started` | Not written yet | `embedded` and `remote` OpenViking modes work through provider contract | Depends on M1 |
 | M3 | Memory Console Product Surface | `not_started` | Not written yet | Memory UI is split into Provider / Console / Agent Core | Depends on M2 contract stability |
 | M4 | Canonical Asset Domains | `not_started` | Not written yet | Notebook, Dream Log, identity, and soul local ownership enforced | Depends on M2 and M3 |
@@ -41,14 +41,14 @@
 
 ### M1: Runtime Migration Off `memory.json`
 
-- [ ] Runtime reads memory only through provider hooks
-- [ ] Runtime writes memory only through provider hooks
-- [ ] Legacy `/api/memory` is clearly marked compatibility-only or translated through provider
-- [ ] `memory.json` leaves runtime hot path
-- [ ] Legacy import path exists
-- [ ] Continuity and memory regression tests pass
-- [ ] Docs updated
-- [ ] Milestone review completed
+- [x] Runtime reads memory only through provider hooks
+- [x] Runtime writes memory only through provider hooks
+- [x] Legacy `/api/memory` is clearly marked compatibility-only or translated through provider
+- [x] `memory.json` leaves runtime hot path
+- [x] Legacy import path exists
+- [x] Continuity and memory regression tests pass
+- [x] Docs updated
+- [x] Milestone review completed
 
 ### M2: OpenViking Provider Activation
 
@@ -134,3 +134,18 @@
   - frontend: `5 passed`
   - backend lint: passed
 - Fixed test isolation for provider-state persistence so router tests no longer leak state across runs.
+- M0 merged back to `electron` in `55ef25ad`.
+- M1 worktree created at `codex/memory-os-m1-runtime-migration`.
+- M1 implementation plan written and execution started.
+- M1 runtime migration progress:
+  - built-in runtime provider bridge implemented
+  - `/api/memory` now routes through Memory OS
+  - prompt memory injection now routes through Memory OS
+  - `MemoryMiddleware` now routes through Memory OS
+  - embedded client memory methods now route through Memory OS
+- Current M1 verification evidence:
+  - targeted backend memory/runtime bridge tests: `29 passed`
+  - frontend compatibility tests: `10 passed`
+  - backend lint: passed
+- Legacy import path formalized through `import_legacy_memory_file()` in Memory OS service.
+- M1 milestone gates are now complete in the worktree and ready for merge back to `electron`.
