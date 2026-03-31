@@ -75,3 +75,20 @@ void test("recent chat list groups conversations into project, bridge, and gener
   assert.match(source, /label: "项目对话"/);
   assert.match(source, /label: "桥接对话"/);
 });
+
+void test("recent chat list defines grouped thread ids before handleSelectAll references them", async () => {
+  const source = await readFile(
+    new URL("./recent-chat-list.tsx", import.meta.url),
+    "utf8",
+  );
+
+  const groupsIndex = source.indexOf("const groups =");
+  const handleSelectAllIndex = source.indexOf("const handleSelectAll");
+
+  assert.notEqual(groupsIndex, -1);
+  assert.notEqual(handleSelectAllIndex, -1);
+  assert.ok(
+    groupsIndex < handleSelectAllIndex,
+    "groups should be declared before handleSelectAll uses it",
+  );
+});

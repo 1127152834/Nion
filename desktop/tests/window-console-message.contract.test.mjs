@@ -11,6 +11,6 @@ test("desktop main window logs renderer console output via WebContentsConsoleMes
   assert.match(source, /webContents\.on\("console-message", \(details\) =>/);
   assert.match(source, /details\.level/);
   assert.match(source, /details\.sourceId/);
-  assert.match(source, /details\.line/);
+  assert.match(source, /details\.lineNumber/);
   assert.match(source, /details\.message/);
 });

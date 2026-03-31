@@ -154,6 +154,27 @@ export function RecentChatList() {
     );
   }, []);
 
+  const groups = [
+    {
+      key: "project",
+      label: "项目对话",
+      items: threadGroups.project,
+    },
+    {
+      key: "bridge",
+      label: "桥接对话",
+      items: threadGroups.bridge,
+    },
+    {
+      key: "general",
+      label:
+        env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY !== "true"
+          ? t.sidebar.recentChats
+          : t.sidebar.demoChats,
+      items: threadGroups.general,
+    },
+  ].filter((group) => group.items.length > 0);
+
   const handleSelectAll = useCallback(() => {
     const ids = groups.flatMap((group) =>
       group.items.map(({ thread }) => thread.thread_id),
@@ -245,27 +266,6 @@ export function RecentChatList() {
   ) {
     return null;
   }
-
-  const groups = [
-    {
-      key: "project",
-      label: "项目对话",
-      items: threadGroups.project,
-    },
-    {
-      key: "bridge",
-      label: "桥接对话",
-      items: threadGroups.bridge,
-    },
-    {
-      key: "general",
-      label:
-        env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY !== "true"
-          ? t.sidebar.recentChats
-          : t.sidebar.demoChats,
-      items: threadGroups.general,
-    },
-  ].filter((group) => group.items.length > 0);
 
   return (
     <>

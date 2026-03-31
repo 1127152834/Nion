@@ -24,7 +24,7 @@ export async function createMainWindow(options: MainWindowOptions): Promise<Brow
   if (isDev) {
     window.webContents.on("console-message", (details) => {
       console.log(
-        `[renderer:${details.level}] ${details.sourceId}:${details.line} ${details.message}`,
+        `[renderer:${details.level}] ${details.sourceId}:${details.lineNumber} ${details.message}`,
       );
     });
     window.webContents.on("did-finish-load", () => {
