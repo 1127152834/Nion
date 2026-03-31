@@ -158,9 +158,12 @@ make install
 make dev
 ```
 
+`make dev` 会调用前端开发服务器的默认脚本，也就是 `pnpm --dir frontend dev`，当前实际执行的是 `next dev --webpack`。这里默认使用 webpack-backed dev server，是为了规避非 ASCII 工作目录下已知的 Turbopack panic；当前仓库路径包含中文目录名时，也应保持这一默认值。
+
 启动后访问：
 
 - 应用入口：`http://localhost:2026`
+- 应用入口（127.0.0.1）：`http://127.0.0.1:2026`
 - Gateway API：`http://localhost:2026/api/*`
 - LangGraph：`http://localhost:2026/api/langgraph/*`
 - Config Center API：`http://localhost:2026/api/config*`
@@ -174,13 +177,23 @@ make dev
 如果只调试 web 前端，也可以直接运行：
 
 ```bash
-cd frontend && pnpm dev
+pnpm --dir frontend dev
 ```
 
 此模式下 Next.js 会直接转发：
 
 - `/api/langgraph/*` → `http://127.0.0.1:2024/*`
 - 其余 `/api/*` → `http://127.0.0.1:8001/api/*`
+
+开发代理配置里的 `allowedDevOrigins` 已允许 `127.0.0.1` 与 `localhost`，因此可通过 `http://127.0.0.1:2026` 或 `http://localhost:2026` 访问统一开发入口。
+
+如果需要显式启用 Turbopack，请运行：
+
+```bash
+pnpm --dir frontend dev:turbo
+```
+
+`dev:turbo` 仅建议在 ASCII-safe 工作目录中，或需要做 Turbopack 专项调试时使用；日常开发默认继续使用 webpack-backed `next dev`。
 
 如果需要显式执行静态导出构建，请使用：
 
