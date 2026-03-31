@@ -9,9 +9,12 @@ void test("memory page excludes notebook semantics and focuses on memory operati
   );
 
   assert.match(source, /t\.workspaceSurfaces\.memory\.title/);
-  assert.match(source, /t\.workspaceSurfaces\.memory\.consoleTitle/);
-  assert.match(source, /t\.workspaceSurfaces\.memory\.recallTitle/);
-  assert.match(source, /t\.workspaceSurfaces\.memory\.recallDescription/);
-  assert.doesNotMatch(source, /Memory Provider|Memory Console|Memory Search/);
+  assert.match(source, /MemoryProviderPanel/);
+  assert.match(source, /MemoryConsolePanel/);
+  assert.match(source, /useRunMemoryCompaction/);
+  assert.match(source, /useRunMemoryRebuild/);
+  assert.match(source, /t\.settings\.compaction\.title/);
+  assert.match(source, /t\.settings\.rebuild\.title/);
   assert.doesNotMatch(source, /Notebook|Knowledge Base|reindex notebook/i);
+  assert.doesNotMatch(source, /MemoryAgentCorePanel|selfMaintenance/i);
 });

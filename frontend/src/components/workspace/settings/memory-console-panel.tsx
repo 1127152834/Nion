@@ -121,27 +121,27 @@ export function MemoryConsolePanel(props: {
       </div>
 
       <div className="mt-5 space-y-5">
+        <form
+          className="flex gap-2"
+          onSubmit={(event) => {
+            event.preventDefault();
+            props.onSubmitSearch();
+          }}
+        >
+          <Input
+            placeholder={t.settings.memory.recall.placeholder}
+            value={props.draftQuery}
+            onChange={(event) => props.onDraftQueryChange(event.target.value)}
+          />
+          <Button type="submit">{t.settings.memory.recall.searchButton}</Button>
+        </form>
+
         {!props.submittedQuery ? (
           <div className="text-muted-foreground text-sm">
             {t.settings.memory.recall.idle}
           </div>
         ) : (
           <>
-            <form
-              className="flex gap-2"
-              onSubmit={(event) => {
-                event.preventDefault();
-                props.onSubmitSearch();
-              }}
-            >
-              <Input
-                placeholder={t.settings.memory.recall.placeholder}
-                value={props.draftQuery}
-                onChange={(event) => props.onDraftQueryChange(event.target.value)}
-              />
-              <Button type="submit">{t.settings.memory.recall.searchButton}</Button>
-            </form>
-
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <h4 className="text-sm font-medium">
