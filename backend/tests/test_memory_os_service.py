@@ -49,4 +49,5 @@ def test_memory_os_provider_families_expose_stateful_capability_matrix():
     assert families["builtin"]["memory_crud"] == "supported"
     assert families["builtin"]["memory_search"] == "partial"
     assert families["mem0"]["runtime_status"] == "supported"
+    assert families["mem0"]["usage"] == "supported"
     assert families["openviking"]["usage"] == "supported"

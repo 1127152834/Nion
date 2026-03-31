@@ -87,6 +87,13 @@ Program 04M6 Task 2 hardens the Memory OS provider metadata contract:
 - persisted `memory-os-state.json` remains configuration-only; runtime capability and health fields are derived on read
 - inactive or unimplemented providers report runtime health as `unknown` rather than inventing provider-specific health checks
 
+Program 04M6 Task 3 activates the first Mem0 runtime compatibility provider:
+
+- selecting `mem0` now resolves to a concrete runtime provider instead of raising `NotImplementedError`
+- the provider satisfies the legacy memory runtime contract for read, save, clear, delete, status, and usage operations
+- current Mem0 support is a local compatibility layer backed by `mem0-memory.json`, not a remote Mem0 transport
+- unsupported operations such as `compact` and `rebuild` return explicit structured responses instead of crashing
+
 ---
 
 ## Architecture

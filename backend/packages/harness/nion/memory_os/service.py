@@ -11,6 +11,7 @@ from nion.memory_os.contracts import (
     ProviderFamilyMeta,
     ProviderHealth,
 )
+from nion.memory_os.mem0_provider import Mem0MemoryProvider
 from nion.memory_os.openviking_provider import OpenVikingMemoryProvider
 from nion.memory_os.providers import (
     MemoryOSRuntimeState,
@@ -54,7 +55,7 @@ FAMILY_METADATA: dict[str, ProviderFamilyMeta] = {
             memory_search="partial",
             compact="unsupported",
             rebuild="unsupported",
-            usage="unsupported",
+            usage="supported",
             runtime_status="supported",
         ),
     ),
@@ -208,7 +209,10 @@ class MemoryOSService:
                 config=provider_config or {"mode": "embedded"},
             )
         if state.active_provider_family == "mem0":
-            raise NotImplementedError("Mem0 provider runtime is not implemented yet.")
+            return Mem0MemoryProvider(
+                base_dir=base_dir,
+                config=provider_config or {"mode": "managed"},
+            )
         return BuiltinMemoryProvider(base_dir=base_dir)
 
     def import_legacy_memory_file(self, *, base_dir=None) -> bool:
@@ -329,7 +333,7 @@ class MemoryOSService:
         if provider.family == "openviking":
             return OpenVikingMemoryProvider(base_dir=base_dir, config=provider.config)
         if provider.family == "mem0":
-            raise NotImplementedError("Mem0 provider runtime is not implemented yet.")
+            return Mem0MemoryProvider(base_dir=base_dir, config=provider.config)
         raise NotImplementedError(f"Unknown memory provider family: {provider.family}")
 
     def _extract_health(self, status_payload: dict[str, object]) -> ProviderHealth:
@@ -341,6 +345,8 @@ class MemoryOSService:
     def _infer_health(self, status_payload: dict[str, object]) -> ProviderHealth:
         if status_payload.get("provider") in {"builtin", "openviking"}:
             return "healthy"
+        if status_payload.get("provider") == "mem0":
+            return "degraded"
         return "unknown"
 
     def _summarize_status_payload(self, payload: dict[str, object]) -> str:

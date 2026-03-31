@@ -92,6 +92,7 @@ Memory OS provider contracts now have two layers:
 - persisted state remains config-only: `active_provider_family`, `active_provider_id`, and provider instance config
 - runtime read models enrich provider instances with explicit capability matrices plus runtime status/usage summaries
 - when provider runtime health is unavailable, the API must return `unknown` explicitly rather than fabricating family-specific health
+- Mem0 currently resolves to a local compatibility runtime provider; it must satisfy the legacy memory contract and report unsupported runtime operations explicitly
 
 ### Local Daemon Surface
 
