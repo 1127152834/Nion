@@ -16,6 +16,7 @@ class Mem0MemoryProvider:
     def __init__(self, *, config: dict | None = None, base_dir=None):
         self._base_dir = Path(base_dir) if base_dir is not None else None
         self._config = dict(config or {"mode": "managed"})
+        self._config["mode"] = self._normalize_mode(self._config.get("mode"))
 
     def get_memory(self) -> dict:
         if self._base_dir is None:
@@ -36,11 +37,14 @@ class Mem0MemoryProvider:
 
         try:
             normalized = self._normalize_memory_payload(payload)
-            self._memory_file().parent.mkdir(parents=True, exist_ok=True)
-            self._memory_file().write_text(
+            file_path = self._memory_file()
+            file_path.parent.mkdir(parents=True, exist_ok=True)
+            temp_path = file_path.with_suffix(".tmp")
+            temp_path.write_text(
                 json.dumps(normalized, indent=2, ensure_ascii=False),
                 encoding="utf-8",
             )
+            temp_path.replace(file_path)
             return True
         except OSError:
             return False
@@ -70,6 +74,8 @@ class Mem0MemoryProvider:
             "summary": (
                 "Mem0 compatibility runtime is active using local file storage."
             ),
+            "transport_kind": "local_compatibility",
+            "remote_connected": False,
             "capabilities": {
                 "compact": "unsupported",
                 "rebuild": "unsupported",
@@ -109,6 +115,9 @@ class Mem0MemoryProvider:
 
     def _create_empty_memory(self) -> dict[str, Any]:
         return create_empty_memory_payload()
+
+    def _normalize_mode(self, value: Any) -> str:
+        return "managed" if value == "managed" else "managed"
 
     def _normalize_memory_payload(self, payload: Any) -> dict[str, Any]:
         normalized = self._create_empty_memory()
