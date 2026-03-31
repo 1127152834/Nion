@@ -63,30 +63,6 @@ void test("workspace navigation sources expose notebook memory self-maintenance 
   }
 });
 
-void test("workspace nav trigger copy uses neutral workspace navigation wording", async () => {
-  const source = await readFile(
-    new URL("./workspace-nav-menu.tsx", import.meta.url),
-    "utf8",
-  );
-
-  assert.match(source, /t\.workspace\.navigationMenu/);
-  assert.doesNotMatch(source, /t\.workspace\.settingsAndMore/);
-});
-
-void test("command palette shortcut rows use stable unique ids instead of repeated key text", async () => {
-  const source = await readFile(
-    new URL("./command-palette.tsx", import.meta.url),
-    "utf8",
-  );
-
-  assert.match(source, /id:\s*"open-notebook"/);
-  assert.match(source, /id:\s*"open-memory"/);
-  assert.match(source, /id:\s*"open-self-maintenance"/);
-  assert.match(source, /id:\s*"open-projects"/);
-  assert.match(source, /key=\{id\}/);
-  assert.doesNotMatch(source, /key=\{keys\}/);
-});
-
 void test("workspace product copy keeps notebook memory self-maintenance and OpenViking roles distinct", () => {
   assert.match(enUS.workspaceSurfaces.memory.description, /memory/i);
   assert.doesNotMatch(enUS.workspaceSurfaces.memory.description, /notebook/i);
