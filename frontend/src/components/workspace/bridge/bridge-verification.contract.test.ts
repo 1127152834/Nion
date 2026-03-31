@@ -10,7 +10,8 @@ void test("bridge shared runtime card gates start behind connection verification
 
   assert.match(source, /connectionVerified/);
   assert.match(source, /bridge\.errorChannelNotVerified/);
-  assert.match(source, /disabled=\{starting \|\| !bridgeEnabled \|\| !channelEnabled \|\| !connectionVerified\}/);
+  assert.match(source, /disabled=\{starting \|\| !bridgeEnabled \|\| !connectionVerified\}/);
+  assert.match(source, /if \(!channelEnabled && onEnableBeforeStart\)/);
 });
 
 void test("bridge runtime card is the single control surface for platform activation", async () => {

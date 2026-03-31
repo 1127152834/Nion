@@ -18,7 +18,6 @@ import { type ReactElement, type ReactNode, useCallback, useEffect, useMemo, use
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import {
   createBridgeClient,
   getBridgeClient,
