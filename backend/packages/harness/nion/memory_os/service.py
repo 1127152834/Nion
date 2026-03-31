@@ -16,6 +16,7 @@ class MemoryOSService:
             "notebook",
             "user_memory",
             "agent_memory",
+            "self_maintenance_journal",
             "autodream_journal",
             "identity",
             "soul",

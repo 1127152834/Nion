@@ -33,9 +33,10 @@ def test_openviking_memory_provider_embedded_mode_reads_memory_payload(tmp_path)
     assert "user" in payload
 
 
-def test_openviking_memory_provider_embedded_mode_reports_autodream_domain():
+def test_openviking_memory_provider_embedded_mode_reports_maintenance_domains():
     provider = OpenVikingMemoryProvider(config={"mode": "embedded"})
 
+    assert "self_maintenance_journal" in provider.supported_domains()
     assert "autodream_journal" in provider.supported_domains()
 
 

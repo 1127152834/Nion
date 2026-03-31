@@ -204,6 +204,22 @@
 - 前端需验证 heartbeat data layer 不破坏现有桌面 backend URL fallback
 - 自我维护相关测试需与 notebook / second-brain 测试分离，不再把 notebook operator 当成 memory page 的一部分
 
+### Reflective Self-Maintenance 增量覆盖
+
+- 后端接口：
+  - `POST /api/self-maintenance/run`
+  - `GET /api/self-maintenance/status`
+  - `GET /api/self-maintenance/logs`
+  - `DELETE /api/self-maintenance/logs`
+- 兼容接口：
+  - `POST /api/autodream/run`
+  - `GET /api/autodream/status`
+- 必须验证：
+  - 记忆设置页主维护入口已经切换为 `Self-Maintenance / 自我维护`
+  - `AutoDream` 只作为 legacy compatibility copy 保留
+  - 维护结果展示 `memory/prune/action/self-upgrade proposals`
+  - notebook 检索或重建按钮不能重新混入这个 panel
+
 ### Memory Compaction 增量覆盖
 
 - 后端接口：

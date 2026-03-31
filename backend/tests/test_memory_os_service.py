@@ -21,6 +21,7 @@ def test_every_provider_family_exposes_full_memory_os_domains():
             "notebook",
             "user_memory",
             "agent_memory",
+            "self_maintenance_journal",
             "autodream_journal",
             "identity",
             "soul",

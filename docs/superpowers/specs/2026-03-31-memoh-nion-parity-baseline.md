@@ -28,7 +28,7 @@ Parity vocabulary:
 | Heartbeat Service | README "Automation" feature; `cmd/agent/main.go` starts `heartbeat.Service`; `internal/heartbeat/` package | `nion.heartbeat.service.HeartbeatService` now exists and daemon owns heartbeat status/tick path | `partial` | Minimal backbone exists, but Memoh-style trigger richness is not complete |
 | Heartbeat Logs | OpenAPI `/bots/{bot_id}/heartbeat/logs`; SDK `getBotsByBotIdHeartbeatLogs` | Nion now exposes `/api/heartbeat/logs` with SQLite-backed log storage | `partial` | Log backbone exists, but parity is still narrower than Memoh |
 | Always-On Continuity | README “always-on continuity” framing; heartbeat + memory engineering together | Nion daemon now has an explicit heartbeat backbone instead of relying only on AutoDream polling | `partial` | Continuity backbone is improving, but compaction/rebuild still missing |
-| Reflective Maintenance | Memoh source suggests heartbeat/autonomous activity backbone; no standalone AutoDream concept in primary surface | Heartbeat now exists as the primary backbone, but reflective maintenance is still mostly represented by transitional AutoDream pieces | `partial` | Needs follow-up milestone integration |
+| Reflective Maintenance | Memoh source suggests heartbeat/autonomous activity backbone; no standalone AutoDream concept in primary surface | Nion now has a primary `self-maintenance` runtime surface driven by heartbeat, with legacy AutoDream kept only as a compatibility wrapper | `partial` | Primary model is in place; product IA extraction and richer proposal depth still follow |
 | Provider Status | OpenAPI `/memory-providers/{id}/status`; SDK `getMemoryProvidersByIdStatus` | Memory OS provider family and binding state exist | `partial` | Detailed provider runtime status not yet mirrored |
 | Knowledge Base / Notebook Separation | Memoh shell is bot memory-centric; notebook-as-second-brain is not its primary product model | Nion design explicitly separates Notebook as `Knowledge Base` | `replicated` | This is an intentional Nion adaptation, not a gap |
 | Project Domain Separation | Not a primary Memoh shell distinction | Nion design reserves separate `Projects` domain | `replicated` | Intentional Nion adaptation |
@@ -82,7 +82,7 @@ Parity vocabulary:
 - provider runtime parity
 - memory CRUD/search admin surface
 - always-on continuity
-- reflective maintenance concepts
+- deeper reflective maintenance richness and provider parity
 
 ### Not started
 
@@ -97,6 +97,9 @@ Parity vocabulary:
 - multi-user shell
 - cross-channel identity shell
 
-### Next milestone to implement
+### Current milestone state
 
-- `M1 Heartbeat Backbone`
+- `M1 Heartbeat Backbone` implemented
+- `M2 Memory Compaction` implemented
+- `M3 Memory Rebuild` implemented
+- `M4 Reflective Self-Maintenance` now uses `self-maintenance` as the primary runtime concept and keeps `AutoDream` as legacy compatibility

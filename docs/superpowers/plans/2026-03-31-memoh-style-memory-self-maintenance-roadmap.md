@@ -145,6 +145,12 @@ Retire `AutoDream` as a standalone product concept and integrate its useful idea
 - no top-level product concept still depends on the old `AutoDream` framing
 - reflective maintenance runs on top of heartbeat / compaction / rebuild
 
+**Current checkpoint**
+
+- primary runtime surface is `self-maintenance`
+- legacy `AutoDream` remains only as compatibility routing / response shape
+- notebook remains outside maintenance signals
+
 ## Milestone M5: Memory Product Surface
 
 **Objective**

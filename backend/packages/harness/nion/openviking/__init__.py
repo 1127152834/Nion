@@ -22,6 +22,14 @@ from nion.openviking.resource_store import OpenVikingResourceStore
 from nion.openviking.retrieval_intent import RetrievalIntent, classify_retrieval_intent
 from nion.openviking.runtime_retriever import RuntimeNotebookRetriever
 from nion.openviking.uri import notebook_resource_uri
+from nion.self_maintenance.models import (
+    ReflectiveEntry,
+    ReflectiveRunState,
+    SelfMaintenanceResult,
+    SelfMaintenanceTickResult,
+)
+from nion.self_maintenance.scheduler import SelfMaintenanceScheduler
+from nion.self_maintenance.service import SelfMaintenanceService
 
 __all__ = [
     "AutoDreamResult",
@@ -29,6 +37,12 @@ __all__ = [
     "AutoDreamScheduler",
     "AutoDreamService",
     "DreamEntry",
+    "ReflectiveEntry",
+    "ReflectiveRunState",
+    "SelfMaintenanceResult",
+    "SelfMaintenanceScheduler",
+    "SelfMaintenanceService",
+    "SelfMaintenanceTickResult",
     "NotebookChunk",
     "NotebookChunkSearchResult",
     "NotebookContextPack",
