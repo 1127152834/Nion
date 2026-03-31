@@ -5,28 +5,35 @@ import type {
   MemoryProviderState,
 } from "./types.ts";
 
+function getMemoryOSBaseURL() {
+  return `${getBackendBaseURL()}/api/memory-os`;
+}
+
 async function readJson<T>(response: Response): Promise<T> {
   return (await response.json()) as T;
 }
 
-export async function listMemoryProviderFamilies(): Promise<MemoryProviderFamiliesResponse> {
-  const response = await fetch(
-    `${getBackendBaseURL()}/api/memory-os/providers/families`,
-  );
+async function fetchMemoryOSJson<T>(
+  path: string,
+  errorMessage: string,
+): Promise<T> {
+  const response = await fetch(`${getMemoryOSBaseURL()}${path}`);
   if (!response.ok) {
-    throw new Error(
-      `Failed to load memory provider families (${response.status})`,
-    );
+    throw new Error(`${errorMessage} (${response.status})`);
   }
-  return readJson<MemoryProviderFamiliesResponse>(response);
+  return readJson<T>(response);
+}
+
+export async function listMemoryProviderFamilies(): Promise<MemoryProviderFamiliesResponse> {
+  return fetchMemoryOSJson<MemoryProviderFamiliesResponse>(
+    "/providers/families",
+    "Failed to load memory provider families",
+  );
 }
 
 export async function getMemoryProviderState(): Promise<MemoryProviderState> {
-  const response = await fetch(
-    `${getBackendBaseURL()}/api/memory-os/providers/state`,
+  return fetchMemoryOSJson<MemoryProviderState>(
+    "/providers/state",
+    "Failed to load memory provider state",
   );
-  if (!response.ok) {
-    throw new Error(`Failed to load memory provider state (${response.status})`);
-  }
-  return readJson<MemoryProviderState>(response);
 }
