@@ -125,7 +125,8 @@ src/
 
 | Command | Description |
 |---------|-------------|
-| `pnpm dev` | Start development server with Turbopack |
+| `pnpm dev` | Start the webpack-backed development server |
+| `pnpm dev:turbo` | Start the explicit Turbopack development server |
 | `pnpm build` | Build for production |
 | `pnpm start` | Start production server |
 | `pnpm lint` | Run ESLint |
@@ -136,7 +137,7 @@ src/
 ## Development Notes
 
 - Uses pnpm workspaces (see `packageManager` in package.json)
-- Turbopack enabled by default in development for faster builds
+- Development uses the webpack-backed `pnpm dev` flow by default to avoid the known Turbopack panic under non-ASCII repository paths; run `pnpm dev:turbo` explicitly when you need Turbopack in an ASCII-safe path
 - Environment validation can be skipped with `SKIP_ENV_VALIDATION=1` (useful for Docker)
 - Set `NION_STATIC_EXPORT=1` only when you intentionally need a static export build
 - The settings dialog shell is grouped into Experience / Knowledge & Memory / Tools & Skills and preloads Config Center state when opened
