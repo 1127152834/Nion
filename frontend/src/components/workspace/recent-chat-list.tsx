@@ -320,7 +320,7 @@ export function RecentChatList() {
       <SidebarGroup>
         <SidebarGroupContent className="group-data-[collapsible=icon]:pointer-events-none group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0">
           <SidebarMenu>
-            <div className="flex w-full flex-col gap-2 px-2 pb-2">
+            <div className="flex w-full flex-col px-2 pb-2">
               {activeGroup.map(({ thread, pendingClarification }) => {
                 const isActive =
                   (pathname === "/workspace/chats" &&
