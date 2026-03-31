@@ -7,7 +7,7 @@ from typing import Any
 
 from nion.config import get_app_config
 from nion.heartbeat.service import HeartbeatService
-from nion.openviking.autodream_scheduler import AutoDreamScheduler
+from nion.self_maintenance.scheduler import SelfMaintenanceScheduler
 from nion.telemetry.logger import make_event
 from nion.telemetry.store import TelemetryStore
 
@@ -33,9 +33,9 @@ class LocalDaemonService:
             allow_background_running=allow_background_running,
             shutdown_grace_period_seconds=shutdown_grace_period_seconds,
         )
-        self._autodream_scheduler = AutoDreamScheduler()
+        self._self_maintenance_scheduler = SelfMaintenanceScheduler()
         self._heartbeat_service = HeartbeatService(
-            run_maintenance=lambda: self._autodream_scheduler.tick()
+            run_maintenance=lambda: self._self_maintenance_scheduler.tick()
         )
         self._telemetry_store: TelemetryStore | None = None
         self._shutdown_callback: Callable[[], Awaitable[None] | None] | None = None
@@ -113,14 +113,20 @@ class LocalDaemonService:
         }
 
     def autodream_status(self) -> dict[str, object]:
-        return self._autodream_scheduler.status()
+        return self.self_maintenance_status()
+
+    def self_maintenance_status(self) -> dict[str, object]:
+        return self._self_maintenance_scheduler.status()
 
     def heartbeat_status(self) -> dict[str, object]:
         return self._heartbeat_service.status()
 
     def record_autodream_session_completed(self) -> dict[str, object]:
+        return self.record_self_maintenance_session_completed()
+
+    def record_self_maintenance_session_completed(self) -> dict[str, object]:
         self._heartbeat_service.record_session_completed()
-        state = self._autodream_scheduler.record_session_completed()
+        state = self._self_maintenance_scheduler.record_session_completed()
         return {
             "last_run_at": state.last_run_at,
             "session_count_since_last_run": state.session_count_since_last_run,

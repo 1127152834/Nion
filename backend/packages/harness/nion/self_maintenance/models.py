@@ -49,3 +49,10 @@ class SelfMaintenanceResult(BaseModel):
     prune_proposals: list[str] = Field(default_factory=list)
     action_proposals: list[str] = Field(default_factory=list)
     self_upgrade_proposals: list[str] = Field(default_factory=list)
+
+
+class SelfMaintenanceTickResult(BaseModel):
+    ran: bool
+    status: str
+    summary: str
+    result: object | None = None

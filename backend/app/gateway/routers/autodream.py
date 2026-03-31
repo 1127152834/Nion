@@ -51,6 +51,6 @@ async def get_autodream_status(request: Request) -> AutoDreamStatusResponse:
             last_run_status=None,
             last_run_summary=None,
             session_count_since_last_run=0,
-            next_eligibility_hint="AutoDream scheduler is not attached to this runtime surface.",
+            next_eligibility_hint="AutoDream compatibility status is not attached to this runtime surface.",
         )
     return AutoDreamStatusResponse.model_validate(daemon_service.autodream_status())

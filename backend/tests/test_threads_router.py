@@ -110,6 +110,9 @@ def test_threads_stream_finished_increments_autodream_session_counter(tmp_path, 
         after = client.get("/api/autodream/status")
         assert after.status_code == 200
         assert after.json()["session_count_since_last_run"] == 1
+        maintenance = client.get("/api/self-maintenance/status")
+        assert maintenance.status_code == 200
+        assert maintenance.json()["session_count_since_last_run"] == 1
 
 
 def test_threads_stream_failed_does_not_increment_autodream_session_counter(
@@ -149,3 +152,6 @@ def test_threads_stream_failed_does_not_increment_autodream_session_counter(
         after = client.get("/api/autodream/status")
         assert after.status_code == 200
         assert after.json()["session_count_since_last_run"] == 0
+        maintenance = client.get("/api/self-maintenance/status")
+        assert maintenance.status_code == 200
+        assert maintenance.json()["session_count_since_last_run"] == 0

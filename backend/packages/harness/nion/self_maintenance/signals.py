@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 
 from nion.compaction.service import CompactionService
 from nion.config.paths import Paths
-from nion.heartbeat.service import HeartbeatService
+from nion.heartbeat.store import HeartbeatStore
 from nion.memory_os.service import MemoryOSService
 from nion.rebuild.service import RebuildService
 from nion.recall.local_archive import LocalRecallArchive
@@ -28,14 +28,14 @@ def collect_self_maintenance_signals(
     query: str,
 ) -> SelfMaintenanceSignals:
     paths = Paths(base_dir=base_dir)
-    heartbeat_service = HeartbeatService(base_dir=base_dir)
     memory_service = MemoryOSService()
     compaction_service = CompactionService(base_dir=base_dir)
     rebuild_service = RebuildService(base_dir=base_dir)
     recall_archive = LocalRecallArchive(paths.recall_db_file)
+    heartbeat_store = HeartbeatStore(paths.telemetry_db_file)
 
     return SelfMaintenanceSignals(
-        heartbeat_status=heartbeat_service.status(),
+        heartbeat_status=heartbeat_store.load_status().model_dump(),
         memory_runtime=memory_service.get_memory_runtime_status(base_dir=base_dir),
         memory_usage=memory_service.get_memory_usage(base_dir=base_dir),
         recent_compaction_summaries=[

@@ -7,6 +7,7 @@ from pathlib import Path
 from nion.config.paths import Paths
 from nion.heartbeat.models import HeartbeatStatus
 from nion.heartbeat.store import HeartbeatStore
+from nion.self_maintenance.models import SelfMaintenanceTickResult
 
 
 class HeartbeatService:
@@ -14,7 +15,7 @@ class HeartbeatService:
         self,
         *,
         base_dir: str | Path | None = None,
-        run_maintenance: Callable[[], bool] | None = None,
+        run_maintenance: Callable[[], SelfMaintenanceTickResult | bool] | None = None,
     ) -> None:
         paths = Paths(base_dir=base_dir)
         self._store = HeartbeatStore(paths.telemetry_db_file)
@@ -45,12 +46,18 @@ class HeartbeatService:
         current = self._store.load_status()
         maintenance_result = self._run_maintenance()
         maintenance_triggered = True
-        summary = (
-            "Heartbeat tick ran maintenance cycle"
-            if maintenance_result
-            else "Heartbeat tick completed"
-        )
-        status_value = "succeeded" if maintenance_result else "idle"
+        if isinstance(maintenance_result, SelfMaintenanceTickResult):
+            summary = maintenance_result.summary
+            status_value = maintenance_result.status
+            maintenance_ran = maintenance_result.ran
+        else:
+            maintenance_ran = bool(maintenance_result)
+            summary = (
+                "Heartbeat tick ran maintenance cycle"
+                if maintenance_ran
+                else "Heartbeat tick completed"
+            )
+            status_value = "succeeded" if maintenance_ran else "idle"
         updated = current.model_copy(
             update={
                 "running": False,
@@ -69,7 +76,9 @@ class HeartbeatService:
             details={
                 "session_count_since_last_tick": current.session_count_since_last_tick,
                 "maintenance_triggered": maintenance_triggered,
-                "maintenance_result": maintenance_result,
+                "maintenance_result": maintenance_ran,
+                "maintenance_status": status_value,
+                "maintenance_summary": summary,
             },
         )
         return True

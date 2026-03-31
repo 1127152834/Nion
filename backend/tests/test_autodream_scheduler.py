@@ -135,4 +135,4 @@ def test_scheduler_tick_persists_summary_and_resets_counter(tmp_path):
     assert state.session_count_since_last_run == 0
     assert state.last_run_status == "succeeded"
     assert state.last_run_summary == "dreamed"
-    assert state.last_query == "recent project work"
+    assert state.last_query == "recent memory drift"

@@ -12,6 +12,7 @@ def test_daemon_service_initializes_autodream_scheduler_state(monkeypatch, tmp_p
     )
 
     assert service.autodream_status()["session_count_since_last_run"] == 0
+    assert service.self_maintenance_status()["session_count_since_last_run"] == 0
 
 
 def test_daemon_service_records_completed_sessions_for_autodream(monkeypatch, tmp_path):
@@ -27,6 +28,7 @@ def test_daemon_service_records_completed_sessions_for_autodream(monkeypatch, tm
     service.record_autodream_session_completed()
 
     assert service.autodream_status()["session_count_since_last_run"] == 1
+    assert service.self_maintenance_status()["session_count_since_last_run"] == 1
 
 
 def test_daemon_service_tracks_active_thread_streams_for_idle_gating(monkeypatch, tmp_path):
@@ -60,7 +62,7 @@ def test_daemon_service_tracks_active_thread_streams_for_idle_gating(monkeypatch
     assert service.has_active_runtime_work() is False
 
 
-def test_daemon_service_start_creates_autodream_polling_task(monkeypatch, tmp_path):
+def test_daemon_service_start_creates_heartbeat_polling_task(monkeypatch, tmp_path):
     monkeypatch.setenv("NION_HOME", str(tmp_path))
 
     service = LocalDaemonService(
@@ -73,8 +75,8 @@ def test_daemon_service_start_creates_autodream_polling_task(monkeypatch, tmp_pa
     async def scenario() -> None:
         try:
             await service.start()
-            assert service._autodream_task is not None
-            assert not service._autodream_task.done()
+            assert service._heartbeat_task is not None
+            assert not service._heartbeat_task.done()
         finally:
             await service.stop()
 
@@ -83,7 +85,7 @@ def test_daemon_service_start_creates_autodream_polling_task(monkeypatch, tmp_pa
     asyncio.run(scenario())
 
 
-def test_daemon_service_stop_cancels_autodream_polling_task(monkeypatch, tmp_path):
+def test_daemon_service_stop_cancels_heartbeat_polling_task(monkeypatch, tmp_path):
     monkeypatch.setenv("NION_HOME", str(tmp_path))
 
     service = LocalDaemonService(
@@ -95,12 +97,12 @@ def test_daemon_service_stop_cancels_autodream_polling_task(monkeypatch, tmp_pat
 
     async def scenario() -> None:
         await service.start()
-        task = service._autodream_task
+        task = service._heartbeat_task
         assert task is not None
 
         await service.stop()
 
-        assert service._autodream_task is None
+        assert service._heartbeat_task is None
         assert task.cancelled() or task.done()
 
     import asyncio
