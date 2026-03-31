@@ -14,3 +14,5 @@ def test_autodream_router_can_run_manual_dream(monkeypatch, tmp_path):
         payload = response.json()
         assert "entry" in payload
         assert "entry_path" in payload
+        assert "agent_memory_updates" in payload
+        assert "action_proposals" in payload
