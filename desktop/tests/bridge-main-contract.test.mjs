@@ -30,8 +30,8 @@ test("desktop main persists the currently tested bridge credentials before marki
   assert.match(source, /DESKTOP_BRIDGE_IPC_CHANNELS\.verifyDiscord/);
   assert.match(source, /DESKTOP_BRIDGE_IPC_CHANNELS\.verifyQq/);
   assert.match(source, /updateBridgeSettings\(\(next\) => \{/);
-  assert.match(source, /next\.bridge_telegram_bot_token = botToken/);
-  assert.match(source, /next\.bridge_feishu_app_id = appId/);
-  assert.match(source, /next\.bridge_discord_bot_token = botToken/);
-  assert.match(source, /next\.bridge_qq_app_id = appId/);
+  assert.match(source, /next\.bridge_telegram_bot_token = explicitBotToken \?\? botToken/);
+  assert.match(source, /next\.bridge_feishu_app_id = explicitAppId \?\? appId/);
+  assert.match(source, /next\.bridge_discord_bot_token = explicitBotToken \?\? botToken/);
+  assert.match(source, /next\.bridge_qq_app_id = explicitAppId \?\? appId/);
 });
