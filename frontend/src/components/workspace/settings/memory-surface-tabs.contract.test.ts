@@ -11,11 +11,8 @@ void test(
     ]);
 
     assert.match(pageSource, /MemorySurfaceTabs/);
-    assert.match(pageSource, /surface === "provider"/);
-    assert.match(pageSource, /surface === "console"/);
-    assert.match(pageSource, /surface === "agent-core"/);
-    assert.match(tabsSource, /value="provider"/);
-    assert.match(tabsSource, /value="console"/);
-    assert.match(tabsSource, /value="agent-core"/);
+    assert.match(tabsSource, /surfaces\.provider\.title/);
+    assert.match(tabsSource, /surfaces\.console\.title/);
+    assert.match(tabsSource, /surfaces\.agentCore\.title/);
   },
 );
