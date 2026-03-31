@@ -256,6 +256,7 @@ export function FeishuBridgeSection() {
             ? t("feishu.verifiedAs", { name: result.botName })
             : t("feishu.verified"),
         });
+        setPersistedVerified(true);
         await fetchSettings();
         return true;
       }

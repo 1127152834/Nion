@@ -143,6 +143,7 @@ export function QqBridgeSection() {
 
       if (result.verified) {
         setVerifyResult({ ok: true, message: t("qq.verified") });
+        setPersistedVerified(true);
         await fetchSettings();
         return true;
       }

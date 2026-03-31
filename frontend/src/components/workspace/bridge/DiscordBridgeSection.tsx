@@ -163,6 +163,7 @@ export function DiscordBridgeSection() {
             ? t("discord.verifiedAs", { name: result.botName })
             : t("discord.verified"),
         });
+        setPersistedVerified(true);
         await fetchSettings();
         return true;
       }

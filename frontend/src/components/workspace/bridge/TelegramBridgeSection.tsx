@@ -172,6 +172,7 @@ export function TelegramBridgeSection() {
           ? t("telegram.verifiedAs", { name: result.botName })
           : t("telegram.verified"),
       });
+      setPersistedVerified(true);
       await fetchSettings();
       return true;
     } finally {
