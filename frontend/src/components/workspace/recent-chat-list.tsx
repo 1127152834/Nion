@@ -10,7 +10,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -43,12 +43,12 @@ import {
 } from "@/components/ui/sidebar";
 import { getAPIClient } from "@/core/api";
 import { useI18n } from "@/core/i18n/hooks";
-import { getLocalSettings, saveLocalSettings } from "@/core/settings/local";
+import { useLocalSettings } from "@/core/settings";
 import {
   derivePendingClarification,
   filterThreadsByWorkspaceType,
   groupThreadsByWorkspaceType,
-  resolveWorkspaceThreadType,
+  parseWorkspaceThreadType,
 } from "@/core/threads";
 import {
   exportThreadAsJSON,
@@ -83,23 +83,10 @@ export function RecentChatList() {
   const { mutate: deleteThread } = useDeleteThread();
   const { mutate: deleteThreads } = useDeleteThreads();
   const { mutate: renameThread } = useRenameThread();
-  const [activeType, setActiveType] = useState(() =>
-    resolveWorkspaceThreadType({
-      pathname,
-      value:
-        typeof window === "undefined"
-          ? null
-          : getLocalSettings().layout.recent_chat_tab,
-    }),
-  );
-
-  useEffect(() => {
-    const nextType = resolveWorkspaceThreadType({
-      pathname,
-      value: getLocalSettings().layout.recent_chat_tab,
-    });
-    setActiveType(nextType);
-  }, [pathname]);
+  const [settings, setSettings] = useLocalSettings();
+  const activeType = pathname.startsWith("/workspace/projects/")
+    ? "project"
+    : parseWorkspaceThreadType(settings.layout.recent_chat_tab);
 
   const threadGroups = useMemo(
     () =>
@@ -283,17 +270,9 @@ export function RecentChatList() {
             value={activeType}
             onValueChange={(nextType) => {
               setSelectedThreadIds([]);
-              setActiveType(nextType);
-              const settings = getLocalSettings();
-              saveLocalSettings({
-                ...settings,
-                layout: {
-                  ...settings.layout,
-                  recent_chat_tab: nextType,
-                },
-              });
+              setSettings("layout", { recent_chat_tab: nextType });
             }}
-            className="mb-2 px-2"
+            className="mb-3 px-2"
           />
           {selectionMode ? (
             <div className="mb-2 flex items-center justify-between rounded-2xl border border-border/50 bg-background/70 px-3 py-2 text-xs text-muted-foreground">
@@ -367,7 +346,7 @@ export function RecentChatList() {
                     key={thread.thread_id}
                     className="group/side-menu-item"
                   >
-                    <SidebarMenuButton isActive={isActive} asChild>
+                    <SidebarMenuButton isActive={false} asChild className="h-auto overflow-visible bg-transparent p-0 hover:bg-transparent">
                       <div className="relative">
                         <WorkspaceThreadListItem
                           bridgeBadgeLabel={bt("bridge.bridgeChatBadge")}
