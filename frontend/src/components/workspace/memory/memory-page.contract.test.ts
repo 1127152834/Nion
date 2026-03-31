@@ -8,6 +8,8 @@ void test("memory page excludes notebook semantics and focuses on memory operati
     "utf8",
   );
 
-  assert.match(source, /Memory Provider|Memory Console|Recall|Compaction|Rebuild/);
+  assert.match(source, /Memory Provider/);
+  assert.match(source, /Memory Console/);
+  assert.match(source, /Recall|Memory Search/);
   assert.doesNotMatch(source, /Notebook|Knowledge Base|reindex notebook/i);
 });

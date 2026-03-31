@@ -8,12 +8,11 @@ void test("memory settings page keeps notebook retrieval controls out of memory 
     "utf8",
   );
 
-  assert.match(source, /useSelfMaintenanceRun/);
-  assert.match(source, /MemorySurfaceTabs/);
-  assert.doesNotMatch(source, /useReindexNotebookResources/);
-  assert.doesNotMatch(source, /useNotebookResourceSearch/);
-  assert.doesNotMatch(source, /useNotebookContextPreview/);
+  assert.match(source, /t\.settings\.memory\.title/);
+  assert.match(source, /t\.settings\.memory\.description/);
+  assert.match(source, /t\.settings\.memory\.storage\.customClassPlaceholder/);
+  assert.doesNotMatch(source, /t\.settings\.memory\.openviking\./);
   assert.doesNotMatch(source, /OpenViking Notebook Resources/);
+  assert.doesNotMatch(source, /Search notebook resources/);
   assert.doesNotMatch(source, /Knowledge Base/);
-  assert.doesNotMatch(source, /final home.*notebook.*memory.*self-maintenance/i);
 });
