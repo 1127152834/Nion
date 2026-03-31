@@ -12,7 +12,6 @@ import { Switch } from "@/components/ui/switch";
 import { createBridgeClient } from "@/core/bridge/client";
 
 import {
-  BridgePlatformEnableCard,
   BridgePlatformRuntimeCard,
   isBridgePlatformVerified,
   useBridgeTranslation,
@@ -143,6 +142,7 @@ export function QqBridgeSection() {
 
       if (result.verified) {
         setVerifyResult({ ok: true, message: t("qq.verified") });
+        setPersistedVerified(true);
         await fetchSettings();
         return true;
       }
@@ -164,35 +164,23 @@ export function QqBridgeSection() {
 
   return (
     <div className="max-w-3xl space-y-6">
-      <BridgePlatformEnableCard
-        title={t("bridge.qqChannel")}
-        description={t("bridge.qqChannelDesc")}
-        enabled={channelEnabled}
-        verified={connectionVerified}
-        verificationHint={t("bridge.enableRequiresVerification")}
-        saving={saving}
-        onToggle={(checked) =>
-          void (async () => {
-            if (checked) {
-              const verified = await ensureQqVerifiedBeforeEnable();
-              if (!verified) {
-                return;
-              }
-            }
-            await saveSettings({
-              bridge_qq_enabled: checked ? "true" : "",
-              ...(checked ? { remote_bridge_enabled: "true" } : {}),
-            });
-            await fetchSettings();
-          })()
-        }
-      />
-
       <BridgePlatformRuntimeCard
         platform="qq"
         bridgeEnabled={bridgeEnabled}
         channelEnabled={channelEnabled}
         connectionVerified={connectionVerified}
+        onEnableBeforeStart={async () => {
+          const verified = await ensureQqVerifiedBeforeEnable();
+          if (!verified) {
+            return false;
+          }
+          await saveSettings({
+            bridge_qq_enabled: "true",
+            remote_bridge_enabled: "true",
+          });
+          await fetchSettings();
+          return true;
+        }}
       />
 
       <SettingsCard title={t("qq.credentials")} description={t("qq.credentialsDesc")}>

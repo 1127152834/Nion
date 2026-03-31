@@ -19,6 +19,13 @@ export function pathOfThread(
   return withQuery("/workspace/chats", { thread: threadId, ...extra });
 }
 
+export function pathOfChatHistoryType(
+  type: string,
+  extra: Record<string, string | undefined> = {},
+) {
+  return withQuery("/workspace/chats", { type, ...extra });
+}
+
 export function pathOfNotebook(
   extra: Record<string, string | undefined> = {},
 ) {
@@ -74,8 +81,12 @@ export function pathOfProject(projectId: string) {
   return `/workspace/projects/${projectId}`;
 }
 
-export function pathOfProjectThread(projectId: string, threadId: string) {
-  return `/workspace/projects/${projectId}/threads/${threadId}`;
+export function pathOfProjectThread(
+  projectId: string,
+  threadId: string,
+  extra: Record<string, string | undefined> = {},
+) {
+  return withQuery(`/workspace/projects/${projectId}/threads/${threadId}`, extra);
 }
 
 export function pathOfAgentThread(

@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { getBridgeClient } from "@/core/bridge/client";
 
 import {
-  BridgePlatformEnableCard,
   BridgePlatformRuntimeCard,
   CheckCircle,
   isBridgePlatformVerified,
@@ -172,6 +171,7 @@ export function TelegramBridgeSection() {
           ? t("telegram.verifiedAs", { name: result.botName })
           : t("telegram.verified"),
       });
+      setPersistedVerified(true);
       await fetchSettings();
       return true;
     } finally {
@@ -222,21 +222,15 @@ export function TelegramBridgeSection() {
 
   return (
     <div className="max-w-3xl space-y-6">
-      <BridgePlatformEnableCard
-        title={t("bridge.telegramChannel")}
-        description={t("bridge.telegramChannelDesc")}
-        enabled={channelEnabled}
-        verified={connectionVerified}
-        verificationHint={t("bridge.enableRequiresVerification")}
-        saving={saving}
-        onToggle={(checked) => void handleToggleChannel(checked)}
-      />
-
       <BridgePlatformRuntimeCard
         platform="telegram"
         bridgeEnabled={bridgeEnabled}
         channelEnabled={channelEnabled}
         connectionVerified={connectionVerified}
+        onEnableBeforeStart={async () => {
+          await handleToggleChannel(true);
+          return true;
+        }}
       />
 
       <SettingsCard
@@ -249,7 +243,7 @@ export function TelegramBridgeSection() {
               {t("telegram.botToken")}
             </label>
             <Input
-              type="password"
+              type="text"
               value={botToken}
               onChange={(event) => setBotToken(event.target.value)}
               placeholder="123456:ABC-DEF..."

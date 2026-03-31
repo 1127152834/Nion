@@ -15,6 +15,10 @@ void test("chat list page exposes the same lightweight multi-select delete mode"
   assert.match(source, /t\.chats\.selectedCount/);
   assert.match(source, /handleSelectAll/);
   assert.match(source, /t\.common\.selectAll/);
-  assert.match(source, /projectInfoOfThread/);
-  assert.match(source, /项目 ·/);
+  assert.match(source, /searchParams\.get\("type"\)/);
+  assert.match(source, /groupThreadsByWorkspaceType/);
+  assert.match(source, /ThreadTypeTabs/);
+  assert.match(source, /scope="page"/);
+  assert.match(source, /WorkspaceThreadListItem/);
+  assert.match(source, /pathOfThread\(remainingThreads\[0\]\?\.thread\.thread_id \?\? "new", \{\s*type:/);
 });

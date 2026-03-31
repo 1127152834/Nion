@@ -10,19 +10,18 @@ void test("bridge shared runtime card gates start behind connection verification
 
   assert.match(source, /connectionVerified/);
   assert.match(source, /bridge\.errorChannelNotVerified/);
-  assert.match(source, /disabled=\{starting \|\| !bridgeEnabled \|\| !channelEnabled \|\| !connectionVerified\}/);
+  assert.match(source, /disabled=\{starting \|\| !bridgeEnabled \|\| !connectionVerified\}/);
+  assert.match(source, /if \(!channelEnabled && onEnableBeforeStart\)/);
 });
 
-void test("platform enable cards expose verification-gated toggles", async () => {
+void test("bridge runtime card is the single control surface for platform activation", async () => {
   const source = await readFile(
     new URL("./bridge-shared.tsx", import.meta.url),
     "utf8",
   );
 
-  assert.match(source, /verified: boolean/);
-  assert.match(source, /verificationHint/);
-  assert.match(source, /disabled=\{saving \|\| !verified\}/);
-  assert.match(source, /const effectiveEnabled = enabled && verified/);
+  assert.match(source, /export function BridgePlatformRuntimeCard/);
+  assert.doesNotMatch(source, /export function BridgePlatformEnableCard/);
 });
 
 void test("telegram bridge section auto-verifies before enabling", async () => {
@@ -33,6 +32,7 @@ void test("telegram bridge section auto-verifies before enabling", async () => {
 
   assert.match(source, /ensureTelegramVerifiedBeforeEnable/);
   assert.match(source, /await ensureTelegramVerifiedBeforeEnable\(\)/);
+  assert.match(source, /await client\.saveSettings\(/);
 });
 
 void test("feishu bridge section auto-verifies before enabling", async () => {
@@ -43,6 +43,7 @@ void test("feishu bridge section auto-verifies before enabling", async () => {
 
   assert.match(source, /ensureFeishuVerifiedBeforeEnable/);
   assert.match(source, /await ensureFeishuVerifiedBeforeEnable\(\)/);
+  assert.match(source, /await client\.saveSettings\(/);
 });
 
 void test("discord bridge section auto-verifies before enabling", async () => {
@@ -53,6 +54,7 @@ void test("discord bridge section auto-verifies before enabling", async () => {
 
   assert.match(source, /ensureDiscordVerifiedBeforeEnable/);
   assert.match(source, /await ensureDiscordVerifiedBeforeEnable\(\)/);
+  assert.match(source, /await client\.saveSettings\(/);
 });
 
 void test("qq bridge section auto-verifies before enabling", async () => {
@@ -63,6 +65,7 @@ void test("qq bridge section auto-verifies before enabling", async () => {
 
   assert.match(source, /ensureQqVerifiedBeforeEnable/);
   assert.match(source, /await ensureQqVerifiedBeforeEnable\(\)/);
+  assert.match(source, /await client\.saveSettings\(/);
 });
 
 void test("weixin bridge section requires a verified account before enabling", async () => {

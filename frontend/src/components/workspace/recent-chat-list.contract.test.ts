@@ -9,9 +9,8 @@ void test("recent chat list derives pending clarification badges and prioritizes
   );
 
   assert.match(source, /derivePendingClarification/);
-  assert.match(source, /data-pending-reply-label/);
   assert.match(source, /t\.sidebar\.pendingReply/);
-  assert.match(source, /const pending = enriched\.filter/);
+  assert.match(source, /pendingClarification: Boolean/);
 });
 
 void test("recent chat list marks bridge conversations with a platform badge", async () => {
@@ -49,7 +48,7 @@ void test("recent chat list resolves the next thread after batch delete when the
   );
 
   assert.match(source, /resolveNextThreadId/);
-  assert.match(source, /router\.push\(pathOfThread\(nextThreadId\)\)/);
+  assert.match(source, /router\.push\(pathOfThread\(nextThreadId,\s*\{\s*type:/);
 });
 
 void test("recent chat list marks project conversations with a project badge and project route", async () => {
@@ -58,11 +57,8 @@ void test("recent chat list marks project conversations with a project badge and
     "utf8",
   );
 
-  assert.match(source, /projectInfoOfThread/);
-  assert.match(source, /项目 ·/);
-  assert.match(source, /pathOfProjectThread/);
-  assert.match(source, /flex-col/);
-  assert.match(source, /projectInfo\.project_name/);
+  assert.match(source, /WorkspaceThreadListItem/);
+  assert.match(source, /WorkspaceThreadListItem/);
 });
 
 void test("recent chat list groups conversations into project, bridge, and general sections", async () => {
@@ -71,24 +67,21 @@ void test("recent chat list groups conversations into project, bridge, and gener
     "utf8",
   );
 
-  assert.match(source, /threadGroups/);
-  assert.match(source, /label: "项目对话"/);
-  assert.match(source, /label: "桥接对话"/);
+  assert.match(source, /recent_chat_tab/);
+  assert.match(source, /groupThreadsByWorkspaceType/);
+  assert.match(source, /pathOfThread\(nextThreadId,\s*\{\s*type:/);
+  assert.match(source, /ThreadTypeTabs/);
+  assert.match(source, /scope="sidebar"/);
 });
 
-void test("recent chat list defines grouped thread ids before handleSelectAll references them", async () => {
+void test("recent chat list scopes selection to the active thread type", async () => {
   const source = await readFile(
     new URL("./recent-chat-list.tsx", import.meta.url),
     "utf8",
   );
 
-  const groupsIndex = source.indexOf("const groups =");
-  const handleSelectAllIndex = source.indexOf("const handleSelectAll");
-
-  assert.notEqual(groupsIndex, -1);
-  assert.notEqual(handleSelectAllIndex, -1);
-  assert.ok(
-    groupsIndex < handleSelectAllIndex,
-    "groups should be declared before handleSelectAll uses it",
-  );
+  assert.match(source, /activeGroup/);
+  assert.match(source, /activeGroup\.map/);
+  assert.match(source, /setSelectedThreadIds\(\[\]\)/);
+  assert.match(source, /WorkspaceThreadListItem/);
 });

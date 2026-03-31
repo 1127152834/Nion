@@ -15,7 +15,6 @@ import { Switch } from "@/components/ui/switch";
 import { createBridgeClient } from "@/core/bridge/client";
 
 import {
-  BridgePlatformEnableCard,
   BridgePlatformRuntimeCard,
   CheckCircle,
   FieldRow,
@@ -163,6 +162,7 @@ export function DiscordBridgeSection() {
             ? t("discord.verifiedAs", { name: result.botName })
             : t("discord.verified"),
         });
+        setPersistedVerified(true);
         await fetchSettings();
         return true;
       }
@@ -184,35 +184,23 @@ export function DiscordBridgeSection() {
 
   return (
     <div className="max-w-3xl space-y-6">
-      <BridgePlatformEnableCard
-        title={t("bridge.discordChannel")}
-        description={t("bridge.discordChannelDesc")}
-        enabled={channelEnabled}
-        verified={connectionVerified}
-        verificationHint={t("bridge.enableRequiresVerification")}
-        saving={saving}
-        onToggle={(checked) =>
-          void (async () => {
-            if (checked) {
-              const verified = await ensureDiscordVerifiedBeforeEnable();
-              if (!verified) {
-                return;
-              }
-            }
-            await saveSettings({
-              bridge_discord_enabled: checked ? "true" : "",
-              ...(checked ? { remote_bridge_enabled: "true" } : {}),
-            });
-            await fetchSettings();
-          })()
-        }
-      />
-
       <BridgePlatformRuntimeCard
         platform="discord"
         bridgeEnabled={bridgeEnabled}
         channelEnabled={channelEnabled}
         connectionVerified={connectionVerified}
+        onEnableBeforeStart={async () => {
+          const verified = await ensureDiscordVerifiedBeforeEnable();
+          if (!verified) {
+            return false;
+          }
+          await saveSettings({
+            bridge_discord_enabled: "true",
+            remote_bridge_enabled: "true",
+          });
+          await fetchSettings();
+          return true;
+        }}
       />
 
       <SettingsCard
