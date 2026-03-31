@@ -153,6 +153,7 @@ export class TelegramBridgeAdapter extends BaseBridgeAdapter {
   private committedOffset = 0;
   private botUserId: string | null = null;
   private typingIntervals = new Map<string, ReturnType<typeof setInterval>>();
+  private previewMessages = new Map<string, number>();
   private previewDegraded = new Set<string>();
 
   constructor(
@@ -405,6 +406,7 @@ export class TelegramBridgeAdapter extends BaseBridgeAdapter {
       clearInterval(interval);
     }
     this.typingIntervals.clear();
+    this.previewMessages.clear();
     this.previewDegraded.clear();
 
     while (this.waiters.length > 0) {
@@ -470,15 +472,33 @@ export class TelegramBridgeAdapter extends BaseBridgeAdapter {
 
   async sendPreview(chatId: string, text: string, draftId: number) {
     try {
-      await this.callTelegramApi("sendMessageDraft", {
-        chat_id: chatId,
-        text,
-        draft_id: draftId,
-      });
+      const previewMessageId = this.previewMessages.get(chatId);
+      const previewText = text.slice(0, 4_096) || " ";
+      if (previewMessageId) {
+        await this.callTelegramApi("editMessageText", {
+          chat_id: chatId,
+          message_id: previewMessageId,
+          text: previewText,
+          disable_web_page_preview: true,
+        });
+      } else {
+        const response = await this.callTelegramApi("sendMessage", {
+          chat_id: chatId,
+          text: previewText,
+          disable_web_page_preview: true,
+        });
+        const messageId =
+          typeof response?.result?.message_id === "number"
+            ? response.result.message_id
+            : null;
+        if (messageId) {
+          this.previewMessages.set(chatId, messageId);
+        }
+      }
       return "sent" as const;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      if (/404|400|not found|bad request/i.test(message)) {
+      if (/404|400|403|not found|bad request|message to edit not found/i.test(message)) {
         this.previewDegraded.add(chatId);
         return "degrade" as const;
       }
@@ -486,8 +506,15 @@ export class TelegramBridgeAdapter extends BaseBridgeAdapter {
     }
   }
 
-  endPreview(_chatId: string, _draftId: number): void {
-    // Final sendMessage naturally supersedes the preview draft.
+  endPreview(chatId: string, _draftId: number): void {
+    const previewMessageId = this.previewMessages.get(chatId);
+    if (previewMessageId) {
+      void this.callTelegramApi("deleteMessage", {
+        chat_id: chatId,
+        message_id: previewMessageId,
+      }).catch(() => {});
+    }
+    this.previewMessages.delete(chatId);
   }
 
   onMessageStart(chatId: string): void {

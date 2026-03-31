@@ -447,6 +447,71 @@ test("bridge manager forwards clarification tool messages when no final ai text 
   assert.equal(adapter.sent[0].text, "⚠️ Please confirm before continuing.");
 });
 
+test("bridge manager closes Telegram preview before sending the final reply", async () => {
+  const createBridgeManager = await loadBridgeManagerFactory();
+  const adapter = createStubAdapter("telegram");
+  const previewCalls = [];
+  const endPreviewCalls = [];
+
+  adapter.getPreviewCapabilities = () => ({ supported: true, privateOnly: false });
+  adapter.sendPreview = async (chatId, text, draftId) => {
+    previewCalls.push({ chatId, text, draftId });
+    return "sent";
+  };
+  adapter.endPreview = (chatId, draftId) => {
+    endPreviewCalls.push({ chatId, draftId });
+  };
+
+  adapter.enqueue({
+    platform: "telegram",
+    chatId: "chat-preview",
+    userId: "user-1",
+    text: "hello",
+    messageId: "msg-preview",
+    timestamp: Date.now(),
+  });
+
+  const manager = createBridgeManager({
+    loadSettings: () => ({
+      settings: {
+        remote_bridge_enabled: "true",
+        bridge_telegram_enabled: "true",
+        bridge_telegram_verified: "true",
+        bridge_telegram_bot_token: "token",
+      },
+    }),
+    adapters: [adapter],
+    listBindings: () => [],
+    upsertBinding: (binding) => ({
+      ...binding,
+      id: "binding-preview",
+      createdAt: "",
+      updatedAt: "",
+    }),
+    defaultWorkingDirectory: () => "/tmp/project",
+    threadClient: {
+      async streamMessage(threadId, _text, callbacks) {
+        callbacks.onText("partial reply");
+        callbacks.onText("final reply");
+        return {
+          threadId,
+          finalText: "final reply",
+          events: [],
+        };
+      },
+    },
+  });
+
+  const handled = await manager.processNextInboundMessage();
+  assert.equal(handled, true);
+  assert.equal(previewCalls.length >= 1, true);
+  assert.equal(endPreviewCalls.length, 1);
+  assert.equal(endPreviewCalls[0].chatId, "chat-preview");
+  assert.equal(endPreviewCalls[0].draftId, previewCalls[0].draftId);
+  assert.equal(adapter.sent.length, 1);
+  assert.equal(adapter.sent[0].text, "final reply");
+});
+
 test("bridge manager adds Telegram inline buttons for short clarification options", async () => {
   const createBridgeManager = await loadBridgeManagerFactory();
   const adapter = createStubAdapter("telegram");
