@@ -42,7 +42,6 @@ from nion.config.agents_config import AGENT_NAME_PATTERN
 from nion.config.app_config import get_app_config
 from nion.config.extensions_config import ExtensionsConfig, SkillStateConfig, get_extensions_config, reload_extensions_config
 from nion.config.paths import get_paths
-from nion.memory_os.service import MemoryOSService
 from nion.model_management.service import get_model_registry_service
 from nion.models import create_chat_model
 from nion.telemetry.logger import make_event
@@ -953,6 +952,18 @@ class NionClient:
         from nion.agents.memory.updater import reload_memory_data
 
         return reload_memory_data()
+
+    def clear_memory(self) -> dict:
+        """Clear persisted memory data and return the empty payload."""
+        from nion.agents.memory.updater import clear_memory_data
+
+        return clear_memory_data()
+
+    def delete_memory_fact(self, fact_id: str) -> dict:
+        """Delete a single persisted memory fact and return updated memory."""
+        from nion.agents.memory.updater import delete_memory_fact
+
+        return delete_memory_fact(fact_id)
 
     def get_memory_config(self) -> dict:
         """Get memory system configuration.
