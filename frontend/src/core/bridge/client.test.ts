@@ -24,3 +24,11 @@ void test("desktop preload exposes a bridge API on nionDesktop", async () => {
   assert.match(source, /getStatus/);
   assert.match(source, /listBindings/);
 });
+
+void test("frontend bridge client memoizes the desktop bridge wrapper", async () => {
+  const source = await readFile(new URL("./client.ts", import.meta.url), "utf8");
+
+  assert.match(source, /let cachedBridgeClient: BridgeClient \| null \| undefined/);
+  assert.match(source, /cachedDesktopBridge === bridge/);
+  assert.match(source, /return cachedBridgeClient;/);
+});

@@ -268,13 +268,25 @@ function resolveDesktopBridge() {
   return bridge;
 }
 
+let cachedBridgeClient: BridgeClient | null | undefined;
+let cachedDesktopBridge:
+  | ReturnType<typeof resolveDesktopBridge>
+  | undefined;
+
 export function getBridgeClient(): BridgeClient | null {
   const bridge = resolveDesktopBridge();
   if (!bridge) {
+    cachedDesktopBridge = bridge;
+    cachedBridgeClient = null;
     return null;
   }
 
-  return {
+  if (cachedBridgeClient !== undefined && cachedDesktopBridge === bridge) {
+    return cachedBridgeClient;
+  }
+
+  cachedDesktopBridge = bridge;
+  cachedBridgeClient = {
     getSettings: () => bridge.getSettings(),
     saveSettings: (updates) => bridge.saveSettings(updates),
     getStatus: () => bridge.getStatus(),
@@ -304,6 +316,8 @@ export function getBridgeClient(): BridgeClient | null {
       bridge.setWeixinAccountEnabled(accountId, enabled),
     deleteWeixinAccount: (accountId) => bridge.deleteWeixinAccount(accountId),
   };
+
+  return cachedBridgeClient;
 }
 
 export function createBridgeClient(): BridgeClient {
