@@ -216,3 +216,80 @@ void test("desktop thread client resolves permission through thread-level permis
     value: originalWindow,
   });
 });
+
+void test("desktop thread client prefers runtime bridge base URL over compiled env override", async () => {
+  const originalFetch = globalThis.fetch;
+  const originalProcessEnv = process.env.NEXT_PUBLIC_BACKEND_BASE_URL;
+  const originalWindow = globalThis.window;
+  const requestedUrls: string[] = [];
+
+  process.env.NEXT_PUBLIC_BACKEND_BASE_URL = "http://localhost:8001";
+
+  Object.defineProperty(globalThis, "window", {
+    configurable: true,
+    value: {
+      nionDesktop: {
+        backendBaseUrl: "http://127.0.0.1:43115",
+        getRuntimeInfo: async () => ({
+          baseUrl: "http://127.0.0.1:43115",
+          clientId: "desktop-client-2",
+        }),
+      },
+    },
+  });
+
+  globalThis.fetch = async (input) => {
+    requestedUrls.push(String(input));
+    return new Response(
+      new ReadableStream({
+        start(controller) {
+          controller.enqueue(
+            new TextEncoder().encode(
+              [
+                'event: created',
+                'data: {"thread_id":"thread-desktop"}',
+                "",
+                'event: end',
+                'data: {}',
+                "",
+                "",
+              ].join("\n"),
+            ),
+          );
+          controller.close();
+        },
+      }),
+      {
+        status: 200,
+        headers: {
+          "Content-Type": "text/event-stream",
+        },
+      },
+    );
+  };
+
+  const client = createDesktopThreadClient();
+
+  await client.streamRun(
+    "thread-desktop",
+    { messages: [] },
+    { threadId: "thread-desktop", context: {}, config: {} },
+  );
+
+  assert.equal(requestedUrls.length, 1);
+  assert.equal(
+    requestedUrls[0],
+    "http://127.0.0.1:43115/api/threads/thread-desktop/stream",
+  );
+
+  globalThis.fetch = originalFetch;
+  if (typeof originalProcessEnv === "string") {
+    process.env.NEXT_PUBLIC_BACKEND_BASE_URL = originalProcessEnv;
+  } else {
+    delete process.env.NEXT_PUBLIC_BACKEND_BASE_URL;
+  }
+  Object.defineProperty(globalThis, "window", {
+    configurable: true,
+    value: originalWindow,
+  });
+});

@@ -80,14 +80,6 @@ export type DesktopThreadClient = {
 
 function getDesktopBackendBaseURL(): string {
   if (
-    typeof process !== "undefined" &&
-    typeof process.env?.NEXT_PUBLIC_BACKEND_BASE_URL === "string" &&
-    process.env.NEXT_PUBLIC_BACKEND_BASE_URL.length > 0
-  ) {
-    return process.env.NEXT_PUBLIC_BACKEND_BASE_URL;
-  }
-
-  if (
     typeof window !== "undefined" &&
     typeof (window as Window & { __NION_BACKEND_BASE_URL__?: string })
       .__NION_BACKEND_BASE_URL__ === "string" &&
@@ -96,6 +88,34 @@ function getDesktopBackendBaseURL(): string {
   ) {
     return (window as Window & { __NION_BACKEND_BASE_URL__?: string })
       .__NION_BACKEND_BASE_URL__!;
+  }
+
+  if (
+    typeof window !== "undefined" &&
+    typeof (window as Window & {
+      nionDesktop?: {
+        backendBaseUrl?: string;
+      };
+    }).nionDesktop?.backendBaseUrl === "string" &&
+    (window as Window & {
+      nionDesktop?: {
+        backendBaseUrl?: string;
+      };
+    }).nionDesktop!.backendBaseUrl!.length > 0
+  ) {
+    return (window as Window & {
+      nionDesktop?: {
+        backendBaseUrl?: string;
+      };
+    }).nionDesktop!.backendBaseUrl!;
+  }
+
+  if (
+    typeof process !== "undefined" &&
+    typeof process.env?.NEXT_PUBLIC_BACKEND_BASE_URL === "string" &&
+    process.env.NEXT_PUBLIC_BACKEND_BASE_URL.length > 0
+  ) {
+    return process.env.NEXT_PUBLIC_BACKEND_BASE_URL;
   }
 
   return "";

@@ -24,6 +24,7 @@ export const zhCN: Translations = {
     settings: "设置",
     delete: "删除",
     select: "选择",
+    selectAll: "全选",
     rename: "重命名",
     share: "分享",
     openInNewWindow: "在新窗口打开",

@@ -154,6 +154,15 @@ export function RecentChatList() {
     );
   }, []);
 
+  const handleSelectAll = useCallback(() => {
+    const ids = groups.flatMap((group) =>
+      group.items.map(({ thread }) => thread.thread_id),
+    );
+    setSelectedThreadIds((current) =>
+      current.length === ids.length ? [] : ids,
+    );
+  }, [groups]);
+
   const handleDeleteSelected = useCallback(() => {
     if (selectedThreadIds.length === 0) {
       return;
@@ -295,6 +304,14 @@ export function RecentChatList() {
                   variant="ghost"
                   size="sm"
                   className="h-7 rounded-full px-2 text-xs"
+                  onClick={handleSelectAll}
+                >
+                  {t.common.selectAll}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 rounded-full px-2 text-xs"
                   onClick={() => {
                     setSelectionMode(false);
                     setSelectedThreadIds([]);
@@ -367,33 +384,39 @@ export function RecentChatList() {
                               >
                                 {isSelected ? <Check className="size-3" /> : null}
                               </span>
-                              <span className="flex min-w-0 items-center gap-2 overflow-hidden">
+                              <span className="flex min-w-0 flex-col gap-1 overflow-hidden">
                                 <span className="truncate">{titleOfThread(thread)}</span>
                                 {projectInfo ? (
-                                  <Badge
-                                    variant="outline"
-                                    className="gap-1 rounded-full px-2 py-0 text-[10px]"
-                                  >
-                                    项目 · {projectInfo.project_name}
-                                  </Badge>
+                                  <span className="flex items-center gap-2">
+                                    <Badge
+                                      variant="outline"
+                                      className="gap-1 rounded-full px-2 py-0 text-[10px]"
+                                    >
+                                      项目 · {projectInfo.project_name}
+                                    </Badge>
+                                  </span>
                                 ) : null}
                                 {bridgeInfo ? (
-                                  <Badge
-                                    variant="outline"
-                                    className="gap-1 rounded-full px-2 py-0 text-[10px]"
-                                  >
-                                    {bt("bridge.bridgeChatBadge")} · {bridgeLabel}
-                                  </Badge>
+                                  <span className="flex items-center gap-2">
+                                    <Badge
+                                      variant="outline"
+                                      className="gap-1 rounded-full px-2 py-0 text-[10px]"
+                                    >
+                                      {bt("bridge.bridgeChatBadge")} · {bridgeLabel}
+                                    </Badge>
+                                  </span>
                                 ) : null}
                                 {pendingClarification ? (
-                                  <Badge
-                                    variant="outline"
-                                    className="border-foreground/10 bg-accent/40 text-foreground gap-1 rounded-full px-2 py-0 text-[10px]"
-                                    data-pending-reply-label
-                                  >
-                                    <span className="bg-foreground/70 size-1.5 rounded-full" />
-                                    {t.sidebar.pendingReply}
-                                  </Badge>
+                                  <span className="flex items-center gap-2">
+                                    <Badge
+                                      variant="outline"
+                                      className="border-foreground/10 bg-accent/40 text-foreground gap-1 rounded-full px-2 py-0 text-[10px]"
+                                      data-pending-reply-label
+                                    >
+                                      <span className="bg-foreground/70 size-1.5 rounded-full" />
+                                      {t.sidebar.pendingReply}
+                                    </Badge>
+                                  </span>
                                 ) : null}
                               </span>
                             </button>
@@ -409,33 +432,39 @@ export function RecentChatList() {
                                   : pathOfThread(thread.thread_id)
                               }
                             >
-                              <span className="flex items-center gap-2 overflow-hidden">
+                              <span className="flex min-w-0 flex-col gap-1 overflow-hidden">
                                 <span className="truncate">{titleOfThread(thread)}</span>
                                 {projectInfo ? (
-                                  <Badge
-                                    variant="outline"
-                                    className="gap-1 rounded-full px-2 py-0 text-[10px]"
-                                  >
-                                    项目 · {projectInfo.project_name}
-                                  </Badge>
+                                  <span className="flex items-center gap-2">
+                                    <Badge
+                                      variant="outline"
+                                      className="gap-1 rounded-full px-2 py-0 text-[10px]"
+                                    >
+                                      项目 · {projectInfo.project_name}
+                                    </Badge>
+                                  </span>
                                 ) : null}
                                 {bridgeInfo ? (
-                                  <Badge
-                                    variant="outline"
-                                    className="gap-1 rounded-full px-2 py-0 text-[10px]"
-                                  >
-                                    {bt("bridge.bridgeChatBadge")} · {bridgeLabel}
-                                  </Badge>
+                                  <span className="flex items-center gap-2">
+                                    <Badge
+                                      variant="outline"
+                                      className="gap-1 rounded-full px-2 py-0 text-[10px]"
+                                    >
+                                      {bt("bridge.bridgeChatBadge")} · {bridgeLabel}
+                                    </Badge>
+                                  </span>
                                 ) : null}
                                 {pendingClarification ? (
-                                  <Badge
-                                    variant="outline"
-                                    className="border-foreground/10 bg-accent/40 text-foreground gap-1 rounded-full px-2 py-0 text-[10px]"
-                                    data-pending-reply-label
-                                  >
-                                    <span className="bg-foreground/70 size-1.5 rounded-full" />
-                                    {t.sidebar.pendingReply}
-                                  </Badge>
+                                  <span className="flex items-center gap-2">
+                                    <Badge
+                                      variant="outline"
+                                      className="border-foreground/10 bg-accent/40 text-foreground gap-1 rounded-full px-2 py-0 text-[10px]"
+                                      data-pending-reply-label
+                                    >
+                                      <span className="bg-foreground/70 size-1.5 rounded-full" />
+                                      {t.sidebar.pendingReply}
+                                    </Badge>
+                                  </span>
                                 ) : null}
                               </span>
                             </Link>

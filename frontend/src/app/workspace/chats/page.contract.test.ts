@@ -13,4 +13,8 @@ void test("chat list page exposes the same lightweight multi-select delete mode"
   assert.match(source, /t\.common\.cancel/);
   assert.match(source, /t\.common\.delete/);
   assert.match(source, /t\.chats\.selectedCount/);
+  assert.match(source, /handleSelectAll/);
+  assert.match(source, /t\.common\.selectAll/);
+  assert.match(source, /projectInfoOfThread/);
+  assert.match(source, /项目 ·/);
 });

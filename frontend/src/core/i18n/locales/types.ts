@@ -256,6 +256,7 @@ export interface Translations {
     settings: string;
     delete: string;
     select: string;
+    selectAll: string;
     rename: string;
     share: string;
     openInNewWindow: string;

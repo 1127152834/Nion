@@ -24,6 +24,7 @@ export const enUS: Translations = {
     settings: "Settings",
     delete: "Delete",
     select: "Select",
+    selectAll: "Select all",
     rename: "Rename",
     share: "Share",
     openInNewWindow: "Open in new window",

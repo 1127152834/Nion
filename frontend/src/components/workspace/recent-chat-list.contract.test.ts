@@ -35,7 +35,9 @@ void test("recent chat list exposes a lightweight multi-select delete mode", asy
   assert.match(source, /selectedThreadIds/);
   assert.match(source, /toggleThreadSelection/);
   assert.match(source, /handleDeleteSelected/);
+  assert.match(source, /handleSelectAll/);
   assert.match(source, /t\.common\.select/);
+  assert.match(source, /t\.common\.selectAll/);
   assert.match(source, /t\.common\.cancel/);
   assert.match(source, /t\.common\.delete/);
 });
@@ -59,6 +61,8 @@ void test("recent chat list marks project conversations with a project badge and
   assert.match(source, /projectInfoOfThread/);
   assert.match(source, /项目 ·/);
   assert.match(source, /pathOfProjectThread/);
+  assert.match(source, /flex-col/);
+  assert.match(source, /projectInfo\.project_name/);
 });
 
 void test("recent chat list groups conversations into project, bridge, and general sections", async () => {
