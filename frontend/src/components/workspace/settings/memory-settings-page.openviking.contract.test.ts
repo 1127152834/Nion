@@ -8,7 +8,7 @@ void test("memory settings page keeps notebook retrieval controls out of memory 
     "utf8",
   );
 
-  assert.match(source, /useAutoDreamRun/);
+  assert.match(source, /useSelfMaintenanceRun/);
   assert.doesNotMatch(source, /useReindexNotebookResources/);
   assert.doesNotMatch(source, /useNotebookResourceSearch/);
   assert.doesNotMatch(source, /useNotebookContextPreview/);

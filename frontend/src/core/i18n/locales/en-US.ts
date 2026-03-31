@@ -696,13 +696,26 @@ export const enUS: Translations = {
         agentCore: {
           title: "Self-Maintenance",
           description:
-            "Reflective maintenance for the agent itself. This area is for AutoDream and future self-upgrade proposals, not for notebook content.",
+            "Reflective maintenance for the agent itself. This surface never edits notebook assets and only shows maintenance evidence plus bounded proposals.",
         },
+      },
+      selfMaintenance: {
+        title: "Self-Maintenance",
+        description:
+          "Inspect heartbeat-driven reflective maintenance for the agent itself. This surface never edits notebook assets.",
+        runPlaceholder: "Run maintenance now",
+        runButton: "Run maintenance now",
+        emptySummary: "No summary",
+        memoryUpdates: "Memory update proposals",
+        pruneProposals: "Prune proposals",
+        actionProposals: "Action proposals",
+        selfUpgradeProposals: "Self-upgrade proposals",
+        emptyList: "No proposals in this category.",
       },
       autodream: {
         title: "AutoDream",
         description:
-          "Run a manual reflective pass and inspect the latest Dream Log summary before future maintenance loops are automated.",
+          "Legacy compatibility surface for the old AutoDream shape. Primary maintenance now lives under Self-Maintenance.",
         runPlaceholder: "Run AutoDream now",
         runButton: "Run AutoDream now",
         emptySummary: "No summary",

@@ -668,13 +668,26 @@ export const zhCN: Translations = {
         agentCore: {
           title: "自我维护",
           description:
-            "用于智能体自身的反思与维护。这里放 AutoDream 和后续自我升级提案，不放笔记或知识库内容。",
+            "用于智能体自身的反思与维护。这里只展示维护证据和有边界的提案，不会直接操作你的笔记资产。",
         },
+      },
+      selfMaintenance: {
+        title: "自我维护",
+        description:
+          "查看由 heartbeat 驱动的智能体自我维护结果。这里不会直接操作你的笔记资产。",
+        runPlaceholder: "立即运行维护",
+        runButton: "立即运行维护",
+        emptySummary: "暂无摘要",
+        memoryUpdates: "记忆更新提案",
+        pruneProposals: "清理提案",
+        actionProposals: "行动提案",
+        selfUpgradeProposals: "自我升级提案",
+        emptyList: "当前没有这类提案。",
       },
       autodream: {
         title: "AutoDream",
         description:
-          "手动运行一次反思整理流程，并查看最近一次 Dream Log 摘要，后续再接入自动维护闭环。",
+          "旧 AutoDream 兼容层。新的主维护入口已经收敛到“自我维护”。",
         runPlaceholder: "立即运行 AutoDream",
         runButton: "立即运行 AutoDream",
         emptySummary: "暂无摘要",

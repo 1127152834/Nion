@@ -37,8 +37,8 @@ import {
 } from "@/core/memory/search";
 import type { UserMemory } from "@/core/memory/types";
 import {
-  useAutoDreamRun,
-} from "@/core/autodream";
+  useSelfMaintenanceRun,
+} from "@/core/self-maintenance";
 import { useRecallSearch } from "@/core/recall/hooks";
 import { streamdownPlugins } from "@/core/streamdown/plugins";
 import { pathOfThread } from "@/core/threads/utils";
@@ -244,7 +244,7 @@ export function MemorySettingsPage() {
   const deferredQuery = useDeferredValue(query);
   const normalizedQuery = deferredQuery.trim().toLowerCase();
   const recall = useRecallSearch(submittedQuery, 5);
-  const runAutoDream = useAutoDreamRun();
+  const runSelfMaintenance = useSelfMaintenanceRun();
   const [dreamQuery, setDreamQuery] = useState("");
   const [storageModeOverride, setStorageModeOverride] =
     useState<MemoryStorageMode | null>(null);
@@ -447,13 +447,13 @@ export function MemorySettingsPage() {
           <MemoryAgentCorePanel
             dreamQuery={dreamQuery}
             onDreamQueryChange={setDreamQuery}
-            onRunAutoDream={() => {
-              void runAutoDream.mutateAsync({
-                query: dreamQuery.trim() || "recent project work",
+            onRunSelfMaintenance={() => {
+              void runSelfMaintenance.mutateAsync({
+                query: dreamQuery.trim() || "recent memory drift",
               });
             }}
-            runAutoDreamPending={runAutoDream.isPending}
-            runAutoDreamData={runAutoDream.data ?? null}
+            runSelfMaintenancePending={runSelfMaintenance.isPending}
+            runSelfMaintenanceData={runSelfMaintenance.data ?? null}
           />
         ) : null}
 

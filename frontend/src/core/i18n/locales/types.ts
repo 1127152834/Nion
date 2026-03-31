@@ -719,6 +719,18 @@ export interface Translations {
         runButton: string;
         emptySummary: string;
       };
+      selfMaintenance: {
+        title: string;
+        description: string;
+        runPlaceholder: string;
+        runButton: string;
+        emptySummary: string;
+        memoryUpdates: string;
+        pruneProposals: string;
+        actionProposals: string;
+        selfUpgradeProposals: string;
+        emptyList: string;
+      };
       storage: {
         title: string;
         description: string;
