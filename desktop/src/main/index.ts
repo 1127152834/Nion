@@ -660,18 +660,20 @@ export async function startDesktopMain(): Promise<void> {
     DESKTOP_BRIDGE_IPC_CHANNELS.verifyTelegram,
     async (_event, payload: { bot_token?: string; chat_id?: string }) => {
       const settings = bridgeSettingsStore.loadSettings().settings;
-      const botToken = payload.bot_token?.trim() || getSettingWithAliases(settings, "telegram_bot_token");
-      const chatId = payload.chat_id?.trim() || getSettingWithAliases(settings, "telegram_chat_id");
+      const explicitBotToken = payload.bot_token?.trim();
+      const explicitChatId = payload.chat_id?.trim();
+      const botToken = explicitBotToken || getSettingWithAliases(settings, "telegram_bot_token");
+      const chatId = explicitChatId || getSettingWithAliases(settings, "telegram_chat_id");
       if (!botToken || botToken.startsWith("***")) {
         return { verified: false, error: "bot_token is required" };
       }
       const result = await verifyTelegramBot(botToken, chatId || undefined);
       if (result.verified) {
         updateBridgeSettings((next) => {
-          next.telegram_bot_token = botToken;
-          next.bridge_telegram_bot_token = botToken;
-          next.telegram_chat_id = chatId || "";
-          next.bridge_telegram_chat_id = chatId || "";
+          next.telegram_bot_token = explicitBotToken ?? botToken;
+          next.bridge_telegram_bot_token = explicitBotToken ?? botToken;
+          next.telegram_chat_id = explicitChatId ?? (chatId || "");
+          next.bridge_telegram_chat_id = explicitChatId ?? (chatId || "");
         });
       }
       updatePlatformVerificationState("telegram", result.verified);
@@ -693,14 +695,15 @@ export async function startDesktopMain(): Promise<void> {
     DESKTOP_BRIDGE_IPC_CHANNELS.verifyDiscord,
     async (_event, payload: { bot_token?: string }) => {
       const settings = bridgeSettingsStore.loadSettings().settings;
-      const botToken = payload.bot_token?.trim() || settings.bridge_discord_bot_token || "";
+      const explicitBotToken = payload.bot_token?.trim();
+      const botToken = explicitBotToken || settings.bridge_discord_bot_token || "";
       if (!botToken || botToken.startsWith("***")) {
         return { verified: false, error: "Bot token is required" };
       }
       const result = await verifyDiscordBot(botToken);
       if (result.verified) {
         updateBridgeSettings((next) => {
-          next.bridge_discord_bot_token = botToken;
+          next.bridge_discord_bot_token = explicitBotToken ?? botToken;
         });
       }
       updatePlatformVerificationState("discord", result.verified);
@@ -714,18 +717,21 @@ export async function startDesktopMain(): Promise<void> {
       payload: { app_id?: string; app_secret?: string; domain?: string },
     ) => {
       const settings = bridgeSettingsStore.loadSettings().settings;
-      const appId = payload.app_id?.trim() || settings.bridge_feishu_app_id || "";
-      const appSecret = payload.app_secret?.trim() || settings.bridge_feishu_app_secret || "";
-      const domain = payload.domain?.trim() || settings.bridge_feishu_domain || "feishu";
+      const explicitAppId = payload.app_id?.trim();
+      const explicitAppSecret = payload.app_secret?.trim();
+      const explicitDomain = payload.domain?.trim();
+      const appId = explicitAppId || settings.bridge_feishu_app_id || "";
+      const appSecret = explicitAppSecret || settings.bridge_feishu_app_secret || "";
+      const domain = explicitDomain || settings.bridge_feishu_domain || "feishu";
       if (!appId || !appSecret || appSecret.startsWith("***")) {
         return { verified: false, error: "App ID and App Secret are required" };
       }
       const result = await verifyFeishuApp(appId, appSecret, domain);
       if (result.verified) {
         updateBridgeSettings((next) => {
-          next.bridge_feishu_app_id = appId;
-          next.bridge_feishu_app_secret = appSecret;
-          next.bridge_feishu_domain = domain;
+          next.bridge_feishu_app_id = explicitAppId ?? appId;
+          next.bridge_feishu_app_secret = explicitAppSecret ?? appSecret;
+          next.bridge_feishu_domain = explicitDomain ?? domain;
         });
       }
       updatePlatformVerificationState("feishu", result.verified);
@@ -736,16 +742,18 @@ export async function startDesktopMain(): Promise<void> {
     DESKTOP_BRIDGE_IPC_CHANNELS.verifyQq,
     async (_event, payload: { app_id?: string; app_secret?: string }) => {
       const settings = bridgeSettingsStore.loadSettings().settings;
-      const appId = payload.app_id?.trim() || settings.bridge_qq_app_id || "";
-      const appSecret = payload.app_secret?.trim() || settings.bridge_qq_app_secret || "";
+      const explicitAppId = payload.app_id?.trim();
+      const explicitAppSecret = payload.app_secret?.trim();
+      const appId = explicitAppId || settings.bridge_qq_app_id || "";
+      const appSecret = explicitAppSecret || settings.bridge_qq_app_secret || "";
       if (!appId || !appSecret || appSecret.startsWith("***")) {
         return { verified: false, error: "App ID and App Secret are required" };
       }
       const result = await verifyQqApp(appId, appSecret);
       if (result.verified) {
         updateBridgeSettings((next) => {
-          next.bridge_qq_app_id = appId;
-          next.bridge_qq_app_secret = appSecret;
+          next.bridge_qq_app_id = explicitAppId ?? appId;
+          next.bridge_qq_app_secret = explicitAppSecret ?? appSecret;
         });
       }
       updatePlatformVerificationState("qq", result.verified);
