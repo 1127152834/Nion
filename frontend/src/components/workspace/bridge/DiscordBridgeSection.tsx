@@ -28,7 +28,7 @@ import {
 
 export function DiscordBridgeSection() {
   const { t } = useBridgeTranslation();
-  const { bridgeConfig, updateBridgeConfig, onSave } = useBridgeConfigEditor();
+  const { bridgeConfig, refetchConfig, saveBridgeConfig } = useBridgeConfigEditor();
   const [botToken, setBotToken] = useState("");
   const [allowedUsers, setAllowedUsers] = useState("");
   const [allowedChannels, setAllowedChannels] = useState("");
@@ -76,14 +76,13 @@ export function DiscordBridgeSection() {
   const handleSaveCredentials = async () => {
     setSaving(true);
     try {
-      updateBridgeConfig((current) => ({
+      await saveBridgeConfig((current) => ({
         ...current,
         discord: {
           ...current.discord,
           bot_token: botToken,
         },
       }));
-      await onSave();
     } finally {
       setSaving(false);
     }
@@ -92,7 +91,7 @@ export function DiscordBridgeSection() {
   const handleSaveGroupSettings = async () => {
     setSaving(true);
     try {
-      updateBridgeConfig((current) => ({
+      await saveBridgeConfig((current) => ({
         ...current,
         discord: {
           ...current.discord,
@@ -106,7 +105,6 @@ export function DiscordBridgeSection() {
           image_enabled: imageEnabled,
         },
       }));
-      await onSave();
     } finally {
       setSaving(false);
     }
@@ -140,7 +138,7 @@ export function DiscordBridgeSection() {
             : t("discord.verified"),
         });
         setPersistedVerified(true);
-        await fetchSettings();
+        await refetchConfig();
         return true;
       }
 
@@ -148,11 +146,11 @@ export function DiscordBridgeSection() {
         ok: false,
         message: result.error?.trim() ? result.error : t("discord.verifyFailed"),
       });
-      await fetchSettings();
+      await refetchConfig();
       return false;
     } catch {
       setVerifyResult({ ok: false, message: t("discord.verifyFailed") });
-      await fetchSettings();
+      await refetchConfig();
       return false;
     } finally {
       setVerifying(false);
@@ -171,15 +169,13 @@ export function DiscordBridgeSection() {
           if (!verified) {
             return false;
           }
-          updateBridgeConfig((current) => ({
+          await saveBridgeConfig((current) => ({
             ...current,
             discord: {
               ...current.discord,
               enabled: true,
             },
           }));
-          await onSave();
-          await fetchSettings();
           return true;
         }}
       />

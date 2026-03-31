@@ -19,7 +19,7 @@ import {
 
 export function TelegramBridgeSection() {
   const client = getBridgeClient();
-  const { bridgeConfig, updateBridgeConfig, onSave } = useBridgeConfigEditor();
+  const { bridgeConfig, refetchConfig, saveBridgeConfig } = useBridgeConfigEditor();
   const [botToken, setBotToken] = useState("");
   const [chatId, setChatId] = useState("");
   const [allowedUsers, setAllowedUsers] = useState("");
@@ -59,14 +59,10 @@ export function TelegramBridgeSection() {
     void fetchSettings();
   }, [fetchSettings]);
 
-  if (!client) {
-    return null;
-  }
-
   const handleSaveCredentials = async () => {
     setSaving(true);
     try {
-      updateBridgeConfig((current) => ({
+      await saveBridgeConfig((current) => ({
         ...current,
         telegram: {
           ...current.telegram,
@@ -75,40 +71,37 @@ export function TelegramBridgeSection() {
           allowed_users: allowedUsers,
         },
       }));
-      await onSave();
-      await fetchSettings();
     } finally {
       setSaving(false);
     }
   };
 
   const handleToggleChannel = async (checked: boolean) => {
-    if (!client) {
-      return;
-    }
     if (checked) {
       const verified = await ensureTelegramVerifiedBeforeEnable();
       if (!verified) {
-        return;
+        return false;
       }
     }
     setSaving(true);
     try {
-      updateBridgeConfig((current) => ({
+      await saveBridgeConfig((current) => ({
         ...current,
         telegram: {
           ...current.telegram,
           enabled: checked,
         },
       }));
-      await onSave();
-      await fetchSettings();
+      return true;
     } finally {
       setSaving(false);
     }
   };
 
   const ensureTelegramVerifiedBeforeEnable = async () => {
+    if (!client) {
+      return false;
+    }
     setVerifying(true);
     setVerifyResult(null);
     try {
@@ -130,7 +123,7 @@ export function TelegramBridgeSection() {
           ok: false,
           message: result.error?.trim() ? result.error : t("telegram.verifyFailed"),
         });
-        await fetchSettings();
+        await refetchConfig();
         return false;
       }
 
@@ -141,7 +134,7 @@ export function TelegramBridgeSection() {
           : t("telegram.verified"),
       });
       setPersistedVerified(true);
-      await fetchSettings();
+      await refetchConfig();
       return true;
     } finally {
       setVerifying(false);
@@ -149,6 +142,9 @@ export function TelegramBridgeSection() {
   };
 
   const handleDetectChatId = async () => {
+    if (!client) {
+      return;
+    }
     if (!botToken) {
       setVerifyResult({
         ok: false,
@@ -196,10 +192,7 @@ export function TelegramBridgeSection() {
         bridgeEnabled={bridgeEnabled}
         channelEnabled={channelEnabled}
         connectionVerified={connectionVerified}
-        onEnableBeforeStart={async () => {
-          await handleToggleChannel(true);
-          return true;
-        }}
+        onEnableBeforeStart={() => handleToggleChannel(true)}
       />
 
       <SettingsCard

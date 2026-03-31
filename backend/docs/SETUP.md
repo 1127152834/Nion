@@ -38,16 +38,30 @@ Nion uses a YAML configuration file that should be placed in the **project root 
 - **Location**: `config.yaml` should be in `nion/` (project root), not `nion/backend/`
 - **Git**: `config.yaml` is automatically ignored by git (contains secrets)
 - **Priority**: If both `backend/config.yaml` and `../config.yaml` exist, backend version takes precedence
+- **Bridge config**: Bridge credentials and verification state are now managed through the shared Config Center / `config.db`, not a desktop-only `bridge/settings.json`
 
 ## Configuration File Locations
 
 The backend searches for `config.yaml` in this order:
 
-1. `DEER_FLOW_CONFIG_PATH` environment variable (if set)
+1. `NION_CONFIG_PATH` environment variable (if set)
 2. `backend/config.yaml` (current directory when running from backend/)
 3. `nion/config.yaml` (parent directory - **recommended location**)
 
 **Recommended**: Place `config.yaml` in project root (`nion/config.yaml`).
+
+## Bridge Storage Notes
+
+Bridge now uses a split storage model:
+
+1. Shared configuration lives in the Config Center database and is available to
+   both web and desktop surfaces through `/api/config`.
+2. Desktop runtime state remains local to the desktop app for now, including
+   bindings, offsets, incidents, observations, and Weixin runtime account data.
+
+If you are upgrading from an older desktop build, the app may import the old
+`bridge/settings.json` once into the shared config store. After that migration,
+the JSON file is no longer authoritative.
 
 ## Sandbox Setup (Optional but Recommended)
 

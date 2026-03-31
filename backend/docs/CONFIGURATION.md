@@ -183,6 +183,76 @@ The runtime now injects ACP subprocess environment variables after resolving
 `$ENV_VAR` placeholders with the same config-center env resolution rules used by
 the rest of `AppConfig`.
 
+### Bridge
+
+Bridge configuration is now part of the shared Config Center payload and is
+stored in the same SQLite-backed config store as the rest of `AppConfig`.
+
+In product workflows, bridge credentials and enablement should be edited from
+the frontend **Bridge** page or through the `/api/config` API instead of a
+desktop-only local file.
+
+Example payload shape:
+
+```yaml
+bridge:
+  auto_start: false
+  default_work_dir: ""
+  default_model: ""
+  default_provider_id: ""
+  telegram:
+    enabled: false
+    verified: false
+    verified_at: null
+    verified_fingerprint: ""
+    bot_token: ""
+    chat_id: ""
+    allowed_users: ""
+  feishu:
+    enabled: false
+    verified: false
+    verified_at: null
+    verified_fingerprint: ""
+    app_id: ""
+    app_secret: ""
+    domain: feishu
+  discord:
+    enabled: false
+    verified: false
+    verified_at: null
+    verified_fingerprint: ""
+    bot_token: ""
+  qq:
+    enabled: false
+    verified: false
+    verified_at: null
+    verified_fingerprint: ""
+    app_id: ""
+    app_secret: ""
+  weixin:
+    enabled: false
+    verified: false
+    verified_at: null
+    verified_fingerprint: ""
+```
+
+Current storage split:
+
+- Shared config in `config.db`:
+  - bridge credentials
+  - bridge verified flags / fingerprints
+  - bridge enabled flags
+  - bridge defaults such as `default_work_dir`
+- Desktop-local runtime state:
+  - active bindings
+  - delivery offsets
+  - observations / incidents
+  - Weixin runtime account/session state
+
+For desktop upgrades, legacy `bridge/settings.json` is only used as a one-time
+migration input when the shared bridge config is still empty. It is no longer
+the source of truth.
+
 ### Memory Storage Provider
 
 The long-term memory system still defaults to file-backed persistence, but the
@@ -323,7 +393,7 @@ models:
 - `DEEPSEEK_API_KEY` - DeepSeek API key
 - `NOVITA_API_KEY` - Novita API key (OpenAI-compatible endpoint)
 - `TAVILY_API_KEY` - Tavily search API key
-- `DEER_FLOW_CONFIG_PATH` - Custom config file path
+- `NION_CONFIG_PATH` - Custom config file path
 
 ## Configuration Location
 
@@ -334,7 +404,7 @@ The configuration file should be placed in the **project root directory** (`nion
 Nion searches for configuration in this order:
 
 1. Path specified in code via `config_path` argument
-2. Path from `DEER_FLOW_CONFIG_PATH` environment variable
+2. Path from `NION_CONFIG_PATH` environment variable
 3. `config.yaml` in current working directory (typically `backend/` when running)
 4. `config.yaml` in parent directory (project root: `nion/`)
 
@@ -352,7 +422,7 @@ Nion searches for configuration in this order:
 ### "Config file not found"
 - Ensure `config.yaml` exists in the **project root** directory (`nion/config.yaml`)
 - The backend searches parent directory by default, so root location is preferred
-- Alternatively, set `DEER_FLOW_CONFIG_PATH` environment variable to custom location
+- Alternatively, set `NION_CONFIG_PATH` environment variable to custom location
 
 ### "Invalid API key"
 - Verify environment variables are set correctly

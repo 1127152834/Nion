@@ -151,9 +151,20 @@ export function useBridgeConfigEditor() {
     });
   };
 
+  const saveBridgeConfig = async (
+    updater: (current: BridgeDraft) => BridgeDraft,
+  ) => {
+    const nextBridge = updater(bridgeConfig);
+    return configEditor.onSaveConfig({
+      ...configEditor.draftConfig,
+      bridge: nextBridge,
+    });
+  };
+
   return {
     ...configEditor,
     bridgeConfig,
     updateBridgeConfig,
+    saveBridgeConfig,
   };
 }

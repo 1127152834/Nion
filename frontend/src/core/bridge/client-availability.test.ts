@@ -10,8 +10,12 @@ void test("bridge client exposes an optional lookup helper for non-desktop envir
 });
 
 void test("bridge section handles missing bridge client without throwing", async () => {
-  const sectionSource = await readFile(
-    new URL("../../components/workspace/bridge/BridgeSection.tsx", import.meta.url),
+  const layoutSource = await readFile(
+    new URL("../../components/workspace/bridge/BridgeLayout.tsx", import.meta.url),
+    "utf8",
+  );
+  const telegramSource = await readFile(
+    new URL("../../components/workspace/bridge/TelegramBridgeSection.tsx", import.meta.url),
     "utf8",
   );
   const sharedSource = await readFile(
@@ -19,7 +23,7 @@ void test("bridge section handles missing bridge client without throwing", async
     "utf8",
   );
 
-  assert.match(sectionSource, /const client = getBridgeClient\(\);/);
-  assert.match(sectionSource, /if \(!client\)[\s\S]*t\("bridge\.desktopOnly"\)/);
+  assert.match(layoutSource, /<TelegramBridgeSection \/>/);
+  assert.doesNotMatch(telegramSource, /if \(!client\) \{\s*return null;\s*\}/);
   assert.match(sharedSource, /"bridge\.desktopOnly":/);
 });

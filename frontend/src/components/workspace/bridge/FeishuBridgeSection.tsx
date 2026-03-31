@@ -55,7 +55,7 @@ function SaveButton({
 
 export function FeishuBridgeSection() {
   const { t } = useBridgeTranslation();
-  const { bridgeConfig, updateBridgeConfig, onSave } = useBridgeConfigEditor();
+  const { bridgeConfig, refetchConfig, saveBridgeConfig } = useBridgeConfigEditor();
 
   const [appId, setAppId] = useState("");
   const [appSecret, setAppSecret] = useState("");
@@ -155,7 +155,7 @@ export function FeishuBridgeSection() {
   const handleSaveCredentials = async () => {
     setCredentialsSaving(true);
     try {
-      updateBridgeConfig((current) => ({
+      await saveBridgeConfig((current) => ({
         ...current,
         feishu: {
           ...current.feishu,
@@ -164,7 +164,6 @@ export function FeishuBridgeSection() {
           domain,
         },
       }));
-      await onSave();
       savedCredentials.current = { appId, appSecret, domain };
       setCredentialsDirty(false);
     } finally {
@@ -175,7 +174,7 @@ export function FeishuBridgeSection() {
   const handleSaveBehavior = async () => {
     setBehaviorSaving(true);
     try {
-      updateBridgeConfig((current) => ({
+      await saveBridgeConfig((current) => ({
         ...current,
         feishu: {
           ...current.feishu,
@@ -187,7 +186,6 @@ export function FeishuBridgeSection() {
           require_mention: requireMention,
         },
       }));
-      await onSave();
       savedBehavior.current = {
         allowFrom,
         dmPolicy,
@@ -230,7 +228,7 @@ export function FeishuBridgeSection() {
             : t("feishu.verified"),
         });
         setPersistedVerified(true);
-        await fetchSettings();
+        await refetchConfig();
         return true;
       }
 
@@ -238,11 +236,11 @@ export function FeishuBridgeSection() {
         ok: false,
         message: result.error?.trim() ? result.error : t("feishu.verifyFailed"),
       });
-      await fetchSettings();
+      await refetchConfig();
       return false;
     } catch {
       setVerifyResult({ ok: false, message: t("feishu.verifyFailed") });
-      await fetchSettings();
+      await refetchConfig();
       return false;
     } finally {
       setVerifying(false);
@@ -261,16 +259,13 @@ export function FeishuBridgeSection() {
           if (!verified) {
             return false;
           }
-          updateBridgeConfig((current) => ({
+          await saveBridgeConfig((current) => ({
             ...current,
-            auto_start: Boolean(current.auto_start),
             feishu: {
               ...current.feishu,
               enabled: true,
             },
           }));
-          await onSave();
-          await fetchSettings();
           return true;
         }}
       />
