@@ -13,12 +13,12 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { createBridgeClient } from "@/core/bridge/client";
+import { useBridgeConfigEditor } from "@/core/bridge-config";
 
 import {
   BridgePlatformRuntimeCard,
   CheckCircle,
   FieldRow,
-  isBridgePlatformVerified,
   SettingsCard,
   SpinnerGap,
   StatusBanner,
@@ -26,37 +26,9 @@ import {
   Warning,
 } from "./bridge-shared";
 
-type DiscordBridgeSettings = {
-  remote_bridge_enabled: string;
-  bridge_discord_enabled: string;
-  bridge_discord_bot_token: string;
-  bridge_discord_allowed_users: string;
-  bridge_discord_allowed_channels: string;
-  bridge_discord_allowed_guilds: string;
-  bridge_discord_group_policy: string;
-  bridge_discord_require_mention: string;
-  bridge_discord_stream_enabled: string;
-  bridge_discord_max_attachment_size: string;
-  bridge_discord_image_enabled: string;
-};
-
-const DEFAULT_SETTINGS: DiscordBridgeSettings = {
-  remote_bridge_enabled: "",
-  bridge_discord_enabled: "",
-  bridge_discord_bot_token: "",
-  bridge_discord_allowed_users: "",
-  bridge_discord_allowed_channels: "",
-  bridge_discord_allowed_guilds: "",
-  bridge_discord_group_policy: "open",
-  bridge_discord_require_mention: "false",
-  bridge_discord_stream_enabled: "true",
-  bridge_discord_max_attachment_size: "",
-  bridge_discord_image_enabled: "true",
-};
-
 export function DiscordBridgeSection() {
   const { t } = useBridgeTranslation();
-  const [, setSettings] = useState<DiscordBridgeSettings>(DEFAULT_SETTINGS);
+  const { bridgeConfig, updateBridgeConfig, onSave } = useBridgeConfigEditor();
   const [botToken, setBotToken] = useState("");
   const [allowedUsers, setAllowedUsers] = useState("");
   const [allowedChannels, setAllowedChannels] = useState("");
@@ -80,59 +52,64 @@ export function DiscordBridgeSection() {
   const connectionVerified = persistedVerified && !credentialsDirty && Boolean(botToken);
 
   const fetchSettings = useCallback(async () => {
-    const client = createBridgeClient();
-    const data = await client.getSettings();
-    const next = { ...DEFAULT_SETTINGS, ...data };
-    setSettings(next);
-    setBridgeEnabled(next.remote_bridge_enabled === "true");
-    setChannelEnabled(next.bridge_discord_enabled === "true");
-    setPersistedVerified(isBridgePlatformVerified(data, "discord"));
-    setBotToken(next.bridge_discord_bot_token);
-    savedCredentials.current = { botToken: next.bridge_discord_bot_token };
-    setAllowedUsers(next.bridge_discord_allowed_users);
-    setAllowedChannels(next.bridge_discord_allowed_channels);
-    setAllowedGuilds(next.bridge_discord_allowed_guilds);
-    setGroupPolicy(next.bridge_discord_group_policy || "open");
-    setRequireMention(next.bridge_discord_require_mention === "true");
-    setStreamEnabled(next.bridge_discord_stream_enabled !== "false");
-    setMaxAttachmentSize(next.bridge_discord_max_attachment_size || "");
-    setImageEnabled(next.bridge_discord_image_enabled !== "false");
-  }, []);
+    const discord =
+      bridgeConfig.discord;
+    setBridgeEnabled(true);
+    setChannelEnabled(discord.enabled);
+    setPersistedVerified(discord.verified);
+    setBotToken(discord.bot_token);
+    savedCredentials.current = { botToken: discord.bot_token };
+    setAllowedUsers(discord.allowed_users);
+    setAllowedChannels(discord.allowed_channels);
+    setAllowedGuilds(discord.allowed_guilds);
+    setGroupPolicy(discord.group_policy || "open");
+    setRequireMention(discord.require_mention);
+    setStreamEnabled(discord.stream_enabled !== false);
+    setMaxAttachmentSize(discord.max_attachment_size);
+    setImageEnabled(discord.image_enabled !== false);
+  }, [bridgeConfig]);
 
   useEffect(() => {
     void fetchSettings();
   }, [fetchSettings]);
 
-  const saveSettings = async (updates: Partial<DiscordBridgeSettings>) => {
+  const handleSaveCredentials = async () => {
     setSaving(true);
     try {
-      const client = createBridgeClient();
-      await client.saveSettings(updates as Record<string, string>);
-      setSettings((current) => ({ ...current, ...updates }));
+      updateBridgeConfig((current) => ({
+        ...current,
+        discord: {
+          ...current.discord,
+          bot_token: botToken,
+        },
+      }));
+      await onSave();
     } finally {
       setSaving(false);
     }
   };
 
-  const handleSaveCredentials = async () => {
-    const updates: Partial<DiscordBridgeSettings> = {};
-    if (botToken && !botToken.startsWith("***")) {
-      updates.bridge_discord_bot_token = botToken;
-    }
-    await saveSettings(updates);
-  };
-
   const handleSaveGroupSettings = async () => {
-    await saveSettings({
-      bridge_discord_allowed_users: allowedUsers,
-      bridge_discord_allowed_channels: allowedChannels,
-      bridge_discord_allowed_guilds: allowedGuilds,
-      bridge_discord_group_policy: groupPolicy,
-      bridge_discord_require_mention: requireMention ? "true" : "false",
-      bridge_discord_stream_enabled: streamEnabled ? "true" : "false",
-      bridge_discord_max_attachment_size: maxAttachmentSize,
-      bridge_discord_image_enabled: imageEnabled ? "true" : "false",
-    });
+    setSaving(true);
+    try {
+      updateBridgeConfig((current) => ({
+        ...current,
+        discord: {
+          ...current.discord,
+          allowed_users: allowedUsers,
+          allowed_channels: allowedChannels,
+          allowed_guilds: allowedGuilds,
+          group_policy: groupPolicy,
+          require_mention: requireMention,
+          stream_enabled: streamEnabled,
+          max_attachment_size: maxAttachmentSize,
+          image_enabled: imageEnabled,
+        },
+      }));
+      await onSave();
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleVerify = async () => {
@@ -194,10 +171,14 @@ export function DiscordBridgeSection() {
           if (!verified) {
             return false;
           }
-          await saveSettings({
-            bridge_discord_enabled: "true",
-            remote_bridge_enabled: "true",
-          });
+          updateBridgeConfig((current) => ({
+            ...current,
+            discord: {
+              ...current.discord,
+              enabled: true,
+            },
+          }));
+          await onSave();
           await fetchSettings();
           return true;
         }}

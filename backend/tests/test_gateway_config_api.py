@@ -25,6 +25,21 @@ def _updated_config() -> dict:
         "tools": [],
         "tool_groups": [],
         "sandbox": {"use": "nion.sandbox.local:LocalSandboxProvider"},
+        "bridge": {
+            "auto_start": False,
+            "default_work_dir": "",
+            "default_model": "",
+            "default_provider_id": "",
+            "telegram": {
+                "enabled": True,
+                "verified": True,
+                "verified_at": "2026-03-31T00:00:00Z",
+                "verified_fingerprint": "fp-1",
+                "bot_token": "token",
+                "chat_id": "123",
+                "allowed_users": "",
+            },
+        },
     }
 
 
@@ -54,6 +69,8 @@ def test_gateway_config_api_round_trip(monkeypatch, tmp_path):
             assert "agent_integrations" in schema_payload["order"]
             assert "daemon" in schema_payload["sections"]
             assert "daemon" in schema_payload["order"]
+            assert "bridge" in schema_payload["sections"]
+            assert "bridge" in schema_payload["order"]
             assert "memory" in schema_payload["sections"]
             assert "memory" in schema_payload["order"]
             assert "models" in schema_payload["sections"]
@@ -71,6 +88,7 @@ def test_gateway_config_api_round_trip(monkeypatch, tmp_path):
             update_payload = update_response.json()
             assert update_payload["version"] == "2"
             assert update_payload["config"]["models"][0]["name"] == "gateway-model"
+            assert update_payload["config"]["bridge"]["telegram"]["bot_token"] == "token"
 
             conflict_response = client.put(
                 "/api/config",

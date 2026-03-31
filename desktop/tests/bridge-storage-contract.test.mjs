@@ -38,3 +38,18 @@ test("desktop bridge bindings store contract exists", () => {
   assert.match(source, /upsertBinding/);
   assert.match(source, /listBindings/);
 });
+
+test("desktop bridge config no longer uses local settings.json as the source of truth", () => {
+  const source = fs.readFileSync(
+    new URL("../src/main/index.ts", import.meta.url),
+    "utf8",
+  );
+
+  assert.doesNotMatch(source, /bridge", "settings\.json"/);
+  assert.match(source, /\/api\/config/);
+  assert.match(source, /bridge", "bindings\.json"/);
+  assert.match(source, /bridge", "offsets\.json"/);
+  assert.match(source, /bridge", "observations\.json"/);
+  assert.match(source, /bridge", "incidents\.json"/);
+  assert.match(source, /bridge", "weixin\.json"/);
+});

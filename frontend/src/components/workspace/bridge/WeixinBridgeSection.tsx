@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/icon";
 import { Switch } from "@/components/ui/switch";
 import { createBridgeClient, type WeixinBridgeAccount } from "@/core/bridge/client";
+import { useBridgeConfigEditor } from "@/core/bridge-config";
 
 import {
   BridgePlatformRuntimeCard,
@@ -25,6 +26,7 @@ import {
 
 export function WeixinBridgeSection() {
   const { t } = useBridgeTranslation();
+  const { bridgeConfig, updateBridgeConfig, onSave } = useBridgeConfigEditor();
   const [accounts, setAccounts] = useState<WeixinBridgeAccount[]>([]);
   const [bridgeEnabled, setBridgeEnabled] = useState(false);
   const [channelEnabled, setChannelEnabled] = useState(false);
@@ -39,11 +41,14 @@ export function WeixinBridgeSection() {
 
   const fetchAccounts = useCallback(async () => {
     const client = createBridgeClient();
-    const settings = await client.getSettings();
-    setBridgeEnabled(settings.remote_bridge_enabled === "true");
-    setChannelEnabled(settings.bridge_weixin_enabled === "true");
+    const weixin =
+      bridgeConfig.weixin && typeof bridgeConfig.weixin === "object"
+        ? (bridgeConfig.weixin as Record<string, unknown>)
+        : {};
+    setBridgeEnabled(true);
+    setChannelEnabled(Boolean(weixin.enabled));
     setAccounts(await client.listWeixinAccounts());
-  }, []);
+  }, [bridgeConfig]);
 
   useEffect(() => {
     void fetchAccounts();
@@ -215,10 +220,14 @@ export function WeixinBridgeSection() {
           if (!verified) {
             return false;
           }
-          await createBridgeClient().saveSettings({
-            bridge_weixin_enabled: "true",
-            remote_bridge_enabled: "true",
-          });
+          updateBridgeConfig((current) => ({
+            ...current,
+            weixin: {
+              ...current.weixin,
+              enabled: true,
+            },
+          }));
+          await onSave();
           await fetchAccounts();
           return true;
         }}

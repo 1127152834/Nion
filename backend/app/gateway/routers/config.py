@@ -174,6 +174,10 @@ def _build_schema() -> ConfigSchemaResponse:
             title="Daemon",
             description="Configure local daemon lifecycle and background behavior.",
         ),
+        "bridge": ConfigSectionSchema(
+            title="Bridge",
+            description="Configure shared bridge credentials, verification state, and defaults.",
+        ),
         "notification": ConfigSectionSchema(
             title="Notification",
             description="Configure notification preferences.",
@@ -194,6 +198,7 @@ def _build_schema() -> ConfigSchemaResponse:
         "skills",
         "sandbox",
         "daemon",
+        "bridge",
         "notification",
         "advanced_yaml",
     ]

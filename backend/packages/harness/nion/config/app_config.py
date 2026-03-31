@@ -11,6 +11,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from nion.config.acp_config import ACPAgentConfig, load_acp_config_from_dict
 from nion.config.automation_config import AutomationConfig, load_automation_config_from_dict
+from nion.config.bridge_config import BridgeConfig
 from nion.config.checkpointer_config import CheckpointerConfig, load_checkpointer_config_from_dict
 from nion.config.config_store import (
     DEFAULT_CHECKPOINTER_CONFIG,
@@ -80,6 +81,10 @@ class AppConfig(BaseModel):
     daemon: DaemonConfig = Field(
         default_factory=DaemonConfig,
         description="Local daemon lifecycle and listening configuration",
+    )
+    bridge: BridgeConfig = Field(
+        default_factory=BridgeConfig,
+        description="Bridge configuration shared across desktop and web surfaces",
     )
     sandbox: SandboxConfig = Field(description="Sandbox configuration")
     tools: list[ToolConfig] = Field(default_factory=list, description="Available tools")

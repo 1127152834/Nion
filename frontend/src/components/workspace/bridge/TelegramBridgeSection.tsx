@@ -5,11 +5,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getBridgeClient } from "@/core/bridge/client";
+import { useBridgeConfigEditor } from "@/core/bridge-config";
 
 import {
   BridgePlatformRuntimeCard,
   CheckCircle,
-  isBridgePlatformVerified,
   SettingsCard,
   SpinnerGap,
   StatusBanner,
@@ -17,28 +17,9 @@ import {
   Warning,
 } from "./bridge-shared";
 
-type TelegramBridgeSettings = {
-  remote_bridge_enabled: string;
-  bridge_telegram_enabled: string;
-  telegram_bot_token: string;
-  telegram_chat_id: string;
-  telegram_bridge_allowed_users: string;
-};
-
-const DEFAULT_SETTINGS: TelegramBridgeSettings = {
-  remote_bridge_enabled: "",
-  bridge_telegram_enabled: "",
-  telegram_bot_token: "",
-  telegram_chat_id: "",
-  telegram_bridge_allowed_users: "",
-};
-
-function firstNonEmpty(...values: Array<string | undefined>) {
-  return values.find((value) => typeof value === "string" && value.length > 0) ?? "";
-}
-
 export function TelegramBridgeSection() {
   const client = getBridgeClient();
+  const { bridgeConfig, updateBridgeConfig, onSave } = useBridgeConfigEditor();
   const [botToken, setBotToken] = useState("");
   const [chatId, setChatId] = useState("");
   const [allowedUsers, setAllowedUsers] = useState("");
@@ -60,35 +41,19 @@ export function TelegramBridgeSection() {
   const connectionVerified = persistedVerified && !credentialsDirty && Boolean(botToken);
 
   const fetchSettings = useCallback(async () => {
-    if (!client) {
-      return;
-    }
-    const data = await client.getSettings();
-    const settings = {
-      ...DEFAULT_SETTINGS,
-      remote_bridge_enabled: data.remote_bridge_enabled ?? "",
-      bridge_telegram_enabled: data.bridge_telegram_enabled ?? "",
-      telegram_bot_token: firstNonEmpty(
-        data.telegram_bot_token,
-        data.bridge_telegram_bot_token,
-      ),
-      telegram_chat_id: firstNonEmpty(
-        data.telegram_chat_id,
-        data.bridge_telegram_chat_id,
-      ),
-      telegram_bridge_allowed_users: data.telegram_bridge_allowed_users ?? "",
-    };
-    setBridgeEnabled(settings.remote_bridge_enabled === "true");
-    setChannelEnabled(settings.bridge_telegram_enabled === "true");
-    setPersistedVerified(isBridgePlatformVerified(data, "telegram"));
-    setBotToken(settings.telegram_bot_token);
-    setChatId(settings.telegram_chat_id);
-    setAllowedUsers(settings.telegram_bridge_allowed_users);
+    const telegram =
+      bridgeConfig.telegram;
+    setBridgeEnabled(true);
+    setChannelEnabled(telegram.enabled);
+    setPersistedVerified(telegram.verified);
+    setBotToken(telegram.bot_token);
+    setChatId(telegram.chat_id);
+    setAllowedUsers(telegram.allowed_users);
     savedCredentials.current = {
-      botToken: settings.telegram_bot_token,
-      chatId: settings.telegram_chat_id,
+      botToken: telegram.bot_token,
+      chatId: telegram.chat_id,
     };
-  }, [client]);
+  }, [bridgeConfig]);
 
   useEffect(() => {
     void fetchSettings();
@@ -101,16 +66,16 @@ export function TelegramBridgeSection() {
   const handleSaveCredentials = async () => {
     setSaving(true);
     try {
-      const updates: Record<string, string> = {
-        telegram_chat_id: chatId,
-        bridge_telegram_chat_id: chatId,
-        telegram_bridge_allowed_users: allowedUsers,
-      };
-      if (botToken && !botToken.startsWith("***")) {
-        updates.telegram_bot_token = botToken;
-        updates.bridge_telegram_bot_token = botToken;
-      }
-      await client.saveSettings(updates);
+      updateBridgeConfig((current) => ({
+        ...current,
+        telegram: {
+          ...current.telegram,
+          bot_token: botToken,
+          chat_id: chatId,
+          allowed_users: allowedUsers,
+        },
+      }));
+      await onSave();
       await fetchSettings();
     } finally {
       setSaving(false);
@@ -129,10 +94,14 @@ export function TelegramBridgeSection() {
     }
     setSaving(true);
     try {
-      await client.saveSettings({
-        bridge_telegram_enabled: checked ? "true" : "",
-        ...(checked ? { remote_bridge_enabled: "true" } : {}),
-      });
+      updateBridgeConfig((current) => ({
+        ...current,
+        telegram: {
+          ...current.telegram,
+          enabled: checked,
+        },
+      }));
+      await onSave();
       await fetchSettings();
     } finally {
       setSaving(false);

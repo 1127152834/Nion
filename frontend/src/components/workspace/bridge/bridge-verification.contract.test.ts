@@ -32,7 +32,8 @@ void test("telegram bridge section auto-verifies before enabling", async () => {
 
   assert.match(source, /ensureTelegramVerifiedBeforeEnable/);
   assert.match(source, /await ensureTelegramVerifiedBeforeEnable\(\)/);
-  assert.match(source, /await client\.saveSettings\(/);
+  assert.match(source, /useBridgeConfigEditor/);
+  assert.match(source, /await onSave\(\)/);
 });
 
 void test("feishu bridge section auto-verifies before enabling", async () => {
@@ -43,7 +44,7 @@ void test("feishu bridge section auto-verifies before enabling", async () => {
 
   assert.match(source, /ensureFeishuVerifiedBeforeEnable/);
   assert.match(source, /await ensureFeishuVerifiedBeforeEnable\(\)/);
-  assert.match(source, /await client\.saveSettings\(/);
+  assert.match(source, /await client\.saveSettings\(|await onSave\(\)/);
 });
 
 void test("discord bridge section auto-verifies before enabling", async () => {
@@ -54,7 +55,7 @@ void test("discord bridge section auto-verifies before enabling", async () => {
 
   assert.match(source, /ensureDiscordVerifiedBeforeEnable/);
   assert.match(source, /await ensureDiscordVerifiedBeforeEnable\(\)/);
-  assert.match(source, /await client\.saveSettings\(/);
+  assert.match(source, /await client\.saveSettings\(|await onSave\(\)/);
 });
 
 void test("qq bridge section auto-verifies before enabling", async () => {
@@ -65,7 +66,7 @@ void test("qq bridge section auto-verifies before enabling", async () => {
 
   assert.match(source, /ensureQqVerifiedBeforeEnable/);
   assert.match(source, /await ensureQqVerifiedBeforeEnable\(\)/);
-  assert.match(source, /await client\.saveSettings\(/);
+  assert.match(source, /await client\.saveSettings\(|await onSave\(\)/);
 });
 
 void test("weixin bridge section requires a verified account before enabling", async () => {

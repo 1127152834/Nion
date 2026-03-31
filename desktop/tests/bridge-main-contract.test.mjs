@@ -8,7 +8,6 @@ test("desktop main wires bridge IPC handlers to bridge stores", () => {
     "utf8",
   );
 
-  assert.match(source, /createBridgeSettingsStore/);
   assert.match(source, /createBridgeBindingsStore/);
   assert.match(source, /DESKTOP_BRIDGE_IPC_CHANNELS/);
   assert.match(source, /DESKTOP_BRIDGE_IPC_CHANNELS\.getSettings/);
@@ -17,6 +16,7 @@ test("desktop main wires bridge IPC handlers to bridge stores", () => {
   assert.match(source, /DESKTOP_BRIDGE_IPC_CHANNELS\.listBindings/);
   assert.match(source, /DESKTOP_BRIDGE_IPC_CHANNELS\.startPlatform/);
   assert.match(source, /DESKTOP_BRIDGE_IPC_CHANNELS\.stopPlatform/);
+  assert.match(source, /\/api\/config/);
 });
 
 test("desktop main persists the currently tested bridge credentials before marking verification success", () => {

@@ -10,36 +10,16 @@ import { CheckCircle, SpinnerGap, Warning } from "@/components/ui/icon";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { createBridgeClient } from "@/core/bridge/client";
+import { useBridgeConfigEditor } from "@/core/bridge-config";
 
 import {
   BridgePlatformRuntimeCard,
-  isBridgePlatformVerified,
   useBridgeTranslation,
 } from "./useBridgeTranslation";
 
-type QqBridgeSettings = {
-  remote_bridge_enabled: string;
-  bridge_qq_enabled: string;
-  bridge_qq_app_id: string;
-  bridge_qq_app_secret: string;
-  bridge_qq_allowed_users: string;
-  bridge_qq_image_enabled: string;
-  bridge_qq_max_image_size: string;
-};
-
-const DEFAULT_SETTINGS: QqBridgeSettings = {
-  remote_bridge_enabled: "",
-  bridge_qq_enabled: "",
-  bridge_qq_app_id: "",
-  bridge_qq_app_secret: "",
-  bridge_qq_allowed_users: "",
-  bridge_qq_image_enabled: "true",
-  bridge_qq_max_image_size: "20",
-};
-
 export function QqBridgeSection() {
   const { t } = useBridgeTranslation();
-  const [, setSettings] = useState<QqBridgeSettings>(DEFAULT_SETTINGS);
+  const { bridgeConfig, updateBridgeConfig, onSave } = useBridgeConfigEditor();
   const [appId, setAppId] = useState("");
   const [appSecret, setAppSecret] = useState("");
   const [allowedUsers, setAllowedUsers] = useState("");
@@ -62,60 +42,80 @@ export function QqBridgeSection() {
     persistedVerified && !credentialsDirty && Boolean(appId) && Boolean(appSecret);
 
   const fetchSettings = useCallback(async () => {
-    const client = createBridgeClient();
-    const data = await client.getSettings();
-    const next = { ...DEFAULT_SETTINGS, ...data };
-    setSettings(next);
-    setBridgeEnabled(next.remote_bridge_enabled === "true");
-    setChannelEnabled(next.bridge_qq_enabled === "true");
-    setPersistedVerified(isBridgePlatformVerified(data, "qq"));
-    setAppId(next.bridge_qq_app_id);
-    setAppSecret(next.bridge_qq_app_secret);
+    const qq =
+      bridgeConfig.qq;
+    setBridgeEnabled(true);
+    setChannelEnabled(qq.enabled);
+    setPersistedVerified(qq.verified);
+    setAppId(qq.app_id);
+    setAppSecret(qq.app_secret);
     savedCredentials.current = {
-      appId: next.bridge_qq_app_id,
-      appSecret: next.bridge_qq_app_secret,
+      appId: qq.app_id,
+      appSecret: qq.app_secret,
     };
-    setAllowedUsers(next.bridge_qq_allowed_users);
-    setImageEnabled(next.bridge_qq_image_enabled !== "false");
-    setMaxImageSize(next.bridge_qq_max_image_size || "20");
-  }, []);
+    setAllowedUsers(qq.allowed_users);
+    setImageEnabled(qq.image_enabled !== false);
+    setMaxImageSize(qq.max_image_size || "20");
+  }, [bridgeConfig]);
 
   useEffect(() => {
     void fetchSettings();
   }, [fetchSettings]);
 
-  const saveSettings = async (updates: Partial<QqBridgeSettings>) => {
-    setSaving(true);
-    try {
-      const client = createBridgeClient();
-      await client.saveSettings(updates);
-      setSettings((current) => ({ ...current, ...updates }));
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const handleSaveCredentials = () => {
-    const updates: Partial<QqBridgeSettings> = {
-      bridge_qq_app_id: appId,
-    };
-    if (appSecret && !appSecret.startsWith("***")) {
-      updates.bridge_qq_app_secret = appSecret;
-    }
-    void saveSettings(updates);
+    void (async () => {
+      setSaving(true);
+      try {
+        updateBridgeConfig((current) => ({
+          ...current,
+          qq: {
+            ...current.qq,
+            app_id: appId,
+            app_secret: appSecret,
+          },
+        }));
+        await onSave();
+      } finally {
+        setSaving(false);
+      }
+    })();
   };
 
   const handleSaveAllowedUsers = () => {
-    void saveSettings({
-      bridge_qq_allowed_users: allowedUsers,
-    });
+    void (async () => {
+      setSaving(true);
+      try {
+        updateBridgeConfig((current) => ({
+          ...current,
+          qq: {
+            ...current.qq,
+            allowed_users: allowedUsers,
+          },
+        }));
+        await onSave();
+      } finally {
+        setSaving(false);
+      }
+    })();
   };
 
   const handleSaveImageSettings = () => {
-    void saveSettings({
-      bridge_qq_image_enabled: imageEnabled ? "true" : "false",
-      bridge_qq_max_image_size: maxImageSize,
-    });
+    void (async () => {
+      setSaving(true);
+      try {
+        updateBridgeConfig((current) => ({
+          ...current,
+          qq: {
+            ...current.qq,
+            image_enabled: imageEnabled,
+            max_image_size: maxImageSize,
+          },
+        }));
+        await onSave();
+      } finally {
+        setSaving(false);
+      }
+    })();
   };
 
   const handleVerify = async () => {
@@ -174,10 +174,14 @@ export function QqBridgeSection() {
           if (!verified) {
             return false;
           }
-          await saveSettings({
-            bridge_qq_enabled: "true",
-            remote_bridge_enabled: "true",
-          });
+          updateBridgeConfig((current) => ({
+            ...current,
+            qq: {
+              ...current.qq,
+              enabled: true,
+            },
+          }));
+          await onSave();
           await fetchSettings();
           return true;
         }}

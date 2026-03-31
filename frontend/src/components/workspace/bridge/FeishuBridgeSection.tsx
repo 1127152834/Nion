@@ -17,40 +17,12 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { createBridgeClient } from "@/core/bridge/client";
+import { useBridgeConfigEditor } from "@/core/bridge-config";
 
 import {
   BridgePlatformRuntimeCard,
-  isBridgePlatformVerified,
   useBridgeTranslation,
 } from "./useBridgeTranslation";
-
-type FeishuBridgeSettings = {
-  remote_bridge_enabled: string;
-  bridge_feishu_enabled: string;
-  bridge_feishu_app_id: string;
-  bridge_feishu_app_secret: string;
-  bridge_feishu_domain: string;
-  bridge_feishu_allow_from: string;
-  bridge_feishu_dm_policy: string;
-  bridge_feishu_thread_session: string;
-  bridge_feishu_group_policy: string;
-  bridge_feishu_group_allow_from: string;
-  bridge_feishu_require_mention: string;
-};
-
-const DEFAULT_SETTINGS: FeishuBridgeSettings = {
-  remote_bridge_enabled: "",
-  bridge_feishu_enabled: "",
-  bridge_feishu_app_id: "",
-  bridge_feishu_app_secret: "",
-  bridge_feishu_domain: "feishu",
-  bridge_feishu_allow_from: "",
-  bridge_feishu_dm_policy: "open",
-  bridge_feishu_thread_session: "false",
-  bridge_feishu_group_policy: "open",
-  bridge_feishu_group_allow_from: "",
-  bridge_feishu_require_mention: "false",
-};
 
 function SaveButton({
   dirty,
@@ -83,6 +55,7 @@ function SaveButton({
 
 export function FeishuBridgeSection() {
   const { t } = useBridgeTranslation();
+  const { bridgeConfig, updateBridgeConfig, onSave } = useBridgeConfigEditor();
 
   const [appId, setAppId] = useState("");
   const [appSecret, setAppSecret] = useState("");
@@ -142,60 +115,56 @@ export function FeishuBridgeSection() {
   }, [allowFrom, dmPolicy, threadSession, groupPolicy, groupAllowFrom, requireMention]);
 
   const fetchSettings = useCallback(async () => {
-    const client = createBridgeClient();
-    const data = await client.getSettings();
-    const settings = { ...DEFAULT_SETTINGS, ...data };
-    setBridgeEnabled(settings.remote_bridge_enabled === "true");
-    setChannelEnabled(settings.bridge_feishu_enabled === "true");
-    setPersistedVerified(isBridgePlatformVerified(data, "feishu"));
+    const feishu =
+      bridgeConfig.feishu;
+    setBridgeEnabled(true);
+    setChannelEnabled(feishu.enabled);
+    setPersistedVerified(feishu.verified);
 
-    setAppId(settings.bridge_feishu_app_id);
-    setAppSecret(settings.bridge_feishu_app_secret);
-    setDomain(settings.bridge_feishu_domain || "feishu");
-    setAllowFrom(settings.bridge_feishu_allow_from);
-    setDmPolicy(settings.bridge_feishu_dm_policy || "open");
-    setThreadSession(settings.bridge_feishu_thread_session === "true");
-    setGroupPolicy(settings.bridge_feishu_group_policy || "open");
-    setGroupAllowFrom(settings.bridge_feishu_group_allow_from);
-    setRequireMention(settings.bridge_feishu_require_mention === "true");
+    setAppId(feishu.app_id);
+    setAppSecret(feishu.app_secret);
+    setDomain(feishu.domain || "feishu");
+    setAllowFrom(feishu.allow_from);
+    setDmPolicy(feishu.dm_policy || "open");
+    setThreadSession(feishu.thread_session);
+    setGroupPolicy(feishu.group_policy || "open");
+    setGroupAllowFrom(feishu.group_allow_from);
+    setRequireMention(feishu.require_mention);
 
     savedCredentials.current = {
-      appId: settings.bridge_feishu_app_id,
-      appSecret: settings.bridge_feishu_app_secret,
-      domain: settings.bridge_feishu_domain || "feishu",
+      appId: feishu.app_id,
+      appSecret: feishu.app_secret,
+      domain: feishu.domain || "feishu",
     };
     savedBehavior.current = {
-      allowFrom: settings.bridge_feishu_allow_from,
-      dmPolicy: settings.bridge_feishu_dm_policy || "open",
-      threadSession: settings.bridge_feishu_thread_session === "true",
-      groupPolicy: settings.bridge_feishu_group_policy || "open",
-      groupAllowFrom: settings.bridge_feishu_group_allow_from,
-      requireMention: settings.bridge_feishu_require_mention === "true",
+      allowFrom: feishu.allow_from,
+      dmPolicy: feishu.dm_policy || "open",
+      threadSession: feishu.thread_session,
+      groupPolicy: feishu.group_policy || "open",
+      groupAllowFrom: feishu.group_allow_from,
+      requireMention: feishu.require_mention,
     };
     setCredentialsDirty(false);
     setBehaviorDirty(false);
-  }, []);
+  }, [bridgeConfig]);
 
   useEffect(() => {
     void fetchSettings();
   }, [fetchSettings]);
 
-  const saveToClient = async (updates: Partial<FeishuBridgeSettings>) => {
-    const client = createBridgeClient();
-    await client.saveSettings(updates);
-  };
-
   const handleSaveCredentials = async () => {
     setCredentialsSaving(true);
     try {
-      const updates: Partial<FeishuBridgeSettings> = {
-        bridge_feishu_app_id: appId,
-        bridge_feishu_domain: domain,
-      };
-      if (appSecret && !appSecret.startsWith("***")) {
-        updates.bridge_feishu_app_secret = appSecret;
-      }
-      await saveToClient(updates);
+      updateBridgeConfig((current) => ({
+        ...current,
+        feishu: {
+          ...current.feishu,
+          app_id: appId,
+          app_secret: appSecret,
+          domain,
+        },
+      }));
+      await onSave();
       savedCredentials.current = { appId, appSecret, domain };
       setCredentialsDirty(false);
     } finally {
@@ -206,14 +175,19 @@ export function FeishuBridgeSection() {
   const handleSaveBehavior = async () => {
     setBehaviorSaving(true);
     try {
-      await saveToClient({
-        bridge_feishu_allow_from: allowFrom,
-        bridge_feishu_dm_policy: dmPolicy,
-        bridge_feishu_thread_session: threadSession ? "true" : "false",
-        bridge_feishu_group_policy: groupPolicy,
-        bridge_feishu_group_allow_from: groupAllowFrom,
-        bridge_feishu_require_mention: requireMention ? "true" : "false",
-      });
+      updateBridgeConfig((current) => ({
+        ...current,
+        feishu: {
+          ...current.feishu,
+          allow_from: allowFrom,
+          dm_policy: dmPolicy,
+          thread_session: threadSession,
+          group_policy: groupPolicy,
+          group_allow_from: groupAllowFrom,
+          require_mention: requireMention,
+        },
+      }));
+      await onSave();
       savedBehavior.current = {
         allowFrom,
         dmPolicy,
@@ -287,10 +261,15 @@ export function FeishuBridgeSection() {
           if (!verified) {
             return false;
           }
-          await saveToClient({
-            bridge_feishu_enabled: "true",
-            remote_bridge_enabled: "true",
-          });
+          updateBridgeConfig((current) => ({
+            ...current,
+            auto_start: Boolean(current.auto_start),
+            feishu: {
+              ...current.feishu,
+              enabled: true,
+            },
+          }));
+          await onSave();
           await fetchSettings();
           return true;
         }}

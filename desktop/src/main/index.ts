@@ -10,7 +10,6 @@ import { createBridgeIncidentController } from "./bridge/incident-playbooks.js";
 import { createBridgeIncidentsStore } from "./bridge/incidents-store.js";
 import { createBridgeObservationsStore } from "./bridge/observations-store.js";
 import { createBridgeOffsetStore } from "./bridge/offset-store.js";
-import { createBridgeSettingsStore } from "./bridge/settings-store.js";
 import { createWeixinAuthManager } from "./bridge/weixin/auth.js";
 import { createWeixinBridgeStore } from "./bridge/weixin-store.js";
 import { createElectronClientSession, type ElectronClientSession } from "./daemon-client-session.js";
@@ -41,6 +40,7 @@ const MASKED_SETTING_KEYS = new Set([
 const BRIDGE_PLATFORM_KEYS = ["telegram", "feishu", "discord", "qq", "weixin"] as const;
 
 type BridgePlatformKey = (typeof BRIDGE_PLATFORM_KEYS)[number];
+type BridgeSettingsMap = Record<string, string>;
 
 function maskSettingValue(key: string, value: string) {
   if (!MASKED_SETTING_KEYS.has(key) || value.length <= 8) {
@@ -442,9 +442,6 @@ export async function startDesktopMain(): Promise<void> {
     terminalManager.kill(id);
   });
 
-  const bridgeSettingsStore = createBridgeSettingsStore(
-    path.join(environment.userDataPath, "bridge", "settings.json"),
-  );
   const bridgeBindingsStore = createBridgeBindingsStore(
     path.join(environment.userDataPath, "bridge", "bindings.json"),
   );
@@ -463,8 +460,194 @@ export async function startDesktopMain(): Promise<void> {
   const weixinAuthManager = createWeixinAuthManager({
     upsertAccount: (account) => weixinBridgeStore.upsertAccount(account),
   });
+  let bridgeSettingsCache: BridgeSettingsMap = {};
+
+  const readBridgeConfigFromConfigCenter = async () => {
+    if (!runtimeInfo) {
+      throw new Error("Desktop runtime info is unavailable");
+    }
+    const response = await fetch(`${runtimeInfo.baseUrl}/api/config`);
+    const payload = (await response.json()) as {
+      config?: { bridge?: Record<string, unknown> };
+    };
+    const bridge = payload.config?.bridge;
+    return bridge && typeof bridge === "object"
+      ? (bridge as Record<string, unknown>)
+      : {};
+  };
+
+  const bridgeConfigToSettingsMap = (bridgeConfig: Record<string, unknown>): BridgeSettingsMap => {
+    const telegram =
+      bridgeConfig.telegram && typeof bridgeConfig.telegram === "object"
+        ? (bridgeConfig.telegram as Record<string, unknown>)
+        : {};
+    const feishu =
+      bridgeConfig.feishu && typeof bridgeConfig.feishu === "object"
+        ? (bridgeConfig.feishu as Record<string, unknown>)
+        : {};
+    const discord =
+      bridgeConfig.discord && typeof bridgeConfig.discord === "object"
+        ? (bridgeConfig.discord as Record<string, unknown>)
+        : {};
+    const qq =
+      bridgeConfig.qq && typeof bridgeConfig.qq === "object"
+        ? (bridgeConfig.qq as Record<string, unknown>)
+        : {};
+    const weixin =
+      bridgeConfig.weixin && typeof bridgeConfig.weixin === "object"
+        ? (bridgeConfig.weixin as Record<string, unknown>)
+        : {};
+
+    return {
+      remote_bridge_enabled: "true",
+      bridge_auto_start: bridgeConfig.auto_start ? "true" : "",
+      bridge_default_work_dir: String(bridgeConfig.default_work_dir ?? ""),
+      bridge_default_model: String(bridgeConfig.default_model ?? ""),
+      bridge_default_provider_id: String(bridgeConfig.default_provider_id ?? ""),
+      bridge_telegram_enabled: telegram.enabled ? "true" : "",
+      telegram_bot_token: String(telegram.bot_token ?? ""),
+      bridge_telegram_bot_token: String(telegram.bot_token ?? ""),
+      telegram_chat_id: String(telegram.chat_id ?? ""),
+      bridge_telegram_chat_id: String(telegram.chat_id ?? ""),
+      telegram_bridge_allowed_users: String(telegram.allowed_users ?? ""),
+      bridge_telegram_verified: telegram.verified ? "true" : "",
+      bridge_telegram_verified_at: String(telegram.verified_at ?? ""),
+      bridge_telegram_verified_fingerprint: String(telegram.verified_fingerprint ?? ""),
+      bridge_feishu_enabled: feishu.enabled ? "true" : "",
+      bridge_feishu_app_id: String(feishu.app_id ?? ""),
+      bridge_feishu_app_secret: String(feishu.app_secret ?? ""),
+      bridge_feishu_domain: String(feishu.domain ?? "feishu"),
+      bridge_feishu_allow_from: String(feishu.allow_from ?? ""),
+      bridge_feishu_dm_policy: String(feishu.dm_policy ?? "open"),
+      bridge_feishu_thread_session: feishu.thread_session ? "true" : "false",
+      bridge_feishu_group_policy: String(feishu.group_policy ?? "open"),
+      bridge_feishu_group_allow_from: String(feishu.group_allow_from ?? ""),
+      bridge_feishu_require_mention: feishu.require_mention ? "true" : "false",
+      bridge_feishu_verified: feishu.verified ? "true" : "",
+      bridge_feishu_verified_at: String(feishu.verified_at ?? ""),
+      bridge_feishu_verified_fingerprint: String(feishu.verified_fingerprint ?? ""),
+      bridge_discord_enabled: discord.enabled ? "true" : "",
+      bridge_discord_bot_token: String(discord.bot_token ?? ""),
+      bridge_discord_allowed_users: String(discord.allowed_users ?? ""),
+      bridge_discord_allowed_channels: String(discord.allowed_channels ?? ""),
+      bridge_discord_allowed_guilds: String(discord.allowed_guilds ?? ""),
+      bridge_discord_group_policy: String(discord.group_policy ?? "open"),
+      bridge_discord_require_mention: discord.require_mention ? "true" : "false",
+      bridge_discord_stream_enabled: discord.stream_enabled === false ? "false" : "true",
+      bridge_discord_max_attachment_size: String(discord.max_attachment_size ?? ""),
+      bridge_discord_image_enabled: discord.image_enabled === false ? "false" : "true",
+      bridge_discord_verified: discord.verified ? "true" : "",
+      bridge_discord_verified_at: String(discord.verified_at ?? ""),
+      bridge_discord_verified_fingerprint: String(discord.verified_fingerprint ?? ""),
+      bridge_qq_enabled: qq.enabled ? "true" : "",
+      bridge_qq_app_id: String(qq.app_id ?? ""),
+      bridge_qq_app_secret: String(qq.app_secret ?? ""),
+      bridge_qq_allowed_users: String(qq.allowed_users ?? ""),
+      bridge_qq_image_enabled: qq.image_enabled === false ? "false" : "true",
+      bridge_qq_max_image_size: String(qq.max_image_size ?? "20"),
+      bridge_qq_verified: qq.verified ? "true" : "",
+      bridge_qq_verified_at: String(qq.verified_at ?? ""),
+      bridge_qq_verified_fingerprint: String(qq.verified_fingerprint ?? ""),
+      bridge_weixin_enabled: weixin.enabled ? "true" : "",
+      bridge_weixin_verified: weixin.verified ? "true" : "",
+      bridge_weixin_verified_at: String(weixin.verified_at ?? ""),
+      bridge_weixin_verified_fingerprint: String(weixin.verified_fingerprint ?? ""),
+    } satisfies Record<string, string>;
+  };
+
+  const settingsMapToBridgeConfig = (settings: Record<string, string>) => ({
+    auto_start: settings.bridge_auto_start === "true",
+    default_work_dir: settings.bridge_default_work_dir || "",
+    default_model: settings.bridge_default_model || "",
+    default_provider_id: settings.bridge_default_provider_id || "",
+    telegram: {
+      enabled: settings.bridge_telegram_enabled === "true",
+      verified: settings.bridge_telegram_verified === "true",
+      verified_at: settings.bridge_telegram_verified_at || null,
+      verified_fingerprint: settings.bridge_telegram_verified_fingerprint || "",
+      bot_token: getSettingWithAliases(settings, "telegram_bot_token"),
+      chat_id: getSettingWithAliases(settings, "telegram_chat_id"),
+      allowed_users: settings.telegram_bridge_allowed_users || "",
+    },
+    feishu: {
+      enabled: settings.bridge_feishu_enabled === "true",
+      verified: settings.bridge_feishu_verified === "true",
+      verified_at: settings.bridge_feishu_verified_at || null,
+      verified_fingerprint: settings.bridge_feishu_verified_fingerprint || "",
+      app_id: settings.bridge_feishu_app_id || "",
+      app_secret: settings.bridge_feishu_app_secret || "",
+      domain: settings.bridge_feishu_domain || "feishu",
+      allow_from: settings.bridge_feishu_allow_from || "",
+      dm_policy: settings.bridge_feishu_dm_policy || "open",
+      thread_session: settings.bridge_feishu_thread_session === "true",
+      group_policy: settings.bridge_feishu_group_policy || "open",
+      group_allow_from: settings.bridge_feishu_group_allow_from || "",
+      require_mention: settings.bridge_feishu_require_mention === "true",
+    },
+    discord: {
+      enabled: settings.bridge_discord_enabled === "true",
+      verified: settings.bridge_discord_verified === "true",
+      verified_at: settings.bridge_discord_verified_at || null,
+      verified_fingerprint: settings.bridge_discord_verified_fingerprint || "",
+      bot_token: settings.bridge_discord_bot_token || "",
+      allowed_users: settings.bridge_discord_allowed_users || "",
+      allowed_channels: settings.bridge_discord_allowed_channels || "",
+      allowed_guilds: settings.bridge_discord_allowed_guilds || "",
+      group_policy: settings.bridge_discord_group_policy || "open",
+      require_mention: settings.bridge_discord_require_mention === "true",
+      stream_enabled: settings.bridge_discord_stream_enabled !== "false",
+      max_attachment_size: settings.bridge_discord_max_attachment_size || "",
+      image_enabled: settings.bridge_discord_image_enabled !== "false",
+    },
+    qq: {
+      enabled: settings.bridge_qq_enabled === "true",
+      verified: settings.bridge_qq_verified === "true",
+      verified_at: settings.bridge_qq_verified_at || null,
+      verified_fingerprint: settings.bridge_qq_verified_fingerprint || "",
+      app_id: settings.bridge_qq_app_id || "",
+      app_secret: settings.bridge_qq_app_secret || "",
+      allowed_users: settings.bridge_qq_allowed_users || "",
+      image_enabled: settings.bridge_qq_image_enabled !== "false",
+      max_image_size: settings.bridge_qq_max_image_size || "20",
+    },
+    weixin: {
+      enabled: settings.bridge_weixin_enabled === "true",
+      verified: settings.bridge_weixin_verified === "true",
+      verified_at: settings.bridge_weixin_verified_at || null,
+      verified_fingerprint: settings.bridge_weixin_verified_fingerprint || "",
+    },
+  });
+
+  const writeBridgeConfigToConfigCenter = async (settings: BridgeSettingsMap) => {
+    if (!runtimeInfo) {
+      throw new Error("Desktop runtime info is unavailable");
+    }
+    const readResponse = await fetch(`${runtimeInfo.baseUrl}/api/config`);
+    const readPayload = (await readResponse.json()) as {
+      version: string;
+      config: Record<string, unknown>;
+    };
+    const nextConfig = {
+      ...readPayload.config,
+      bridge: settingsMapToBridgeConfig(settings),
+    };
+    const updateResponse = await fetch(`${runtimeInfo.baseUrl}/api/config`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        version: readPayload.version,
+        config: nextConfig,
+      }),
+    });
+    if (!updateResponse.ok) {
+      throw new Error(`Failed to persist bridge config (${updateResponse.status})`);
+    }
+  };
   const bridgeManager = createBridgeManager({
-    loadSettings: () => bridgeSettingsStore.loadSettings(),
+    loadSettings: () => ({
+      settings: bridgeSettingsCache,
+      updatedAt: "",
+    }),
     listBindings: () => bridgeBindingsStore.listBindings(),
     upsertBinding: (binding) => bridgeBindingsStore.upsertBinding(binding),
     defaultWorkingDirectory: () => "",
@@ -476,7 +659,10 @@ export async function startDesktopMain(): Promise<void> {
   });
   const bridgeIncidentController = createBridgeIncidentController({
     getStatus: () => bridgeManager.getStatus(),
-    loadSettings: () => bridgeSettingsStore.loadSettings(),
+    loadSettings: () => ({
+      settings: bridgeSettingsCache,
+      updatedAt: "",
+    }),
     listBindings: () => bridgeBindingsStore.listBindings(),
     listWeixinAccounts: () =>
       weixinBridgeStore.listAccounts().map((account) => ({
@@ -509,34 +695,39 @@ export async function startDesktopMain(): Promise<void> {
   };
 
   const readBridgeSettings = () => {
-    const settings = bridgeSettingsStore.loadSettings().settings;
-    const result: Record<string, string> = {};
-    for (const [key, value] of Object.entries(settings)) {
-      result[key] = maskSettingValue(key, value);
-    }
-    const telegramBotToken = getSettingWithAliases(settings, "telegram_bot_token");
-    if (telegramBotToken) {
-      result.telegram_bot_token = telegramBotToken;
-      result.bridge_telegram_bot_token = telegramBotToken;
-    }
-    const telegramChatId = getSettingWithAliases(settings, "telegram_chat_id");
-    if (telegramChatId) {
-      result.telegram_chat_id = telegramChatId;
-    }
-    return result;
+    return readBridgeConfigFromConfigCenter().then((bridgeConfig) => {
+      const settings = bridgeConfigToSettingsMap(bridgeConfig);
+      bridgeSettingsCache = settings;
+      const result: Record<string, string> = {};
+      for (const [key, value] of Object.entries(settings)) {
+        result[key] = maskSettingValue(key, value);
+      }
+      const telegramBotToken = getSettingWithAliases(settings, "telegram_bot_token");
+      if (telegramBotToken) {
+        result.telegram_bot_token = telegramBotToken;
+        result.bridge_telegram_bot_token = telegramBotToken;
+      }
+      const telegramChatId = getSettingWithAliases(settings, "telegram_chat_id");
+      if (telegramChatId) {
+        result.telegram_chat_id = telegramChatId;
+      }
+      return result;
+    });
   };
 
-  const updateBridgeSettings = (mutator: (settings: Record<string, string>) => void) => {
-    const next = { ...bridgeSettingsStore.loadSettings().settings };
+  const updateBridgeSettings = async (mutator: (settings: BridgeSettingsMap) => void) => {
+    const current = bridgeConfigToSettingsMap(await readBridgeConfigFromConfigCenter());
+    const next = { ...current };
     mutator(next);
-    bridgeSettingsStore.saveSettings(next);
+    bridgeSettingsCache = next;
+    await writeBridgeConfigToConfigCenter(next);
   };
 
-  const updatePlatformVerificationState = (
+  const updatePlatformVerificationState = async (
     platform: BridgePlatformKey,
     verified: boolean,
   ) => {
-    updateBridgeSettings((settings) => {
+    await updateBridgeSettings((settings) => {
       if (!verified) {
         clearBridgeVerificationState(settings, platform);
         return;
@@ -545,9 +736,9 @@ export async function startDesktopMain(): Promise<void> {
     });
   };
 
-  const persistBridgeSettings = (updates: Record<string, string>) => {
-    const current = bridgeSettingsStore.loadSettings().settings;
-    const next = { ...current };
+  const persistBridgeSettings = async (updates: BridgeSettingsMap) => {
+    const current = bridgeConfigToSettingsMap(await readBridgeConfigFromConfigCenter());
+    const next: BridgeSettingsMap = { ...current };
 
     for (const [key, value] of Object.entries(updates)) {
       const nextValue = String(value ?? "").trim();
@@ -577,16 +768,17 @@ export async function startDesktopMain(): Promise<void> {
       }
     }
 
-    bridgeSettingsStore.saveSettings(next);
+    bridgeSettingsCache = next;
+    await writeBridgeConfigToConfigCenter(next);
   };
 
-  ipcMain.handle(DESKTOP_BRIDGE_IPC_CHANNELS.getSettings, () => {
+  ipcMain.handle(DESKTOP_BRIDGE_IPC_CHANNELS.getSettings, async () => {
     return readBridgeSettings();
   });
   ipcMain.handle(
     DESKTOP_BRIDGE_IPC_CHANNELS.saveSettings,
     async (_event, updates: Record<string, string>) => {
-      persistBridgeSettings(updates);
+      await persistBridgeSettings(updates);
       bridgeManager.reloadAdapters();
       if (bridgeManager.getStatus().running) {
         await restartBridgeIfRunning();
@@ -658,7 +850,7 @@ export async function startDesktopMain(): Promise<void> {
   ipcMain.handle(
     DESKTOP_BRIDGE_IPC_CHANNELS.verifyTelegram,
     async (_event, payload: { bot_token?: string; chat_id?: string }) => {
-      const settings = bridgeSettingsStore.loadSettings().settings;
+      const settings = bridgeConfigToSettingsMap(await readBridgeConfigFromConfigCenter());
       const explicitBotToken = payload.bot_token?.trim();
       const explicitChatId = payload.chat_id?.trim();
       const botToken = explicitBotToken || getSettingWithAliases(settings, "telegram_bot_token");
@@ -668,21 +860,21 @@ export async function startDesktopMain(): Promise<void> {
       }
       const result = await verifyTelegramBot(botToken, chatId || undefined);
       if (result.verified) {
-        updateBridgeSettings((next) => {
+        await updateBridgeSettings((next) => {
           next.telegram_bot_token = explicitBotToken ?? botToken;
           next.bridge_telegram_bot_token = explicitBotToken ?? botToken;
           next.telegram_chat_id = explicitChatId ?? (chatId || "");
           next.bridge_telegram_chat_id = explicitChatId ?? (chatId || "");
         });
       }
-      updatePlatformVerificationState("telegram", result.verified);
+      await updatePlatformVerificationState("telegram", result.verified);
       return result;
     },
   );
   ipcMain.handle(
     DESKTOP_BRIDGE_IPC_CHANNELS.detectTelegramChatId,
     async (_event, payload: { bot_token?: string }) => {
-      const settings = bridgeSettingsStore.loadSettings().settings;
+      const settings = bridgeConfigToSettingsMap(await readBridgeConfigFromConfigCenter());
       const botToken = payload.bot_token?.trim() || getSettingWithAliases(settings, "telegram_bot_token");
       if (!botToken || botToken.startsWith("***")) {
         return { ok: false, error: "bot_token is required" };
@@ -693,7 +885,7 @@ export async function startDesktopMain(): Promise<void> {
   ipcMain.handle(
     DESKTOP_BRIDGE_IPC_CHANNELS.verifyDiscord,
     async (_event, payload: { bot_token?: string }) => {
-      const settings = bridgeSettingsStore.loadSettings().settings;
+      const settings = bridgeConfigToSettingsMap(await readBridgeConfigFromConfigCenter());
       const explicitBotToken = payload.bot_token?.trim();
       const botToken = explicitBotToken || settings.bridge_discord_bot_token || "";
       if (!botToken || botToken.startsWith("***")) {
@@ -701,11 +893,11 @@ export async function startDesktopMain(): Promise<void> {
       }
       const result = await verifyDiscordBot(botToken);
       if (result.verified) {
-        updateBridgeSettings((next) => {
+        await updateBridgeSettings((next) => {
           next.bridge_discord_bot_token = explicitBotToken ?? botToken;
         });
       }
-      updatePlatformVerificationState("discord", result.verified);
+      await updatePlatformVerificationState("discord", result.verified);
       return result;
     },
   );
@@ -715,7 +907,7 @@ export async function startDesktopMain(): Promise<void> {
       _event,
       payload: { app_id?: string; app_secret?: string; domain?: string },
     ) => {
-      const settings = bridgeSettingsStore.loadSettings().settings;
+      const settings = bridgeConfigToSettingsMap(await readBridgeConfigFromConfigCenter());
       const explicitAppId = payload.app_id?.trim();
       const explicitAppSecret = payload.app_secret?.trim();
       const explicitDomain = payload.domain?.trim();
@@ -727,20 +919,20 @@ export async function startDesktopMain(): Promise<void> {
       }
       const result = await verifyFeishuApp(appId, appSecret, domain);
       if (result.verified) {
-        updateBridgeSettings((next) => {
+        await updateBridgeSettings((next) => {
           next.bridge_feishu_app_id = explicitAppId ?? appId;
           next.bridge_feishu_app_secret = explicitAppSecret ?? appSecret;
           next.bridge_feishu_domain = explicitDomain ?? domain;
         });
       }
-      updatePlatformVerificationState("feishu", result.verified);
+      await updatePlatformVerificationState("feishu", result.verified);
       return result;
     },
   );
   ipcMain.handle(
     DESKTOP_BRIDGE_IPC_CHANNELS.verifyQq,
     async (_event, payload: { app_id?: string; app_secret?: string }) => {
-      const settings = bridgeSettingsStore.loadSettings().settings;
+      const settings = bridgeConfigToSettingsMap(await readBridgeConfigFromConfigCenter());
       const explicitAppId = payload.app_id?.trim();
       const explicitAppSecret = payload.app_secret?.trim();
       const appId = explicitAppId || settings.bridge_qq_app_id || "";
@@ -750,18 +942,18 @@ export async function startDesktopMain(): Promise<void> {
       }
       const result = await verifyQqApp(appId, appSecret);
       if (result.verified) {
-        updateBridgeSettings((next) => {
+        await updateBridgeSettings((next) => {
           next.bridge_qq_app_id = explicitAppId ?? appId;
           next.bridge_qq_app_secret = explicitAppSecret ?? appSecret;
         });
       }
-      updatePlatformVerificationState("qq", result.verified);
+      await updatePlatformVerificationState("qq", result.verified);
       return result;
     },
   );
   ipcMain.handle(DESKTOP_BRIDGE_IPC_CHANNELS.verifyWeixin, async () => {
     const result = verifyWeixinAccounts(weixinBridgeStore.listAccounts());
-    updatePlatformVerificationState("weixin", result.verified);
+    await updatePlatformVerificationState("weixin", result.verified);
     return result;
   });
   ipcMain.handle(DESKTOP_BRIDGE_IPC_CHANNELS.listWeixinAccounts, () => {
@@ -789,7 +981,7 @@ export async function startDesktopMain(): Promise<void> {
     const session = await weixinAuthManager.waitForLogin(sessionId);
     let bridgeRestartError: string | undefined;
     if (session.status === "confirmed") {
-      updatePlatformVerificationState("weixin", true);
+      await updatePlatformVerificationState("weixin", true);
       try {
         await restartBridgeIfRunning();
       } catch (error) {
@@ -810,7 +1002,7 @@ export async function startDesktopMain(): Promise<void> {
     DESKTOP_BRIDGE_IPC_CHANNELS.setWeixinAccountEnabled,
     async (_event, accountId: string, enabled: boolean) => {
       weixinBridgeStore.setAccountEnabled(accountId, enabled);
-      updatePlatformVerificationState(
+      await updatePlatformVerificationState(
         "weixin",
         verifyWeixinAccounts(weixinBridgeStore.listAccounts()).verified,
       );
@@ -828,7 +1020,7 @@ export async function startDesktopMain(): Promise<void> {
   );
   ipcMain.handle(DESKTOP_BRIDGE_IPC_CHANNELS.deleteWeixinAccount, async (_event, accountId: string) => {
     weixinBridgeStore.deleteAccount(accountId);
-    updatePlatformVerificationState(
+    await updatePlatformVerificationState(
       "weixin",
       verifyWeixinAccounts(weixinBridgeStore.listAccounts()).verified,
     );
