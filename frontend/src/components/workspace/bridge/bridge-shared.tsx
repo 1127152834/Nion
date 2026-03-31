@@ -543,7 +543,24 @@ export function isBridgePlatformVerified(
   settings: Record<string, string> | null | undefined,
   platform: string,
 ) {
-  return settings?.[`bridge_${platform}_verified`] === "true";
+  if (settings?.[`bridge_${platform}_verified`] !== "true") {
+    return false;
+  }
+
+  switch (platform) {
+    case "telegram":
+      return Boolean(settings.bridge_telegram_bot_token || settings.telegram_bot_token);
+    case "feishu":
+      return Boolean(settings.bridge_feishu_app_id && settings.bridge_feishu_app_secret);
+    case "discord":
+      return Boolean(settings.bridge_discord_bot_token);
+    case "qq":
+      return Boolean(settings.bridge_qq_app_id && settings.bridge_qq_app_secret);
+    case "weixin":
+      return true;
+    default:
+      return false;
+  }
 }
 
 function useBridgePlatformStatus(platform: string) {

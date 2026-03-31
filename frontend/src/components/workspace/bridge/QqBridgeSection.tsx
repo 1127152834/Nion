@@ -54,7 +54,8 @@ export function QqBridgeSection() {
   } | null>(null);
   const [bridgeEnabled, setBridgeEnabled] = useState(false);
   const [channelEnabled, setChannelEnabled] = useState(false);
-  const [connectionVerified, setConnectionVerified] = useState(false);
+  const [persistedVerified, setPersistedVerified] = useState(false);
+  const connectionVerified = persistedVerified && Boolean(appId) && Boolean(appSecret);
 
   const fetchSettings = useCallback(async () => {
     const client = createBridgeClient();
@@ -63,7 +64,7 @@ export function QqBridgeSection() {
     setSettings(next);
     setBridgeEnabled(next.remote_bridge_enabled === "true");
     setChannelEnabled(next.bridge_qq_enabled === "true");
-    setConnectionVerified(isBridgePlatformVerified(data, "qq"));
+    setPersistedVerified(isBridgePlatformVerified(data, "qq"));
     setAppId(next.bridge_qq_app_id);
     setAppSecret(next.bridge_qq_app_secret);
     setAllowedUsers(next.bridge_qq_allowed_users);

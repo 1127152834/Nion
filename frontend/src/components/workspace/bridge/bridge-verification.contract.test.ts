@@ -75,3 +75,33 @@ void test("weixin bridge section requires a verified account before enabling", a
   assert.match(source, /ensureWeixinVerifiedBeforeEnable/);
   assert.match(source, /await ensureWeixinVerifiedBeforeEnable\(\)/);
 });
+
+void test("shared bridge verification helper rejects stale verified flags without required config", async () => {
+  const source = await readFile(
+    new URL("./bridge-shared.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /switch \(platform\)/);
+  assert.match(source, /case "telegram"/);
+  assert.match(source, /case "feishu"/);
+  assert.match(source, /case "discord"/);
+  assert.match(source, /case "qq"/);
+});
+
+void test("platform sections derive enablement from persisted verification plus current form dirtiness", async () => {
+  const telegramSource = await readFile(
+    new URL("./TelegramBridgeSection.tsx", import.meta.url),
+    "utf8",
+  );
+  const feishuSource = await readFile(
+    new URL("./FeishuBridgeSection.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(telegramSource, /const \[persistedVerified, setPersistedVerified\]/);
+  assert.match(telegramSource, /const connectionVerified = persistedVerified && Boolean\(botToken\)/);
+  assert.match(feishuSource, /const \[persistedVerified, setPersistedVerified\]/);
+  assert.match(feishuSource, /const connectionVerified =/);
+  assert.match(feishuSource, /credentialsDirty/);
+});

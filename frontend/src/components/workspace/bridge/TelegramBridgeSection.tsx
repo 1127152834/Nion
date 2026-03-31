@@ -45,7 +45,6 @@ export function TelegramBridgeSection() {
   const [allowedUsers, setAllowedUsers] = useState("");
   const [bridgeEnabled, setBridgeEnabled] = useState(false);
   const [channelEnabled, setChannelEnabled] = useState(false);
-  const [connectionVerified, setConnectionVerified] = useState(false);
   const [saving, setSaving] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [detecting, setDetecting] = useState(false);
@@ -54,6 +53,8 @@ export function TelegramBridgeSection() {
     message: string;
   } | null>(null);
   const { t } = useBridgeTranslation();
+  const [persistedVerified, setPersistedVerified] = useState(false);
+  const connectionVerified = persistedVerified && Boolean(botToken);
 
   const fetchSettings = useCallback(async () => {
     if (!client) {
@@ -76,7 +77,7 @@ export function TelegramBridgeSection() {
     };
     setBridgeEnabled(settings.remote_bridge_enabled === "true");
     setChannelEnabled(settings.bridge_telegram_enabled === "true");
-    setConnectionVerified(isBridgePlatformVerified(data, "telegram"));
+    setPersistedVerified(isBridgePlatformVerified(data, "telegram"));
     setBotToken(settings.telegram_bot_token);
     setChatId(settings.telegram_chat_id);
     setAllowedUsers(settings.telegram_bridge_allowed_users);

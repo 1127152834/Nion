@@ -116,7 +116,12 @@ export function FeishuBridgeSection() {
   } | null>(null);
   const [bridgeEnabled, setBridgeEnabled] = useState(false);
   const [channelEnabled, setChannelEnabled] = useState(false);
-  const [connectionVerified, setConnectionVerified] = useState(false);
+  const [persistedVerified, setPersistedVerified] = useState(false);
+  const connectionVerified =
+    persistedVerified
+    && !credentialsDirty
+    && Boolean(appId)
+    && Boolean(appSecret);
 
   useEffect(() => {
     const saved = savedCredentials.current;
@@ -143,7 +148,7 @@ export function FeishuBridgeSection() {
     const settings = { ...DEFAULT_SETTINGS, ...data };
     setBridgeEnabled(settings.remote_bridge_enabled === "true");
     setChannelEnabled(settings.bridge_feishu_enabled === "true");
-    setConnectionVerified(isBridgePlatformVerified(data, "feishu"));
+    setPersistedVerified(isBridgePlatformVerified(data, "feishu"));
 
     setAppId(settings.bridge_feishu_app_id);
     setAppSecret(settings.bridge_feishu_app_secret);

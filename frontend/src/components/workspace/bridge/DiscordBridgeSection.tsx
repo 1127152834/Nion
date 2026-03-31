@@ -75,7 +75,8 @@ export function DiscordBridgeSection() {
   } | null>(null);
   const [bridgeEnabled, setBridgeEnabled] = useState(false);
   const [channelEnabled, setChannelEnabled] = useState(false);
-  const [connectionVerified, setConnectionVerified] = useState(false);
+  const [persistedVerified, setPersistedVerified] = useState(false);
+  const connectionVerified = persistedVerified && Boolean(botToken);
 
   const fetchSettings = useCallback(async () => {
     const client = createBridgeClient();
@@ -84,7 +85,7 @@ export function DiscordBridgeSection() {
     setSettings(next);
     setBridgeEnabled(next.remote_bridge_enabled === "true");
     setChannelEnabled(next.bridge_discord_enabled === "true");
-    setConnectionVerified(isBridgePlatformVerified(data, "discord"));
+    setPersistedVerified(isBridgePlatformVerified(data, "discord"));
     setBotToken(next.bridge_discord_bot_token);
     setAllowedUsers(next.bridge_discord_allowed_users);
     setAllowedChannels(next.bridge_discord_allowed_channels);
