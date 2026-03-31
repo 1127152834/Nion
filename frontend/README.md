@@ -145,6 +145,7 @@ src/
 - The workspace now includes a top-level **Projects** module for long-running work containers, execution plans, project threads, timeline, managed artifacts, and completion-stage extraction suggestions
 - The settings dialog now includes an **Agent Integrations** page for ACP adapters and a **Memory** storage selector that maps UI-safe modes onto Config Center state
 - The desktop Remote Bridge now gates each platform behind a persisted verification state: users must verify the connection before enabling a channel, and each re-enable automatically re-verifies the platform
+- Bridge configuration is now migrating toward Config Center / `config.db` as the shared source of truth, while bridge runtime state remains desktop-local
 
 ## License
 
