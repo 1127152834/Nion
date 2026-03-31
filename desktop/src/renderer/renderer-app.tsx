@@ -12,7 +12,6 @@ import WorkspaceMemoryPage from "@/app/workspace/memory/page";
 import NotebookPage from "@/app/workspace/notebook/page";
 import NotebookTrashPage from "@/app/workspace/notebook/trash/page";
 import WorkspaceProjectThreadPage from "@/app/workspace/projects/[project_id]/threads/[thread_id]/page";
-import WorkspaceSelfMaintenancePage from "@/app/workspace/self-maintenance/page";
 import { ProjectDashboardPage } from "@/components/workspace/projects/project-dashboard-page";
 import { ProjectListPage } from "@/components/workspace/projects/project-list-page";
 import ToolPolicyPage from "@/app/workspace/tool-policy/page";
@@ -127,14 +126,6 @@ export function DesktopRendererApp() {
                 element={
                   <WorkspaceRoute>
                     <WorkspaceMemoryPage />
-                  </WorkspaceRoute>
-                }
-              />
-              <Route
-                path="/workspace/self-maintenance"
-                element={
-                  <WorkspaceRoute>
-                    <WorkspaceSelfMaintenancePage />
                   </WorkspaceRoute>
                 }
               />

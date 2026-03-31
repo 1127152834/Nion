@@ -6,7 +6,6 @@ import {
   ChevronsUpDown,
   DatabaseIcon,
   FolderKanbanIcon,
-  HeartPulseIcon,
   InfoIcon,
   Settings2Icon,
   SettingsIcon,
@@ -33,7 +32,6 @@ import {
   pathOfMemory,
   pathOfNotebook,
   pathOfProjects,
-  pathOfSelfMaintenance,
 } from "@/core/navigation/desktop-routes";
 
 import { SettingsDialog } from "./settings";
@@ -69,7 +67,6 @@ export function WorkspaceNavMenu() {
   const router = useRouter();
   const notebookPath = pathOfNotebook();
   const memoryPath = pathOfMemory();
-  const selfMaintenancePath = pathOfSelfMaintenance();
   const projectsPath = pathOfProjects();
 
   useEffect(() => {
@@ -130,15 +127,6 @@ export function WorkspaceNavMenu() {
                   >
                     <DatabaseIcon />
                     {t.sidebar.memory}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => {
-                      setSettingsOpen(false);
-                      router.push(selfMaintenancePath);
-                    }}
-                  >
-                    <HeartPulseIcon />
-                    {t.sidebar.selfMaintenance}
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => {

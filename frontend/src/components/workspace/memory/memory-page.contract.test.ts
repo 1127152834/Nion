@@ -8,13 +8,15 @@ void test("memory page excludes notebook semantics and focuses on memory operati
     "utf8",
   );
 
-  assert.match(source, /t\.workspaceSurfaces\.memory\.title/);
-  assert.match(source, /MemoryProviderPanel/);
+  assert.match(source, /useMemory\(/);
+  assert.match(source, /useClearMemory\(/);
+  assert.match(source, /useDeleteMemoryFact\(/);
+  assert.doesNotMatch(source, /MemoryProviderPanel/);
   assert.match(source, /MemoryConsolePanel/);
-  assert.match(source, /useRunMemoryCompaction/);
-  assert.match(source, /useRunMemoryRebuild/);
-  assert.match(source, /t\.settings\.compaction\.title/);
-  assert.match(source, /t\.settings\.rebuild\.title/);
+  assert.doesNotMatch(source, /useRunMemoryCompaction/);
+  assert.doesNotMatch(source, /useRunMemoryRebuild/);
+  assert.doesNotMatch(source, /t\.settings\.compaction\.title/);
+  assert.doesNotMatch(source, /t\.settings\.rebuild\.title/);
   assert.doesNotMatch(source, /Notebook|Knowledge Base|reindex notebook/i);
   assert.doesNotMatch(source, /MemoryAgentCorePanel|selfMaintenance/i);
 });

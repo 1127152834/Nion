@@ -36,10 +36,6 @@ export function pathOfMemory() {
   return "/workspace/memory";
 }
 
-export function pathOfSelfMaintenance() {
-  return "/workspace/self-maintenance";
-}
-
 export function pathOfAutomation(
   extra: Record<string, string | undefined> = {},
 ) {

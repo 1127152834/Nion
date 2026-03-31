@@ -6,7 +6,6 @@ import {
   Clock3Icon,
   DatabaseIcon,
   FolderKanbanIcon,
-  HeartPulseIcon,
   MessagesSquare,
 } from "lucide-react";
 import Link from "next/link";
@@ -23,7 +22,6 @@ import { useI18n } from "@/core/i18n/hooks";
 import {
   pathOfMemory,
   pathOfNotebook,
-  pathOfSelfMaintenance,
 } from "@/core/navigation/desktop-routes";
 
 export function WorkspaceNavChatList() {
@@ -31,7 +29,6 @@ export function WorkspaceNavChatList() {
   const pathname = usePathname();
   const notebookPath = pathOfNotebook();
   const memoryPath = pathOfMemory();
-  const selfMaintenancePath = pathOfSelfMaintenance();
   return (
     <SidebarGroup className="pt-1">
       <SidebarMenu>
@@ -92,17 +89,6 @@ export function WorkspaceNavChatList() {
             <Link className="text-muted-foreground" href={memoryPath}>
               <DatabaseIcon />
               <span>{t.sidebar.memory}</span>
-            </Link>
-          </SidebarMenuButton>
-        </SidebarMenuItem>
-        <SidebarMenuItem>
-          <SidebarMenuButton
-            isActive={pathname.startsWith(selfMaintenancePath)}
-            asChild
-          >
-            <Link className="text-muted-foreground" href={selfMaintenancePath}>
-              <HeartPulseIcon />
-              <span>{t.sidebar.selfMaintenance}</span>
             </Link>
           </SidebarMenuButton>
         </SidebarMenuItem>
