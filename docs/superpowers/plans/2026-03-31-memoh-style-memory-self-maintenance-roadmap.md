@@ -170,6 +170,13 @@ Rebuild the product IA so `Knowledge Base`, `Memory`, and `Self-Maintenance` bec
 - self-maintenance is not confused with notebook
 - user-facing mental model is coherent
 
+**Current checkpoint**
+
+- product IA is split across `Knowledge Base / Memory / Self-Maintenance / Projects`
+- notebook is no longer presented inside memory
+- self-maintenance is no longer hidden inside settings as the primary home
+- OpenViking remains capability-layer wording inside memory/settings rather than a top-level product category
+
 ## Milestone M6: Provider Parity Completion
 
 **Objective**

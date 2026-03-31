@@ -76,6 +76,8 @@
 - 按钮状态：save/discard 在 clean、dirty、saving 三态下正确启禁。
 - 条件渲染：desktop shell 下 sandbox section 隐藏/提示 AIO provider；CLI tools section 直接嵌入 manager。
 - 条件渲染：记忆页中的 provider foundation 区块必须显示 `Built-in / Mem0 / OpenViking`，且 OpenViking 文案必须提到 `embedded / remote`。
+- 条件渲染：设置中的记忆页现在是轻量入口页，不再承担 notebook、memory、self-maintenance 的最终产品承载面。
+- 跳转入口：必须能从设置里的 `Memory / Self-Maintenance` 入口进入 `/workspace/memory` 与 `/workspace/self-maintenance`，且文案保持 capability/routing 语义。
 - 成功反馈：save 后 ConfigSaveBar 回到 clean；version 刷新；runtime status 变化。
 - 失败反馈：409 后重拉；422 后显示 validation。
 - 刷新后状态：已保存配置重进仍保留；discard 后回退到 initialConfig。
@@ -118,6 +120,24 @@
 - 前置条件：借助接口/双窗口制造版本冲突。
 - 优先级：P0。
 
+#### 场景 6：Memory 页面最小冒烟
+- 目标：验证 dedicated Memory 页面已经成为独立产品 surface，而不是 notebook 或自我维护的拼装页。
+- 步骤：桌面启动后打开 `/workspace/memory`，确认页面标题、描述、Memory Console/Recall 区块渲染正常。
+- 预期：页面聚焦 structured memory、recall、console；不得出现 notebook ownership、自我维护主操作或 OpenViking 产品级 tab 心智。
+- 优先级：P0。
+
+#### 场景 7：Self-Maintenance 页面最小冒烟
+- 目标：验证 dedicated Self-Maintenance 页面已经成为主维护入口，而不是设置页中的隐藏面板。
+- 步骤：桌面启动后打开 `/workspace/self-maintenance`，确认 heartbeat、proposal 相关区块渲染正常。
+- 预期：页面聚焦 heartbeat、maintenance cadence、proposal-driven actions；不得出现 notebook operator controls 或 notebook 归属文案。
+- 优先级：P0。
+
+#### 场景 8：Notebook / Memory / Self-Maintenance / Projects 导航路由
+- 目标：验证四个 IA 域具备独立导航入口与正确路由。
+- 步骤：从 workspace 导航或命令面板依次进入 `/workspace/notebook`、`/workspace/memory`、`/workspace/self-maintenance`、`/workspace/projects`。
+- 预期：每个页面都渲染对应 domain，且不会借用错误心智模型；Memory 不再承载 notebook，Self-Maintenance 不再作为 settings 隐藏主入口。
+- 优先级：P0。
+
 ### 6.3 必须覆盖的 E2E 场景类型
 - 主成功链路：场景 1。
 - 主失败链路：422/409。
@@ -126,6 +146,7 @@
 - 重复点击链路：save/discard 连点。
 - 模块间联动链路：Session Policy -> Chat suggestions；Daemon -> runtime-info。
 - web / desktop-client 差异链路：sandbox/desktop-only 提示。
+- IA 冒烟链路：Notebook / Memory / Self-Maintenance / Projects 四个域的独立导航与心智分离。
 
 ### 6.4 agent-browser 与 skill 使用建议
 - 适合 `/browse`：设置打开、字段编辑、保存验证。
@@ -157,6 +178,7 @@
 - 适合 agent-browser E2E：确定性分区的保存链路。
 - 适合人工探索式测试：复杂 YAML、跨分区联动。
 - 最小冒烟集合：打开设置、改 daemon 设置、save 成功、reload 一致。
+- M5 增量最小冒烟集合：打开 `/workspace/notebook`、`/workspace/memory`、`/workspace/self-maintenance`，确认 domain 文案、入口和主操作不串位。
 - 最小回归闭环：save success + 409 + 422。
 - 高收益自动化优先级：P0 是 config API/useConfigEditor；P1 是各 section UI。
 
@@ -191,7 +213,7 @@
 - 记忆页不再是混合卡片堆，必须拆成 `Memory Provider / Memory Console / Agent Core` 三个内部 surface
 - `Memory Provider` 承担 provider family、mode、storage provider 相关配置，不应再和检索/AutoDream 混放
 - `Memory Console` 承担记忆检索、当前记忆概览、facts 管理与清理
-- `Agent Core` 承担 AutoDream 与 OpenViking operator surfaces
+- `Agent Core` 只保留指向 `Self-Maintenance` 的轻量摘要/入口，不再承担 notebook operator controls
 - OpenViking 与 AutoDream 文案必须保留 operator / inspect 语义，不能伪装成最终 end-user product
 
 ### Heartbeat Backbone 增量覆盖
@@ -219,6 +241,7 @@
   - `AutoDream` 只作为 legacy compatibility copy 保留
   - 维护结果展示 `memory/prune/action/self-upgrade proposals`
   - notebook 检索或重建按钮不能重新混入这个 panel
+  - dedicated `/workspace/self-maintenance` 页面是主维护入口，settings 只保留轻量入口/说明
 
 ### Memory Compaction 增量覆盖
 

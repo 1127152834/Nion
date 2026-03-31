@@ -22,7 +22,7 @@ Parity vocabulary:
 | Memory CRUD Surface | OpenAPI `/bots/{bot_id}/memory`, `/memory/{id}`; SDK `getBotsByBotIdMemory`, `postBotsByBotIdMemory`, delete endpoints | `/api/memory`, `/api/memory/facts/{fact_id}` exist | `partial` | Compatibility bridge exists; add/search/admin parity incomplete |
 | Memory Search | OpenAPI `/bots/{bot_id}/memory/search`; SDK `postBotsByBotIdMemorySearch` | Current Nion memory page supports local search over retrieved payload + recall search | `partial` | No dedicated provider-backed memory search API surface |
 | Memory Compact | OpenAPI `/bots/{bot_id}/memory/compact`; SDK `postBotsByBotIdMemoryCompact` | Nion now exposes `/api/memory/compact` with compaction service, logs, and heartbeat integration hook | `partial` | Manual compaction is implemented; provider parity and richer policies remain |
-| Memory Rebuild | OpenAPI `/bots/{bot_id}/memory/rebuild`; SDK `postBotsByBotIdMemoryRebuild` | No memory rebuild API/service; only notebook reindex and provider round-trip pieces | `not_started` | Planned future milestone |
+| Memory Rebuild | OpenAPI `/bots/{bot_id}/memory/rebuild`; SDK `postBotsByBotIdMemoryRebuild` | Nion now exposes `/api/memory/rebuild` and `/api/memory/rebuild/logs` with a rebuild service and log store | `partial` | Rebuild backbone exists, but provider/runtime parity is still narrower than Memoh |
 | Memory Status | OpenAPI `/bots/{bot_id}/memory/status`; SDK `getBotsByBotIdMemoryStatus` | `/api/memory/status` now includes minimal runtime compaction status fields | `partial` | Improved, but still narrower than Memoh runtime status |
 | Memory Usage | OpenAPI `/bots/{bot_id}/memory/usage`; SDK `getBotsByBotIdMemoryUsage` | Nion now exposes `/api/memory/usage` with estimated structured-memory usage | `partial` | Minimal usage exists; richer provider-aware usage remains |
 | Heartbeat Service | README "Automation" feature; `cmd/agent/main.go` starts `heartbeat.Service`; `internal/heartbeat/` package | `nion.heartbeat.service.HeartbeatService` now exists and daemon owns heartbeat status/tick path | `partial` | Minimal backbone exists, but Memoh-style trigger richness is not complete |
@@ -67,6 +67,9 @@ Parity vocabulary:
 - Notebook content does not become memory by default.
 - `AutoDream` is retired as a standalone concept.
 - Reflective maintenance is absorbed into heartbeat-driven self-maintenance.
+- Product IA is split across `Knowledge Base / Memory / Self-Maintenance / Projects`.
+- Self-Maintenance is no longer hidden inside settings as the primary home.
+- OpenViking is a capability layer, not a top-level product category.
 
 ## M0 Exit Summary
 
@@ -75,7 +78,9 @@ Parity vocabulary:
 - provider-family architecture
 - runtime bridge away from `memory.json`
 - OpenViking embedded/remote activation
-- notebook/memory separation at design level
+- notebook/memory separation at product-surface level
+- dedicated self-maintenance product surface
+- dedicated projects product surface
 
 ### Partial
 
@@ -83,12 +88,10 @@ Parity vocabulary:
 - memory CRUD/search admin surface
 - always-on continuity
 - deeper reflective maintenance richness and provider parity
+- memory rebuild parity depth
 
 ### Not started
 
-- memory compaction
-- memory rebuild
-- memory usage
 - complete Mem0 implementation
 
 ### Intentionally not replicated
@@ -103,3 +106,6 @@ Parity vocabulary:
 - `M2 Memory Compaction` implemented
 - `M3 Memory Rebuild` implemented
 - `M4 Reflective Self-Maintenance` now uses `self-maintenance` as the primary runtime concept and keeps `AutoDream` as legacy compatibility
+- `M5 Memory Product Surface` splits the user-facing IA across `Knowledge Base / Memory / Self-Maintenance / Projects`
+- notebook is no longer presented inside memory
+- self-maintenance is no longer hidden inside settings as the primary home
