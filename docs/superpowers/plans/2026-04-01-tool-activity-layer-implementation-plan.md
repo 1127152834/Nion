@@ -63,6 +63,130 @@
 
 ---
 
+## 影响评估与兼容约束
+
+### 1. 对现有后端架构的影响
+
+Tool Activity Layer 不应引入新的顶层后端服务或新的跨层依赖方向。必须保持当前边界不变：
+
+- `packages/harness/nion/*` 继续承载 runtime、tool、thread、telemetry 逻辑
+- `app/gateway/*` 与 `app/daemon/*` 只做已有数据结构的透传与聚合
+- 不允许让 `app/*` 反向成为 tool activity 的核心源头
+
+实施要求：
+
+- Tool Activity 数据模型放在 `packages/harness/nion/tools/`，不要放到 `app/`
+- diagnostics router 只消费已有 telemetry / snapshot 数据，不承担摘要计算职责
+- thread service 只负责流拼装与持久化，不要把摘要规则硬编码到 router 层
+
+### 2. 对现有业务流程的影响
+
+Tool Activity Layer 会影响三类现有业务流程：
+
+1. **常规聊天线程**
+   - 新增 `tool_activity_summary` 事件后，线程消息将多出一类高层摘要消息
+   - 不能改变现有 `values.messages` 的语义，也不能让旧消息丢失
+2. **task/subtask 执行**
+   - task diagnostics 将新增“最近工具摘要”能力
+   - 不能改变已有 task timeout / failure / healthy 状态机
+3. **控制平面/运维类工具**
+   - `diagnose_incident`、`get_task_diagnostics`、`get_thread_diagnostics` 等工具会读取到更多细节
+   - 不能要求这些工具迁移到新协议才能工作
+
+实施要求：
+
+- 新增字段只能是增量扩展，不能重定义现有 task snapshot 核心字段
+- `latest_tool_summary` 一类字段进入 `details`，不替换 `summary`
+- 业务流若不消费新摘要，原行为必须保持不变
+
+### 3. 对聊天链路的影响
+
+这是风险最高的一条线。
+
+当前链路是：
+
+- backend `NionClient.stream()` 产出 `StreamEvent`
+- thread service 透传 `values` / `messages-tuple`
+- frontend `useThreadStream()` 消费事件并合并到消息状态
+- `groupMessages()` / `MessageGroup` 做显示分组
+
+潜在风险：
+
+- 新事件类型如果设计不当，会让前端丢弃、误分组或重复渲染
+- 如果把摘要直接塞进现有 `tool` 消息，会破坏 `findToolCallResult()`、`hasToolCalls()`、`derivePendingPermissionRequest()` 等现有逻辑
+- 如果只在 `values` 中附带摘要而不进增量流，实时体验会倒退
+
+实施要求：
+
+- `tool_activity_summary` 必须是新增消息类型或新增流事件类型，不允许复用 `tool`/`ai`/`human`
+- 前端要先支持新类型的容错解析，再让后端发新类型
+- `messages-tuple` 和 `values` 两条链路要保持最终一致，不能一个有摘要一个没有
+
+### 4. 对交互体验的影响
+
+Tool Activity Layer 会明显改变聊天区视觉密度和信息层级。
+
+正向收益：
+
+- 工具噪音下降
+- 长任务可读性增强
+- 子任务状态更人类可读
+
+潜在副作用：
+
+- 摘要卡片过多，反而造成新噪音
+- 与现有 reasoning/tool-call 折叠区块重复表达
+- summary 与真实工具结果不一致时，会损害可信度
+
+实施要求：
+
+- 摘要卡片默认紧凑，不要比现有 tool-call 卡片更抢视觉焦点
+- 单工具调用不强制生成独立摘要卡片，避免重复
+- 批次摘要优先展示“阶段完成”，而不是每一步都插卡片
+- 原始工具结果仍应可追溯，summary 不能成为唯一证据
+
+### 5. 对多 surface 的影响
+
+Nion 不是单一 Web 聊天界面，至少有：
+
+- workspace
+- agent page
+- daemon diagnostics
+- desktop shell / bridge 相关场景
+- channel / automation surface
+
+实施要求：
+
+- 第一版只在 `workspace` 与 `agent page` 做富渲染
+- diagnostics 优先消费 `latest_tool_summary` 和 timeline
+- `channel` / `automation` 先只保留后端数据结构兼容，不强行前端展示
+- 新协议必须允许“不消费 rich summary 的 surface”继续正常工作
+
+### 6. 兼容策略
+
+为避免破坏现有系统，实施时遵守以下兼容策略：
+
+1. **后端先行，前端容错先行，功能开关最后放开**
+2. **先支持解析新消息，再开始发新消息**
+3. **所有新增字段均为 optional**
+4. **diagnostics / telemetry 使用 details 扩展，不改顶层 contract**
+5. **Tool Activity Layer 不改变现有 tool_call/tool_result 原始记录语义**
+
+### 7. 结论
+
+这个改动对现有系统是“中等架构影响，高交互收益，高链路敏感度”。
+
+可以做，而且值得做，但实现顺序必须严格：
+
+1. 先定义协议
+2. 再做前端容错
+3. 再注入后端事件
+4. 最后打开 rich rendering
+
+任何跳步实现，都会把这次改动变成聊天链路和 diagnostics 链路的回归风险。
+
+---
+
 ## Phase 1: 定义 Tool Activity 协议层
 
 ### Task 1: 定义后端数据模型
