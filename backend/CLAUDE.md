@@ -87,6 +87,12 @@ FastAPI application on port 8001 with health check at `GET /health`.
 | **Artifacts** (`/api/threads/{id}/artifacts`) | serve artifacts |
 | **Suggestions** (`/api/threads/{id}/suggestions`) | follow-up question generation |
 
+Memory OS provider contracts now have two layers:
+
+- persisted state remains config-only: `active_provider_family`, `active_provider_id`, and provider instance config
+- runtime read models enrich provider instances with explicit capability matrices plus runtime status/usage summaries
+- when provider runtime health is unavailable, the API must return `unknown` explicitly rather than fabricating family-specific health
+
 ### Local Daemon Surface
 
 The desktop local daemon reuses the gateway router modules directly. Keep its

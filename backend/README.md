@@ -80,6 +80,13 @@ Program 04C activates the OpenViking provider family:
 - OpenViking runtime providers now satisfy the legacy memory runtime contract too: post-chat capture, clear-memory, and delete-fact all resolve through Memory OS without falling back to `memory.json`
 - this milestone activates provider plumbing and mode/status exposure, but does not yet redesign the memory console
 
+Program 04M6 Task 2 hardens the Memory OS provider metadata contract:
+
+- provider family metadata now exposes an explicit capability matrix with state values such as `supported`, `partial`, and `unsupported`
+- provider state responses now project runtime-only fields including `runtime_mode`, `health`, `capabilities`, `status_summary`, and `usage_summary`
+- persisted `memory-os-state.json` remains configuration-only; runtime capability and health fields are derived on read
+- inactive or unimplemented providers report runtime health as `unknown` rather than inventing provider-specific health checks
+
 ---
 
 ## Architecture
