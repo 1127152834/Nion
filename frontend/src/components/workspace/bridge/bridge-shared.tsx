@@ -37,6 +37,7 @@ const zhCN = {
 
   "bridge.title": "远程桥接",
   "bridge.description": "通过 Telegram、飞书等外部渠道控制 Claude",
+  "bridge.desktopOnly": "Bridge 仅在桌面应用中可用。",
   "bridge.activeHint": "桥接已激活。外部渠道可以向 Claude 发送任务。",
   "bridge.status": "桥接状态",
   "bridge.statusConnected": "已连接",
@@ -264,6 +265,7 @@ const enUS: Record<keyof typeof zhCN, string> = {
 
   "bridge.title": "Remote Bridge",
   "bridge.description": "Control Claude through external channels such as Telegram and Feishu",
+  "bridge.desktopOnly": "Bridge is only available in the desktop app.",
   "bridge.activeHint": "Bridge is active. External channels can send tasks to Claude.",
   "bridge.status": "Bridge Status",
   "bridge.statusConnected": "Connected",
