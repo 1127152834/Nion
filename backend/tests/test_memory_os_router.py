@@ -18,6 +18,7 @@ def test_memory_os_router_lists_provider_families(monkeypatch, tmp_path):
         "mem0",
         "openviking",
     ]
+    assert "capabilities" in payload["families"][0]
 
 
 def test_memory_os_router_returns_active_binding_state(monkeypatch, tmp_path):
@@ -48,3 +49,36 @@ def test_memory_os_router_updates_active_binding_state(monkeypatch, tmp_path):
         payload = response.json()
         assert payload["active_provider_family"] == "openviking"
         assert payload["active_provider_id"] == "provider-1"
+
+
+def test_memory_os_router_exposes_provider_status_and_capabilities(
+    monkeypatch, tmp_path
+):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+
+    with TestClient(create_app()) as client:
+        client.put(
+            "/api/memory-os/providers/state",
+            json={
+                "active_provider_family": "openviking",
+                "active_provider_id": "ov-embedded",
+                "providers": [
+                    {
+                        "id": "ov-embedded",
+                        "family": "openviking",
+                        "name": "Embedded OpenViking",
+                        "config": {"mode": "embedded"},
+                    }
+                ],
+            },
+        )
+        families = client.get("/api/memory-os/providers/families")
+        state = client.get("/api/memory-os/providers/state")
+
+    assert families.status_code == 200
+    assert state.status_code == 200
+    assert "capabilities" in families.json()["families"][0]
+    provider = state.json()["providers"][0]
+    assert "status" in provider
+    assert "capabilities" in provider

@@ -36,3 +36,13 @@ def test_openviking_family_exposes_embedded_and_remote_modes():
     )
 
     assert family.supported_modes == ["embedded", "remote"]
+
+
+def test_memory_os_provider_families_expose_capability_matrix():
+    service = MemoryOSService()
+
+    families = {family.family: family for family in service.list_provider_families()}
+
+    assert "capabilities" in families["builtin"].model_dump()
+    assert "capabilities" in families["openviking"].model_dump()
+    assert "capabilities" in families["mem0"].model_dump()
