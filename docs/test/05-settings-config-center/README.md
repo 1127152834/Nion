@@ -277,6 +277,7 @@
 - 后端需验证 Mem0 的 compact/rebuild 返回显式 unsupported 结果，而不是抛出未实现异常
 - 前端需验证 provider foundation 区块对 provider family capability rendering、Mem0 runtime selection、provider status / usage visibility 都有稳定展示
 - 桌面最小冒烟需确认 Mem0 不再表现为 unsupported-by-crash，而是兼容运行时 + 显式能力边界
+- Task 5 收尾时的桌面验证基线应记录为：`pnpm --dir desktop install` 后 `make desktop-dev` 可成功拉起 renderer 与 daemon，且 `/health`、`/api/memory-os/providers/families`、`/api/memory-os/providers/state` provider parity API smoke 可通过
 
 ## 10. 风险与优先级
 - P0 必测项：config read/update/runtime-status、409/422。
