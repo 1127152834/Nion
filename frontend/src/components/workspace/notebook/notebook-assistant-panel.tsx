@@ -30,6 +30,7 @@ export function NotebookAssistantPanel({
   onStartNewConversation,
 }: NotebookAssistantPanelProps) {
   const createOrResumeSession = useCreateOrResumeNotebookAssistantSession();
+  const { mutateAsync: createOrResumeSessionAsync } = createOrResumeSession;
   const [threadId, setThreadId] = useState<string | null>(null);
   const [sessionError, setSessionError] = useState<string | null>(null);
   const [thread, sendMessage] = useThreadStream({
@@ -53,8 +54,7 @@ export function NotebookAssistantPanel({
       return;
     }
 
-    void createOrResumeSession
-      .mutateAsync({
+    void createOrResumeSessionAsync({
         noteId,
         sessionId,
       })
@@ -72,7 +72,7 @@ export function NotebookAssistantPanel({
     return () => {
       cancelled = true;
     };
-  }, [createOrResumeSession, noteId, sessionId]);
+  }, [noteId, sessionId]);
 
   const pendingClarification = useMemo(
     () => derivePendingClarification(thread.messages),

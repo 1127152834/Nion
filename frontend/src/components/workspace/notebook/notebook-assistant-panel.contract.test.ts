@@ -23,6 +23,8 @@ void test("NotebookAssistantPanel keeps the ask tab as a lightweight notebook ch
   assert.match(panelSource, /ThreadContext\.Provider/);
   assert.match(panelSource, /useThreadStream/);
   assert.match(panelSource, /useCreateOrResumeNotebookAssistantSession/);
+  assert.match(panelSource, /\}, \[noteId, sessionId\]\)/);
+  assert.doesNotMatch(panelSource, /\}, \[createOrResumeSession, noteId, sessionId\]\)/);
   assert.match(panelSource, /agent_name:\s*"notebook-chat"/);
   assert.match(panelSource, /derivePendingClarification\(thread\.messages\)/);
   assert.match(panelSource, /derivePendingPermissionRequest\(thread\.messages\)/);
