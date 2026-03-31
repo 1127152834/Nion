@@ -561,3 +561,53 @@ Tool Activity Layer 应作为：
 **Nion 的原生产品能力升级**
 
 而不是 Claude Code `tool_use_summary` 的兼容性模仿。
+
+## 开工前拍板的三条架构约束
+
+### 决策 1：唯一真相
+
+**拍板：`ToolActivityEvent log` 是唯一真相。**
+
+含义：
+
+- runtime 内部的 Tool Activity 事件流是 source of truth
+- thread state、chat message、task diagnostics、telemetry snapshot 都只能是 projection
+- 不允许任何消费侧把自己的派生结果反写回去作为新的主数据源
+
+直接约束：
+
+- `tool_activity_timeline` 不是主存储，只是投影
+- `details.latest_tool_summary` 不是主存储，只是投影
+- 前端不维护独立 summary 状态源
+
+### 决策 2：聊天主通道
+
+**拍板：采用 `tool-activity stream event -> tool_activity_summary message` 的固定投影链。**
+
+含义：
+
+- runtime 先产出原生 `tool-activity` 事件
+- thread/message 层再把其中可见部分投影为 `tool_activity_summary` 消息
+- 前端首版消费 `tool_activity_summary` message，而不是直接消费底层 event
+
+直接约束：
+
+- 不允许只发 message、没有 event
+- 不允许前端根据底层 event 自己拼 message
+- 不允许把 Tool Activity 直接伪装成 `tool` / `ai` message
+
+### 决策 3：Task Lineage
+
+**拍板：`thread_id` 必填，`task_id/subtask_id` 可选，且只能显式传播，不能推断。**
+
+含义：
+
+- 所有 Tool Activity 至少属于一个线程
+- 只有当 runtime 在执行上下文中明确拿到了 task/subtask lineage，才挂 `task_id/subtask_id`
+- diagnostics、前端、聚合逻辑都不允许反推“这个活动应该属于哪个 task”
+
+直接约束：
+
+- thread-scoped activity 合法存在
+- task-scoped / subtask-scoped activity 只在 runtime 明确知道归属时出现
+- 不允许通过最近一次 `task` tool call、最近一次 AI message 等启发式方式猜 lineage

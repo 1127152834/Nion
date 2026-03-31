@@ -65,6 +65,31 @@
 - task/diagnostics 是从 Tool Activity 派生，不是自己再拼 summary
 - 原始 `tool` message 仍保留，不能被高层摘要取代
 
+## Hard Architecture Decisions
+
+这些不是建议，而是实现时必须遵守的硬约束。
+
+### 1. Source of Truth
+
+- 唯一真相是 `ToolActivityEvent log`
+- `thread state`、`messages`、`task diagnostics`、`telemetry snapshot` 都只能是 projection
+- 不允许把任何 projection 反向当主数据源使用
+
+### 2. Chat Transport
+
+- 原生 runtime 先发 `tool-activity` stream event
+- 再投影成 `tool_activity_summary` message
+- 前端当前主消费 `tool_activity_summary` message，而不是直接消费底层 event
+- 不允许把 Tool Activity 直接伪装成 `tool` / `ai` message
+
+### 3. Task Lineage
+
+- `thread_id` 必填
+- `task_id/subtask_id` 可选
+- lineage 只能由 runtime 显式传播，不能由 diagnostics、前端或聚合逻辑推断
+
+这些决策一旦违背，就等于重新回到兼容式补丁路线。
+
 ---
 
 ## Task 1: 建立 Tool Activity 原生领域模型
