@@ -275,7 +275,7 @@ export const zhCN: Translations = {
       eyebrow: "自我维护",
       title: "自我维护",
       description:
-        "在独立页面里查看 heartbeat 健康状态和提案驱动的维护工作。",
+        "在独立页面里查看智能体自有的 heartbeat 健康状态和提案驱动的自我维护工作。",
       heartbeatTitle: "心跳",
       heartbeatDescription:
         "查看智能体心跳状态、维护节奏和最近的自检信号。",
@@ -578,10 +578,15 @@ export const zhCN: Translations = {
     searchActions: "搜索操作...",
     noResults: "未找到结果。",
     actions: "操作",
+    navigation: "导航",
     keyboardShortcuts: "键盘快捷键",
     keyboardShortcutsDescription: "使用键盘快捷键更快地操作 Nion。",
     openCommandPalette: "打开命令面板",
     toggleSidebar: "切换侧边栏",
+    openNotebook: "打开笔记",
+    openMemory: "打开记忆",
+    openSelfMaintenance: "打开自我维护",
+    openProjects: "打开项目",
   },
 
   // Settings

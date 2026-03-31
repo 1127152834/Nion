@@ -2,7 +2,11 @@
 
 import {
   ActivityIcon,
+  BookTextIcon,
   ChevronsUpDown,
+  DatabaseIcon,
+  FolderKanbanIcon,
+  HeartPulseIcon,
   InfoIcon,
   Settings2Icon,
   SettingsIcon,
@@ -25,6 +29,12 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { useI18n } from "@/core/i18n/hooks";
+import {
+  pathOfMemory,
+  pathOfNotebook,
+  pathOfProjects,
+  pathOfSelfMaintenance,
+} from "@/core/navigation/desktop-routes";
 
 import { SettingsDialog } from "./settings";
 import type { SettingsSection } from "./settings/settings-sections";
@@ -57,6 +67,10 @@ export function WorkspaceNavMenu() {
   const { open: isSidebarOpen } = useSidebar();
   const { t } = useI18n();
   const router = useRouter();
+  const notebookPath = pathOfNotebook();
+  const memoryPath = pathOfMemory();
+  const selfMaintenancePath = pathOfSelfMaintenance();
+  const projectsPath = pathOfProjects();
 
   useEffect(() => {
     setMounted(true);
@@ -93,12 +107,51 @@ export function WorkspaceNavMenu() {
                   <NavMenuButtonContent isSidebarOpen={isSidebarOpen} t={t} />
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
-              <DropdownMenuContent
-                className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
-                align="end"
-                sideOffset={4}
-              >
-                <DropdownMenuGroup>
+                <DropdownMenuContent
+                  className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
+                  align="end"
+                  sideOffset={4}
+                >
+                  <DropdownMenuGroup>
+                    <DropdownMenuItem
+                      onClick={() => {
+                        setSettingsOpen(false);
+                        router.push(notebookPath);
+                      }}
+                    >
+                      <BookTextIcon />
+                      {t.sidebar.notebook}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => {
+                        setSettingsOpen(false);
+                        router.push(memoryPath);
+                      }}
+                    >
+                      <DatabaseIcon />
+                      {t.sidebar.memory}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => {
+                        setSettingsOpen(false);
+                        router.push(selfMaintenancePath);
+                      }}
+                    >
+                      <HeartPulseIcon />
+                      {t.sidebar.selfMaintenance}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => {
+                        setSettingsOpen(false);
+                        router.push(projectsPath);
+                      }}
+                    >
+                      <FolderKanbanIcon />
+                      {t.sidebar.projects}
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuGroup>
                   <DropdownMenuItem
                     onClick={() => {
                       setSettingsDefaultSection("appearance");

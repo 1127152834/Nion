@@ -2,6 +2,10 @@
 
 import {
   ActivityIcon,
+  BookTextIcon,
+  DatabaseIcon,
+  FolderKanbanIcon,
+  HeartPulseIcon,
   KeyboardIcon,
   MessageSquarePlusIcon,
   SettingsIcon,
@@ -26,6 +30,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useI18n } from "@/core/i18n/hooks";
+import {
+  pathOfMemory,
+  pathOfNotebook,
+  pathOfProjects,
+  pathOfSelfMaintenance,
+} from "@/core/navigation/desktop-routes";
 import { pathOfNewThread } from "@/core/threads/utils";
 import { useGlobalShortcuts } from "@/hooks/use-global-shortcuts";
 
@@ -37,6 +47,10 @@ export function CommandPalette() {
   const [open, setOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const notebookPath = pathOfNotebook();
+  const memoryPath = pathOfMemory();
+  const selfMaintenancePath = pathOfSelfMaintenance();
+  const projectsPath = pathOfProjects();
 
   const handleNewChat = useCallback(() => {
     router.push(pathOfNewThread());
@@ -57,6 +71,26 @@ export function CommandPalette() {
     router.push("/workspace/bridge");
     setOpen(false);
   }, [router]);
+
+  const handleOpenNotebook = useCallback(() => {
+    router.push(notebookPath);
+    setOpen(false);
+  }, [notebookPath, router]);
+
+  const handleOpenMemory = useCallback(() => {
+    router.push(memoryPath);
+    setOpen(false);
+  }, [memoryPath, router]);
+
+  const handleOpenSelfMaintenance = useCallback(() => {
+    router.push(selfMaintenancePath);
+    setOpen(false);
+  }, [router, selfMaintenancePath]);
+
+  const handleOpenProjects = useCallback(() => {
+    router.push(projectsPath);
+    setOpen(false);
+  }, [projectsPath, router]);
 
   const shortcuts = useMemo(
     () => [
@@ -103,6 +137,39 @@ export function CommandPalette() {
               <CommandShortcut>{metaKey}/</CommandShortcut>
             </CommandItem>
           </CommandGroup>
+          <CommandGroup heading={t.shortcuts.navigation}>
+            <CommandItem
+              keywords={[t.shortcuts.openNotebook, t.sidebar.notebook]}
+              onSelect={handleOpenNotebook}
+            >
+              <BookTextIcon className="mr-2 h-4 w-4" />
+              {t.sidebar.notebook}
+            </CommandItem>
+            <CommandItem
+              keywords={[t.shortcuts.openMemory, t.sidebar.memory]}
+              onSelect={handleOpenMemory}
+            >
+              <DatabaseIcon className="mr-2 h-4 w-4" />
+              {t.sidebar.memory}
+            </CommandItem>
+            <CommandItem
+              keywords={[
+                t.shortcuts.openSelfMaintenance,
+                t.sidebar.selfMaintenance,
+              ]}
+              onSelect={handleOpenSelfMaintenance}
+            >
+              <HeartPulseIcon className="mr-2 h-4 w-4" />
+              {t.sidebar.selfMaintenance}
+            </CommandItem>
+            <CommandItem
+              keywords={[t.shortcuts.openProjects, t.sidebar.projects]}
+              onSelect={handleOpenProjects}
+            >
+              <FolderKanbanIcon className="mr-2 h-4 w-4" />
+              {t.sidebar.projects}
+            </CommandItem>
+          </CommandGroup>
         </CommandList>
       </CommandDialog>
 
@@ -119,6 +186,10 @@ export function CommandPalette() {
               { keys: `${metaKey}K`, label: t.shortcuts.openCommandPalette },
               { keys: `${metaKey}${shiftKey}N`, label: t.sidebar.newChat },
               { keys: `${metaKey}B`, label: t.shortcuts.toggleSidebar },
+              { keys: "Palette", label: t.shortcuts.openNotebook },
+              { keys: "Palette", label: t.shortcuts.openMemory },
+              { keys: "Palette", label: t.shortcuts.openSelfMaintenance },
+              { keys: "Palette", label: t.shortcuts.openProjects },
               { keys: `${metaKey},`, label: t.common.settings },
               { keys: "Palette", label: t.bridge.menuLabel },
               {

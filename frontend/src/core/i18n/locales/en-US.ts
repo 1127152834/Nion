@@ -274,7 +274,7 @@ export const enUS: Translations = {
       eyebrow: "Memory",
       title: "Memory Provider",
       description:
-        "Focus memory operations in one place, from recall workflows to memory search and console diagnostics.",
+        "Focus agent memory operations in one place, from recall workflows to memory search and console diagnostics.",
       consoleTitle: "Memory Console",
       consoleDescription:
         "Inspect memory writes, validate provider status, and review recall traces without mixing in unrelated workspace surfaces.",
@@ -286,7 +286,7 @@ export const enUS: Translations = {
       eyebrow: "Self-Maintenance",
       title: "Self-Maintenance",
       description:
-        "Monitor Heartbeat health and keep proposal-driven maintenance work in a dedicated workspace surface.",
+        "Monitor agent-owned heartbeat health and keep proposal-driven self-maintenance work in a dedicated workspace surface.",
       heartbeatTitle: "Heartbeat",
       heartbeatDescription:
         "Watch agent heartbeat status, maintenance cadence, and recent self-check signals.",
@@ -603,11 +603,16 @@ export const enUS: Translations = {
     searchActions: "Search actions...",
     noResults: "No results found.",
     actions: "Actions",
+    navigation: "Navigation",
     keyboardShortcuts: "Keyboard Shortcuts",
     keyboardShortcutsDescription:
       "Navigate Nion faster with keyboard shortcuts.",
     openCommandPalette: "Open Command Palette",
     toggleSidebar: "Toggle Sidebar",
+    openNotebook: "Open Notebook",
+    openMemory: "Open Memory",
+    openSelfMaintenance: "Open Self-Maintenance",
+    openProjects: "Open Projects",
   },
 
   // Settings

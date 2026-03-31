@@ -616,10 +616,15 @@ export interface Translations {
     searchActions: string;
     noResults: string;
     actions: string;
+    navigation: string;
     keyboardShortcuts: string;
     keyboardShortcutsDescription: string;
     openCommandPalette: string;
     toggleSidebar: string;
+    openNotebook: string;
+    openMemory: string;
+    openSelfMaintenance: string;
+    openProjects: string;
   };
 
   // Settings
