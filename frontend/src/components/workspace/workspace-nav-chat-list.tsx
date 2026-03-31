@@ -29,6 +29,9 @@ import {
 export function WorkspaceNavChatList() {
   const { t } = useI18n();
   const pathname = usePathname();
+  const notebookPath = pathOfNotebook();
+  const memoryPath = pathOfMemory();
+  const selfMaintenancePath = pathOfSelfMaintenance();
   return (
     <SidebarGroup className="pt-1">
       <SidebarMenu>
@@ -72,10 +75,10 @@ export function WorkspaceNavChatList() {
         </SidebarMenuItem>
         <SidebarMenuItem>
           <SidebarMenuButton
-            isActive={pathname.startsWith("/workspace/notebook")}
+            isActive={pathname.startsWith(notebookPath)}
             asChild
           >
-            <Link className="text-muted-foreground" href={pathOfNotebook()}>
+            <Link className="text-muted-foreground" href={notebookPath}>
               <BookTextIcon />
               <span>{t.sidebar.notebook}</span>
             </Link>
@@ -83,26 +86,23 @@ export function WorkspaceNavChatList() {
         </SidebarMenuItem>
         <SidebarMenuItem>
           <SidebarMenuButton
-            isActive={pathname.startsWith("/workspace/memory")}
+            isActive={pathname.startsWith(memoryPath)}
             asChild
           >
-            <Link className="text-muted-foreground" href={pathOfMemory()}>
+            <Link className="text-muted-foreground" href={memoryPath}>
               <DatabaseIcon />
-              <span>Memory</span>
+              <span>{t.sidebar.memory}</span>
             </Link>
           </SidebarMenuButton>
         </SidebarMenuItem>
         <SidebarMenuItem>
           <SidebarMenuButton
-            isActive={pathname.startsWith("/workspace/self-maintenance")}
+            isActive={pathname.startsWith(selfMaintenancePath)}
             asChild
           >
-            <Link
-              className="text-muted-foreground"
-              href={pathOfSelfMaintenance()}
-            >
+            <Link className="text-muted-foreground" href={selfMaintenancePath}>
               <HeartPulseIcon />
-              <span>Self-Maintenance</span>
+              <span>{t.sidebar.selfMaintenance}</span>
             </Link>
           </SidebarMenuButton>
         </SidebarMenuItem>

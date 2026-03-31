@@ -185,6 +185,8 @@ export const enUS: Translations = {
     automation: "Automation",
     cliTools: "CLI Tools",
     notebook: "Notebook",
+    memory: "Memory",
+    selfMaintenance: "Self-Maintenance",
   },
 
   // Agents
@@ -264,6 +266,33 @@ export const enUS: Translations = {
       generic:
         "This request didn't finish successfully. Try again, or switch to another model if the problem continues.",
       detailsLabel: "Technical details",
+    },
+  },
+
+  workspaceSurfaces: {
+    memory: {
+      eyebrow: "Memory",
+      title: "Memory Provider",
+      description:
+        "Focus memory operations in one place, from recall workflows to memory search and console diagnostics.",
+      consoleTitle: "Memory Console",
+      consoleDescription:
+        "Inspect memory writes, validate provider status, and review recall traces without mixing in unrelated workspace surfaces.",
+      recallTitle: "Recall",
+      recallDescription:
+        "Run Memory Search flows and tune retrieval behavior for ongoing memory operations.",
+    },
+    selfMaintenance: {
+      eyebrow: "Self-Maintenance",
+      title: "Self-Maintenance",
+      description:
+        "Monitor Heartbeat health and keep proposal-driven maintenance work in a dedicated workspace surface.",
+      heartbeatTitle: "Heartbeat",
+      heartbeatDescription:
+        "Watch agent heartbeat status, maintenance cadence, and recent self-check signals.",
+      proposalsTitle: "Memory Update Proposals",
+      proposalsDescription:
+        "Review memory update proposals, prune proposals, and other proposal-backed maintenance actions.",
     },
   },
 

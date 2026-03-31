@@ -368,6 +368,8 @@ export interface Translations {
     automation: string;
     cliTools: string;
     notebook: string;
+    memory: string;
+    selfMaintenance: string;
   };
 
   // Agents
@@ -433,6 +435,27 @@ export interface Translations {
       runtimeUnavailable: string;
       generic: string;
       detailsLabel: string;
+    };
+  };
+
+  workspaceSurfaces: {
+    memory: {
+      eyebrow: string;
+      title: string;
+      description: string;
+      consoleTitle: string;
+      consoleDescription: string;
+      recallTitle: string;
+      recallDescription: string;
+    };
+    selfMaintenance: {
+      eyebrow: string;
+      title: string;
+      description: string;
+      heartbeatTitle: string;
+      heartbeatDescription: string;
+      proposalsTitle: string;
+      proposalsDescription: string;
     };
   };
 

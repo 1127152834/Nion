@@ -179,6 +179,8 @@ export const zhCN: Translations = {
     automation: "自动化",
     cliTools: "CLI 工具",
     notebook: "笔记",
+    memory: "记忆",
+    selfMaintenance: "自我维护",
   },
 
   // Agents
@@ -253,6 +255,33 @@ export const zhCN: Translations = {
       generic:
         "这次请求没有成功完成。你可以重试一次；如果还失败，建议切换模型继续。",
       detailsLabel: "技术详情",
+    },
+  },
+
+  workspaceSurfaces: {
+    memory: {
+      eyebrow: "记忆",
+      title: "记忆提供者",
+      description:
+        "把记忆相关操作集中在一个页面里，覆盖 recall 工作流、记忆检索和控制台诊断。",
+      consoleTitle: "记忆控制台",
+      consoleDescription:
+        "查看记忆写入、确认 provider 状态，并检查 recall 轨迹，不和其他工作区界面混在一起。",
+      recallTitle: "记忆检索",
+      recallDescription:
+        "运行记忆检索流程，并为持续中的记忆操作调整检索行为。",
+    },
+    selfMaintenance: {
+      eyebrow: "自我维护",
+      title: "自我维护",
+      description:
+        "在独立页面里查看 heartbeat 健康状态和提案驱动的维护工作。",
+      heartbeatTitle: "心跳",
+      heartbeatDescription:
+        "查看智能体心跳状态、维护节奏和最近的自检信号。",
+      proposalsTitle: "记忆更新提案",
+      proposalsDescription:
+        "查看记忆更新提案、清理提案和其他基于 proposal 的维护动作。",
     },
   },
 
