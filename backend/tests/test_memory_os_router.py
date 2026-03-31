@@ -18,7 +18,7 @@ def test_memory_os_router_lists_provider_families(monkeypatch, tmp_path):
         "mem0",
         "openviking",
     ]
-    assert "capabilities" in payload["families"][0]
+    assert payload["families"][1]["supported_modes"] == ["managed"]
 
 
 def test_memory_os_router_returns_active_binding_state(monkeypatch, tmp_path):
@@ -78,7 +78,8 @@ def test_memory_os_router_exposes_provider_status_and_capabilities(
 
     assert families.status_code == 200
     assert state.status_code == 200
-    assert "capabilities" in families.json()["families"][0]
+    assert families.json()["families"][2]["capabilities"]["runtime_status"] == "supported"
     provider = state.json()["providers"][0]
-    assert "status" in provider
-    assert "capabilities" in provider
+    assert provider["config"]["mode"] == "embedded"
+    assert provider["status"]["health"] == "healthy"
+    assert provider["capabilities"]["memory_crud"] == "supported"

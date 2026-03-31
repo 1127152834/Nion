@@ -2,7 +2,7 @@ from nion.memory_os.providers import MemoryOSState, ProviderInstanceConfig
 from nion.memory_os.service import MemoryOSService
 
 
-def test_memory_os_state_round_trip_exposes_provider_status_and_capabilities(tmp_path):
+def test_memory_os_state_round_trip_persists_provider_configuration_only(tmp_path):
     service = MemoryOSService()
 
     updated = service.update_state(
@@ -23,5 +23,9 @@ def test_memory_os_state_round_trip_exposes_provider_status_and_capabilities(tmp
 
     provider = updated.model_dump()["providers"][0]
 
-    assert "status" in provider
-    assert "capabilities" in provider
+    assert provider == {
+        "id": "ov-embedded",
+        "family": "openviking",
+        "name": "Embedded OpenViking",
+        "config": {"mode": "embedded"},
+    }
