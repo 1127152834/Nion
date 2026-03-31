@@ -608,7 +608,7 @@ export function InputBox({
         .sort(([left], [right]) => left.localeCompare(right))
         .map(([toolId, tool]) => ({
           id: `cli:${toolId}`,
-          label: tool.displayName?.trim() ?? toolId,
+          label: tool.displayName?.trim() || toolId,
           value: toolId,
           kind: "cli" as const,
           description: tool.version
