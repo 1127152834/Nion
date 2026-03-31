@@ -8,7 +8,7 @@
     />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self' nion: data: blob:; img-src 'self' nion: data: blob: http://127.0.0.1:43115; style-src 'self' 'unsafe-inline'; font-src 'self' data:; script-src 'self'; connect-src 'self' http://127.0.0.1:43115 ws://127.0.0.1:43115; media-src 'self' data: blob:; object-src 'none'; base-uri 'self';"
+      content="default-src 'self' nion: data: blob: http://127.0.0.1:5173; img-src 'self' nion: data: blob: http://127.0.0.1:43115 http://127.0.0.1:5173; style-src 'self' 'unsafe-inline' http://127.0.0.1:5173; font-src 'self' data: http://127.0.0.1:5173; script-src 'self' 'unsafe-eval' blob: http://127.0.0.1:5173; worker-src 'self' blob:; connect-src 'self' http://127.0.0.1:43115 ws://127.0.0.1:43115 http://127.0.0.1:5173 ws://127.0.0.1:5173; media-src 'self' data: blob:; object-src 'none'; base-uri 'self';"
     />
     <title>Nion Desktop</title>
   </head>
