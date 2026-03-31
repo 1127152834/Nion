@@ -22,3 +22,15 @@ test("telegram adapter registers slash commands and denies by default without au
   assert.match(source, /setMyCommands/);
   assert.match(source, /return false;/);
 });
+
+test("telegram adapter preview flow reuses and deletes a real preview message instead of leaving drafts behind", () => {
+  const source = fs.readFileSync(
+    new URL("../src/main/bridge/adapters/telegram-adapter.ts", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /previewMessages = new Map/);
+  assert.match(source, /editMessageText/);
+  assert.match(source, /deleteMessage/);
+  assert.doesNotMatch(source, /sendMessageDraft/);
+});

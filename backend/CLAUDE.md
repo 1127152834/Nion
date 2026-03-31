@@ -109,6 +109,10 @@ route surface aligned with the renderer expectations, including:
 - `/api/daemon/diagnostics/tasks/{task_id}`
 - `/api/daemon/channels/*`
 
+Bridge configuration direction:
+- Bridge credentials, enabled flags, verification state, and defaults are moving into Config Center / `config.db`
+- Bridge runtime state (bindings, offsets, incidents, observations, weixin account session data) remains desktop-local for now
+
 If a gateway route is added and the Electron renderer consumes it, update
 `app/daemon/app.py` too or the desktop shell will return 404 while the web/gateway
 path keeps working.

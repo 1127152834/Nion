@@ -15,7 +15,10 @@ import {
   Warning,
 } from "@/components/ui/icon";
 import { Switch } from "@/components/ui/switch";
-import { createBridgeClient, type WeixinBridgeAccount } from "@/core/bridge/client";
+import {
+  getBridgeClient,
+  type WeixinBridgeAccount,
+} from "@/core/bridge/client";
 import { useBridgeConfigEditor } from "@/core/bridge-config";
 
 import {
@@ -26,7 +29,8 @@ import {
 
 export function WeixinBridgeSection() {
   const { t } = useBridgeTranslation();
-  const { bridgeConfig, updateBridgeConfig, onSave } = useBridgeConfigEditor();
+  const client = getBridgeClient();
+  const { bridgeConfig, refetchConfig, saveBridgeConfig } = useBridgeConfigEditor();
   const [accounts, setAccounts] = useState<WeixinBridgeAccount[]>([]);
   const [bridgeEnabled, setBridgeEnabled] = useState(false);
   const [channelEnabled, setChannelEnabled] = useState(false);
@@ -40,15 +44,18 @@ export function WeixinBridgeSection() {
   const weixinConnectionVerified = accounts.some((account) => account.enabled && account.hasToken);
 
   const fetchAccounts = useCallback(async () => {
-    const client = createBridgeClient();
     const weixin =
       bridgeConfig.weixin && typeof bridgeConfig.weixin === "object"
         ? (bridgeConfig.weixin as Record<string, unknown>)
         : {};
     setBridgeEnabled(true);
     setChannelEnabled(Boolean(weixin.enabled));
+    if (!client) {
+      setAccounts([]);
+      return;
+    }
     setAccounts(await client.listWeixinAccounts());
-  }, [bridgeConfig]);
+  }, [bridgeConfig, client]);
 
   useEffect(() => {
     void fetchAccounts();
@@ -67,8 +74,10 @@ export function WeixinBridgeSection() {
   }, []);
 
   const handleToggleAccount = async (accountId: string, enabled: boolean) => {
+    if (!client) {
+      return;
+    }
     try {
-      const client = createBridgeClient();
       const result = await client.setWeixinAccountEnabled(accountId, enabled);
       if (!result.ok) {
         if (result.accountUpdated) {
@@ -88,8 +97,10 @@ export function WeixinBridgeSection() {
   };
 
   const handleDeleteAccount = async (accountId: string) => {
+    if (!client) {
+      return;
+    }
     try {
-      const client = createBridgeClient();
       const result = await client.deleteWeixinAccount(accountId);
       if (!result.ok) {
         if (result.accountDeleted) {
@@ -126,8 +137,10 @@ export function WeixinBridgeSection() {
 
   const pollQrStatus = useCallback(
     async (sessionId: string) => {
+      if (!client) {
+        return;
+      }
       try {
-        const client = createBridgeClient();
         const session = await client.waitForWeixinLogin(sessionId);
         setQrStatus(session.status);
         setQrBridgeError(session.bridgeRestartError ?? null);
@@ -167,15 +180,17 @@ export function WeixinBridgeSection() {
         // ignore transient polling errors
       }
     },
-    [fetchAccounts, formatToastMessage, t],
+    [client, fetchAccounts, formatToastMessage, t],
   );
 
   const startQrLogin = async () => {
+    if (!client) {
+      return;
+    }
     setQrLoading(true);
     setQrStatus("");
     setQrBridgeError(null);
     try {
-      const client = createBridgeClient();
       const session = await client.startWeixinLogin();
       setQrImage(session.qrImage);
       setQrSessionId(session.sessionId);
@@ -196,8 +211,11 @@ export function WeixinBridgeSection() {
   };
 
   const ensureWeixinVerifiedBeforeEnable = async () => {
-    const client = createBridgeClient();
+    if (!client) {
+      return false;
+    }
     const result = await client.verifyWeixin();
+    await refetchConfig();
     await fetchAccounts();
     if (!result.verified) {
       toast.error(result.error?.trim() ? result.error : t("bridge.errorChannelNotVerified"));
@@ -220,15 +238,13 @@ export function WeixinBridgeSection() {
           if (!verified) {
             return false;
           }
-          updateBridgeConfig((current) => ({
+          await saveBridgeConfig((current) => ({
             ...current,
             weixin: {
               ...current.weixin,
               enabled: true,
             },
           }));
-          await onSave();
-          await fetchAccounts();
           return true;
         }}
       />

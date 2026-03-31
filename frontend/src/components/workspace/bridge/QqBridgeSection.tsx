@@ -19,7 +19,7 @@ import {
 
 export function QqBridgeSection() {
   const { t } = useBridgeTranslation();
-  const { bridgeConfig, updateBridgeConfig, onSave } = useBridgeConfigEditor();
+  const { bridgeConfig, refetchConfig, saveBridgeConfig } = useBridgeConfigEditor();
   const [appId, setAppId] = useState("");
   const [appSecret, setAppSecret] = useState("");
   const [allowedUsers, setAllowedUsers] = useState("");
@@ -66,7 +66,7 @@ export function QqBridgeSection() {
     void (async () => {
       setSaving(true);
       try {
-        updateBridgeConfig((current) => ({
+        await saveBridgeConfig((current) => ({
           ...current,
           qq: {
             ...current.qq,
@@ -74,7 +74,6 @@ export function QqBridgeSection() {
             app_secret: appSecret,
           },
         }));
-        await onSave();
       } finally {
         setSaving(false);
       }
@@ -85,14 +84,13 @@ export function QqBridgeSection() {
     void (async () => {
       setSaving(true);
       try {
-        updateBridgeConfig((current) => ({
+        await saveBridgeConfig((current) => ({
           ...current,
           qq: {
             ...current.qq,
             allowed_users: allowedUsers,
           },
         }));
-        await onSave();
       } finally {
         setSaving(false);
       }
@@ -103,7 +101,7 @@ export function QqBridgeSection() {
     void (async () => {
       setSaving(true);
       try {
-        updateBridgeConfig((current) => ({
+        await saveBridgeConfig((current) => ({
           ...current,
           qq: {
             ...current.qq,
@@ -111,7 +109,6 @@ export function QqBridgeSection() {
             max_image_size: maxImageSize,
           },
         }));
-        await onSave();
       } finally {
         setSaving(false);
       }
@@ -143,7 +140,7 @@ export function QqBridgeSection() {
       if (result.verified) {
         setVerifyResult({ ok: true, message: t("qq.verified") });
         setPersistedVerified(true);
-        await fetchSettings();
+        await refetchConfig();
         return true;
       }
 
@@ -151,11 +148,11 @@ export function QqBridgeSection() {
         ok: false,
         message: result.error?.trim() ? result.error : t("qq.verifyFailed"),
       });
-      await fetchSettings();
+      await refetchConfig();
       return false;
     } catch {
       setVerifyResult({ ok: false, message: t("qq.verifyFailed") });
-      await fetchSettings();
+      await refetchConfig();
       return false;
     } finally {
       setVerifying(false);
@@ -174,15 +171,13 @@ export function QqBridgeSection() {
           if (!verified) {
             return false;
           }
-          updateBridgeConfig((current) => ({
+          await saveBridgeConfig((current) => ({
             ...current,
             qq: {
               ...current.qq,
               enabled: true,
             },
           }));
-          await onSave();
-          await fetchSettings();
           return true;
         }}
       />
