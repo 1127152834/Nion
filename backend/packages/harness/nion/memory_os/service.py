@@ -108,6 +108,18 @@ class MemoryOSService:
             raise NotImplementedError("Active memory provider does not support runtime status.")
         return provider.status()  # type: ignore[no-any-return]
 
+    def rebuild_memory(self, *, agent_name=None, base_dir=None) -> dict:
+        provider = self.resolve_active_memory_provider(base_dir=base_dir)
+        if not hasattr(provider, "rebuild"):
+            raise NotImplementedError("Active memory provider does not support rebuild.")
+        return provider.rebuild()  # type: ignore[no-any-return]
+
+    def rebuild_memory(self, *, agent_name=None, base_dir=None) -> dict:
+        provider = self.resolve_active_memory_provider(base_dir=base_dir)
+        if not hasattr(provider, "rebuild"):
+            raise NotImplementedError("Active memory provider does not support rebuild.")
+        return provider.rebuild()  # type: ignore[no-any-return]
+
     def resolve_active_memory_provider(self, *, base_dir=None):
         if base_dir is None:
             from nion.config.paths import get_paths

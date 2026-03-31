@@ -53,8 +53,16 @@ class BuiltinMemoryProvider:
 
     def status(self) -> dict:
         from nion.compaction.service import CompactionService
+        from nion.rebuild.service import RebuildService
 
-        return CompactionService(base_dir=self._base_dir).status()
+        status = CompactionService(base_dir=self._base_dir).status()
+        status.update(RebuildService(base_dir=self._base_dir).status())
+        return status
+
+    def rebuild(self) -> dict:
+        from nion.rebuild.service import RebuildService
+
+        return RebuildService(base_dir=self._base_dir).rebuild()
 
     def _memory_file(self):
         from pathlib import Path

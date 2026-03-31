@@ -646,6 +646,15 @@ export const enUS: Translations = {
       supported: "Supported",
       unsupported: "Unsupported",
     },
+    rebuild: {
+      title: "Rebuild",
+      logs: "Rebuild logs",
+      clearLogs: "Clear rebuild logs",
+      rebuildNow: "Rebuild now",
+      restore: "Restore runtime memory",
+      supported: "Supported",
+      unsupported: "Unsupported",
+    },
     memory: {
       title: "Memory",
       description:

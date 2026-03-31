@@ -109,12 +109,6 @@ Implement provider-driven compaction for structured long-term memory.
 - memory compaction is no longer a planned concept only
 - compaction results are inspectable
 
-**Current evidence**
-
-- compaction service/store/router implemented in Nion
-- `/api/memory/compact`, `/api/memory/compact/logs`, `/api/memory/status`, `/api/memory/usage` are reachable from desktop runtime
-- heartbeat backbone can trigger compaction through maintenance runner integration
-
 ## Milestone M3: Memory Rebuild
 
 **Objective**

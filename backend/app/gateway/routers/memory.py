@@ -270,3 +270,15 @@ async def get_memory_usage() -> dict:
         return MemoryOSService().get_memory_usage()
     except NotImplementedError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post(
+    "/memory/rebuild",
+    summary="Rebuild Memory",
+    description="Rebuild structured memory runtime from canonical memory source.",
+)
+async def rebuild_memory() -> dict:
+    try:
+        return MemoryOSService().rebuild_memory()
+    except NotImplementedError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc

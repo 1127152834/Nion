@@ -122,10 +122,19 @@ class OpenVikingMemoryProvider:
 
     def status(self) -> dict:
         from nion.compaction.service import CompactionService
+        from nion.rebuild.service import RebuildService
 
         status = CompactionService(base_dir=self._base_dir).status()
+        status.update(RebuildService(base_dir=self._base_dir).status())
         status["provider"] = "openviking"
         return status
+
+    def rebuild(self) -> dict:
+        from nion.rebuild.service import RebuildService
+
+        result = RebuildService(base_dir=self._base_dir).rebuild()
+        result["provider"] = "openviking"
+        return result
 
     def _create_empty_memory(self):
         return _create_empty_memory()

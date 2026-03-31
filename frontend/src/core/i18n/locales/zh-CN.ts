@@ -618,6 +618,15 @@ export const zhCN: Translations = {
       supported: "支持",
       unsupported: "不支持",
     },
+    rebuild: {
+      title: "重建",
+      logs: "重建日志",
+      clearLogs: "清空重建日志",
+      rebuildNow: "立即重建",
+      restore: "恢复运行时记忆",
+      supported: "支持",
+      unsupported: "不支持",
+    },
     memory: {
       title: "记忆",
       description:

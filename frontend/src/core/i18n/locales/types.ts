@@ -666,6 +666,15 @@ export interface Translations {
       supported: string;
       unsupported: string;
     };
+    rebuild: {
+      title: string;
+      logs: string;
+      clearLogs: string;
+      rebuildNow: string;
+      restore: string;
+      supported: string;
+      unsupported: string;
+    };
     memory: {
       title: string;
       description: string;
