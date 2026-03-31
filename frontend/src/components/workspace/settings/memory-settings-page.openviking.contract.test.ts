@@ -9,7 +9,11 @@ void test("memory settings page keeps notebook retrieval controls out of memory 
   );
 
   assert.match(source, /useSelfMaintenanceRun/);
+  assert.match(source, /MemorySurfaceTabs/);
   assert.doesNotMatch(source, /useReindexNotebookResources/);
   assert.doesNotMatch(source, /useNotebookResourceSearch/);
   assert.doesNotMatch(source, /useNotebookContextPreview/);
+  assert.doesNotMatch(source, /OpenViking Notebook Resources/);
+  assert.doesNotMatch(source, /Knowledge Base/);
+  assert.doesNotMatch(source, /final home.*notebook.*memory.*self-maintenance/i);
 });
