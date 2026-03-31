@@ -13,6 +13,8 @@ import type {
   ConfigValidateWarningItem,
 } from "@/core/config-center";
 
+import { shouldAdoptConfigSnapshot } from "./use-config-editor.sync";
+
 type ConfigDraft = Record<string, unknown>;
 
 function jsonStable(value: unknown): string {
@@ -116,12 +118,20 @@ export function useConfigEditor(options: UseConfigEditorOptions = {}) {
     if (!configData) {
       return;
     }
+    if (
+      !shouldAdoptConfigSnapshot({
+        currentVersion: version,
+        nextVersion: configData.version,
+      })
+    ) {
+      return;
+    }
     setVersion(configData.version);
     setInitialConfig(cloneConfig(configData.config));
     setDraftConfig(cloneConfig(configData.config));
     setValidationErrors([]);
     setValidationWarnings([]);
-  }, [configData]);
+  }, [configData, version]);
 
   const dirty = useMemo(
     () => jsonStable(draftConfig) !== jsonStable(initialConfig),
@@ -246,4 +256,3 @@ export function useConfigEditor(options: UseConfigEditorOptions = {}) {
     refetchConfig,
   };
 }
-
