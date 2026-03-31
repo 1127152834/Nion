@@ -84,6 +84,42 @@ def _record_agent_event(
         logger.warning("Failed to record agent event %s", event_type, exc_info=True)
 
 
+def _build_tool_activity_summary_event(
+    *,
+    index: int,
+    thread_id: str,
+    tool_names: list[str],
+) -> dict[str, Any]:
+    summary = summarize_tool_batch(tool_names)
+    group_id = f"group-{index}"
+    return {
+        "event_id": f"activity-{index}",
+        "kind": "tool_batch_summary",
+        "group_id": group_id,
+        "thread_id": thread_id,
+        "summary_label": summary.summary_label,
+        "result_class": summary.result_class,
+        "tool_names": tool_names,
+    }
+
+
+def _build_tool_activity_summary_message(
+    *,
+    index: int,
+    event: dict[str, Any],
+) -> dict[str, Any]:
+    return {
+        "type": "tool_activity_summary",
+        "id": f"tas-{index}",
+        "content": event["summary_label"],
+        "additional_kwargs": {
+            "group_id": event["group_id"],
+            "tool_names": event["tool_names"],
+            "result_class": event["result_class"],
+        },
+    }
+
+
 @dataclass
 class StreamEvent:
     """A single event from the streaming agent response.
@@ -462,6 +498,7 @@ class NionClient:
         cumulative_usage: dict[str, int] = {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0}
         current_tool_batch: list[dict[str, Any]] = []
         tool_activity_timeline: list[dict[str, Any]] = []
+        tool_activity_messages: list[dict[str, Any]] = []
 
         def flush_tool_batch() -> list[StreamEvent]:
             nonlocal current_tool_batch, tool_activity_timeline
@@ -469,30 +506,20 @@ class NionClient:
                 return []
 
             tool_names = [item["tool_name"] for item in current_tool_batch]
-            summary = summarize_tool_batch(tool_names)
-            group_id = f"group-{len(tool_activity_timeline) + 1}"
-            activity_event = {
-                "event_id": f"activity-{len(tool_activity_timeline) + 1}",
-                "kind": "tool_batch_summary",
-                "group_id": group_id,
-                "thread_id": thread_id,
-                "summary_label": summary.summary_label,
-                "result_class": summary.result_class,
-                "tool_names": tool_names,
-            }
+            activity_index = len(tool_activity_timeline) + 1
+            activity_event = _build_tool_activity_summary_event(
+                index=activity_index,
+                thread_id=thread_id,
+                tool_names=tool_names,
+            )
             tool_activity_timeline.append(activity_event)
             current_tool_batch = []
 
-            message_projection = {
-                "type": "tool_activity_summary",
-                "id": f"tas-{len(tool_activity_timeline)}",
-                "content": summary.summary_label,
-                "additional_kwargs": {
-                    "group_id": group_id,
-                    "tool_names": tool_names,
-                    "result_class": summary.result_class,
-                },
-            }
+            message_projection = _build_tool_activity_summary_message(
+                index=activity_index,
+                event=activity_event,
+            )
+            tool_activity_messages.append(message_projection)
 
             return [
                 StreamEvent(type="tool-activity", data=activity_event),
@@ -664,7 +691,10 @@ class NionClient:
                     type="values",
                     data={
                         "title": chunk.get("title"),
-                        "messages": [self._serialize_message(m) for m in messages],
+                        "messages": [
+                            *[self._serialize_message(m) for m in messages],
+                            *tool_activity_messages,
+                        ],
                         "artifacts": chunk.get("artifacts", []),
                         "todos": chunk.get("todos", []),
                         "tool_activity_timeline": tool_activity_timeline,

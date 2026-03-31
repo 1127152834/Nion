@@ -23,6 +23,8 @@ class ThreadValues(BaseModel):
     messages: list[dict[str, Any]] = Field(default_factory=list)
     artifacts: list[str] = Field(default_factory=list)
     todos: list[dict[str, Any]] | None = None
+    tool_activity_timeline: list[dict[str, Any]] = Field(default_factory=list)
+    latest_tool_activity: dict[str, Any] | None = None
     scope: ThreadScope = "general"
     note_id: str | None = None
     notebook_session_id: str | None = None
