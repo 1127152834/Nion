@@ -46,6 +46,11 @@ export function getBackendBaseURL() {
 }
 
 export function getLangGraphBaseURL(isMock?: boolean) {
+  const desktopRuntimeUrl = getDesktopRuntimeBackendBaseURL();
+  if (desktopRuntimeUrl) {
+    return `${desktopRuntimeUrl}/api/langgraph`;
+  }
+
   if (env.NEXT_PUBLIC_LANGGRAPH_BASE_URL) {
     return env.NEXT_PUBLIC_LANGGRAPH_BASE_URL;
   } else if (isMock) {
@@ -54,6 +59,12 @@ export function getLangGraphBaseURL(isMock?: boolean) {
     }
     return "http://localhost:3000/mock/api";
   } else {
+    if (
+      typeof window !== "undefined" &&
+      typeof window.nionDesktop !== "undefined"
+    ) {
+      return "http://127.0.0.1:43115/api/langgraph";
+    }
     if (typeof window !== "undefined") {
       return `${window.location.origin}/api/langgraph`;
     }

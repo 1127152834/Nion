@@ -30,6 +30,18 @@ void test("nion desktop protocol also falls back to the local daemon helper port
   assert.match(source, /return "http:\/\/127\.0\.0\.1:43115";/);
 });
 
+void test("desktop langgraph base URL also prefers the local daemon route ahead of renderer origin", async () => {
+  const source = await readFile(new URL("./index.ts", import.meta.url), "utf8");
+
+  assert.match(source, /export function getLangGraphBaseURL/);
+  assert.match(source, /window\.location\.origin\}\/api\/langgraph/);
+  assert.match(
+    source,
+    /typeof window !== "undefined" &&\s*typeof window\.nionDesktop !== "undefined"/s,
+  );
+  assert.match(source, /return "http:\/\/127\.0\.0\.1:43115\/api\/langgraph";/);
+});
+
 void test("plain web localhost still keeps the gateway fallback", async () => {
   const source = await readFile(new URL("./index.ts", import.meta.url), "utf8");
 
