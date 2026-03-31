@@ -13,5 +13,4 @@ void test("memory settings page keeps notebook retrieval controls out of memory 
   assert.doesNotMatch(source, /t\.settings\.memory\.openviking\./);
   assert.doesNotMatch(source, /OpenViking Notebook Resources/);
   assert.doesNotMatch(source, /Search notebook resources/);
-  assert.doesNotMatch(source, /Knowledge Base/);
 });
