@@ -695,11 +695,13 @@ export function BridgePlatformRuntimeCard({
   bridgeEnabled,
   channelEnabled,
   connectionVerified,
+  onEnableBeforeStart,
 }: {
   platform: string;
   bridgeEnabled: boolean;
   channelEnabled: boolean;
   connectionVerified: boolean;
+  onEnableBeforeStart?: () => Promise<boolean>;
 }) {
   const { t } = useBridgeTranslation();
   const { client, adapter, refresh } = useBridgePlatformStatus(platform);
@@ -715,6 +717,12 @@ export function BridgePlatformRuntimeCard({
   const handleStart = async () => {
     setStarting(true);
     try {
+      if (!channelEnabled && onEnableBeforeStart) {
+        const enabled = await onEnableBeforeStart();
+        if (!enabled) {
+          return;
+        }
+      }
       const reason = await createBridgeClient().startPlatform(platform);
       if (reason) {
         const reasonMessages: Record<string, string> = {
@@ -800,47 +808,13 @@ export function BridgePlatformRuntimeCard({
           <Button
             size="sm"
             onClick={() => void handleStart()}
-            disabled={starting || !bridgeEnabled || !channelEnabled || !connectionVerified}
+            disabled={starting || !bridgeEnabled || !connectionVerified}
           >
             {starting ? <SpinnerGap className="mr-1.5 size-3.5 animate-spin" /> : null}
             {starting ? t("bridge.starting") : t("bridge.start")}
           </Button>
         )}
       </div>
-    </SettingsCard>
-  );
-}
-
-export function BridgePlatformEnableCard({
-  title,
-  description,
-  enabled,
-  verified,
-  verificationHint,
-  saving,
-  onToggle,
-}: {
-  title: string;
-  description: string;
-  enabled: boolean;
-  verified: boolean;
-  verificationHint?: string;
-  saving: boolean;
-  onToggle: (checked: boolean) => void;
-}) {
-  const effectiveEnabled = enabled && verified;
-
-  return (
-    <SettingsCard className={effectiveEnabled ? "border-primary/50 bg-primary/5" : undefined}>
-      <FieldRow label={title} description={description}>
-        <Switch checked={effectiveEnabled} onCheckedChange={onToggle} disabled={saving || !verified} />
-      </FieldRow>
-      {!verified ? (
-        <StatusBanner variant="warning">
-          <Warning className="size-4 shrink-0" />
-          {verificationHint ?? "Verification required"}
-        </StatusBanner>
-      ) : null}
     </SettingsCard>
   );
 }

@@ -19,7 +19,6 @@ import { Switch } from "@/components/ui/switch";
 import { createBridgeClient } from "@/core/bridge/client";
 
 import {
-  BridgePlatformEnableCard,
   BridgePlatformRuntimeCard,
   isBridgePlatformVerified,
   useBridgeTranslation,
@@ -278,35 +277,23 @@ export function FeishuBridgeSection() {
 
   return (
     <div className="max-w-3xl space-y-6">
-      <BridgePlatformEnableCard
-        title={t("bridge.feishuChannel")}
-        description={t("bridge.feishuChannelDesc")}
-        enabled={channelEnabled}
-        verified={connectionVerified}
-        verificationHint={t("bridge.enableRequiresVerification")}
-        saving={credentialsSaving || behaviorSaving}
-        onToggle={(checked) => {
-          void (async () => {
-            if (checked) {
-              const verified = await ensureFeishuVerifiedBeforeEnable();
-              if (!verified) {
-                return;
-              }
-            }
-            await saveToClient({
-              bridge_feishu_enabled: checked ? "true" : "",
-              ...(checked ? { remote_bridge_enabled: "true" } : {}),
-            });
-            await fetchSettings();
-          })();
-        }}
-      />
-
       <BridgePlatformRuntimeCard
         platform="feishu"
         bridgeEnabled={bridgeEnabled}
         channelEnabled={channelEnabled}
         connectionVerified={connectionVerified}
+        onEnableBeforeStart={async () => {
+          const verified = await ensureFeishuVerifiedBeforeEnable();
+          if (!verified) {
+            return false;
+          }
+          await saveToClient({
+            bridge_feishu_enabled: "true",
+            remote_bridge_enabled: "true",
+          });
+          await fetchSettings();
+          return true;
+        }}
       />
 
       <SettingsCard title={t("feishu.credentials")} description={t("feishu.credentialsDesc")}>

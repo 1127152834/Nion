@@ -18,7 +18,6 @@ import { Switch } from "@/components/ui/switch";
 import { createBridgeClient, type WeixinBridgeAccount } from "@/core/bridge/client";
 
 import {
-  BridgePlatformEnableCard,
   BridgePlatformRuntimeCard,
   normalizeQrImageSrc,
   useBridgeTranslation,
@@ -206,35 +205,23 @@ export function WeixinBridgeSection() {
 
   return (
     <div className="max-w-3xl space-y-6">
-      <BridgePlatformEnableCard
-        title={t("bridge.weixinChannel")}
-        description={t("bridge.weixinChannelDesc")}
-        enabled={channelEnabled}
-        verified={weixinConnectionVerified}
-        verificationHint={t("bridge.enableRequiresVerification")}
-        saving={qrLoading}
-        onToggle={(checked) => {
-          void (async () => {
-            if (checked) {
-              const verified = await ensureWeixinVerifiedBeforeEnable();
-              if (!verified) {
-                return;
-              }
-            }
-            await createBridgeClient().saveSettings({
-              bridge_weixin_enabled: checked ? "true" : "",
-              ...(checked ? { remote_bridge_enabled: "true" } : {}),
-            });
-            await fetchAccounts();
-          })();
-        }}
-      />
-
       <BridgePlatformRuntimeCard
         platform="weixin"
         bridgeEnabled={bridgeEnabled}
         channelEnabled={channelEnabled}
         connectionVerified={weixinConnectionVerified}
+        onEnableBeforeStart={async () => {
+          const verified = await ensureWeixinVerifiedBeforeEnable();
+          if (!verified) {
+            return false;
+          }
+          await createBridgeClient().saveSettings({
+            bridge_weixin_enabled: "true",
+            remote_bridge_enabled: "true",
+          });
+          await fetchAccounts();
+          return true;
+        }}
       />
 
       <StatusBanner variant="warning" className="text-sm">
