@@ -438,22 +438,20 @@ class NionClient:
             details={
                 "agent_name": self._agent_name or "lead_agent",
                 "model_name": config.get("configurable", {}).get("model_name"),
-                "surface": configurable.get("surface"),
             },
         )
 
         human_payload = human_message_payload or {}
         human_content = human_payload.get("content", message)
         human_additional_kwargs = human_payload.get("additional_kwargs")
+        human_message_kwargs: dict[str, Any] = {
+            "content": human_content,
+        }
+        if isinstance(human_additional_kwargs, dict):
+            human_message_kwargs["additional_kwargs"] = human_additional_kwargs
+
         state: dict[str, Any] = {
-            "messages": [
-                HumanMessage(
-                    content=human_content,
-                    additional_kwargs=human_additional_kwargs
-                    if isinstance(human_additional_kwargs, dict)
-                    else None,
-                )
-            ]
+            "messages": [HumanMessage(**human_message_kwargs)]
         }
         context = {"thread_id": thread_id}
         if self._agent_name:
@@ -494,19 +492,14 @@ class NionClient:
                         if text and msg_id:
                             cumulative_text = cumulative_ai_content.get(msg_id, "") + text
                             cumulative_ai_content[msg_id] = cumulative_text
-                            yield StreamEvent(
-                                type="messages-tuple",
-                                data={
-                                    "type": "ai",
-                                    "content": cumulative_text,
-                                    "id": msg_id,
-                                    **(
-                                        {"response_metadata": metadata}
-                                        if isinstance(metadata, dict) and metadata
-                                        else {}
-                                    ),
-                                },
-                            )
+                            payload: dict[str, Any] = {
+                                "type": "ai",
+                                "content": cumulative_text,
+                                "id": msg_id,
+                            }
+                            if isinstance(metadata, dict) and metadata:
+                                payload["response_metadata"] = metadata
+                            yield StreamEvent(type="messages-tuple", data=payload)
                     continue
 
                 if stream_mode != "values" or not isinstance(chunk, dict):
@@ -541,7 +534,10 @@ class NionClient:
                                     "type": "ai",
                                     "content": "",
                                     "id": msg_id,
-                                    "tool_calls": [{"name": tc["name"], "args": tc["args"], "id": tc.get("id")} for tc in msg.tool_calls],
+                                    "tool_calls": [
+                                        {"name": tc["name"], "args": tc["args"], "id": tc.get("id")}
+                                        for tc in msg.tool_calls
+                                    ],
                                 },
                             )
 
@@ -549,7 +545,11 @@ class NionClient:
                         if text:
                             if msg_id:
                                 cumulative_ai_content[msg_id] = text
-                            event_data: dict[str, Any] = {"type": "ai", "content": text, "id": msg_id}
+                            event_data: dict[str, Any] = {
+                                "type": "ai",
+                                "content": text,
+                                "id": msg_id,
+                            }
                             if usage:
                                 event_data["usage_metadata"] = {
                                     "input_tokens": usage.get("input_tokens", 0) or 0,
@@ -560,17 +560,17 @@ class NionClient:
 
                     elif isinstance(msg, ToolMessage):
                         additional_kwargs = getattr(msg, "additional_kwargs", None) or {}
-                        yield StreamEvent(
-                            type="messages-tuple",
-                            data={
-                                "type": "tool",
-                                "content": self._extract_text(msg.content),
-                                "name": getattr(msg, "name", None),
-                                "tool_call_id": getattr(msg, "tool_call_id", None),
-                                "id": msg_id,
-                                **({"additional_kwargs": additional_kwargs} if additional_kwargs else {}),
-                            },
-                        )
+                        payload: dict[str, Any] = {
+                            "type": "tool",
+                            "content": self._extract_text(msg.content),
+                            "name": getattr(msg, "name", None),
+                            "tool_call_id": getattr(msg, "tool_call_id", None),
+                            "id": msg_id,
+                        }
+                        if additional_kwargs:
+                            payload["additional_kwargs"] = additional_kwargs
+                        yield StreamEvent(type="messages-tuple", data=payload)
+
                         clarification = additional_kwargs.get("clarification")
                         if getattr(msg, "name", None) == "ask_clarification" and isinstance(clarification, dict):
                             dispatch_automation_event(
@@ -591,6 +591,7 @@ class NionClient:
                                     **clarification,
                                 },
                             )
+
                         permission_request = additional_kwargs.get("permission_request")
                         if getattr(msg, "name", None) == "permission_request" and isinstance(permission_request, dict):
                             dispatch_automation_event(
@@ -618,6 +619,7 @@ class NionClient:
                         "title": chunk.get("title"),
                         "messages": [self._serialize_message(m) for m in messages],
                         "artifacts": chunk.get("artifacts", []),
+                        "todos": chunk.get("todos", []),
                     },
                 )
 
@@ -628,16 +630,6 @@ class NionClient:
                 details={
                     "ai_message_count": ai_message_count,
                     "usage": cumulative_usage,
-                    "surface": configurable.get("surface"),
-                },
-            )
-            dispatch_automation_event(
-                "agent.run.completed",
-                {
-                    "thread_id": thread_id,
-                    "surface": configurable.get("surface"),
-                    "agent_name": self._agent_name or "lead_agent",
-                    "usage": cumulative_usage,
                 },
             )
             yield StreamEvent(type="end", data={"usage": cumulative_usage})
@@ -647,19 +639,7 @@ class NionClient:
                 thread_id=thread_id,
                 message=f"Embedded agent run failed for thread '{thread_id}'",
                 level="error",
-                details={
-                    "reason": str(exc),
-                    "surface": configurable.get("surface"),
-                },
-            )
-            dispatch_automation_event(
-                "agent.run.failed",
-                {
-                    "thread_id": thread_id,
-                    "surface": configurable.get("surface"),
-                    "agent_name": self._agent_name or "lead_agent",
-                    "reason": str(exc),
-                },
+                details={"reason": str(exc)},
             )
             raise
 
@@ -745,15 +725,9 @@ class NionClient:
         Returns:
             Memory data dict (see src/agents/memory/updater.py for structure).
         """
-        return MemoryOSService().get_memory_payload()
+        from nion.agents.memory.updater import get_memory_data
 
-    def clear_memory(self) -> dict:
-        """Clear all persisted memory data."""
-        return MemoryOSService().clear_memory_payload()
-
-    def delete_memory_fact(self, fact_id: str) -> dict:
-        """Delete a single fact from memory by fact id."""
-        return MemoryOSService().delete_memory_fact(fact_id)
+        return get_memory_data()
 
     def get_model(self, name: str) -> dict | None:
         """Get a specific runtime model configuration by name.
@@ -976,7 +950,9 @@ class NionClient:
         Returns:
             The reloaded memory data dict.
         """
-        return MemoryOSService().reload_memory_payload()
+        from nion.agents.memory.updater import reload_memory_data
+
+        return reload_memory_data()
 
     def get_memory_config(self) -> dict:
         """Get memory system configuration.

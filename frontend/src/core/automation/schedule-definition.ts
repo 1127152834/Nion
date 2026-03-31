@@ -28,6 +28,11 @@ export type AutomationScheduleDefinition =
       cronExpression: string;
     };
 
+type NonWeeklyRecurringSchedule = Extract<
+  AutomationScheduleDefinition,
+  { preset: "daily" | "weekdays" }
+>;
+
 export function buildScheduleRequestFields(
   input: AutomationScheduleDefinition,
 ): Pick<
@@ -118,7 +123,8 @@ export function buildScheduleRequestFields(
     };
   }
 
-  throw new Error(`Unsupported schedule preset: ${String(input satisfies never)}`);
+  const exhaustiveCheck: never = input as never;
+  throw new Error(`Unsupported schedule preset: ${String(exhaustiveCheck)}`);
 }
 
 function normalizeTimezone(value: string | undefined) {

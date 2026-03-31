@@ -35,6 +35,7 @@ export interface AutomationJob {
   toolset_profile: string;
   package_dir?: string | null;
   package_manifest: Record<string, unknown>;
+  workflow_steps?: Array<Record<string, unknown>>;
   next_run_at?: string | null;
   last_run_at?: string | null;
   last_status?: string | null;
@@ -97,6 +98,7 @@ export interface AutomationJobCreateInput {
   delivery_mode: AutomationDeliveryMode;
   delivery_targets: Array<Record<string, unknown>>;
   skills: string[];
+  package_files?: Array<Record<string, unknown>>;
   package_dir?: string | null;
   package_manifest?: Record<string, unknown>;
   session_policy?: Record<string, unknown>;

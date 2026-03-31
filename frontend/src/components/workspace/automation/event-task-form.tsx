@@ -79,13 +79,23 @@ export function EventTaskForm({
     setActionKind(DEFAULT_ACTION);
   }
 
-  function applyTemplate(template: EventTaskFormProps["quickTemplates"][number]) {
+  function applyTemplate(
+    template: NonNullable<EventTaskFormProps["quickTemplates"]>[number],
+  ) {
     if (!template) {
       return;
     }
     setName(template.label);
     setEventName(template.eventName);
-    setActionKind(template.actionKind);
+    setActionKind(
+      (template.actionKind === "script"
+        ? "agent_prompt"
+        : template.actionKind) as
+        | "agent_prompt"
+        | "notify"
+        | "play_sound"
+        | "notebook_write",
+    );
     setPrompt(template.prompt);
   }
 
@@ -95,7 +105,15 @@ export function EventTaskForm({
     }
     setName(presetDraft.name);
     setEventName(presetDraft.eventName);
-    setActionKind(presetDraft.actionKind);
+    setActionKind(
+      (presetDraft.actionKind === "script"
+        ? "agent_prompt"
+        : presetDraft.actionKind) as
+        | "agent_prompt"
+        | "notify"
+        | "play_sound"
+        | "notebook_write",
+    );
     setPrompt(presetDraft.prompt);
   }, [presetDraft]);
 

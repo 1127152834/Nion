@@ -21,6 +21,7 @@ import { createBridgeClient } from "@/core/bridge/client";
 import {
   BridgePlatformEnableCard,
   BridgePlatformRuntimeCard,
+  isBridgePlatformVerified,
   useBridgeTranslation,
 } from "./useBridgeTranslation";
 
@@ -115,6 +116,12 @@ export function FeishuBridgeSection() {
   } | null>(null);
   const [bridgeEnabled, setBridgeEnabled] = useState(false);
   const [channelEnabled, setChannelEnabled] = useState(false);
+  const [persistedVerified, setPersistedVerified] = useState(false);
+  const connectionVerified =
+    persistedVerified
+    && !credentialsDirty
+    && Boolean(appId)
+    && Boolean(appSecret);
 
   useEffect(() => {
     const saved = savedCredentials.current;
@@ -141,6 +148,7 @@ export function FeishuBridgeSection() {
     const settings = { ...DEFAULT_SETTINGS, ...data };
     setBridgeEnabled(settings.remote_bridge_enabled === "true");
     setChannelEnabled(settings.bridge_feishu_enabled === "true");
+    setPersistedVerified(isBridgePlatformVerified(data, "feishu"));
 
     setAppId(settings.bridge_feishu_app_id);
     setAppSecret(settings.bridge_feishu_app_secret);
@@ -222,12 +230,16 @@ export function FeishuBridgeSection() {
   };
 
   const handleVerify = async () => {
+    await ensureFeishuVerifiedBeforeEnable();
+  };
+
+  const ensureFeishuVerifiedBeforeEnable = async () => {
     setVerifying(true);
     setVerifyResult(null);
     try {
       if (!appId) {
         setVerifyResult({ ok: false, message: t("feishu.enterCredentialsFirst") });
-        return;
+        return false;
       }
 
       const client = createBridgeClient();
@@ -244,15 +256,20 @@ export function FeishuBridgeSection() {
             ? t("feishu.verifiedAs", { name: result.botName })
             : t("feishu.verified"),
         });
-        return;
+        await fetchSettings();
+        return true;
       }
 
       setVerifyResult({
         ok: false,
         message: result.error?.trim() ? result.error : t("feishu.verifyFailed"),
       });
+      await fetchSettings();
+      return false;
     } catch {
       setVerifyResult({ ok: false, message: t("feishu.verifyFailed") });
+      await fetchSettings();
+      return false;
     } finally {
       setVerifying(false);
     }
@@ -264,12 +281,23 @@ export function FeishuBridgeSection() {
         title={t("bridge.feishuChannel")}
         description={t("bridge.feishuChannelDesc")}
         enabled={channelEnabled}
+        verified={connectionVerified}
+        verificationHint={t("bridge.enableRequiresVerification")}
         saving={credentialsSaving || behaviorSaving}
         onToggle={(checked) => {
-          void saveToClient({
-            bridge_feishu_enabled: checked ? "true" : "",
-            ...(checked ? { remote_bridge_enabled: "true" } : {}),
-          }).then(fetchSettings);
+          void (async () => {
+            if (checked) {
+              const verified = await ensureFeishuVerifiedBeforeEnable();
+              if (!verified) {
+                return;
+              }
+            }
+            await saveToClient({
+              bridge_feishu_enabled: checked ? "true" : "",
+              ...(checked ? { remote_bridge_enabled: "true" } : {}),
+            });
+            await fetchSettings();
+          })();
         }}
       />
 
@@ -277,6 +305,7 @@ export function FeishuBridgeSection() {
         platform="feishu"
         bridgeEnabled={bridgeEnabled}
         channelEnabled={channelEnabled}
+        connectionVerified={connectionVerified}
       />
 
       <SettingsCard title={t("feishu.credentials")} description={t("feishu.credentialsDesc")}>

@@ -10,12 +10,16 @@ void test("bridge client exposes an optional lookup helper for non-desktop envir
 });
 
 void test("bridge section handles missing bridge client without throwing", async () => {
-  const source = await readFile(
+  const sectionSource = await readFile(
     new URL("../../components/workspace/bridge/BridgeSection.tsx", import.meta.url),
     "utf8",
   );
+  const sharedSource = await readFile(
+    new URL("../../components/workspace/bridge/bridge-shared.tsx", import.meta.url),
+    "utf8",
+  );
 
-  assert.match(source, /const client = getBridgeClient\(\);/);
-  assert.match(source, /if \(!client\)/);
-  assert.match(source, /t\.bridge\.desktopOnly/);
+  assert.match(sectionSource, /const client = getBridgeClient\(\);/);
+  assert.match(sectionSource, /if \(!client\)[\s\S]*t\("bridge\.desktopOnly"\)/);
+  assert.match(sharedSource, /"bridge\.desktopOnly":/);
 });

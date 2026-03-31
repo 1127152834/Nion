@@ -79,6 +79,36 @@ def test_embedded_agent_stream_records_run_events(tmp_path, monkeypatch) -> None
     assert completed_event.details["ai_message_count"] == 1
 
 
+def test_embedded_agent_stream_tolerates_missing_additional_kwargs(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    import nion.config.paths as paths_module
+
+    paths_module._paths = None
+
+    with patch("nion.client.get_app_config", return_value=MagicMock()):
+        client = NionClient()
+
+    agent = MagicMock()
+    agent.stream.return_value = iter([{"messages": [AIMessage(content="ok", id="ai-1")]}])
+
+    with (
+        patch.object(client, "_ensure_agent"),
+        patch.object(client, "_agent", agent),
+    ):
+        events = list(
+            client.stream(
+                "hello",
+                thread_id="thread-no-extra",
+                human_message_payload={"content": "hello"},
+            )
+        )
+
+    assert events[-1].type == "end"
+
+
 def test_embedded_agent_creation_records_event(tmp_path, monkeypatch) -> None:
     monkeypatch.setenv("NION_HOME", str(tmp_path))
     import nion.config.paths as paths_module

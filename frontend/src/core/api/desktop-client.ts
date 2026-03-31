@@ -45,6 +45,19 @@ export type NotebookAssistantSessionBootstrapRecord<
   created: boolean;
 };
 
+type DesktopRuntimeInfoPayload = {
+  baseUrl?: string | null;
+  clientId?: string | null;
+};
+
+type DesktopBridgeWindow = Window & {
+  __NION_BACKEND_BASE_URL__?: string;
+  nionDesktop?: {
+    backendBaseUrl?: string;
+    getRuntimeInfo?: () => Promise<DesktopRuntimeInfoPayload>;
+  };
+};
+
 export type DesktopThreadClient = {
   search<TState extends Record<string, unknown> = AgentThreadState>(
     params: DesktopThreadSearchParams,
@@ -78,24 +91,41 @@ export type DesktopThreadClient = {
   ): Promise<NotebookAssistantSessionBootstrapRecord<TState>>;
 };
 
+function getDesktopWindow(): DesktopBridgeWindow | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  return window as DesktopBridgeWindow;
+}
+
+function getDesktopBridge() {
+  return getDesktopWindow()?.nionDesktop;
+}
+
 function getDesktopBackendBaseURL(): string {
+  const desktopWindow = getDesktopWindow();
+
+  if (
+    typeof desktopWindow?.__NION_BACKEND_BASE_URL__ === "string" &&
+    desktopWindow.__NION_BACKEND_BASE_URL__.length > 0
+  ) {
+    return desktopWindow.__NION_BACKEND_BASE_URL__;
+  }
+
+  if (
+    typeof desktopWindow?.nionDesktop?.backendBaseUrl === "string" &&
+    desktopWindow.nionDesktop.backendBaseUrl.length > 0
+  ) {
+    return desktopWindow.nionDesktop.backendBaseUrl;
+  }
+
   if (
     typeof process !== "undefined" &&
     typeof process.env?.NEXT_PUBLIC_BACKEND_BASE_URL === "string" &&
     process.env.NEXT_PUBLIC_BACKEND_BASE_URL.length > 0
   ) {
     return process.env.NEXT_PUBLIC_BACKEND_BASE_URL;
-  }
-
-  if (
-    typeof window !== "undefined" &&
-    typeof (window as Window & { __NION_BACKEND_BASE_URL__?: string })
-      .__NION_BACKEND_BASE_URL__ === "string" &&
-    (window as Window & { __NION_BACKEND_BASE_URL__?: string })
-      .__NION_BACKEND_BASE_URL__!.length > 0
-  ) {
-    return (window as Window & { __NION_BACKEND_BASE_URL__?: string })
-      .__NION_BACKEND_BASE_URL__!;
   }
 
   return "";
@@ -109,14 +139,7 @@ async function getDesktopBackendBaseURLAsync(): Promise<string> {
     return configured;
   }
 
-  const desktopBridge =
-    typeof window !== "undefined"
-      ? (window as Window & {
-          nionDesktop?: {
-            getRuntimeInfo: () => Promise<{ baseUrl?: string | null }>;
-          };
-        }).nionDesktop
-      : undefined;
+  const desktopBridge = getDesktopBridge();
 
   if (desktopBridge?.getRuntimeInfo) {
     runtimeInfoBaseUrlPromise ??= desktopBridge
@@ -131,14 +154,7 @@ async function getDesktopBackendBaseURLAsync(): Promise<string> {
 let runtimeInfoClientIdPromise: Promise<string> | null = null;
 
 async function getDesktopClientIdAsync(): Promise<string> {
-  const desktopBridge =
-    typeof window !== "undefined"
-      ? (window as Window & {
-          nionDesktop?: {
-            getRuntimeInfo: () => Promise<{ clientId?: string | null }>;
-          };
-        }).nionDesktop
-      : undefined;
+  const desktopBridge = getDesktopBridge();
 
   if (desktopBridge?.getRuntimeInfo) {
     runtimeInfoClientIdPromise ??= desktopBridge

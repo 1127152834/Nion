@@ -15,6 +15,7 @@ import {
   ChatTeardrop,
   FieldRow,
   GameController,
+  isBridgePlatformVerified,
   settingToBool,
   SettingsCard,
   StatusBanner,
@@ -80,7 +81,7 @@ export function BridgeSection() {
     return (
       <SettingsCard>
         <p className="text-sm text-muted-foreground">
-          Bridge is only available in the desktop app.
+          {t("bridge.desktopOnly")}
         </p>
       </SettingsCard>
     );
@@ -111,6 +112,14 @@ export function BridgeSection() {
   const isRunning = status.running;
   const adapterCount = status.adapters.length;
 
+  const verifiedPlatforms = {
+    telegram: isBridgePlatformVerified(settings, "telegram"),
+    feishu: isBridgePlatformVerified(settings, "feishu"),
+    discord: isBridgePlatformVerified(settings, "discord"),
+    qq: isBridgePlatformVerified(settings, "qq"),
+    weixin: isBridgePlatformVerified(settings, "weixin"),
+  };
+
   return (
     <div className="max-w-3xl space-y-6">
       <SettingsCard className={isEnabled ? "border-primary/50 bg-primary/5" : undefined}>
@@ -118,11 +127,14 @@ export function BridgeSection() {
           label={t("bridge.title")}
           description={t("bridge.description")}
         >
-          <Switch
-            checked={isEnabled}
-            onCheckedChange={handleToggleEnabled}
+          <button
+            type="button"
+            onClick={() => handleToggleEnabled(!isEnabled)}
             disabled={saving}
-          />
+            className="text-xs text-muted-foreground underline-offset-4 hover:underline disabled:opacity-50"
+          >
+            {isEnabled ? t("bridge.stop") : t("bridge.start")}
+          </button>
         </FieldRow>
         {isEnabled ? (
           <StatusBanner variant="info" className="bg-primary/10 text-primary">
@@ -180,15 +192,13 @@ export function BridgeSection() {
                   </p>
                 </div>
               </div>
-              <Switch
-                checked={isTelegramEnabled}
-                onCheckedChange={(checked) =>
-                  void saveSettings({
-                    bridge_telegram_enabled: checked ? "true" : "",
-                  })
-                }
-                disabled={saving}
-              />
+              <div className="text-xs text-muted-foreground">
+                {isTelegramEnabled
+                  ? t("bridge.statusConnected")
+                  : verifiedPlatforms.telegram
+                    ? t("bridge.statusDisconnected")
+                    : t("bridge.errorChannelNotVerified")}
+              </div>
             </div>
 
             <div className="flex items-center justify-between border-t border-border/30 pt-3">
@@ -201,15 +211,13 @@ export function BridgeSection() {
                   </p>
                 </div>
               </div>
-              <Switch
-                checked={isFeishuEnabled}
-                onCheckedChange={(checked) =>
-                  void saveSettings({
-                    bridge_feishu_enabled: checked ? "true" : "",
-                  })
-                }
-                disabled={saving}
-              />
+              <div className="text-xs text-muted-foreground">
+                {isFeishuEnabled
+                  ? t("bridge.statusConnected")
+                  : verifiedPlatforms.feishu
+                    ? t("bridge.statusDisconnected")
+                    : t("bridge.errorChannelNotVerified")}
+              </div>
             </div>
 
             <div className="flex items-center justify-between border-t border-border/30 pt-3">
@@ -222,15 +230,13 @@ export function BridgeSection() {
                   </p>
                 </div>
               </div>
-              <Switch
-                checked={isDiscordEnabled}
-                onCheckedChange={(checked) =>
-                  void saveSettings({
-                    bridge_discord_enabled: checked ? "true" : "",
-                  })
-                }
-                disabled={saving}
-              />
+              <div className="text-xs text-muted-foreground">
+                {isDiscordEnabled
+                  ? t("bridge.statusConnected")
+                  : verifiedPlatforms.discord
+                    ? t("bridge.statusDisconnected")
+                    : t("bridge.errorChannelNotVerified")}
+              </div>
             </div>
 
             <div className="flex items-center justify-between border-t border-border/30 pt-3">
@@ -243,15 +249,13 @@ export function BridgeSection() {
                   </p>
                 </div>
               </div>
-              <Switch
-                checked={isQqEnabled}
-                onCheckedChange={(checked) =>
-                  void saveSettings({
-                    bridge_qq_enabled: checked ? "true" : "",
-                  })
-                }
-                disabled={saving}
-              />
+              <div className="text-xs text-muted-foreground">
+                {isQqEnabled
+                  ? t("bridge.statusConnected")
+                  : verifiedPlatforms.qq
+                    ? t("bridge.statusDisconnected")
+                    : t("bridge.errorChannelNotVerified")}
+              </div>
             </div>
 
             <div className="flex items-center justify-between border-t border-border/30 pt-3">
@@ -264,15 +268,13 @@ export function BridgeSection() {
                   </p>
                 </div>
               </div>
-              <Switch
-                checked={isWeixinEnabled}
-                onCheckedChange={(checked) =>
-                  void saveSettings({
-                    bridge_weixin_enabled: checked ? "true" : "",
-                  })
-                }
-                disabled={saving}
-              />
+              <div className="text-xs text-muted-foreground">
+                {isWeixinEnabled
+                  ? t("bridge.statusConnected")
+                  : verifiedPlatforms.weixin
+                    ? t("bridge.statusDisconnected")
+                    : t("bridge.errorChannelNotVerified")}
+              </div>
             </div>
 
             <FieldRow

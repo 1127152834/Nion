@@ -116,16 +116,31 @@ export function AutomationCreator({
                 const nextKind =
                   value as Extract<AutomationJobKind, "reminder" | "scheduled_task">;
                 setKind(nextKind);
-                setSchedule((current) => ({
-                  ...current,
-                  preset:
-                    current.preset === "interval" || current.preset === "cron"
-                      ? current.preset
-                      : nextKind === "reminder"
-                        ? "daily"
-                        : "weekdays",
-                  timezone,
-                }));
+                setSchedule((current) => {
+                  if (current.preset === "interval" || current.preset === "cron") {
+                    return { ...current, timezone };
+                  }
+                  if (current.preset === "once") {
+                    return {
+                      preset: "once",
+                      timezone,
+                      runAt: current.runAt,
+                    };
+                  }
+                  if (current.preset === "weekly") {
+                    return {
+                      preset: "weekly",
+                      timezone,
+                      timeOfDay: current.timeOfDay,
+                      weekdays: current.weekdays,
+                    };
+                  }
+                  return {
+                    preset: nextKind === "reminder" ? "daily" : "weekdays",
+                    timezone,
+                    timeOfDay: current.timeOfDay,
+                  };
+                });
               }}
             >
               <SelectTrigger aria-labelledby="automation-kind-label">

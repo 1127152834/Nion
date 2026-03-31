@@ -22,8 +22,10 @@ export async function createMainWindow(options: MainWindowOptions): Promise<Brow
   const isDev = !process.mainModule?.filename.includes("app.asar");
 
   if (isDev) {
-    window.webContents.on("console-message", (_event, level, message, line, sourceId) => {
-      console.log(`[renderer:${level}] ${sourceId}:${line} ${message}`);
+    window.webContents.on("console-message", (details) => {
+      console.log(
+        `[renderer:${details.level}] ${details.sourceId}:${details.lineNumber} ${details.message}`,
+      );
     });
     window.webContents.on("did-finish-load", () => {
       console.log(`[renderer] loaded ${options.rendererUrl}`);

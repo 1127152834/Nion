@@ -40,13 +40,14 @@ void test("chat thread page exposes a save to notebook action", async () => {
   assert.match(source, /SaveToNotebookTrigger/);
 });
 
-void test("notebook page exposes an agent assist bar that opens chats", async () => {
+void test("notebook page exposes the shell-based assistant entry points", async () => {
   const source = await readFile(
     new URL("./notebook/notebook-page.tsx", import.meta.url),
     "utf8",
   );
 
-  assert.match(source, /buildNotebookAssistPrompt/);
-  assert.match(source, /pathOfNewThread/);
+  assert.match(source, /notebookAssistantSessionId/);
+  assert.match(source, /startNotebookAssistantConversation/);
+  assert.match(source, /<NotebookContextPanel/);
   assert.match(source, /pathOfNotebookTrash/);
 });

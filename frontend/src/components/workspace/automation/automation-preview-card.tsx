@@ -50,7 +50,10 @@ function describeSchedule(schedule: AutomationScheduleDefinition) {
   if (schedule.preset === "interval") {
     return `Runs every ${schedule.intervalMinutes} minutes`;
   }
-  return `Runs on custom schedule: ${schedule.cronExpression}`;
+  if (schedule.preset === "cron") {
+    return `Runs on custom schedule: ${schedule.cronExpression}`;
+  }
+  return "Runs on a custom schedule";
 }
 
 function describeDelivery(

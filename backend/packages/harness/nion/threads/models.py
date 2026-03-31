@@ -27,6 +27,8 @@ class ThreadValues(BaseModel):
     note_id: str | None = None
     notebook_session_id: str | None = None
     bridge: dict[str, Any] | None = None
+    project: dict[str, Any] | None = None
+    project_imports: list[dict[str, Any]] = Field(default_factory=list)
     owner_client_id: str | None = None
     cli_management: ThreadCliManagementState = Field(default_factory=ThreadCliManagementState)
     resolved_permission_request_ids: list[str] = Field(default_factory=list)

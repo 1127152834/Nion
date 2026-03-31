@@ -37,6 +37,7 @@ const zhCN = {
 
   "bridge.title": "远程桥接",
   "bridge.description": "通过 Telegram、飞书等外部渠道控制 Claude",
+  "bridge.desktopOnly": "Bridge 仅在桌面应用中可用。",
   "bridge.activeHint": "桥接已激活。外部渠道可以向 Claude 发送任务。",
   "bridge.status": "桥接状态",
   "bridge.statusConnected": "已连接",
@@ -88,8 +89,10 @@ const zhCN = {
   "bridge.errorAdapterConfig": "渠道配置无效，请检查已启用渠道的设置。",
   "bridge.errorNetwork": "启动桥接时网络错误。",
   "bridge.errorChannelNotEnabled": "请先启用当前渠道，再启动桥接。",
+  "bridge.errorChannelNotVerified": "请先完成当前渠道的连接验证，再启用或启动桥接。",
   "bridge.channelStatusDesc": "当前渠道桥接运行状态",
   "bridge.bridgeChatBadge": "桥接",
+  "bridge.enableRequiresVerification": "连接验证通过后才能启用此渠道。",
 
   "telegram.credentials": "Bot 凭据",
   "telegram.credentialsDesc": "输入您的 Telegram Bot Token 和 Chat ID",
@@ -262,6 +265,7 @@ const enUS: Record<keyof typeof zhCN, string> = {
 
   "bridge.title": "Remote Bridge",
   "bridge.description": "Control Claude through external channels such as Telegram and Feishu",
+  "bridge.desktopOnly": "Bridge is only available in the desktop app.",
   "bridge.activeHint": "Bridge is active. External channels can send tasks to Claude.",
   "bridge.status": "Bridge Status",
   "bridge.statusConnected": "Connected",
@@ -313,8 +317,10 @@ const enUS: Record<keyof typeof zhCN, string> = {
   "bridge.errorAdapterConfig": "Invalid channel configuration. Check enabled channel settings.",
   "bridge.errorNetwork": "Network error while starting bridge.",
   "bridge.errorChannelNotEnabled": "Enable this channel before starting bridge.",
+  "bridge.errorChannelNotVerified": "Verify this channel connection before enabling or starting it.",
   "bridge.channelStatusDesc": "Runtime status for this channel",
   "bridge.bridgeChatBadge": "Bridge",
+  "bridge.enableRequiresVerification": "This channel can only be enabled after connection verification succeeds.",
 
   "telegram.credentials": "Bot Credentials",
   "telegram.credentialsDesc": "Enter your Telegram Bot Token and Chat ID",
@@ -535,6 +541,30 @@ export function bridgePlatformLabel(
   }
 }
 
+export function isBridgePlatformVerified(
+  settings: Record<string, string> | null | undefined,
+  platform: string,
+) {
+  if (settings?.[`bridge_${platform}_verified`] !== "true") {
+    return false;
+  }
+
+  switch (platform) {
+    case "telegram":
+      return Boolean(settings.bridge_telegram_bot_token ?? settings.telegram_bot_token);
+    case "feishu":
+      return Boolean(settings.bridge_feishu_app_id && settings.bridge_feishu_app_secret);
+    case "discord":
+      return Boolean(settings.bridge_discord_bot_token);
+    case "qq":
+      return Boolean(settings.bridge_qq_app_id && settings.bridge_qq_app_secret);
+    case "weixin":
+      return true;
+    default:
+      return false;
+  }
+}
+
 function useBridgePlatformStatus(platform: string) {
   const client = getBridgeClient();
   const [status, setStatus] = useState<BridgeStatus | null>(null);
@@ -664,10 +694,12 @@ export function BridgePlatformRuntimeCard({
   platform,
   bridgeEnabled,
   channelEnabled,
+  connectionVerified,
 }: {
   platform: string;
   bridgeEnabled: boolean;
   channelEnabled: boolean;
+  connectionVerified: boolean;
 }) {
   const { t } = useBridgeTranslation();
   const { client, adapter, refresh } = useBridgePlatformStatus(platform);
@@ -688,6 +720,7 @@ export function BridgePlatformRuntimeCard({
         const reasonMessages: Record<string, string> = {
           bridge_not_enabled: t("bridge.errorNotEnabled"),
           channel_not_enabled: t("bridge.errorChannelNotEnabled"),
+          channel_not_verified: t("bridge.errorChannelNotVerified"),
           no_adapters_started: t("bridge.errorNoAdapters"),
           adapter_unavailable: t("bridge.errorNetwork"),
           network_error: t("bridge.errorNetwork"),
@@ -727,6 +760,12 @@ export function BridgePlatformRuntimeCard({
           {t("bridge.errorChannelNotEnabled")}
         </StatusBanner>
       ) : null}
+      {bridgeEnabled && channelEnabled && !connectionVerified ? (
+        <StatusBanner variant="warning">
+          <Warning className="size-4 shrink-0" />
+          {t("bridge.errorChannelNotVerified")}
+        </StatusBanner>
+      ) : null}
 
       <div className="flex items-center justify-between">
         <div>
@@ -761,7 +800,7 @@ export function BridgePlatformRuntimeCard({
           <Button
             size="sm"
             onClick={() => void handleStart()}
-            disabled={starting || !bridgeEnabled || !channelEnabled}
+            disabled={starting || !bridgeEnabled || !channelEnabled || !connectionVerified}
           >
             {starting ? <SpinnerGap className="mr-1.5 size-3.5 animate-spin" /> : null}
             {starting ? t("bridge.starting") : t("bridge.start")}
@@ -776,20 +815,32 @@ export function BridgePlatformEnableCard({
   title,
   description,
   enabled,
+  verified,
+  verificationHint,
   saving,
   onToggle,
 }: {
   title: string;
   description: string;
   enabled: boolean;
+  verified: boolean;
+  verificationHint?: string;
   saving: boolean;
   onToggle: (checked: boolean) => void;
 }) {
+  const effectiveEnabled = enabled && verified;
+
   return (
-    <SettingsCard className={enabled ? "border-primary/50 bg-primary/5" : undefined}>
+    <SettingsCard className={effectiveEnabled ? "border-primary/50 bg-primary/5" : undefined}>
       <FieldRow label={title} description={description}>
-        <Switch checked={enabled} onCheckedChange={onToggle} disabled={saving} />
+        <Switch checked={effectiveEnabled} onCheckedChange={onToggle} disabled={saving || !verified} />
       </FieldRow>
+      {!verified ? (
+        <StatusBanner variant="warning">
+          <Warning className="size-4 shrink-0" />
+          {verificationHint ?? "Verification required"}
+        </StatusBanner>
+      ) : null}
     </SettingsCard>
   );
 }

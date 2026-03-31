@@ -10,3 +10,14 @@ test("desktop workspace defines builder and forge packaging scripts", () => {
   assert.ok(pkg.scripts["package:forge"]);
   assert.ok(pkg.scripts["build:helper"]);
 });
+
+test("desktop renderer wires the project workspace routes", () => {
+  const source = fs.readFileSync(
+    new URL("../src/renderer/renderer-app.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /path="\/workspace\/projects"/);
+  assert.match(source, /path="\/workspace\/projects\/:project_id"/);
+  assert.match(source, /path="\/workspace\/projects\/:project_id\/threads\/:thread_id"/);
+});

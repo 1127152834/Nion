@@ -171,6 +171,11 @@ declare global {
           gatewayUrl?: string;
           error?: string;
         }>;
+        verifyWeixin: () => Promise<{
+          verified: boolean;
+          botName?: string;
+          error?: string;
+        }>;
         listWeixinAccounts: () => Promise<DesktopWeixinAccount[]>;
         startWeixinLogin: () => Promise<DesktopWeixinLoginSession>;
         waitForWeixinLogin: (sessionId: string) => Promise<DesktopWeixinLoginSession>;

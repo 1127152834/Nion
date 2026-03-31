@@ -57,10 +57,12 @@ pnpm start
 ## Site Map
 
 ```
-├── /                    # Landing page
-├── /chats               # Chat list
-├── /chats/new           # New chat page
-└── /chats/[thread_id]   # A specific chat page
+├── /workspace/chats                         # Chat list / chat threads
+├── /workspace/projects                      # Project list
+├── /workspace/projects/[project_id]         # Project dashboard
+├── /workspace/projects/[project_id]/threads/[thread_id] # Project chat
+├── /workspace/automation                    # Automation workspace
+└── /workspace/notebook                      # Notebook workspace
 ```
 
 ## Configuration
@@ -80,6 +82,7 @@ NEXT_PUBLIC_LANGGRAPH_BASE_URL="http://localhost:2024"
 
 When running behind the local nginx entrypoint (`http://localhost:2026`), the frontend can use relative `/api/*` requests. When running standalone via `pnpm dev`, `next.config.js` rewrites `/api/langgraph/*` to `http://127.0.0.1:2024/*` and rewrites the remaining `/api/*` requests to `http://127.0.0.1:8001/api/*`. The settings shell now expects `/api/config`, `/api/config/schema`, and `/api/config/runtime-status` to be proxied to the gateway.
 The chat runtime shell also expects `/api/threads/{thread_id}/runtime-profile`, `/api/threads/{thread_id}/files/*`, and `/api/cli/catalog`.
+The Projects workspace also expects `/api/projects*` for dashboard, plans, project threads, decisions, timeline, memory, and managed artifact flows.
 
 ## Project Structure
 
@@ -105,6 +108,7 @@ src/
 │   ├── mcp/                # MCP integration
 │   ├── messages/           # Message handling
 │   ├── models/             # Data models & types
+│   ├── projects/           # Project dashboard / plans / threads / timeline client
 │   ├── settings/           # User settings
 │   ├── skills/             # Skills system
 │   ├── threads/            # Thread management
@@ -121,7 +125,8 @@ src/
 
 | Command | Description |
 |---------|-------------|
-| `pnpm dev` | Start development server with Turbopack |
+| `pnpm dev` | Start the webpack-backed development server |
+| `pnpm dev:turbo` | Start the explicit Turbopack development server |
 | `pnpm build` | Build for production |
 | `pnpm start` | Start production server |
 | `pnpm lint` | Run ESLint |
@@ -132,12 +137,14 @@ src/
 ## Development Notes
 
 - Uses pnpm workspaces (see `packageManager` in package.json)
-- Turbopack enabled by default in development for faster builds
+- Development uses the webpack-backed `pnpm dev` flow by default to avoid the known Turbopack panic under non-ASCII repository paths; run `pnpm dev:turbo` explicitly when you need Turbopack in an ASCII-safe path
 - Environment validation can be skipped with `SKIP_ENV_VALIDATION=1` (useful for Docker)
 - Set `NION_STATIC_EXPORT=1` only when you intentionally need a static export build
 - The settings dialog shell is grouped into Experience / Knowledge & Memory / Tools & Skills and preloads Config Center state when opened
 - The chat page now exposes a runtime toggle plus Context / Skill / MCP / CLI shortcut lanes
+- The workspace now includes a top-level **Projects** module for long-running work containers, execution plans, project threads, timeline, managed artifacts, and completion-stage extraction suggestions
 - The settings dialog now includes an **Agent Integrations** page for ACP adapters and a **Memory** storage selector that maps UI-safe modes onto Config Center state
+- The desktop Remote Bridge now gates each platform behind a persisted verification state: users must verify the connection before enabling a channel, and each re-enable automatically re-verifies the platform
 
 ## License
 

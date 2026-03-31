@@ -196,6 +196,7 @@ export type BridgeClient = {
     app_id?: string;
     app_secret?: string;
   }): Promise<BridgeVerifyResult>;
+  verifyWeixin(): Promise<BridgeVerifyResult>;
   listWeixinAccounts(): Promise<WeixinBridgeAccount[]>;
   startWeixinLogin(): Promise<WeixinBridgeLoginSession>;
   waitForWeixinLogin(sessionId: string): Promise<WeixinBridgeLoginSession>;
@@ -247,6 +248,7 @@ function resolveDesktopBridge() {
                   app_id?: string;
                   app_secret?: string;
                 }) => Promise<BridgeVerifyResult>;
+                verifyWeixin: () => Promise<BridgeVerifyResult>;
                 listWeixinAccounts: () => Promise<WeixinBridgeAccount[]>;
                 startWeixinLogin: () => Promise<WeixinBridgeLoginSession>;
                 waitForWeixinLogin: (sessionId: string) => Promise<WeixinBridgeLoginSession>;
@@ -266,13 +268,25 @@ function resolveDesktopBridge() {
   return bridge;
 }
 
+let cachedBridgeClient: BridgeClient | null | undefined;
+let cachedDesktopBridge:
+  | ReturnType<typeof resolveDesktopBridge>
+  | undefined;
+
 export function getBridgeClient(): BridgeClient | null {
   const bridge = resolveDesktopBridge();
   if (!bridge) {
+    cachedDesktopBridge = bridge;
+    cachedBridgeClient = null;
     return null;
   }
 
-  return {
+  if (cachedBridgeClient !== undefined && cachedDesktopBridge === bridge) {
+    return cachedBridgeClient;
+  }
+
+  cachedDesktopBridge = bridge;
+  cachedBridgeClient = {
     getSettings: () => bridge.getSettings(),
     saveSettings: (updates) => bridge.saveSettings(updates),
     getStatus: () => bridge.getStatus(),
@@ -294,6 +308,7 @@ export function getBridgeClient(): BridgeClient | null {
     verifyDiscord: (payload) => bridge.verifyDiscord(payload),
     verifyFeishu: (payload) => bridge.verifyFeishu(payload),
     verifyQq: (payload) => bridge.verifyQq(payload),
+    verifyWeixin: () => bridge.verifyWeixin(),
     listWeixinAccounts: () => bridge.listWeixinAccounts(),
     startWeixinLogin: () => bridge.startWeixinLogin(),
     waitForWeixinLogin: (sessionId) => bridge.waitForWeixinLogin(sessionId),
@@ -301,6 +316,8 @@ export function getBridgeClient(): BridgeClient | null {
       bridge.setWeixinAccountEnabled(accountId, enabled),
     deleteWeixinAccount: (accountId) => bridge.deleteWeixinAccount(accountId),
   };
+
+  return cachedBridgeClient;
 }
 
 export function createBridgeClient(): BridgeClient {

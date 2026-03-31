@@ -36,6 +36,7 @@ export function WeixinBridgeSection() {
   const [qrLoading, setQrLoading] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const weixinConnectionVerified = accounts.some((account) => account.enabled && account.hasToken);
 
   const fetchAccounts = useCallback(async () => {
     const client = createBridgeClient();
@@ -190,6 +191,17 @@ export function WeixinBridgeSection() {
     }
   };
 
+  const ensureWeixinVerifiedBeforeEnable = async () => {
+    const client = createBridgeClient();
+    const result = await client.verifyWeixin();
+    await fetchAccounts();
+    if (!result.verified) {
+      toast.error(result.error?.trim() ? result.error : t("bridge.errorChannelNotVerified"));
+      return false;
+    }
+    return true;
+  };
+
   void qrSessionId;
 
   return (
@@ -198,14 +210,23 @@ export function WeixinBridgeSection() {
         title={t("bridge.weixinChannel")}
         description={t("bridge.weixinChannelDesc")}
         enabled={channelEnabled}
+        verified={weixinConnectionVerified}
+        verificationHint={t("bridge.enableRequiresVerification")}
         saving={qrLoading}
         onToggle={(checked) => {
-          void createBridgeClient()
-            .saveSettings({
+          void (async () => {
+            if (checked) {
+              const verified = await ensureWeixinVerifiedBeforeEnable();
+              if (!verified) {
+                return;
+              }
+            }
+            await createBridgeClient().saveSettings({
               bridge_weixin_enabled: checked ? "true" : "",
               ...(checked ? { remote_bridge_enabled: "true" } : {}),
-            })
-            .then(fetchAccounts);
+            });
+            await fetchAccounts();
+          })();
         }}
       />
 
@@ -213,6 +234,7 @@ export function WeixinBridgeSection() {
         platform="weixin"
         bridgeEnabled={bridgeEnabled}
         channelEnabled={channelEnabled}
+        connectionVerified={weixinConnectionVerified}
       />
 
       <StatusBanner variant="warning" className="text-sm">

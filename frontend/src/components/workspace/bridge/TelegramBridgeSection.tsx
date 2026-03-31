@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ import {
   BridgePlatformEnableCard,
   BridgePlatformRuntimeCard,
   CheckCircle,
+  isBridgePlatformVerified,
   SettingsCard,
   SpinnerGap,
   StatusBanner,
@@ -52,6 +53,12 @@ export function TelegramBridgeSection() {
     message: string;
   } | null>(null);
   const { t } = useBridgeTranslation();
+  const [persistedVerified, setPersistedVerified] = useState(false);
+  const savedCredentials = useRef({ botToken: "", chatId: "" });
+  const credentialsDirty =
+    botToken !== savedCredentials.current.botToken
+    || chatId !== savedCredentials.current.chatId;
+  const connectionVerified = persistedVerified && !credentialsDirty && Boolean(botToken);
 
   const fetchSettings = useCallback(async () => {
     if (!client) {
@@ -74,9 +81,14 @@ export function TelegramBridgeSection() {
     };
     setBridgeEnabled(settings.remote_bridge_enabled === "true");
     setChannelEnabled(settings.bridge_telegram_enabled === "true");
+    setPersistedVerified(isBridgePlatformVerified(data, "telegram"));
     setBotToken(settings.telegram_bot_token);
     setChatId(settings.telegram_chat_id);
     setAllowedUsers(settings.telegram_bridge_allowed_users);
+    savedCredentials.current = {
+      botToken: settings.telegram_bot_token,
+      chatId: settings.telegram_chat_id,
+    };
   }, [client]);
 
   useEffect(() => {
@@ -110,6 +122,12 @@ export function TelegramBridgeSection() {
     if (!client) {
       return;
     }
+    if (checked) {
+      const verified = await ensureTelegramVerifiedBeforeEnable();
+      if (!verified) {
+        return;
+      }
+    }
     setSaving(true);
     try {
       await client.saveSettings({
@@ -119,6 +137,45 @@ export function TelegramBridgeSection() {
       await fetchSettings();
     } finally {
       setSaving(false);
+    }
+  };
+
+  const ensureTelegramVerifiedBeforeEnable = async () => {
+    setVerifying(true);
+    setVerifyResult(null);
+    try {
+      if (!botToken) {
+        setVerifyResult({
+          ok: false,
+          message: t("telegram.enterTokenFirst"),
+        });
+        return false;
+      }
+
+      const result = await client.verifyTelegram({
+        bot_token: botToken,
+        chat_id: chatId || undefined,
+      });
+
+      if (!result.verified) {
+        setVerifyResult({
+          ok: false,
+          message: result.error?.trim() ? result.error : t("telegram.verifyFailed"),
+        });
+        await fetchSettings();
+        return false;
+      }
+
+      setVerifyResult({
+        ok: true,
+        message: result.botName
+          ? t("telegram.verifiedAs", { name: result.botName })
+          : t("telegram.verified"),
+      });
+      await fetchSettings();
+      return true;
+    } finally {
+      setVerifying(false);
     }
   };
 
@@ -160,38 +217,7 @@ export function TelegramBridgeSection() {
   };
 
   const handleVerify = async () => {
-    setVerifying(true);
-    setVerifyResult(null);
-    try {
-      if (!botToken) {
-        setVerifyResult({
-          ok: false,
-          message: t("telegram.enterTokenFirst"),
-        });
-        return;
-      }
-
-      const result = await client.verifyTelegram({
-        bot_token: botToken,
-        chat_id: chatId || undefined,
-      });
-
-      if (result.verified) {
-        setVerifyResult({
-          ok: true,
-          message: result.botName
-            ? t("telegram.verifiedAs", { name: result.botName })
-            : t("telegram.verified"),
-        });
-      } else {
-        setVerifyResult({
-          ok: false,
-          message: result.error?.trim() ? result.error : t("telegram.verifyFailed"),
-        });
-      }
-    } finally {
-      setVerifying(false);
-    }
+    await ensureTelegramVerifiedBeforeEnable();
   };
 
   return (
@@ -200,6 +226,8 @@ export function TelegramBridgeSection() {
         title={t("bridge.telegramChannel")}
         description={t("bridge.telegramChannelDesc")}
         enabled={channelEnabled}
+        verified={connectionVerified}
+        verificationHint={t("bridge.enableRequiresVerification")}
         saving={saving}
         onToggle={(checked) => void handleToggleChannel(checked)}
       />
@@ -208,6 +236,7 @@ export function TelegramBridgeSection() {
         platform="telegram"
         bridgeEnabled={bridgeEnabled}
         channelEnabled={channelEnabled}
+        connectionVerified={connectionVerified}
       />
 
       <SettingsCard

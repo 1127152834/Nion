@@ -70,6 +70,10 @@ def resolve_model_name_with_fallback(
     return default_name
 
 
+def get_app_config():
+    return ensure_latest_app_config(process_name="langgraph")
+
+
 def create_chat_model(name: str | None = None, thinking_enabled: bool = False, **kwargs) -> BaseChatModel:
     """Create a chat model instance from the runtime model registry.
 

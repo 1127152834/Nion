@@ -40,6 +40,10 @@ const MASKED_SETTING_KEYS = new Set([
   "bridge_qq_app_secret",
 ]);
 
+const BRIDGE_PLATFORM_KEYS = ["telegram", "feishu", "discord", "qq", "weixin"] as const;
+
+type BridgePlatformKey = (typeof BRIDGE_PLATFORM_KEYS)[number];
+
 function maskSettingValue(key: string, value: string) {
   if (!MASKED_SETTING_KEYS.has(key) || value.length <= 8) {
     return value;
@@ -55,6 +59,71 @@ function getSettingWithAliases(settings: Record<string, string>, key: string) {
     return settings.telegram_chat_id || settings.bridge_telegram_chat_id || "";
   }
   return settings[key] ?? "";
+}
+
+function bridgeVerifiedKey(platform: BridgePlatformKey) {
+  return `bridge_${platform}_verified`;
+}
+
+function bridgeVerifiedAtKey(platform: BridgePlatformKey) {
+  return `bridge_${platform}_verified_at`;
+}
+
+function bridgeVerifiedFingerprintKey(platform: BridgePlatformKey) {
+  return `bridge_${platform}_verified_fingerprint`;
+}
+
+function normalizeFingerprintValue(value: string) {
+  return value.trim();
+}
+
+function computeBridgeVerificationFingerprint(
+  platform: BridgePlatformKey,
+  settings: Record<string, string>,
+) {
+  switch (platform) {
+    case "telegram":
+      return JSON.stringify({
+        botToken: getSettingWithAliases(settings, "telegram_bot_token"),
+        chatId: getSettingWithAliases(settings, "telegram_chat_id"),
+      });
+    case "feishu":
+      return JSON.stringify({
+        appId: settings.bridge_feishu_app_id || "",
+        appSecret: settings.bridge_feishu_app_secret || "",
+        domain: settings.bridge_feishu_domain || "feishu",
+      });
+    case "discord":
+      return JSON.stringify({
+        botToken: settings.bridge_discord_bot_token || "",
+      });
+    case "qq":
+      return JSON.stringify({
+        appId: settings.bridge_qq_app_id || "",
+        appSecret: settings.bridge_qq_app_secret || "",
+      });
+    case "weixin":
+      return "managed-by-weixin-accounts";
+  }
+}
+
+function clearBridgeVerificationState(
+  settings: Record<string, string>,
+  platform: BridgePlatformKey,
+) {
+  settings[bridgeVerifiedKey(platform)] = "";
+  settings[bridgeVerifiedAtKey(platform)] = "";
+  settings[bridgeVerifiedFingerprintKey(platform)] = "";
+  settings[`bridge_${platform}_enabled`] = "";
+}
+
+function markBridgeVerificationState(
+  settings: Record<string, string>,
+  platform: BridgePlatformKey,
+) {
+  settings[bridgeVerifiedKey(platform)] = "true";
+  settings[bridgeVerifiedAtKey(platform)] = new Date().toISOString();
+  settings[bridgeVerifiedFingerprintKey(platform)] = computeBridgeVerificationFingerprint(platform, settings);
 }
 
 async function callTelegramApi(
@@ -277,6 +346,24 @@ async function verifyQqApp(appId: string, appSecret: string) {
   };
 }
 
+function verifyWeixinAccounts(
+  accounts: Array<{ enabled: boolean; token?: string; name?: string; accountId: string }>,
+) {
+  const enabledAccounts = accounts.filter((account) => account.enabled && account.token);
+  if (enabledAccounts.length === 0) {
+    return {
+      verified: false,
+      error: "No enabled Weixin accounts available",
+    };
+  }
+
+  const primary = enabledAccounts[0];
+  return {
+    verified: true,
+    botName: primary.name || primary.accountId,
+  };
+}
+
 const lockAcquired = app.requestSingleInstanceLock();
 
 if (!shouldKeepPrimaryInstance(lockAcquired)) {
@@ -440,6 +527,25 @@ export async function startDesktopMain(): Promise<void> {
     return result;
   };
 
+  const updateBridgeSettings = (mutator: (settings: Record<string, string>) => void) => {
+    const next = { ...bridgeSettingsStore.loadSettings().settings };
+    mutator(next);
+    bridgeSettingsStore.saveSettings(next);
+  };
+
+  const updatePlatformVerificationState = (
+    platform: BridgePlatformKey,
+    verified: boolean,
+  ) => {
+    updateBridgeSettings((settings) => {
+      if (!verified) {
+        clearBridgeVerificationState(settings, platform);
+        return;
+      }
+      markBridgeVerificationState(settings, platform);
+    });
+  };
+
   const persistBridgeSettings = (updates: Record<string, string>) => {
     const current = bridgeSettingsStore.loadSettings().settings;
     const next = { ...current };
@@ -458,6 +564,17 @@ export async function startDesktopMain(): Promise<void> {
       if (key === "telegram_chat_id" || key === "bridge_telegram_chat_id") {
         next.telegram_chat_id = nextValue;
         next.bridge_telegram_chat_id = nextValue;
+      }
+    }
+
+    for (const platform of BRIDGE_PLATFORM_KEYS) {
+      const previousFingerprint = computeBridgeVerificationFingerprint(platform, current);
+      const nextFingerprint = computeBridgeVerificationFingerprint(platform, next);
+      if (
+        normalizeFingerprintValue(previousFingerprint) !==
+        normalizeFingerprintValue(nextFingerprint)
+      ) {
+        clearBridgeVerificationState(next, platform);
       }
     }
 
@@ -548,7 +665,9 @@ export async function startDesktopMain(): Promise<void> {
       if (!botToken || botToken.startsWith("***")) {
         return { verified: false, error: "bot_token is required" };
       }
-      return verifyTelegramBot(botToken, chatId || undefined);
+      const result = await verifyTelegramBot(botToken, chatId || undefined);
+      updatePlatformVerificationState("telegram", result.verified);
+      return result;
     },
   );
   ipcMain.handle(
@@ -570,7 +689,9 @@ export async function startDesktopMain(): Promise<void> {
       if (!botToken || botToken.startsWith("***")) {
         return { verified: false, error: "Bot token is required" };
       }
-      return verifyDiscordBot(botToken);
+      const result = await verifyDiscordBot(botToken);
+      updatePlatformVerificationState("discord", result.verified);
+      return result;
     },
   );
   ipcMain.handle(
@@ -586,7 +707,9 @@ export async function startDesktopMain(): Promise<void> {
       if (!appId || !appSecret || appSecret.startsWith("***")) {
         return { verified: false, error: "App ID and App Secret are required" };
       }
-      return verifyFeishuApp(appId, appSecret, domain);
+      const result = await verifyFeishuApp(appId, appSecret, domain);
+      updatePlatformVerificationState("feishu", result.verified);
+      return result;
     },
   );
   ipcMain.handle(
@@ -598,9 +721,16 @@ export async function startDesktopMain(): Promise<void> {
       if (!appId || !appSecret || appSecret.startsWith("***")) {
         return { verified: false, error: "App ID and App Secret are required" };
       }
-      return verifyQqApp(appId, appSecret);
+      const result = await verifyQqApp(appId, appSecret);
+      updatePlatformVerificationState("qq", result.verified);
+      return result;
     },
   );
+  ipcMain.handle(DESKTOP_BRIDGE_IPC_CHANNELS.verifyWeixin, async () => {
+    const result = verifyWeixinAccounts(weixinBridgeStore.listAccounts());
+    updatePlatformVerificationState("weixin", result.verified);
+    return result;
+  });
   ipcMain.handle(DESKTOP_BRIDGE_IPC_CHANNELS.listWeixinAccounts, () => {
     return weixinBridgeStore.listAccounts().map((account) => ({
       accountId: account.accountId,
@@ -626,6 +756,7 @@ export async function startDesktopMain(): Promise<void> {
     const session = await weixinAuthManager.waitForLogin(sessionId);
     let bridgeRestartError: string | undefined;
     if (session.status === "confirmed") {
+      updatePlatformVerificationState("weixin", true);
       try {
         await restartBridgeIfRunning();
       } catch (error) {
@@ -646,6 +777,10 @@ export async function startDesktopMain(): Promise<void> {
     DESKTOP_BRIDGE_IPC_CHANNELS.setWeixinAccountEnabled,
     async (_event, accountId: string, enabled: boolean) => {
       weixinBridgeStore.setAccountEnabled(accountId, enabled);
+      updatePlatformVerificationState(
+        "weixin",
+        verifyWeixinAccounts(weixinBridgeStore.listAccounts()).verified,
+      );
       try {
         await restartBridgeIfRunning();
         return { ok: true, accountUpdated: true };
@@ -660,6 +795,10 @@ export async function startDesktopMain(): Promise<void> {
   );
   ipcMain.handle(DESKTOP_BRIDGE_IPC_CHANNELS.deleteWeixinAccount, async (_event, accountId: string) => {
     weixinBridgeStore.deleteAccount(accountId);
+    updatePlatformVerificationState(
+      "weixin",
+      verifyWeixinAccounts(weixinBridgeStore.listAccounts()).verified,
+    );
     try {
       await restartBridgeIfRunning();
       return { ok: true, accountDeleted: true };

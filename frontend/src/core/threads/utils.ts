@@ -5,6 +5,9 @@ export {
   pathOfAutomation,
   pathOfAgentThread,
   pathOfNewAgentThread,
+  pathOfProject,
+  pathOfProjects,
+  pathOfProjectThread,
   pathOfNewThread,
   pathOfThread,
 } from "../navigation/desktop-routes";
@@ -35,4 +38,12 @@ export function bridgeInfoOfThread(thread: AgentThread) {
     return null;
   }
   return bridge;
+}
+
+export function projectInfoOfThread(thread: AgentThread) {
+  const project = thread.values?.project;
+  if (project?.source !== "project" || !project.project_id) {
+    return null;
+  }
+  return project;
 }

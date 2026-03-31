@@ -4,6 +4,7 @@ import {
   BookTextIcon,
   BotIcon,
   Clock3Icon,
+  FolderKanbanIcon,
   MessagesSquare,
 } from "lucide-react";
 import Link from "next/link";
@@ -29,6 +30,17 @@ export function WorkspaceNavChatList() {
             <Link className="text-muted-foreground" href="/workspace/chats">
               <MessagesSquare />
               <span>{t.sidebar.chats}</span>
+            </Link>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+        <SidebarMenuItem>
+          <SidebarMenuButton
+            isActive={pathname.startsWith("/workspace/projects")}
+            asChild
+          >
+            <Link className="text-muted-foreground" href="/workspace/projects">
+              <FolderKanbanIcon />
+              <span>{t.sidebar.projects}</span>
             </Link>
           </SidebarMenuButton>
         </SidebarMenuItem>

@@ -12,7 +12,9 @@ from nion.agents.middlewares.memory_middleware import MemoryMiddleware
 from nion.agents.middlewares.recall_capture_middleware import RecallCaptureMiddleware
 from nion.agents.middlewares.subagent_limit_middleware import SubagentLimitMiddleware
 from nion.agents.middlewares.todo_middleware import TodoMiddleware
-from nion.agents.middlewares.tool_error_handling_middleware import build_lead_runtime_middlewares
+from nion.agents.middlewares.tool_error_handling_middleware import (
+    build_lead_runtime_middlewares,
+)
 from nion.agents.middlewares.view_image_middleware import ViewImageMiddleware
 from nion.agents.thread_state import ThreadState
 from nion.config.agents_config import load_agent_config
@@ -63,27 +65,21 @@ def _create_summarization_middleware() -> SummarizationMiddleware | None:
     if not config.enabled:
         return None
 
-    # Prepare trigger parameter
     trigger = None
     if config.trigger is not None:
         if isinstance(config.trigger, list):
-            trigger = [t.to_tuple() for t in config.trigger]
+            trigger = [item.to_tuple() for item in config.trigger]
         else:
             trigger = config.trigger.to_tuple()
 
-    # Prepare keep parameter
     keep = config.keep.to_tuple()
 
-    # Prepare model parameter
     if config.model_name:
         model_name = resolve_model_name_with_fallback(config.model_name)
         model = create_chat_model(name=model_name, thinking_enabled=False)
     else:
-        # Use a lightweight model for summarization to save costs
-        # Falls back to default model if not explicitly specified
         model = create_chat_model(thinking_enabled=False)
 
-    # Prepare kwargs
     kwargs = {
         "model": model,
         "trigger": trigger,
@@ -99,18 +95,10 @@ def _create_summarization_middleware() -> SummarizationMiddleware | None:
 
 
 def _create_todo_list_middleware(is_plan_mode: bool) -> TodoMiddleware | None:
-    """Create and configure the TodoList middleware.
-
-    Args:
-        is_plan_mode: Whether to enable plan mode with TodoList middleware.
-
-    Returns:
-        TodoMiddleware instance if plan mode is enabled, None otherwise.
-    """
+    """Create and configure the TodoList middleware."""
     if not is_plan_mode:
         return None
 
-    # Custom prompts matching Nion's style
     system_prompt = """
 <todo_list_system>
 You have access to the `write_todos` tool to help you manage and track complex multi-step objectives.
@@ -213,80 +201,62 @@ Being proactive with task management demonstrates thoroughness and ensures all r
     return TodoMiddleware(system_prompt=system_prompt, tool_description=tool_description)
 
 
-# ThreadDataMiddleware must be before SandboxMiddleware to ensure thread_id is available
-# UploadsMiddleware should be after ThreadDataMiddleware to access thread_id
-# DanglingToolCallMiddleware patches missing ToolMessages before model sees the history
-# SummarizationMiddleware should be early to reduce context before other processing
-# TodoListMiddleware should be before ClarificationMiddleware to allow todo management
-# Title generation now happens out-of-band after the first exchange is persisted
-# MemoryMiddleware queues conversation for memory update after the main reply
-# RecallCaptureMiddleware archives the latest recallable exchange after each run
-# ContinuityMiddleware injects thread-scoped recall before the next model call
-# ViewImageMiddleware should be before ClarificationMiddleware to inject image details before LLM
-# ToolErrorHandlingMiddleware should be before ClarificationMiddleware to convert tool exceptions to ToolMessages
-# ClarificationMiddleware should be last to intercept clarification requests after model calls
-def _build_middlewares(config: RunnableConfig, model_name: str | None, agent_name: str | None = None):
-    """Build middleware chain based on runtime configuration.
-
-    Args:
-        config: Runtime configuration containing configurable options like is_plan_mode.
-        agent_name: If provided, MemoryMiddleware will use per-agent memory storage.
-
-    Returns:
-        List of middleware instances.
-    """
+def _build_middlewares(
+    config: RunnableConfig,
+    model_name: str | None,
+    agent_name: str | None = None,
+):
     surface = config.get("configurable", {}).get("surface", "workspace")
     middlewares = build_lead_runtime_middlewares(surface=surface, lazy_init=True)
 
-    # Add summarization middleware if enabled
     summarization_middleware = _create_summarization_middleware()
     if summarization_middleware is not None:
         middlewares.append(summarization_middleware)
 
-    # Add TodoList middleware if plan mode is enabled
     is_plan_mode = config.get("configurable", {}).get("is_plan_mode", False)
     todo_list_middleware = _create_todo_list_middleware(is_plan_mode)
     if todo_list_middleware is not None:
         middlewares.append(todo_list_middleware)
 
-    # Add MemoryMiddleware
     middlewares.append(MemoryMiddleware(agent_name=agent_name))
     middlewares.append(RecallCaptureMiddleware(agent_name=agent_name or "lead_agent"))
     middlewares.append(ContinuityMiddleware())
     app_config = get_app_config()
 
-    # Add ViewImageMiddleware only if the current model supports vision.
-    # Use the resolved runtime model_name from make_lead_agent to avoid stale config values.
     registry = get_model_registry_service(app_config_provider=get_app_config)
     resolved_model = None
     try:
-        resolved_model = registry.resolve_model(model_name) if model_name else registry.get_default_model()
+        resolved_model = (
+            registry.resolve_model(model_name) if model_name else registry.get_default_model()
+        )
     except ValueError:
         resolved_model = None
     if resolved_model is not None and resolved_model.runtime_model_config.supports_vision:
         middlewares.append(ViewImageMiddleware())
 
-    # Add DeferredToolFilterMiddleware to hide deferred tool schemas from model binding
     if app_config.tool_search.enabled:
-        from nion.agents.middlewares.deferred_tool_filter_middleware import DeferredToolFilterMiddleware
+        from nion.agents.middlewares.deferred_tool_filter_middleware import (
+            DeferredToolFilterMiddleware,
+        )
+
         middlewares.append(DeferredToolFilterMiddleware())
 
-    # Add SubagentLimitMiddleware to truncate excess parallel task calls
     subagent_enabled = config.get("configurable", {}).get("subagent_enabled", False)
     if subagent_enabled:
-        max_concurrent_subagents = config.get("configurable", {}).get("max_concurrent_subagents", 3)
-        middlewares.append(SubagentLimitMiddleware(max_concurrent=max_concurrent_subagents))
+        max_concurrent_subagents = config.get("configurable", {}).get(
+            "max_concurrent_subagents",
+            3,
+        )
+        middlewares.append(
+            SubagentLimitMiddleware(max_concurrent=max_concurrent_subagents)
+        )
 
-    # LoopDetectionMiddleware — detect and break repetitive tool call loops
     middlewares.append(LoopDetectionMiddleware())
-
-    # ClarificationMiddleware should always be last
     middlewares.append(ClarificationMiddleware())
     return middlewares
 
 
 def make_lead_agent(config: RunnableConfig):
-    # Lazy import to avoid circular dependency
     from nion.tools import get_available_tools
     from nion.tools.builtins import setup_agent
 
@@ -304,15 +274,16 @@ def make_lead_agent(config: RunnableConfig):
     agent_name = cfg.get("agent_name")
 
     agent_config = load_agent_config(agent_name) if not is_bootstrap else None
-    # Custom agent model or fallback to global/default model resolution
-    agent_model_name = agent_config.model if agent_config and agent_config.model else _resolve_model_name()
-
-    # Final model name resolution with request override, then agent config, then global default
+    agent_model_name = (
+        agent_config.model if agent_config and agent_config.model else _resolve_model_name()
+    )
     model_name = requested_model_name or agent_model_name
 
     registry = get_model_registry_service(app_config_provider=get_app_config)
     try:
-        resolved_model = registry.resolve_model(model_name) if model_name else registry.get_default_model()
+        resolved_model = (
+            registry.resolve_model(model_name) if model_name else registry.get_default_model()
+        )
     except ValueError as exc:
         raise ValueError(
             "No chat model could be resolved. Please configure at least one runtime model or provide a valid 'model_name'/'model' in the request."
@@ -320,7 +291,10 @@ def make_lead_agent(config: RunnableConfig):
     model_name = resolved_model.runtime_name
 
     if thinking_enabled and not resolved_model.runtime_model_config.supports_thinking:
-        logger.warning(f"Thinking mode is enabled but model '{model_name}' does not support it; fallback to non-thinking mode.")
+        logger.warning(
+            "Thinking mode is enabled but model '%s' does not support it; fallback to non-thinking mode.",
+            model_name,
+        )
         thinking_enabled = False
 
     logger.info(
@@ -334,7 +308,6 @@ def make_lead_agent(config: RunnableConfig):
         max_concurrent_subagents,
     )
 
-    # Inject run metadata for LangSmith trace tagging
     if "metadata" not in config:
         config["metadata"] = {}
 
@@ -350,7 +323,6 @@ def make_lead_agent(config: RunnableConfig):
     )
 
     if is_bootstrap:
-        # Special bootstrap agent with minimal prompt for initial custom agent creation flow
         return create_agent(
             model=create_chat_model(name=model_name, thinking_enabled=thinking_enabled),
             tools=get_available_tools(
@@ -370,9 +342,12 @@ def make_lead_agent(config: RunnableConfig):
             state_schema=ThreadState,
         )
 
-    # Default lead agent (unchanged behavior)
     return create_agent(
-        model=create_chat_model(name=model_name, thinking_enabled=thinking_enabled, reasoning_effort=reasoning_effort),
+        model=create_chat_model(
+            name=model_name,
+            thinking_enabled=thinking_enabled,
+            reasoning_effort=reasoning_effort,
+        ),
         tools=get_available_tools(
             model_name=model_name,
             groups=agent_config.tool_groups if agent_config else None,

@@ -1,5 +1,6 @@
 import {
   CompassIcon,
+  FolderKanbanIcon,
   GraduationCapIcon,
   ImageIcon,
   MicroscopeIcon,
@@ -22,6 +23,8 @@ export const enUS: Translations = {
     home: "Home",
     settings: "Settings",
     delete: "Delete",
+    select: "Select",
+    selectAll: "Select all",
     rename: "Rename",
     share: "Share",
     openInNewWindow: "Open in new window",
@@ -156,6 +159,12 @@ export const enUS: Translations = {
         type: "separator",
       },
       {
+        suggestion: "Project",
+        prompt: "Create a new long-running project for [goal]",
+        icon: FolderKanbanIcon,
+        action: "create-project",
+      },
+      {
         suggestion: "Skill",
         prompt:
           "We're going to build a new skill step by step with `skill-creator`. To start, what do you want this skill to do?",
@@ -172,6 +181,7 @@ export const enUS: Translations = {
     demoChats: "Demo chats",
     pendingReply: "Pending reply",
     agents: "Agents",
+    projects: "Projects",
     automation: "Automation",
     cliTools: "CLI Tools",
     notebook: "Notebook",
@@ -266,6 +276,7 @@ export const enUS: Translations = {
   // Chats
   chats: {
     searchChats: "Search chats",
+    selectedCount: "{count} selected",
   },
 
   bridge: {
@@ -1261,6 +1272,52 @@ export const enUS: Translations = {
     },
     modelPage: {
       loadConfigFailed: "Failed to load config",
+      createFailed: "Failed to create provider",
+      addProvider: "Add provider",
+      providerListTitle: "Added providers",
+      providerListDescription:
+        "Saved provider instances stay pinned here so you can jump straight back into connection or model management.",
+      emptyProvidersTitle: "No providers added yet",
+      emptyProvidersDescription:
+        "Start from the marketplace, add one provider, then finish model setup on the right.",
+      categories: {
+        domestic: "Domestic",
+        aggregator: "Aggregator",
+        global: "Global",
+        local: "Local",
+      },
+      marketplaceTitle: "Provider marketplace",
+      marketplaceDescription:
+        "Pick a built-in provider template or start a custom endpoint. Built-ins hide the technical clutter and only ask for the fields users actually need.",
+      emptyMarketplaceTitle: "No templates available",
+      emptyMarketplaceDescription:
+        "This category does not expose any provider templates in the current runtime yet.",
+      addProviderCta: "Open provider",
+      alreadyAdded: "Already added",
+      globalNoticeLabel: "Network reminder",
+      providerDetail: {
+        backToMarketplace: "Back to marketplace",
+        providerSummary:
+          "Configure credentials first, then connect the provider and add runnable models below.",
+        credentialsTitle: "Credentials",
+        credentialsDescription:
+          "Built-in providers inherit their stable metadata from the template. Custom providers will expose the full connection form here in the next step.",
+        modelsTitle: "Models under this provider",
+        modelsDescription:
+          "Once a provider is connected, this list becomes the working runtime catalog for that provider instance.",
+        emptyModelsTitle: "No models added yet",
+        emptyModelsDescription:
+          "Test the provider, discover remote models, or enter a model ID manually to populate this list.",
+        customCreateTitle: "Create a custom provider",
+        customCreateDescription:
+          "Custom providers are for OpenAI-compatible or Anthropic-compatible endpoints that are not part of the built-in marketplace.",
+        customCreateAction: "Create custom provider",
+      },
+      statusLabels: {
+        untested: "Untested",
+        success: "Healthy",
+        failed: "Needs attention",
+      },
     },
     toolPage: {
       loadConfigFailed: "Failed to load tool config",

@@ -255,6 +255,8 @@ export interface Translations {
     home: string;
     settings: string;
     delete: string;
+    select: string;
+    selectAll: string;
     rename: string;
     share: string;
     openInNewWindow: string;
@@ -346,6 +348,7 @@ export interface Translations {
           suggestion: string;
           prompt: string;
           icon: LucideIcon;
+          action?: "create-project";
         }
       | {
           type: "separator";
@@ -361,6 +364,7 @@ export interface Translations {
     demoChats: string;
     pendingReply: string;
     agents: string;
+    projects: string;
     automation: string;
     cliTools: string;
     notebook: string;
@@ -441,6 +445,7 @@ export interface Translations {
   // Chats
   chats: {
     searchChats: string;
+    selectedCount: string;
   };
 
   bridge: BridgeTranslations;
@@ -976,6 +981,43 @@ export interface Translations {
     };
     modelPage: {
       loadConfigFailed: string;
+      createFailed: string;
+      addProvider: string;
+      providerListTitle: string;
+      providerListDescription: string;
+      emptyProvidersTitle: string;
+      emptyProvidersDescription: string;
+      categories: {
+        domestic: string;
+        aggregator: string;
+        global: string;
+        local: string;
+      };
+      marketplaceTitle: string;
+      marketplaceDescription: string;
+      emptyMarketplaceTitle: string;
+      emptyMarketplaceDescription: string;
+      addProviderCta: string;
+      alreadyAdded: string;
+      globalNoticeLabel: string;
+      providerDetail: {
+        backToMarketplace: string;
+        providerSummary: string;
+        credentialsTitle: string;
+        credentialsDescription: string;
+        modelsTitle: string;
+        modelsDescription: string;
+        emptyModelsTitle: string;
+        emptyModelsDescription: string;
+        customCreateTitle: string;
+        customCreateDescription: string;
+        customCreateAction: string;
+      };
+      statusLabels: {
+        untested: string;
+        success: string;
+        failed: string;
+      };
     };
     toolPage: {
       loadConfigFailed: string;

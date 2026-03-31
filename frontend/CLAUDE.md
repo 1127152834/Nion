@@ -15,13 +15,16 @@ When frontend behavior changes across chat, CLI tools, settings, notebook, agent
 
 | Command | Purpose |
 |---------|---------|
-| `pnpm dev` | Dev server with Turbopack (http://localhost:3000) |
+| `pnpm dev` | Webpack-backed dev server (http://localhost:3000) |
+| `pnpm dev:turbo` | Explicit Turbopack dev server |
 | `pnpm build` | Production build |
 | `pnpm check` | Lint + type check (run before committing) |
 | `pnpm lint` | ESLint only |
 | `pnpm lint:fix` | ESLint with auto-fix |
 | `pnpm typecheck` | TypeScript type check (`tsc --noEmit`) |
 | `pnpm start` | Start production server |
+
+Default frontend development should stay on `pnpm dev`, which currently runs `next dev --webpack`. This avoids the known Turbopack panic when the repository lives under a non-ASCII path. Use `pnpm dev:turbo` only when working from an ASCII-safe path or when debugging a Turbopack-specific issue.
 
 No test framework is configured.
 

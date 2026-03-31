@@ -1656,6 +1656,24 @@ class TestScenarioEdgeCases:
         assert events[0].type == "values"
         assert events[-1].type == "end"
 
+    def test_stream_survives_cross_context_iteration(self, client):
+        """stream() should not fail when the underlying graph yields across contexts."""
+
+        def stream_generator(*args, **kwargs):
+            yield ("values", {"messages": [HumanMessage(content="hi", id="human-1")]})
+
+        agent = MagicMock()
+        agent.stream = MagicMock(side_effect=stream_generator)
+
+        with (
+            patch.object(client, "_ensure_agent"),
+            patch.object(client, "_agent", agent),
+        ):
+            events = list(client.stream("hi", thread_id="t-cross-context"))
+
+        assert events[0].type == "values"
+        assert events[-1].type == "end"
+
     def test_chat_on_empty_response(self, client):
         """chat() returns empty string for no-message response."""
         agent = _make_agent_mock([{"messages": []}])

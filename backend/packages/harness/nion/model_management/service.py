@@ -217,6 +217,8 @@ class ModelRegistryService:
             payload["api_base"] = api_base
         if model.max_output_tokens is not None and "max_tokens" not in payload:
             payload["max_tokens"] = model.max_output_tokens
+        if model.context_window is not None and "context_window" not in payload:
+            payload["context_window"] = model.context_window
 
         return ResolvedRuntimeModel(
             runtime_name=runtime_name,
@@ -237,6 +239,7 @@ class ModelRegistryService:
             provider_id = f"legacy-provider::{model_config.name}"
             provider = ProviderInstance(
                 id=provider_id,
+                provider_template_id=None,
                 kind="builtin",
                 display_name=model_config.display_name or model_config.name,
                 protocol_override=self._protocol_from_use(model_config.use),
