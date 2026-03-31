@@ -444,15 +444,14 @@ class NionClient:
         human_payload = human_message_payload or {}
         human_content = human_payload.get("content", message)
         human_additional_kwargs = human_payload.get("additional_kwargs")
+        human_message_kwargs: dict[str, Any] = {
+            "content": human_content,
+        }
+        if isinstance(human_additional_kwargs, dict):
+            human_message_kwargs["additional_kwargs"] = human_additional_kwargs
+
         state: dict[str, Any] = {
-            "messages": [
-                HumanMessage(
-                    content=human_content,
-                    additional_kwargs=human_additional_kwargs
-                    if isinstance(human_additional_kwargs, dict)
-                    else None,
-                )
-            ]
+            "messages": [HumanMessage(**human_message_kwargs)]
         }
         context = {"thread_id": thread_id}
         if self._agent_name:
