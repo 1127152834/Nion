@@ -37,6 +37,8 @@ def _task_details(
     poll_count: int = 0,
     ai_message_count: int = 0,
     error: str | None = None,
+    latest_tool_summary: str | None = None,
+    latest_tool_activity: str | None = None,
 ) -> dict[str, str | int | None]:
     return {
         "task_id": task_id,
@@ -48,6 +50,8 @@ def _task_details(
         "poll_count": poll_count,
         "ai_message_count": ai_message_count,
         "error": error,
+        "latest_tool_summary": latest_tool_summary,
+        "latest_tool_activity": latest_tool_activity,
     }
 
 
@@ -66,6 +70,8 @@ def _record_task_state(
     poll_count: int = 0,
     ai_message_count: int = 0,
     error: str | None = None,
+    latest_tool_summary: str | None = None,
+    latest_tool_activity: str | None = None,
 ) -> None:
     details = _task_details(
         task_id=task_id,
@@ -77,6 +83,8 @@ def _record_task_state(
         poll_count=poll_count,
         ai_message_count=ai_message_count,
         error=error,
+        latest_tool_summary=latest_tool_summary,
+        latest_tool_activity=latest_tool_activity,
     )
     store = _telemetry_store()
     store.record_event(
@@ -122,6 +130,8 @@ def _record_task_requested(
         subagent_type=subagent_type,
         trace_id=trace_id,
         status="requested",
+        latest_tool_summary="Delegated and tracked subtasks",
+        latest_tool_activity="Running subtask",
     )
 
 
@@ -144,6 +154,8 @@ def _record_task_started(
         subagent_type=subagent_type,
         trace_id=trace_id,
         status="started",
+        latest_tool_summary="Delegated and tracked subtasks",
+        latest_tool_activity="Running subtask",
     )
 
 
@@ -170,6 +182,8 @@ def _record_task_running(
         status="running",
         poll_count=poll_count,
         ai_message_count=ai_message_count,
+        latest_tool_summary="Delegated and tracked subtasks",
+        latest_tool_activity="Running subtask",
     )
 
 
@@ -196,6 +210,8 @@ def _record_task_completed(
         status="completed",
         poll_count=poll_count,
         ai_message_count=ai_message_count,
+        latest_tool_summary="Delegated and tracked subtasks",
+        latest_tool_activity="Completed subtask",
     )
 
 
@@ -224,6 +240,8 @@ def _record_task_failure(
         poll_count=poll_count,
         ai_message_count=ai_message_count,
         error=error,
+        latest_tool_summary="Delegated and tracked subtasks",
+        latest_tool_activity="Subtask failed",
     )
 
 
@@ -252,6 +270,8 @@ def _record_task_timed_out(
         poll_count=poll_count,
         ai_message_count=ai_message_count,
         error=error,
+        latest_tool_summary="Delegated and tracked subtasks",
+        latest_tool_activity="Subtask timed out",
     )
 
 

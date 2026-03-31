@@ -28,3 +28,13 @@ def test_tool_activity_summary_message_projection_shape():
 
     assert message["type"] == "tool_activity_summary"
     assert message["additional_kwargs"]["result_class"] == "read"
+
+
+def test_task_diagnostics_projection_shape():
+    details = {
+        "latest_tool_summary": "Delegated and tracked subtasks",
+        "latest_tool_activity": "Running subtask",
+    }
+
+    assert details["latest_tool_summary"] == "Delegated and tracked subtasks"
+    assert details["latest_tool_activity"] == "Running subtask"
