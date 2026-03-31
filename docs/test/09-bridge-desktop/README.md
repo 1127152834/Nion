@@ -200,6 +200,7 @@
 ## 7. 数据一致性与状态流转测试
 - preload 暴露的 backendBaseUrl 与前端实际请求 base URL 一致。
 - desktop thread client / bridge thread client 与共享 threads API 结果一致。
+- 桌面聊天流与普通 fetch 一致性：桌面 renderer 中 suggestions、threads stream、permissions resolve 必须统一优先使用 preload/runtime 注入的 backend base URL，而不是编译时遗留的 `NEXT_PUBLIC_BACKEND_BASE_URL`。
 - daemon runtime-info 在 config 更新后同步变化。
 - diagnostics/channels/incidents 与 telemetry snapshot / channel service 状态一致。
 - bridge permission resolve 与 thread permission store 状态一致。
@@ -231,4 +232,3 @@
 - 最容易漏测的点：非桌面降级、HashRouter 路径、bridge 使用专用 permissions 路由、bridge thread client 的 upload/resolve 行为。
 - 最容易出现线上事故的链路：desktop shell 可打开但 `/api/*` 路由不全、terminal IPC 失效、bridge manager 与 threads route 脱节、diagnostics 状态失真。
 - 上线前必须回归的部分：desktop health/runtime-info、bridge fallback、terminal 差异、daemon diagnostics、bridge permissions resolve。
-

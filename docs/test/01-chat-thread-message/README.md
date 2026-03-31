@@ -264,6 +264,7 @@
 - 前后端数据一致性：SSE `values` 最终应与后续 `getState` 返回一致。
 - 缓存、重拉、乐观更新、回滚：`mergeMessages` 不应重复消息；refresh 后 query 与本地 state 对齐。
 - web 与 desktop-client 状态差异：terminal 仅桌面可用；desktop backend base url 注入不应影响 Web 路由。
+- 桌面开发态后续问题一致性：`POST /api/threads/{id}/suggestions` 与点击 suggestion 后触发的 `/api/threads/{id}/stream` 必须命中同一 desktop runtime base URL，不能出现 suggestions 成功而 stream 因走到旧 gateway/env 地址报 `Failed to fetch`。
 
 ## 8. 异常与边界测试
 - 缺参：空 messages、空 threadId、无文件上传。
@@ -297,4 +298,3 @@
 - 最容易漏测的点：follow-up suggestions 只在 streaming 结束后触发，且基于 lastAiId 去重；artifact panel 与 working-directory panel 共用容器，容易互相影响。
 - 最容易出现线上事故的链路：SSE 流中断、messages 合并重复、刷新后状态丢失、错误 copy 错误映射。
 - 上线前必须回归的部分：新建/继续线程、错误告警、刷新恢复、suggestions、artifact/working-directory 面板。
-
