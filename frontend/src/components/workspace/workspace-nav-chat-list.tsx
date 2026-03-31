@@ -4,7 +4,9 @@ import {
   BookTextIcon,
   BotIcon,
   Clock3Icon,
+  DatabaseIcon,
   FolderKanbanIcon,
+  HeartPulseIcon,
   MessagesSquare,
 } from "lucide-react";
 import Link from "next/link";
@@ -18,6 +20,11 @@ import {
 } from "@/components/ui/sidebar";
 import { isAutomationPath } from "@/core/automation/routing";
 import { useI18n } from "@/core/i18n/hooks";
+import {
+  pathOfMemory,
+  pathOfNotebook,
+  pathOfSelfMaintenance,
+} from "@/core/navigation/desktop-routes";
 
 export function WorkspaceNavChatList() {
   const { t } = useI18n();
@@ -68,9 +75,34 @@ export function WorkspaceNavChatList() {
             isActive={pathname.startsWith("/workspace/notebook")}
             asChild
           >
-            <Link className="text-muted-foreground" href="/workspace/notebook">
+            <Link className="text-muted-foreground" href={pathOfNotebook()}>
               <BookTextIcon />
               <span>{t.sidebar.notebook}</span>
+            </Link>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+        <SidebarMenuItem>
+          <SidebarMenuButton
+            isActive={pathname.startsWith("/workspace/memory")}
+            asChild
+          >
+            <Link className="text-muted-foreground" href={pathOfMemory()}>
+              <DatabaseIcon />
+              <span>Memory</span>
+            </Link>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+        <SidebarMenuItem>
+          <SidebarMenuButton
+            isActive={pathname.startsWith("/workspace/self-maintenance")}
+            asChild
+          >
+            <Link
+              className="text-muted-foreground"
+              href={pathOfSelfMaintenance()}
+            >
+              <HeartPulseIcon />
+              <span>Self-Maintenance</span>
             </Link>
           </SidebarMenuButton>
         </SidebarMenuItem>
