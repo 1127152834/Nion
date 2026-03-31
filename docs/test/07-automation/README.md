@@ -1,30 +1,24 @@
-# 测试文档 07 - Automation / Hooks 首版模块
+# 测试文档 07 - Automation 模块
 
-- 文档用途：指导其他 agent 对 hooks 首版自动化执行接口测试、UI 测试、agent-browser E2E 和回归验证。
-- 适合交给哪类 agent 执行：后端 automation service/router 测试 agent、前端 event-task / event-center 测试 agent、E2E/QA agent。
+- 文档用途：指导其他 agent 对 reminder / scheduled task 自动化执行接口测试、UI 测试、agent-browser E2E 和回归验证。
+- 适合交给哪类 agent 执行：后端 automation service/router 测试 agent、前端 reminder/task 测试 agent、E2E/QA agent。
 - 推荐优先级：P0。
 - 推荐测试方式：接口 + UI + agent-browser E2E。
-- 是否建议先做 contract / integration 再做 E2E：是，先覆盖 `jobs/runs/status/events` 与 event-task create/update/package，再做页面交互链路。
+- 是否建议先做 contract / integration 再做 E2E：是，先覆盖 `jobs/runs/status` 与 create/update/delete，再做页面交互链路。
 
 ## 1. 模块说明
-- 模块目标：为用户提供 hooks 首版自动化能力，只保留 reminder、scheduled task、event task、event center、run history。
+- 模块目标：为用户提供 reminder 和 scheduled task 两类自动化能力，以及概览与执行记录。
 - 核心业务职责：
-  - 统一展示 scheduler status、jobs、runs、recent events。
-  - 构建 reminder / scheduled task / event task 请求体。
-  - 让用户从事件中心查看事件、replay 事件、从事件创建 event task。
-  - 让 event task 支持 package directory、脚本文件上传、更新、删除和 recent runs 查看。
-- 不再属于本模块的能力：
-  - workflow
-  - template library
-  - governance / approvals / audit
-  - open platform / webhook / plugin actions
+  - 统一展示 scheduler status、jobs、runs 和 overview。
+  - 构建 reminder / scheduled task 请求体。
+  - 提供 pause / resume / run / delete 操作闭环。
 - 关键代码位置：
-  - 前端页面：`frontend/src/app/workspace/automation/page.tsx`、`frontend/src/app/workspace/automation/events/[event_id]/page.tsx`、`frontend/src/app/workspace/automation/[job_id]/page.tsx`
-  - 前端组件：`frontend/src/components/workspace/automation/automation-page.tsx`、`automation-overview-cards.tsx`、`automation-job-section.tsx`、`automation-history-section.tsx`、`automation-event-center-section.tsx`、`automation-event-detail-page.tsx`、`event-task-form.tsx`、`event-task-detail-page.tsx`
-  - 前端 core：`frontend/src/core/automation/api.ts`、`hooks.ts`、`types.ts`、`event-task-builder.ts`、`event-presentation.ts`、`presentation.ts`
+  - 前端页面：`frontend/src/app/workspace/automation/page.tsx`
+  - 前端组件：`frontend/src/components/workspace/automation/automation-page.tsx`、`automation-overview-cards.tsx`、`automation-job-section.tsx`、`automation-history-section.tsx`、`automation-creator.tsx`
+  - 前端 core：`frontend/src/core/automation/api.ts`、`hooks.ts`、`types.ts`、`draft-builder.ts`、`presentation.ts`
   - 后端 router：`backend/app/gateway/routers/automation.py`
   - 后端 service / model / repository：`backend/packages/harness/nion/automation/service.py`、`repository.py`、`scheduler.py`、`executor.py`、`models.py`
-  - hooks 首版测试：`backend/tests/test_automation_router.py`、`backend/tests/test_automation_repository.py`、`backend/tests/test_automation_events_router.py`、`backend/tests/test_automation_tool.py`、`backend/tests/test_event_task_dispatch.py`、`backend/tests/test_event_task_builtin_actions.py`、`backend/tests/test_event_task_script_actions.py`、`backend/tests/test_hook_packages.py`
+  - 当前首版测试：`backend/tests/test_automation_router.py`、`backend/tests/test_automation_repository.py`、`backend/tests/test_automation_scheduler.py`、`backend/tests/test_automation_executor.py`
 
 ## 2. 模块边界与测试范围
 - 本模块覆盖的功能：

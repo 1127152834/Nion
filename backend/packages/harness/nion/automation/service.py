@@ -5,7 +5,6 @@ from typing import Any
 from uuid import uuid4
 
 from nion.automation.delivery import AutomationDeliveryService
-from nion.automation.event_dispatch import dispatch_automation_event
 from nion.automation.executor import (
     AutomationExecutor,
     EmbeddedAutomationRunner,
@@ -14,13 +13,6 @@ from nion.automation.executor import (
 from nion.automation.models import (
     AutomationJob,
     AutomationRun,
-)
-from nion.automation.packages import (
-    create_hook_package,
-    delete_hook_package,
-    delete_hook_package_files,
-    ensure_hook_package_dir,
-    write_hook_package_files,
 )
 from nion.automation.policies import build_automation_session_policy
 from nion.automation.repository import AutomationRepository
@@ -31,9 +23,6 @@ from nion.config.app_config import get_app_config
 from nion.config.automation_config import get_automation_config
 from nion.config.paths import Paths, get_paths, resolve_path
 from nion.threads.repository import ThreadRepository
-
-SUPPORTED_TEMPLATE_MANIFEST_VERSION = "1"
-SUPPORTED_TEMPLATE_JOB_KINDS = {"event_task"}
 
 
 class AutomationService:
@@ -60,27 +49,12 @@ class AutomationService:
         enabled = bool(payload.get("enabled", True))
         schedule_timezone = str(payload.get("schedule_timezone") or "UTC")
         job_kind = str(payload.get("job_kind") or "scheduled_task")
-        trigger_kind = str(payload.get("trigger_kind") or ("event" if job_kind == "event_task" else "schedule"))
-        schedule_preset = str(
-            payload.get("schedule_preset") or ("event" if job_kind == "event_task" else infer_schedule_preset(payload.get("schedule_kind")))
-        )
+        trigger_kind = "schedule"
+        schedule_preset = str(payload.get("schedule_preset") or infer_schedule_preset(payload.get("schedule_kind")))
         schedule_metadata = self._coerce_schedule_metadata(payload.get("schedule_metadata"))
         schedule_kind = payload.get("schedule_kind")
         schedule_value = payload.get("schedule_value")
-        trigger_spec = self._coerce_mapping(payload.get("trigger_spec"))
-        action_kind = str(payload.get("action_kind") or "agent_prompt")
-        action_spec = self._coerce_mapping(payload.get("action_spec"))
-        package_dir = payload.get("package_dir")
-        package_manifest = self._coerce_mapping(payload.get("package_manifest"))
-        package_files = self._coerce_package_files(payload.get("package_files"))
-
-        if job_kind == "event_task":
-            schedule_kind = schedule_kind or "event"
-            schedule_value = str(schedule_value or trigger_spec.get("event_name") or "")
-            schedule_timezone = schedule_timezone or "UTC"
-            if not schedule_metadata:
-                schedule_metadata = {"event_name": trigger_spec.get("event_name")}
-        elif schedule_kind is None or schedule_value is None:
+        if schedule_kind is None or schedule_value is None:
             schedule_fields = build_schedule_fields(
                 preset=schedule_preset,
                 timezone=schedule_timezone,
@@ -106,9 +80,6 @@ class AutomationService:
             schedule_value=str(schedule_value),
             schedule_preset=schedule_preset,
             trigger_kind=trigger_kind,
-            trigger_spec=trigger_spec,
-            action_kind=action_kind,
-            action_spec=action_spec,
             schedule_timezone=schedule_timezone,
             schedule_metadata=schedule_metadata,
             enabled=enabled,
@@ -118,21 +89,10 @@ class AutomationService:
             skills=list(payload.get("skills") or []),
             session_policy=build_automation_session_policy(payload.get("session_policy")),
             toolset_profile=str(payload.get("toolset_profile") or get_automation_config().default_toolset_profile),
-            package_dir=str(package_dir) if package_dir else None,
-            package_manifest=package_manifest,
             next_run_at=payload.get("next_run_at"),
             created_at=format_automation_datetime(now),
             updated_at=format_automation_datetime(now),
         )
-
-        if package_files:
-            package = create_hook_package(
-                hook_id=draft.id,
-                package_files=package_files,
-                paths=self._paths,
-            )
-            draft.package_dir = package["package_dir"]
-            draft.package_manifest = package["package_manifest"]
 
         if draft.next_run_at is None and enabled and draft.trigger_kind == "schedule":
             draft.next_run_at = compute_next_run_at(draft, now=now)
@@ -155,7 +115,6 @@ class AutomationService:
             "schedule_kind",
             "schedule_value",
             "schedule_preset",
-            "trigger_kind",
             "schedule_timezone",
             "enabled",
             "delivery_mode",
@@ -165,47 +124,13 @@ class AutomationService:
         ]:
             if field in payload and payload[field] is not None:
                 setattr(job, field, payload[field])
-
-        if "trigger_spec" in payload:
-            job.trigger_spec = self._coerce_mapping(payload.get("trigger_spec"))
-        if "action_kind" in payload and payload.get("action_kind") is not None:
-            job.action_kind = str(payload["action_kind"])
-        if "action_spec" in payload:
-            job.action_spec = self._coerce_mapping(payload.get("action_spec"))
         if "schedule_metadata" in payload:
             job.schedule_metadata = self._coerce_schedule_metadata(payload.get("schedule_metadata"))
         if "session_policy" in payload:
             job.session_policy = build_automation_session_policy(payload.get("session_policy"))
 
-        package_files = self._coerce_package_files(payload.get("package_files"))
-        delete_package_files = [
-            str(item)
-            for item in payload.get("delete_package_files", [])
-            if isinstance(item, str)
-        ]
-        if package_files or delete_package_files:
-            package_dir = ensure_hook_package_dir(job.id, paths=self._paths)
-            if package_files:
-                job.package_manifest = write_hook_package_files(
-                    package_dir=package_dir,
-                    package_files=package_files,
-                )
-            if delete_package_files:
-                job.package_manifest = delete_hook_package_files(
-                    package_dir=package_dir,
-                    relative_paths=delete_package_files,
-                )
-            job.package_dir = str(package_dir)
-            if not job.package_manifest.get("files"):
-                delete_hook_package(package_dir, paths=self._paths)
-                job.package_dir = None
-                job.package_manifest = {"files": []}
-
         job.updated_at = format_automation_datetime(self._clock())
-        if job.trigger_kind == "schedule":
-            job.next_run_at = compute_next_run_at(job, now=self._clock()) if job.enabled else None
-        else:
-            job.next_run_at = None
+        job.next_run_at = compute_next_run_at(job, now=self._clock()) if job.enabled else None
 
         return self._repository.save_job(job)
 
@@ -238,68 +163,11 @@ class AutomationService:
         if run.finished_at:
             finished_at = datetime.fromisoformat(run.finished_at.replace("Z", "+00:00")).astimezone(UTC)
             self._scheduler.mark_run_finished(job.id, run, finished_at=finished_at)
-        if run.status == "failed":
-            dispatch_automation_event(
-                "automation.run.failed",
-                {
-                    "job_id": job.id,
-                    "run_id": run.id,
-                    "surface": "automation",
-                    "reason": run.result_summary,
-                },
-            )
         return run
 
-    def handle_event(self, event_name: str, payload: Mapping[str, Any] | None = None) -> list[AutomationRun]:
-        if self._executor is None:
-            return []
-
-        event_payload = dict(payload or {})
-        matching_jobs = [
-            job
-            for job in self._repository.list_jobs()
-            if job.enabled
-            and job.job_kind == "event_task"
-            and job.trigger_kind == "event"
-            and job.trigger_spec.get("event_name") == event_name
-        ]
-
-        runs: list[AutomationRun] = []
-        for job in matching_jobs:
-            run_id = f"run-{uuid4().hex[:8]}"
-            try:
-                run = self._executor.execute_job(
-                    job,
-                    run_id=run_id,
-                    trigger_event_name=event_name,
-                    trigger_event_payload=event_payload,
-                )
-            except Exception as exc:
-                finished_at = self._clock()
-                run = AutomationRun(
-                    id=run_id,
-                    job_id=job.id,
-                    started_at=format_automation_datetime(finished_at),
-                    finished_at=format_automation_datetime(finished_at),
-                    status="failed",
-                    trigger_event_name=event_name,
-                    result_summary=str(exc),
-                )
-
-            self._repository.save_run(run)
-            runs.append(run)
-            if run.finished_at:
-                finished_at = datetime.fromisoformat(run.finished_at.replace("Z", "+00:00")).astimezone(UTC)
-                self._scheduler.mark_run_finished(job.id, run, finished_at=finished_at)
-
-        return runs
-
     def delete_job(self, job_id: str) -> bool:
-        job = self._repository.get_job(job_id)
         self._repository.release_job_claim(job_id)
         deleted = self._repository.delete_job(job_id)
-        if deleted and job is not None and job.package_dir:
-            delete_hook_package(job.package_dir, paths=self._paths)
         return deleted
 
     def list_runs(self) -> list[AutomationRun]:
@@ -332,22 +200,6 @@ class AutomationService:
         if isinstance(raw_metadata, Mapping):
             return dict(raw_metadata)
         return {}
-
-    @staticmethod
-    def _coerce_mapping(raw_mapping: Any) -> dict[str, Any]:
-        if isinstance(raw_mapping, Mapping):
-            return dict(raw_mapping)
-        return {}
-
-    @staticmethod
-    def _coerce_package_files(raw_package_files: Any) -> list[dict[str, Any]]:
-        if not isinstance(raw_package_files, list):
-            return []
-        files: list[dict[str, Any]] = []
-        for item in raw_package_files:
-            if isinstance(item, Mapping):
-                files.append(dict(item))
-        return files
 
 class LocalThreadStateClient:
     def __init__(self, repository: ThreadRepository | None = None):

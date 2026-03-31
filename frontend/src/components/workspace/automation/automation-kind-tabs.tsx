@@ -12,8 +12,6 @@ export function AutomationKindTabs() {
       <TabsTrigger value="overview">{copy.overview}</TabsTrigger>
       <TabsTrigger value="reminders">{copy.reminders}</TabsTrigger>
       <TabsTrigger value="tasks">{copy.tasks}</TabsTrigger>
-      <TabsTrigger value="events">{copy.events}</TabsTrigger>
-      <TabsTrigger value="eventCenter">{copy.eventCenter}</TabsTrigger>
       <TabsTrigger value="history">{copy.history}</TabsTrigger>
     </TabsList>
   );

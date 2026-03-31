@@ -88,36 +88,3 @@ def test_delete_job_removes_job_record(tmp_path):
 
     assert deleted is True
     assert repo.get_job("job-1") is None
-
-
-def test_event_task_job_round_trip(tmp_path):
-    repo = AutomationRepository(tmp_path / "automation.db")
-    job = AutomationJob(
-        id="hook-1",
-        name="Reply finished alert",
-        prompt="Notify me when the reply finishes",
-        job_kind="event_task",
-        schedule_kind="once",
-        schedule_value="",
-        trigger_kind="event",
-        trigger_spec={"event_name": "agent.run.completed"},
-        action_kind="agent_prompt",
-        action_spec={"channel": "desktop_notification"},
-        package_dir="/tmp/hooks/hook-1",
-        package_manifest={"files": ["play_sound.py", "ding.mp3"]},
-        delivery_mode="local",
-        delivery_targets=[],
-        created_at="2026-03-24T00:00:00Z",
-        updated_at="2026-03-24T00:00:00Z",
-    )
-
-    repo.save_job(job)
-
-    loaded = repo.get_job("hook-1")
-
-    assert loaded is not None
-    assert loaded.job_kind == "event_task"
-    assert loaded.trigger_kind == "event"
-    assert loaded.trigger_spec["event_name"] == "agent.run.completed"
-    assert loaded.action_kind == "agent_prompt"
-    assert loaded.package_manifest["files"] == ["play_sound.py", "ding.mp3"]

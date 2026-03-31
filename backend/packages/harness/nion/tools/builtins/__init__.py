@@ -1,4 +1,3 @@
-from .automation_tool import automation_tool
 from .clarification_tool import ask_clarification_tool
 from .cli_tools import (
     cli_tools_add_tool,
@@ -41,7 +40,6 @@ from .view_image_tool import view_image_tool
 
 __all__ = [
     "setup_agent",
-    "automation_tool",
     "present_file_tool",
     "ask_clarification_tool",
     "cli_tools_list_tool",

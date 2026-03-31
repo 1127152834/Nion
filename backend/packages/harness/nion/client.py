@@ -37,7 +37,6 @@ from langchain_core.runnables import RunnableConfig
 from nion.agents.lead_agent.agent import _build_middlewares
 from nion.agents.lead_agent.prompt import apply_prompt_template
 from nion.agents.thread_state import ThreadState
-from nion.automation.event_dispatch import dispatch_automation_event
 from nion.config.agents_config import AGENT_NAME_PATTERN
 from nion.config.app_config import get_app_config
 from nion.config.extensions_config import ExtensionsConfig, SkillStateConfig, get_extensions_config, reload_extensions_config
@@ -572,15 +571,6 @@ class NionClient:
 
                         clarification = additional_kwargs.get("clarification")
                         if getattr(msg, "name", None) == "ask_clarification" and isinstance(clarification, dict):
-                            dispatch_automation_event(
-                                "clarification.requested",
-                                {
-                                    "thread_id": thread_id,
-                                    "surface": configurable.get("surface"),
-                                    "agent_name": self._agent_name or "lead_agent",
-                                    **clarification,
-                                },
-                            )
                             yield StreamEvent(
                                 type="custom",
                                 data={
@@ -593,15 +583,6 @@ class NionClient:
 
                         permission_request = additional_kwargs.get("permission_request")
                         if getattr(msg, "name", None) == "permission_request" and isinstance(permission_request, dict):
-                            dispatch_automation_event(
-                                "permission.requested",
-                                {
-                                    "thread_id": thread_id,
-                                    "surface": configurable.get("surface"),
-                                    "agent_name": self._agent_name or "lead_agent",
-                                    **permission_request,
-                                },
-                            )
                             yield StreamEvent(
                                 type="custom",
                                 data={

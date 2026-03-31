@@ -1,7 +1,6 @@
 "use client";
 
 import { PauseIcon, PlayIcon, Trash2Icon, ZapIcon } from "lucide-react";
-import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,7 +13,7 @@ import {
   ItemHeader,
   ItemTitle,
 } from "@/components/ui/item";
-import { formatActionLabel, formatScheduleLabel } from "@/core/automation/presentation";
+import { formatScheduleLabel } from "@/core/automation/presentation";
 import type { AutomationJob } from "@/core/automation/types";
 import { useI18n } from "@/core/i18n/hooks";
 
@@ -120,13 +119,6 @@ export function AutomationJobSection({
                       <Trash2Icon className="size-4" />
                       {copy.remove}
                     </Button>
-                    {job.job_kind === "event_task" ? (
-                      <Button size="sm" variant="ghost" asChild>
-                        <Link href={`/workspace/automation/${job.id}`}>
-                          {workspaceCopy.viewDetails}
-                        </Link>
-                      </Button>
-                    ) : null}
                   </ItemActions>
                 </ItemHeader>
                 <div className="text-muted-foreground grid gap-3 pt-3 text-xs md:grid-cols-3">
@@ -144,14 +136,10 @@ export function AutomationJobSection({
                   </div>
                   <div>
                     <div className="font-medium text-foreground/80">
-                      {job.job_kind === "event_task"
-                        ? workspaceCopy.actionLabel
-                        : workspaceCopy.lastResultLabel}
+                      {workspaceCopy.lastResultLabel}
                     </div>
                     <div>
-                      {job.job_kind === "event_task"
-                        ? formatActionLabel(job)
-                        : job.last_result_summary ?? workspaceCopy.noSummary}
+                      {job.last_result_summary ?? workspaceCopy.noSummary}
                     </div>
                   </div>
                 </div>

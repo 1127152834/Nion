@@ -7,7 +7,6 @@ from langgraph_sdk import get_sync_client
 from nion.automation.delivery import AutomationDeliveryService
 from nion.automation.models import AutomationDeliveryMode, AutomationExecutionOutput, AutomationJob, AutomationRun
 from nion.automation.policies import build_automation_session_policy
-from nion.automation.script_runner import run_packaged_script
 from nion.client import NionClient
 from nion.notebook.service import NotebookService
 
@@ -132,27 +131,12 @@ class AutomationExecutor:
             trigger_event_payload=trigger_event_payload,
         )
 
-        if job.action_kind == "script":
-            execution_output = run_packaged_script(
-                job,
-                trigger_event_name=trigger_event_name,
-                trigger_event_payload=trigger_event_payload,
-            )
-            execution_output.isolated_thread_id = isolated_thread_id
-        elif job.action_kind in {"notify", "play_sound", "notebook_write"}:
-            execution_output = self._run_builtin_action(
-                job,
-                trigger_event_name=trigger_event_name,
-                trigger_event_payload=trigger_event_payload,
-            )
-            execution_output.isolated_thread_id = isolated_thread_id
-        else:
-            execution_output = self._runtime_runner.run(
-                prompt=job.prompt,
-                thread_id=runtime_config["thread_id"],
-                context=runtime_config["context"],
-                config=runtime_config["config"],
-            )
+        execution_output = self._runtime_runner.run(
+            prompt=job.prompt,
+            thread_id=runtime_config["thread_id"],
+            context=runtime_config["context"],
+            config=runtime_config["config"],
+        )
         if execution_output.isolated_thread_id is None:
             execution_output.isolated_thread_id = isolated_thread_id
 
@@ -170,45 +154,6 @@ class AutomationExecutor:
             output_artifacts=list(execution_output.artifacts),
             delivery_results=delivery_results,
         )
-
-    def _run_builtin_action(
-        self,
-        job: AutomationJob,
-        *,
-        trigger_event_name: str | None = None,
-        trigger_event_payload: dict[str, Any] | None = None,
-    ) -> AutomationExecutionOutput:
-        if job.action_kind == "notify":
-            title = str(job.action_spec.get("title") or job.name)
-            body = str(job.action_spec.get("body") or job.prompt or "")
-            summary = f"{title}: {body}".strip(": ")
-            return AutomationExecutionOutput(response_text=summary)
-
-        if job.action_kind == "play_sound":
-            sound_name = str(
-                job.action_spec.get("sound")
-                or job.action_spec.get("filename")
-                or "default-sound"
-            )
-            return AutomationExecutionOutput(response_text=f"Played sound action: {sound_name}")
-
-        if job.action_kind == "notebook_write":
-            directory = str(job.action_spec.get("directory") or "")
-            title = str(job.action_spec.get("title") or job.name)
-            body = str(job.action_spec.get("body") or job.prompt or "")
-            if trigger_event_name:
-                body = f"{body}\n\nTriggered by: {trigger_event_name}".strip()
-            note = self._notebook_service.create_note(
-                directory=directory,
-                title=title,
-                body=body,
-            )
-            return AutomationExecutionOutput(
-                response_text=f"Created notebook note: {note.title}",
-                artifacts=[note.absolute_path],
-            )
-
-        raise ValueError(f"Unsupported built-in action kind: {job.action_kind}")
 def _utcnow() -> str:
     return datetime.now(UTC).replace(microsecond=0).strftime("%Y-%m-%dT%H:%M:%SZ")
 

@@ -2,19 +2,15 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
   createAutomationJob,
-  loadAutomationEvent,
-  loadAutomationEvents,
   loadAutomationJob,
   loadAutomationJobs,
   loadAutomationRuns,
   loadAutomationStatus,
   pauseAutomationJob,
-  replayAutomationEvent,
   removeAutomationJob,
   resumeAutomationJob,
   runAutomationJob,
   updateAutomationJob,
-  uploadAutomationPackageFiles,
 } from "./api";
 import type { AutomationJobCreateInput } from "./types";
 
@@ -35,44 +31,6 @@ export function useAutomationJob(jobId: string) {
     refetchOnWindowFocus: false,
   });
   return { job: data ?? null, isLoading, error };
-}
-
-export function useAutomationEvents(filters?: {
-  category?: string;
-  eventType?: string;
-}) {
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["automation", "events", filters?.category ?? "all", filters?.eventType ?? "all"],
-    queryFn: () => loadAutomationEvents(filters),
-    refetchOnWindowFocus: false,
-  });
-  return { events: data ?? [], isLoading, error };
-}
-
-export function useAutomationEvent(eventId: string) {
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["automation", "events", "detail", eventId],
-    queryFn: () => loadAutomationEvent(eventId),
-    enabled: Boolean(eventId),
-    refetchOnWindowFocus: false,
-  });
-  return { event: data ?? null, isLoading, error };
-}
-
-export function useReplayAutomationEvent() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async ({
-      eventName,
-      payload,
-    }: {
-      eventName: string;
-      payload: Record<string, unknown>;
-    }) => replayAutomationEvent(eventName, payload),
-    onSuccess: () => {
-      void invalidateAutomationQueries(queryClient);
-    },
-  });
 }
 
 export function useAutomationRuns() {
@@ -112,24 +70,8 @@ export function useUpdateAutomationJob() {
       input,
     }: {
       jobId: string;
-      input: Partial<AutomationJobCreateInput> & { delete_package_files?: string[] };
+      input: Partial<AutomationJobCreateInput>;
     }) => updateAutomationJob(jobId, input),
-    onSuccess: () => {
-      void invalidateAutomationQueries(queryClient);
-    },
-  });
-}
-
-export function useUploadAutomationPackageFiles() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async ({
-      jobId,
-      files,
-    }: {
-      jobId: string;
-      files: File[];
-    }) => uploadAutomationPackageFiles(jobId, files),
     onSuccess: () => {
       void invalidateAutomationQueries(queryClient);
     },
@@ -166,8 +108,6 @@ async function invalidateAutomationQueries(queryClient: ReturnType<typeof useQue
   await Promise.all([
     queryClient.invalidateQueries({ queryKey: ["automation", "jobs"] }),
     queryClient.invalidateQueries({ queryKey: ["automation", "jobs"], exact: false }),
-    queryClient.invalidateQueries({ queryKey: ["automation", "events"] }),
-    queryClient.invalidateQueries({ queryKey: ["automation", "events", "detail"], exact: false }),
     queryClient.invalidateQueries({ queryKey: ["automation", "runs"] }),
     queryClient.invalidateQueries({ queryKey: ["automation", "status"] }),
   ]);

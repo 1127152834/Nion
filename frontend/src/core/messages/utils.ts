@@ -22,9 +22,6 @@ interface AssistantPermissionRequestGroup extends GenericMessageGroup<"assistant
 
 interface AssistantSubagentGroup extends GenericMessageGroup<"assistant:subagent"> {}
 
-interface AssistantAutomationDraftGroup
-  extends GenericMessageGroup<"assistant:automation-draft"> {}
-
 type MessageGroup =
   | HumanMessageGroup
   | AssistantProcessingGroup
@@ -32,8 +29,7 @@ type MessageGroup =
   | AssistantPresentFilesGroup
   | AssistantClarificationGroup
   | AssistantPermissionRequestGroup
-  | AssistantSubagentGroup
-  | AssistantAutomationDraftGroup;
+  | AssistantSubagentGroup;
 
 export function groupMessages<T>(
   messages: Message[],
@@ -89,13 +85,6 @@ export function groupMessages<T>(
         groups.push({
           id: message.id,
           type: "assistant:permission-request",
-          messages: [message],
-        });
-      } else if (isAutomationDraftToolMessage(message)) {
-        lastOpenGroup()?.messages.push(message);
-        groups.push({
-          id: message.id,
-          type: "assistant:automation-draft",
           messages: [message],
         });
       } else {
@@ -330,14 +319,6 @@ export function isClarificationToolMessage(message: Message) {
 
 export function isPermissionRequestToolMessage(message: Message) {
   return message.type === "tool" && message.name === "permission_request";
-}
-
-export function isAutomationDraftToolMessage(message: Message) {
-  return (
-    message.type === "tool" &&
-    message.name === "automation" &&
-    message.additional_kwargs?.element === "event_task_draft"
-  );
 }
 
 export function extractPresentFilesFromMessage(message: Message) {

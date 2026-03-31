@@ -1,5 +1,4 @@
 from datetime import UTC, datetime
-from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -257,75 +256,6 @@ def test_create_automation_job_rejects_invalid_schedule_kind():
       )
 
     assert response.status_code == 422
-
-
-def test_create_event_task_job():
-    service = FakeAutomationService()
-    with _client(service) as client:
-        response = client.post(
-            "/api/automation/jobs",
-            json={
-                "name": "Reply finished alert",
-                "prompt": "Tell me when replies finish",
-                "job_kind": "event_task",
-                "trigger_kind": "event",
-                "trigger_spec": {"event_name": "agent.run.completed"},
-                "action_kind": "agent_prompt",
-                "action_spec": {"channel": "desktop_notification"},
-                "delivery_mode": "local",
-                "delivery_targets": [],
-            },
-        )
-
-    assert response.status_code == 201
-    assert response.json()["job"]["job_kind"] == "event_task"
-    assert service.calls[0][1]["trigger_kind"] == "event"
-    assert service.calls[0][1]["trigger_spec"]["event_name"] == "agent.run.completed"
-
-
-def test_update_event_task_job():
-    service = FakeAutomationService()
-
-    def update_job(job_id: str, payload):
-        service.calls.append(("update", job_id, payload))
-        job = service.jobs[job_id]
-        job.name = payload.get("name", job.name)
-        job.trigger_spec = payload.get("trigger_spec", job.trigger_spec)
-        job.action_kind = payload.get("action_kind", job.action_kind)
-        return job
-
-    service.update_job = update_job  # type: ignore[attr-defined]
-
-    with _client(service) as client:
-        response = client.patch(
-            "/api/automation/jobs/job-1",
-            json={
-                "name": "Updated event task",
-                "trigger_spec": {"event_name": "thread.finished"},
-                "action_kind": "notebook_write",
-            },
-        )
-
-    assert response.status_code == 200
-    assert response.json()["job"]["name"] == "Updated event task"
-    assert service.calls[0][0] == "update"
-    assert service.calls[0][2]["trigger_spec"]["event_name"] == "thread.finished"
-
-
-def test_serve_automation_package_file():
-    service = FakeAutomationService()
-    package_dir = Path("/tmp/automation-hook")
-    package_dir.mkdir(parents=True, exist_ok=True)
-    (package_dir / "tone.mp3").write_bytes(b"audio")
-    service.jobs["job-1"].package_dir = str(package_dir)
-
-    with _client(service) as client:
-        response = client.get("/api/automation/jobs/job-1/package/files/tone.mp3")
-
-    assert response.status_code == 200
-    assert response.content == b"audio"
-
-
 def test_removed_workflow_routes_are_not_available():
     service = FakeAutomationService()
     with _client(service) as client:

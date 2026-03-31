@@ -11,7 +11,7 @@ from nion.agents.middlewares.memory_middleware import MemoryMiddleware
 from nion.agents.middlewares.recall_capture_middleware import RecallCaptureMiddleware
 from nion.sandbox.exceptions import SandboxRuntimeError
 from nion.sandbox.tools import ensure_sandbox_initialized
-automation_tool_module = importlib.import_module("nion.tools.builtins.automation_tool")
+
 present_file_tool_module = importlib.import_module("nion.tools.builtins.present_file_tool")
 
 
@@ -62,22 +62,6 @@ def test_loop_detection_uses_default_thread_when_runtime_context_is_none():
 
     assert "default" in middleware._history
 
-
-def test_automation_service_falls_back_without_runtime_context(monkeypatch):
-    sentinel = object()
-    automation_tool_module.set_automation_tool_service(None)
-    monkeypatch.setattr(
-        automation_tool_module,
-        "create_default_automation_service",
-        lambda: sentinel,
-    )
-
-    runtime = SimpleNamespace(context=None)
-
-    try:
-        assert automation_tool_module.get_automation_tool_service(runtime) is sentinel
-    finally:
-        automation_tool_module.set_automation_tool_service(None)
 
 
 def test_present_file_tool_returns_error_when_runtime_context_is_missing(tmp_path):

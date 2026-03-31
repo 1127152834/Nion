@@ -1,7 +1,6 @@
 import { getBackendBaseURL } from "../config/index.js";
 
 import type {
-  AutomationEvent,
   AutomationJob,
   AutomationJobCreateInput,
   AutomationRun,
@@ -59,9 +58,7 @@ export async function createAutomationJob(input: AutomationJobCreateInput) {
 
 export async function updateAutomationJob(
   jobId: string,
-  input: Partial<AutomationJobCreateInput> & {
-    delete_package_files?: string[];
-  },
+  input: Partial<AutomationJobCreateInput>,
 ) {
   const response = await fetch(`${getBackendBaseURL()}/api/automation/jobs/${jobId}`, {
     method: "PATCH",
@@ -72,22 +69,6 @@ export async function updateAutomationJob(
   });
   if (!response.ok) {
     throw new Error(resolveErrorMessage(await response.text(), `Failed to update automation job (${response.status})`));
-  }
-  const json = (await response.json()) as { job: AutomationJob };
-  return json.job;
-}
-
-export async function uploadAutomationPackageFiles(jobId: string, files: File[]) {
-  const formData = new FormData();
-  files.forEach((file) => {
-    formData.append("files", file);
-  });
-  const response = await fetch(`${getBackendBaseURL()}/api/automation/jobs/${jobId}/package/files`, {
-    method: "POST",
-    body: formData,
-  });
-  if (!response.ok) {
-    throw new Error(resolveErrorMessage(await response.text(), `Failed to upload package files (${response.status})`));
   }
   const json = (await response.json()) as { job: AutomationJob };
   return json.job;
@@ -142,52 +123,6 @@ export async function loadAutomationStatus() {
     throw new Error(resolveErrorMessage(await response.text(), `Failed to load automation status (${response.status})`));
   }
   return (await response.json()) as AutomationStatus;
-}
-
-export async function loadAutomationEvents(filters?: {
-  category?: string;
-  eventType?: string;
-}) {
-  const params = new URLSearchParams();
-  if (filters?.category) {
-    params.set("category", filters.category);
-  }
-  if (filters?.eventType) {
-    params.set("event_type", filters.eventType);
-  }
-  const query = params.size > 0 ? `?${params.toString()}` : "";
-  const response = await fetch(`${getBackendBaseURL()}/api/automation/events${query}`);
-  if (!response.ok) {
-    throw new Error(resolveErrorMessage(await response.text(), `Failed to load automation events (${response.status})`));
-  }
-  const json = (await response.json()) as { events: AutomationEvent[] };
-  return json.events;
-}
-
-export async function loadAutomationEvent(eventId: string) {
-  const response = await fetch(`${getBackendBaseURL()}/api/automation/events/${eventId}`);
-  if (!response.ok) {
-    throw new Error(resolveErrorMessage(await response.text(), `Failed to load automation event (${response.status})`));
-  }
-  const json = (await response.json()) as { event: AutomationEvent };
-  return json.event;
-}
-
-export async function replayAutomationEvent(eventName: string, payload: Record<string, unknown>) {
-  const response = await fetch(`${getBackendBaseURL()}/api/automation/events/replay`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      event_name: eventName,
-      payload,
-    }),
-  });
-  if (!response.ok) {
-    throw new Error(resolveErrorMessage(await response.text(), `Failed to replay automation event (${response.status})`));
-  }
-  return (await response.json()) as { ok: boolean };
 }
 
 async function postAutomationJobAction(jobId: string, action: "pause" | "resume") {

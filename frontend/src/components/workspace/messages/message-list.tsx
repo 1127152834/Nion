@@ -25,7 +25,6 @@ import type {
 import { cn } from "@/lib/utils";
 
 import { ArtifactFileList } from "../artifacts/artifact-file-list";
-import { EventTaskDraftCard } from "../automation/event-task-draft-card";
 import { StreamingIndicator } from "../streaming-indicator";
 
 import { ClarificationCard } from "./clarification-card";
@@ -151,18 +150,6 @@ export function MessageList({
                 )}
                 <ArtifactFileList files={files} threadId={threadId} />
               </div>
-            );
-          } else if (group.type === "assistant:automation-draft") {
-            const message = group.messages[0];
-            const draft = message?.additional_kwargs?.draft;
-            if (!draft || typeof draft !== "object") {
-              return null;
-            }
-            return (
-              <EventTaskDraftCard
-                key={group.id}
-                draft={draft as never}
-              />
             );
           } else if (group.type === "assistant:subagent") {
             const tasks = new Set<Subtask>();
