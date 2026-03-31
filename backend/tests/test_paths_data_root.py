@@ -25,3 +25,11 @@ def test_sandbox_work_dir_uses_workdir_with_legacy_workspace_fallback(tmp_path):
     legacy_path.mkdir(parents=True, exist_ok=True)
     assert paths.sandbox_work_dir(thread_id) == legacy_path
 
+
+def test_openviking_dirs_do_not_create_legacy_maintenance_directories(tmp_path):
+    paths = Paths(base_dir=tmp_path)
+
+    paths.ensure_openviking_dirs()
+
+    assert paths.openviking_dir.is_dir()
+    assert not (tmp_path / "self-maintenance").exists()

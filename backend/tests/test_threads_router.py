@@ -76,7 +76,10 @@ def test_delete_thread_route_removes_thread_directory(tmp_path, monkeypatch) -> 
     assert not (tmp_path / "threads" / "thread-1").exists()
 
 
-def test_threads_stream_finished_increments_autodream_session_counter(tmp_path, monkeypatch) -> None:
+def test_threads_stream_finished_keeps_legacy_memory_surfaces_removed(
+    tmp_path,
+    monkeypatch,
+) -> None:
     monkeypatch.setenv("NION_HOME", str(tmp_path))
 
     from nion.config import paths as paths_module
@@ -91,9 +94,10 @@ def test_threads_stream_finished_increments_autodream_session_counter(tmp_path, 
     app.dependency_overrides[threads.get_thread_service] = lambda: SuccessfulThreadService()
 
     with TestClient(app) as client:
-        before = client.get("/api/autodream/status")
-        assert before.status_code == 200
-        assert before.json()["session_count_since_last_run"] == 0
+        autodream_before = client.get("/api/autodream/status")
+        maintenance_before = client.get("/api/self-maintenance/status")
+        assert autodream_before.status_code == 404
+        assert maintenance_before.status_code == 404
 
         response = client.post(
             "/api/threads/new/stream",
@@ -107,15 +111,13 @@ def test_threads_stream_finished_increments_autodream_session_counter(tmp_path, 
         assert response.status_code == 200
         assert "event: message" in response.text
 
-        after = client.get("/api/autodream/status")
-        assert after.status_code == 200
-        assert after.json()["session_count_since_last_run"] == 1
-        maintenance = client.get("/api/self-maintenance/status")
-        assert maintenance.status_code == 200
-        assert maintenance.json()["session_count_since_last_run"] == 1
+        autodream_after = client.get("/api/autodream/status")
+        maintenance_after = client.get("/api/self-maintenance/status")
+        assert autodream_after.status_code == 404
+        assert maintenance_after.status_code == 404
 
 
-def test_threads_stream_failed_does_not_increment_autodream_session_counter(
+def test_threads_stream_failed_keeps_legacy_memory_surfaces_removed(
     tmp_path,
     monkeypatch,
 ) -> None:
@@ -133,9 +135,10 @@ def test_threads_stream_failed_does_not_increment_autodream_session_counter(
     app.dependency_overrides[threads.get_thread_service] = lambda: FailingThreadService()
 
     with TestClient(app) as client:
-        before = client.get("/api/autodream/status")
-        assert before.status_code == 200
-        assert before.json()["session_count_since_last_run"] == 0
+        autodream_before = client.get("/api/autodream/status")
+        maintenance_before = client.get("/api/self-maintenance/status")
+        assert autodream_before.status_code == 404
+        assert maintenance_before.status_code == 404
 
         response = client.post(
             "/api/threads/new/stream",
@@ -149,9 +152,7 @@ def test_threads_stream_failed_does_not_increment_autodream_session_counter(
         assert response.status_code == 200
         assert "event: error" in response.text
 
-        after = client.get("/api/autodream/status")
-        assert after.status_code == 200
-        assert after.json()["session_count_since_last_run"] == 0
-        maintenance = client.get("/api/self-maintenance/status")
-        assert maintenance.status_code == 200
-        assert maintenance.json()["session_count_since_last_run"] == 0
+        autodream_after = client.get("/api/autodream/status")
+        maintenance_after = client.get("/api/self-maintenance/status")
+        assert autodream_after.status_code == 404
+        assert maintenance_after.status_code == 404
