@@ -50,8 +50,8 @@ function ThreadListRow({
     <div
       className={`min-w-0 ${
         scope === "sidebar"
-          ? `relative rounded-lg px-3 py-2.5 transition-colors after:absolute after:right-4 after:bottom-0 after:left-4 after:h-px after:bg-foreground/12 after:content-[''] last:after:hidden ${
-              isActive ? "bg-accent/35" : "hover:bg-accent/18"
+          ? `relative px-3 py-3 transition-colors ${
+              isActive ? "bg-accent/20" : "hover:bg-accent/12"
             }`
           : "border-b border-border/55 px-5 py-6"
       } ${selectionMode ? "flex items-start gap-3" : ""}`}
