@@ -33,8 +33,6 @@ let runtimeInfo: import("../shared/ipc.js").DesktopRuntimeInfo | null = null;
 const terminalManager = new TerminalManager();
 
 const MASKED_SETTING_KEYS = new Set([
-  "telegram_bot_token",
-  "bridge_telegram_bot_token",
   "bridge_discord_bot_token",
   "bridge_feishu_app_secret",
   "bridge_qq_app_secret",
@@ -518,7 +516,8 @@ export async function startDesktopMain(): Promise<void> {
     }
     const telegramBotToken = getSettingWithAliases(settings, "telegram_bot_token");
     if (telegramBotToken) {
-      result.telegram_bot_token = maskSettingValue("telegram_bot_token", telegramBotToken);
+      result.telegram_bot_token = telegramBotToken;
+      result.bridge_telegram_bot_token = telegramBotToken;
     }
     const telegramChatId = getSettingWithAliases(settings, "telegram_chat_id");
     if (telegramChatId) {

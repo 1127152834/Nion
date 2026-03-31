@@ -250,7 +250,7 @@ export function TelegramBridgeSection() {
               {t("telegram.botToken")}
             </label>
             <Input
-              type="password"
+              type="text"
               value={botToken}
               onChange={(event) => setBotToken(event.target.value)}
               placeholder="123456:ABC-DEF..."
