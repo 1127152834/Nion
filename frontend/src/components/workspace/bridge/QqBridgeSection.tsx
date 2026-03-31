@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { FieldRow } from "@/components/patterns/FieldRow";
 import { SettingsCard } from "@/components/patterns/SettingsCard";
@@ -55,7 +55,12 @@ export function QqBridgeSection() {
   const [bridgeEnabled, setBridgeEnabled] = useState(false);
   const [channelEnabled, setChannelEnabled] = useState(false);
   const [persistedVerified, setPersistedVerified] = useState(false);
-  const connectionVerified = persistedVerified && Boolean(appId) && Boolean(appSecret);
+  const savedCredentials = useRef({ appId: "", appSecret: "" });
+  const credentialsDirty =
+    appId !== savedCredentials.current.appId
+    || appSecret !== savedCredentials.current.appSecret;
+  const connectionVerified =
+    persistedVerified && !credentialsDirty && Boolean(appId) && Boolean(appSecret);
 
   const fetchSettings = useCallback(async () => {
     const client = createBridgeClient();
@@ -67,6 +72,10 @@ export function QqBridgeSection() {
     setPersistedVerified(isBridgePlatformVerified(data, "qq"));
     setAppId(next.bridge_qq_app_id);
     setAppSecret(next.bridge_qq_app_secret);
+    savedCredentials.current = {
+      appId: next.bridge_qq_app_id,
+      appSecret: next.bridge_qq_app_secret,
+    };
     setAllowedUsers(next.bridge_qq_allowed_users);
     setImageEnabled(next.bridge_qq_image_enabled !== "false");
     setMaxImageSize(next.bridge_qq_max_image_size || "20");

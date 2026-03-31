@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -76,7 +76,9 @@ export function DiscordBridgeSection() {
   const [bridgeEnabled, setBridgeEnabled] = useState(false);
   const [channelEnabled, setChannelEnabled] = useState(false);
   const [persistedVerified, setPersistedVerified] = useState(false);
-  const connectionVerified = persistedVerified && Boolean(botToken);
+  const savedCredentials = useRef({ botToken: "" });
+  const credentialsDirty = botToken !== savedCredentials.current.botToken;
+  const connectionVerified = persistedVerified && !credentialsDirty && Boolean(botToken);
 
   const fetchSettings = useCallback(async () => {
     const client = createBridgeClient();
@@ -87,6 +89,7 @@ export function DiscordBridgeSection() {
     setChannelEnabled(next.bridge_discord_enabled === "true");
     setPersistedVerified(isBridgePlatformVerified(data, "discord"));
     setBotToken(next.bridge_discord_bot_token);
+    savedCredentials.current = { botToken: next.bridge_discord_bot_token };
     setAllowedUsers(next.bridge_discord_allowed_users);
     setAllowedChannels(next.bridge_discord_allowed_channels);
     setAllowedGuilds(next.bridge_discord_allowed_guilds);

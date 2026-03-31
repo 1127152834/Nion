@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -54,7 +54,11 @@ export function TelegramBridgeSection() {
   } | null>(null);
   const { t } = useBridgeTranslation();
   const [persistedVerified, setPersistedVerified] = useState(false);
-  const connectionVerified = persistedVerified && Boolean(botToken);
+  const savedCredentials = useRef({ botToken: "", chatId: "" });
+  const credentialsDirty =
+    botToken !== savedCredentials.current.botToken
+    || chatId !== savedCredentials.current.chatId;
+  const connectionVerified = persistedVerified && !credentialsDirty && Boolean(botToken);
 
   const fetchSettings = useCallback(async () => {
     if (!client) {
@@ -81,6 +85,10 @@ export function TelegramBridgeSection() {
     setBotToken(settings.telegram_bot_token);
     setChatId(settings.telegram_chat_id);
     setAllowedUsers(settings.telegram_bridge_allowed_users);
+    savedCredentials.current = {
+      botToken: settings.telegram_bot_token,
+      chatId: settings.telegram_chat_id,
+    };
   }, [client]);
 
   useEffect(() => {

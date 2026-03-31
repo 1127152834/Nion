@@ -142,7 +142,7 @@ test("bridge manager background loop processes one inbound message and stops cle
   const adapter = createStubAdapter("telegram");
   const streamCalls = [];
   const manager = createBridgeManager({
-    loadSettings: () => ({ settings: { remote_bridge_enabled: "true", bridge_telegram_verified: "true" } }),
+    loadSettings: () => ({ settings: { remote_bridge_enabled: "true", bridge_telegram_verified: "true", bridge_telegram_bot_token: "token" } }),
     adapters: [adapter],
     listBindings: () => [],
     upsertBinding: (binding) => ({
@@ -212,7 +212,7 @@ test("bridge manager does not send adapter output when streamMessage returns emp
   });
 
   const manager = createBridgeManager({
-    loadSettings: () => ({ settings: { remote_bridge_enabled: "true", bridge_telegram_verified: "true" } }),
+    loadSettings: () => ({ settings: { remote_bridge_enabled: "true", bridge_telegram_verified: "true", bridge_telegram_bot_token: "token" } }),
     adapters: [adapter],
     listBindings: () => [],
     upsertBinding: (binding) => ({
@@ -779,6 +779,7 @@ test("bridge manager /stop aborts an in-flight task while the adapter loop keeps
         remote_bridge_enabled: "true",
         bridge_default_work_dir: "/tmp/project",
         bridge_telegram_verified: "true",
+        bridge_telegram_bot_token: "token",
       },
     }),
     adapters: [adapter],

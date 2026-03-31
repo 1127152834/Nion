@@ -100,7 +100,8 @@ void test("platform sections derive enablement from persisted verification plus 
   );
 
   assert.match(telegramSource, /const \[persistedVerified, setPersistedVerified\]/);
-  assert.match(telegramSource, /const connectionVerified = persistedVerified && Boolean\(botToken\)/);
+  assert.match(telegramSource, /const credentialsDirty =/);
+  assert.match(telegramSource, /const connectionVerified = persistedVerified && !credentialsDirty && Boolean\(botToken\)/);
   assert.match(feishuSource, /const \[persistedVerified, setPersistedVerified\]/);
   assert.match(feishuSource, /const connectionVerified =/);
   assert.match(feishuSource, /credentialsDirty/);

@@ -549,7 +549,7 @@ export function isBridgePlatformVerified(
 
   switch (platform) {
     case "telegram":
-      return Boolean(settings.bridge_telegram_bot_token || settings.telegram_bot_token);
+      return Boolean(settings.bridge_telegram_bot_token ?? settings.telegram_bot_token);
     case "feishu":
       return Boolean(settings.bridge_feishu_app_id && settings.bridge_feishu_app_secret);
     case "discord":
