@@ -41,13 +41,10 @@ def test_clear_memory_route_returns_cleared_memory() -> None:
     app = FastAPI()
     app.include_router(memory.router)
 
-    fake_service = type(
-        "FakeService",
-        (),
-        {"clear_memory_payload": lambda self: _sample_memory()},
-    )()
-
-    with patch("app.gateway.routers.memory.MemoryOSService", return_value=fake_service):
+    with patch(
+        "app.gateway.routers.memory.clear_memory_data",
+        return_value=_sample_memory(),
+    ):
         with TestClient(app) as client:
             response = client.delete("/api/memory")
 
@@ -71,13 +68,10 @@ def test_delete_memory_fact_route_returns_updated_memory() -> None:
         ]
     )
 
-    fake_service = type(
-        "FakeService",
-        (),
-        {"delete_memory_fact": lambda self, fact_id: updated_memory},
-    )()
-
-    with patch("app.gateway.routers.memory.MemoryOSService", return_value=fake_service):
+    with patch(
+        "app.gateway.routers.memory.delete_memory_fact",
+        return_value=updated_memory,
+    ):
         with TestClient(app) as client:
             response = client.delete("/api/memory/facts/fact_delete")
 
@@ -89,11 +83,10 @@ def test_delete_memory_fact_route_returns_404_for_missing_fact() -> None:
     app = FastAPI()
     app.include_router(memory.router)
 
-    class FakeService:
-        def delete_memory_fact(self, fact_id: str):
-            raise KeyError("fact_missing")
-
-    with patch("app.gateway.routers.memory.MemoryOSService", return_value=FakeService()):
+    with patch(
+        "app.gateway.routers.memory.delete_memory_fact",
+        side_effect=KeyError("fact_missing"),
+    ):
         with TestClient(app) as client:
             response = client.delete("/api/memory/facts/fact_missing")
 
@@ -127,4 +120,7 @@ def test_memory_router_does_not_register_memory_os_or_maintenance_routes() -> No
     assert "/api/self-maintenance/run" not in routes
     assert "/api/heartbeat/status" not in routes
     assert "/api/memory/compact" not in routes
-    assert "/api/memory/rebuild" not in routes
+    assert not any(
+        route == "/api/memory/rebuild" or route.startswith("/api/memory/rebuild/")
+        for route in routes
+    )

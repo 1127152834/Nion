@@ -6,8 +6,6 @@ from collections.abc import Awaitable, Callable
 from typing import Any
 
 from nion.config import get_app_config
-from nion.heartbeat.service import HeartbeatService
-from nion.self_maintenance.scheduler import SelfMaintenanceScheduler
 from nion.telemetry.logger import make_event
 from nion.telemetry.store import TelemetryStore
 
@@ -15,8 +13,6 @@ from .session_registry import SessionRegistry
 
 
 class LocalDaemonService:
-    HEARTBEAT_POLL_INTERVAL_SECONDS = 60.0
-
     def __init__(
         self,
         *,
@@ -33,14 +29,9 @@ class LocalDaemonService:
             allow_background_running=allow_background_running,
             shutdown_grace_period_seconds=shutdown_grace_period_seconds,
         )
-        self._self_maintenance_scheduler = SelfMaintenanceScheduler()
-        self._heartbeat_service = HeartbeatService(
-            run_maintenance=lambda: self._self_maintenance_scheduler.tick()
-        )
         self._telemetry_store: TelemetryStore | None = None
         self._shutdown_callback: Callable[[], Awaitable[None] | None] | None = None
         self._shutdown_task: asyncio.Task[None] | None = None
-        self._heartbeat_task: asyncio.Task[None] | None = None
         self._active_thread_streams: set[str] = set()
 
     @classmethod
@@ -110,26 +101,6 @@ class LocalDaemonService:
             "accepted": True,
             "should_exit": self.registry.should_exit(),
             "clients": self.registry.snapshot(),
-        }
-
-    def autodream_status(self) -> dict[str, object]:
-        return self.self_maintenance_status()
-
-    def self_maintenance_status(self) -> dict[str, object]:
-        return self._self_maintenance_scheduler.status()
-
-    def heartbeat_status(self) -> dict[str, object]:
-        return self._heartbeat_service.status()
-
-    def record_autodream_session_completed(self) -> dict[str, object]:
-        return self.record_self_maintenance_session_completed()
-
-    def record_self_maintenance_session_completed(self) -> dict[str, object]:
-        self._heartbeat_service.record_session_completed()
-        state = self._self_maintenance_scheduler.record_session_completed()
-        return {
-            "last_run_at": state.last_run_at,
-            "session_count_since_last_run": state.session_count_since_last_run,
         }
 
     def has_active_runtime_work(self) -> bool:
@@ -228,57 +199,27 @@ class LocalDaemonService:
                             await result
                     return
 
-        self._shutdown_task = asyncio.create_task(monitor(), name="local-daemon-shutdown-monitor")
-        self._heartbeat_task = asyncio.create_task(
-            self._heartbeat_monitor(),
-            name="local-daemon-heartbeat-monitor",
+        self._shutdown_task = asyncio.create_task(
+            monitor(),
+            name="local-daemon-shutdown-monitor",
         )
 
     async def stop(self) -> None:
         task = self._shutdown_task
-        heartbeat_task = self._heartbeat_task
         self._shutdown_task = None
-        self._heartbeat_task = None
         if task is None:
-            if heartbeat_task is None:
-                return
-        for pending in (task, heartbeat_task):
+            return
+        for pending in (task,):
             if pending is None:
                 continue
             pending.cancel()
-        for pending in (task, heartbeat_task):
+        for pending in (task,):
             if pending is None:
                 continue
             try:
                 await pending
             except asyncio.CancelledError:
                 pass
-
-    async def _heartbeat_monitor(self) -> None:
-        while True:
-            await asyncio.sleep(self.HEARTBEAT_POLL_INTERVAL_SECONDS)
-            if self.has_active_runtime_work():
-                continue
-            try:
-                self._heartbeat_service.tick()
-            except Exception:
-                self._record_event(
-                    category="heartbeat",
-                    level="error",
-                    event_type="heartbeat_tick_failed",
-                    actor="system",
-                    message="Heartbeat tick failed",
-                    details=self.heartbeat_status(),
-                )
-                continue
-            self._record_event(
-                category="heartbeat",
-                level="info",
-                event_type="heartbeat_tick_completed",
-                actor="system",
-                message="Heartbeat tick completed",
-                details=self.heartbeat_status(),
-            )
 
     def _record_event(
         self,
