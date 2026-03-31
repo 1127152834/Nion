@@ -108,6 +108,58 @@ export function CommandPalette() {
     typeof navigator !== "undefined" && navigator.userAgent.includes("Mac");
   const metaKey = isMac ? "⌘" : "Ctrl+";
   const shiftKey = isMac ? "⇧" : "Shift+";
+  const shortcutRows = [
+    {
+      id: "open-command-palette",
+      keys: `${metaKey}K`,
+      label: t.shortcuts.openCommandPalette,
+    },
+    {
+      id: "new-chat",
+      keys: `${metaKey}${shiftKey}N`,
+      label: t.sidebar.newChat,
+    },
+    {
+      id: "toggle-sidebar",
+      keys: `${metaKey}B`,
+      label: t.shortcuts.toggleSidebar,
+    },
+    {
+      id: "open-notebook",
+      keys: "Palette",
+      label: t.shortcuts.openNotebook,
+    },
+    {
+      id: "open-memory",
+      keys: "Palette",
+      label: t.shortcuts.openMemory,
+    },
+    {
+      id: "open-self-maintenance",
+      keys: "Palette",
+      label: t.shortcuts.openSelfMaintenance,
+    },
+    {
+      id: "open-projects",
+      keys: "Palette",
+      label: t.shortcuts.openProjects,
+    },
+    {
+      id: "open-settings",
+      keys: `${metaKey},`,
+      label: t.common.settings,
+    },
+    {
+      id: "open-bridge",
+      keys: "Palette",
+      label: t.bridge.menuLabel,
+    },
+    {
+      id: "open-keyboard-shortcuts",
+      keys: `${metaKey}/`,
+      label: t.shortcuts.keyboardShortcuts,
+    },
+  ];
 
   return (
     <>
@@ -182,22 +234,8 @@ export function CommandPalette() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 text-sm">
-            {[
-              { keys: `${metaKey}K`, label: t.shortcuts.openCommandPalette },
-              { keys: `${metaKey}${shiftKey}N`, label: t.sidebar.newChat },
-              { keys: `${metaKey}B`, label: t.shortcuts.toggleSidebar },
-              { keys: "Palette", label: t.shortcuts.openNotebook },
-              { keys: "Palette", label: t.shortcuts.openMemory },
-              { keys: "Palette", label: t.shortcuts.openSelfMaintenance },
-              { keys: "Palette", label: t.shortcuts.openProjects },
-              { keys: `${metaKey},`, label: t.common.settings },
-              { keys: "Palette", label: t.bridge.menuLabel },
-              {
-                keys: `${metaKey}/`,
-                label: t.shortcuts.keyboardShortcuts,
-              },
-            ].map(({ keys, label }) => (
-              <div key={keys} className="flex items-center justify-between">
+            {shortcutRows.map(({ id, keys, label }) => (
+              <div key={id} className="flex items-center justify-between">
                 <span className="text-muted-foreground">{label}</span>
                 <kbd className="bg-muted text-muted-foreground rounded px-2 py-0.5 font-mono text-xs">
                   {keys}

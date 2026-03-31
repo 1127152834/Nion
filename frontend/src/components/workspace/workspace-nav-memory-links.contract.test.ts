@@ -11,64 +11,80 @@ import {
   pathOfSelfMaintenance,
 } from "../../core/navigation/desktop-routes.ts";
 
-void test("workspace navigation exposes separate notebook memory and self-maintenance entry points", async () => {
-  const source = await readFile(
-    new URL("./workspace-nav-chat-list.tsx", import.meta.url),
-    "utf8",
-  );
+function assertSourceIncludesEntry(
+  source: string,
+  options: {
+    labelRef: RegExp;
+    pathRef: RegExp;
+  },
+) {
+  assert.match(source, options.labelRef);
+  assert.match(source, options.pathRef);
+}
 
+void test("workspace route helpers expose separate notebook memory self-maintenance and project paths", () => {
   assert.equal(pathOfNotebook(), "/workspace/notebook");
   assert.equal(pathOfMemory(), "/workspace/memory");
   assert.equal(pathOfSelfMaintenance(), "/workspace/self-maintenance");
-  assert.match(source, /const notebookPath = pathOfNotebook\(\)/);
-  assert.match(source, /const memoryPath = pathOfMemory\(\)/);
-  assert.match(source, /const selfMaintenancePath = pathOfSelfMaintenance\(\)/);
-  assert.match(source, /href=\{notebookPath\}/);
-  assert.match(source, /href=\{memoryPath\}/);
-  assert.match(source, /href=\{selfMaintenancePath\}/);
-  assert.match(source, /t\.sidebar\.memory/);
-  assert.match(source, /t\.sidebar\.selfMaintenance/);
+  assert.equal(pathOfProjects(), "/workspace/projects");
 });
 
-void test("workspace nav menu exposes product-surface links for notebook memory self-maintenance and projects", async () => {
+void test("workspace navigation sources expose notebook memory self-maintenance and project entry labels with target paths", async () => {
+  const chatListSource = await readFile(
+    new URL("./workspace-nav-chat-list.tsx", import.meta.url),
+    "utf8",
+  );
+  const navMenuSource = await readFile(
+    new URL("./workspace-nav-menu.tsx", import.meta.url),
+    "utf8",
+  );
+  const commandPaletteSource = await readFile(
+    new URL("./command-palette.tsx", import.meta.url),
+    "utf8",
+  );
+
+  for (const source of [chatListSource, navMenuSource, commandPaletteSource]) {
+    assertSourceIncludesEntry(source, {
+      labelRef: /t\.sidebar\.notebook/,
+      pathRef: /pathOfNotebook/,
+    });
+    assertSourceIncludesEntry(source, {
+      labelRef: /t\.sidebar\.memory/,
+      pathRef: /pathOfMemory/,
+    });
+    assertSourceIncludesEntry(source, {
+      labelRef: /t\.sidebar\.selfMaintenance/,
+      pathRef: /pathOfSelfMaintenance/,
+    });
+    assertSourceIncludesEntry(source, {
+      labelRef: /t\.sidebar\.projects/,
+      pathRef: /pathOfProjects|\/workspace\/projects/,
+    });
+  }
+});
+
+void test("workspace nav trigger copy uses neutral workspace navigation wording", async () => {
   const source = await readFile(
     new URL("./workspace-nav-menu.tsx", import.meta.url),
     "utf8",
   );
 
-  assert.equal(pathOfProjects(), "/workspace/projects");
-  assert.match(source, /pathOfNotebook/);
-  assert.match(source, /pathOfMemory/);
-  assert.match(source, /pathOfSelfMaintenance/);
-  assert.match(source, /pathOfProjects/);
-  assert.match(source, /router\.push\(notebookPath\)/);
-  assert.match(source, /router\.push\(memoryPath\)/);
-  assert.match(source, /router\.push\(selfMaintenancePath\)/);
-  assert.match(source, /router\.push\(projectsPath\)/);
-  assert.match(source, /t\.sidebar\.notebook/);
-  assert.match(source, /t\.sidebar\.memory/);
-  assert.match(source, /t\.sidebar\.selfMaintenance/);
-  assert.match(source, /t\.sidebar\.projects/);
+  assert.match(source, /t\.workspace\.navigationMenu/);
+  assert.doesNotMatch(source, /t\.workspace\.settingsAndMore/);
 });
 
-void test("command palette exposes direct product-surface navigation actions", async () => {
+void test("command palette shortcut rows use stable unique ids instead of repeated key text", async () => {
   const source = await readFile(
     new URL("./command-palette.tsx", import.meta.url),
     "utf8",
   );
 
-  assert.match(source, /pathOfNotebook/);
-  assert.match(source, /pathOfMemory/);
-  assert.match(source, /pathOfSelfMaintenance/);
-  assert.match(source, /pathOfProjects/);
-  assert.match(source, /router\.push\(notebookPath\)/);
-  assert.match(source, /router\.push\(memoryPath\)/);
-  assert.match(source, /router\.push\(selfMaintenancePath\)/);
-  assert.match(source, /router\.push\(projectsPath\)/);
-  assert.match(source, /t\.sidebar\.notebook/);
-  assert.match(source, /t\.sidebar\.memory/);
-  assert.match(source, /t\.sidebar\.selfMaintenance/);
-  assert.match(source, /t\.sidebar\.projects/);
+  assert.match(source, /id:\s*"open-notebook"/);
+  assert.match(source, /id:\s*"open-memory"/);
+  assert.match(source, /id:\s*"open-self-maintenance"/);
+  assert.match(source, /id:\s*"open-projects"/);
+  assert.match(source, /key=\{id\}/);
+  assert.doesNotMatch(source, /key=\{keys\}/);
 });
 
 void test("workspace product copy keeps notebook memory self-maintenance and OpenViking roles distinct", () => {

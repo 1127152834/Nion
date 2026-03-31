@@ -49,7 +49,7 @@ function NavMenuButtonContent({
   return isSidebarOpen ? (
     <div className="text-muted-foreground flex w-full items-center gap-2 text-left text-sm">
       <SettingsIcon className="size-4" />
-      <span>{t.workspace.settingsAndMore}</span>
+      <span>{t.workspace.navigationMenu}</span>
       <ChevronsUpDown className="text-muted-foreground ml-auto size-4" />
     </div>
   ) : (
@@ -107,51 +107,51 @@ export function WorkspaceNavMenu() {
                   <NavMenuButtonContent isSidebarOpen={isSidebarOpen} t={t} />
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
-                  align="end"
-                  sideOffset={4}
-                >
-                  <DropdownMenuGroup>
-                    <DropdownMenuItem
-                      onClick={() => {
-                        setSettingsOpen(false);
-                        router.push(notebookPath);
-                      }}
-                    >
-                      <BookTextIcon />
-                      {t.sidebar.notebook}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => {
-                        setSettingsOpen(false);
-                        router.push(memoryPath);
-                      }}
-                    >
-                      <DatabaseIcon />
-                      {t.sidebar.memory}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => {
-                        setSettingsOpen(false);
-                        router.push(selfMaintenancePath);
-                      }}
-                    >
-                      <HeartPulseIcon />
-                      {t.sidebar.selfMaintenance}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => {
-                        setSettingsOpen(false);
-                        router.push(projectsPath);
-                      }}
-                    >
-                      <FolderKanbanIcon />
-                      {t.sidebar.projects}
-                    </DropdownMenuItem>
-                  </DropdownMenuGroup>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuGroup>
+              <DropdownMenuContent
+                className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
+                align="end"
+                sideOffset={4}
+              >
+                <DropdownMenuGroup>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setSettingsOpen(false);
+                      router.push(notebookPath);
+                    }}
+                  >
+                    <BookTextIcon />
+                    {t.sidebar.notebook}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setSettingsOpen(false);
+                      router.push(memoryPath);
+                    }}
+                  >
+                    <DatabaseIcon />
+                    {t.sidebar.memory}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setSettingsOpen(false);
+                      router.push(selfMaintenancePath);
+                    }}
+                  >
+                    <HeartPulseIcon />
+                    {t.sidebar.selfMaintenance}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setSettingsOpen(false);
+                      router.push(projectsPath);
+                    }}
+                  >
+                    <FolderKanbanIcon />
+                    {t.sidebar.projects}
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+                <DropdownMenuGroup>
                   <DropdownMenuItem
                     onClick={() => {
                       setSettingsDefaultSection("appearance");

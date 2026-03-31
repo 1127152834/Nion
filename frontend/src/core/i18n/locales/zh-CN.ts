@@ -224,6 +224,7 @@ export const zhCN: Translations = {
     officialWebsite: "访问 Nion 官方网站",
     githubTooltip: "访问 Nion 的 Github 仓库",
     settingsAndMore: "设置和更多",
+    navigationMenu: "工作区",
     visitGithub: "在 Github 上查看 Nion",
     reportIssue: "报告问题",
     contactUs: "联系我们",

@@ -235,6 +235,7 @@ export const enUS: Translations = {
     officialWebsite: "Nion's official website",
     githubTooltip: "Nion on Github",
     settingsAndMore: "Settings and more",
+    navigationMenu: "Workspace",
     visitGithub: "Nion on GitHub",
     reportIssue: "Report a issue",
     contactUs: "Contact us",

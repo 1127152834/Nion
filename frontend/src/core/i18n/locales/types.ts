@@ -411,6 +411,7 @@ export interface Translations {
     officialWebsite: string;
     githubTooltip: string;
     settingsAndMore: string;
+    navigationMenu: string;
     visitGithub: string;
     reportIssue: string;
     contactUs: string;
