@@ -79,20 +79,15 @@ FastAPI application on port 8001 with health check at `GET /health`.
 | **Models** (`/api/models`) | runtime model catalog |
 | **MCP** (`/api/mcp`) | MCP config surfaces |
 | **Memory** (`/api/memory`) | memory data and config |
-| **Memory OS** (`/api/memory-os`) | provider-family and provider-state surfaces |
-| **AutoDream** (`/api/autodream`) | manual run + daemon-owned scheduler status |
 | **Notebook** (`/api/notebook`) | notebook CRUD / history / restore / import |
 | **Projects** (`/api/projects`) | project list, dashboard, plans, threads, timeline, artifacts, memory, decisions |
 | **Uploads** (`/api/threads/{id}/uploads`) | uploads list / delete |
 | **Artifacts** (`/api/threads/{id}/artifacts`) | serve artifacts |
 | **Suggestions** (`/api/threads/{id}/suggestions`) | follow-up question generation |
 
-Memory OS provider contracts now have two layers:
-
-- persisted state remains config-only: `active_provider_family`, `active_provider_id`, and provider instance config
-- runtime read models enrich provider instances with explicit capability matrices plus runtime status/usage summaries
-- when provider runtime health is unavailable, the API must return `unknown` explicitly rather than fabricating family-specific health
-- Mem0 currently resolves to a local compatibility runtime provider; it must satisfy the legacy memory contract and report unsupported runtime operations explicitly
+Memory currently uses the legacy `memory.json` path through `nion.agents.memory.*`.
+Do not reintroduce provider-based memory, AutoDream, self-maintenance, heartbeat,
+compaction, or rebuild behavior unless the user explicitly starts a new design cycle.
 
 ### Local Daemon Surface
 
@@ -103,7 +98,7 @@ route surface aligned with the renderer expectations, including:
 - `/api/threads/{thread_id}/runtime-profile`
 - `/api/models`, `/api/config`, `/api/skills`, `/api/files`, `/api/cli/catalog`
 - `/api/projects`
-- `/api/memory-os/providers/families`, `/api/memory-os/providers/state`
+- `/api/memory`
 - `/api/daemon/logs`, `/api/daemon/logs/tail`
 - `/api/daemon/diagnostics`, `/api/daemon/diagnostics/threads/{thread_id}`, `/api/daemon/diagnostics/skills/{skill_name}`
 - `/api/daemon/diagnostics/tasks/{task_id}`

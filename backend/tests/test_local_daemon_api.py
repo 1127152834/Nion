@@ -22,6 +22,19 @@ def test_local_daemon_exposes_runtime_and_threads_routes() -> None:
         assert recall.status_code == 200
 
 
+def test_local_daemon_keeps_memory_and_notebook_without_new_memory_surfaces() -> None:
+    with TestClient(create_app()) as client:
+        memory = client.get("/api/memory")
+        notebook = client.get("/api/notebook/tree")
+        memory_os = client.get("/api/memory-os/providers/families")
+        maintenance = client.get("/api/self-maintenance/status")
+
+        assert memory.status_code == 200
+        assert notebook.status_code in {200, 204}
+        assert memory_os.status_code == 404
+        assert maintenance.status_code == 404
+
+
 def test_local_daemon_exposes_runtime_profile_and_model_admin_routes() -> None:
     with TestClient(create_app()) as client:
         runtime_profile = client.get("/api/threads/test-thread/runtime-profile")

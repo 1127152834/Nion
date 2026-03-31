@@ -7,8 +7,8 @@ from langchain.agents import AgentState
 from langchain.agents.middleware import AgentMiddleware
 from langgraph.runtime import Runtime
 
+from nion.agents.memory.queue import get_memory_queue
 from nion.config.memory_config import get_memory_config
-from nion.memory_os.service import resolve_active_memory_provider
 
 
 class MemoryMiddlewareState(AgentState):
@@ -142,8 +142,8 @@ class MemoryMiddleware(AgentMiddleware[MemoryMiddlewareState]):
         if not user_messages or not assistant_messages:
             return None
 
-        provider = resolve_active_memory_provider()
-        provider.on_after_chat(
+        queue = get_memory_queue()
+        queue.add(
             thread_id=thread_id,
             messages=filtered_messages,
             agent_name=self._agent_name,

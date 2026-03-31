@@ -44,55 +44,12 @@ Program 03D-A extends that surface to incident workflow:
 - a desktop diagnostics center is designed to consume incident records later, but it is not implemented in this phase
 - bridge/channel incidents, `daemon_runtime` playbooks, and auto-remediation remain out of scope for 03D-A
 
-Program 03E extends the same local-daemon surface to AutoDream:
+Current memory state:
 
-- AutoDream remains an embedded OpenViking capability, not an external service
-- manual runs stay available at `POST /api/autodream/run`
-- the daemon now owns a background scheduler loop for AutoDream
-- eligibility stays on the `24h + 5 completed sessions` rule
-- idle gating is based on active thread-stream work, not desktop process presence
-- scheduler state is exposed at `GET /api/autodream/status`
-
-Program 04 begins the Memory OS transition:
-
-- a new provider foundation now exists under `/api/memory-os/*`
-- provider families currently include `builtin`, `mem0`, and `openviking`
-- OpenViking provider metadata now distinguishes `embedded` and `remote` modes
-- this milestone only introduces provider metadata and active binding state
-- runtime hot paths still use the legacy memory path in this milestone
-
-Program 04B starts the runtime migration off `memory.json`:
-
-- `/api/memory` remains available, but now acts as a compatibility bridge over Memory OS
-- prompt memory injection now resolves through Memory OS
-- `MemoryMiddleware` now routes post-chat capture through the active provider
-- the embedded Python client now routes memory reads/writes through Memory OS
-- the active runtime provider for this milestone is still Built-in
-
-Program 04C activates the OpenViking provider family:
-
-- OpenViking is no longer just a provider metadata family; it now has a real provider implementation
-- provider config supports both `embedded` and `remote` modes
-- embedded mode uses the local OpenViking runtime already bundled into Nion
-- remote mode uses a dedicated transport bridge for external OpenViking services
-- embedded provider-facing reads now expose notebook resource listings and AutoDream journal listings
-- embedded provider-facing writes now support minimal user-memory and agent-memory payload round-trips
-- OpenViking runtime providers now satisfy the legacy memory runtime contract too: post-chat capture, clear-memory, and delete-fact all resolve through Memory OS without falling back to `memory.json`
-- this milestone activates provider plumbing and mode/status exposure, but does not yet redesign the memory console
-
-Program 04M6 Task 2 hardens the Memory OS provider metadata contract:
-
-- provider family metadata now exposes an explicit capability matrix with state values such as `supported`, `partial`, and `unsupported`
-- provider state responses now project runtime-only fields including `runtime_mode`, `health`, `capabilities`, `status_summary`, and `usage_summary`
-- persisted `memory-os-state.json` remains configuration-only; runtime capability and health fields are derived on read
-- inactive or unimplemented providers report runtime health as `unknown` rather than inventing provider-specific health checks
-
-Program 04M6 Task 3 activates the first Mem0 runtime compatibility provider:
-
-- selecting `mem0` now resolves to a concrete runtime provider instead of raising `NotImplementedError`
-- the provider satisfies the legacy memory runtime contract for read, save, clear, delete, status, and usage operations
-- current Mem0 support is a local compatibility layer backed by `mem0-memory.json`, not a remote Mem0 transport
-- unsupported operations such as `compact` and `rebuild` return explicit structured responses instead of crashing
+- Nion currently uses the legacy `memory.json` long-term memory path
+- `/api/memory` is the only supported memory surface
+- `Notebook` remains a separate knowledge-base / second-brain domain
+- provider-based memory, AutoDream, self-maintenance, heartbeat-driven memory maintenance, compaction, and rebuild are not part of the current runtime
 
 ---
 
@@ -224,11 +181,6 @@ FastAPI application providing REST endpoints for frontend integration:
 | `POST /api/memory/reload` | Force memory reload |
 | `GET /api/memory/config` | Memory configuration |
 | `GET /api/memory/status` | Combined config + data |
-| `GET /api/memory-os/providers/families` | List Memory OS provider families and capabilities |
-| `GET /api/memory-os/providers/state` | Read the active Memory OS binding state |
-| `PUT /api/memory-os/providers/state` | Update the active Memory OS binding state |
-| `POST /api/autodream/run` | Trigger an AutoDream run manually |
-| `GET /api/autodream/status` | Inspect daemon-owned AutoDream scheduler state |
 | `POST /api/threads/{id}/uploads` | Upload files (auto-converts PDF/PPT/Excel/Word to Markdown, rejects directory paths) |
 | `GET /api/threads/{id}/uploads/list` | List uploaded files |
 | `GET /api/threads/{id}/artifacts/{path}` | Serve generated artifacts |
@@ -243,11 +195,11 @@ Desktop daemon validation note:
 
 The legacy IM channel runtime has been removed from this branch. A new desktop-first Bridge subsystem is replacing it, with current work focused on desktop-backed bridge state, adapter lifecycles, settings, and external messaging integration.
 
-Memory compatibility note:
+Memory note:
 
-- the legacy `memory.json` shape is still the built-in provider's compatibility payload in this milestone
-- runtime code should not call the legacy updater/storage helpers directly anymore
-- direct `memory.json` semantics are now considered internal implementation detail of the built-in provider bridge
+- the current runtime stores long-term memory in `memory.json`
+- memory updates continue to flow through `nion.agents.memory.*`
+- notebook content is not treated as memory by default
 
 ---
 

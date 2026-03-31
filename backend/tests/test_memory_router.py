@@ -41,13 +41,10 @@ def test_clear_memory_route_returns_cleared_memory() -> None:
     app = FastAPI()
     app.include_router(memory.router)
 
-    fake_service = type(
-        "FakeService",
-        (),
-        {"clear_memory_payload": lambda self: _sample_memory()},
-    )()
-
-    with patch("app.gateway.routers.memory.MemoryOSService", return_value=fake_service):
+    with patch(
+        "app.gateway.routers.memory.clear_memory_data",
+        return_value=_sample_memory(),
+    ):
         with TestClient(app) as client:
             response = client.delete("/api/memory")
 
@@ -71,13 +68,10 @@ def test_delete_memory_fact_route_returns_updated_memory() -> None:
         ]
     )
 
-    fake_service = type(
-        "FakeService",
-        (),
-        {"delete_memory_fact": lambda self, fact_id: updated_memory},
-    )()
-
-    with patch("app.gateway.routers.memory.MemoryOSService", return_value=fake_service):
+    with patch(
+        "app.gateway.routers.memory.delete_memory_fact",
+        return_value=updated_memory,
+    ):
         with TestClient(app) as client:
             response = client.delete("/api/memory/facts/fact_delete")
 
@@ -89,13 +83,44 @@ def test_delete_memory_fact_route_returns_404_for_missing_fact() -> None:
     app = FastAPI()
     app.include_router(memory.router)
 
-    class FakeService:
-        def delete_memory_fact(self, fact_id: str):
-            raise KeyError("fact_missing")
-
-    with patch("app.gateway.routers.memory.MemoryOSService", return_value=FakeService()):
+    with patch(
+        "app.gateway.routers.memory.delete_memory_fact",
+        side_effect=KeyError("fact_missing"),
+    ):
         with TestClient(app) as client:
             response = client.delete("/api/memory/facts/fact_missing")
 
     assert response.status_code == 404
     assert response.json()["detail"] == "Memory fact 'fact_missing' not found."
+
+
+def test_memory_router_status_has_no_runtime_block() -> None:
+    app = create_app()
+
+    with TestClient(app) as client:
+        response = client.get("/api/memory/status")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert "config" in payload
+    assert "data" in payload
+    assert "runtime" not in payload
+
+
+def test_memory_router_does_not_register_memory_os_or_maintenance_routes() -> None:
+    routes = collect_gateway_routes()
+
+    assert "/api/memory" in routes
+    assert "/api/memory/config" in routes
+    assert "/api/memory/status" in routes
+    assert "/api/memory/reload" in routes
+
+    assert "/api/memory-os/providers/families" not in routes
+    assert "/api/autodream/run" not in routes
+    assert "/api/self-maintenance/run" not in routes
+    assert "/api/heartbeat/status" not in routes
+    assert "/api/memory/compact" not in routes
+    assert not any(
+        route == "/api/memory/rebuild" or route.startswith("/api/memory/rebuild/")
+        for route in routes
+    )

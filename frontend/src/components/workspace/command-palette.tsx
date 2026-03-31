@@ -5,7 +5,6 @@ import {
   BookTextIcon,
   DatabaseIcon,
   FolderKanbanIcon,
-  HeartPulseIcon,
   KeyboardIcon,
   MessageSquarePlusIcon,
   SettingsIcon,
@@ -34,7 +33,6 @@ import {
   pathOfMemory,
   pathOfNotebook,
   pathOfProjects,
-  pathOfSelfMaintenance,
 } from "@/core/navigation/desktop-routes";
 import { pathOfNewThread } from "@/core/threads/utils";
 import { useGlobalShortcuts } from "@/hooks/use-global-shortcuts";
@@ -49,7 +47,6 @@ export function CommandPalette() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const notebookPath = pathOfNotebook();
   const memoryPath = pathOfMemory();
-  const selfMaintenancePath = pathOfSelfMaintenance();
   const projectsPath = pathOfProjects();
 
   const handleNewChat = useCallback(() => {
@@ -81,11 +78,6 @@ export function CommandPalette() {
     router.push(memoryPath);
     setOpen(false);
   }, [memoryPath, router]);
-
-  const handleOpenSelfMaintenance = useCallback(() => {
-    router.push(selfMaintenancePath);
-    setOpen(false);
-  }, [router, selfMaintenancePath]);
 
   const handleOpenProjects = useCallback(() => {
     router.push(projectsPath);
@@ -133,11 +125,6 @@ export function CommandPalette() {
       id: "open-memory",
       keys: "Palette",
       label: t.shortcuts.openMemory,
-    },
-    {
-      id: "open-self-maintenance",
-      keys: "Palette",
-      label: t.shortcuts.openSelfMaintenance,
     },
     {
       id: "open-projects",
@@ -203,16 +190,6 @@ export function CommandPalette() {
             >
               <DatabaseIcon className="mr-2 h-4 w-4" />
               {t.sidebar.memory}
-            </CommandItem>
-            <CommandItem
-              keywords={[
-                t.shortcuts.openSelfMaintenance,
-                t.sidebar.selfMaintenance,
-              ]}
-              onSelect={handleOpenSelfMaintenance}
-            >
-              <HeartPulseIcon className="mr-2 h-4 w-4" />
-              {t.sidebar.selfMaintenance}
             </CommandItem>
             <CommandItem
               keywords={[t.shortcuts.openProjects, t.sidebar.projects]}

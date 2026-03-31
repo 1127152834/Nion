@@ -3,8 +3,13 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
+from nion.agents.memory.updater import (
+    clear_memory_data,
+    delete_memory_fact,
+    get_memory_data,
+    reload_memory_data,
+)
 from nion.config.memory_config import get_memory_config
-from nion.memory_os.service import MemoryOSService
 
 router = APIRouter(prefix="/api", tags=["memory"])
 
@@ -70,12 +75,6 @@ class MemoryStatusResponse(BaseModel):
 
     config: MemoryConfigResponse
     data: MemoryResponse
-    runtime: dict[str, object] = Field(default_factory=dict)
-
-
-class MemoryCompactRequest(BaseModel):
-    ratio: float
-    decay_days: int = 0
 
 
 @router.get(
@@ -118,7 +117,7 @@ async def get_memory() -> MemoryResponse:
         }
         ```
     """
-    memory_data = MemoryOSService().get_memory_payload()
+    memory_data = get_memory_data()
     return MemoryResponse(**memory_data)
 
 
@@ -137,7 +136,7 @@ async def reload_memory() -> MemoryResponse:
     Returns:
         The reloaded memory data.
     """
-    memory_data = MemoryOSService().reload_memory_payload()
+    memory_data = reload_memory_data()
     return MemoryResponse(**memory_data)
 
 
@@ -151,7 +150,7 @@ async def clear_memory() -> MemoryResponse:
     """Clear all persisted memory data."""
 
     try:
-        memory_data = MemoryOSService().clear_memory_payload()
+        memory_data = clear_memory_data()
     except OSError as exc:
         raise HTTPException(status_code=500, detail="Failed to clear memory data.") from exc
 
@@ -168,7 +167,7 @@ async def delete_memory_fact_endpoint(fact_id: str) -> MemoryResponse:
     """Delete a single fact from memory by fact id."""
 
     try:
-        memory_data = MemoryOSService().delete_memory_fact(fact_id)
+        memory_data = delete_memory_fact(fact_id)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=f"Memory fact '{fact_id}' not found.") from exc
     except OSError as exc:
@@ -227,8 +226,7 @@ async def get_memory_status() -> MemoryStatusResponse:
         Combined memory configuration and current data.
     """
     config = get_memory_config()
-    memory_data = MemoryOSService().get_memory_payload()
-    runtime_status = MemoryOSService().get_memory_runtime_status()
+    memory_data = get_memory_data()
 
     return MemoryStatusResponse(
         config=MemoryConfigResponse(
@@ -241,44 +239,4 @@ async def get_memory_status() -> MemoryStatusResponse:
             max_injection_tokens=config.max_injection_tokens,
         ),
         data=MemoryResponse(**memory_data),
-        runtime=runtime_status,
     )
-
-
-@router.post(
-    "/memory/compact",
-    summary="Compact Memory",
-    description="Compact structured long-term memory and record a compaction log.",
-)
-async def compact_memory(payload: MemoryCompactRequest) -> dict:
-    try:
-        return MemoryOSService().compact_memory(
-            ratio=payload.ratio,
-            decay_days=payload.decay_days,
-        )
-    except NotImplementedError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-
-
-@router.get(
-    "/memory/usage",
-    summary="Get Memory Usage",
-    description="Retrieve estimated usage information for current structured memory.",
-)
-async def get_memory_usage() -> dict:
-    try:
-        return MemoryOSService().get_memory_usage()
-    except NotImplementedError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-
-
-@router.post(
-    "/memory/rebuild",
-    summary="Rebuild Memory",
-    description="Rebuild structured memory runtime from canonical memory source.",
-)
-async def rebuild_memory() -> dict:
-    try:
-        return MemoryOSService().rebuild_memory()
-    except NotImplementedError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
