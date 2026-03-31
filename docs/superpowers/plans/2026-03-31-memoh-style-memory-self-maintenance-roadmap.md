@@ -194,6 +194,13 @@ Fill remaining provider/runtime gaps so Nion approaches Memoh-level backbone com
 - major provider parity gaps are closed
 - backbone completeness is no longer blocked by shell implementations
 
+**Current checkpoint**
+
+- Mem0 provider no longer stops at metadata registration and now resolves to a compatibility runtime provider that satisfies the legacy memory contract
+- provider family metadata now ships explicit capability matrices plus active-provider runtime mode, health, status summary, and usage summary surfaces
+- settings memory/provider UI now renders provider family, active mode, capability summary, and runtime status instead of a thin family-only shell
+- remaining parity gaps are narrowed to provider-backed search depth, Mem0-native compaction/rebuild, and deeper Memoh-style usage/admin breadth rather than missing runtime wiring
+
 ## Recommended Execution Order
 
 1. M0 Strategic Baseline And Source Alignment
