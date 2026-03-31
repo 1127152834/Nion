@@ -81,7 +81,7 @@ export function BridgeSection() {
     return (
       <SettingsCard>
         <p className="text-sm text-muted-foreground">
-          Bridge is only available in the desktop app.
+          {t("bridge.desktopOnly")}
         </p>
       </SettingsCard>
     );

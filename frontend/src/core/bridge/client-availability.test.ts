@@ -17,5 +17,5 @@ void test("bridge section handles missing bridge client without throwing", async
 
   assert.match(source, /const client = getBridgeClient\(\);/);
   assert.match(source, /if \(!client\)/);
-  assert.match(source, /t\.bridge\.desktopOnly/);
+  assert.match(source, /t\("bridge\.desktopOnly"\)/);
 });
