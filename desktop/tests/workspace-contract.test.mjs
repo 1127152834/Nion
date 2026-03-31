@@ -21,3 +21,15 @@ test("desktop renderer wires the project workspace routes", () => {
   assert.match(source, /path="\/workspace\/projects\/:project_id"/);
   assert.match(source, /path="\/workspace\/projects\/:project_id\/threads\/:thread_id"/);
 });
+
+test("desktop renderer wires notebook memory and self-maintenance workspace routes", () => {
+  const source = fs.readFileSync(
+    new URL("../src/renderer/renderer-app.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /path="\/workspace\/notebook"/);
+  assert.match(source, /path="\/workspace\/notebook\/trash"/);
+  assert.match(source, /path="\/workspace\/memory"/);
+  assert.match(source, /path="\/workspace\/self-maintenance"/);
+});

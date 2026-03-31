@@ -8,9 +8,11 @@ import AgentsPage from "@/app/workspace/agents/page";
 import AboutPage from "@/app/workspace/about/page";
 import AutomationPage from "@/app/workspace/automation/page";
 import BridgePage from "@/app/workspace/bridge/page";
+import WorkspaceMemoryPage from "@/app/workspace/memory/page";
 import NotebookPage from "@/app/workspace/notebook/page";
 import NotebookTrashPage from "@/app/workspace/notebook/trash/page";
 import WorkspaceProjectThreadPage from "@/app/workspace/projects/[project_id]/threads/[thread_id]/page";
+import WorkspaceSelfMaintenancePage from "@/app/workspace/self-maintenance/page";
 import { ProjectDashboardPage } from "@/components/workspace/projects/project-dashboard-page";
 import { ProjectListPage } from "@/components/workspace/projects/project-list-page";
 import ToolPolicyPage from "@/app/workspace/tool-policy/page";
@@ -117,6 +119,22 @@ export function DesktopRendererApp() {
                 element={
                   <WorkspaceRoute>
                     <NotebookTrashPage />
+                  </WorkspaceRoute>
+                }
+              />
+              <Route
+                path="/workspace/memory"
+                element={
+                  <WorkspaceRoute>
+                    <WorkspaceMemoryPage />
+                  </WorkspaceRoute>
+                }
+              />
+              <Route
+                path="/workspace/self-maintenance"
+                element={
+                  <WorkspaceRoute>
+                    <WorkspaceSelfMaintenancePage />
                   </WorkspaceRoute>
                 }
               />
