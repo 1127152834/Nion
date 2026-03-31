@@ -789,6 +789,7 @@ export interface Translations {
         triggerLabel: string;
         latestRunLabel: string;
         noEntryPath: string;
+        supportingSummary: string;
         openPageButton: string;
       };
       storage: {

@@ -730,7 +730,7 @@ export const enUS: Translations = {
         provider: {
           title: "Memory Provider",
           description:
-            "Choose which memory backend powers notebook retrieval, long-term memory, AutoDream, identity, and soul.",
+            "Choose which memory backend powers long-term memory, continuity, and maintenance runtime state.",
           modeSummary: "OpenViking modes: embedded / remote",
           activeModeLabel: "Active OpenViking mode",
         },
@@ -783,6 +783,8 @@ export const enUS: Translations = {
         triggerLabel: "Trigger",
         latestRunLabel: "Latest run",
         noEntryPath: "No run artifact path yet.",
+        supportingSummary:
+          "Use the dedicated Self-Maintenance page to inspect the latest maintenance run and proposal details.",
         openPageButton: "Open page",
       },
       autodream: {

@@ -702,7 +702,7 @@ export const zhCN: Translations = {
         provider: {
           title: "记忆提供者",
           description:
-            "选择当前承载笔记检索、长期记忆、AutoDream、identity 与 soul 的记忆后端。",
+            "选择当前承载长期记忆、连续性与维护运行时状态的记忆后端。",
           modeSummary: "OpenViking 模式：embedded / remote",
           activeModeLabel: "当前 OpenViking 模式",
         },
@@ -754,6 +754,8 @@ export const zhCN: Translations = {
         triggerLabel: "触发来源",
         latestRunLabel: "最近一次运行",
         noEntryPath: "暂时还没有产物路径。",
+        supportingSummary:
+          "请前往独立的自我维护页面查看最近一次维护运行与提案详情。",
         openPageButton: "打开页面",
       },
       autodream: {

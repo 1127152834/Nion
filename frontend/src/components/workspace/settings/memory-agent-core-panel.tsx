@@ -11,14 +11,16 @@ export function MemoryAgentCorePanel(props: {
   runSelfMaintenanceData: SelfMaintenanceRunResponse | null;
 }) {
   const { t } = useI18n();
-  const summary =
-    props.runSelfMaintenanceData?.entry.summary ||
-    t.settings.memory.selfMaintenance.emptySummary;
-  const proposalCount =
-    (props.runSelfMaintenanceData?.memory_update_proposals.length ?? 0) +
-    (props.runSelfMaintenanceData?.prune_proposals.length ?? 0) +
-    (props.runSelfMaintenanceData?.action_proposals.length ?? 0) +
-    (props.runSelfMaintenanceData?.self_upgrade_proposals.length ?? 0);
+  const hasRecentRun = Boolean(props.runSelfMaintenanceData?.entry.summary);
+  const summary = hasRecentRun
+    ? props.runSelfMaintenanceData?.entry.summary
+    : t.settings.memory.selfMaintenance.supportingSummary;
+  const proposalCount = hasRecentRun
+    ? (props.runSelfMaintenanceData?.memory_update_proposals.length ?? 0) +
+      (props.runSelfMaintenanceData?.prune_proposals.length ?? 0) +
+      (props.runSelfMaintenanceData?.action_proposals.length ?? 0) +
+      (props.runSelfMaintenanceData?.self_upgrade_proposals.length ?? 0)
+    : null;
 
   return (
     <div className="rounded-xl border bg-background/80 p-5 shadow-sm">
@@ -40,28 +42,27 @@ export function MemoryAgentCorePanel(props: {
                 {t.settings.memory.selfMaintenance.description}
               </p>
             </div>
-            <div className="text-right">
-              <div className="text-xs uppercase tracking-wide text-muted-foreground">
-                {t.settings.memory.selfMaintenance.proposalsLabel}
-              </div>
-              <div className="mt-1 text-lg font-semibold">{proposalCount}</div>
-            </div>
-          </div>
-
-          <div className="rounded-md border bg-background p-3 text-sm leading-6">
-            <div className="font-medium">{summary}</div>
-            <div className="mt-2 text-xs text-muted-foreground">
-              {props.runSelfMaintenanceData?.entry_path ||
-                t.settings.memory.selfMaintenance.noEntryPath}
-            </div>
-            {props.runSelfMaintenanceData?.entry.run_id ? (
-              <div className="mt-2 text-xs text-muted-foreground">
-                Run ID: {props.runSelfMaintenanceData.entry.run_id}
+            {proposalCount !== null ? (
+              <div className="text-right">
+                <div className="text-xs uppercase tracking-wide text-muted-foreground">
+                  {t.settings.memory.selfMaintenance.proposalsLabel}
+                </div>
+                <div className="mt-1 text-lg font-semibold">{proposalCount}</div>
               </div>
             ) : null}
           </div>
 
-          {props.runSelfMaintenanceData?.entry.trigger ? (
+          <div className="rounded-md border bg-background p-3 text-sm leading-6">
+            <div className="font-medium">{summary}</div>
+            {hasRecentRun ? (
+              <div className="mt-2 text-xs text-muted-foreground">
+                {props.runSelfMaintenanceData?.entry_path ||
+                  t.settings.memory.selfMaintenance.noEntryPath}
+              </div>
+            ) : null}
+          </div>
+
+          {hasRecentRun && props.runSelfMaintenanceData?.entry.trigger ? (
             <div className="grid gap-3 text-xs text-muted-foreground md:grid-cols-2">
               <div>
                 <div className="font-medium uppercase tracking-wide">
@@ -74,8 +75,7 @@ export function MemoryAgentCorePanel(props: {
                   {t.settings.memory.selfMaintenance.latestRunLabel}
                 </div>
                 <div className="mt-1">
-                  {props.runSelfMaintenanceData.entry.run_id ||
-                    props.runSelfMaintenanceData.entry_path}
+                  {props.runSelfMaintenanceData.entry_path}
                 </div>
               </div>
             </div>
