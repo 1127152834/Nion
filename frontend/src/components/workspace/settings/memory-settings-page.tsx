@@ -10,6 +10,7 @@ import {
 } from "@/core/navigation/desktop-routes";
 
 import { SettingsSection } from "./settings-section";
+import { MemoryAgentCorePanel } from "./memory-agent-core-panel";
 
 export function MemorySettingsPage() {
   const { t } = useI18n();
@@ -58,6 +59,8 @@ export function MemorySettingsPage() {
           </Button>
         </article>
       </div>
+
+      <MemoryAgentCorePanel runSelfMaintenanceData={null} />
     </SettingsSection>
   );
 }
