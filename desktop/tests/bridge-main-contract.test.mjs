@@ -35,3 +35,14 @@ test("desktop main persists the currently tested bridge credentials before marki
   assert.match(source, /next\.bridge_discord_bot_token = explicitBotToken \?\? botToken/);
   assert.match(source, /next\.bridge_qq_app_id = explicitAppId \?\? appId/);
 });
+
+test("desktop main migrates legacy local bridge settings into config db", () => {
+  const source = fs.readFileSync(
+    new URL("../src/main/index.ts", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /migrateLegacyBridgeSettings/);
+  assert.match(source, /settings\.json/);
+  assert.match(source, /writeBridgeConfigToConfigCenter/);
+});

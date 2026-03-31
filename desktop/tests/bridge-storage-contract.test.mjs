@@ -45,8 +45,9 @@ test("desktop bridge config no longer uses local settings.json as the source of 
     "utf8",
   );
 
-  assert.doesNotMatch(source, /bridge", "settings\.json"/);
+  assert.match(source, /migrateLegacyBridgeSettings/);
   assert.match(source, /\/api\/config/);
+  assert.doesNotMatch(source, /createBridgeSettingsStore/);
   assert.match(source, /bridge", "bindings\.json"/);
   assert.match(source, /bridge", "offsets\.json"/);
   assert.match(source, /bridge", "observations\.json"/);

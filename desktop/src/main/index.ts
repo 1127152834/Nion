@@ -1,4 +1,5 @@
 import path from "node:path";
+import fs from "node:fs";
 import { fileURLToPath } from "node:url";
 
 import { app, BrowserWindow, dialog, ipcMain } from "electron";
@@ -643,6 +644,30 @@ export async function startDesktopMain(): Promise<void> {
       throw new Error(`Failed to persist bridge config (${updateResponse.status})`);
     }
   };
+
+  const migrateLegacyBridgeSettings = async () => {
+    const legacyPath = path.join(environment.userDataPath, "bridge", "settings.json");
+    if (!fs.existsSync(legacyPath)) {
+      return;
+    }
+
+    const currentBridgeConfig = await readBridgeConfigFromConfigCenter();
+    const currentSettings = bridgeConfigToSettingsMap(currentBridgeConfig);
+    const hasExistingBridgeConfig = Object.values(currentSettings).some((value) => value !== "");
+    if (hasExistingBridgeConfig) {
+      return;
+    }
+
+    const raw = fs.readFileSync(legacyPath, "utf8");
+    const parsed = JSON.parse(raw) as { settings?: Record<string, string> };
+    const legacySettings =
+      parsed.settings && typeof parsed.settings === "object" ? parsed.settings : {};
+    if (Object.keys(legacySettings).length === 0) {
+      return;
+    }
+
+    await writeBridgeConfigToConfigCenter(legacySettings);
+  };
   const bridgeManager = createBridgeManager({
     loadSettings: () => ({
       settings: bridgeSettingsCache,
@@ -693,6 +718,8 @@ export async function startDesktopMain(): Promise<void> {
     await bridgeManager.stop();
     await bridgeManager.start();
   };
+
+  await migrateLegacyBridgeSettings();
 
   const readBridgeSettings = () => {
     return readBridgeConfigFromConfigCenter().then((bridgeConfig) => {
