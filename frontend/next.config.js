@@ -8,6 +8,7 @@ const isStaticExport = process.env.NION_STATIC_EXPORT === "1";
 
 /** @type {import("next").NextConfig} */
 const config = {
+  allowedDevOrigins: ["127.0.0.1", "localhost"],
   devIndicators: false,
   ...(isStaticExport ? { output: "export" } : {}),
   images: {
