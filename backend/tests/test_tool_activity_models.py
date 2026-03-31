@@ -3,6 +3,7 @@ from nion.tools.activity_models import (
     ToolActivityEvent,
     ToolActivityKind,
 )
+from nion.tools.activity_profiles import get_tool_activity_profile
 
 
 def test_tool_activity_event_is_first_class_model():
@@ -35,3 +36,14 @@ def test_tool_activity_batch_tracks_group_and_summary():
 
     assert batch.group_id == "group-1"
     assert batch.tool_names == ["read_file", "ls"]
+
+
+def test_activity_profile_exists_for_builtin_task_tool():
+    profile = get_tool_activity_profile("task")
+    assert profile.activity_label == "Running subtask"
+    assert profile.summary_label == "Completed subtask"
+
+
+def test_activity_profile_exists_for_read_file():
+    profile = get_tool_activity_profile("read_file")
+    assert profile.result_class == "read"
