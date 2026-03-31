@@ -666,6 +666,14 @@ export async function startDesktopMain(): Promise<void> {
         return { verified: false, error: "bot_token is required" };
       }
       const result = await verifyTelegramBot(botToken, chatId || undefined);
+      if (result.verified) {
+        updateBridgeSettings((next) => {
+          next.telegram_bot_token = botToken;
+          next.bridge_telegram_bot_token = botToken;
+          next.telegram_chat_id = chatId || "";
+          next.bridge_telegram_chat_id = chatId || "";
+        });
+      }
       updatePlatformVerificationState("telegram", result.verified);
       return result;
     },
@@ -690,6 +698,11 @@ export async function startDesktopMain(): Promise<void> {
         return { verified: false, error: "Bot token is required" };
       }
       const result = await verifyDiscordBot(botToken);
+      if (result.verified) {
+        updateBridgeSettings((next) => {
+          next.bridge_discord_bot_token = botToken;
+        });
+      }
       updatePlatformVerificationState("discord", result.verified);
       return result;
     },
@@ -708,6 +721,13 @@ export async function startDesktopMain(): Promise<void> {
         return { verified: false, error: "App ID and App Secret are required" };
       }
       const result = await verifyFeishuApp(appId, appSecret, domain);
+      if (result.verified) {
+        updateBridgeSettings((next) => {
+          next.bridge_feishu_app_id = appId;
+          next.bridge_feishu_app_secret = appSecret;
+          next.bridge_feishu_domain = domain;
+        });
+      }
       updatePlatformVerificationState("feishu", result.verified);
       return result;
     },
@@ -722,6 +742,12 @@ export async function startDesktopMain(): Promise<void> {
         return { verified: false, error: "App ID and App Secret are required" };
       }
       const result = await verifyQqApp(appId, appSecret);
+      if (result.verified) {
+        updateBridgeSettings((next) => {
+          next.bridge_qq_app_id = appId;
+          next.bridge_qq_app_secret = appSecret;
+        });
+      }
       updatePlatformVerificationState("qq", result.verified);
       return result;
     },
