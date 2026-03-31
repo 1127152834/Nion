@@ -67,7 +67,7 @@ void test("recent chat list groups conversations into project, bridge, and gener
     "utf8",
   );
 
-  assert.match(source, /searchParams\.get\("type"\)/);
+  assert.match(source, /recent_chat_tab/);
   assert.match(source, /groupThreadsByWorkspaceType/);
   assert.match(source, /pathOfThread\(nextThreadId,\s*\{\s*type:/);
   assert.match(source, /ThreadTypeTabs/);

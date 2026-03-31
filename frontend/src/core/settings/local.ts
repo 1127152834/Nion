@@ -1,4 +1,5 @@
 import type { AgentThreadContext } from "../threads";
+import type { WorkspaceThreadType } from "../threads/history-tabs";
 
 export const DEFAULT_LOCAL_SETTINGS: LocalSettings = {
   notification: {
@@ -11,6 +12,7 @@ export const DEFAULT_LOCAL_SETTINGS: LocalSettings = {
   },
   layout: {
     sidebar_collapsed: false,
+    recent_chat_tab: "general",
   },
 };
 
@@ -29,6 +31,7 @@ export interface LocalSettings {
   };
   layout: {
     sidebar_collapsed: boolean;
+    recent_chat_tab: WorkspaceThreadType;
   };
 }
 

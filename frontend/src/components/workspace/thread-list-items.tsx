@@ -46,10 +46,10 @@ function ThreadPresentation({
 }: ThreadPresentationProps) {
   const containerClassName = isProject
     ? scope === "sidebar"
-      ? `rounded-2xl border px-3 py-3 transition-colors ${
+      ? `rounded-xl border px-2.5 py-2.5 transition-colors ${
           isActive
-            ? "border-foreground/14 bg-background shadow-sm"
-            : "border-border/55 bg-background/75 hover:border-border"
+            ? "border-foreground/12 bg-background shadow-sm"
+            : "border-border/40 bg-background/60 hover:border-border/70"
         }`
       : `rounded-3xl border px-5 py-4 transition-colors ${
           isActive
@@ -57,8 +57,8 @@ function ThreadPresentation({
             : "border-border/55 bg-background/75 hover:border-border"
         }`
     : scope === "sidebar"
-      ? `rounded-2xl px-3 py-2 transition-colors ${
-          isActive ? "bg-accent/55 text-foreground" : "hover:bg-accent/35"
+      ? `rounded-lg px-2.5 py-2 transition-colors ${
+          isActive ? "bg-accent/45 text-foreground" : "hover:bg-accent/25"
         }`
       : `border-b border-border/55 px-5 py-4 transition-colors ${
           isActive ? "bg-accent/25" : "hover:bg-accent/10"
@@ -88,24 +88,45 @@ function ThreadPresentation({
       <div className="min-w-0 flex-1">
         <div
           className={`min-w-0 ${
-            isProject ? "space-y-2.5" : "space-y-1.5"
+            isProject
+              ? scope === "sidebar"
+                ? "space-y-1.5"
+                : "space-y-2.5"
+              : "space-y-1.5"
           }`}
         >
-          <div className={`truncate font-medium ${isProject ? "text-[15px]" : ""}`}>
+          <div
+            className={`truncate font-medium ${
+              isProject
+                ? scope === "sidebar"
+                  ? "text-[13px]"
+                  : "text-[15px]"
+                : scope === "sidebar"
+                  ? "text-[13px]"
+                  : ""
+            }`}
+          >
             {title}
           </div>
 
           {isProject ? (
-            <div className="flex flex-wrap items-center gap-2">
+            <div className={`flex flex-wrap items-center gap-1.5 ${scope === "sidebar" ? "min-h-0" : ""}`}>
               {projectLabel ? (
-                <Badge variant="outline" className="rounded-full px-2.5 py-0 text-[11px]">
+                <Badge
+                  variant="outline"
+                  className={scope === "sidebar"
+                    ? "rounded-full px-2 py-0 text-[10px]"
+                    : "rounded-full px-2.5 py-0 text-[11px]"}
+                >
                   {projectLabel}
                 </Badge>
               ) : null}
               {pendingLabel ? (
                 <Badge
                   variant="outline"
-                  className="border-foreground/10 bg-accent/40 text-foreground rounded-full px-2.5 py-0 text-[11px]"
+                  className={scope === "sidebar"
+                    ? "border-foreground/10 bg-accent/40 text-foreground rounded-full px-2 py-0 text-[10px]"
+                    : "border-foreground/10 bg-accent/40 text-foreground rounded-full px-2.5 py-0 text-[11px]"}
                   data-pending-reply-label
                 >
                   <span className="bg-foreground/70 mr-1 inline-block size-1.5 rounded-full" />
@@ -113,7 +134,12 @@ function ThreadPresentation({
                 </Badge>
               ) : null}
               {bridgeLabel ? (
-                <Badge variant="outline" className="rounded-full px-2.5 py-0 text-[11px]">
+                <Badge
+                  variant="outline"
+                  className={scope === "sidebar"
+                    ? "rounded-full px-2 py-0 text-[10px]"
+                    : "rounded-full px-2.5 py-0 text-[11px]"}
+                >
                   {bridgeBadgeLabel} · {bridgeLabel}
                 </Badge>
               ) : null}
@@ -152,7 +178,7 @@ function ThreadPresentation({
           {updatedAtLabel ? (
             <div
               className={`text-muted-foreground ${
-                isProject ? "text-xs" : "text-sm"
+                scope === "sidebar" ? "text-[11px]" : isProject ? "text-xs" : "text-sm"
               }`}
             >
               {updatedAtLabel}

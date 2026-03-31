@@ -31,16 +31,37 @@ export function ThreadTypeTabs({
         className={
           scope === "page"
             ? "w-full justify-start border-b px-0"
-            : "w-full justify-start rounded-full border border-border/45 bg-background/55 p-1"
+            : "grid w-full grid-cols-3 rounded-xl border border-border/40 bg-background/70 p-0.5"
         }
       >
-        <TabsTrigger value="general">
+        <TabsTrigger
+          value="general"
+          className={
+            scope === "sidebar"
+              ? "h-8 rounded-lg px-0 text-[12px] font-medium data-[state=active]:bg-background data-[state=active]:shadow-none after:hidden"
+              : undefined
+          }
+        >
           {t.sidebar.chats}
         </TabsTrigger>
-        <TabsTrigger value="project">
+        <TabsTrigger
+          value="project"
+          className={
+            scope === "sidebar"
+              ? "h-8 rounded-lg px-0 text-[12px] font-medium data-[state=active]:bg-background data-[state=active]:shadow-none after:hidden"
+              : undefined
+          }
+        >
           {t.sidebar.projects}
         </TabsTrigger>
-        <TabsTrigger value="bridge">
+        <TabsTrigger
+          value="bridge"
+          className={
+            scope === "sidebar"
+              ? "h-8 rounded-lg px-0 text-[12px] font-medium data-[state=active]:bg-background data-[state=active]:shadow-none after:hidden"
+              : undefined
+          }
+        >
           {t.bridge.menuLabel}
         </TabsTrigger>
       </TabsList>

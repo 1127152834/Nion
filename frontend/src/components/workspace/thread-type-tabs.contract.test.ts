@@ -8,8 +8,8 @@ void test("thread type tabs expose exactly the three fixed history categories", 
     "utf8",
   );
 
-  assert.match(source, /TabsTrigger value="general"/);
-  assert.match(source, /TabsTrigger value="project"/);
-  assert.match(source, /TabsTrigger value="bridge"/);
+  assert.match(source, /value="general"/);
+  assert.match(source, /value="project"/);
+  assert.match(source, /value="bridge"/);
   assert.doesNotMatch(source, /TabsTrigger value="all"/);
 });

@@ -10,7 +10,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -43,6 +43,7 @@ import {
 } from "@/components/ui/sidebar";
 import { getAPIClient } from "@/core/api";
 import { useI18n } from "@/core/i18n/hooks";
+import { getLocalSettings, saveLocalSettings } from "@/core/settings/local";
 import {
   derivePendingClarification,
   filterThreadsByWorkspaceType,
@@ -62,7 +63,6 @@ import {
 import type { AgentThread, AgentThreadState } from "@/core/threads/types";
 import {
   bridgeInfoOfThread,
-  pathOfChatHistoryType,
   pathOfThread,
   titleOfThread,
 } from "@/core/threads/utils";
@@ -79,14 +79,27 @@ export function RecentChatList() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const threadIdFromPath = searchParams.get("thread");
-  const activeType = resolveWorkspaceThreadType({
-    pathname,
-    value: searchParams.get("type"),
-  });
   const { data: threads = [] } = useThreads();
   const { mutate: deleteThread } = useDeleteThread();
   const { mutate: deleteThreads } = useDeleteThreads();
   const { mutate: renameThread } = useRenameThread();
+  const [activeType, setActiveType] = useState(() =>
+    resolveWorkspaceThreadType({
+      pathname,
+      value:
+        typeof window === "undefined"
+          ? null
+          : getLocalSettings().layout.recent_chat_tab,
+    }),
+  );
+
+  useEffect(() => {
+    const nextType = resolveWorkspaceThreadType({
+      pathname,
+      value: getLocalSettings().layout.recent_chat_tab,
+    });
+    setActiveType(nextType);
+  }, [pathname]);
 
   const threadGroups = useMemo(
     () =>
@@ -270,7 +283,15 @@ export function RecentChatList() {
             value={activeType}
             onValueChange={(nextType) => {
               setSelectedThreadIds([]);
-              void router.push(pathOfChatHistoryType(nextType));
+              setActiveType(nextType);
+              const settings = getLocalSettings();
+              saveLocalSettings({
+                ...settings,
+                layout: {
+                  ...settings.layout,
+                  recent_chat_tab: nextType,
+                },
+              });
             }}
             className="mb-2 px-2"
           />
@@ -320,7 +341,7 @@ export function RecentChatList() {
       <SidebarGroup>
         <SidebarGroupContent className="group-data-[collapsible=icon]:pointer-events-none group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0">
           <SidebarMenu>
-            <div className="flex w-full flex-col gap-2 px-2">
+            <div className="flex w-full flex-col gap-2 px-2 pb-2">
               {activeGroup.map(({ thread, pendingClarification }) => {
                 const isActive =
                   (pathname === "/workspace/chats" &&
@@ -347,7 +368,7 @@ export function RecentChatList() {
                     className="group/side-menu-item"
                   >
                     <SidebarMenuButton isActive={isActive} asChild>
-                      <div>
+                      <div className="relative">
                         <WorkspaceThreadListItem
                           bridgeBadgeLabel={bt("bridge.bridgeChatBadge")}
                           bridgeLabel={bridgeLabel}
