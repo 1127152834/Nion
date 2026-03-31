@@ -128,14 +128,29 @@ class Paths:
         return self.openviking_dir / "ingest-state.sqlite3"
 
     @property
+    def self_maintenance_dir(self) -> Path:
+        """Canonical agent self-maintenance root: `{base_dir}/self-maintenance`."""
+        return self.base_dir / "self-maintenance"
+
+    @property
+    def self_maintenance_journal_dir(self) -> Path:
+        """Reflective maintenance journal root under the canonical self-maintenance area."""
+        return self.self_maintenance_dir / "journal" / "reflective"
+
+    @property
+    def self_maintenance_state_file(self) -> Path:
+        """Path to the canonical self-maintenance runtime state file."""
+        return self.self_maintenance_dir / "state.json"
+
+    @property
     def autodream_journal_dir(self) -> Path:
-        """Agent-owned AutoDream journal root under embedded OpenViking."""
-        return self.openviking_dir / "journal" / "autodream"
+        """Legacy AutoDream journal alias to the canonical self-maintenance journal."""
+        return self.self_maintenance_journal_dir
 
     @property
     def autodream_state_file(self) -> Path:
-        """Path to the AutoDream runtime state file."""
-        return self.openviking_dir / "autodream-state.json"
+        """Legacy AutoDream state alias to the canonical self-maintenance state file."""
+        return self.self_maintenance_state_file
 
     @property
     def telemetry_db_file(self) -> Path:
@@ -290,11 +305,16 @@ class Paths:
     def ensure_openviking_dirs(self) -> None:
         """Create standard directories for the embedded OpenViking runtime."""
         self.openviking_dir.mkdir(parents=True, exist_ok=True)
-        self.autodream_journal_dir.mkdir(parents=True, exist_ok=True)
+        self.ensure_self_maintenance_dirs()
+
+    def ensure_self_maintenance_dirs(self) -> None:
+        """Create standard directories for the canonical self-maintenance runtime."""
+        self.self_maintenance_dir.mkdir(parents=True, exist_ok=True)
+        self.self_maintenance_journal_dir.mkdir(parents=True, exist_ok=True)
 
     def ensure_autodream_dirs(self) -> None:
-        """Create standard directories for AutoDream journal artifacts."""
-        self.autodream_journal_dir.mkdir(parents=True, exist_ok=True)
+        """Create standard directories for legacy AutoDream compatibility artifacts."""
+        self.ensure_self_maintenance_dirs()
 
     def resolve_virtual_path(self, thread_id: str, virtual_path: str) -> Path:
         """Resolve a sandbox virtual path to the actual host filesystem path.
