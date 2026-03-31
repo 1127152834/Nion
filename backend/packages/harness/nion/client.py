@@ -47,6 +47,7 @@ from nion.models import create_chat_model
 from nion.telemetry.logger import make_event
 from nion.telemetry.store import TelemetryStore
 from nion.telemetry.token_source import iter_with_token_source
+from nion.tools.activity_summary import summarize_tool_batch
 from nion.uploads import (
     PathTraversalError,
     delete_file_safe,
@@ -459,6 +460,44 @@ class NionClient:
         seen_signatures: dict[str, str] = {}
         cumulative_ai_content: dict[str, str] = {}
         cumulative_usage: dict[str, int] = {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0}
+        current_tool_batch: list[dict[str, Any]] = []
+        tool_activity_timeline: list[dict[str, Any]] = []
+
+        def flush_tool_batch() -> list[StreamEvent]:
+            nonlocal current_tool_batch, tool_activity_timeline
+            if not current_tool_batch:
+                return []
+
+            tool_names = [item["tool_name"] for item in current_tool_batch]
+            summary = summarize_tool_batch(tool_names)
+            group_id = f"group-{len(tool_activity_timeline) + 1}"
+            activity_event = {
+                "event_id": f"activity-{len(tool_activity_timeline) + 1}",
+                "kind": "tool_batch_summary",
+                "group_id": group_id,
+                "thread_id": thread_id,
+                "summary_label": summary.summary_label,
+                "result_class": summary.result_class,
+                "tool_names": tool_names,
+            }
+            tool_activity_timeline.append(activity_event)
+            current_tool_batch = []
+
+            message_projection = {
+                "type": "tool_activity_summary",
+                "id": f"tas-{len(tool_activity_timeline)}",
+                "content": summary.summary_label,
+                "additional_kwargs": {
+                    "group_id": group_id,
+                    "tool_names": tool_names,
+                    "result_class": summary.result_class,
+                },
+            }
+
+            return [
+                StreamEvent(type="tool-activity", data=activity_event),
+                StreamEvent(type="messages-tuple", data=message_projection),
+            ]
 
         try:
             ai_message_count = 0
@@ -569,6 +608,12 @@ class NionClient:
                         if additional_kwargs:
                             payload["additional_kwargs"] = additional_kwargs
                         yield StreamEvent(type="messages-tuple", data=payload)
+                        current_tool_batch.append(
+                            {
+                                "tool_name": getattr(msg, "name", None) or "unknown_tool",
+                                "tool_call_id": getattr(msg, "tool_call_id", None),
+                            }
+                        )
 
                         clarification = additional_kwargs.get("clarification")
                         if getattr(msg, "name", None) == "ask_clarification" and isinstance(clarification, dict):
@@ -612,6 +657,9 @@ class NionClient:
                                 },
                             )
 
+                for tool_activity_event in flush_tool_batch():
+                    yield tool_activity_event
+
                 yield StreamEvent(
                     type="values",
                     data={
@@ -619,6 +667,8 @@ class NionClient:
                         "messages": [self._serialize_message(m) for m in messages],
                         "artifacts": chunk.get("artifacts", []),
                         "todos": chunk.get("todos", []),
+                        "tool_activity_timeline": tool_activity_timeline,
+                        "latest_tool_activity": tool_activity_timeline[-1] if tool_activity_timeline else None,
                     },
                 )
 
