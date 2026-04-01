@@ -12,6 +12,7 @@ import {
   PlayIcon,
   RotateCcwIcon,
 } from "lucide-react";
+import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,10 @@ import {
   WorkspaceContainer,
   WorkspaceHeader,
 } from "@/components/workspace/workspace-container";
+import {
+  useCreateMemoryCandidatesFromProject,
+  useCreateNotebookDraftFromProject,
+} from "@/core/object-bridges/hooks";
 import {
   useConfirmProjectPlanOutcome,
   useCreateProjectPlan,
@@ -59,6 +64,8 @@ export function ProjectDashboardPage({ projectId }: { projectId: string }) {
 
   const createThread = useCreateProjectThread(projectId);
   const createPlan = useCreateProjectPlan(projectId);
+  const createNotebookDraft = useCreateNotebookDraftFromProject(projectId);
+  const createProjectMemoryCandidate = useCreateMemoryCandidatesFromProject(projectId);
   const createReworkPlan = useCreateReworkPlan(projectId);
   const restoreArtifact = useRestoreProjectArtifact(projectId);
   const requestProjectCompletion = useRequestProjectCompletion(projectId);
@@ -120,6 +127,31 @@ export function ProjectDashboardPage({ projectId }: { projectId: string }) {
     });
   };
 
+  const handleExportToNotebook = async () => {
+    try {
+      await createNotebookDraft.mutateAsync({
+        kind: "summary",
+        scope: "whole_project",
+        target_directory: "收件箱",
+      });
+      toast.success("已生成笔记草稿候选，默认导出到收件箱。");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : String(error));
+    }
+  };
+
+  const handleExtractLongTermMemory = async () => {
+    try {
+      await createProjectMemoryCandidate.mutateAsync({
+        kind: "long_term_memory",
+        scope: "whole_project",
+      });
+      toast.success("已生成长期记忆候选，不会直接写入长期记忆。");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : String(error));
+    }
+  };
+
   return (
     <WorkspaceContainer>
       <WorkspaceHeader />
@@ -148,6 +180,20 @@ export function ProjectDashboardPage({ projectId }: { projectId: string }) {
                 <Button variant="outline" onClick={handleCreatePlan}>
                   <ListTreeIcon className="size-4" />
                   新建实施计划
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => void handleExportToNotebook()}
+                  disabled={createNotebookDraft.isPending || createProjectMemoryCandidate.isPending}
+                >
+                  导出到笔记
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => void handleExtractLongTermMemory()}
+                  disabled={createNotebookDraft.isPending || createProjectMemoryCandidate.isPending}
+                >
+                  提炼长期记忆
                 </Button>
                 <Button
                   variant="outline"
