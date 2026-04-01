@@ -224,6 +224,5 @@ Each milestone must have:
 
 ## Companion Sources
 
-- [2026-03-31-memoh-style-memory-self-maintenance-design.md](/Users/zhangtiancheng/Documents/项目/agent/nion/docs/superpowers/specs/2026-03-31-memoh-style-memory-self-maintenance-design.md)
 - [2026-03-31-memoh-reference-reading-log.md](/Users/zhangtiancheng/Documents/项目/agent/nion/docs/superpowers/specs/2026-03-31-memoh-reference-reading-log.md)
 - [2026-03-31-memoh-nion-parity-baseline.md](/Users/zhangtiancheng/Documents/项目/agent/nion/docs/superpowers/specs/2026-03-31-memoh-nion-parity-baseline.md)

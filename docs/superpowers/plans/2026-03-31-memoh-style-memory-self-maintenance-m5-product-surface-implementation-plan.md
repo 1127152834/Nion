@@ -14,7 +14,6 @@
 
 Before implementing M5, review the following source of truth and use code plus design docs together:
 
-- [ ] `/Users/zhangtiancheng/Documents/项目/agent/nion/docs/superpowers/specs/2026-03-31-memoh-style-memory-self-maintenance-design.md`
 - [ ] `/Users/zhangtiancheng/Documents/项目/agent/nion/docs/superpowers/plans/2026-03-31-memoh-style-memory-self-maintenance-roadmap.md`
 - [ ] `/Users/zhangtiancheng/Documents/项目/agent/nion/frontend/src/components/workspace/settings/settings-dialog.tsx`
 - [ ] `/Users/zhangtiancheng/Documents/项目/agent/nion/frontend/src/components/workspace/settings/memory-settings-page.tsx`
