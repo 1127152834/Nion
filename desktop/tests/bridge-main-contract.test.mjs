@@ -58,3 +58,15 @@ test("desktop main refreshes bridge settings cache from config center before sta
   assert.match(source, /DESKTOP_BRIDGE_IPC_CHANNELS\.start,[\s\S]*await syncBridgeSettingsCache\(\);[\s\S]*bridgeManager\.reloadAdapters\(\);[\s\S]*bridgeManager\.start\(\)/);
   assert.match(source, /DESKTOP_BRIDGE_IPC_CHANNELS\.startPlatform,[\s\S]*await syncBridgeSettingsCache\(\);[\s\S]*bridgeManager\.reloadAdapters\(\);[\s\S]*bridgeManager\.startPlatform\(platform\)/);
 });
+
+test("desktop main restores bridge runtime on app start when bridge auto-start is enabled", () => {
+  const source = fs.readFileSync(
+    new URL("../src/main/index.ts", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /const restoreBridgeRuntimeIfNeeded = async \(\) => \{/);
+  assert.match(source, /if \(bridgeSettingsCache\.bridge_auto_start !== "true"\)/);
+  assert.match(source, /await syncBridgeSettingsCache\(\);[\s\S]*bridgeManager\.reloadAdapters\(\);[\s\S]*await bridgeManager\.start\(\)/);
+  assert.match(source, /await restoreBridgeRuntimeIfNeeded\(\)/);
+});

@@ -714,6 +714,14 @@ export async function startDesktopMain(): Promise<void> {
   const syncBridgeSettingsCache = async () => {
     bridgeSettingsCache = bridgeConfigToSettingsMap(await readBridgeConfigFromConfigCenter());
   };
+  const restoreBridgeRuntimeIfNeeded = async () => {
+    await syncBridgeSettingsCache();
+    if (bridgeSettingsCache.bridge_auto_start !== "true") {
+      return;
+    }
+    bridgeManager.reloadAdapters();
+    await bridgeManager.start();
+  };
   const restartBridgeIfRunning = async () => {
     if (!bridgeManager.getStatus().running) {
       return;
@@ -1075,6 +1083,7 @@ export async function startDesktopMain(): Promise<void> {
   const preloadPath = path.join(__dirname, "..", "preload", "index.js");
   const rendererUrl =
     process.env.NION_DESKTOP_RENDERER_URL?.trim() || "nion://app/index.html";
+  await restoreBridgeRuntimeIfNeeded();
   mainWindow = await createMainWindow({
     preloadPath,
     rendererUrl,

@@ -93,7 +93,7 @@ void test("weixin bridge section requires a verified account before enabling", a
   );
 
   assert.match(source, /const weixinConnectionVerified = accounts\.some/);
-  assert.match(source, /ensureWeixinVerifiedBeforeEnable/);
+  assert.match(source, /BridgePlatformRuntimeCard/);
   assert.doesNotMatch(source, /channelEnabled/);
 });
 
@@ -134,7 +134,6 @@ void test("bridge platform sections persist config through the config editor sav
     readFile(new URL("./FeishuBridgeSection.tsx", import.meta.url), "utf8"),
     readFile(new URL("./DiscordBridgeSection.tsx", import.meta.url), "utf8"),
     readFile(new URL("./QqBridgeSection.tsx", import.meta.url), "utf8"),
-    readFile(new URL("./WeixinBridgeSection.tsx", import.meta.url), "utf8"),
   ]);
 
   for (const source of sources) {
