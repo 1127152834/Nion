@@ -77,6 +77,10 @@ export function pathOfProject(projectId: string) {
   return `/workspace/projects/${projectId}`;
 }
 
+export function pathOfObjectCandidate(candidateId: string) {
+  return `/workspace/candidates/${candidateId}`;
+}
+
 export function pathOfProjectThread(
   projectId: string,
   threadId: string,
