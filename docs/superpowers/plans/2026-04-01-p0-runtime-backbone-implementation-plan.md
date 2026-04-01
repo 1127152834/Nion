@@ -27,7 +27,7 @@
 
 ## P0 下游前置条件
 
-P0 完成后，禁止直接跳去做 Notebook / Projects 的页面增强或扩展壳能力。  
+P0 完成后，禁止直接跳去做 Notebook / Projects 的页面增强或扩展壳能力。
 在进入 SkillTool、Notebook 2.0、Projects 2.0、plugin/MCP 深化之前，必须先完成下面这些前置条件设计：
 
 1. `Knowledge / Work Object Model`
