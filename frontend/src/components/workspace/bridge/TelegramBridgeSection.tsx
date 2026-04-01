@@ -85,13 +85,16 @@ export function TelegramBridgeSection() {
     }
     setSaving(true);
     try {
-      await saveBridgeConfig((current) => ({
+      const saved = await saveBridgeConfig((current) => ({
         ...current,
         telegram: {
           ...current.telegram,
           enabled: checked,
         },
       }));
+      if (!saved) {
+        return false;
+      }
       return true;
     } finally {
       setSaving(false);

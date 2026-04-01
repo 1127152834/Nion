@@ -238,13 +238,16 @@ export function WeixinBridgeSection() {
           if (!verified) {
             return false;
           }
-          await saveBridgeConfig((current) => ({
+          const saved = await saveBridgeConfig((current) => ({
             ...current,
             weixin: {
               ...current.weixin,
               enabled: true,
             },
           }));
+          if (!saved) {
+            return false;
+          }
           return true;
         }}
       />

@@ -171,13 +171,16 @@ export function QqBridgeSection() {
           if (!verified) {
             return false;
           }
-          await saveBridgeConfig((current) => ({
+          const saved = await saveBridgeConfig((current) => ({
             ...current,
             qq: {
               ...current.qq,
               enabled: true,
             },
           }));
+          if (!saved) {
+            return false;
+          }
           return true;
         }}
       />

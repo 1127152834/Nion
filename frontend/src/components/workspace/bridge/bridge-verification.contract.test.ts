@@ -131,9 +131,27 @@ void test("bridge config editor save path rebases on the latest config center sn
     "utf8",
   );
 
-  assert.match(source, /const baseConfig = configEditor\.configData\?\.config/);
+  assert.match(source, /const initialBaseConfig = configEditor\.configData\?\.config/);
   assert.match(source, /normalizeBridgeConfigRoot/);
+  assert.match(source, /const latestConfig = latestConfigResult\.data\?\.config/);
+  assert.match(source, /const firstAttempt = await configEditor\.onSaveConfig/);
   assert.match(source, /configEditor\.onSaveConfig\(/);
+});
+
+void test("platform enable flows stop when config persistence fails after verification", async () => {
+  const telegramSource = await readFile(
+    new URL("./TelegramBridgeSection.tsx", import.meta.url),
+    "utf8",
+  );
+  const discordSource = await readFile(
+    new URL("./DiscordBridgeSection.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(telegramSource, /const saved = await saveBridgeConfig/);
+  assert.match(telegramSource, /if \(!saved\) \{\s*return false;\s*\}/);
+  assert.match(discordSource, /const saved = await saveBridgeConfig/);
+  assert.match(discordSource, /if \(!saved\) \{\s*return false;\s*\}/);
 });
 
 void test("bridge config forms stay renderable without desktop bridge runtime", async () => {

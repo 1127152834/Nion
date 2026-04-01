@@ -169,13 +169,16 @@ export function DiscordBridgeSection() {
           if (!verified) {
             return false;
           }
-          await saveBridgeConfig((current) => ({
+          const saved = await saveBridgeConfig((current) => ({
             ...current,
             discord: {
               ...current.discord,
               enabled: true,
             },
           }));
+          if (!saved) {
+            return false;
+          }
           return true;
         }}
       />

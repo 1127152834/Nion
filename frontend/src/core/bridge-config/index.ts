@@ -134,6 +134,17 @@ function normalizeBridgeConfigRoot(config: Record<string, unknown>) {
   };
 }
 
+async function cloneLatestConfigSnapshot(
+  refetchConfig: () => Promise<{ data?: { config?: Record<string, unknown> } | null }>,
+) {
+  const latestConfigResult = await refetchConfig();
+  const latestConfig = latestConfigResult.data?.config;
+  if (latestConfig && typeof latestConfig === "object") {
+    return { ...latestConfig };
+  }
+  return null;
+}
+
 export function useBridgeConfigEditor() {
   const configEditor = useConfigEditor({
     prepareConfig: (config) => normalizeBridgeConfigRoot(config),
@@ -157,21 +168,37 @@ export function useBridgeConfigEditor() {
   const saveBridgeConfig = async (
     updater: (current: BridgeDraft) => BridgeDraft,
   ) => {
-    const baseConfig = configEditor.configData?.config
+    const buildNextConfig = (config: Record<string, unknown>) => {
+      const preparedBaseConfig = normalizeBridgeConfigRoot({ ...config });
+      const currentBridge = preparedBaseConfig.bridge;
+      const baseBridge =
+        typeof currentBridge === "object" && currentBridge
+          ? { ...DEFAULT_BRIDGE_CONFIG, ...currentBridge }
+          : DEFAULT_BRIDGE_CONFIG;
+      const nextBridge = updater(baseBridge);
+      return {
+        ...preparedBaseConfig,
+        bridge: nextBridge,
+      };
+    };
+
+    const initialBaseConfig = configEditor.configData?.config
       && typeof configEditor.configData.config === "object"
-      ? configEditor.configData.config
-      : configEditor.draftConfig;
-    const preparedBaseConfig = normalizeBridgeConfigRoot({ ...baseConfig });
-    const currentBridge = preparedBaseConfig.bridge;
-    const baseBridge =
-      typeof currentBridge === "object" && currentBridge
-        ? { ...DEFAULT_BRIDGE_CONFIG, ...currentBridge }
-        : DEFAULT_BRIDGE_CONFIG;
-    const nextBridge = updater(baseBridge);
-    return configEditor.onSaveConfig({
-      ...preparedBaseConfig,
-      bridge: nextBridge,
-    });
+      ? { ...configEditor.configData.config }
+      : { ...configEditor.draftConfig };
+    const firstAttempt = await configEditor.onSaveConfig(
+      buildNextConfig(initialBaseConfig),
+    );
+    if (firstAttempt) {
+      return true;
+    }
+
+    const latestConfig = await cloneLatestConfigSnapshot(configEditor.refetchConfig);
+    if (!latestConfig) {
+      return false;
+    }
+
+    return configEditor.onSaveConfig(buildNextConfig(latestConfig));
   };
 
   return {

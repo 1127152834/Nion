@@ -259,13 +259,16 @@ export function FeishuBridgeSection() {
           if (!verified) {
             return false;
           }
-          await saveBridgeConfig((current) => ({
+          const saved = await saveBridgeConfig((current) => ({
             ...current,
             feishu: {
               ...current.feishu,
               enabled: true,
             },
           }));
+          if (!saved) {
+            return false;
+          }
           return true;
         }}
       />
