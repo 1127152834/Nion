@@ -11,6 +11,7 @@ import {
   titleOfThread,
 } from "@/core/threads/utils";
 import { formatTimeAgo } from "@/core/utils/datetime";
+import { cn } from "@/lib/utils";
 
 type WorkspaceThreadListItemProps = {
   thread: Parameters<typeof titleOfThread>[0];
@@ -22,6 +23,7 @@ type WorkspaceThreadListItemProps = {
   pendingLabel?: string;
   scope: "sidebar" | "page";
   selectionMode: boolean;
+  selectionVariant?: "inline" | "overlay";
   onSelect: () => void;
 };
 
@@ -32,6 +34,7 @@ type ThreadListRowProps = {
   onSelect: () => void;
   scope: "sidebar" | "page";
   selectionMode: boolean;
+  selectionVariant: "inline" | "overlay";
   title: string;
   updatedAtLabel?: string | null;
 };
@@ -43,21 +46,31 @@ function ThreadListRow({
   onSelect,
   scope,
   selectionMode,
+  selectionVariant,
   title,
   updatedAtLabel,
 }: ThreadListRowProps) {
+  const inlineSelection = selectionMode && selectionVariant === "inline";
+  const overlaySelection = selectionMode && selectionVariant === "overlay";
   const content = (
     <div
-      className={`min-w-0 ${
+      className={cn(
+        "min-w-0",
         scope === "sidebar"
-          ? `relative px-3 py-3 transition-colors ${
-              isActive ? "bg-accent/20" : "hover:bg-accent/12"
-            }`
-          : "border-b border-border/55 px-5 py-6"
-      } ${selectionMode ? "flex items-start gap-3" : ""}`}
-      data-thread-card="default"
+          ? cn(
+              "relative px-3 py-3 transition-colors",
+              isActive ? "bg-accent/20" : "hover:bg-accent/12",
+              overlaySelection && "pr-12",
+            )
+          : cn(
+              "border-b border-border/55 px-5 py-6",
+              overlaySelection && "pr-14",
+            ),
+        inlineSelection && "flex items-start gap-3",
+      )}
+      data-thread-card={selectionVariant}
     >
-      {selectionMode ? (
+      {inlineSelection ? (
         <span
           className={`mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full border ${
             isSelected
@@ -108,6 +121,7 @@ export function WorkspaceThreadListItem({
   onSelect,
   scope,
   selectionMode,
+  selectionVariant = "inline",
   thread,
 }: WorkspaceThreadListItemProps) {
   const projectInfo = projectInfoOfThread(thread);
@@ -125,6 +139,7 @@ export function WorkspaceThreadListItem({
       onSelect={onSelect}
       scope={scope}
       selectionMode={selectionMode}
+      selectionVariant={selectionVariant}
       title={titleOfThread(thread)}
       updatedAtLabel={formatTimeAgo(thread.updated_at)}
     />

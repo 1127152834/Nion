@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  ChevronDownIcon,
   Download,
   FileJson,
   FileText,
@@ -14,6 +15,11 @@ import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   Dialog,
   DialogContent,
@@ -64,13 +70,83 @@ import type { AgentThread, AgentThreadState } from "@/core/threads/types";
 import {
   bridgeInfoOfThread,
   pathOfThread,
+  projectInfoOfThread,
   titleOfThread,
 } from "@/core/threads/utils";
 import { env } from "@/env";
+import { cn } from "@/lib/utils";
 
-import { useBridgeTranslation } from "./bridge/useBridgeTranslation";
+import {
+  bridgePlatformLabel,
+  useBridgeTranslation,
+} from "./bridge/useBridgeTranslation";
 import { WorkspaceThreadListItem } from "./thread-list-items";
 import { ThreadTypeTabs } from "./thread-type-tabs";
+
+type ThreadGroupSection = {
+  id: string;
+  label: string;
+  accent?: string;
+  entries: Array<{
+    thread: AgentThread;
+    pendingClarification: boolean;
+  }>;
+};
+
+function groupEntriesBySource(
+  entries: Array<{
+    thread: AgentThread;
+    pendingClarification: boolean;
+  }>,
+  type: "project" | "bridge",
+  bt: ReturnType<typeof useBridgeTranslation>["t"],
+): ThreadGroupSection[] {
+  const sections = new Map<string, ThreadGroupSection>();
+
+  for (const entry of entries) {
+    if (type === "project") {
+      const project = projectInfoOfThread(entry.thread);
+      const groupId = project?.project_id ?? "project:unknown";
+      const existing = sections.get(groupId);
+      if (existing) {
+        existing.entries.push(entry);
+      } else {
+        sections.set(groupId, {
+          id: groupId,
+          label: project?.project_name ?? "未命名项目",
+          accent: project?.project_phase,
+          entries: [entry],
+        });
+      }
+      continue;
+    }
+
+    const bridge = bridgeInfoOfThread(entry.thread);
+    const bridgeLabel = bridge?.label?.trim();
+    const normalizedBridgeLabel =
+      bridgeLabel && bridgeLabel.length > 0 ? bridgeLabel : undefined;
+    const groupLabel = normalizedBridgeLabel ?? bridgePlatformLabel(
+      bridge?.platform ?? "bridge",
+      bt,
+    );
+    const groupId = `${bridge?.platform ?? "bridge"}:${groupLabel}`;
+    const existing = sections.get(groupId);
+    if (existing) {
+      existing.entries.push(entry);
+    } else {
+      sections.set(groupId, {
+        id: groupId,
+        label: groupLabel,
+        accent: bridge?.platform ? bridgePlatformLabel(bridge.platform, bt) : undefined,
+        entries: [entry],
+      });
+    }
+  }
+
+  return Array.from(sections.values()).sort((a, b) =>
+    a.label.localeCompare(b.label, "zh-CN"),
+  );
+}
 
 export function RecentChatList() {
   const { t } = useI18n();
@@ -101,6 +177,15 @@ export function RecentChatList() {
     [threads],
   );
   const activeGroup = filterThreadsByWorkspaceType(threadGroups, activeType);
+  const groupedSections = useMemo(() => {
+    if (activeType === "project") {
+      return groupEntriesBySource(threadGroups.project, "project", bt);
+    }
+    if (activeType === "bridge") {
+      return groupEntriesBySource(threadGroups.bridge, "bridge", bt);
+    }
+    return [];
+  }, [activeType, bt, threadGroups.bridge, threadGroups.project]);
 
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
   const [renameThreadId, setRenameThreadId] = useState<string | null>(null);
@@ -172,6 +257,11 @@ export function RecentChatList() {
     }
   }, [activeType, deleteThreads, resolveNextThreadId, router, selectedThreadIds]);
 
+  const closeSelectionMode = useCallback(() => {
+    setSelectionMode(false);
+    setSelectedThreadIds([]);
+  }, []);
+
   const handleRenameClick = useCallback(
     (threadId: string, currentTitle: string) => {
       setRenameThreadId(threadId);
@@ -241,9 +331,141 @@ export function RecentChatList() {
     return null;
   }
 
+  const renderThreadRow = ({
+    thread,
+    pendingClarification,
+  }: (typeof activeGroup)[number]) => {
+    const isActive =
+      (pathname === "/workspace/chats" &&
+        searchParams.get("thread") === thread.thread_id) ||
+      pathname.endsWith(`/threads/${thread.thread_id}`);
+    const bridgeInfo = bridgeInfoOfThread(thread);
+    const bridgeLabel = bridgeInfo
+      ? bridgePlatformLabel(bridgeInfo.platform, bt)
+      : "";
+
+    const selectionControl = selectionMode ? (
+      <button
+        type="button"
+        aria-pressed={selectedThreadIds.includes(thread.thread_id)}
+        className={cn(
+          "selectionControl absolute right-3 top-1/2 z-10 flex size-6 -translate-y-1/2 items-center justify-center rounded-full border border-border/70 bg-background/92 text-foreground shadow-sm transition",
+          selectedThreadIds.includes(thread.thread_id)
+            ? "border-foreground bg-foreground text-background"
+            : "hover:border-foreground/40 hover:bg-accent/40",
+        )}
+        onClick={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          toggleThreadSelection(thread.thread_id);
+        }}
+      >
+        {selectedThreadIds.includes(thread.thread_id) ? (
+          <span className="text-[11px] font-semibold">✓</span>
+        ) : null}
+      </button>
+    ) : null;
+
+    return (
+      <SidebarMenuItem
+        key={thread.thread_id}
+        className="group/side-menu-item"
+      >
+        <SidebarMenuButton
+          isActive={false}
+          asChild
+          className="h-auto overflow-visible bg-transparent p-0 hover:bg-transparent"
+        >
+          <div className="relative">
+            <WorkspaceThreadListItem
+              bridgeBadgeLabel={bt("bridge.bridgeChatBadge")}
+              bridgeLabel={bridgeLabel}
+              currentType={activeType}
+              isActive={isActive}
+              isSelected={selectedThreadIds.includes(thread.thread_id)}
+              pendingLabel={
+                pendingClarification ? t.sidebar.pendingReply : undefined
+              }
+              scope="sidebar"
+              selectionMode={selectionMode}
+              selectionVariant="overlay"
+              thread={thread}
+              onSelect={() => toggleThreadSelection(thread.thread_id)}
+            />
+            {selectionControl}
+            {!selectionMode && env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY !== "true" ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <SidebarMenuAction
+                    showOnHover
+                    className="bg-background/55 hover:bg-background"
+                  >
+                    <MoreHorizontal />
+                    <span className="sr-only">{t.common.more}</span>
+                  </SidebarMenuAction>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  className="w-48 rounded-lg"
+                  side="right"
+                  align="start"
+                >
+                  <DropdownMenuItem
+                    onSelect={() =>
+                      handleRenameClick(
+                        thread.thread_id,
+                        titleOfThread(thread),
+                      )
+                    }
+                  >
+                    <Pencil className="text-muted-foreground" />
+                    <span>{t.common.rename}</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => handleShare(thread.thread_id)}>
+                    <Share2 className="text-muted-foreground" />
+                    <span>{t.common.share}</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger>
+                      <Download className="text-muted-foreground" />
+                      <span>{t.common.export}</span>
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuSubContent>
+                      <DropdownMenuItem
+                        onSelect={() => handleExport(thread, "markdown")}
+                      >
+                        <FileText className="text-muted-foreground" />
+                        <span>{t.common.exportAsMarkdown}</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onSelect={() => handleExport(thread, "json")}
+                      >
+                        <FileJson className="text-muted-foreground" />
+                        <span>{t.common.exportAsJSON}</span>
+                      </DropdownMenuItem>
+                    </DropdownMenuSubContent>
+                  </DropdownMenuSub>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onSelect={() => handleDelete(thread.thread_id)}>
+                    <Trash2 className="text-muted-foreground" />
+                    <span>{t.common.delete}</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : null}
+          </div>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    );
+  };
+
+  const currentOpenSectionId =
+    groupedSections.find((section) =>
+      section.entries.some(({ thread }) => thread.thread_id === threadIdFromPath),
+    )?.id ?? groupedSections[0]?.id;
+
   return (
     <>
-      <SidebarGroup>
+      <SidebarGroup className="gap-1 pt-1">
         <div className="flex items-center justify-between px-2">
           <SidebarGroupLabel>
             {env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY !== "true"
@@ -264,7 +486,7 @@ export function RecentChatList() {
             </Button>
           ) : null}
         </div>
-        <SidebarGroupContent className="group-data-[collapsible=icon]:pointer-events-none group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0">
+        <SidebarGroupContent className="space-y-2 group-data-[collapsible=icon]:pointer-events-none group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0">
           <ThreadTypeTabs
             scope="sidebar"
             value={activeType}
@@ -272,11 +494,11 @@ export function RecentChatList() {
               setSelectedThreadIds([]);
               setSettings("layout", { recent_chat_tab: nextType });
             }}
-            className="mb-3 px-2"
+            className="px-2"
           />
           {selectionMode ? (
-            <div className="mb-2 flex items-center justify-between rounded-2xl border border-border/50 bg-background/70 px-3 py-2 text-xs text-muted-foreground">
-              <span>
+            <div className="flex items-center justify-between rounded-2xl border border-border/45 bg-background/82 px-3 py-2 text-[11px] text-muted-foreground">
+              <span className="tracking-[0.01em]">
                 {t.chats.selectedCount.replace(
                   "{count}",
                   String(selectedThreadIds.length),
@@ -286,7 +508,7 @@ export function RecentChatList() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-7 rounded-full px-2 text-xs"
+                  className="h-7 rounded-full px-2 text-[11px]"
                   onClick={handleSelectAll}
                 >
                   {t.common.selectAll}
@@ -294,18 +516,15 @@ export function RecentChatList() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-7 rounded-full px-2 text-xs"
-                  onClick={() => {
-                    setSelectionMode(false);
-                    setSelectedThreadIds([]);
-                  }}
+                  className="h-7 rounded-full px-2 text-[11px]"
+                  onClick={closeSelectionMode}
                 >
                   {t.common.cancel}
                 </Button>
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-7 rounded-full px-2 text-xs text-destructive"
+                  className="h-7 rounded-full px-2 text-[11px] text-destructive"
                   disabled={selectedThreadIds.length === 0}
                   onClick={handleDeleteSelected}
                 >
@@ -314,127 +533,46 @@ export function RecentChatList() {
               </div>
             </div>
           ) : null}
-        </SidebarGroupContent>
-      </SidebarGroup>
-
-      <SidebarGroup>
-        <SidebarGroupContent className="group-data-[collapsible=icon]:pointer-events-none group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0">
-          <SidebarMenu>
-            <div className="flex w-full flex-col divide-y divide-border/55 px-2 pb-2">
-              {activeGroup.map(({ thread, pendingClarification }) => {
-                const isActive =
-                  (pathname === "/workspace/chats" &&
-                    searchParams.get("thread") === thread.thread_id) ||
-                  pathname.endsWith(`/threads/${thread.thread_id}`);
-                const bridgeInfo = bridgeInfoOfThread(thread);
-                const bridgeLabel = bridgeInfo
-                  ? bridgeInfo.platform === "telegram"
-                    ? bt("bridge.telegramChannel")
-                    : bridgeInfo.platform === "feishu"
-                      ? bt("bridge.feishuChannel")
-                      : bridgeInfo.platform === "discord"
-                        ? bt("bridge.discordChannel")
-                        : bridgeInfo.platform === "qq"
-                          ? bt("bridge.qqChannel")
-                          : bridgeInfo.platform === "weixin"
-                            ? bt("bridge.weixinChannel")
-                            : bridgeInfo.platform
-                  : "";
-
-                return (
-                  <SidebarMenuItem
-                    key={thread.thread_id}
-                    className="group/side-menu-item"
+          <div className="pl-0">
+          <SidebarMenu className="gap-0">
+            {groupedSections.length > 0 ? (
+              <div className="space-y-2 px-2 pb-2">
+                {groupedSections.map((section) => (
+                  <Collapsible
+                    key={section.id}
+                    defaultOpen={section.id === currentOpenSectionId}
                   >
-                    <SidebarMenuButton isActive={false} asChild className="h-auto overflow-visible bg-transparent p-0 hover:bg-transparent">
-                      <div className="relative">
-                        <WorkspaceThreadListItem
-                          bridgeBadgeLabel={bt("bridge.bridgeChatBadge")}
-                          bridgeLabel={bridgeLabel}
-                          currentType={activeType}
-                          isActive={isActive}
-                          isSelected={selectedThreadIds.includes(thread.thread_id)}
-                          pendingLabel={pendingClarification ? t.sidebar.pendingReply : undefined}
-                          scope="sidebar"
-                          selectionMode={selectionMode}
-                          thread={thread}
-                          onSelect={() => toggleThreadSelection(thread.thread_id)}
-                        />
-                        {!selectionMode &&
-                        env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY !== "true" ? (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <SidebarMenuAction
-                                showOnHover
-                                className="bg-background/50 hover:bg-background"
-                              >
-                                <MoreHorizontal />
-                                <span className="sr-only">{t.common.more}</span>
-                              </SidebarMenuAction>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent
-                              className="w-48 rounded-lg"
-                              side="right"
-                              align="start"
-                            >
-                              <DropdownMenuItem
-                                onSelect={() =>
-                                  handleRenameClick(
-                                    thread.thread_id,
-                                    titleOfThread(thread),
-                                  )
-                                }
-                              >
-                                <Pencil className="text-muted-foreground" />
-                                <span>{t.common.rename}</span>
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onSelect={() => handleShare(thread.thread_id)}
-                              >
-                                <Share2 className="text-muted-foreground" />
-                                <span>{t.common.share}</span>
-                              </DropdownMenuItem>
-                              <DropdownMenuSub>
-                                <DropdownMenuSubTrigger>
-                                  <Download className="text-muted-foreground" />
-                                  <span>{t.common.export}</span>
-                                </DropdownMenuSubTrigger>
-                                <DropdownMenuSubContent>
-                                  <DropdownMenuItem
-                                    onSelect={() =>
-                                      handleExport(thread, "markdown")
-                                    }
-                                  >
-                                    <FileText className="text-muted-foreground" />
-                                    <span>{t.common.exportAsMarkdown}</span>
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    onSelect={() =>
-                                      handleExport(thread, "json")
-                                    }
-                                  >
-                                    <FileJson className="text-muted-foreground" />
-                                    <span>{t.common.exportAsJSON}</span>
-                                  </DropdownMenuItem>
-                                </DropdownMenuSubContent>
-                              </DropdownMenuSub>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                onSelect={() => handleDelete(thread.thread_id)}
-                              >
-                                <Trash2 className="text-muted-foreground" />
-                                <span>{t.common.delete}</span>
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        ) : null}
-                      </div>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-            </div>
+                    <div className="overflow-hidden rounded-[1.1rem] border border-border/40 bg-background/40">
+                      <CollapsibleTrigger className="group flex w-full items-center justify-between px-3 py-2.5 text-left hover:bg-accent/25">
+                        <div className="min-w-0">
+                          <div className="truncate text-[12px] font-medium text-foreground">
+                            {section.label}
+                          </div>
+                          <div className="mt-0.5 flex items-center gap-2 text-[10px] text-muted-foreground">
+                            <span>{section.entries.length} 条</span>
+                            {section.accent ? <span>{section.accent}</span> : null}
+                          </div>
+                        </div>
+                        <ChevronDownIcon className="size-4 shrink-0 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="grid grid-rows-[0fr] transition-[grid-template-rows] duration-200 ease-out data-[state=open]:grid-rows-[1fr]">
+                        <div className="overflow-hidden">
+                          <div className="flex flex-col divide-y divide-border/50">
+                            {section.entries.map(renderThreadRow)}
+                          </div>
+                        </div>
+                      </CollapsibleContent>
+                    </div>
+                  </Collapsible>
+                ))}
+              </div>
+            ) : (
+              <div className="flex w-full flex-col divide-y divide-border/55 px-2 pb-2">
+                {activeGroup.map(renderThreadRow)}
+              </div>
+            )}
           </SidebarMenu>
+          </div>
         </SidebarGroupContent>
       </SidebarGroup>
 

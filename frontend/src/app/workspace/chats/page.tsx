@@ -10,7 +10,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ArtifactsProvider } from "@/components/workspace/artifacts";
-import { useBridgeTranslation } from "@/components/workspace/bridge/useBridgeTranslation";
+import {
+  bridgePlatformLabel,
+  useBridgeTranslation,
+} from "@/components/workspace/bridge/useBridgeTranslation";
 import { WorkspaceThreadListItem } from "@/components/workspace/thread-list-items";
 import { ThreadTypeTabs } from "@/components/workspace/thread-type-tabs";
 import {
@@ -204,17 +207,7 @@ function ChatsPageContent() {
                 {filteredThreads.map(({ thread }) => {
                   const bridgeInfo = bridgeInfoOfThread(thread);
                   const bridgeLabel = bridgeInfo
-                    ? bridgeInfo.platform === "telegram"
-                      ? bt("bridge.telegramChannel")
-                      : bridgeInfo.platform === "feishu"
-                        ? bt("bridge.feishuChannel")
-                        : bridgeInfo.platform === "discord"
-                          ? bt("bridge.discordChannel")
-                          : bridgeInfo.platform === "qq"
-                            ? bt("bridge.qqChannel")
-                            : bridgeInfo.platform === "weixin"
-                              ? bt("bridge.weixinChannel")
-                              : bridgeInfo.platform
+                    ? bridgePlatformLabel(bridgeInfo.platform, bt)
                     : "";
 
                   return (

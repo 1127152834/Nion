@@ -85,3 +85,28 @@ void test("recent chat list scopes selection to the active thread type", async (
   assert.match(source, /setSelectedThreadIds\(\[\]\)/);
   assert.match(source, /WorkspaceThreadListItem/);
 });
+
+void test("recent chat list renders project and bridge threads as collapsible source groups", async () => {
+  const source = await readFile(
+    new URL("./recent-chat-list.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /Collapsible/);
+  assert.match(source, /CollapsibleTrigger/);
+  assert.match(source, /CollapsibleContent/);
+  assert.match(source, /project_name/);
+  assert.match(source, /bridge\?\.label/);
+  assert.match(source, /defaultOpen/);
+});
+
+void test("recent chat list keeps selection controls in an overlay without changing row layout", async () => {
+  const source = await readFile(
+    new URL("./recent-chat-list.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /selectionControl/);
+  assert.match(source, /absolute right-3 top-1\/2/);
+  assert.match(source, /pl-0/);
+});
