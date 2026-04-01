@@ -711,10 +711,14 @@ export async function startDesktopMain(): Promise<void> {
     probePlatform: (platform) => bridgeManager.probePlatform(platform),
     startWeixinLogin: () => weixinAuthManager.startLogin(),
   });
+  const syncBridgeSettingsCache = async () => {
+    bridgeSettingsCache = bridgeConfigToSettingsMap(await readBridgeConfigFromConfigCenter());
+  };
   const restartBridgeIfRunning = async () => {
     if (!bridgeManager.getStatus().running) {
       return;
     }
+    await syncBridgeSettingsCache();
     await bridgeManager.stop();
     await bridgeManager.start();
   };
@@ -834,6 +838,7 @@ export async function startDesktopMain(): Promise<void> {
     return bridgeActionRunner.runAction(request);
   });
   ipcMain.handle(DESKTOP_BRIDGE_IPC_CHANNELS.start, async () => {
+    await syncBridgeSettingsCache();
     return bridgeManager.start();
   });
   ipcMain.handle(DESKTOP_BRIDGE_IPC_CHANNELS.stop, async () => {
@@ -842,6 +847,7 @@ export async function startDesktopMain(): Promise<void> {
   ipcMain.handle(
     DESKTOP_BRIDGE_IPC_CHANNELS.startPlatform,
     async (_event, platform: string) => {
+      await syncBridgeSettingsCache();
       return bridgeManager.startPlatform(platform);
     },
   );

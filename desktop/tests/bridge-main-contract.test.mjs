@@ -46,3 +46,15 @@ test("desktop main migrates legacy local bridge settings into config db", () => 
   assert.match(source, /settings\.json/);
   assert.match(source, /writeBridgeConfigToConfigCenter/);
 });
+
+test("desktop main refreshes bridge settings cache from config center before starting bridge runtime", () => {
+  const source = fs.readFileSync(
+    new URL("../src/main/index.ts", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /const syncBridgeSettingsCache = async \(\) => \{/);
+  assert.match(source, /bridgeSettingsCache = bridgeConfigToSettingsMap\(await readBridgeConfigFromConfigCenter\(\)\)/);
+  assert.match(source, /DESKTOP_BRIDGE_IPC_CHANNELS\.start,[\s\S]*await syncBridgeSettingsCache\(\);[\s\S]*bridgeManager\.start\(\)/);
+  assert.match(source, /DESKTOP_BRIDGE_IPC_CHANNELS\.startPlatform,[\s\S]*await syncBridgeSettingsCache\(\);[\s\S]*bridgeManager\.startPlatform\(platform\)/);
+});
