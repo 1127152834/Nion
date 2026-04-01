@@ -29,11 +29,20 @@ void test("NotebookAssistantPanel keeps the ask tab as a lightweight notebook ch
   assert.match(panelSource, /derivePendingClarification\(thread\.messages\)/);
   assert.match(panelSource, /derivePendingPermissionRequest\(thread\.messages\)/);
   assert.match(panelSource, /NotebookAssistantComposer/);
+  assert.match(panelSource, /notebook-assistant-shell/);
+  assert.match(panelSource, /notebook-assistant-header/);
+  assert.match(panelSource, /notebook-assistant-new-chat/);
+  assert.match(panelSource, /notebook-assistant-stream/);
+  assert.doesNotMatch(panelSource, /围绕当前笔记继续提问、分析和改写/);
   assert.doesNotMatch(panelSource, /PromptInputActionMenu/);
 
   assert.match(composerSource, /textarea|Textarea/i);
   assert.match(composerSource, /发送/);
   assert.match(composerSource, /placeholder=/);
+  assert.match(composerSource, /max-h-\[3\.6rem\]/);
+  assert.match(composerSource, /min-h-\[3\.6rem\]/);
+  assert.match(composerSource, /overflow-y-auto/);
+  assert.match(composerSource, /notebook-assistant-composer/);
   assert.doesNotMatch(composerSource, /PromptInputActionMenu/);
 
   assert.match(contextPanelSource, /NotebookAssistantPanel/);

@@ -156,7 +156,13 @@ export function NotebookContextPanel({
         </button>
       </div>
 
-      <div className="custom-scrollbar flex-1 overflow-y-auto p-4">
+      <div
+        className={
+          activeTab === "ask"
+            ? "flex min-h-0 flex-1 flex-col p-4"
+            : "custom-scrollbar flex-1 overflow-y-auto p-4"
+        }
+      >
         {!note ? (
           <div className="text-sm text-[var(--notebook-soft-text)]">{copy.noSelectionDescription}</div>
         ) : activeTab === "ask" ? (

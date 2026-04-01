@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
 import { MessageSquarePlus, Sparkles } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
 import { Button } from "@/components/ui/button";
@@ -30,7 +30,7 @@ export function NotebookAssistantPanel({
   onStartNewConversation,
 }: NotebookAssistantPanelProps) {
   const createOrResumeSession = useCreateOrResumeNotebookAssistantSession();
-  const { mutateAsync: createOrResumeSessionAsync } = createOrResumeSession;
+  const createOrResumeSessionRef = useRef(createOrResumeSession);
   const [threadId, setThreadId] = useState<string | null>(null);
   const [sessionError, setSessionError] = useState<string | null>(null);
   const [thread, sendMessage] = useThreadStream({
@@ -45,6 +45,8 @@ export function NotebookAssistantPanel({
     },
   });
 
+  createOrResumeSessionRef.current = createOrResumeSession;
+
   useEffect(() => {
     let cancelled = false;
     setSessionError(null);
@@ -54,7 +56,8 @@ export function NotebookAssistantPanel({
       return;
     }
 
-    void createOrResumeSessionAsync({
+    void createOrResumeSessionRef.current
+      .mutateAsync({
         noteId,
         sessionId,
       })
@@ -99,49 +102,49 @@ export function NotebookAssistantPanel({
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4">
-      <section className="rounded-[1.25rem] border border-[var(--notebook-border)] bg-[var(--notebook-panel)] p-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 text-sm font-semibold text-[var(--notebook-ink)]">
-              <Sparkles className="size-4" />
-              笔记助手
+    <div className="notebook-assistant-shell flex min-h-0 flex-1 flex-col gap-3">
+      <section className="notebook-assistant-stream relative min-h-0 flex-1 overflow-hidden rounded-[1.5rem] border border-[color-mix(in_srgb,var(--notebook-border)_72%,transparent)] bg-[color-mix(in_srgb,var(--notebook-panel)_90%,transparent)] shadow-[inset_0_1px_0_rgba(255,255,255,0.38),0_14px_30px_-28px_rgba(15,23,42,0.45)]">
+        <div className="notebook-assistant-header pointer-events-none absolute inset-x-0 top-0 z-10 flex items-start justify-between gap-3 px-4 pt-4">
+          <div className="min-w-0 rounded-full bg-[color-mix(in_srgb,var(--notebook-panel)_88%,transparent)] px-3 py-2 shadow-[0_10px_30px_-26px_rgba(15,23,42,0.55)] backdrop-blur-sm">
+            <div className="flex items-center gap-2 text-[0.82rem] font-semibold tracking-[-0.01em] text-[var(--notebook-ink)]">
+              <Sparkles className="size-[0.95rem] shrink-0" />
+              <span>笔记助手</span>
             </div>
-            <p className="mt-1 text-sm text-[var(--notebook-soft-text)]">
-              {noteTitle || "围绕当前笔记继续提问、分析和改写。"}
+            <p className="mt-0.5 truncate text-[0.72rem] text-[color-mix(in_srgb,var(--notebook-soft-text)_88%,var(--notebook-ink)_12%)]">
+              {noteTitle || "未命名笔记"}
             </p>
           </div>
           <Button
             type="button"
-            size="sm"
+            size="icon"
             variant="outline"
             onClick={onStartNewConversation}
-            className="shrink-0 rounded-full"
+            className="notebook-assistant-new-chat pointer-events-auto h-9 w-9 shrink-0 rounded-full border-[color-mix(in_srgb,var(--notebook-border)_75%,transparent)] bg-[color-mix(in_srgb,var(--notebook-panel)_92%,transparent)] text-[var(--notebook-soft-text)] shadow-[0_10px_26px_-24px_rgba(15,23,42,0.65)] backdrop-blur-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-[var(--notebook-hover)] hover:text-[var(--notebook-ink)]"
+            title="新对话"
+            aria-label="新对话"
           >
             <MessageSquarePlus className="size-4" />
-            新对话
           </Button>
         </div>
-      </section>
-
-      <section className="min-h-0 flex-1 overflow-hidden rounded-[1.25rem] border border-[var(--notebook-border)] bg-[var(--notebook-panel)]">
         {sessionError ? (
-          <div className="flex h-full items-center justify-center px-6 text-center text-sm text-[var(--notebook-soft-text)]">
+          <div className="flex h-full items-center justify-center px-6 text-center text-[0.82rem] text-[var(--notebook-soft-text)]">
             {sessionError}
           </div>
         ) : !thread.threadId ? (
-          <div className="flex h-full items-center justify-center px-6 text-center text-sm text-[var(--notebook-soft-text)]">
+          <div className="flex h-full items-center justify-center px-6 text-center text-[0.82rem] text-[var(--notebook-soft-text)]">
             正在连接笔记助手会话…
           </div>
         ) : (
           <ThreadContext.Provider value={{ thread }}>
             <MessageList
-              className="h-full px-4 pb-4"
+              className="h-full px-2"
+              contentClassName="notebook-assistant-message-list max-w-none gap-5 px-4 pt-20 pb-4 [&_[data-slot='message']]:text-[0.92rem] [&_.group\\/conversation-message_p]:leading-6 [&_.group\\/conversation-message_pre]:text-[0.8rem] [&_.group\\/conversation-message_ul]:my-2 [&_.group\\/conversation-message_ol]:my-2"
+              density="compact"
               threadId={thread.threadId}
               thread={thread}
               pendingClarification={pendingClarification}
               pendingPermissionRequest={pendingPermissionRequest}
-              paddingBottom={96}
+              paddingBottom={128}
             />
           </ThreadContext.Provider>
         )}

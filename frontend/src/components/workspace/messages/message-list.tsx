@@ -46,8 +46,12 @@ export function MessageList({
   onPermissionDecision,
   isResolvingPermission = false,
   paddingBottom = 160,
+  contentClassName,
+  density = "default",
 }: {
   className?: string;
+  contentClassName?: string;
+  density?: "default" | "compact";
   threadId: string;
   thread: BaseStream<AgentThreadState>;
   pendingClarification?: PendingClarification | null;
@@ -68,7 +72,9 @@ export function MessageList({
     <Conversation
       className={cn("flex size-full flex-col justify-center", className)}
     >
-      <ConversationContent className="mx-auto w-full max-w-(--container-width-md) gap-8 pt-12">
+      <ConversationContent
+        className={cn("mx-auto w-full max-w-(--container-width-md) gap-8 pt-12", contentClassName)}
+      >
         {groupMessages(messages, (group) => {
           if (group.type === "human" || group.type === "assistant") {
             return group.messages.map((msg) => {
@@ -77,6 +83,7 @@ export function MessageList({
                   key={`${group.id}/${msg.id}`}
                   message={msg}
                   isLoading={thread.isLoading}
+                  density={density}
                 />
               );
             });
@@ -244,14 +251,14 @@ export function MessageList({
             );
           } else if (group.type === "assistant:tool-activity-summary") {
             const message = group.messages[0];
-            const toolNames = Array.isArray(
-              message?.additional_kwargs?.tool_names,
-            )
-              ? (message?.additional_kwargs?.tool_names as string[])
+            const toolNames = Array.isArray(message?.additional_kwargs?.tool_names)
+              ? message.additional_kwargs.tool_names.filter(
+                  (toolName): toolName is string => typeof toolName === "string",
+                )
               : [];
             const resultClass =
               typeof message?.additional_kwargs?.result_class === "string"
-                ? (message.additional_kwargs.result_class as string)
+                ? message.additional_kwargs.result_class
                 : undefined;
             return (
               <ToolActivitySummaryCard

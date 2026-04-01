@@ -40,27 +40,41 @@ export function MessageListItem({
   className,
   message,
   isLoading,
+  density = "default",
 }: {
   className?: string;
   message: Message;
   isLoading?: boolean;
+  density?: "default" | "compact";
 }) {
   const isHuman = message.type === "human";
   return (
     <AIElementMessage
-      className={cn("group/conversation-message relative w-full", className)}
+      className={cn(
+        "group/conversation-message relative w-full",
+        density === "compact" && "gap-1.5 text-[0.92rem]",
+        className,
+      )}
       from={isHuman ? "user" : "assistant"}
     >
       <MessageContent
-        className={isHuman ? "w-fit" : "w-full"}
+        className={cn(
+          isHuman ? "w-fit" : "w-full",
+          density === "compact" &&
+            (isHuman
+              ? "rounded-[1rem] px-3 py-2 text-[0.88rem] leading-6"
+              : "text-[0.88rem] leading-6"),
+        )}
         message={message}
         isLoading={isLoading}
+        density={density}
       />
       {!isLoading && (
         <MessageToolbar
           className={cn(
             isHuman ? "-bottom-9 justify-end" : "-bottom-8",
             "absolute right-0 left-0 z-20 opacity-0 transition-opacity delay-200 duration-300 group-hover/conversation-message:opacity-100",
+            density === "compact" && "hidden",
           )}
         >
           <div className="flex gap-1">
@@ -112,10 +126,12 @@ function MessageContent_({
   className,
   message,
   isLoading = false,
+  density = "default",
 }: {
   className?: string;
   message: Message;
   isLoading?: boolean;
+  density?: "default" | "compact";
 }) {
   const rehypePlugins = useRehypeSplitWordsIntoSpans(isLoading);
   const isHuman = message.type === "human";
@@ -226,7 +242,13 @@ function MessageContent_({
         {shortcutBadges}
         {filesList}
         {messageResponse && (
-          <AIElementMessageContent className="w-fit">
+          <AIElementMessageContent
+            className={cn(
+              "w-fit",
+              density === "compact" &&
+                "bg-[color-mix(in_srgb,var(--notebook-muted)_74%,var(--notebook-panel)_26%)] text-[var(--notebook-ink)] shadow-[inset_0_1px_0_rgba(255,255,255,0.38)]",
+            )}
+          >
             {messageResponse}
           </AIElementMessageContent>
         )}
@@ -241,7 +263,7 @@ function MessageContent_({
         content={contentToDisplay}
         isLoading={isLoading}
         rehypePlugins={[...rehypePlugins, [rehypeKatex, { output: "html" }]]}
-        className="my-3"
+        className={cn("my-3", density === "compact" && "my-1.5")}
         components={components}
       />
     </AIElementMessageContent>
