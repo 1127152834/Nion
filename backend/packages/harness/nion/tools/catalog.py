@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 from nion.tools.activity_profiles import ToolActivityProfile, get_tool_activity_profile
+from nion.tools.runtime_models import ToolExecutionTraits
 
 
 @dataclass(slots=True)
@@ -10,6 +11,8 @@ class ToolCatalogEntry:
     source: str
     policy_managed: bool = True
     activity_profile: ToolActivityProfile | None = None
+    execution_traits: ToolExecutionTraits | None = None
+    visibility: str = "active"
 
 
 def build_configured_tool_catalog(config) -> dict[str, ToolCatalogEntry]:
