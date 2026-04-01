@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 落地对象层第一阶段：把 `Memory / Notebook / Project` 的 bridge candidate、reference link、bridge API contract 和最小 UI 接线做成稳定可用的 domain contract，为后续 Notebook 2.0 / Projects 2.0 完整升级提供低返工基础。
+**Goal:** 落地对象层第一阶段：建立 Project / Notebook / Memory 之间的 bridge domain contract、candidate persistence、bridge API 和最小 UI 接线，为后续 Notebook 2.0 / Projects 2.0 的产品化升级提供稳定、低返工的基础。
 
-**Architecture:** 先补 domain contract 和 candidate persistence，再补 `/api/notebook/bridge/*` 与 `/api/projects/{project_id}/bridge/*` 资源面，最后只做最小的 UI 接线与回归测试。坚持 candidate-first、confirmation-aware、provenance-first，不让页面按钮直接跨对象写入。
+**Architecture:** 先补 object bridge domain model 与 repository，再补 service 和 `/api/notebook/bridge/*` / `/api/projects/{project_id}/bridge/*` 契约，最后接最小 UI 入口。整个阶段坚持 candidate-first、confirmation-aware、provenance-first，不允许页面直接跨对象写入。
 
-**Tech Stack:** Python backend, FastAPI routers, SQLite repository layer, Pydantic, Next.js frontend, TanStack Query, node:test, pytest, agent-browser
+**Tech Stack:** Python backend, FastAPI routers, SQLite repository layer, Pydantic, Next.js frontend, TanStack Query, pytest, node:test
 
 ---
 
@@ -15,21 +15,21 @@
 这个计划只覆盖对象层第一阶段，不在本轮内实现：
 
 - Notebook 2.0 全量检索与多视图
-- Projects 2.0 全量 dashboard / lane / completion lane 重构
+- Projects 2.0 全量 dashboard / lane / completion lane
+- global Memory provider 演进
 - SkillTool
-- plugin / MCP 行为层
-- Prompt Runtime / Tool Runtime / Hook Event Plane 实现
+- plugin / MCP
 
-本计划只做：
+本轮只做：
 
-- object-level bridge domain contract
-- candidate / draft / reference persistence
+- object bridge domain contract
+- bridge candidate / reference persistence
 - bridge API
-- 最小 UI 接线
+- 最小的 Notebook / Projects UI 入口
 
 ## Source Specs
 
-本计划严格基于下面这些设计稿执行：
+本计划严格基于下面 5 份设计稿执行：
 
 - `/Users/zhangtiancheng/Documents/项目/agent/nion/docs/superpowers/specs/2026-04-01-knowledge-work-object-model-design.md`
 - `/Users/zhangtiancheng/Documents/项目/agent/nion/docs/superpowers/specs/2026-04-01-notebook-project-bridge-actions-design.md`
@@ -39,12 +39,13 @@
 
 ## Architecture Invariants
 
-- Notebook 仍然是用户资产，不允许自动偷偷写入
+- Notebook 是用户资产，不允许自动偷偷写入
 - Project 不能自动写 Notebook 正文
-- global Memory 不直接吃长文档正文
+- global Memory 不能直接吃长文档正文
 - 所有跨对象动作必须 candidate-first 或 draft-first
 - 所有跨对象动作必须带 provenance
 - UI 不能绕开 bridge API 直接跨对象写入
+- 必须优先减少返工、保证产品化和天然兼容，不走补丁式塞功能路线
 
 ## File Structure
 
@@ -107,7 +108,7 @@ Expected:
 - [ ] **Step 3: 实现最小模型**
 
 要求：
-- 只定义对象模型
+- 只定义 domain model
 - 不掺入 API / service 逻辑
 
 - [ ] **Step 4: 运行测试确认通过**
@@ -153,9 +154,9 @@ uv run pytest tests/test_object_bridge_repository.py -q
 - [ ] **Step 3: 实现 repository**
 
 要求：
-- 不改 projects.sqlite3 主结构
-- object bridge 独立表或独立 sqlite schema
-- 保证 candidate-first 生命周期可持久化
+- 不改 `projects.sqlite3` 既有对象结构
+- bridge 数据独立存储
+- candidate-first 生命周期可持久化
 
 - [ ] **Step 4: 运行测试确认通过**
 
