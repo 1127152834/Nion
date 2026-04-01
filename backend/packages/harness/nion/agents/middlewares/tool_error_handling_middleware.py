@@ -11,6 +11,9 @@ from langgraph.errors import GraphBubbleUp
 from langgraph.prebuilt.tool_node import ToolCallRequest
 from langgraph.types import Command
 
+from nion.tools.runtime_models import ToolExecutionStage
+from nion.tools.runtime_pipeline import build_tool_runtime_metadata
+
 logger = logging.getLogger(__name__)
 
 _MISSING_TOOL_CALL_ID = "missing_tool_call_id"
@@ -37,12 +40,12 @@ class ToolErrorHandlingMiddleware(AgentMiddleware[AgentState]):
             name=tool_name,
             status="error",
             additional_kwargs={
-                "tool_runtime": {
-                    "status": "failed",
-                    "stage": "execute",
-                    "tool_name": tool_name,
-                    "tool_call_id": tool_call_id,
-                },
+                "tool_runtime": build_tool_runtime_metadata(
+                    status="failed",
+                    stage=ToolExecutionStage.EXECUTE,
+                    tool_name=tool_name,
+                    tool_call_id=tool_call_id,
+                ),
                 "hook_event": {
                     "event": "post_tool_use_failure",
                     "mode": "in_runtime",
