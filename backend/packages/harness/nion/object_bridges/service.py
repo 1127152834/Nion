@@ -102,7 +102,7 @@ class ObjectBridgeService:
             created_at=_now_iso(),
             updated_at=_now_iso(),
         )
-        return self._repository.save_candidate(record)
+        return self._create_ready_candidate(record)
 
     def mark_candidate_ready(
         self,
@@ -115,6 +115,28 @@ class ObjectBridgeService:
             candidate_id,
             actor_type=actor_type,
             reviewed_at=reviewed_at,
+        )
+        return self._save_candidate(candidate)
+
+    def transition_candidate(
+        self,
+        candidate_id: str,
+        *,
+        to_status: str,
+        actor_type: str,
+        action: str,
+        field_updates: dict[str, Any] | None = None,
+        event_payload: dict[str, Any] | None = None,
+        updated_at: str | None = None,
+    ) -> BridgeCandidateRecord:
+        candidate = self._repository._transition_candidate(
+            candidate_id,
+            to_status=to_status,  # type: ignore[arg-type]
+            actor_type=actor_type,
+            action=action,
+            field_updates=field_updates,
+            event_payload=event_payload,
+            updated_at=updated_at,
         )
         return self._save_candidate(candidate)
 
@@ -190,12 +212,17 @@ class ObjectBridgeService:
         guard_state = compute_guard_state(candidate)
         candidate = self._save_candidate(replace(candidate, guard_state=guard_state))
         if not guard_state["is_applicable"]:
-            expired = self._repository.expire_candidate(
+            expired = self.transition_candidate(
                 candidate_id,
+                to_status="expired",
                 actor_type=actor_type,
-                terminal_reason="guard_rejected",
+                action="expired",
+                field_updates={
+                    "terminal_reason": "guard_rejected",
+                    "guard_state": guard_state,
+                },
+                event_payload={"terminal_reason": "guard_rejected"},
             )
-            self._save_candidate(replace(expired, guard_state=guard_state))
             raise ValueError(f"guard rejected candidate {candidate_id}")
 
         try:
@@ -211,7 +238,7 @@ class ObjectBridgeService:
             raise RuntimeError(f"apply failed: {exc}") from exc
 
         applied_at = _now_iso()
-        applied = self._repository._transition_candidate(
+        applied = self.transition_candidate(
             candidate_id,
             to_status="applied",
             actor_type=actor_type,
@@ -227,9 +254,8 @@ class ObjectBridgeService:
             },
             updated_at=applied_at,
         )
-        normalized = self._save_candidate(applied)
         return {
-            "candidate": normalized,
+            "candidate": applied,
             "applied_target": applied_target,
             "applied_at": applied_at,
         }
@@ -243,6 +269,14 @@ class ObjectBridgeService:
     def _save_candidate(self, candidate: BridgeCandidateRecord) -> BridgeCandidateRecord:
         normalized = self._normalize_candidate(candidate)
         return self._repository.save_candidate(with_candidate_actions(normalized))
+
+    def _create_ready_candidate(self, candidate: BridgeCandidateRecord) -> BridgeCandidateRecord:
+        stored = self._repository.save_candidate(candidate)
+        ready = self._repository.mark_candidate_ready(
+            stored.id,
+            actor_type="agent",
+        )
+        return self._save_candidate(ready)
 
     def _normalize_candidate(self, candidate: BridgeCandidateRecord) -> BridgeCandidateRecord:
         normalized_provenance: list[BridgeActionProvenance] = []
@@ -296,7 +330,7 @@ class ObjectBridgeService:
             created_at=_now_iso(),
             updated_at=_now_iso(),
         )
-        return self._repository.save_candidate(record)
+        return self._create_ready_candidate(record)
 
     def extract_constraints_from_notebook(
         self,
@@ -329,7 +363,7 @@ class ObjectBridgeService:
             created_at=_now_iso(),
             updated_at=_now_iso(),
         )
-        return self._repository.save_candidate(record)
+        return self._create_ready_candidate(record)
 
     def export_project_summary_to_notebook(
         self,
@@ -364,7 +398,7 @@ class ObjectBridgeService:
             created_at=_now_iso(),
             updated_at=_now_iso(),
         )
-        return self._repository.save_candidate(record)
+        return self._create_ready_candidate(record)
 
     def extract_long_term_memory_from_project(
         self,
@@ -397,7 +431,7 @@ class ObjectBridgeService:
             created_at=_now_iso(),
             updated_at=_now_iso(),
         )
-        return self._repository.save_candidate(record)
+        return self._create_ready_candidate(record)
 
     def extract_memory_from_notebook(
         self,
@@ -430,7 +464,7 @@ class ObjectBridgeService:
             created_at=_now_iso(),
             updated_at=_now_iso(),
         )
-        return self._repository.save_candidate(record)
+        return self._create_ready_candidate(record)
 
     def extract_skill_candidate_from_project(
         self,
@@ -462,7 +496,7 @@ class ObjectBridgeService:
             created_at=_now_iso(),
             updated_at=_now_iso(),
         )
-        return self._repository.save_candidate(record)
+        return self._create_ready_candidate(record)
 
     def attach_notebook_note_to_project(
         self,
