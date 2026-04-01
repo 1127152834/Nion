@@ -14,6 +14,8 @@
 
 这个计划只覆盖 P0 中轴，不在本轮内实现：
 
+- Knowledge / Work object model 重建
+- Notebook 2.0 / Projects 2.0
 - SkillTool
 - plugin frontmatter loader
 - MCP behavior plane
@@ -22,6 +24,25 @@
 - Glob / Grep / patch-edit / LSP
 
 这些能力都依赖 P0，但不属于本计划实施范围。
+
+## P0 下游前置条件
+
+P0 完成后，禁止直接跳去做 Notebook / Projects 的页面增强或扩展壳能力。  
+在进入 SkillTool、Notebook 2.0、Projects 2.0、plugin/MCP 深化之前，必须先完成下面这些前置条件设计：
+
+1. `Knowledge / Work Object Model`
+   - 明确 `Memory / Notebook / Project` 三者职责
+2. `Notebook / Project Bridge Actions`
+   - 明确提炼、回流、引用、provenance 的桥接 contract
+3. `Project / Notebook` 作为 agent 一级对象的最小模型
+
+也就是说：
+
+- P0 解决 runtime backbone
+- P1 先解决 object model
+- 再进入 Notebook / Projects 2.0
+
+这条约束是为了减少返工，避免对象层继续补丁式增强。
 
 ## Source Specs
 
@@ -39,6 +60,7 @@
 - Hook Event Plane 必须区分 `IN_RUNTIME` 和 `OUT_OF_RUNTIME`
 - 现有 `GuardrailMiddleware`、`ToolErrorHandlingMiddleware`、`ClarificationMiddleware` 必须被收编进统一 contract，而不是推倒重写
 - 实施过程中必须优先减少返工、保证产品化和天然兼容，不走补丁式塞功能路线
+- 实施完成后，不允许立刻通过 Notebook / Projects UI 改版来“证明 P0 成功”；P0 的成功标准是 runtime backbone 成立，而不是页面数量增加
 
 ## File Structure
 
@@ -610,6 +632,7 @@ git commit -m "feat(runtime): implement p0 runtime backbone"
 2. 没有 placeholder 式步骤
 3. 没有要求平行重造 LangGraph 基础设施
 4. 所有步骤都有明确测试与提交点
+5. 明确把 object model / Notebook 2.0 / Projects 2.0 放在 P0 之后的前置条件阶段，而不是提前渗入本轮实现
 
 ## Execution Handoff
 

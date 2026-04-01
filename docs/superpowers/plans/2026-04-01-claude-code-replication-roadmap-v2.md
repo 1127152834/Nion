@@ -110,7 +110,7 @@ SkillTool、Agent runtime constructor、plugin frontmatter contract 应先于 pl
 
 ## 4. 总体阶段图
 
-V2 推荐分成 6 个阶段，而不是按功能散点推进。
+V2 推荐分成 7 个阶段，而不是按功能散点推进。
 
 ### 阶段 A：Runtime Contract Backbone
 
@@ -122,7 +122,17 @@ V2 推荐分成 6 个阶段，而不是按功能散点推进。
 - tool runtime contract
 - hook event plane
 
-### 阶段 B：Execution Primitive Backbone
+### 阶段 B：Knowledge / Work Object Model Backbone
+
+目标：先把 `Memory / Notebook / Project` 三类对象的职责边界和桥接关系产品化，否则后续 Notebook 2.0 / Projects 2.0 只会继续堆页面能力。
+
+包括：
+
+- object model 统一定义
+- provenance / extraction / bridge actions
+- Notebook / Project / Memory 的边界和互转规则
+
+### 阶段 C：Execution Primitive Backbone
 
 目标：把 skill / agent 从资源和零散工具升级为一等执行原语。
 
@@ -133,9 +143,20 @@ V2 推荐分成 6 个阶段，而不是按功能散点推进。
 - plugin markdown loader
 - agent runtime constructor 基础
 
-### 阶段 C：General-Purpose Agent Surface
+### 阶段 D：Notebook / Projects 2.0
 
-目标：先做服务通用办公 agent 的一层，而不是直接 code-first。
+目标：在 object model 已经稳定的前提下，重建 Notebook 和 Projects 两个一级对象层，而不是先改 UI 壳。
+
+包括：
+
+- Notebook 2.0
+- Projects 2.0
+- project memory 主链路
+- notebook retrieval / reference / extraction 主链路
+
+### 阶段 E：General-Purpose Agent Surface
+
+目标：继续把 agent runtime 做成通用办公 agent 的基础设施层。
 
 包括：
 
@@ -144,9 +165,9 @@ V2 推荐分成 6 个阶段，而不是按功能散点推进。
 - compact / resume
 - MCP behavior plane
 
-### 阶段 D：Coding-Facing Enhancement Layer
+### 阶段 F：Coding-Facing Enhancement Layer
 
-目标：在通用基础设施立住后，再补 coding-facing 能力。
+目标：在通用基础设施和对象层立住后，再补 coding-facing 能力。
 
 包括：
 
@@ -156,7 +177,7 @@ V2 推荐分成 6 个阶段，而不是按功能散点推进。
 - LSP
 - Explore / Plan / Verification
 
-### 阶段 E：Advanced Orchestration
+### 阶段 G：Advanced Orchestration
 
 目标：补更复杂的协作与长任务编排。
 
@@ -167,7 +188,7 @@ V2 推荐分成 6 个阶段，而不是按功能散点推进。
 - richer subagent progress model
 - optional worktree / remote / teammate lanes
 
-### 阶段 F：Product Surface Consolidation
+### 阶段 H：Product Surface Consolidation
 
 目标：最后才做产品壳收口。
 
@@ -188,16 +209,19 @@ V2 推荐分成 6 个阶段，而不是按功能散点推进。
 | 3 | Tool runtime contract | 1, 2 | hooks、SkillTool、tool activity、MCP、plugin 都依赖统一执行链。 |
 | 4 | Hook event plane | 3 | hook 不是附属能力，而是 runtime contract 的正式一层。 |
 | 5 | Hook-driven permission / continuation semantics | 4 | 这是 Claude Code hook 最值钱的地方。 |
-| 6 | SkillTool | 1, 2, 3, 4, 5 | 没有 SkillTool，skills 只是资源目录。 |
-| 7 | Plugin frontmatter contract | 4, 5, 6 | plugin 应挂在 runtime contract 和 SkillTool 上，不应另起炉灶。 |
-| 8 | Plugin markdown loader | 7 | 先定 contract，再做 loader，返工最少。 |
-| 9 | Tool activity layer | 3, 4 | 先有统一事件，再做活动表达。 |
-| 10 | Agent runtime constructor | 3, 4, 5 | specialist agents、fork/fresh、background 都依赖这一层。 |
-| 11 | Transcript hygiene / compact / resume | 2, 9, 10 | 没有活动层和 agent runtime，resume 很容易乱。 |
-| 12 | MCP behavior plane | 1, 2, 3, 7 | MCP 应作为行为扩展，而不只是工具来源。 |
-| 13 | Coding-facing tools | 3 | coding tools 可以较早做，但不应先于中轴。 |
-| 14 | Explore / Plan / Verification | 10, 13 | 没有统一 agent runtime 和工具层，它们只会退化成 prompt 模板。 |
-| 15 | Advanced orchestration | 10, 11, 12 | worktree/remote/teammate 必须最后做。 |
+| 6 | Knowledge / Work object model | 1, 2, 3, 4, 5 | 不先定义 Memory / Notebook / Project 三者职责和桥接关系，后续对象层只会继续堆页面能力。 |
+| 7 | Notebook / Project bridge actions | 6 | 没有对象桥接 contract，就无法做 provenance、提炼、回流。 |
+| 8 | SkillTool | 1, 2, 3, 4, 5 | 没有 SkillTool，skills 只是资源目录。 |
+| 9 | Plugin frontmatter contract | 4, 5, 8 | plugin 应挂在 runtime contract 和 SkillTool 上，不应另起炉灶。 |
+| 10 | Plugin markdown loader | 9 | 先定 contract，再做 loader，返工最少。 |
+| 11 | Tool activity layer | 3, 4 | 先有统一事件，再做活动表达。 |
+| 12 | Agent runtime constructor | 3, 4, 5 | specialist agents、fork/fresh、background 都依赖这一层。 |
+| 13 | Transcript hygiene / compact / resume | 2, 11, 12 | 没有活动层和 agent runtime，resume 很容易乱。 |
+| 14 | MCP behavior plane | 1, 2, 3, 9 | MCP 应作为行为扩展，而不只是工具来源。 |
+| 15 | Coding-facing tools | 3 | coding tools 可以较早做，但不应先于中轴。 |
+| 16 | Notebook 2.0 / Projects 2.0 | 6, 7, 11, 13 | 对象层升级不能先于 object model 与 runtime backbone。 |
+| 17 | Explore / Plan / Verification | 12, 15 | 没有统一 agent runtime 和工具层，它们只会退化成 prompt 模板。 |
+| 18 | Advanced orchestration | 12, 13, 14 | worktree/remote/teammate 必须最后做。 |
 
 ## 6. P0 / P1 / P2 / P3
 
@@ -221,6 +245,8 @@ V2 推荐分成 6 个阶段，而不是按功能散点推进。
 
 这些决定 Nion 是否真正拥有 Claude Code 式 execution primitive。
 
+- Knowledge / Work object model
+- Notebook / Project bridge actions
 - SkillTool
 - plugin frontmatter contract
 - plugin markdown loader
@@ -237,6 +263,7 @@ V2 推荐分成 6 个阶段，而不是按功能散点推进。
 
 这些会增强 Nion 的通用任务处理能力，但不应先于 P0/P1。
 
+- Notebook 2.0 / Projects 2.0
 - transcript hygiene / compact / resume
 - MCP behavior plane
 - coding-facing tools
@@ -262,6 +289,7 @@ V2 推荐分成 6 个阶段，而不是按功能散点推进。
 - runtime contract 蓝图
 - hook event plane 蓝图
 - prompt runtime section 化设计
+- object model 蓝图
 - SkillTool 的最小职责定义
 
 成功标准：
@@ -278,6 +306,8 @@ V2 推荐分成 6 个阶段，而不是按功能散点推进。
 - prompt runtime 第一版
 - tool runtime contract 第一版
 - 通用 hook 事件 P0
+- object model 第一版
+- Notebook / Project bridge actions 第一版
 - SkillTool 第一版
 - plugin frontmatter 第一版
 - Tool Activity Layer 第一版
@@ -294,6 +324,7 @@ V2 推荐分成 6 个阶段，而不是按功能散点推进。
 
 要完成：
 
+- Notebook 2.0 / Projects 2.0
 - compact / resume / transcript hygiene
 - MCP behavior plane
 - coding-facing enhancement layer
@@ -315,22 +346,33 @@ V2 推荐分成 6 个阶段，而不是按功能散点推进。
 
 ### 阶段 B 验收
 
+- Memory / Notebook / Project 职责边界明确
+- 对象间桥接动作具备 provenance 与显式性
+- 后续对象层 UI 升级不再依赖隐式数据回流
+
+### 阶段 C 验收
+
 - skill 可通过 SkillTool 执行
 - plugin frontmatter 可影响运行时
 - agent runtime constructor 能承载 future specialist agents
 
-### 阶段 C 验收
+### 阶段 D 验收
+
+- Notebook 2.0 和 Projects 2.0 建立在 object model + runtime backbone 之上
+- 项目和知识对象不再只是页面，而是 agent 可理解、可操作的一级对象
+
+### 阶段 E 验收
 
 - chat / task / diagnostics 可共享 activity 语义
 - compact / resume 不再打断长期任务的连贯性
 - MCP instructions 可改变 agent 行为
 
-### 阶段 D 验收
+### 阶段 F 验收
 
 - coding-facing tools 不再依赖 shell 兜底
 - Explore / Plan / Verification 具有明确角色边界
 
-### 阶段 E 验收
+### 阶段 G 验收
 
 - long-running / background / fork / isolation 生命周期一致
 - 不会因为高级编排模式而破坏基础 contract
@@ -376,8 +418,9 @@ V1 路线文档：
 V2 在 V1 基础上做了三件关键修正：
 
 1. 从“Claude Code 复刻”转成“通用办公 agent 导向的 Claude Code 转译”
-2. 把 coding-facing 能力从主线降级为增强层
-3. 把 hook / tool contract / SkillTool / activity layer 提升到主线
+2. 把 `Memory / Notebook / Project` object model 提升为 runtime backbone 之后的第一层对象重建
+3. 把 coding-facing 能力从主线降级为增强层
+4. 把 hook / tool contract / SkillTool / activity layer 提升到主线
 
 ## 11. 下一步建议
 
@@ -385,7 +428,7 @@ V2 在 V1 基础上做了三件关键修正：
 
 1. 写 `tool runtime contract` 设计稿
 2. 写 `hook event plane` 设计稿
-3. 写 `SkillTool` 设计稿
+3. 写 `knowledge / work object model` 设计稿
 
 在这三份设计稿得到确认之前，不建议进入大规模实现。
 
