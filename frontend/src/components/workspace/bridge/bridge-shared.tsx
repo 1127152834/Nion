@@ -92,6 +92,7 @@ const zhCN = {
   "bridge.channelStatusDesc": "当前渠道桥接运行状态",
   "bridge.bridgeChatBadge": "桥接",
   "bridge.enableRequiresVerification": "连接验证通过后才能启动桥接。",
+  "bridge.enableChannelFirst": "先启用当前渠道，再尝试启动桥接。",
 
   "telegram.credentials": "Bot 凭据",
   "telegram.credentialsDesc": "输入您的 Telegram Bot Token 和 Chat ID",
@@ -320,6 +321,7 @@ const enUS: Record<keyof typeof zhCN, string> = {
   "bridge.channelStatusDesc": "Runtime status for this channel",
   "bridge.bridgeChatBadge": "Bridge",
   "bridge.enableRequiresVerification": "Bridge can only start after connection verification succeeds.",
+  "bridge.enableChannelFirst": "Enable this channel first, then try starting Bridge.",
 
   "telegram.credentials": "Bot Credentials",
   "telegram.credentialsDesc": "Enter your Telegram Bot Token and Chat ID",
@@ -658,33 +660,50 @@ export function FieldRow({
 }
 
 const variantStyles = {
-  success: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
-  warning: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
-  error: "bg-red-500/10 text-red-700 dark:text-red-300",
-  info: "bg-primary/10 text-primary",
+  success:
+    "border-emerald-300/70 bg-linear-to-r from-emerald-50 via-emerald-50 to-white text-emerald-900 shadow-[0_12px_32px_-24px_rgba(5,150,105,0.6)] dark:border-emerald-400/30 dark:from-emerald-500/14 dark:via-emerald-500/10 dark:to-transparent dark:text-emerald-100",
+  warning:
+    "border-amber-300/70 bg-linear-to-r from-amber-50 via-amber-50 to-orange-50/70 text-amber-950 shadow-[0_16px_36px_-26px_rgba(217,119,6,0.65)] dark:border-amber-400/30 dark:from-amber-500/14 dark:via-amber-500/10 dark:to-transparent dark:text-amber-100",
+  error:
+    "border-red-300/70 bg-linear-to-r from-red-50 via-red-50 to-white text-red-900 shadow-[0_12px_32px_-24px_rgba(220,38,38,0.6)] dark:border-red-400/30 dark:from-red-500/14 dark:via-red-500/10 dark:to-transparent dark:text-red-100",
+  info: "border-primary/20 bg-primary/10 text-primary shadow-[0_12px_30px_-24px_color-mix(in_oklab,var(--primary)_45%,transparent)]",
 } as const;
 
 export function StatusBanner({
   variant,
   icon,
+  description,
   children,
   className,
 }: {
   variant: "success" | "warning" | "error" | "info";
   icon?: ReactElement;
+  description?: ReactNode;
   children: ReactNode;
   className?: string;
 }) {
   return (
     <div
       className={cn(
-        "flex items-center gap-2 rounded-md px-3 py-2 text-xs",
+        "relative overflow-hidden rounded-xl border px-3.5 py-3 text-sm",
         variantStyles[variant],
         className,
       )}
     >
-      {icon ? <div className="shrink-0">{icon}</div> : null}
-      <div className="min-w-0 flex-1">{children}</div>
+      <div className="pointer-events-none absolute inset-0 bg-linear-to-r from-white/65 via-white/15 to-transparent dark:from-white/6 dark:via-transparent dark:to-transparent" />
+      <div className="relative flex items-start gap-3">
+        {icon ? (
+          <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-white/80 text-current shadow-sm ring-1 ring-current/10 dark:bg-white/10">
+            {icon}
+          </div>
+        ) : null}
+        <div className="min-w-0 flex-1">
+          <div className="min-w-0 text-[13px] leading-5 font-semibold text-current">{children}</div>
+          {description ? (
+            <div className="mt-1 text-xs leading-5 text-current/72">{description}</div>
+          ) : null}
+        </div>
+      </div>
     </div>
   );
 }
@@ -745,14 +764,20 @@ export function BridgePlatformRuntimeCard({
   return (
     <SettingsCard title={t("bridge.status")} description={t("bridge.channelStatusDesc")}>
       {!bridgeEnabled ? (
-        <StatusBanner variant="warning">
-          <Warning className="size-4 shrink-0" />
+        <StatusBanner
+          variant="warning"
+          icon={<Warning className="size-4" />}
+          description={t("bridge.enableChannelFirst")}
+        >
           {t("bridge.errorNotEnabled")}
         </StatusBanner>
       ) : null}
       {bridgeEnabled && !connectionVerified ? (
-        <StatusBanner variant="warning">
-          <Warning className="size-4 shrink-0" />
+        <StatusBanner
+          variant="warning"
+          icon={<Warning className="size-4" />}
+          description={t("bridge.enableRequiresVerification")}
+        >
           {t("bridge.errorChannelNotVerified")}
         </StatusBanner>
       ) : null}
