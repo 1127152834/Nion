@@ -1,9 +1,11 @@
+import os
+
 from pydantic import BaseModel, Field
 
 
 class DaemonConfig(BaseModel):
     allow_background_running: bool = Field(
-        default=False,
+        default_factory=lambda: os.getenv("NION_DAEMON_ALLOW_BACKGROUND_RUNNING", "").strip() in {"1", "true", "TRUE", "yes", "on"},
         description="Keep the local daemon alive after Electron closes.",
     )
     host: str = Field(default="127.0.0.1")
