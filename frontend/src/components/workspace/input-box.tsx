@@ -61,6 +61,7 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import {
+  buildNotebookDirectoryObjectMention,
   buildNotebookDirectoryMentionOptions,
   buildObjectImplicitMentions,
   type ObjectMention,
@@ -1019,14 +1020,12 @@ export function InputBox({
             void importProjectThreadSnapshot.mutateAsync(option.value);
           }
         } else if (option.kind === "notebook-directory") {
-          addSelectedObjectMention({
-            kind: "object",
-            objectKind: "notebook-directory",
-            value: option.value,
-            mention: `@${option.value}`,
-            label: option.label,
-            metadata: { source: "notebook" },
-          });
+          addSelectedObjectMention(
+            buildNotebookDirectoryObjectMention({
+              value: option.value,
+              label: option.label,
+            }),
+          );
         } else {
           addSelectedContext(
             option.value,

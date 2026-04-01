@@ -54,6 +54,20 @@ export function buildNotebookDirectoryMentionOptions(
     }));
 }
 
+export function buildNotebookDirectoryObjectMention(input: {
+  value: string;
+  label: string;
+}): ObjectMention {
+  return {
+    kind: "object",
+    objectKind: "notebook-directory",
+    value: input.value,
+    mention: `@${input.value}`,
+    label: input.label,
+    metadata: { source: "notebook" },
+  };
+}
+
 export function buildObjectImplicitMentions({
   text,
   mentions,

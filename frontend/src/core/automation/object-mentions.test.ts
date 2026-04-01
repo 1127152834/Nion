@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  buildNotebookDirectoryObjectMention,
   buildNotebookDirectoryMentionOptions,
   buildObjectImplicitMentions,
 } from "./object-mentions.ts";
@@ -72,4 +73,20 @@ void test("buildObjectImplicitMentions deduplicates duplicate object mentions", 
 
   assert.equal(result.length, 1);
   assert.equal(result[0]?.value, "articles");
+});
+
+void test("buildNotebookDirectoryObjectMention returns the shared notebook object mention contract", () => {
+  const result = buildNotebookDirectoryObjectMention({
+    value: "articles",
+    label: "articles",
+  });
+
+  assert.deepEqual(result, {
+    kind: "object",
+    objectKind: "notebook-directory",
+    value: "articles",
+    mention: "@articles",
+    label: "articles",
+    metadata: { source: "notebook" },
+  });
 });
