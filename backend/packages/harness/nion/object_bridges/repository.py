@@ -12,6 +12,7 @@ from nion.config.paths import Paths, get_paths
 
 from .models import (
     BridgeCandidateRecord,
+    BridgeCandidateStatus,
     CandidateActionEvent,
     NotebookReferenceLink,
     ProjectReferenceLink,
@@ -36,21 +37,16 @@ class ObjectBridgeRepository:
     def _ensure_schema(self) -> None:
         self._db_path.parent.mkdir(parents=True, exist_ok=True)
         with self._connect() as connection:
+            self._ensure_bridge_candidates_table(connection)
+            self._ensure_candidate_action_events_table(connection)
+            self._ensure_bridge_candidate_column(
+                connection,
+                column_name="candidate_type",
+                column_type="TEXT NOT NULL DEFAULT ''",
+            )
+            self._backfill_bridge_candidate_types(connection)
             connection.executescript(
                 """
-                CREATE TABLE IF NOT EXISTS bridge_candidates (
-                    id TEXT PRIMARY KEY,
-                    status TEXT NOT NULL,
-                    candidate_type TEXT NOT NULL,
-                    payload TEXT NOT NULL
-                );
-                CREATE TABLE IF NOT EXISTS candidate_action_events (
-                    id TEXT PRIMARY KEY,
-                    candidate_id TEXT NOT NULL,
-                    action TEXT NOT NULL,
-                    created_at TEXT NOT NULL,
-                    payload TEXT NOT NULL
-                );
                 CREATE TABLE IF NOT EXISTS project_reference_links (
                     id TEXT PRIMARY KEY,
                     project_id TEXT NOT NULL,
@@ -65,19 +61,43 @@ class ObjectBridgeRepository:
                     ON bridge_candidates(status);
                 CREATE INDEX IF NOT EXISTS idx_bridge_candidates_candidate_type
                     ON bridge_candidates(candidate_type);
-                CREATE INDEX IF NOT EXISTS idx_candidate_action_events_candidate_id
-                    ON candidate_action_events(candidate_id, created_at, id);
                 CREATE INDEX IF NOT EXISTS idx_project_reference_links_project_id
                     ON project_reference_links(project_id);
                 CREATE INDEX IF NOT EXISTS idx_notebook_reference_links_note_id
                     ON notebook_reference_links(note_id);
                 """
             )
-            self._ensure_bridge_candidate_column(
-                connection,
-                column_name="candidate_type",
-                column_type="TEXT NOT NULL DEFAULT ''",
+
+    def _ensure_bridge_candidates_table(self, connection: sqlite3.Connection) -> None:
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS bridge_candidates (
+                id TEXT PRIMARY KEY,
+                status TEXT NOT NULL,
+                candidate_type TEXT NOT NULL,
+                payload TEXT NOT NULL
             )
+            """
+        )
+
+    def _ensure_candidate_action_events_table(self, connection: sqlite3.Connection) -> None:
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS candidate_action_events (
+                id TEXT PRIMARY KEY,
+                candidate_id TEXT NOT NULL,
+                action TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                payload TEXT NOT NULL
+            )
+            """
+        )
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_candidate_action_events_candidate_id
+            ON candidate_action_events(candidate_id, created_at, id)
+            """
+        )
 
     def _ensure_bridge_candidate_column(
         self,
@@ -95,6 +115,30 @@ class ObjectBridgeRepository:
         connection.execute(
             f"ALTER TABLE bridge_candidates ADD COLUMN {column_name} {column_type}"
         )
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_bridge_candidates_candidate_type
+            ON bridge_candidates(candidate_type)
+            """
+        )
+
+    def _backfill_bridge_candidate_types(self, connection: sqlite3.Connection) -> None:
+        rows = connection.execute(
+            """
+            SELECT id, payload
+            FROM bridge_candidates
+            WHERE candidate_type = ''
+            """
+        ).fetchall()
+        for row in rows:
+            payload = json.loads(str(row["payload"]))
+            candidate_type = payload.get("candidate_type")
+            if not candidate_type:
+                continue
+            connection.execute(
+                "UPDATE bridge_candidates SET candidate_type = ? WHERE id = ?",
+                (candidate_type, row["id"]),
+            )
 
     def save_candidate(self, candidate: BridgeCandidateRecord) -> BridgeCandidateRecord:
         with self._connect() as connection:
@@ -134,15 +178,13 @@ class ObjectBridgeRepository:
         return [BridgeCandidateRecord(**json.loads(str(row["payload"]))) for row in rows]
 
     def update_candidate_status(self, candidate_id: str, status: str) -> BridgeCandidateRecord:
-        candidate = self.get_candidate(candidate_id)
-        if candidate is None:
-            raise KeyError(candidate_id)
-        updated = replace(
-            candidate,
-            status=status,  # type: ignore[arg-type]
-            updated_at=_now_iso(),
+        return self._transition_candidate(
+            candidate_id,
+            to_status=status,  # type: ignore[arg-type]
+            actor_type="system",
+            action=status,
+            event_payload={"requested_via": "update_candidate_status"},
         )
-        return self.save_candidate(updated)
 
     def mark_candidate_ready(
         self,
@@ -152,19 +194,17 @@ class ObjectBridgeRepository:
         reviewed_at: str | None = None,
     ) -> BridgeCandidateRecord:
         review_time = reviewed_at or _now_iso()
-        return self._update_candidate(
+        return self._transition_candidate(
             candidate_id,
-            action="ready",
+            to_status="ready",
             actor_type=actor_type,
-            candidate_updates={
-                "status": "ready",
+            action="ready",
+            field_updates={
                 "reviewed_at": review_time,
                 "reviewed_by": actor_type,
-                "terminal_reason": None,
-                "last_error": None,
-                "updated_at": review_time,
             },
             event_payload={"reviewed_at": review_time},
+            updated_at=review_time,
         )
 
     def dismiss_candidate(
@@ -174,15 +214,13 @@ class ObjectBridgeRepository:
         actor_type: str,
         terminal_reason: str,
     ) -> BridgeCandidateRecord:
-        return self._update_candidate(
+        return self._transition_candidate(
             candidate_id,
-            action="dismissed",
+            to_status="dismissed",
             actor_type=actor_type,
-            candidate_updates={
-                "status": "dismissed",
+            action="dismissed",
+            field_updates={
                 "terminal_reason": terminal_reason,
-                "reviewed_by": actor_type,
-                "updated_at": _now_iso(),
             },
             event_payload={"terminal_reason": terminal_reason},
         )
@@ -194,14 +232,13 @@ class ObjectBridgeRepository:
         actor_type: str,
         terminal_reason: str,
     ) -> BridgeCandidateRecord:
-        return self._update_candidate(
+        return self._transition_candidate(
             candidate_id,
-            action="expired",
+            to_status="expired",
             actor_type=actor_type,
-            candidate_updates={
-                "status": "expired",
+            action="expired",
+            field_updates={
                 "terminal_reason": terminal_reason,
-                "updated_at": _now_iso(),
             },
             event_payload={"terminal_reason": terminal_reason},
         )
@@ -218,11 +255,9 @@ class ObjectBridgeRepository:
             candidate_id,
             action="deferred",
             actor_type=actor_type,
-            candidate_updates={
+            field_updates={
                 "deferred_until": deferred_until,
                 "deferred_reason": deferred_reason,
-                "reviewed_by": actor_type,
-                "updated_at": _now_iso(),
             },
             event_payload={
                 "deferred_until": deferred_until,
@@ -248,11 +283,11 @@ class ObjectBridgeRepository:
             candidate_id,
             action="error_recorded",
             actor_type=actor_type,
-            candidate_updates={
+            field_updates={
                 "last_error": error_payload,
-                "updated_at": error_payload["failed_at"],
             },
             event_payload=error_payload,
+            updated_at=error_payload["failed_at"],
         )
 
     def list_candidate_events(self, candidate_id: str) -> list[CandidateActionEvent]:
@@ -274,25 +309,91 @@ class ObjectBridgeRepository:
         *,
         action: str,
         actor_type: str,
-        candidate_updates: dict[str, Any],
+        field_updates: dict[str, Any],
         event_payload: dict[str, Any] | None = None,
+        updated_at: str | None = None,
     ) -> BridgeCandidateRecord:
         candidate = self.get_candidate(candidate_id)
         if candidate is None:
             raise KeyError(candidate_id)
-        updated = replace(candidate, **candidate_updates)
+        effective_updated_at = updated_at or _now_iso()
+        updated = replace(
+            candidate,
+            **field_updates,
+            updated_at=effective_updated_at,
+        )
         event = CandidateActionEvent(
             id=f"evt_{uuid4().hex}",
             candidate_id=candidate_id,
             action=action,
             actor_type=actor_type,  # type: ignore[arg-type]
-            created_at=updated.updated_at or _now_iso(),
+            created_at=effective_updated_at,
             payload=event_payload or {},
         )
         with self._connect() as connection:
             self._write_candidate(connection, updated)
             self._write_candidate_event(connection, event)
         return updated
+
+    def _transition_candidate(
+        self,
+        candidate_id: str,
+        *,
+        to_status: BridgeCandidateStatus,
+        actor_type: str,
+        action: str,
+        field_updates: dict[str, Any] | None = None,
+        event_payload: dict[str, Any] | None = None,
+        updated_at: str | None = None,
+    ) -> BridgeCandidateRecord:
+        candidate = self.get_candidate(candidate_id)
+        if candidate is None:
+            raise KeyError(candidate_id)
+        effective_updated_at = updated_at or _now_iso()
+        updates = self._status_field_updates(candidate.status, to_status)
+        if field_updates:
+            updates.update(field_updates)
+        payload = {"from_status": candidate.status, "to_status": to_status}
+        if event_payload:
+            payload.update(event_payload)
+        return self._update_candidate(
+            candidate_id,
+            action=action,
+            actor_type=actor_type,
+            field_updates={"status": to_status, **updates},
+            event_payload=payload,
+            updated_at=effective_updated_at,
+        )
+
+    def _status_field_updates(
+        self,
+        from_status: BridgeCandidateStatus,
+        to_status: BridgeCandidateStatus,
+    ) -> dict[str, Any]:
+        updates: dict[str, Any] = {}
+        if to_status == "ready":
+            updates.update(
+                {
+                    "deferred_until": None,
+                    "deferred_reason": None,
+                    "terminal_reason": None,
+                }
+            )
+        if to_status in {"dismissed", "expired", "applied"}:
+            updates.update(
+                {
+                    "deferred_until": None,
+                    "deferred_reason": None,
+                }
+            )
+        if from_status != "ready" and to_status != "ready":
+            updates.update(
+                {
+                    "reviewed_at": None,
+                    "reviewed_by": None,
+                }
+            )
+        return updates
 
     def _write_candidate(
         self,

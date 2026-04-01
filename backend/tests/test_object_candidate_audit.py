@@ -64,3 +64,17 @@ def test_candidate_repository_persists_last_error_and_terminal_reason(tmp_path) 
     assert updated.last_error["error_code"] == "apply_failed"
     assert updated.last_error["message"] == "write notebook failed"
     assert updated.last_error["failed_at"] == "2026-04-01T10:00:00Z"
+
+
+def test_candidate_repository_update_candidate_status_records_audit_event(tmp_path) -> None:
+    repository = ObjectBridgeRepository(base_dir=tmp_path / "nion-home")
+    repository.save_candidate(_candidate("cand-status-update"))
+
+    updated = repository.update_candidate_status("cand-status-update", "applied")
+    events = repository.list_candidate_events("cand-status-update")
+
+    assert updated.status == "applied"
+    assert [event.action for event in events] == ["applied"]
+    assert events[0].actor_type == "system"
+    assert events[0].payload["from_status"] == "ready"
+    assert events[0].payload["to_status"] == "applied"
