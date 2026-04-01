@@ -35,7 +35,7 @@
   - suggestions model 影响聊天 follow-up。
   - sandbox/daemon/tool settings 影响 runtime 与 tool policy。
   - CLI tools section 复用 CLI manager。
-  - Memory OS provider foundation会在记忆设置页中引入 provider family 与 active binding 状态。
+  - legacy memory 设置页会展示 `memory.json` 摘要、事实与存储模式，不再引入额外维护或 provider 产品面。
 - 易混淆边界：
   - local settings（主题、语言、sidebar collapsed）与 Config Center 配置不是同一持久化源。
 
@@ -75,10 +75,8 @@
 - 表单校验：dirty 前后按钮状态、validate 失败时显示 path/message。
 - 按钮状态：save/discard 在 clean、dirty、saving 三态下正确启禁。
 - 条件渲染：desktop shell 下 sandbox section 隐藏/提示 AIO provider；CLI tools section 直接嵌入 manager。
-- 条件渲染：记忆页中的 provider foundation 区块必须显示 `Built-in / Mem0 / OpenViking`，且 OpenViking 文案必须提到 `embedded / remote`。
-- 条件渲染：provider foundation 区块必须展示 active provider family、runtime mode、capability summary，以及 runtime health/status 的可见文案，不能退化成只有 family 名称的卡片。
-- 条件渲染：设置中的记忆页现在是轻量入口页，不再承担 notebook、memory、self-maintenance 的最终产品承载面。
-- 跳转入口：必须能从设置里的 `Memory / Self-Maintenance` 入口进入 `/workspace/memory` 与 `/workspace/self-maintenance`，且文案保持 capability/routing 语义。
+- 条件渲染：设置中的记忆页展示 legacy `memory.json` 摘要、事实列表和存储模式，不承担 notebook 或其他产品面的主入口。
+- 跳转入口：设置中的记忆说明只服务于 `/workspace/memory`，不再暴露 `/workspace/self-maintenance` 一类已删除入口。
 - 成功反馈：save 后 ConfigSaveBar 回到 clean；version 刷新；runtime status 变化。
 - 失败反馈：409 后重拉；422 后显示 validation。
 - 刷新后状态：已保存配置重进仍保留；discard 后回退到 initialConfig。
@@ -127,28 +125,10 @@
 - 预期：页面聚焦 structured memory、recall、console；不得出现 notebook ownership、自我维护主操作或 OpenViking 产品级 tab 心智。
 - 优先级：P0。
 
-#### 场景 6A：Provider Foundation 能力与状态渲染
-- 目标：验证设置中的 provider foundation 区块能展示 richer provider parity metadata，而不是 family-only shell。
-- 步骤：打开 Memory settings surface，检查 active provider family、runtime mode、capability summary、runtime health/status summary 是否可见。
-- 预期：`Built-in / Mem0 / OpenViking` family 都有可识别文案；active provider 至少显示 mode、health/status，且 capability summary 使用 `supported / partial / unsupported` 语义。
-- 优先级：P0。
-
-#### 场景 6B：Mem0 runtime selection 与兼容状态
-- 目标：验证 Mem0 不再表现为 metadata-only 或 crash-like unsupported state。
-- 步骤：将 active provider 切到 Mem0 runtime 后重新打开 Memory settings / provider surface。
-- 预期：Mem0 可以作为 active provider 正常渲染，能看到 runtime status / usage 信息；若 compact/rebuild 未支持，必须以显式 unsupported reason 呈现，而不是空白或异常态。
-- 优先级：P0。
-
-#### 场景 7：Self-Maintenance 页面最小冒烟
-- 目标：验证 dedicated Self-Maintenance 页面已经成为主维护入口，而不是设置页中的隐藏面板。
-- 步骤：桌面启动后打开 `/workspace/self-maintenance`，确认 heartbeat、proposal 相关区块渲染正常。
-- 预期：页面聚焦 heartbeat、maintenance cadence、proposal-driven actions；不得出现 notebook operator controls 或 notebook 归属文案。
-- 优先级：P0。
-
-#### 场景 8：Notebook / Memory / Self-Maintenance / Projects 导航路由
-- 目标：验证四个 IA 域具备独立导航入口与正确路由。
-- 步骤：从 workspace 导航或命令面板依次进入 `/workspace/notebook`、`/workspace/memory`、`/workspace/self-maintenance`、`/workspace/projects`。
-- 预期：每个页面都渲染对应 domain，且不会借用错误心智模型；Memory 不再承载 notebook，Self-Maintenance 不再作为 settings 隐藏主入口。
+#### 场景 7：Notebook / Memory / Projects 导航路由
+- 目标：验证三个 IA 域具备独立导航入口与正确路由。
+- 步骤：从 workspace 导航或命令面板依次进入 `/workspace/notebook`、`/workspace/memory`、`/workspace/projects`。
+- 预期：每个页面都渲染对应 domain，且不会借用错误心智模型；Memory 不再承载 notebook，Projects 仍独立存在。
 - 优先级：P0。
 
 ### 6.3 必须覆盖的 E2E 场景类型
@@ -159,7 +139,7 @@
 - 重复点击链路：save/discard 连点。
 - 模块间联动链路：Session Policy -> Chat suggestions；Daemon -> runtime-info。
 - web / desktop-client 差异链路：sandbox/desktop-only 提示。
-- IA 冒烟链路：Notebook / Memory / Self-Maintenance / Projects 四个域的独立导航与心智分离。
+- IA 冒烟链路：Notebook / Memory / Projects 三个域的独立导航与心智分离。
 
 ### 6.4 agent-browser 与 skill 使用建议
 - 适合 `/browse`：设置打开、字段编辑、保存验证。
@@ -191,93 +171,25 @@
 - 适合 agent-browser E2E：确定性分区的保存链路。
 - 适合人工探索式测试：复杂 YAML、跨分区联动。
 - 最小冒烟集合：打开设置、改 daemon 设置、save 成功、reload 一致。
-- M5 增量最小冒烟集合：打开 `/workspace/notebook`、`/workspace/memory`、`/workspace/self-maintenance`，确认 domain 文案、入口和主操作不串位。
+- 当前最小 IA 冒烟集合：打开 `/workspace/notebook`、`/workspace/memory`、`/workspace/projects`，确认 domain 文案、入口和主操作不串位。
 - 最小回归闭环：save success + 409 + 422。
 - 高收益自动化优先级：P0 是 config API/useConfigEditor；P1 是各 section UI。
 
-### Memory OS Provider Foundation 增量覆盖
+### Legacy Memory 增量覆盖
 
 - 后端接口：
-  - `GET /api/memory-os/providers/families`
-  - `GET /api/memory-os/providers/state`
-  - `PUT /api/memory-os/providers/state`
+  - `GET /api/memory`
+  - `POST /api/memory/reload`
+  - `GET /api/memory/config`
+  - `GET /api/memory/status`
 - 前端 contract：
-  - 记忆设置页顶部出现 provider foundation 区块
-  - provider family 至少显示 `Built-in / Mem0 / OpenViking`
-  - OpenViking 模式文案显示 `embedded / remote`
-  - active provider 需显示 provider family、runtime mode、capability summary、runtime health/status summary
-  - capability summary 必须覆盖 `supported / partial / unsupported` 三种状态语义
-  - provider status / usage visibility 不能只存在于网络响应，必须有可见 UI 承载
-  - 不得破坏现有 legacy memory、OpenViking、AutoDream 卡片
-
-### Memory OS Runtime Migration 增量覆盖
-
-- `/api/memory` 仍然存在，但应验证它已经是 Memory OS compatibility bridge
-- prompt 注入和 memory middleware 的运行时路径应通过 provider 间接生效
-- 前端 `core/memory/*` 兼容调用不应因 runtime migration 被打断
-
-### OpenViking Provider Activation 增量覆盖
-
-- `memory-os` provider state必须能表达 OpenViking 的 `embedded / remote` 模式
-- provider foundation 卡片必须能展示当前 OpenViking 模式
-- backend 需验证 OpenViking provider family 的 embedded 和 remote 行为
-- backend 需验证 embedded OpenViking provider 至少能列出 notebook 资源和 dream log
-- backend 需验证 embedded OpenViking provider 至少能 round-trip user memory 和 agent memory
-
-### Memory Console Product Surface 增量覆盖
-
-- 记忆页不再是混合卡片堆，必须拆成 `Memory Provider / Memory Console / Agent Core` 三个内部 surface
-- `Memory Provider` 承担 provider family、mode、storage provider 相关配置，不应再和检索/AutoDream 混放
-- `Memory Console` 承担记忆检索、当前记忆概览、facts 管理与清理
-- `Agent Core` 只保留指向 `Self-Maintenance` 的轻量摘要/入口，不再承担 notebook operator controls
-- OpenViking 与 AutoDream 文案必须保留 operator / inspect 语义，不能伪装成最终 end-user product
-
-### Heartbeat Backbone 增量覆盖
-
-- 后端接口：
-  - `GET /api/heartbeat/status`
-  - `GET /api/heartbeat/logs`
-  - `DELETE /api/heartbeat/logs`
-- 后端需验证 daemon runtime 已拥有 heartbeat 服务，而不是只依赖 AutoDream scheduler
-- 前端需验证 heartbeat data layer 不破坏现有桌面 backend URL fallback
-- 自我维护相关测试需与 notebook / second-brain 测试分离，不再把 notebook operator 当成 memory page 的一部分
-
-### Reflective Self-Maintenance 增量覆盖
-
-- 后端接口：
-  - `POST /api/self-maintenance/run`
-  - `GET /api/self-maintenance/status`
-  - `GET /api/self-maintenance/logs`
-  - `DELETE /api/self-maintenance/logs`
-- 兼容接口：
-  - `POST /api/autodream/run`
-  - `GET /api/autodream/status`
-- 必须验证：
-  - 记忆设置页主维护入口已经切换为 `Self-Maintenance / 自我维护`
-  - `AutoDream` 只作为 legacy compatibility copy 保留
-  - 维护结果展示 `memory/prune/action/self-upgrade proposals`
-  - notebook 检索或重建按钮不能重新混入这个 panel
-  - dedicated `/workspace/self-maintenance` 页面是主维护入口，settings 只保留轻量入口/说明
-
-### Memory Compaction 增量覆盖
-
-- 后端接口：
-  - `POST /api/memory/compact`
-  - `GET /api/memory/compact/logs`
-  - `DELETE /api/memory/compact/logs`
-  - `GET /api/memory/usage`
-- 后端需验证 compaction 结果会记录日志，并且不会把 notebook 当成 compaction 输入
-- 后端需验证 heartbeat 可以触发 maintenance runner 后的 compaction 路径
-- 桌面端需验证 compaction API 在 `make desktop-dev` 启动后可访问
-
-### M6 Provider Parity 增量覆盖
-
-- 后端需验证 active provider state 已包含 capability matrix、runtime mode、health、status summary、usage summary
-- 后端需验证 Mem0 runtime provider 可以被真正 resolve，并满足 legacy memory contract
-- 后端需验证 Mem0 的 compact/rebuild 返回显式 unsupported 结果，而不是抛出未实现异常
-- 前端需验证 provider foundation 区块对 provider family capability rendering、Mem0 runtime selection、provider status / usage visibility 都有稳定展示
-- 桌面最小冒烟需确认 Mem0 不再表现为 unsupported-by-crash，而是兼容运行时 + 显式能力边界
-- Task 5 收尾时的桌面验证基线应记录为：`pnpm --dir desktop install` 后 `make desktop-dev` 可成功拉起 renderer 与 daemon，且 `/health`、`/api/memory-os/providers/families`、`/api/memory-os/providers/state` provider parity API smoke 可通过
+  - 记忆设置页展示结构化摘要和事实，不再引用额外的 provider / self-maintenance 页面
+  - `Memory Console` 保留清空、删除事实、本地筛选和 recall 检索能力
+  - Memory 页面文案必须聚焦 structured memory / recall / console，不得重新混入 notebook 或自我维护叙事
+- 验证要求：
+  - `/api/memory-os/*`、`/api/self-maintenance/*`、`/api/autodream/*`、`/api/heartbeat/*` 不再出现在设置测试范围
+  - `Notebook` 仍然是独立知识库，不作为 memory 设置页的一部分
+  - `make desktop-dev` 最小冒烟以 `/health`、`/api/memory`、`/api/notebook/tree` 可用为准
 
 ## 10. 风险与优先级
 - P0 必测项：config read/update/runtime-status、409/422。

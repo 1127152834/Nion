@@ -10,6 +10,7 @@ const { stripTypeScriptTypes } = nodeModule as typeof nodeModule & {
 
 const ICON_STUBS = `
 const CompassIcon = Symbol("CompassIcon");
+const FolderKanbanIcon = Symbol("FolderKanbanIcon");
 const GraduationCapIcon = Symbol("GraduationCapIcon");
 const ImageIcon = Symbol("ImageIcon");
 const MicroscopeIcon = Symbol("MicroscopeIcon");

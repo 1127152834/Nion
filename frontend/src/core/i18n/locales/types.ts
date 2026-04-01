@@ -369,7 +369,6 @@ export interface Translations {
     cliTools: string;
     notebook: string;
     memory: string;
-    selfMaintenance: string;
   };
 
   // Agents
@@ -448,15 +447,6 @@ export interface Translations {
       consoleDescription: string;
       recallTitle: string;
       recallDescription: string;
-    };
-    selfMaintenance: {
-      eyebrow: string;
-      title: string;
-      description: string;
-      heartbeatTitle: string;
-      heartbeatDescription: string;
-      proposalsTitle: string;
-      proposalsDescription: string;
     };
   };
 
@@ -624,7 +614,6 @@ export interface Translations {
     toggleSidebar: string;
     openNotebook: string;
     openMemory: string;
-    openSelfMaintenance: string;
     openProjects: string;
   };
 
@@ -682,33 +671,6 @@ export interface Translations {
       allowBackgroundRunningLabel: string;
       allowBackgroundRunningHint: string;
     };
-    heartbeat: {
-      title: string;
-      status: string;
-      logs: string;
-      clearLogs: string;
-      lastTick: string;
-      running: string;
-      idle: string;
-    };
-    compaction: {
-      title: string;
-      logs: string;
-      clearLogs: string;
-      usage: string;
-      compactNow: string;
-      supported: string;
-      unsupported: string;
-    };
-    rebuild: {
-      title: string;
-      logs: string;
-      clearLogs: string;
-      rebuildNow: string;
-      restore: string;
-      supported: string;
-      unsupported: string;
-    };
     memory: {
       title: string;
       description: string;
@@ -741,56 +703,6 @@ export interface Translations {
           title: string;
           description: string;
         };
-        agentCore: {
-          title: string;
-          description: string;
-        };
-      };
-      autodream: {
-        title: string;
-        description: string;
-        runPlaceholder: string;
-        runButton: string;
-        emptySummary: string;
-      };
-      selfMaintenance: {
-        title: string;
-        description: string;
-        runPlaceholder: string;
-        runButton: string;
-        emptySummary: string;
-        memoryUpdates: string;
-        pruneProposals: string;
-        actionProposals: string;
-        selfUpgradeProposals: string;
-        emptyList: string;
-        unknownStatus: string;
-        active: string;
-        idle: string;
-        notYet: string;
-        awaitingSignal: string;
-        runningLabel: string;
-        lastRunLabel: string;
-        cadenceLabel: string;
-        sessionsSinceLastRunLabel: string;
-        summaryLabel: string;
-        legacyCompatibilityLabel: string;
-        runArtifactsEmpty: string;
-        reflectiveLogsTitle: string;
-        reflectiveLogsDescription: string;
-        reflectiveLogsEmpty: string;
-        reflectiveLogsFailed: string;
-        startedLabel: string;
-        completedLabel: string;
-        whatIDid: string;
-        whatILearned: string;
-        staleItems: string;
-        proposalsLabel: string;
-        triggerLabel: string;
-        latestRunLabel: string;
-        noEntryPath: string;
-        supportingSummary: string;
-        openPageButton: string;
       };
       storage: {
         title: string;
