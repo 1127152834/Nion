@@ -1,5 +1,6 @@
 "use client";
 
+import type { ObjectMention } from "@/core/automation/object-mentions";
 import { Button } from "@/components/ui/button";
 import {
   Command,
@@ -438,11 +439,14 @@ export const PromptInputActionAddAttachments = ({
 export type PromptInputMessage = {
   text: string;
   files: PromptInputFilePart[];
-  implicitMentions?: Array<{
-    kind: "context" | "skill" | "mcp" | "cli";
-    value: string;
-    mention: string;
-  }>;
+  implicitMentions?: Array<
+    | {
+        kind: "context" | "skill" | "mcp" | "cli";
+        value: string;
+        mention: string;
+      }
+    | ObjectMention
+  >;
   shortcutSelections?: {
     contexts?: Array<{ value: string; kind: "file" | "directory" }>;
     skills?: string[];

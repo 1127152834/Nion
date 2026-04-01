@@ -1,3 +1,4 @@
+import type { ObjectMention } from "../automation/object-mentions";
 import type { Todo } from "../todos";
 
 export type ToolCall = {
@@ -133,11 +134,14 @@ export interface AgentThreadContext extends Record<string, unknown> {
   selected_contexts?: Array<{ value: string; kind: "file" | "directory" }>;
   selected_mcp_tools?: string[];
   selected_cli_tools?: string[];
-  implicit_mentions?: Array<{
-    kind: "context" | "skill" | "mcp" | "cli";
-    value: string;
-    mention: string;
-  }>;
+  implicit_mentions?: Array<
+    | {
+        kind: "context" | "skill" | "mcp" | "cli";
+        value: string;
+        mention: string;
+      }
+    | ObjectMention
+  >;
 }
 
 export type PendingPermissionRequest = {
