@@ -1,0 +1,70 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+
+import {
+  createProjectDraftFromNotebook,
+  createProjectPlanDraftFromNotebook,
+  createProjectConstraintCandidatesFromNotebook,
+  createMemoryCandidatesFromNotebook,
+} from "./api.ts";
+
+function createJsonResponse(payload: unknown, status = 200) {
+  return new Response(JSON.stringify(payload), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
+test("object bridge notebook APIs hit expected endpoints", async () => {
+  const requests: string[] = [];
+  const originalFetch = globalThis.fetch;
+
+  globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = String(input);
+    requests.push(`${init?.method ?? "GET"} ${url}`);
+
+    return createJsonResponse({
+      candidate: {
+        id: "cand-1",
+        type: "project_draft",
+        title: "Candidate",
+        summary: "summary",
+        payload: {},
+        requires_confirmation: true,
+        provenance: [],
+        created_at: "2026-04-01T00:00:00Z",
+      },
+    });
+  };
+
+  try {
+    await createProjectDraftFromNotebook({
+      note_ids: ["note_1"],
+      fragment_ids: [],
+      mode: "project_draft",
+    });
+    await createProjectPlanDraftFromNotebook({
+      project_id: "proj_1",
+      note_ids: ["note_1"],
+      fragment_ids: [],
+    });
+    await createProjectConstraintCandidatesFromNotebook({
+      project_id: "proj_1",
+      note_ids: ["note_1"],
+      fragment_ids: [],
+    });
+    await createMemoryCandidatesFromNotebook({
+      note_ids: ["note_1"],
+      fragment_ids: [],
+    });
+
+    assert.deepEqual(requests, [
+      "POST /api/notebook/bridge/project-drafts",
+      "POST /api/notebook/bridge/project-plan-drafts",
+      "POST /api/notebook/bridge/project-constraint-candidates",
+      "POST /api/notebook/bridge/memory-candidates",
+    ]);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
