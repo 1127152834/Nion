@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from nion.config.agents_config import load_agent_soul
+from nion.prompt_runtime import PromptBuildContext, PromptSection, build_prompt_artifact
 from nion.skills import load_skills
 
 
@@ -487,14 +488,16 @@ def apply_prompt_template(
     agent_name: str | None = None,
     available_skills: set[str] | None = None,
 ) -> str:
-    # Get memory context
-    memory_context = _get_memory_context(agent_name)
-
-    # Include subagent section only if enabled (from runtime parameter)
     n = max_concurrent_subagents
-    subagent_section = _build_subagent_section(n) if subagent_enabled else ""
 
-    # Add subagent reminder to critical_reminders if enabled
+    memory_context = _get_memory_context(agent_name)
+    skills_section = get_skills_prompt_section(available_skills)
+    deferred_tools_section = get_deferred_tools_prompt_section()
+    acp_section = _build_acp_section()
+    cli_tools_capability_section = (
+        CLI_TOOLS_CAPABILITY_PROMPT if cli_tools_enabled else ""
+    )
+    subagent_section = _build_subagent_section(n) if subagent_enabled else ""
     subagent_reminder = (
         "- **Orchestrator Mode**: You are a task orchestrator - decompose complex tasks into parallel sub-tasks. "
         f"**HARD LIMIT: max {n} `task` calls per response.** "
@@ -502,8 +505,6 @@ def apply_prompt_template(
         if subagent_enabled
         else ""
     )
-
-    # Add subagent thinking guidance if enabled
     subagent_thinking = (
         "- **DECOMPOSITION CHECK: Can this task be broken into 2+ parallel sub-tasks? If YES, COUNT them. "
         f"If count > {n}, you MUST plan batches of ≤{n} and only launch the FIRST batch now. "
@@ -512,18 +513,7 @@ def apply_prompt_template(
         else ""
     )
 
-    # Get skills section
-    skills_section = get_skills_prompt_section(available_skills)
-
-    # Get deferred tools section (tool_search)
-    deferred_tools_section = get_deferred_tools_prompt_section()
-    acp_section = _build_acp_section()
-    cli_tools_capability_section = (
-        CLI_TOOLS_CAPABILITY_PROMPT if cli_tools_enabled else ""
-    )
-
-    # Format the prompt with dynamic skills and memory
-    prompt = SYSTEM_PROMPT_TEMPLATE.format(
+    full_prompt = SYSTEM_PROMPT_TEMPLATE.format(
         agent_name=agent_name or "Nion 2.0",
         soul=get_agent_soul(agent_name),
         skills_section=skills_section,
@@ -536,4 +526,43 @@ def apply_prompt_template(
         subagent_thinking=subagent_thinking,
     )
 
-    return prompt + f"\n<current_date>{datetime.now().strftime('%Y-%m-%d, %A')}</current_date>"
+    dated_prompt = (
+        full_prompt + f"\n<current_date>{datetime.now().strftime('%Y-%m-%d, %A')}</current_date>"
+    )
+
+    context = PromptBuildContext(
+        agent_name=agent_name,
+        agent_kind=(
+            "bootstrap"
+            if available_skills == {"bootstrap"}
+            else "subagent"
+            if subagent_enabled and agent_name == "subagent"
+            else "builtin"
+            if agent_name == "notebook-chat"
+            else "lead"
+        ),
+        subagent_enabled=subagent_enabled,
+        cli_tools_enabled=cli_tools_enabled,
+        available_skills=available_skills,
+        max_concurrent_subagents=max_concurrent_subagents,
+        surface="workspace",
+        model_name=None,
+        session_mode=None,
+        memory_enabled=bool(memory_context),
+        extensions_enabled=bool(
+            skills_section or deferred_tools_section or cli_tools_capability_section or acp_section
+        ),
+    )
+
+    sections = [
+        PromptSection(
+            key="prompt.full",
+            title=None,
+            content=dated_prompt,
+            scope="global_static",
+            layer="core",
+            order=10,
+        )
+    ]
+    artifact = build_prompt_artifact(context=context, sections=sections)
+    return artifact.full_prompt

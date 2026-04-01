@@ -4,9 +4,10 @@ from .models import PROMPT_DYNAMIC_BOUNDARY, PromptBuildArtifact, PromptBuildCon
 
 
 def build_prompt_artifact(
-    _context: PromptBuildContext,
+    context: PromptBuildContext,
     sections: list[PromptSection],
 ) -> PromptBuildArtifact:
+    del context
     enabled_sections = [section for section in sections if section.enabled]
     ordered_sections = sorted(enabled_sections, key=lambda section: section.order)
 
