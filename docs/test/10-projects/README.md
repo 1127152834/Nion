@@ -14,6 +14,7 @@ Projects 是顶层 Workspace 模块，用于管理长期工作的项目容器。
 - 决策/确认流
 - 受管产物与版本恢复入口
 - 完成阶段提炼建议
+- 候选式导出到 Notebook / Memory 的对象桥接入口
 
 ## 主要前端入口
 
@@ -33,6 +34,10 @@ Projects 是顶层 Workspace 模块，用于管理长期工作的项目容器。
 - `GET/POST /api/projects/{project_id}/artifacts*`
 - `GET/POST /api/projects/{project_id}/memory*`
 - `GET/POST /api/projects/{project_id}/decisions*`
+- `POST /api/projects/{project_id}/bridge/notebook-drafts`
+- `POST /api/projects/{project_id}/bridge/memory-candidates`
+- `POST /api/projects/{project_id}/bridge/skill-candidates`
+- `POST /api/projects/{project_id}/references/notebook-notes`
 
 ## 核心验证点
 
@@ -50,6 +55,7 @@ Projects 是顶层 Workspace 模块，用于管理长期工作的项目容器。
 - 项目会话区支持主会话和新建项目会话
 - 时间线区展示最近项目事件
 - 受管产物区展示受管产物、版本摘要与恢复入口
+- 顶部操作区提供 `导出到笔记`、`提炼长期记忆` 两个候选式 bridge action 入口
 
 ### 3. 项目会话
 
@@ -73,7 +79,13 @@ Projects 是顶层 Workspace 模块，用于管理长期工作的项目容器。
   - `extract_long_term_memory`
   - `extract_skill`
 
-### 6. 受管产物
+### 6. 对象桥接入口
+
+- `导出到笔记` 只创建 notebook draft candidate，不直接写 Notebook 正文
+- `提炼长期记忆` 只创建 memory candidate，不直接写长期记忆
+- `attach notebook note` 必须通过 `/references/notebook-notes`，不能由页面直接改项目对象
+
+### 7. 受管产物
 
 - 项目详情页能看到受管产物卡片
 - 展示产物标题、类型、路径、主归属计划
@@ -85,14 +97,16 @@ Projects 是顶层 Workspace 模块，用于管理长期工作的项目容器。
 后端：
 
 - `UV_LINK_MODE=copy uv run pytest tests/test_projects_router.py tests/test_runtime_app_factory.py -q`
+- `uv run pytest tests/test_object_bridge_api.py -q`
 
 前端：
 
 - `pnpm exec node --test src/components/workspace/recent-chat-list.contract.test.ts src/components/workspace/projects/project-routes.contract.test.ts src/core/navigation/desktop-routes.test.ts`
+- `pnpm exec node --test src/components/workspace/projects/project-pages.contract.test.ts src/core/object-bridges/api.test.ts`
 - `pnpm exec tsc --noEmit -p tsconfig.json`
 
 ## 当前缺口
 
-- 还没有专门的 Project 页面级 contract test
+- Project 页面级 contract test 已补到最小驾驶舱入口，但还没有完整交互型 integration / E2E
 - 还没有覆盖项目详情页主交互的 E2E
 - 受管产物仍然是最小展示，不包含复杂 diff / 预览验证

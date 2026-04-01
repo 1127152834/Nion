@@ -1,6 +1,6 @@
 # 测试文档 06 - Notebook 模块
 
-- 文档用途：指导其他 agent 对 Notebook 的树、笔记、历史、回收站、目录、assist、聊天导入链路进行完整测试。
+- 文档用途：指导其他 agent 对 Notebook 的树、笔记、历史、回收站、目录、assist、聊天导入链路，以及对象桥接候选入口进行完整测试。
 - 适合交给哪类 agent 执行：后端 notebook API 测试 agent、前端编辑器/UI 测试 agent、E2E/QA agent。
 - 推荐优先级：P1。
 - 推荐测试方式：接口 + UI + agent-browser E2E。
@@ -15,6 +15,7 @@
   - directory create / rename / delete / move
   - assist-preview / assist-apply
   - import-sources(chat) / note import
+  - bridge candidate entrypoints from notebook to project draft / long-term memory
 - 典型用户角色：桌面知识管理用户、需要把聊天结果落笔记的高级用户。
 - 上下游依赖：NotebookHistoryService、Notebook service、ThreadRepository、聊天页 save-to-notebook。
 - 与其他模块关系：
@@ -30,8 +31,9 @@
 
 ## 2. 模块边界与测试范围
 - 本模块覆盖：notes、directories、trash、history、assist、chat import、quick capture、drag/drop 移动。
+- 本模块覆盖：notes、directories、trash、history、assist、chat import、quick capture、drag/drop 移动，以及候选式 bridge actions 入口。
 - 不属于本模块：长期 memory、agent diary、普通聊天消息流。
-- 交叉测试点：聊天导入作为 import source；save-to-notebook 跳 seeded create。
+- 交叉测试点：聊天导入作为 import source；save-to-notebook 跳 seeded create；从 Notebook 生成项目草案 / 长期记忆候选。
 - 易混淆边界：Notebook 是用户资产，不是 agent memory；回收站恢复与 history restore 是两条不同链路。
 
 ## 3. 核心业务链路
@@ -42,7 +44,8 @@
 5. quick capture 将内容直接写入收件箱草稿。
 6. assist-preview 基于 whole_note/selection/paragraph 生成改写预览，assist-apply 把内容按 replace/insert 等模式写回。
 7. import-sources(chat) 从 ThreadRepository 中提取最近线程 AI 回复摘要，import 接口把内容附加或替换进当前 note。
-8. delete 进入 trash，restore-deleted 恢复；restore version 则从历史版本恢复内容。
+8. info 面板中的对象桥接入口只创建 candidate，不直接写入 Project 或 Memory。
+9. delete 进入 trash，restore-deleted 恢复；restore version 则从历史版本恢复内容。
 
 ## 4. 接口测试文档
 
@@ -61,11 +64,13 @@
 ## 5. UI 测试文档
 - 页面入口：`/workspace/notebook`、`/workspace/notebook/trash`。
 - 首屏渲染：sidebar、editor、context panel、search、create/quick capture 按钮。
+- 对象桥接入口：信息面板显示 `生成项目草案`、`提炼长期记忆` 两个按钮，并明确提示“只生成候选，不直接写入”。
 - 加载态：tree/note/history 加载文案和 skeleton。
 - 空态：无笔记、空回收站、空搜索结果。
 - 错误态：API 失败 toast 或错误卡片。
 - 展示：pinned recent、目录树、editor save state、trash 列表、history 面板。
 - 用户交互：创建笔记、快速捕获、编辑、选择文本、assist、移动、删除、恢复、拖拽目录/文件。
+- 用户交互：创建笔记、快速捕获、编辑、选择文本、assist、对象桥接候选生成、移动、删除、恢复、拖拽目录/文件。
 - 表单校验：新建目录/笔记必填；quick capture 空值禁止提交。
 - 按钮状态：save draft、restore、delete 等状态正确。
 - 条件渲染：draft session 与已有 note 模式不同；preview/edit 模式切换。
@@ -89,6 +94,7 @@
 - 场景 4：删除到回收站并 restore-deleted，P0。
 - 场景 5：assist preview + apply，P1。
 - 场景 6：从聊天 import source 导入到当前笔记，P1。
+- 场景 7：从信息面板生成项目草案候选与长期记忆候选，P1。
 - 每个场景都要写明具体 agent-browser 动作：open -> snapshot -> click/fill -> wait -> snapshot。
 
 ### 6.3 必须覆盖的 E2E 场景类型
@@ -98,6 +104,7 @@
 - 返回/重进链路：trash / notebook 切换。
 - 重复提交链路：多次保存/恢复。
 - 模块间联动链路：chat import。
+- 模块间联动链路：chat import、Notebook -> Project / Memory bridge candidate。
 - web / desktop-client 差异链路：桌面优先语义但页面应统一。
 
 ### 6.4 agent-browser 与 skill 使用建议
@@ -119,7 +126,7 @@
 
 ## 9. 自动化建议
 - 后端接口自动化优先：notes/directories/history/trash/import。
-- 前端 contract 自动化：sidebar/tree/editor/context panel。
+- 前端 contract 自动化：sidebar/tree/editor/context panel、object bridge action entrypoints。
 - agent-browser E2E：创建编辑删除恢复。
 - 人工探索：长文档、复杂 markdown、拖拽与大树结构。
 - 冒烟：创建 note、保存、删除恢复。
@@ -129,4 +136,3 @@
 - P1：directories、assist、chat import。
 - 易漏点：hidden path 过滤、hash 冲突、history/restore 区分。
 - 事故链路：删除恢复丢内容、导入覆盖错误、assist 错写原文。
-

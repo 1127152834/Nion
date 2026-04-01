@@ -2,10 +2,16 @@
 
 import { ChevronLeftIcon, ChevronRightIcon, History, Info, Minus, Sparkles, Tag, X } from "lucide-react";
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { NotebookHistoryEntry, NotebookMetadataInput, NotebookNote } from "@/core/notebook";
 import { useNotebookHistoryDetail, useUpdateNotebookMetadata } from "@/core/notebook";
+import {
+  useCreateMemoryCandidatesFromNotebook,
+  useCreateProjectDraftFromNotebook,
+} from "@/core/object-bridges/hooks";
 import { formatTimeAgo } from "@/core/utils/datetime";
 
 import { NotebookAssistantPanel } from "./notebook-assistant-panel";
@@ -55,6 +61,8 @@ export function NotebookContextPanel({
   const [historyPreviewId, setHistoryPreviewId] = useState<string | null>(null);
   const [tagInput, setTagInput] = useState("");
   const updateMetadata = useUpdateNotebookMetadata(note?.note_id ?? "");
+  const createProjectDraft = useCreateProjectDraftFromNotebook();
+  const createMemoryCandidate = useCreateMemoryCandidatesFromNotebook();
   const { detail: historyPreview } = useNotebookHistoryDetail(note?.note_id ?? null, historyPreviewId);
 
   const infoRows = useMemo(() => {
@@ -114,6 +122,37 @@ export function NotebookContextPanel({
       onApplyNote(historyPreview.snapshot);
       setHistoryPreviewId(null);
       onActiveTabChange("ask");
+    }
+  }
+
+  async function handleCreateProjectDraft() {
+    if (!note) {
+      return;
+    }
+    try {
+      await createProjectDraft.mutateAsync({
+        note_ids: [note.note_id],
+        fragment_ids: [],
+        mode: "project_draft",
+      });
+      toast.success("已生成项目草案候选，不会直接写入项目。");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : String(error));
+    }
+  }
+
+  async function handleExtractMemoryCandidate() {
+    if (!note) {
+      return;
+    }
+    try {
+      await createMemoryCandidate.mutateAsync({
+        note_ids: [note.note_id],
+        fragment_ids: [],
+      });
+      toast.success("已生成长期记忆候选，不会直接写入长期记忆。");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : String(error));
     }
   }
 
@@ -295,6 +334,35 @@ export function NotebookContextPanel({
                 <h4 className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--notebook-soft-text)]">路径</h4>
                 <div className="rounded-lg border border-[var(--notebook-border)] bg-[var(--notebook-panel)] p-3 font-mono text-sm text-[var(--notebook-ink)]">
                   {notePath ?? note.relative_path}
+                </div>
+              </div>
+
+              <div>
+                <div className="mb-2 flex items-center justify-between">
+                  <h4 className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--notebook-soft-text)]">对象桥接</h4>
+                </div>
+                <div className="space-y-3 rounded-lg border border-[var(--notebook-border)] bg-[var(--notebook-panel)] p-3">
+                  <p className="text-xs leading-5 text-[var(--notebook-soft-text)]">
+                    这些动作只会生成候选，不会直接跨对象写入。
+                  </p>
+                  <div className="grid gap-2">
+                    <Button
+                      variant="outline"
+                      className="w-full justify-center"
+                      onClick={() => void handleCreateProjectDraft()}
+                      disabled={createProjectDraft.isPending || createMemoryCandidate.isPending}
+                    >
+                      生成项目草案
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-center"
+                      onClick={() => void handleExtractMemoryCandidate()}
+                      disabled={createProjectDraft.isPending || createMemoryCandidate.isPending}
+                    >
+                      提炼长期记忆
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>
