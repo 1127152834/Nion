@@ -1272,13 +1272,13 @@ export const zhCN: Translations = {
       forms: {
         reminderTitle: "新建提醒事项",
         reminderDescription:
-          "只填写名称、提示词、重复方式和时间，就能快速创建一个日常提醒。",
+          "只填写提醒内容和时间安排，就能快速创建一个日常提醒。",
         taskTitle: "新建定时任务",
         taskDescription:
-          "先把任务本身建好，只有确实需要投递方式或附加技能时再展开高级选项。",
+          "先把任务内容和时间安排建好，再从结果区查看每次运行。",
         creatorTitle: "创建自动化",
         creatorDescription:
-          "提醒事项和定时任务共用一个创建器，只有在确实需要时才展开高级选项。",
+          "提醒事项和定时任务共用一个创建器，只保留内容输入和时间安排。",
         creatorKindLabel: "自动化类型",
         creatorKinds: {
           reminder: "提醒事项",
@@ -1304,8 +1304,10 @@ export const zhCN: Translations = {
           channel: "频道",
           multi: "多个目标",
         },
-        taskPromptLabel: "任务提示词",
-        taskPromptPlaceholder: "这个定时任务触发时，Nion 应该执行什么？",
+        contentLabel: "提醒内容",
+        contentPlaceholder: "例如：提醒我每天下午 5 点整理今天的待办和进展",
+        taskContentLabel: "任务内容",
+        taskContentPlaceholder: "例如：每个工作日 18:30 总结项目进展并生成日报",
         intervalLabel: "间隔（分钟）",
         weekdayLabel: "每周几",
         weekdayOptions: ["周日", "周一", "周二", "周三", "周四", "周五", "周六"],
@@ -1321,7 +1323,6 @@ export const zhCN: Translations = {
         },
         createReminder: "创建提醒事项",
         createTask: "创建定时任务",
-        advancedOptions: "高级选项",
       },
       sections: {
         remindersTitle: "提醒事项",

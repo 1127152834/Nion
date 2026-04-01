@@ -89,7 +89,7 @@ export function describeAutomationJob(job: AutomationJob): AutomationJobDescript
   return {
     id: job.id,
     title: job.name.trim() || job.id,
-    summary: summarizeText(job.prompt, 140),
+    summary: job.prompt.trim(),
     scheduleLabel: formatScheduleLabel(job),
     nextRunAt: readString(job.next_run_at) ?? null,
     lastResultSummary: readString(job.last_result_summary) ?? null,
@@ -105,7 +105,7 @@ export function buildAutomationRunPreview(input: {
     jobId: input.job.id,
     jobName: input.job.name.trim() || input.job.id,
     status: input.run.status,
-    summary: readString(input.run.result_summary) ?? "No summary yet.",
+    summary: input.run.result_summary.trim(),
     startedAt: input.run.started_at,
     finishedAt: input.run.finished_at ?? null,
     threadId: readString(input.run.isolated_thread_id) ?? null,
@@ -150,14 +150,6 @@ function makeCard(id: string, value: number, tone: AutomationOverviewCardTone) {
 
 function readString(value: unknown) {
   return typeof value === "string" && value.trim() ? value.trim() : null;
-}
-
-function summarizeText(value: string, limit: number) {
-  const normalized = value.replace(/\s+/g, " ").trim();
-  if (normalized.length <= limit) {
-    return normalized;
-  }
-  return `${normalized.slice(0, Math.max(0, limit - 1)).trimEnd()}…`;
 }
 
 function pickNextJob(jobs: AutomationJob[]) {

@@ -74,7 +74,7 @@ export function AutomationRunPreview({ run }: AutomationRunPreviewProps) {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="rounded-xl border bg-muted/20 p-3 text-sm">
-          {run.summary}
+          {run.summary || (isZh ? "暂无摘要。" : "No summary yet.")}
         </div>
         {messages.length === 0 ? (
           <div className="text-muted-foreground rounded-xl border border-dashed p-4 text-sm">

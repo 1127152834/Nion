@@ -10,7 +10,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -42,14 +41,12 @@ export function AutomationCreator({
   onSubmit,
 }: AutomationCreatorProps) {
   const { t } = useI18n();
-  const settingsCopy = t.settings.automation;
   const copy = t.settings.automationWorkspace.forms;
   const [kind, setKind] =
     useState<Extract<AutomationJobKind, "reminder" | "scheduled_task">>(
       defaultKind,
     );
-  const [name, setName] = useState("");
-  const [prompt, setPrompt] = useState("");
+  const [content, setContent] = useState("");
 
   const timezone = useMemo(
     () => Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
@@ -62,15 +59,16 @@ export function AutomationCreator({
   });
 
   async function handleSubmit() {
-    if (!name.trim() || !prompt.trim()) {
+    const normalizedContent = content.trim();
+    if (!normalizedContent) {
       return;
     }
 
     await onSubmit(
       buildAutomationDraftRequest({
         kind,
-        name,
-        prompt,
+        name: deriveAutomationName(normalizedContent, kind),
+        prompt: normalizedContent,
         schedule: {
           ...schedule,
           timezone,
@@ -78,8 +76,7 @@ export function AutomationCreator({
       }),
     );
 
-    setName("");
-    setPrompt("");
+    setContent("");
   }
 
   const isTask = kind === "scheduled_task";
@@ -91,7 +88,7 @@ export function AutomationCreator({
         <CardDescription>{copy.creatorDescription}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4 px-5 pb-5">
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4">
           <div className="space-y-2">
             <label className="text-sm font-medium" id="automation-kind-label">
               {copy.creatorKindLabel}
@@ -141,33 +138,22 @@ export function AutomationCreator({
             </Select>
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium" htmlFor="automation-name">
-              {settingsCopy.nameLabel}
-            </label>
-            <Input
-              id="automation-name"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              placeholder={settingsCopy.namePlaceholder}
-            />
-          </div>
-          <div className="space-y-2 md:col-span-2">
             <label className="text-sm font-medium" htmlFor="automation-prompt">
-              {isTask ? copy.taskPromptLabel : settingsCopy.promptLabel}
+              {isTask ? copy.taskContentLabel : copy.contentLabel}
             </label>
             <Textarea
               id="automation-prompt"
-              value={prompt}
-              onChange={(event) => setPrompt(event.target.value)}
+              value={content}
+              onChange={(event) => setContent(event.target.value)}
               placeholder={
                 isTask
-                  ? copy.taskPromptPlaceholder
-                  : settingsCopy.promptPlaceholder
+                  ? copy.taskContentPlaceholder
+                  : copy.contentPlaceholder
               }
               className="min-h-24"
             />
           </div>
-          <div className="md:col-span-2">
+          <div>
             <ScheduleBuilder
               value={{ ...schedule, timezone }}
               onChange={(next) => setSchedule(next)}
@@ -185,8 +171,7 @@ export function AutomationCreator({
             onClick={() => void handleSubmit()}
             disabled={
               isPending ||
-              !name.trim() ||
-              !prompt.trim() ||
+              !content.trim() ||
               (schedule.preset === "once" && !schedule.runAt.trim())
             }
           >
@@ -196,4 +181,16 @@ export function AutomationCreator({
       </CardContent>
     </Card>
   );
+}
+
+function deriveAutomationName(
+  content: string,
+  kind: Extract<AutomationJobKind, "reminder" | "scheduled_task">,
+) {
+  const normalized = content.replace(/\s+/g, " ").trim();
+  const summary = normalized.slice(0, 24).trimEnd();
+  if (summary) {
+    return normalized.length > 24 ? `${summary}…` : summary;
+  }
+  return kind === "scheduled_task" ? "Scheduled task" : "Reminder";
 }

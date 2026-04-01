@@ -47,6 +47,7 @@ export function AutomationResultsPanel({
 
   const description = describeAutomationJob(selectedJob);
   const jobRuns = runs.filter((run) => run.job_id === selectedJob.id);
+  const summaryText = truncateText(description.summary, 160);
 
   if (selectedJob.job_kind === "scheduled_task") {
     const selectedRun = jobRuns.find((run) => run.id === selectedRunId) ?? jobRuns[0] ?? null;
@@ -55,7 +56,7 @@ export function AutomationResultsPanel({
       <section className="space-y-4">
         <div className="space-y-1">
           <h2 className="text-lg font-semibold">{description.title}</h2>
-          <p className="text-muted-foreground text-sm">{description.summary}</p>
+          <p className="text-muted-foreground text-sm">{summaryText}</p>
         </div>
         <div className="grid gap-4 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
           <Card>
@@ -72,6 +73,7 @@ export function AutomationResultsPanel({
                   {jobRuns.map((run) => {
                     const preview = buildAutomationRunPreview({ job: selectedJob, run });
                     const threadId = run.isolated_thread_id ?? preview.threadId;
+                    const runSummary = preview.summary || (isZh ? "暂无摘要。" : "No summary yet.");
                     return (
                       <Item
                         key={run.id}
@@ -87,7 +89,7 @@ export function AutomationResultsPanel({
                           <ItemHeader className="items-start">
                             <div className="space-y-2">
                               <ItemTitle>{preview.runId}</ItemTitle>
-                              <ItemDescription>{preview.summary}</ItemDescription>
+                              <ItemDescription>{truncateText(runSummary, 120)}</ItemDescription>
                             </div>
                           </ItemHeader>
                           <div className="text-muted-foreground grid gap-2 pt-3 text-xs">
@@ -125,8 +127,16 @@ export function AutomationResultsPanel({
     <AutomationHistorySection
       runs={jobRuns}
       title={description.title}
-      description={description.summary}
+      description={summaryText}
       emptyMessage={isZh ? "这个提醒还没有触发记录。" : "No runs recorded for this reminder yet."}
     />
   );
+}
+
+function truncateText(value: string, limit: number) {
+  const normalized = value.replace(/\s+/g, " ").trim();
+  if (normalized.length <= limit) {
+    return normalized;
+  }
+  return `${normalized.slice(0, Math.max(0, limit - 1)).trimEnd()}…`;
 }

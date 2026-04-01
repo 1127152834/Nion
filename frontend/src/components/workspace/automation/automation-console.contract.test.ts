@@ -18,10 +18,16 @@ void test("automation console composes create list and results panels", async ()
     new URL("./automation-console.tsx", import.meta.url),
     "utf8",
   );
+  const createPanelSource = await readFile(
+    new URL("./automation-create-panel.tsx", import.meta.url),
+    "utf8",
+  );
 
   assert.match(source, /AutomationCreatePanel/);
+  assert.match(source, /AutomationOverviewCards/);
   assert.match(source, /AutomationListPanel/);
   assert.match(source, /AutomationResultsPanel/);
+  assert.doesNotMatch(createPanelSource, /AutomationOverviewCards/);
 });
 
 void test("results panel switches scheduled task runs into thread preview mode", async () => {

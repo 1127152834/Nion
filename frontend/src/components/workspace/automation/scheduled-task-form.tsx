@@ -38,7 +38,7 @@ export function ScheduledTaskForm({
   isPending,
   onSubmit,
 }: ScheduledTaskFormProps) {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   const settingsCopy = t.settings.automation;
   const copy = t.settings.automationWorkspace.forms;
   const [name, setName] = useState("");
@@ -164,7 +164,7 @@ export function ScheduledTaskForm({
           className="text-sm font-medium underline-offset-4 hover:underline"
           onClick={() => setShowAdvanced((value) => !value)}
         >
-          {copy.advancedOptions}
+          {locale === "zh-CN" ? "更多设置" : "More settings"}
         </button>
 
         {showAdvanced ? (

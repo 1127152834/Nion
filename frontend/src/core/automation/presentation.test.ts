@@ -156,7 +156,7 @@ void test("builds concise job description for console cards", () => {
   assert.equal(description.nextRunAt, "2026-03-24T10:00:00Z");
 });
 
-void test("builds scheduled task run preview with thread linkage", () => {
+void test("builds scheduled task run preview with raw summary and thread linkage", () => {
   const preview = buildAutomationRunPreview({
     job: makeJob({
       id: "job-task",
@@ -174,6 +174,6 @@ void test("builds scheduled task run preview with thread linkage", () => {
   assert.equal(preview.jobName, "Nightly digest");
   assert.equal(preview.runId, "run-task");
   assert.equal(preview.threadId, "thread-42");
-  assert.equal(preview.summary, "No summary yet.");
+  assert.equal(preview.summary, "");
   assert.equal(preview.status, "succeeded");
 });

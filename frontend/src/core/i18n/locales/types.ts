@@ -1049,8 +1049,10 @@ export interface Translations {
           channel: string;
           multi: string;
         };
-        taskPromptLabel: string;
-        taskPromptPlaceholder: string;
+        contentLabel: string;
+        contentPlaceholder: string;
+        taskContentLabel: string;
+        taskContentPlaceholder: string;
         intervalLabel: string;
         weekdayLabel: string;
         weekdayOptions: string[];
@@ -1066,7 +1068,6 @@ export interface Translations {
         };
         createReminder: string;
         createTask: string;
-        advancedOptions: string;
       };
       sections: {
         remindersTitle: string;

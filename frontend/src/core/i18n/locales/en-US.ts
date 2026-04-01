@@ -1323,13 +1323,13 @@ export const enUS: Translations = {
       forms: {
         reminderTitle: "New reminder",
         reminderDescription:
-          "Create a simple reminder with a name, a prompt, a repeat rule, and a time.",
+          "Create a reminder from one content field plus its schedule.",
         taskTitle: "New scheduled task",
         taskDescription:
-          "Create a recurring task first, then open advanced options only if you need delivery routing or attached skills.",
+          "Create a scheduled task from its content and schedule, then inspect runs in the results area.",
         creatorTitle: "Create automation",
         creatorDescription:
-          "Use one creator for reminders and scheduled tasks, then open advanced options only when needed.",
+          "Use one creator for reminders and scheduled tasks with one content field and one schedule setup.",
         creatorKindLabel: "Automation type",
         creatorKinds: {
           reminder: "Reminder",
@@ -1355,8 +1355,10 @@ export const enUS: Translations = {
           channel: "Channel",
           multi: "Multiple destinations",
         },
-        taskPromptLabel: "Task prompt",
-        taskPromptPlaceholder: "What should Nion run on this schedule?",
+        contentLabel: "Reminder content",
+        contentPlaceholder: "For example: remind me every day at 5 PM to wrap up my top priorities",
+        taskContentLabel: "Task content",
+        taskContentPlaceholder: "For example: summarize project progress and generate a daily report every weekday at 18:30",
         intervalLabel: "Interval (minutes)",
         weekdayLabel: "Days of week",
         weekdayOptions: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
@@ -1372,7 +1374,6 @@ export const enUS: Translations = {
         },
         createReminder: "Create reminder",
         createTask: "Create scheduled task",
-        advancedOptions: "Advanced options",
       },
       sections: {
         remindersTitle: "Reminders",

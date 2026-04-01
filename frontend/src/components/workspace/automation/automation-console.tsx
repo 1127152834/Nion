@@ -12,6 +12,7 @@ import type {
 
 import { AutomationCreatePanel } from "./automation-create-panel";
 import { AutomationListPanel } from "./automation-list-panel";
+import { AutomationOverviewCards } from "./automation-overview-cards";
 import { AutomationResultsPanel } from "./automation-results-panel";
 
 type AutomationConsoleProps = {
@@ -80,10 +81,8 @@ export function AutomationConsole({
 
   return (
     <div className="space-y-6">
+      <AutomationOverviewCards status={status} runs={runs} jobs={jobs} />
       <AutomationCreatePanel
-        jobs={jobs}
-        runs={runs}
-        status={status}
         isPending={createPending}
         onCreate={onCreate}
       />

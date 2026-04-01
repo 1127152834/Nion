@@ -13,7 +13,7 @@ void test("automation console uses the shared automation creator", async () => {
   assert.match(createPanelSource, /AutomationCreator/);
 });
 
-void test("shared automation creator keeps schedule builder and drops advanced controls", async () => {
+void test("shared automation creator uses one primary content field and hides name input", async () => {
   const creatorSource = await readFile(
     new URL("./automation-creator.tsx", import.meta.url),
     "utf8",
@@ -25,6 +25,13 @@ void test("shared automation creator keeps schedule builder and drops advanced c
 
   assert.match(creatorSource, /ScheduleBuilder/);
   assert.match(creatorSource, /AutomationPreviewCard/);
+  assert.match(creatorSource, /copy\.contentLabel/);
+  assert.match(creatorSource, /copy\.taskContentLabel/);
+  assert.match(creatorSource, /copy\.contentPlaceholder/);
+  assert.match(creatorSource, /copy\.taskContentPlaceholder/);
+  assert.doesNotMatch(creatorSource, /automation-name/);
+  assert.doesNotMatch(creatorSource, /nameLabel/);
+  assert.doesNotMatch(creatorSource, /namePlaceholder/);
   assert.doesNotMatch(creatorSource, /advancedOptions/);
   assert.doesNotMatch(creatorSource, /deliveryMode/);
   assert.doesNotMatch(creatorSource, /skillsText/);
