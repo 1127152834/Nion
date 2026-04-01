@@ -86,7 +86,6 @@ import { ThreadTypeTabs } from "./thread-type-tabs";
 type ThreadGroupSection = {
   id: string;
   label: string;
-  accent?: string;
   entries: Array<{
     thread: AgentThread;
     pendingClarification: boolean;
@@ -114,7 +113,6 @@ function groupEntriesBySource(
         sections.set(groupId, {
           id: groupId,
           label: project?.project_name ?? "未命名项目",
-          accent: project?.project_phase,
           entries: [entry],
         });
       }
@@ -137,7 +135,6 @@ function groupEntriesBySource(
       sections.set(groupId, {
         id: groupId,
         label: groupLabel,
-        accent: bridge?.platform ? bridgePlatformLabel(bridge.platform, bt) : undefined,
         entries: [entry],
       });
     }
@@ -536,33 +533,26 @@ export function RecentChatList() {
           <div className="pl-0">
           <SidebarMenu className="gap-0">
             {groupedSections.length > 0 ? (
-              <div className="space-y-2 px-2 pb-2">
+              <div className="space-y-1 px-2 pb-2">
                 {groupedSections.map((section) => (
                   <Collapsible
                     key={section.id}
                     defaultOpen={section.id === currentOpenSectionId}
+                    className="group"
                   >
-                    <div className="overflow-hidden rounded-[1.1rem] border border-border/40 bg-background/40">
-                      <CollapsibleTrigger className="group flex w-full items-center justify-between px-3 py-2.5 text-left hover:bg-accent/25">
-                        <div className="min-w-0">
-                          <div className="truncate text-[12px] font-medium text-foreground">
-                            {section.label}
-                          </div>
-                          <div className="mt-0.5 flex items-center gap-2 text-[10px] text-muted-foreground">
-                            <span>{section.entries.length} 条</span>
-                            {section.accent ? <span>{section.accent}</span> : null}
-                          </div>
+                    <CollapsibleTrigger className="group/header flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left text-[13px] font-medium text-foreground/88 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-0">
+                      <span className="min-w-0 flex-1 truncate">
+                        {section.label}
+                      </span>
+                      <ChevronDownIcon className="size-3.5 shrink-0 text-muted-foreground/90 transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] group-data-[state=open]/header:rotate-180 group-data-[state=open]/header:text-foreground/70" />
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="grid grid-rows-[0fr] transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] data-[state=open]:grid-rows-[1fr] data-[state=closed]:[&>div]:opacity-0 data-[state=closed]:[&>div]:-translate-y-1 data-[state=open]:[&>div]:opacity-100 data-[state=open]:[&>div]:translate-y-0 [&>div]:transition-all [&>div]:duration-300 [&>div]:ease-[cubic-bezier(0.22,1,0.36,1)]">
+                      <div className="overflow-hidden">
+                        <div className="ml-2 flex flex-col divide-y divide-border/45 border-l border-border/35 pl-2">
+                          {section.entries.map(renderThreadRow)}
                         </div>
-                        <ChevronDownIcon className="size-4 shrink-0 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180" />
-                      </CollapsibleTrigger>
-                      <CollapsibleContent className="grid grid-rows-[0fr] transition-[grid-template-rows] duration-200 ease-out data-[state=open]:grid-rows-[1fr]">
-                        <div className="overflow-hidden">
-                          <div className="flex flex-col divide-y divide-border/50">
-                            {section.entries.map(renderThreadRow)}
-                          </div>
-                        </div>
-                      </CollapsibleContent>
-                    </div>
+                      </div>
+                    </CollapsibleContent>
                   </Collapsible>
                 ))}
               </div>
