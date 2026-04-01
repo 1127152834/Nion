@@ -16,6 +16,26 @@ type ScheduleLabelCopy = {
   everyMinutesTemplate: string;
 };
 
+export type AutomationJobDescription = {
+  id: string;
+  title: string;
+  summary: string;
+  scheduleLabel: string;
+  nextRunAt: string | null;
+  lastResultSummary: string | null;
+};
+
+export type AutomationRunPreview = {
+  runId: string;
+  jobId: string;
+  jobName: string;
+  status: AutomationRun["status"];
+  summary: string;
+  startedAt: string;
+  finishedAt: string | null;
+  threadId: string | null;
+};
+
 export function splitJobsByKind(jobs: AutomationJob[]) {
   return {
     reminders: jobs.filter((job) => job.job_kind === "reminder"),
@@ -65,6 +85,33 @@ export function formatActionLabel(_job: AutomationJob) {
   return "Agent prompt";
 }
 
+export function describeAutomationJob(job: AutomationJob): AutomationJobDescription {
+  return {
+    id: job.id,
+    title: job.name.trim() || job.id,
+    summary: summarizeText(job.prompt, 140),
+    scheduleLabel: formatScheduleLabel(job),
+    nextRunAt: readString(job.next_run_at) ?? null,
+    lastResultSummary: readString(job.last_result_summary) ?? null,
+  };
+}
+
+export function buildAutomationRunPreview(input: {
+  job: AutomationJob;
+  run: AutomationRun;
+}): AutomationRunPreview {
+  return {
+    runId: input.run.id,
+    jobId: input.job.id,
+    jobName: input.job.name.trim() || input.job.id,
+    status: input.run.status,
+    summary: readString(input.run.result_summary) ?? "No summary yet.",
+    startedAt: input.run.started_at,
+    finishedAt: input.run.finished_at ?? null,
+    threadId: readString(input.run.isolated_thread_id) ?? null,
+  };
+}
+
 export function summarizeHistory(runs: AutomationRun[]) {
   return {
     totalRuns: runs.length,
@@ -103,6 +150,14 @@ function makeCard(id: string, value: number, tone: AutomationOverviewCardTone) {
 
 function readString(value: unknown) {
   return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function summarizeText(value: string, limit: number) {
+  const normalized = value.replace(/\s+/g, " ").trim();
+  if (normalized.length <= limit) {
+    return normalized;
+  }
+  return `${normalized.slice(0, Math.max(0, limit - 1)).trimEnd()}…`;
 }
 
 function pickNextJob(jobs: AutomationJob[]) {

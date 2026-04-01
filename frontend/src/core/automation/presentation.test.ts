@@ -3,9 +3,14 @@ import test from "node:test";
 
 import type { AutomationJob, AutomationRun, AutomationStatus } from "./types";
 
-const { formatScheduleLabel, splitJobsByKind, summarizeHistory, summarizeOverview } = await import(
-  new URL("./presentation.ts", import.meta.url).href
-);
+const {
+  buildAutomationRunPreview,
+  describeAutomationJob,
+  formatScheduleLabel,
+  splitJobsByKind,
+  summarizeHistory,
+  summarizeOverview,
+} = await import(new URL("./presentation.ts", import.meta.url).href);
 
 function makeJob(overrides: Partial<AutomationJob>): AutomationJob {
   return {
@@ -41,6 +46,7 @@ function makeRun(overrides: Partial<AutomationRun> = {}): AutomationRun {
     result_summary: "Delivered summary",
     output_artifacts: [],
     delivery_results: [],
+    isolated_thread_id: null,
     ...overrides,
   };
 }
@@ -130,4 +136,44 @@ void test("summarizes history using the latest run and grouped counts", () => {
   assert.equal(summary.totalRuns, 2);
   assert.equal(summary.failedRuns, 1);
   assert.equal(summary.latestRun?.id, "run-2");
+});
+
+void test("builds concise job description for console cards", () => {
+  const description = describeAutomationJob(
+    makeJob({
+      name: "Weekly report",
+      prompt:
+        "Summarize project progress, list blockers, and draft a report for the team channel.",
+      schedule_preset: "weekdays",
+      schedule_metadata: { time_of_day: "18:30" },
+      next_run_at: "2026-03-24T10:00:00Z",
+    }),
+  );
+
+  assert.equal(description.title, "Weekly report");
+  assert.match(description.summary, /Summarize project progress/);
+  assert.equal(description.scheduleLabel, "Weekdays at 18:30");
+  assert.equal(description.nextRunAt, "2026-03-24T10:00:00Z");
+});
+
+void test("builds scheduled task run preview with thread linkage", () => {
+  const preview = buildAutomationRunPreview({
+    job: makeJob({
+      id: "job-task",
+      name: "Nightly digest",
+      job_kind: "scheduled_task",
+    }),
+    run: makeRun({
+      id: "run-task",
+      job_id: "job-task",
+      isolated_thread_id: "thread-42",
+      result_summary: "",
+    }),
+  });
+
+  assert.equal(preview.jobName, "Nightly digest");
+  assert.equal(preview.runId, "run-task");
+  assert.equal(preview.threadId, "thread-42");
+  assert.equal(preview.summary, "No summary yet.");
+  assert.equal(preview.status, "succeeded");
 });
