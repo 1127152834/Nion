@@ -84,6 +84,20 @@ function mergeMessages(existing: Message[], incoming: Message[]): Message[] {
   return merged;
 }
 
+function updateThreadSearchCacheEntry(
+  oldData: Array<AgentThread> | undefined,
+  threadId: string | null,
+  updater: (thread: AgentThread) => AgentThread,
+) {
+  if (!oldData || !threadId) {
+    return oldData;
+  }
+
+  return oldData.map((thread) =>
+    thread.thread_id === threadId ? updater(thread) : thread,
+  );
+}
+
 export function useThreadStream({
   threadId,
   context,
@@ -156,6 +170,24 @@ export function useThreadStream({
     messagesRef.current = messages;
   }, [messages]);
 
+  const updateThreadSearchCache = useCallback(
+    (updater: (thread: AgentThread) => AgentThread) => {
+      const currentThreadId = threadIdRef.current;
+      if (!currentThreadId) {
+        return;
+      }
+      queryClient.setQueriesData(
+        {
+          queryKey: ["threads", "search"],
+          exact: false,
+        },
+        (oldData: Array<AgentThread> | undefined) =>
+          updateThreadSearchCacheEntry(oldData, currentThreadId, updater),
+      );
+    },
+    [queryClient],
+  );
+
   useEffect(() => {
     const currentThreadId = onStreamThreadId;
     if (!currentThreadId) {
@@ -224,7 +256,18 @@ export function useThreadStream({
           onEvent: (eventType, eventData) => {
             if (eventType === "messages-tuple") {
               const nextMessage = eventData as unknown as Message;
-              setMessages((current) => mergeMessages(current, [nextMessage]));
+              setMessages((current) => {
+                const merged = mergeMessages(current, [nextMessage]);
+                updateThreadSearchCache((thread) => ({
+                  ...thread,
+                  updated_at: new Date().toISOString(),
+                  values: {
+                    ...thread.values,
+                    messages: merged,
+                  },
+                }));
+                return merged;
+              });
               if (nextMessage.type === "tool" && nextMessage.name) {
                 listeners.current.onToolEnd?.({
                   name: nextMessage.name,
@@ -264,27 +307,15 @@ export function useThreadStream({
                 latest_tool_activity:
                   snapshot.latest_tool_activity ?? current.latest_tool_activity,
               }));
-
-              if (snapshot.title) {
-                void queryClient.setQueriesData(
-                  {
-                    queryKey: ["threads", "search"],
-                    exact: false,
-                  },
-                  (oldData: Array<AgentThread> | undefined) =>
-                    oldData?.map((thread) =>
-                      thread.thread_id === threadIdRef.current
-                        ? {
-                            ...thread,
-                            values: {
-                              ...thread.values,
-                              title: snapshot.title,
-                            },
-                          }
-                        : thread,
-                    ),
-                );
-              }
+              updateThreadSearchCache((thread) => ({
+                ...thread,
+                updated_at: new Date().toISOString(),
+                values: {
+                  ...thread.values,
+                  ...snapshot,
+                  messages: mergedMessages,
+                },
+              }));
             }
 
             if (eventType === "end") {
@@ -319,24 +350,16 @@ export function useThreadStream({
 
                     const refreshedTitle = state.values?.title;
                     if (refreshedTitle) {
-                      void queryClient.setQueriesData(
-                        {
-                          queryKey: ["threads", "search"],
-                          exact: false,
+                      updateThreadSearchCache((thread) => ({
+                        ...thread,
+                        updated_at: new Date().toISOString(),
+                        values: {
+                          ...thread.values,
+                          ...(state.values ?? {}),
+                          messages: mergedMessages,
+                          title: refreshedTitle,
                         },
-                        (oldData: Array<AgentThread> | undefined) =>
-                          oldData?.map((thread) =>
-                            thread.thread_id === finalThreadId
-                              ? {
-                                  ...thread,
-                                  values: {
-                                    ...thread.values,
-                                    title: refreshedTitle,
-                                  },
-                                }
-                              : thread,
-                          ),
-                      );
+                      }));
                     }
                   })
                   .catch(() => undefined);
@@ -367,7 +390,7 @@ export function useThreadStream({
         void queryClient.invalidateQueries({ queryKey: ["threads", "search"] });
       }
     },
-    [apiClient, handleStreamStart, queryClient, t.workspace.requestError, updateSubtask],
+    [apiClient, handleStreamStart, queryClient, t.workspace.requestError, updateSubtask, updateThreadSearchCache],
   );
 
   const thread: BaseStream<AgentThreadState> = useMemo(
