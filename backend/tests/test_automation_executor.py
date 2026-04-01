@@ -110,6 +110,29 @@ def test_executor_marks_run_failed_when_delivery_is_unavailable():
     assert result.delivery_results[0]["status"] == "unavailable"
 
 
+def test_executor_persists_isolated_thread_id_on_run_result():
+    job = _job("job-1")
+
+    class DummyRunner:
+        def run(self, *, prompt, thread_id, context, config):
+            return AutomationExecutionOutput(
+                response_text="All done",
+                artifacts=[],
+                isolated_thread_id=thread_id,
+            )
+
+    class DummyDelivery:
+        def deliver(self, job, execution_output):
+            return [{"mode": "local", "status": "delivered"}]
+
+    executor = AutomationExecutor(runtime_runner=DummyRunner(), delivery_service=DummyDelivery())
+
+    result = executor.execute_job(job, run_id="run-1")
+
+    assert result.isolated_thread_id is not None
+    assert str(UUID(result.isolated_thread_id)) == result.isolated_thread_id
+
+
 def test_langgraph_runner_creates_missing_thread(monkeypatch):
     captured = {}
 

@@ -38,6 +38,7 @@ def _run(run_id: str, job_id: str) -> AutomationRun:
         finished_at="2026-03-24T01:01:00Z",
         status="succeeded",
         result_summary="Delivered summary",
+        isolated_thread_id="thread-automation-preview",
     )
 
 
@@ -219,6 +220,7 @@ def test_list_runs_and_status():
 
     assert runs_response.status_code == 200
     assert runs_response.json()["runs"][0]["id"] == "run-1"
+    assert runs_response.json()["runs"][0]["isolated_thread_id"] == "thread-automation-preview"
     assert status_response.status_code == 200
     assert status_response.json()["scheduler_running"] is True
 

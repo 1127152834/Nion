@@ -153,6 +153,7 @@ class AutomationExecutor:
             result_summary=execution_output.response_text,
             output_artifacts=list(execution_output.artifacts),
             delivery_results=delivery_results,
+            isolated_thread_id=execution_output.isolated_thread_id,
         )
 def _utcnow() -> str:
     return datetime.now(UTC).replace(microsecond=0).strftime("%Y-%m-%dT%H:%M:%SZ")
