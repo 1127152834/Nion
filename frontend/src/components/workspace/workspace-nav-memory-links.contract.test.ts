@@ -27,7 +27,7 @@ void test("workspace route helpers expose notebook memory and project paths", ()
   assert.equal(pathOfProjects(), "/workspace/projects");
 });
 
-void test("workspace navigation sources expose notebook memory and project entry labels with target paths", async () => {
+void test("workspace menu and command palette expose notebook memory and project entry labels with target paths", async () => {
   const chatListSource = await readFile(
     new URL("./workspace-nav-chat-list.tsx", import.meta.url),
     "utf8",
@@ -41,7 +41,7 @@ void test("workspace navigation sources expose notebook memory and project entry
     "utf8",
   );
 
-  for (const source of [chatListSource, navMenuSource, commandPaletteSource]) {
+  for (const source of [navMenuSource, commandPaletteSource]) {
     assertSourceIncludesEntry(source, {
       labelRef: /t\.sidebar\.notebook/,
       pathRef: /pathOfNotebook/,
@@ -55,6 +55,10 @@ void test("workspace navigation sources expose notebook memory and project entry
       pathRef: /pathOfProjects|\/workspace\/projects/,
     });
   }
+
+  assert.doesNotMatch(chatListSource, /t\.sidebar\.notebook/);
+  assert.doesNotMatch(chatListSource, /t\.sidebar\.memory/);
+  assert.doesNotMatch(chatListSource, /t\.sidebar\.projects/);
 });
 
 void test("workspace product copy keeps notebook and memory roles distinct", () => {

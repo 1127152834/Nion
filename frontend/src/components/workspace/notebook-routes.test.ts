@@ -2,13 +2,18 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-void test("workspace navigation exposes a notebook entry", async () => {
-  const source = await readFile(
+void test("workspace menu exposes a notebook entry without duplicating it in the primary nav list", async () => {
+  const chatListSource = await readFile(
     new URL("./workspace-nav-chat-list.tsx", import.meta.url),
     "utf8",
   );
+  const navMenuSource = await readFile(
+    new URL("./workspace-nav-menu.tsx", import.meta.url),
+    "utf8",
+  );
 
-  assert.match(source, /\/workspace\/notebook/);
+  assert.doesNotMatch(chatListSource, /\/workspace\/notebook/);
+  assert.match(navMenuSource, /pathOfNotebook/);
 });
 
 void test("desktop renderer registers the notebook route", async () => {
