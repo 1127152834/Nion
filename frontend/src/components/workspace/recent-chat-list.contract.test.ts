@@ -110,3 +110,22 @@ void test("recent chat list keeps selection controls in an overlay without chang
   assert.match(source, /absolute right-3 top-1\/2/);
   assert.match(source, /pl-0/);
 });
+
+void test("thread list items truncate long sidebar titles and reserve room for trailing actions", async () => {
+  const source = await readFile(
+    new URL("./thread-list-items.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(
+    source,
+    /<button[\s\S]*type="button"[\s\S]*className="block min-w-0 w-full text-left"/,
+  );
+  assert.match(
+    source,
+    /<Link href=\{href\} className="block min-w-0 w-full">/,
+  );
+  assert.match(source, /overlaySelection && "pr-12"/);
+  assert.match(source, /<div className="min-w-0 flex-1">/);
+  assert.match(source, /className=\{`truncate font-medium/);
+});

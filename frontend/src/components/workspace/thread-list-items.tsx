@@ -55,7 +55,7 @@ function ThreadListRow({
   const content = (
     <div
       className={cn(
-        "min-w-0",
+        "flex min-w-0 items-start",
         scope === "sidebar"
           ? cn(
               "relative px-3 py-3 transition-colors",
@@ -66,7 +66,7 @@ function ThreadListRow({
               "border-b border-border/55 px-5 py-6",
               overlaySelection && "pr-14",
             ),
-        inlineSelection && "flex items-start gap-3",
+        inlineSelection && "gap-3",
       )}
       data-thread-card={selectionVariant}
     >
@@ -105,13 +105,21 @@ function ThreadListRow({
 
   if (selectionMode) {
     return (
-      <button type="button" className="block w-full text-left" onClick={onSelect}>
+      <button
+        type="button"
+        className="block min-w-0 w-full text-left"
+        onClick={onSelect}
+      >
         {content}
       </button>
     );
   }
 
-  return <Link href={href}>{content}</Link>;
+  return (
+    <Link href={href} className="block min-w-0 w-full">
+      {content}
+    </Link>
+  );
 }
 
 export function WorkspaceThreadListItem({
