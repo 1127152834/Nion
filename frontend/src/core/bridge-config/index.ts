@@ -124,16 +124,19 @@ const DEFAULT_BRIDGE_CONFIG: BridgeDraft = {
   },
 };
 
+function normalizeBridgeConfigRoot(config: Record<string, unknown>) {
+  return {
+    ...config,
+    bridge: {
+      ...DEFAULT_BRIDGE_CONFIG,
+      ...(typeof config.bridge === "object" && config.bridge ? config.bridge : {}),
+    },
+  };
+}
+
 export function useBridgeConfigEditor() {
   const configEditor = useConfigEditor({
-    prepareConfig: (config) => {
-      const next = { ...config };
-      next.bridge = {
-        ...DEFAULT_BRIDGE_CONFIG,
-        ...(typeof config.bridge === "object" && config.bridge ? config.bridge : {}),
-      };
-      return next;
-    },
+    prepareConfig: (config) => normalizeBridgeConfigRoot(config),
   });
 
   const bridgeConfig = useMemo<BridgeDraft>(() => {
@@ -154,9 +157,19 @@ export function useBridgeConfigEditor() {
   const saveBridgeConfig = async (
     updater: (current: BridgeDraft) => BridgeDraft,
   ) => {
-    const nextBridge = updater(bridgeConfig);
+    const baseConfig = configEditor.configData?.config
+      && typeof configEditor.configData.config === "object"
+      ? configEditor.configData.config
+      : configEditor.draftConfig;
+    const preparedBaseConfig = normalizeBridgeConfigRoot({ ...baseConfig });
+    const currentBridge = preparedBaseConfig.bridge;
+    const baseBridge =
+      typeof currentBridge === "object" && currentBridge
+        ? { ...DEFAULT_BRIDGE_CONFIG, ...currentBridge }
+        : DEFAULT_BRIDGE_CONFIG;
+    const nextBridge = updater(baseBridge);
     return configEditor.onSaveConfig({
-      ...configEditor.draftConfig,
+      ...preparedBaseConfig,
       bridge: nextBridge,
     });
   };

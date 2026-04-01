@@ -125,6 +125,17 @@ void test("bridge platform sections persist config through the config editor sav
   }
 });
 
+void test("bridge config editor save path rebases on the latest config center snapshot to survive verify-then-enable races", async () => {
+  const source = await readFile(
+    new URL("../../../core/bridge-config/index.ts", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /const baseConfig = configEditor\.configData\?\.config/);
+  assert.match(source, /normalizeBridgeConfigRoot/);
+  assert.match(source, /configEditor\.onSaveConfig\(/);
+});
+
 void test("bridge config forms stay renderable without desktop bridge runtime", async () => {
   const telegramSource = await readFile(
     new URL("./TelegramBridgeSection.tsx", import.meta.url),
