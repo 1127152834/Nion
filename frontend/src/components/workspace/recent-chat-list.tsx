@@ -473,7 +473,7 @@ export function RecentChatList() {
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 rounded-full px-2 text-xs text-muted-foreground"
+              className="h-auto rounded-none px-0 py-0 text-xs font-medium text-muted-foreground shadow-none transition-colors hover:bg-transparent hover:text-foreground"
               onClick={() => {
                 setSelectionMode((value) => !value);
                 setSelectedThreadIds([]);
@@ -494,18 +494,18 @@ export function RecentChatList() {
             className="px-2"
           />
           {selectionMode ? (
-            <div className="flex items-center justify-between rounded-2xl border border-border/45 bg-background/82 px-3 py-2 text-[11px] text-muted-foreground">
-              <span className="tracking-[0.01em]">
+            <div className="flex items-center justify-between gap-3 px-2 pt-1 text-[11px] text-muted-foreground">
+              <span className="tracking-[0.01em] text-foreground/52">
                 {t.chats.selectedCount.replace(
                   "{count}",
                   String(selectedThreadIds.length),
                 )}
               </span>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-3">
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-7 rounded-full px-2 text-[11px]"
+                  className="h-auto rounded-none px-0 py-0 text-[11px] font-medium text-foreground/66 shadow-none transition-colors hover:bg-transparent hover:text-foreground"
                   onClick={handleSelectAll}
                 >
                   {t.common.selectAll}
@@ -513,7 +513,7 @@ export function RecentChatList() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-7 rounded-full px-2 text-[11px]"
+                  className="h-auto rounded-none px-0 py-0 text-[11px] font-medium text-amber-700/88 shadow-none transition-colors hover:bg-transparent hover:text-amber-700 dark:text-amber-300/88 dark:hover:text-amber-200"
                   onClick={closeSelectionMode}
                 >
                   {t.common.cancel}
@@ -521,7 +521,7 @@ export function RecentChatList() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-7 rounded-full px-2 text-[11px] text-destructive"
+                  className="h-auto rounded-none px-0 py-0 text-[11px] font-medium text-destructive/80 shadow-none transition-colors hover:bg-transparent hover:text-destructive disabled:text-destructive/35"
                   disabled={selectedThreadIds.length === 0}
                   onClick={handleDeleteSelected}
                 >
@@ -530,38 +530,38 @@ export function RecentChatList() {
               </div>
             </div>
           ) : null}
-          <div className="pl-0">
-          <SidebarMenu className="gap-0">
-            {groupedSections.length > 0 ? (
-              <div className="space-y-1 px-2 pb-2">
-                {groupedSections.map((section) => (
-                  <Collapsible
-                    key={section.id}
-                    defaultOpen={section.id === currentOpenSectionId}
-                    className="group"
-                  >
-                    <CollapsibleTrigger className="group/header flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left text-[13px] font-medium text-foreground/88 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-0">
-                      <span className="min-w-0 flex-1 truncate">
-                        {section.label}
-                      </span>
-                      <ChevronDownIcon className="size-3.5 shrink-0 text-muted-foreground/90 transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] group-data-[state=open]/header:rotate-180 group-data-[state=open]/header:text-foreground/70" />
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="grid grid-rows-[0fr] transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] data-[state=open]:grid-rows-[1fr] data-[state=closed]:[&>div]:opacity-0 data-[state=closed]:[&>div]:-translate-y-1 data-[state=open]:[&>div]:opacity-100 data-[state=open]:[&>div]:translate-y-0 [&>div]:transition-all [&>div]:duration-300 [&>div]:ease-[cubic-bezier(0.22,1,0.36,1)]">
-                      <div className="overflow-hidden">
-                        <div className="ml-2 flex flex-col divide-y divide-border/45 border-l border-border/35 pl-2">
-                          {section.entries.map(renderThreadRow)}
+          <div key={activeType} className="animate-in fade-in-0 slide-in-from-bottom-1 pl-0 duration-300">
+            <SidebarMenu className="gap-0">
+              {groupedSections.length > 0 ? (
+                <div className="space-y-1 px-2 pb-2">
+                  {groupedSections.map((section) => (
+                    <Collapsible
+                      key={section.id}
+                      defaultOpen={section.id === currentOpenSectionId}
+                      className="group"
+                    >
+                      <CollapsibleTrigger className="group/header flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left text-[13px] font-medium text-foreground/88 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-0">
+                        <span className="min-w-0 flex-1 truncate">
+                          {section.label}
+                        </span>
+                        <ChevronDownIcon className="size-3.5 shrink-0 text-muted-foreground/90 transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] group-data-[state=open]/header:rotate-180 group-data-[state=open]/header:text-foreground/70" />
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="grid grid-rows-[0fr] transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] data-[state=open]:grid-rows-[1fr] data-[state=closed]:[&>div]:opacity-0 data-[state=closed]:[&>div]:-translate-y-1 data-[state=open]:[&>div]:opacity-100 data-[state=open]:[&>div]:translate-y-0 [&>div]:transition-all [&>div]:duration-300 [&>div]:ease-[cubic-bezier(0.22,1,0.36,1)]">
+                        <div className="overflow-hidden">
+                          <div className="ml-2 flex flex-col divide-y divide-border/45 border-l border-border/35 pl-2">
+                            {section.entries.map(renderThreadRow)}
+                          </div>
                         </div>
-                      </div>
-                    </CollapsibleContent>
-                  </Collapsible>
-                ))}
-              </div>
-            ) : (
-              <div className="flex w-full flex-col divide-y divide-border/55 px-2 pb-2">
-                {activeGroup.map(renderThreadRow)}
-              </div>
-            )}
-          </SidebarMenu>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex w-full flex-col divide-y divide-border/55 px-2 pb-2">
+                  {activeGroup.map(renderThreadRow)}
+                </div>
+              )}
+            </SidebarMenu>
           </div>
         </SidebarGroupContent>
       </SidebarGroup>
