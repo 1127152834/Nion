@@ -6,6 +6,10 @@ import {
   createProjectPlanDraftFromNotebook,
   createProjectConstraintCandidatesFromNotebook,
   createMemoryCandidatesFromNotebook,
+  createNotebookDraftFromProject,
+  createMemoryCandidatesFromProject,
+  createSkillCandidatesFromProject,
+  attachNotebookNoteToProject,
 } from "./api.ts";
 
 function createJsonResponse(payload: unknown, status = 200) {
@@ -57,12 +61,33 @@ test("object bridge notebook APIs hit expected endpoints", async () => {
       note_ids: ["note_1"],
       fragment_ids: [],
     });
+    await createNotebookDraftFromProject("proj_1", {
+      kind: "summary",
+      scope: "whole_project",
+      target_directory: "收件箱",
+    });
+    await createMemoryCandidatesFromProject("proj_1", {
+      kind: "long_term_memory",
+      scope: "whole_project",
+    });
+    await createSkillCandidatesFromProject("proj_1", {
+      scope: "whole_project",
+    });
+    await attachNotebookNoteToProject("proj_1", {
+      note_id: "note_1",
+      fragment_id: null,
+      relation: "reference",
+    });
 
     assert.deepEqual(requests, [
       "POST /api/notebook/bridge/project-drafts",
       "POST /api/notebook/bridge/project-plan-drafts",
       "POST /api/notebook/bridge/project-constraint-candidates",
       "POST /api/notebook/bridge/memory-candidates",
+      "POST /api/projects/proj_1/bridge/notebook-drafts",
+      "POST /api/projects/proj_1/bridge/memory-candidates",
+      "POST /api/projects/proj_1/bridge/skill-candidates",
+      "POST /api/projects/proj_1/references/notebook-notes",
     ]);
   } finally {
     globalThis.fetch = originalFetch;

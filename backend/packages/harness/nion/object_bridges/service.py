@@ -5,14 +5,17 @@ from datetime import UTC, datetime
 from pathlib import Path
 from uuid import uuid4
 
+from .repository import ObjectBridgeRepository
 from .models import (
     BridgeActionProvenance,
     BridgeCandidateRecord,
     MemoryEntryCandidate,
     NotebookDraftCandidate,
+    NotebookReferenceLink,
     ObjectProvenance,
     ProjectConstraintCandidate,
     ProjectDraftCandidate,
+    ProjectReferenceLink,
     SkillCandidateDraft,
 )
 
@@ -28,6 +31,7 @@ def _candidate_id(prefix: str) -> str:
 class ObjectBridgeService:
     def __init__(self, *, base_dir: str | Path | None = None) -> None:
         self._base_dir = Path(base_dir) if base_dir is not None else None
+        self._repository = ObjectBridgeRepository(base_dir=self._base_dir)
 
     def _provenance(
         self,
@@ -74,7 +78,7 @@ class ObjectBridgeService:
             initial_constraints=[],
             provenance=provenance,
         )
-        return BridgeCandidateRecord(
+        record = BridgeCandidateRecord(
             id=candidate.id,
             candidate_type="project_draft",
             status="draft",
@@ -86,6 +90,7 @@ class ObjectBridgeService:
             created_at=_now_iso(),
             updated_at=_now_iso(),
         )
+        return self._repository.save_candidate(record)
 
     def create_plan_from_notebook(
         self,
@@ -99,7 +104,7 @@ class ObjectBridgeService:
             source_object_type="notebook",
             source_object_id=note_ids[0],
         )
-        return BridgeCandidateRecord(
+        record = BridgeCandidateRecord(
             id=_candidate_id("cand_plan"),
             candidate_type="project_draft",
             status="draft",
@@ -115,6 +120,7 @@ class ObjectBridgeService:
             created_at=_now_iso(),
             updated_at=_now_iso(),
         )
+        return self._repository.save_candidate(record)
 
     def extract_constraints_from_notebook(
         self,
@@ -135,7 +141,7 @@ class ObjectBridgeService:
             content="Generated constraint",
             provenance=provenance,
         )
-        return BridgeCandidateRecord(
+        record = BridgeCandidateRecord(
             id=candidate.id,
             candidate_type="project_constraint",
             status="draft",
@@ -147,6 +153,7 @@ class ObjectBridgeService:
             created_at=_now_iso(),
             updated_at=_now_iso(),
         )
+        return self._repository.save_candidate(record)
 
     def export_project_summary_to_notebook(
         self,
@@ -169,7 +176,7 @@ class ObjectBridgeService:
             requires_confirmation=True,
             provenance=provenance,
         )
-        return BridgeCandidateRecord(
+        record = BridgeCandidateRecord(
             id=candidate.id,
             candidate_type="notebook_draft",
             status="draft",
@@ -181,6 +188,7 @@ class ObjectBridgeService:
             created_at=_now_iso(),
             updated_at=_now_iso(),
         )
+        return self._repository.save_candidate(record)
 
     def extract_long_term_memory_from_project(
         self,
@@ -201,7 +209,7 @@ class ObjectBridgeService:
             confidence=0.8,
             provenance=provenance,
         )
-        return BridgeCandidateRecord(
+        record = BridgeCandidateRecord(
             id=candidate.id,
             candidate_type="memory_entry",
             status="draft",
@@ -213,6 +221,7 @@ class ObjectBridgeService:
             created_at=_now_iso(),
             updated_at=_now_iso(),
         )
+        return self._repository.save_candidate(record)
 
     def extract_memory_from_notebook(
         self,
@@ -233,7 +242,7 @@ class ObjectBridgeService:
             confidence=0.75,
             provenance=provenance,
         )
-        return BridgeCandidateRecord(
+        record = BridgeCandidateRecord(
             id=candidate.id,
             candidate_type="memory_entry",
             status="draft",
@@ -245,6 +254,7 @@ class ObjectBridgeService:
             created_at=_now_iso(),
             updated_at=_now_iso(),
         )
+        return self._repository.save_candidate(record)
 
     def extract_skill_candidate_from_project(
         self,
@@ -264,7 +274,7 @@ class ObjectBridgeService:
             suggested_scope="project",
             provenance=provenance,
         )
-        return BridgeCandidateRecord(
+        record = BridgeCandidateRecord(
             id=candidate.id,
             candidate_type="skill_candidate",
             status="draft",
@@ -276,3 +286,40 @@ class ObjectBridgeService:
             created_at=_now_iso(),
             updated_at=_now_iso(),
         )
+        return self._repository.save_candidate(record)
+
+    def attach_notebook_note_to_project(
+        self,
+        *,
+        project_id: str,
+        note_id: str,
+        fragment_id: str | None,
+        relation: str,
+    ) -> ProjectReferenceLink:
+        link = ProjectReferenceLink(
+            id=_candidate_id("proj_ref"),
+            project_id=project_id,
+            note_id=note_id,
+            fragment_id=fragment_id,
+            relation=relation,
+            created_at=_now_iso(),
+        )
+        return self._repository.save_project_reference(link)
+
+    def attach_project_artifact_to_notebook(
+        self,
+        *,
+        note_id: str,
+        project_id: str,
+        artifact_id: str,
+        relation: str,
+    ) -> NotebookReferenceLink:
+        link = NotebookReferenceLink(
+            id=_candidate_id("note_ref"),
+            note_id=note_id,
+            project_id=project_id,
+            artifact_id=artifact_id,
+            relation=relation,
+            created_at=_now_iso(),
+        )
+        return self._repository.save_notebook_reference(link)

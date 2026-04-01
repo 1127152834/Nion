@@ -5,6 +5,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
+from nion.object_bridges.service import ObjectBridgeService
 from nion.projects import ProjectService, create_default_project_service
 
 router = APIRouter(prefix="/api/projects", tags=["projects"])
@@ -103,6 +104,40 @@ class DecisionResolveRequest(BaseModel):
     payload: dict[str, Any] = Field(default_factory=dict)
 
 
+class ProjectBridgeNotebookDraftRequest(BaseModel):
+    kind: Literal["summary", "retro", "decision_log"]
+    scope: Literal["current_phase", "whole_project"]
+    target_directory: str
+
+
+class ProjectBridgeMemoryCandidateRequest(BaseModel):
+    kind: Literal["long_term_memory", "promote_constraint"]
+    scope: Literal["current_phase", "whole_project"] | None = None
+    project_memory_entry_id: str | None = None
+
+
+class ProjectBridgeSkillCandidateRequest(BaseModel):
+    scope: Literal["current_phase", "whole_project"]
+
+
+class ProjectNotebookReferenceRequest(BaseModel):
+    note_id: str
+    fragment_id: str | None = None
+    relation: str
+
+
+class BridgeCandidateEnvelope(BaseModel):
+    candidate: dict[str, Any]
+
+
+class ProjectReferenceEnvelope(BaseModel):
+    link: dict[str, Any]
+
+
+def get_object_bridge_service() -> ObjectBridgeService:
+    return ObjectBridgeService()
+
+
 @router.get("")
 async def list_projects(service: ProjectService = Depends(get_project_service)) -> dict[str, Any]:
     return service.list_projects()
@@ -157,6 +192,61 @@ async def request_project_completion(
         return service.request_project_completion(project_id)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail="Project not found") from exc
+
+
+@router.post("/{project_id}/bridge/notebook-drafts", response_model=BridgeCandidateEnvelope)
+async def create_project_notebook_draft(
+    project_id: str,
+    payload: ProjectBridgeNotebookDraftRequest,
+    service: ObjectBridgeService = Depends(get_object_bridge_service),
+) -> BridgeCandidateEnvelope:
+    candidate = service.export_project_summary_to_notebook(
+        project_id=project_id,
+        scope=payload.scope,
+        target_directory=payload.target_directory,
+    )
+    return BridgeCandidateEnvelope(candidate=asdict(candidate))
+
+
+@router.post("/{project_id}/bridge/memory-candidates", response_model=BridgeCandidateEnvelope)
+async def create_project_memory_candidate(
+    project_id: str,
+    payload: ProjectBridgeMemoryCandidateRequest,
+    service: ObjectBridgeService = Depends(get_object_bridge_service),
+) -> BridgeCandidateEnvelope:
+    candidate = service.extract_long_term_memory_from_project(
+        project_id=project_id,
+        scope=payload.scope or "whole_project",
+    )
+    return BridgeCandidateEnvelope(candidate=asdict(candidate))
+
+
+@router.post("/{project_id}/bridge/skill-candidates", response_model=BridgeCandidateEnvelope)
+async def create_project_skill_candidate(
+    project_id: str,
+    payload: ProjectBridgeSkillCandidateRequest,
+    service: ObjectBridgeService = Depends(get_object_bridge_service),
+) -> BridgeCandidateEnvelope:
+    candidate = service.extract_skill_candidate_from_project(
+        project_id=project_id,
+        scope=payload.scope,
+    )
+    return BridgeCandidateEnvelope(candidate=asdict(candidate))
+
+
+@router.post("/{project_id}/references/notebook-notes", response_model=ProjectReferenceEnvelope)
+async def attach_notebook_note_to_project(
+    project_id: str,
+    payload: ProjectNotebookReferenceRequest,
+    service: ObjectBridgeService = Depends(get_object_bridge_service),
+) -> ProjectReferenceEnvelope:
+    link = service.attach_notebook_note_to_project(
+        project_id=project_id,
+        note_id=payload.note_id,
+        fragment_id=payload.fragment_id,
+        relation=payload.relation,
+    )
+    return ProjectReferenceEnvelope(link=asdict(link))
 
 
 @router.get("/{project_id}/plans")

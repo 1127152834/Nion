@@ -4,6 +4,10 @@ import type {
   NotebookToProjectConstraintRequest,
   NotebookToProjectDraftRequest,
   NotebookToProjectPlanDraftRequest,
+  ProjectNotebookReferenceRequest,
+  ProjectToMemoryCandidateRequest,
+  ProjectToNotebookDraftRequest,
+  ProjectToSkillCandidateRequest,
 } from "./types";
 
 async function parseJson<T>(response: Response): Promise<T> {
@@ -56,4 +60,52 @@ export async function createMemoryCandidatesFromNotebook(
     body: JSON.stringify(input),
   });
   return parseJson<BridgeCandidateResponse>(response);
+}
+
+export async function createNotebookDraftFromProject(
+  projectId: string,
+  input: ProjectToNotebookDraftRequest,
+): Promise<BridgeCandidateResponse> {
+  const response = await fetch(`/api/projects/${projectId}/bridge/notebook-drafts`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  return parseJson<BridgeCandidateResponse>(response);
+}
+
+export async function createMemoryCandidatesFromProject(
+  projectId: string,
+  input: ProjectToMemoryCandidateRequest,
+): Promise<BridgeCandidateResponse> {
+  const response = await fetch(`/api/projects/${projectId}/bridge/memory-candidates`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  return parseJson<BridgeCandidateResponse>(response);
+}
+
+export async function createSkillCandidatesFromProject(
+  projectId: string,
+  input: ProjectToSkillCandidateRequest,
+): Promise<BridgeCandidateResponse> {
+  const response = await fetch(`/api/projects/${projectId}/bridge/skill-candidates`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  return parseJson<BridgeCandidateResponse>(response);
+}
+
+export async function attachNotebookNoteToProject(
+  projectId: string,
+  input: ProjectNotebookReferenceRequest,
+): Promise<{ link: Record<string, unknown> }> {
+  const response = await fetch(`/api/projects/${projectId}/references/notebook-notes`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  return parseJson<{ link: Record<string, unknown> }>(response);
 }

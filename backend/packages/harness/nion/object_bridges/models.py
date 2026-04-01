@@ -94,10 +94,10 @@ class ProjectReferenceLink:
 class NotebookReferenceLink:
     id: str
     note_id: str
-    project_id: str
-    artifact_id: str
     relation: str
     created_at: str
+    project_id: str | None = None
+    artifact_id: str | None = None
 
 
 BridgeCandidateType = Literal[

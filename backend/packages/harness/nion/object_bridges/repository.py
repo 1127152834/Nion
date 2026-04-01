@@ -8,7 +8,7 @@ from typing import Any
 
 from nion.config.paths import Paths, get_paths
 
-from .models import BridgeCandidateRecord, ProjectReferenceLink
+from .models import BridgeCandidateRecord, NotebookReferenceLink, ProjectReferenceLink
 
 
 class ObjectBridgeRepository:
@@ -37,10 +37,17 @@ class ObjectBridgeRepository:
                     project_id TEXT NOT NULL,
                     payload TEXT NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS notebook_reference_links (
+                    id TEXT PRIMARY KEY,
+                    note_id TEXT NOT NULL,
+                    payload TEXT NOT NULL
+                );
                 CREATE INDEX IF NOT EXISTS idx_bridge_candidates_status
                     ON bridge_candidates(status);
                 CREATE INDEX IF NOT EXISTS idx_project_reference_links_project_id
                     ON project_reference_links(project_id);
+                CREATE INDEX IF NOT EXISTS idx_notebook_reference_links_note_id
+                    ON notebook_reference_links(note_id);
                 """
             )
 
@@ -108,3 +115,19 @@ class ObjectBridgeRepository:
                 (project_id,),
             ).fetchall()
         return [ProjectReferenceLink(**json.loads(str(row["payload"]))) for row in rows]
+
+    def save_notebook_reference(self, link: NotebookReferenceLink) -> NotebookReferenceLink:
+        with self._connect() as connection:
+            connection.execute(
+                "INSERT OR REPLACE INTO notebook_reference_links (id, note_id, payload) VALUES (?, ?, ?)",
+                (link.id, link.note_id, json.dumps(asdict(link), ensure_ascii=False)),
+            )
+        return link
+
+    def list_notebook_references(self, note_id: str) -> list[NotebookReferenceLink]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                "SELECT payload FROM notebook_reference_links WHERE note_id = ? ORDER BY id ASC",
+                (note_id,),
+            ).fetchall()
+        return [NotebookReferenceLink(**json.loads(str(row["payload"]))) for row in rows]
