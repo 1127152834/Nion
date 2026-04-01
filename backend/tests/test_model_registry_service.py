@@ -109,3 +109,47 @@ def test_registry_uses_provider_prefix_when_model_ids_collide(tmp_path):
     runtime_names = {item.runtime_name for item in service.list_runtime_models()}
 
     assert runtime_names == {"openrouter:shared-model", "minimax-global:shared-model"}
+
+
+def test_registry_does_not_promote_catalog_max_output_tokens_to_runtime_request_limit(tmp_path):
+    repo = ModelManagementRepository(tmp_path / "config.db")
+
+    template = ProviderTemplate(
+        code="minimax-global",
+        name="MiniMax",
+        category="global",
+        protocol="openai-compatible",
+    )
+    repo.upsert_provider_template(template)
+
+    provider = ProviderInstance(
+        provider_template_id=template.id,
+        kind="custom",
+        display_name="MiniMax Prod",
+    )
+    repo.save_provider_instance(provider)
+
+    model = ProviderModel(
+        provider_instance_id=provider.id,
+        model_id="minimax-m2.5",
+        display_name="MiniMax M2.5",
+        source="discovered",
+        is_primary=True,
+        priority_order=0,
+        context_window=196608,
+        max_output_tokens=196608,
+    )
+    repo.save_provider_model(model)
+
+    binding = ModelBinding(
+        binding_key=DEFAULT_CHAT_BINDING,
+        provider_model_id=model.id,
+    )
+    repo.save_binding(binding)
+
+    service = get_model_registry_service(repo=repo)
+    resolved = service.resolve_binding(DEFAULT_CHAT_BINDING)
+    payload = resolved.runtime_model_config.model_dump(exclude_none=True)
+
+    assert payload["context_window"] == 196608
+    assert "max_tokens" not in payload

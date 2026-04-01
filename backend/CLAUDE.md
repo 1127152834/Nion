@@ -85,6 +85,11 @@ FastAPI application on port 8001 with health check at `GET /health`.
 | **Artifacts** (`/api/threads/{id}/artifacts`) | serve artifacts |
 | **Suggestions** (`/api/threads/{id}/suggestions`) | follow-up question generation |
 
+Model registry rule:
+- Provider catalog metadata such as `context_window` and `max_output_tokens` is reference data, not a guaranteed request-time contract.
+- Do not automatically promote discovered `max_output_tokens` into runtime request `max_tokens`; only explicit user/runtime config should set request caps.
+- The model factory must ignore obviously invalid request caps where `max_tokens >= context_window`.
+
 Memory currently uses the legacy `memory.json` path through `nion.agents.memory.*`.
 Do not reintroduce provider-based memory, AutoDream, self-maintenance, heartbeat,
 compaction, or rebuild behavior unless the user explicitly starts a new design cycle.

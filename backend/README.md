@@ -349,6 +349,8 @@ Key sections:
 Provider note:
 - `models[*].use` references provider classes by module path (for example `langchain_openai:ChatOpenAI`).
 - If a provider module is missing, Nion now returns an actionable error with install guidance (for example `uv add langchain-google-genai`).
+- Provider catalog metadata (`context_window`, `max_output_tokens`) is advisory. Runtime request caps should come from explicit config, not from discovered catalog values.
+- Nion now drops invalid request caps where `max_tokens >= context_window` before instantiating the provider client.
 
 ### Extensions Configuration (`extensions_config.json`)
 

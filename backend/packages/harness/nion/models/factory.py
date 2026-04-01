@@ -108,6 +108,23 @@ def create_chat_model(name: str | None = None, thinking_enabled: bool = False, *
         api_base = model_settings_from_config.pop("api_base")
         if "base_url" not in model_settings_from_config:
             model_settings_from_config["base_url"] = api_base
+
+    configured_context_window = model_settings_from_config.get("context_window")
+    configured_max_tokens = model_settings_from_config.get("max_tokens")
+    if (
+        isinstance(configured_context_window, int)
+        and configured_context_window > 0
+        and isinstance(configured_max_tokens, int)
+        and configured_max_tokens >= configured_context_window
+    ):
+        logger.warning(
+            "Ignoring invalid max_tokens=%s for model '%s' because it is not smaller than context_window=%s.",
+            configured_max_tokens,
+            name,
+            configured_context_window,
+        )
+        model_settings_from_config.pop("max_tokens", None)
+
     for field_name in RUNTIME_METADATA_FIELDS:
         model_settings_from_config.pop(field_name, None)
 

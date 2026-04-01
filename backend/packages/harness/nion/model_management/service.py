@@ -215,8 +215,6 @@ class ModelRegistryService:
             payload["api_key"] = api_key
         if api_base is not None:
             payload["api_base"] = api_base
-        if model.max_output_tokens is not None and "max_tokens" not in payload:
-            payload["max_tokens"] = model.max_output_tokens
         if model.context_window is not None and "context_window" not in payload:
             payload["context_window"] = model.context_window
 
