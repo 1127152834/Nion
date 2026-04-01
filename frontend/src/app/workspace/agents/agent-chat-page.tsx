@@ -12,12 +12,12 @@ import { ExportTrigger } from "@/components/workspace/export-trigger";
 import { InputBox } from "@/components/workspace/input-box";
 import { MessageList } from "@/components/workspace/messages";
 import { ThreadContext } from "@/components/workspace/messages/context";
+import { ToolActivityTimeline } from "@/components/workspace/messages/tool-activity-timeline";
 import { ThreadRequestErrorAlert } from "@/components/workspace/thread-request-error-alert";
 import { ThreadTitle } from "@/components/workspace/thread-title";
 import { TodoList } from "@/components/workspace/todo-list";
 import { TokenUsageIndicator } from "@/components/workspace/token-usage-indicator";
 import { Tooltip } from "@/components/workspace/tooltip";
-import { ToolActivityTimeline } from "@/components/workspace/messages/tool-activity-timeline";
 import { useAgent } from "@/core/agents";
 import { useI18n } from "@/core/i18n/hooks";
 import { useNotification } from "@/core/notification/hooks";
@@ -128,6 +128,7 @@ export default function AgentChatPage() {
           <main className="flex min-h-0 max-w-full grow flex-col">
             <div className="flex size-full justify-center">
               <MessageList
+                key={`agent-message-list-${threadId}`}
                 className={cn("size-full", !isNewThread && "pt-10")}
                 threadId={threadId}
                 thread={thread}
@@ -167,6 +168,7 @@ export default function AgentChatPage() {
                 <div className="flex w-full -translate-y-4 flex-col gap-3">
                   {threadError ? <ThreadRequestErrorAlert error={threadError} /> : null}
                   <InputBox
+                    key={`agent-thread-input-${threadId}`}
                     className={cn("bg-background/5 w-full")}
                     isNewThread={isNewThread}
                     threadId={threadId}

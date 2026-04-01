@@ -10,3 +10,13 @@ void test("thread stream replaces loaded messages when the requested thread chan
   assert.match(source, /loadedThreadId: currentThreadId/);
   assert.match(source, /loadedStateThreadIdRef\.current = currentThreadId/);
 });
+
+void test("thread stream ignores stale stream callbacks after the visible thread changes", async () => {
+  const source = await readFile(new URL("./hooks.ts", import.meta.url), "utf8");
+
+  assert.match(source, /const isActiveStreamThread = useCallback\(/);
+  assert.match(
+    source,
+    /if \(!isActiveStreamThread\(activeStreamThreadId\)\) \{\s*return;\s*\}/,
+  );
+});

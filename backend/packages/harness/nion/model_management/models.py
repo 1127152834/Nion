@@ -70,6 +70,7 @@ class ProviderInstance(BaseModel):
     provider_test_message: str | None = None
     provider_test_latency_ms: int | None = None
     provider_last_tested_at: str | None = None
+    provider_test_signature: str | None = None
     last_discovery_at: str | None = None
     last_discovery_status: ProviderTestStatus | None = None
     last_discovery_message: str | None = None

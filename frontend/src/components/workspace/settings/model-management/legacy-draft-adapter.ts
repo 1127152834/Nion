@@ -9,7 +9,6 @@ import {
   updateProviderInstance,
 } from "@/core/model-admin/api";
 import type {
-  ModelBindingRecord,
   ProviderInstanceRecord,
   ProviderModelRecord,
 } from "@/core/model-admin/types";
@@ -17,10 +16,11 @@ import type {
 import {
   asArray,
   asBoolean,
-  asObject,
   asString,
   type ConfigDraft,
 } from "../configuration/shared";
+
+import { buildDraftProviderConnectionSignature } from "./provider-connection";
 
 const MODEL_PROVIDERS_KEY = "model_providers";
 
@@ -59,7 +59,10 @@ export async function loadLegacyModelSettingsDraft(): Promise<ConfigDraft> {
       name: provider.display_name,
       protocol,
       use: defaultUseByProtocol(protocol),
-      api_key: "",
+      api_key: provider.api_key_masked ?? "",
+      api_key_masked: provider.api_key_masked ?? "",
+      api_key_present: Boolean(provider.api_key_masked),
+      api_key_dirty: false,
       api_base: provider.base_url_override ?? "",
       test_model: models[0]?.model_id ?? "",
       catalog_models: [],
@@ -67,13 +70,15 @@ export async function loadLegacyModelSettingsDraft(): Promise<ConfigDraft> {
       catalog_provider_type: "",
       catalog_message: provider.last_discovery_message ?? "",
       last_tested_at: provider.provider_last_tested_at ?? "",
-      last_test_success:
-        provider.provider_test_status === "success"
-          ? true
-          : provider.provider_test_status === "failed"
-            ? false
-            : null,
+      last_test_status: provider.provider_test_status,
       last_test_message: provider.provider_test_message ?? "",
+      last_test_signature:
+        provider.provider_test_signature
+        ?? buildDraftProviderConnectionSignature({
+          protocol,
+          apiBase: provider.base_url_override ?? "",
+          apiKeyDisplay: provider.api_key_masked ?? "",
+        }),
     };
   });
 
@@ -128,11 +133,18 @@ export async function saveLegacyModelSettingsDraft(config: ConfigDraft): Promise
       display_name: asString(provider.name).trim() || "Provider",
       protocol_override: protocol,
       base_url_override: asString(provider.api_base).trim() || null,
-      api_key: asString(provider.api_key).trim() || undefined,
     } as const;
+    const apiKeyDirty = asBoolean(provider.api_key_dirty, false);
+    const apiKeyValue = asString(provider.api_key).trim();
+    const mutationPayload = apiKeyDirty
+      ? {
+          ...payload,
+          api_key: apiKeyValue,
+        }
+      : payload;
 
     if (draftId && currentById.has(draftId)) {
-      await updateProviderInstance(draftId, payload);
+      await updateProviderInstance(draftId, mutationPayload);
       providerIdMap.set(draftId, draftId);
       nextProviderIds.add(draftId);
       continue;
@@ -140,7 +152,7 @@ export async function saveLegacyModelSettingsDraft(config: ConfigDraft): Promise
 
     const created = await createProviderInstance({
       kind: "custom",
-      ...payload,
+      ...mutationPayload,
     });
     const createdId = created.provider.id;
     providerIdMap.set(draftId || createdId, createdId);

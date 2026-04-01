@@ -540,6 +540,11 @@ export function InputBox({
     const supportsThinking = fallbackModel.supports_thinking ?? false;
     const nextModelName = fallbackModel.name;
     const nextMode = getResolvedMode(context.mode, supportsThinking);
+    const shouldFollowDefault = !context.model_name_manually_selected;
+
+    if (currentModel && !shouldFollowDefault && context.mode === nextMode) {
+      return;
+    }
 
     if (context.model_name === nextModelName && context.mode === nextMode) {
       return;
@@ -548,6 +553,7 @@ export function InputBox({
     onContextChange?.({
       ...context,
       model_name: nextModelName,
+      model_name_manually_selected: currentModel ? context.model_name_manually_selected : false,
       mode: nextMode,
     });
   }, [context, models, onContextChange]);
@@ -608,7 +614,7 @@ export function InputBox({
         .sort(([left], [right]) => left.localeCompare(right))
         .map(([toolId, tool]) => ({
           id: `cli:${toolId}`,
-          label: tool.displayName?.trim() || toolId,
+          label: tool.displayName?.trim() ?? toolId,
           value: toolId,
           kind: "cli" as const,
           description: tool.version
@@ -788,6 +794,7 @@ export function InputBox({
       onContextChange?.({
         ...context,
         model_name,
+        model_name_manually_selected: true,
         mode: getResolvedMode(context.mode, model.supports_thinking ?? false),
         reasoning_effort: context.reasoning_effort,
       });
@@ -830,7 +837,7 @@ export function InputBox({
         selectedMcpTools,
         selectedCliTools,
       );
-      if (!submissionPayload.text) {
+      if (!submissionPayload.text && message.files.length === 0) {
         return;
       }
       setFollowups([]);

@@ -14,3 +14,24 @@ void test("prompt input composes external keydown handling before built-in Enter
   );
   assert.match(source, /onKeyDown=\{composedKeyDown\}/);
 });
+
+void test("prompt input keeps original File attachments instead of converting blob urls before submit", async () => {
+  const source = await readFile(
+    new URL("./prompt-input.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.doesNotMatch(source, /convertBlobUrlToDataUrl/);
+  assert.match(source, /file,\s*url: URL\.createObjectURL\(file\)/);
+});
+
+void test("prompt input clears text and attachments only after submit succeeds", async () => {
+  const source = await readFile(
+    new URL("./prompt-input.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /const clearSubmittedState = \(\) => \{/);
+  assert.match(source, /if \(result instanceof Promise\) \{\s*result\s*\.then\(\(\) => \{\s*clearSubmittedState\(\);/s);
+  assert.match(source, /\} else \{\s*clearSubmittedState\(\);/s);
+});

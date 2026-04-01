@@ -120,6 +120,13 @@ export function useThreadStream({
     }
   }, []);
 
+  const isActiveStreamThread = useCallback((candidateThreadId: string | null) => {
+    if (!candidateThreadId) {
+      return false;
+    }
+    return threadIdRef.current === candidateThreadId;
+  }, []);
+
   const handleStreamStart = useCallback(
     (_threadId: string) => {
       threadIdRef.current = _threadId;
@@ -188,6 +195,9 @@ export function useThreadStream({
         if (cancelled) {
           return;
         }
+        if (!isActiveStreamThread(currentThreadId)) {
+          return;
+        }
         const incomingMessages = state.values?.messages ?? [];
         const mergedMessages = reconcileLoadedThreadMessages({
           currentStateThreadId: loadedStateThreadIdRef.current,
@@ -218,7 +228,7 @@ export function useThreadStream({
     return () => {
       cancelled = true;
     };
-  }, [apiClient, onStreamThreadId]);
+  }, [apiClient, isActiveStreamThread, onStreamThreadId]);
 
   const stop = useCallback(async () => {
     abortControllerRef.current?.abort();
@@ -234,6 +244,7 @@ export function useThreadStream({
       setIsLoading(true);
 
       try {
+        const requestedThreadId = options.threadId;
         await apiClient.streamRun(options.threadId, payload, options, {
           signal: abortController.signal,
           onCreated: (createdThreadId) => {
@@ -241,6 +252,10 @@ export function useThreadStream({
             setOnStreamThreadId(createdThreadId);
           },
           onEvent: (eventType, eventData) => {
+            const activeStreamThreadId = threadIdRef.current ?? requestedThreadId ?? null;
+            if (!isActiveStreamThread(activeStreamThreadId)) {
+              return;
+            }
             if (eventType === "messages-tuple") {
               const nextMessage = eventData as unknown as Message;
               setMessages((current) => {
@@ -319,6 +334,9 @@ export function useThreadStream({
                 void apiClient
                   .getState<AgentThreadState>(finalThreadId)
                   .then((state) => {
+                    if (!isActiveStreamThread(finalThreadId)) {
+                      return;
+                    }
                     const snapshotMessages = Array.isArray(state.values?.messages)
                       ? state.values.messages
                       : [];
@@ -383,7 +401,7 @@ export function useThreadStream({
         void queryClient.invalidateQueries({ queryKey: ["threads", "search"] });
       }
     },
-    [apiClient, handleStreamStart, queryClient, t.workspace.requestError, updateSubtask, updateThreadSearchCache],
+    [apiClient, handleStreamStart, isActiveStreamThread, queryClient, t.workspace.requestError, updateSubtask, updateThreadSearchCache],
   );
 
   const thread: BaseStream<AgentThreadState> = useMemo(
@@ -497,34 +515,10 @@ export function useThreadStream({
         if (message.files && message.files.length > 0) {
           setIsUploading(true);
           try {
-            // Convert FileUIPart to File objects by fetching blob URLs
-            const filePromises = message.files.map(async (fileUIPart) => {
-              if (fileUIPart.url && fileUIPart.filename) {
-                try {
-                  // Fetch the blob URL to get the file data
-                  const response = await fetch(fileUIPart.url);
-                  const blob = await response.blob();
-
-                  // Create a File object from the blob
-                  return new File([blob], fileUIPart.filename, {
-                    type: fileUIPart.mediaType || blob.type,
-                  });
-                } catch (error) {
-                  console.error(
-                    `Failed to fetch file ${fileUIPart.filename}:`,
-                    error,
-                  );
-                  return null;
-                }
-              }
-              return null;
-            });
-
-            const conversionResults = await Promise.all(filePromises);
-            const files = conversionResults.filter(
-              (file): file is File => file !== null,
-            );
-            const failedConversions = conversionResults.length - files.length;
+            const files = message.files
+              .map((filePart) => filePart.file ?? null)
+              .filter((file): file is File => file !== null);
+            const failedConversions = message.files.length - files.length;
 
             if (failedConversions > 0) {
               throw new Error(

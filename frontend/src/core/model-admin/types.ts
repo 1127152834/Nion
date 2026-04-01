@@ -77,6 +77,7 @@ export interface ProviderInstanceRecord {
   provider_test_message?: string | null;
   provider_test_latency_ms?: number | null;
   provider_last_tested_at?: string | null;
+  provider_test_signature?: string | null;
   last_discovery_at?: string | null;
   last_discovery_status?: ProviderTestStatus | null;
   last_discovery_message?: string | null;

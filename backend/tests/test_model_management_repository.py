@@ -157,8 +157,11 @@ def test_save_provider_instance_encrypts_plaintext_api_key(tmp_path):
 
     assert saved.api_key_encrypted is not None
     assert saved.api_key_encrypted != "sk-live-12345678"
-    assert saved.api_key_masked == "••••5678"
-    assert [item.api_key_masked for item in loaded] == ["••••5678"]
+    assert saved.api_key_masked is not None
+    assert saved.api_key_masked.startswith("sk-li")
+    assert saved.api_key_masked.endswith("678")
+    assert "*" in saved.api_key_masked
+    assert [item.api_key_masked for item in loaded] == [saved.api_key_masked]
     assert loaded[0].api_key_encrypted == saved.api_key_encrypted
 
     with repo._connect() as connection:
@@ -222,3 +225,30 @@ def test_save_provider_instance_preserves_existing_api_key_when_plaintext_is_omi
     assert loaded[0].display_name == "Renamed Provider"
     assert loaded[0].api_key_encrypted == saved.api_key_encrypted
     assert loaded[0].api_key_masked == saved.api_key_masked
+
+
+def test_save_provider_instance_uses_adaptive_api_key_mask(tmp_path):
+    repo = ModelManagementRepository(
+        tmp_path / "config.db",
+        secret_provider=lambda: build_model_management_secret("test-secret"),
+    )
+
+    instance = ProviderInstance(
+        kind="custom",
+        display_name="Adaptive Mask Provider",
+    )
+
+    short_masked = repo.save_provider_instance(
+        instance.model_copy(update={"id": "provider-short"}),
+        api_key_plaintext="abc12345",
+    )
+    long_masked = repo.save_provider_instance(
+        instance.model_copy(update={"id": "provider-long"}),
+        api_key_plaintext="sk-live-1234567890abcdef",
+    )
+
+    assert short_masked.api_key_masked == "ab***345"
+    assert long_masked.api_key_masked is not None
+    assert long_masked.api_key_masked.startswith("sk-li")
+    assert long_masked.api_key_masked.endswith("cdef")
+    assert "*" in long_masked.api_key_masked

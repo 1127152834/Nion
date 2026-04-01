@@ -59,5 +59,21 @@ def mask_provider_secret(value: str) -> str:
     if not normalized:
         return ""
     if len(normalized) <= 4:
-        return "••••"
-    return f"••••{normalized[-4:]}"
+        return "*" * len(normalized)
+
+    if len(normalized) <= 8:
+        prefix_length = 2
+        suffix_length = 3 if len(normalized) >= 6 else 2
+    elif len(normalized) <= 16:
+        prefix_length = 5
+        suffix_length = 3
+    else:
+        prefix_length = 5
+        suffix_length = 4
+
+    masked_length = max(3, len(normalized) - prefix_length - suffix_length)
+    return (
+        f"{normalized[:prefix_length]}"
+        f"{'*' * masked_length}"
+        f"{normalized[-suffix_length:]}"
+    )

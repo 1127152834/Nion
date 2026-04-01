@@ -14,6 +14,7 @@ import { ExportTrigger } from "@/components/workspace/export-trigger";
 import { InputBox } from "@/components/workspace/input-box";
 import { MessageList } from "@/components/workspace/messages";
 import { ThreadContext } from "@/components/workspace/messages/context";
+import { ToolActivityTimeline } from "@/components/workspace/messages/tool-activity-timeline";
 import { NewChatStage } from "@/components/workspace/new-chat-stage";
 import { RuntimeModeToggle } from "@/components/workspace/runtime-mode-toggle";
 import { SaveToNotebookTrigger } from "@/components/workspace/save-to-notebook-trigger";
@@ -22,7 +23,6 @@ import { ThreadTitle } from "@/components/workspace/thread-title";
 import { TodoList } from "@/components/workspace/todo-list";
 import { TokenUsageIndicator } from "@/components/workspace/token-usage-indicator";
 import { Welcome } from "@/components/workspace/welcome";
-import { ToolActivityTimeline } from "@/components/workspace/messages/tool-activity-timeline";
 import { getAPIClient } from "@/core/api";
 import { loadThreadFilesTree } from "@/core/files";
 import { useI18n } from "@/core/i18n/hooks";
@@ -427,6 +427,7 @@ export default function ChatThreadPage() {
                   <div className="flex w-full flex-col gap-3">
                     {threadError ? <ThreadRequestErrorAlert error={threadError} /> : null}
                     <InputBox
+                      key={`new-thread-input-${threadId}`}
                       className="w-full"
                       isNewThread={isNewThread}
                       threadId={threadId}
@@ -449,6 +450,7 @@ export default function ChatThreadPage() {
             <main className="flex min-h-0 flex-1 flex-col">
               <div className="flex min-h-0 flex-1 justify-center pt-14">
                 <MessageList
+                  key={`message-list-${threadId}`}
                   className="size-full"
                   threadId={threadId}
                   thread={thread}
@@ -484,6 +486,7 @@ export default function ChatThreadPage() {
 
                   {threadError ? <ThreadRequestErrorAlert error={threadError} /> : null}
                   <InputBox
+                    key={`thread-input-${threadId}`}
                     className="bg-background/5 w-full"
                     isNewThread={isNewThread}
                     threadId={threadId}

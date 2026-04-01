@@ -142,6 +142,39 @@ def test_provider_test_updates_status(monkeypatch, tmp_path):
         reset_extensions_config()
 
 
+def test_provider_connection_changes_reset_test_status(monkeypatch, tmp_path):
+    _configure_store(monkeypatch, tmp_path)
+
+    async def _fake_provider_models(*, api_base, api_key, timeout_seconds):
+        assert api_key == "sk-test-1234"
+        return [{"id": "gpt-4.1", "name": "GPT-4.1"}]
+
+    monkeypatch.setattr(models_router, "_fetch_provider_models_openai_compatible", _fake_provider_models)
+
+    try:
+        with TestClient(create_app()) as client:
+            provider = _create_provider(client)
+            tested = client.post(
+                f"/api/model-admin/providers/{provider['id']}/test",
+                json={"timeout_seconds": 7},
+            )
+            assert tested.status_code == 200
+
+            updated = client.patch(
+                f"/api/model-admin/providers/{provider['id']}",
+                json={"base_url_override": "https://example.com/v2"},
+            )
+
+        assert updated.status_code == 200
+        payload = updated.json()["provider"]
+        assert payload["provider_test_status"] == "untested"
+        assert payload["provider_last_tested_at"] is None
+        assert payload["provider_test_message"] is None
+    finally:
+        reset_app_config()
+        reset_extensions_config()
+
+
 def test_model_test_updates_status(monkeypatch, tmp_path):
     _configure_store(monkeypatch, tmp_path)
 

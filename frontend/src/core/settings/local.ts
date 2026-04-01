@@ -7,6 +7,7 @@ export const DEFAULT_LOCAL_SETTINGS: LocalSettings = {
   },
   context: {
     model_name: undefined,
+    model_name_manually_selected: false,
     mode: undefined,
     reasoning_effort: undefined,
   },
@@ -26,6 +27,7 @@ export interface LocalSettings {
     AgentThreadContext,
     "thread_id" | "is_plan_mode" | "thinking_enabled" | "subagent_enabled"
   > & {
+    model_name_manually_selected?: boolean;
     mode: "flash" | "thinking" | "pro" | "ultra" | undefined;
     reasoning_effort?: "minimal" | "low" | "medium" | "high";
   };

@@ -55,6 +55,7 @@ class ProviderInstanceView(BaseModel):
     provider_test_message: str | None = None
     provider_test_latency_ms: int | None = None
     provider_last_tested_at: str | None = None
+    provider_test_signature: str | None = None
     last_discovery_at: str | None = None
     last_discovery_status: ProviderTestStatus | None = None
     last_discovery_message: str | None = None
@@ -257,6 +258,24 @@ def _provider_api_key(instance: ProviderInstance) -> str | None:
     return decrypt_provider_secret(instance.api_key_encrypted, get_model_management_secret())
 
 
+def _normalize_connection_value(value: str | None) -> str:
+    return value.strip() if isinstance(value, str) else ""
+
+
+def _build_provider_connection_signature(
+    *,
+    protocol_override: ProviderProtocol | None,
+    base_url_override: str | None,
+    api_key_masked: str | None,
+) -> str:
+    protocol = _normalize_connection_value(protocol_override or "openai-compatible").lower()
+    if protocol not in {"openai-compatible", "anthropic-compatible"}:
+        protocol = "openai-compatible"
+    base_url = _normalize_connection_value(base_url_override).rstrip("/")
+    api_key_display = _normalize_connection_value(api_key_masked)
+    return "|||".join([protocol, base_url, api_key_display])
+
+
 def _serialize_provider_view(
     instance: ProviderInstance,
     *,
@@ -387,7 +406,32 @@ def _update_provider_instance_from_request(
     update_payload["updated_at"] = utc_now_iso()
     updated = existing.model_copy(update=update_payload)
     api_key_plaintext = request.api_key if "api_key" in request.model_fields_set else None
-    return repo.save_provider_instance(updated, api_key_plaintext=api_key_plaintext)
+    saved = repo.save_provider_instance(updated, api_key_plaintext=api_key_plaintext)
+
+    previous_signature = _build_provider_connection_signature(
+        protocol_override=existing.protocol_override,
+        base_url_override=existing.base_url_override,
+        api_key_masked=existing.api_key_masked,
+    )
+    next_signature = _build_provider_connection_signature(
+        protocol_override=saved.protocol_override,
+        base_url_override=saved.base_url_override,
+        api_key_masked=saved.api_key_masked,
+    )
+    if previous_signature == next_signature:
+        return saved
+
+    reset = saved.model_copy(
+        update={
+            "provider_test_status": "untested",
+            "provider_test_message": None,
+            "provider_test_latency_ms": None,
+            "provider_last_tested_at": None,
+            "provider_test_signature": None,
+            "updated_at": utc_now_iso(),
+        }
+    )
+    return repo.save_provider_instance(reset)
 
 
 def _set_primary_model(
@@ -562,6 +606,11 @@ async def test_provider(
             "provider_test_message": result.message,
             "provider_test_latency_ms": result.latency_ms,
             "provider_last_tested_at": utc_now_iso(),
+            "provider_test_signature": _build_provider_connection_signature(
+                protocol_override=provider.protocol_override,
+                base_url_override=provider.base_url_override,
+                api_key_masked=provider.api_key_masked,
+            ),
             "updated_at": utc_now_iso(),
         }
     )

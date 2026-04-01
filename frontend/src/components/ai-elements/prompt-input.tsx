@@ -71,12 +71,16 @@ import {
   useState,
 } from "react";
 
+export type PromptInputFilePart = FileUIPart & {
+  file?: File;
+};
+
 // ============================================================================
 // Provider Context & Types
 // ============================================================================
 
 export type AttachmentsContext = {
-  files: (FileUIPart & { id: string })[];
+  files: (PromptInputFilePart & { id: string })[];
   add: (files: File[] | FileList) => void;
   remove: (id: string) => void;
   clear: () => void;
@@ -152,7 +156,7 @@ export function PromptInputProvider({
 
   // ----- attachments state (global when wrapped)
   const [attachmentFiles, setAttachmentFiles] = useState<
-    (FileUIPart & { id: string })[]
+    (PromptInputFilePart & { id: string })[]
   >([]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const openRef = useRef<() => void>(() => {});
@@ -168,6 +172,7 @@ export function PromptInputProvider({
         incoming.map((file) => ({
           id: nanoid(),
           type: "file" as const,
+          file,
           url: URL.createObjectURL(file),
           mediaType: file.type,
           filename: file.name,
@@ -278,7 +283,7 @@ export const usePromptInputAttachments = () => {
 };
 
 export type PromptInputAttachmentProps = HTMLAttributes<HTMLDivElement> & {
-  data: FileUIPart & { id: string };
+  data: PromptInputFilePart & { id: string };
   className?: string;
 };
 
@@ -432,7 +437,7 @@ export const PromptInputActionAddAttachments = ({
 
 export type PromptInputMessage = {
   text: string;
-  files: FileUIPart[];
+  files: PromptInputFilePart[];
   implicitMentions?: Array<{
     kind: "context" | "skill" | "mcp" | "cli";
     value: string;
@@ -493,7 +498,7 @@ export const PromptInput = ({
   const formRef = useRef<HTMLFormElement | null>(null);
 
   // ----- Local attachments (only used when no provider)
-  const [items, setItems] = useState<(FileUIPart & { id: string })[]>([]);
+  const [items, setItems] = useState<(PromptInputFilePart & { id: string })[]>([]);
   const files = usingProvider ? controller.attachments.files : items;
 
   // Keep a ref to files for cleanup on unmount (avoids stale closure)
@@ -561,11 +566,12 @@ export const PromptInput = ({
             message: "Too many files. Some were not added.",
           });
         }
-        const next: (FileUIPart & { id: string })[] = [];
+        const next: (PromptInputFilePart & { id: string })[] = [];
         for (const file of capped) {
           next.push({
             id: nanoid(),
             type: "file",
+            file,
             url: URL.createObjectURL(file),
             mediaType: file.type,
             filename: file.name,
@@ -694,23 +700,6 @@ export const PromptInput = ({
     event.currentTarget.value = "";
   };
 
-  const convertBlobUrlToDataUrl = async (
-    url: string,
-  ): Promise<string | null> => {
-    try {
-      const response = await fetch(url);
-      const blob = await response.blob();
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.onerror = () => resolve(null);
-        reader.readAsDataURL(blob);
-      });
-    } catch {
-      return null;
-    }
-  };
-
   const ctx = useMemo<AttachmentsContext>(
     () => ({
       files: files.map((item) => ({ ...item, id: item.id })),
@@ -734,56 +723,33 @@ export const PromptInput = ({
           return (formData.get("message") as string) || "";
         })();
 
-    // Reset form immediately after capturing text to avoid race condition
-    // where user input during async blob conversion would be lost
-    if (!usingProvider) {
-      form.reset();
+    const submittedFiles = files.map(({ id, ...item }) => item);
+    const clearSubmittedState = () => {
+      clear();
+      if (usingProvider) {
+        controller.textInput.clear();
+      } else {
+        form.reset();
+      }
+    };
+
+    try {
+      const result = onSubmit({ text, files: submittedFiles }, event);
+
+      if (result instanceof Promise) {
+        result
+          .then(() => {
+            clearSubmittedState();
+          })
+          .catch(() => {
+            // Keep the current draft on failure so the user can retry.
+          });
+      } else {
+        clearSubmittedState();
+      }
+    } catch {
+      // Keep the current draft on failure so the user can retry.
     }
-
-    // Convert blob URLs to data URLs asynchronously
-    Promise.all(
-      files.map(async ({ id, ...item }) => {
-        if (item.url && item.url.startsWith("blob:")) {
-          const dataUrl = await convertBlobUrlToDataUrl(item.url);
-          // If conversion failed, keep the original blob URL
-          return {
-            ...item,
-            url: dataUrl ?? item.url,
-          };
-        }
-        return item;
-      }),
-    )
-      .then((convertedFiles: FileUIPart[]) => {
-        try {
-          const result = onSubmit({ text, files: convertedFiles }, event);
-
-          // Handle both sync and async onSubmit
-          if (result instanceof Promise) {
-            result
-              .then(() => {
-                clear();
-                if (usingProvider) {
-                  controller.textInput.clear();
-                }
-              })
-              .catch(() => {
-                // Don't clear on error - user may want to retry
-              });
-          } else {
-            // Sync function completed without throwing, clear attachments
-            clear();
-            if (usingProvider) {
-              controller.textInput.clear();
-            }
-          }
-        } catch {
-          // Don't clear on error - user may want to retry
-        }
-      })
-      .catch(() => {
-        // Don't clear on error - user may want to retry
-      });
   };
 
   // Render with or without local provider

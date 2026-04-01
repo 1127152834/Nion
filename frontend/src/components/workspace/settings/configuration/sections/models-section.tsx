@@ -54,6 +54,10 @@ import { cn } from "@/lib/utils";
 
 import { ConfirmActionDialog } from "../../confirm-action-dialog";
 import {
+  buildDraftProviderConnectionSignature,
+  hasDraftProviderConnectionChanges,
+} from "../../model-management/provider-connection";
+import {
   asArray,
   asBoolean,
   asString,
@@ -317,6 +321,9 @@ function normalizeProviderList(
       protocol: providerProtocol,
       use: providerUse,
       api_key: asString(provider.api_key),
+      api_key_masked: asString(provider.api_key_masked),
+      api_key_present: asBoolean(provider.api_key_present, false),
+      api_key_dirty: asBoolean(provider.api_key_dirty, false),
       api_base: providerApiBase,
       test_model: asString(provider.test_model).trim(),
       catalog_models: catalogModels.map((item) => ({
@@ -332,6 +339,8 @@ function normalizeProviderList(
       catalog_updated_at: asString(provider.catalog_updated_at),
       catalog_provider_type: asString(provider.catalog_provider_type),
       catalog_message: asString(provider.catalog_message),
+      last_test_status: asString(provider.last_test_status),
+      last_test_signature: asString(provider.last_test_signature),
     };
   });
 }
@@ -531,6 +540,14 @@ function formatLastTestTime(raw: string, locale: string): string {
     return value;
   }
   return new Date(timestamp).toLocaleString(locale);
+}
+
+function getProviderApiKeyDisplay(provider: Record<string, unknown>): string {
+  const current = asString(provider.api_key).trim();
+  if (current !== "") {
+    return current;
+  }
+  return asString(provider.api_key_masked).trim();
 }
 
 function isFieldBlank(value: unknown): boolean {
@@ -1143,6 +1160,11 @@ export function ModelsSection({
           last_test_status: result.success ? "success" : "failed",
           last_tested_at: new Date().toISOString(),
           last_test_message: result.message,
+          last_test_signature: buildDraftProviderConnectionSignature({
+            protocol: getProviderProtocol(current),
+            apiBase: asString(current.api_base).trim(),
+            apiKeyDisplay: getProviderApiKeyDisplay(current),
+          }),
         }));
       } else {
         setCreateFeedback(feedback);
@@ -1160,6 +1182,11 @@ export function ModelsSection({
           last_test_status: "failed",
           last_tested_at: new Date().toISOString(),
           last_test_message: message,
+          last_test_signature: buildDraftProviderConnectionSignature({
+            protocol: getProviderProtocol(current),
+            apiBase: asString(current.api_base).trim(),
+            apiKeyDisplay: getProviderApiKeyDisplay(current),
+          }),
         }));
       } else {
         setCreateFeedback(feedback);
@@ -1548,8 +1575,21 @@ export function ModelsSection({
       };
     }
 
+    const persistedSignature = asString(provider.last_test_signature).trim();
+    const currentSignature = buildDraftProviderConnectionSignature({
+      protocol: getProviderProtocol(provider),
+      apiBase: asString(provider.api_base).trim(),
+      apiKeyDisplay: getProviderApiKeyDisplay(provider),
+    });
+    const hasConnectionChanges = hasDraftProviderConnectionChanges({
+      protocol: getProviderProtocol(provider),
+      apiBase: asString(provider.api_base).trim(),
+      apiKeyDisplay: getProviderApiKeyDisplay(provider),
+      persistedSignature,
+      apiKeyDirty: asBoolean(provider.api_key_dirty, false),
+    });
     const raw = asString(provider.last_test_status).trim().toLowerCase();
-    if (raw === "success") {
+    if (raw === "success" && !hasConnectionChanges && persistedSignature === currentSignature) {
       return { success: true, label: copy.statusConnected };
     }
     if (raw === "failed") {
@@ -1871,11 +1911,16 @@ export function ModelsSection({
                   protocol: createDraft.protocol,
                   use: createDraft.use.trim() || defaultUseByProtocol(createDraft.protocol),
                   api_key: createDraft.api_key.trim(),
+                  api_key_masked: createDraft.api_key.trim(),
+                  api_key_present: createDraft.api_key.trim() !== "",
+                  api_key_dirty: true,
                   api_base: createDraft.api_base.trim(),
                   catalog_models: [],
                   catalog_updated_at: "",
                   catalog_provider_type: "",
                   catalog_message: "",
+                  last_test_status: "",
+                  last_test_signature: "",
                 });
                 next[MODEL_PROVIDERS_KEY] = list;
               });
@@ -1908,8 +1953,6 @@ export function ModelsSection({
     const providerId = asString(selectedProvider.id).trim();
     const providerName = asString(selectedProvider.name).trim() || providerId;
     const protocol = getProviderProtocol(selectedProvider);
-    const feedback = providerFeedback[providerId];
-    const isTesting = testingProviderKey === providerId;
     const providerModelEntries = models
       .map((model, index) => ({ model, index }))
       .filter(({ model }) => asString(model.provider_id).trim() === providerId);
@@ -2114,10 +2157,13 @@ export function ModelsSection({
             <div className="relative">
               <Input
                 type={editApiKeyVisible ? "text" : "password"}
-                value={asString(selectedProvider.api_key)}
+                value={getProviderApiKeyDisplay(selectedProvider)}
                 onChange={(e) => updateProviderAt(selectedProviderIndex, (current) => ({
                   ...current,
                   api_key: e.target.value,
+                  api_key_dirty: true,
+                  api_key_present:
+                    e.target.value.trim() !== "" || asBoolean(current.api_key_present, false),
                 }))}
                 placeholder={
                   protocol === "anthropic-compatible"
@@ -2518,7 +2564,11 @@ export function ModelsSection({
 
             return (
               <div
-                key={`${asString(model.name).trim() || "model"}-${index}`}
+                key={[
+                  asString(model.provider_id).trim() || "unassigned",
+                  asString(model.name).trim() || "model",
+                  asString(model.model).trim() || "unknown",
+                ].join("::")}
                 className={cn(
                   "flex w-full items-center justify-between gap-3 rounded-lg border px-3 py-2.5",
                   "bg-background/70",

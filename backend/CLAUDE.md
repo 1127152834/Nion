@@ -89,6 +89,7 @@ Model registry rule:
 - Provider catalog metadata such as `context_window` and `max_output_tokens` is reference data, not a guaranteed request-time contract.
 - Do not automatically promote discovered `max_output_tokens` into runtime request `max_tokens`; only explicit user/runtime config should set request caps.
 - The model factory must ignore obviously invalid request caps where `max_tokens >= context_window`.
+- Custom provider connection health is signature-based: a saved success only remains valid while the normalized `protocol/base_url/api_key_masked` signature is unchanged. Any provider credential/base URL/protocol mutation must reset `provider_test_status` to `untested`.
 
 Memory currently uses the legacy `memory.json` path through `nion.agents.memory.*`.
 Do not reintroduce provider-based memory, AutoDream, self-maintenance, heartbeat,
