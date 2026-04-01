@@ -1001,12 +1001,6 @@ export interface Translations {
     automationWorkspace: {
       title: string;
       description: string;
-      tabs: {
-        overview: string;
-        reminders: string;
-        tasks: string;
-        history: string;
-      };
       overview: {
         scheduler: string;
         schedulerRunning: string;
@@ -1019,10 +1013,6 @@ export interface Translations {
         notRecordedYet: string;
       };
       forms: {
-        reminderTitle: string;
-        reminderDescription: string;
-        taskTitle: string;
-        taskDescription: string;
         creatorTitle: string;
         creatorDescription: string;
         creatorKindLabel: string;
@@ -1039,16 +1029,8 @@ export interface Translations {
         dateTimeClear: string;
         dateTimeConfirm: string;
         previewLabel: string;
-        previewDeliveryLabel: string;
         previewReminderHint: string;
         previewTaskHint: string;
-        previewReminderAdvancedHint: string;
-        previewDeliveryModes: {
-          local: string;
-          thread: string;
-          channel: string;
-          multi: string;
-        };
         contentLabel: string;
         contentPlaceholder: string;
         taskContentLabel: string;

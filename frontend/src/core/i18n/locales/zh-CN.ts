@@ -1251,13 +1251,7 @@ export const zhCN: Translations = {
     automationWorkspace: {
       title: "自动化",
       description:
-        "把重复工作整理成清晰的提醒事项和定时任务，不再需要先钻进设置页才能管理。",
-      tabs: {
-        overview: "概览",
-        reminders: "提醒事项",
-        tasks: "定时任务",
-        history: "执行记录",
-      },
+        "自动化现在是单页工作台：在同一页创建提醒和定时任务、管理列表，并在结果区查看运行结果或线程预览。",
       overview: {
         scheduler: "调度器",
         schedulerRunning: "运行中",
@@ -1270,15 +1264,9 @@ export const zhCN: Translations = {
         notRecordedYet: "尚未记录",
       },
       forms: {
-        reminderTitle: "新建提醒事项",
-        reminderDescription:
-          "只填写提醒内容和时间安排，就能快速创建一个日常提醒。",
-        taskTitle: "新建定时任务",
-        taskDescription:
-          "先把任务内容和时间安排建好，再从结果区查看每次运行。",
         creatorTitle: "创建自动化",
         creatorDescription:
-          "提醒事项和定时任务共用一个创建器，只保留内容输入和时间安排。",
+          "提醒事项和定时任务共用一个创建器，只保留内容输入和时间安排；定时任务沿用主聊天输入能力，当前支持 @笔记。",
         creatorKindLabel: "自动化类型",
         creatorKinds: {
           reminder: "提醒事项",
@@ -1293,17 +1281,8 @@ export const zhCN: Translations = {
         dateTimeClear: "清除",
         dateTimeConfirm: "确认",
         previewLabel: "快速预览",
-        previewDeliveryLabel: "送达方式",
         previewReminderHint: "这个提醒会按所选节奏出现。",
         previewTaskHint: "这个任务会按所选节奏自动执行。",
-        previewReminderAdvancedHint:
-          "展开高级选项后，可以进一步设置提醒发到哪里。",
-        previewDeliveryModes: {
-          local: "本地提醒",
-          thread: "当前线程",
-          channel: "频道",
-          multi: "多个目标",
-        },
         contentLabel: "提醒内容",
         contentPlaceholder: "例如：提醒我每天下午 5 点整理今天的待办和进展",
         taskContentLabel: "任务内容",
@@ -1329,7 +1308,7 @@ export const zhCN: Translations = {
         remindersDescription: "适合轻量提醒、固定节奏的日常提示和个人例行事项。",
         tasksTitle: "定时任务",
         tasksDescription:
-          "适合需要固定执行、支持手动触发和后续扩展能力的周期任务。",
+          "适合沿用聊天输入能力、支持手动触发，并在结果区查看 runs 与关联线程预览的周期任务。",
         historyTitle: "执行记录",
         historyDescription:
           "直接查看最近运行结果、时间和状态，不再暴露未来钩子之类的内部信息。",

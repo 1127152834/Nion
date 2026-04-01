@@ -1,211 +1,200 @@
 # 测试文档 07 - Automation 模块
 
-- 文档用途：指导其他 agent 对 reminder / scheduled task 自动化执行接口测试、UI 测试、agent-browser E2E 和回归验证。
-- 适合交给哪类 agent 执行：后端 automation service/router 测试 agent、前端 reminder/task 测试 agent、E2E/QA agent。
+- 文档用途：指导其他 agent 对当前单页自动化控制台做接口测试、UI 测试、`agent-browser` E2E 和回归验证。
+- 适合交给哪类 agent 执行：后端 automation service/router 测试 agent、前端 automation console 测试 agent、E2E/QA agent。
 - 推荐优先级：P0。
-- 推荐测试方式：接口 + UI + agent-browser E2E。
-- 是否建议先做 contract / integration 再做 E2E：是，先覆盖 `jobs/runs/status` 与 create/update/delete，再做页面交互链路。
+- 推荐测试方式：接口 + UI + `agent-browser` E2E。
+- 是否建议先做 contract / integration 再做 E2E：是，先覆盖 `jobs/runs/status`、`isolated_thread_id` 合同和 create/run/delete，再做页面交互链路。
 
 ## 1. 模块说明
-- 模块目标：为用户提供 reminder 和 scheduled task 两类自动化能力，以及概览与执行记录。
-- 核心业务职责：
-  - 统一展示 scheduler status、jobs、runs 和 overview。
-  - 构建 reminder / scheduled task 请求体。
-  - 提供 pause / resume / run / delete 操作闭环。
+- 模块目标：为用户提供 reminder 和 scheduled task 两类自动化能力，入口是一个单页工作台，而不是多 tab 配置页。
+- 当前页面结构：
+  - 顶部说明
+  - 创建器：`提醒内容 / 任务内容 + 定时配置`
+  - 自动化列表：左侧 reminder 列表 + scheduled task 列表
+  - 结果区：选中 reminder 时展示运行列表；选中 scheduled task 时展示左侧 runs + 右侧 thread preview
+  - overview cards：底部展示 scheduler / active / runs / attention
+- 当前产品事实：
+  - 自动化页不再有 overview / reminders / tasks / history 四个 tab 主路径。
+  - reminder 与 scheduled task 共用一个创建器。
+  - scheduled task 沿用主聊天输入能力，当前先支持 `@笔记`。
+  - `run now` 和 `GET /api/automation/runs` 都要关注 `isolated_thread_id`，这是结果区线程预览的关键字段。
 - 关键代码位置：
   - 前端页面：`frontend/src/app/workspace/automation/page.tsx`
-  - 前端组件：`frontend/src/components/workspace/automation/automation-page.tsx`、`automation-overview-cards.tsx`、`automation-job-section.tsx`、`automation-history-section.tsx`、`automation-creator.tsx`
+  - 前端组件：`frontend/src/components/workspace/automation/automation-page.tsx`、`automation-console.tsx`、`automation-creator.tsx`、`automation-list-panel.tsx`、`automation-results-panel.tsx`、`automation-run-preview.tsx`、`automation-overview-cards.tsx`
   - 前端 core：`frontend/src/core/automation/api.ts`、`hooks.ts`、`types.ts`、`draft-builder.ts`、`presentation.ts`
   - 后端 router：`backend/app/gateway/routers/automation.py`
   - 后端 service / model / repository：`backend/packages/harness/nion/automation/service.py`、`repository.py`、`scheduler.py`、`executor.py`、`models.py`
-  - 当前首版测试：`backend/tests/test_automation_router.py`、`backend/tests/test_automation_repository.py`、`backend/tests/test_automation_scheduler.py`、`backend/tests/test_automation_executor.py`
 
 ## 2. 模块边界与测试范围
 - 本模块覆盖的功能：
   - jobs list / get / create / delete
   - pause / resume / run now
-  - runs history / overview status
-  - reminder form / scheduled task form / advanced options
+  - runs / status / result area
+  - reminder / scheduled task 共用创建器
+  - scheduled task run -> thread preview 联动
 - 不属于本模块的功能：
-  - 真正的外部 channel 投递结果细节
-  - cron 引擎底层实现之外的基础设施监控
+  - 外部 channel 投递细节
+  - 独立的 automation run detail 子系统
+  - 线程详情页内部聊天能力本身
 - 与其他模块的交叉测试点：
-  - delivery mode 与 bridge/channel 可用性
-  - skills/session_policy/toolset_profile 字段对执行结果的影响
+  - scheduled task 复用聊天输入语义，当前对象引用先支持 `@笔记`
+  - thread preview 通过 thread state / thread routes 取数
 - 易混淆边界：
-  - overview cards 是 status/runs 的聚合展示，不是单独数据源。
-  - `run now` 返回的是 AutomationRun，而 pause/resume 返回的是 AutomationJob。
+  - overview cards 是 `status + runs + jobs` 的聚合展示，不是单独数据源。
+  - `run now` 返回的是 `AutomationRun`，pause/resume 返回的是 `AutomationJob`。
+  - reminder 的结果区是列表视图；scheduled task 的结果区是 `runs + thread preview` 双栏视图。
 
 ## 3. 核心业务链路
 1. 用户进入 `/workspace/automation`，前端并发调用：
    - `GET /api/automation/jobs`
    - `GET /api/automation/runs`
    - `GET /api/automation/status`
-2. 页面按 Tab 分为 overview / reminders / tasks / history。
-3. reminder 或 scheduled task 表单通过 `buildAutomationDraftRequest()` 生成请求体：
-   - `job_kind`
-   - `schedule_preset / schedule_kind / schedule_value`
-   - `schedule_timezone`
-   - `delivery_mode`
-   - `skills`
-4. 创建成功后统一 invalidation `automation jobs/runs/status` 三个 query key。
-5. 用户在 job list 上对单个任务执行 pause/resume/run/delete。
-6. overview cards 使用 status + runs 计算 active / runs / attention 等产品口径指标。
-7. history 列表展示 run 的 started_at / finished_at / status / result_summary。
+2. 页面直接渲染单页控制台，不经过 tab 切换。
+3. 用户在创建器中选择 automation type，填写提醒内容或任务内容，并配置 schedule。
+4. scheduled task 内容支持沿用主聊天输入能力，当前应能接受 `@笔记` 这类对象引用文本。
+5. 创建请求通过 `buildAutomationDraftRequest()` 生成 payload，创建成功后统一 invalidation `automation jobs/runs/status`。
+6. 用户在列表区对单个 job 执行 pause / resume / run now / delete。
+7. 结果区按选中 job 分流：
+   - reminder：展示该 reminder 的运行列表
+   - scheduled task：左侧展示 runs，右侧根据 run 的 `isolated_thread_id` 拉取并预览关联线程
+8. overview cards 使用 `status + runs + jobs` 计算 scheduler / active / runs / attention。
 
 ## 4. 接口测试文档
 
-| 接口名称 | 路径 | 方法 | 业务动作 | 调用方 | 前置条件 | 请求关键字段 | 返回关键字段 | 成功场景 | 参数异常场景 | 权限异常场景 | 数据不存在场景 | 空数据场景 | 状态非法场景 | 并发/重复提交/幂等性场景 | 核心断言点 |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 列出 jobs | `/api/automation/jobs` | GET | 获取任务列表 | AutomationPage | service 可用 | 无 | `jobs[]` | 返回当前任务列表 | 无 | 无 | 无 | 空 jobs[] | 无 | 重复 GET 一致 | jobs 列表字段完整 |
-| 创建 job | `/api/automation/jobs` | POST | 创建 reminder/scheduled task | reminder/task form | payload 合法 | `name prompt job_kind schedule_* delivery_* skills session_policy toolset_profile` | `job` | reminder / scheduled_task 都可创建 | 非法 `schedule_kind`、缺 name/prompt | 无 | 无 | 最小合法 payload | schedule contract 不匹配 | 连续创建相同任务 | 201，字段完整透传 |
-| 获取 job | `/api/automation/jobs/{job_id}` | GET | 获取单 job | 页面/外部 | job 存在 | path job_id | `job` | 正常返回 | 无 | 无 | 不存在 404 | 无 | 无 | 重复 GET 一致 | job id 与 path 一致 |
-| pause job | `/api/automation/jobs/{job_id}/pause` | POST | 暂停任务 | job section | job 存在 | path job_id | `job` | state->paused enabled->False | 无 | 无 | job 不存在 404 | 无 | 已 paused 再 pause | 快速连点 | 调用 service.pause_job |
-| resume job | `/api/automation/jobs/{job_id}/resume` | POST | 恢复任务 | job section | paused job | path job_id | `job` | state->scheduled enabled->True | 无 | 无 | job 不存在 404 | 无 | 非 paused job 恢复语义 | 快速连点 | `now` 注入正确 |
-| run job now | `/api/automation/jobs/{job_id}/run` | POST | 立即执行一次任务 | job section | job 存在 | path job_id | `run` | 返回新的 run 记录 | 无 | 无 | job 不存在 404 | 无 | 正在运行时再次 run | 连续点击 run | 返回 AutomationRun |
-| delete job | `/api/automation/jobs/{job_id}` | DELETE | 删除任务 | job section | job 存在 | path job_id | 204 | 删除成功 | 无 | 无 | job 不存在 404 | 无 | 删除后再删除 | 连续 delete | 删除后 jobs/status 变化 |
-| 列出 runs | `/api/automation/runs` | GET | 获取执行历史 | overview/history | service 可用 | 无 | `runs[]` | 列出 run history | 无 | 无 | 无 | 空 runs[] | 无 | 重复 GET 一致 | runs 字段完整 |
-| 获取 status | `/api/automation/status` | GET | 获取产品口径概览指标 | overview cards | service 可用 | 无 | scheduler_running total_jobs_count active_jobs_count paused_jobs_count error_jobs_count run_count failed_runs_count last_* | status 指标正确 | 无 | 无 | 无 | 0 值状态 | 指标口径错误 | 重复 GET 一致 | 不包含 future_hooks 等内部字段 |
+| 接口名称 | 路径 | 方法 | 业务动作 | 调用方 | 前置条件 | 请求关键字段 | 返回关键字段 | 成功场景 | 数据不存在场景 | 并发/重复提交场景 | 核心断言点 |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 列出 jobs | `/api/automation/jobs` | GET | 获取任务列表 | AutomationPage | service 可用 | 无 | `jobs[]` | 返回当前任务列表 | 无 | 重复 GET 一致 | jobs 字段完整 |
+| 创建 job | `/api/automation/jobs` | POST | 创建 reminder/scheduled task | automation creator | payload 合法 | `name prompt job_kind schedule_* delivery_mode skills` | `job` | 两种 job 都可创建 | 无 | 连续创建相同任务 | 201，字段完整透传 |
+| 获取 job | `/api/automation/jobs/{job_id}` | GET | 获取单 job | 页面/外部 | job 存在 | path job_id | `job` | 正常返回 | 404 | 重复 GET 一致 | job id 与 path 一致 |
+| pause job | `/api/automation/jobs/{job_id}/pause` | POST | 暂停任务 | job section | job 存在 | path job_id | `job` | state -> paused | 404 | 快速连点 | 调用 service.pause_job |
+| resume job | `/api/automation/jobs/{job_id}/resume` | POST | 恢复任务 | job section | paused job | path job_id | `job` | state -> scheduled | 404 | 快速连点 | 恢复后 `enabled/state` 正确 |
+| run job now | `/api/automation/jobs/{job_id}/run` | POST | 立即执行一次任务 | job section | job 存在 | path job_id | `run` | 返回新的 run 记录 | 404 | 连续点击 run | `run` 包含 `job_id`、`status`、`result_summary`，scheduled task 路径上保留 `isolated_thread_id` |
+| delete job | `/api/automation/jobs/{job_id}` | DELETE | 删除任务 | job section | job 存在 | path job_id | 204 | 删除成功 | 404 | 连续 delete | 删除后 jobs/status 变化 |
+| 列出 runs | `/api/automation/runs` | GET | 获取执行历史 | results/overview | service 可用 | 无 | `runs[]` | 列出 run history | 无 | 重复 GET 一致 | scheduled task run 返回 `isolated_thread_id`，reminder run 可为空 |
+| 获取 status | `/api/automation/status` | GET | 获取聚合概览指标 | overview cards | service 可用 | 无 | scheduler_running total_jobs_count active_jobs_count paused_jobs_count error_jobs_count run_count failed_runs_count last_* | status 指标正确 | 无 | 重复 GET 一致 | 不包含内部实现残留字段 |
 
 ## 5. UI 测试文档
 - 页面入口：`/workspace/automation`。
-- 首屏渲染：标题、描述、tabs、overview cards、form、job list、history list。
-- 加载态：jobs/runs/status 任一 loading 时正确显示 loading 文案。
-- 空态：无 reminders / tasks / history 时分别展示 empty 文案。
-- 错误态：jobs/runs/create 任一 error 在顶部 error box 可见。
-- 列表/卡片/面板展示：
-  - overview 四张卡片
-  - job card 中 state badge、schedule badge、summary/next run
-  - history item 中 status badge、started/finished/job id
-- 用户交互：
-  - create reminder
-  - create scheduled task
-  - pause / resume
-  - run now
-  - remove
-- 表单校验：name/prompt 为空禁止提交；advanced options 开关后 delivery/skills 输入可见。
-- 按钮状态：isPending 时 create disabled；paused job 显示 resume，其他显示 pause。
-- 条件渲染：overview/reminders/tasks/history 不同 tab 内容不同。
-- 成功反馈：mutation 成功后列表刷新，status/runs 重新计算。
-- 失败反馈：顶部 error box 显示错误消息。
-- 刷新后状态：已创建 job 与 runs 仍可见。
-- 返回/切页后状态：切 tab 后返回仍保持可操作状态。
-- 重复点击：快速 pause/resume/run/delete 不应导致 UI 崩溃或错位。
+- 首屏渲染：标题、描述、单一创建器、左右 job 列表、结果区、overview cards。
+- 禁止回归旧 IA：
+  - 页面主路径不应出现 overview / reminders / tasks / history tab 切换。
+  - 页面主路径不应出现 advanced options、old forms、split reminder/task forms。
+- 创建器验证：
+  - 可切换 reminder / scheduled task。
+  - reminder 展示“提醒内容”，scheduled task 展示“任务内容”。
+  - schedule builder 支持 once / daily / weekdays / weekly / interval / custom。
+  - 内容为空时禁止提交。
+  - scheduled task 文案体现当前支持 `@笔记`。
+- 列表区验证：
+  - reminder / scheduled task 各自空态文案正确。
+  - job card 展示 state badge、next run、schedule、summary、last result。
+  - pause / resume / run now / remove 操作状态正确。
+- 结果区验证：
+  - 未选中 job 时展示引导空态。
+  - 选中 reminder 时，只展示运行列表。
+  - 选中 scheduled task 时，展示左侧 runs、右侧 thread preview。
+  - selected run 变化时，thread preview 跟随切换。
+  - run 没有关联 `isolated_thread_id` 时，右侧展示“仅保留结果摘要”类空态。
+- overview cards 验证：
+  - scheduler / active / runs / attention 四张卡片可见。
+  - `status` 变化后 cards 刷新。
 
 ## 6. E2E 测试文档
 
 ### 6.1 执行要求
 - 本模块 E2E 使用 `agent-browser`。
-- 优先结合 `/browse` 做表单和列表交互验证，结合 `/qa` 做状态回归。
-- 必须抓 network：jobs/runs/status/create/pause/resume/run/delete。
-- 必须截图：overview、创建成功后 job list、history 列表、空态/错误态。
+- 必须抓 network：`jobs / runs / status / create / pause / resume / run / delete`。
+- 必须截图：首屏、创建成功后的列表区、scheduled task 结果区双栏、空态或错误态。
+- 不再把 tab 切换当作主路径测试步骤。
 
 ### 6.2 E2E 场景清单
 
 #### 场景 1：创建 reminder 主成功链路
-- 场景目标：验证 reminder form 可以创建任务并刷新列表。
-- 前置条件：automation API 可用。
-- 测试数据：name=`Morning Reminder`，prompt=`提醒我查看今天的工单`，daily 09:00。
+- 场景目标：验证 reminder 通过单一创建器创建成功，并在 reminder 列表与结果区生效。
+- 测试数据：`提醒我查看今天的工单`，daily `09:00`。
 - 执行步骤：
   1. `agent-browser open http://localhost:2026/workspace/automation`
-  2. `agent-browser wait --load networkidle`
-  3. 切到 `reminders` tab。
-  4. 填写 name、prompt、time，提交。
-  5. 重新 snapshot，查看 reminders job list。
-- 预期结果：新 job 出现在 reminders 列表，overview/status 计数刷新。
-- 关键断言：`POST /api/automation/jobs` 201，后续 jobs/status 重新请求。
-- 证据建议：创建前后截图、network 请求导出。
-- 自动化建议：适合自动化。
+  2. `agent-browser snapshot -i`
+  3. 在单页创建器中选择 `提醒事项`
+  4. 填写提醒内容和时间
+  5. 提交后重新 snapshot
+- 预期结果：新 reminder 出现在 reminder 列表；选中后结果区显示 reminder runs 列表视图。
+- 关键断言：`POST /api/automation/jobs` 201，随后 `jobs/status/runs` 重新请求。
 - 优先级：P0。
 
-#### 场景 2：创建 scheduled task 主成功链路
-- 场景目标：验证 scheduled task form 与 advanced options 字段透传。
-- 前置条件：automation API 可用。
-- 测试数据：weekdays、09:00、delivery_mode=local、skills=`checks,summary`。
+#### 场景 2：创建 scheduled task 并验证 `@笔记`
+- 场景目标：验证 scheduled task 复用聊天输入语义，当前支持 `@笔记` 文本输入。
+- 测试数据：`每个工作日 18:30 总结 @笔记 中的项目进展并生成日报`。
 - 执行步骤：
-  1. 打开 tasks tab。
-  2. 填写 name/prompt/time。
-  3. 打开 advanced options，设置 delivery mode 与 skills。
-  4. 提交并检查 tasks list。
-- 预期结果：新 task 出现在 tasks 列表，payload 含 `skills` 与 `delivery_mode`。
+  1. 在单页创建器中选择 `定时任务`
+  2. 输入带 `@笔记` 的任务内容
+  3. 设置工作日 `18:30`
+  4. 提交并检查 scheduled task 列表
+- 预期结果：新 task 出现在 scheduled task 列表，内容按原样保存，不要求本阶段验证更多对象类型。
 - 优先级：P0。
 
-#### 场景 3：pause -> resume -> run now -> delete 链路
-- 场景目标：验证单个 job 的完整状态流转闭环。
+#### 场景 3：scheduled task 的 run now -> runs -> thread preview
+- 场景目标：验证 scheduled task 在结果区走双栏视图，并通过 `isolated_thread_id` 打开线程预览。
+- 前置条件：至少存在 1 个 scheduled task。
+- 执行步骤：
+  1. 在 scheduled task 列表中选中一个任务
+  2. 点击 `Run now`
+  3. 等待 runs 列表刷新
+  4. 点击最新 run
+  5. 检查右侧 thread preview
+- 预期结果：
+  - 左侧新增一条 run
+  - 该 run 展示 `started_at` 和 `isolated_thread_id` 或无独立线程提示
+  - 若 `isolated_thread_id` 存在，右侧成功拉取线程标题、摘要和最近消息
+- 关键断言：`POST /api/automation/jobs/{job_id}/run` 返回的 run 可与右侧 preview 对上。
+- 优先级：P0。
+
+#### 场景 4：pause -> resume -> delete 链路
+- 场景目标：验证单个 job 的状态流转闭环。
 - 前置条件：至少存在 1 个 job。
-- 执行步骤：
-  1. 在 job card 上点击 Pause。
-  2. 验证 badge 变 paused。
-  3. 点击 Resume。
-  4. 点击 Run Now。
-  5. 打开 history tab 验证新 run。
-  6. 返回 job list 点击 Remove。
-- 预期结果：状态依次变化，run 记录增加，删除后 job 消失。
-- 关键断言：pause/resume/run/delete 四个 network 请求成功。
+- 预期结果：badge、按钮文案、列表状态和 overview cards 同步变化。
 - 优先级：P1。
 
-#### 场景 4：空态与错误态
-- 场景目标：验证无 jobs/runs 和接口失败时 UI 文案可用。
-- 前置条件：空库或模拟接口失败。
-- 预期结果：不同 tab 正确展示 empty/error 文案。
+#### 场景 5：空态与错误态
+- 场景目标：验证无 jobs/runs 和接口失败时，单页控制台各区域文案可用。
+- 预期结果：
+  - 创建器仍可见
+  - reminder / task / result area / overview 各自空态或错误态正确
 - 优先级：P1。
-
-#### 场景 5：刷新恢复链路
-- 场景目标：验证 jobs/runs/status 刷新后恢复一致。
-- 前置条件：已有至少一个任务和一个 run。
-- 优先级：P1。
-
-### 6.3 必须覆盖的 E2E 场景类型
-- 主成功链路：场景 1、2。
-- 主失败链路：场景 4。
-- 刷新恢复链路：场景 5。
-- 返回/重进链路：各 tab 切换与返回。
-- 重复点击/重复提交链路：create、pause/resume、run now、remove。
-- 接口报错后的 UI 反馈链路：场景 4。
-- 模块间联动链路：delivery mode / skills 与 settings/bridge 的约束。
-
-### 6.4 agent-browser 与 skill 使用建议
-- 适合 `/browse`：表单填写、tab 切换、job 操作。
-- 适合 `/qa`：overview + history + state 变更回归。
-- 适合 report-only：仅导出 UI 缺陷与状态问题。
-- 必须抓 network：create / pause / resume / run / delete / jobs / runs / status。
-- 必须看 console：表单状态和 mutation 异常。
-- 必须截图留证：创建成功前后、history 追加记录、空态/错误态。
 
 ## 7. 数据一致性与状态流转测试
-- create 后 jobs/status/runs query 一起 invalidation。
-- paused_jobs_count / active_jobs_count / failed_runs_count 与 jobs/runs 一致。
-- job state badge 与 enabled 字段一致。
-- history run 与 `run now` 的即时执行结果一致。
-- schedule label 与 payload `schedule_preset/schedule_kind/schedule_value` 一致。
+- create 后 `jobs/status/runs` query 一起 invalidation。
+- `paused_jobs_count / active_jobs_count / failed_runs_count` 与 jobs/runs 一致。
+- job state badge 与 `enabled/state` 一致。
+- scheduled task 的 selected run 默认优先最新成功 run，否则回退到最新 run。
+- result area 使用 run 的 `isolated_thread_id` 驱动线程预览，而不是额外 run-detail 接口。
 
 ## 8. 异常与边界测试
-- 缺参：name/prompt 缺失。
-- 非法参数：schedule_kind 非法、timezone 异常、delivery_mode 非法。
-- 超长输入：长 prompt、长 skills 列表。
-- 特殊字符：中文、emoji、换行、逗号分隔 skills。
+- 缺参：内容为空。
+- 非法参数：schedule contract 非法、timezone 异常。
+- 超长输入：长 prompt、长 `@笔记` 混合文本。
+- 特殊字符：中文、emoji、换行。
 - 空数据：jobs/runs/status 全 0。
 - 资源不存在：操作不存在 job。
-- 接口 4xx / 5xx：create/run/delete/pause/resume。
+- 接口 4xx / 5xx：create / run / delete / pause / resume。
 - 超时：scheduler 或 run now 长时间执行。
 - 并发更新：两个窗口同时操作同一个 job。
 - 状态非法切换：已 paused 再 pause、删除后再 resume。
-- 刷新/回退/重进：刷新后状态一致。
-- 重复操作问题：连点 create/run/delete。
+- `isolated_thread_id` 缺失：scheduled task 结果区应降级为无独立线程提示，而不是崩溃。
 
 ## 9. 自动化建议
-- 后端接口自动化优先：jobs CRUD、runs、status、invalid schedule。
-- 前端 contract/integration：draft-builder、presentation、tabs 切换。
-- agent-browser E2E：create reminder/task、pause/resume/run/delete。
-- 人工探索：delivery mode 与 channel/multi 复杂联动。
-- 最小冒烟集合：create reminder、run now、history 有记录、delete。
-- 最小回归闭环：overview -> create -> job actions -> history -> delete。
-- 高收益自动化优先级：P0 是 create/status；P1 是 state transitions/history。
+- 后端接口自动化优先：jobs CRUD、runs、status、executor 对 `isolated_thread_id` 的保留。
+- 前端 contract/integration：draft-builder、presentation、automation console、results panel。
+- `agent-browser` E2E：create reminder、create scheduled task、run now、thread preview、delete。
+- 最小冒烟集合：create reminder、create scheduled task（含 `@笔记`）、run now、scheduled task preview、delete。
+- 最小回归闭环：create -> list action -> runs -> thread preview -> overview refresh。
 
 ## 10. 风险与优先级
-- P0 必测项：两种 create 链路、status 统计。
-- P1 高价值项：pause/resume/run/delete、history。
-- P2 扩展项：复杂 delivery mode、多技能附带。
-- 最容易漏测的点：`run now` 返回 run 记录而非 job；overview 是聚合数据，不能只测 UI。
-- 最容易出现线上事故的链路：创建成功但 query 未刷新、job 状态与 badge 不一致、history 漏记录。
-- 上线前必须回归的部分：create、run now、delete、status overview。
+- P0 必测项：两种 create 链路、`run now`、`isolated_thread_id` 透传、scheduled task thread preview。
+- P1 高价值项：pause/resume/delete、空态/错误态、overview 统计。
+- 最容易漏测的点：
+  - 仍按旧 tabs 思路写用例，导致主路径完全偏离当前产品
+  - `run now` 返回 run 记录而非 job
+  - `isolated_thread_id` 丢失后右侧 preview 无法工作
+- 上线前必须回归的部分：single-page creator、scheduled task `@笔记` 输入、run preview、delete、status overview。
