@@ -194,7 +194,13 @@ class GuardrailMiddleware(AgentMiddleware[AgentState]):
                     "options": ["Allow", "Allow Session", "Deny"],
                     "reason_code": decision.reasons[0].code if decision.reasons else "oap.approval_required",
                     "reason_message": decision.reasons[0].message if decision.reasons else "",
-                }
+                },
+                "tool_runtime": {
+                    "status": "approval_required",
+                    "stage": "request_permission",
+                    "tool_name": tool_name,
+                    "tool_call_id": tool_call_id,
+                },
             },
         )
         return Command(update={"messages": [tool_message]}, goto=END)
@@ -209,6 +215,17 @@ class GuardrailMiddleware(AgentMiddleware[AgentState]):
             tool_call_id=tool_call_id,
             name=tool_name,
             status="error",
+            additional_kwargs={
+                "tool_runtime": {
+                    "status": "failed"
+                    if reason_code == "oap.evaluator_error"
+                    else "denied",
+                    "stage": "check_policy",
+                    "tool_name": tool_name,
+                    "tool_call_id": tool_call_id,
+                    "reason_code": reason_code,
+                }
+            },
         )
 
     @override

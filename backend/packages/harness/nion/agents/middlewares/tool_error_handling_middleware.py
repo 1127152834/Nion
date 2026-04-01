@@ -36,6 +36,14 @@ class ToolErrorHandlingMiddleware(AgentMiddleware[AgentState]):
             tool_call_id=tool_call_id,
             name=tool_name,
             status="error",
+            additional_kwargs={
+                "tool_runtime": {
+                    "status": "failed",
+                    "stage": "execute",
+                    "tool_name": tool_name,
+                    "tool_call_id": tool_call_id,
+                }
+            },
         )
 
     @override
