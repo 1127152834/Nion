@@ -196,7 +196,121 @@ Nion 当前已经有不少散点能力，但还缺一个把这些能力装配成
 - Nion 当前更像“已经有很多能力的 runtime”，还没完全变成“有强 operating discipline 的产品”。
 - Nion 想偷到 Claude Code 的稳定性，真正要补的是制度层，不是文案层。
 
-## 6. Nion 可直接复用
+## 6. Hook 事件面
+
+### 已确认事实
+
+- Claude Code 的 hook 不只是工具前后回调，而是一套正式事件系统。
+- 这些 hook 事件在 `src/entrypoints/sdk/coreSchemas.ts`、`src/types/hooks.ts`、`src/utils/hooks.ts` 中都有显式 schema、输入类型或执行入口。
+- `query.ts`、`query/stopHooks.ts`、`tools/AgentTool/runAgent.ts` 显示，hooks 已经嵌入聊天主链路，而不是一个边缘扩展点。
+- Claude Code 已定义的正式 hook 事件包括：
+  - `Setup`
+  - `SessionStart`
+  - `UserPromptSubmit`
+  - `PreToolUse`
+  - `PermissionRequest`
+  - `PermissionDenied`
+  - `PostToolUse`
+  - `PostToolUseFailure`
+  - `Notification`
+  - `Stop`
+  - `StopFailure`
+  - `SessionEnd`
+  - `SubagentStart`
+  - `SubagentStop`
+  - `PreCompact`
+  - `PostCompact`
+  - `TaskCreated`
+  - `TaskCompleted`
+  - `TeammateIdle`
+  - `Elicitation`
+  - `ElicitationResult`
+  - `ConfigChange`
+  - `InstructionsLoaded`
+  - `CwdChanged`
+  - `FileChanged`
+  - `WorktreeCreate`
+  - `WorktreeRemove`
+- `src/utils/hooks/postSamplingHooks.ts` 里还有一个 `post-sampling hook` 内部注册点，但该文件明确写了这不是对 settings 公开的正式 hook 事件。
+
+### 聊天主链路中的 hook 时序
+
+如果只看与聊天线程最相关的主链路，Claude Code 可以抽象成下面这条：
+
+1. `SessionStart`
+2. `UserPromptSubmit`
+3. `PreToolUse`
+4. `PermissionRequest`
+5. `PermissionDenied`
+6. `PostToolUse` / `PostToolUseFailure`
+7. `Notification`
+8. `Stop`
+9. `StopFailure`
+10. `SessionEnd`
+
+如果会话内存在子代理，则还会插入：
+
+1. `SubagentStart`
+2. 子代理内部自己的 `PreToolUse / PostToolUse / Stop`
+3. `SubagentStop`
+
+### Hook 返回协议里最值钱的部分
+
+从 `src/types/hooks.ts` 和 `src/entrypoints/sdk/coreSchemas.ts` 可以确认，Claude Code 的 hook 并不是只能“观察”，而是可以参与控制：
+
+- `updatedInput`
+- `permissionDecision` / `permissionBehavior`
+- `preventContinuation` / `continue=false`
+- `additionalContext`
+- `retry`
+- `updatedMCPToolOutput`
+
+这说明 Claude Code 的 hook 本质上是控制型 hook，而不是通知型 hook。
+
+### 基于事实的推断
+
+- 对 Nion 来说，最值得直接抄的是“统一聊天事件总线 + hook 输入输出协议”。
+- 不应该把 hook 只做成工具前后的几个 callback，因为 Claude Code 已经证明了，真正值钱的是把 hook 嵌入整条会话生命周期。
+- 如果 Nion 只做 `PreToolUse/PostToolUse`，很快还会继续补 `SessionStart/UserPromptSubmit/Stop/SubagentStop`，不如一开始就按事件面设计。
+
+### Nion 第一批建议落地的 12 个 hook
+
+第一批就值得做：
+
+- `SessionStart`
+- `UserPromptSubmit`
+- `PreToolUse`
+- `PermissionRequest`
+- `PermissionDenied`
+- `PostToolUse`
+- `PostToolUseFailure`
+- `Stop`
+- `StopFailure`
+- `SessionEnd`
+- `SubagentStart`
+- `SubagentStop`
+
+第二批建议补：
+
+- `Notification`
+- `PreCompact`
+- `PostCompact`
+- `Elicitation`
+- `ElicitationResult`
+- `InstructionsLoaded`
+
+第三批再补：
+
+- `ConfigChange`
+- `CwdChanged`
+- `FileChanged`
+- `TaskCreated`
+- `TaskCompleted`
+- `TeammateIdle`
+- `WorktreeCreate`
+- `WorktreeRemove`
+
+## 7. Nion 可直接复用
 
 - `build_lead_runtime_middlewares()`、`GuardrailMiddleware`、`ToolErrorHandlingMiddleware` 已经是统一治理层的种子，不必推倒重来。
 - `task_tool.py` + `SubagentExecutor` + task telemetry 已经是子代理 runtime primitive，可以继续向 specialist agents 演进。
@@ -205,7 +319,7 @@ Nion 当前已经有不少散点能力，但还缺一个把这些能力装配成
 - `invoke_acp_agent_tool.py` 已经提供了外部 agent 连接面，未来可以收口进统一 AgentTool 体系。
 - 现有 diagnostics / telemetry / thread stream 体系可以作为 Tool Activity Layer 的投影接收面。
 
-## 7. Nion 适合借鉴
+## 8. Nion 适合借鉴
 
 - 把 `lead_agent/prompt.py` 从模板字符串升级成 prompt section registry，并引入静态/动态边界。
 - 把 tool middleware 串联升级成统一 tool execution contract，明确定义 pre-hook、permission、post-hook、failure-hook 阶段。
@@ -219,9 +333,10 @@ Nion 当前已经有不少散点能力，但还缺一个把这些能力装配成
   - `hooks`
   - `context=fork`
 - 让 MCP 除了提供工具，也能提供 instructions 与 runtime-visible capability hints。
+- 把 hook 从“工具回调”升级为“统一会话事件面”。
 - 把 tool activity / summary / diagnostics 合并为一套 source-of-truth 事件层。
 
-## 8. Nion 不该照抄
+## 9. Nion 不该照抄
 
 - 不该复制 Claude Code 的 prompt 文本。对 Nion 有价值的是 section 结构与制度，不是原句。
 - 不该一口气复制完整 slash command surface、plugin marketplace、GrowthBook/telemetry 细节。这些是 Anthropic 自身产品环境的产物。
@@ -229,7 +344,7 @@ Nion 当前已经有不少散点能力，但还缺一个把这些能力装配成
 - 不该把 Verification agent 简化成“跑一下测试”。Claude Code 的价值在于对抗式验证心智，这必须作为行为 contract 落地。
 - 不该把 MCP 简化成“再多接几把工具”。Claude Code 值钱的是 MCP 同时扩展工具面和行为面。
 
-## 9. 值得抄等级表
+## 10. 值得抄等级表
 
 等级说明：
 
@@ -273,7 +388,7 @@ Nion 当前已经有不少散点能力，但还缺一个把这些能力装配成
 | 4 | Verification Agent 合同 | S | 最直接提升“真的做完了没有”的质量。 |
 | 5 | Tool Activity Layer | A | 让 Nion 从“工具日志”进化成“产品化活动流”。 |
 
-## 10. 最小实现顺序
+## 11. 最小实现顺序
 
 这里给的是“Claude Code operating model 在 Nion 的最小正确落地顺序”，不是功能数量最多的顺序。
 
@@ -285,28 +400,32 @@ Nion 当前已经有不少散点能力，但还缺一个把这些能力装配成
    - 工具元数据
    - pre / post / failure hook contract
    - 统一 permission / denied / ask / error surface
-3. SkillTool
+3. Hook event plane
+   - SessionStart / UserPromptSubmit / Stop / SessionEnd
+   - SubagentStart / SubagentStop
+   - Notification / compact / file/cwd hooks
+4. SkillTool
    - 从 skill registry 过渡到 skill execution primitive
    - 明确“匹配 skill 必须先调用 SkillTool”
-4. 高价值 coding-facing tools
+5. 高价值 coding-facing tools
    - Glob
    - Grep
    - Patch-oriented FileEdit
    - LSP diagnostics / symbol / references
-5. Tool Activity Layer
+6. Tool Activity Layer
    - 统一聊天流、task、diagnostics 的活动表达
-6. Specialist agents
+7. Specialist agents
    - Explore
    - Plan
    - Verification
-7. Plugin / MCP 深化
+8. Plugin / MCP 深化
    - plugin frontmatter 兼容
    - MCP instructions
    - agent-specific MCP servers
 
 如果跳过前两步，直接堆工具或 agent 名字，Nion 很容易得到一个更复杂但不更稳定的系统。
 
-## 11. 关键源码锚点
+## 12. 关键源码锚点
 
 ### Claude Code
 
@@ -320,10 +439,18 @@ Nion 当前已经有不少散点能力，但还缺一个把这些能力装配成
   - 说明统一工具执行主线
 - `src/services/tools/toolHooks.ts`
   - 说明 hook 如何参与 permission 与 continuation control
+- `src/types/hooks.ts`
+  - 说明 hook 事件与输出协议
+- `src/entrypoints/sdk/coreSchemas.ts`
+  - 说明正式 hook 事件清单与输入 schema
 - `src/tools/AgentTool/AgentTool.tsx`
   - 说明 agent orchestration controller 的职责
 - `src/tools/AgentTool/runAgent.ts`
   - 说明 agent runtime constructor 与子代理生命周期
+- `src/query.ts`
+  - 说明主聊天循环中 stop / post-sampling / compaction 的钩子位置
+- `src/query/stopHooks.ts`
+  - 说明 Stop / SubagentStop / TaskCompleted / TeammateIdle 等结束态钩子
 - `src/tools/AgentTool/built-in/exploreAgent.ts`
   - 说明只读探索 agent 的边界
 - `src/tools/AgentTool/built-in/planAgent.ts`
