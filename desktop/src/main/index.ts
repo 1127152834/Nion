@@ -719,6 +719,7 @@ export async function startDesktopMain(): Promise<void> {
       return;
     }
     await syncBridgeSettingsCache();
+    bridgeManager.reloadAdapters();
     await bridgeManager.stop();
     await bridgeManager.start();
   };
@@ -839,6 +840,7 @@ export async function startDesktopMain(): Promise<void> {
   });
   ipcMain.handle(DESKTOP_BRIDGE_IPC_CHANNELS.start, async () => {
     await syncBridgeSettingsCache();
+    bridgeManager.reloadAdapters();
     return bridgeManager.start();
   });
   ipcMain.handle(DESKTOP_BRIDGE_IPC_CHANNELS.stop, async () => {
@@ -848,6 +850,7 @@ export async function startDesktopMain(): Promise<void> {
     DESKTOP_BRIDGE_IPC_CHANNELS.startPlatform,
     async (_event, platform: string) => {
       await syncBridgeSettingsCache();
+      bridgeManager.reloadAdapters();
       return bridgeManager.startPlatform(platform);
     },
   );

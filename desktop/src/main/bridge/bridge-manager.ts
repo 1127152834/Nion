@@ -361,16 +361,9 @@ export function createBridgeManager(options: {
     ].join("\n");
 
   const enabledPlatformsFromSettings = () => {
-    const settings = options.loadSettings().settings;
-    return [
-      ["telegram", settings.bridge_telegram_enabled],
-      ["feishu", settings.bridge_feishu_enabled],
-      ["discord", settings.bridge_discord_enabled],
-      ["qq", settings.bridge_qq_enabled],
-      ["weixin", settings.bridge_weixin_enabled],
-    ]
-      .filter(([, enabled]) => enabled === "true")
-      .map(([platform]) => platform);
+    return resolveAdapters()
+      .map((adapter) => adapter.platform)
+      .filter((platform) => isPlatformVerified(platform));
   };
 
   const isPlatformVerified = (platform: string) => {
@@ -425,8 +418,7 @@ export function createBridgeManager(options: {
     if (adapters.length > 0) {
       return validAdapters.filter((adapter) => isPlatformVerified(adapter.platform));
     }
-    const enabled = new Set(enabledPlatformsFromSettings());
-    return validAdapters.filter((adapter) => enabled.has(adapter.platform) && isPlatformVerified(adapter.platform));
+    return validAdapters.filter((adapter) => isPlatformVerified(adapter.platform));
   };
 
   const finalizeCardStream = async (
@@ -1233,10 +1225,6 @@ export function createBridgeManager(options: {
       const settings = options.loadSettings().settings;
       if (settings.remote_bridge_enabled !== "true") {
         return "bridge_not_enabled";
-      }
-
-      if (settings[`bridge_${platform}_enabled`] !== "true") {
-        return "channel_not_enabled";
       }
 
       if (!isPlatformVerified(platform)) {

@@ -400,9 +400,6 @@ export class QqBridgeAdapter extends BaseBridgeAdapter {
   }
 
   validateConfig(): string | null {
-    if (this.settings.bridge_qq_enabled !== "true") {
-      return "bridge_qq_enabled is not true";
-    }
     if (!this.settings.bridge_qq_app_id) {
       return "bridge_qq_app_id not configured";
     }

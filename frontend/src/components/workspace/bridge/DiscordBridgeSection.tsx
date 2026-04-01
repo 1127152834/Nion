@@ -45,7 +45,6 @@ export function DiscordBridgeSection() {
     message: string;
   } | null>(null);
   const [bridgeEnabled, setBridgeEnabled] = useState(false);
-  const [channelEnabled, setChannelEnabled] = useState(false);
   const [persistedVerified, setPersistedVerified] = useState(false);
   const savedCredentials = useRef({ botToken: "" });
   const credentialsDirty = botToken !== savedCredentials.current.botToken;
@@ -55,7 +54,6 @@ export function DiscordBridgeSection() {
     const discord =
       bridgeConfig.discord;
     setBridgeEnabled(true);
-    setChannelEnabled(discord.enabled);
     setPersistedVerified(discord.verified);
     setBotToken(discord.bot_token);
     savedCredentials.current = { botToken: discord.bot_token };
@@ -162,25 +160,7 @@ export function DiscordBridgeSection() {
       <BridgePlatformRuntimeCard
         platform="discord"
         bridgeEnabled={bridgeEnabled}
-        channelEnabled={channelEnabled}
         connectionVerified={connectionVerified}
-        onEnableBeforeStart={async () => {
-          const verified = await ensureDiscordVerifiedBeforeEnable();
-          if (!verified) {
-            return false;
-          }
-          const saved = await saveBridgeConfig((current) => ({
-            ...current,
-            discord: {
-              ...current.discord,
-              enabled: true,
-            },
-          }));
-          if (!saved) {
-            return false;
-          }
-          return true;
-        }}
       />
 
       <SettingsCard

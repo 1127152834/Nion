@@ -539,9 +539,6 @@ export class TelegramBridgeAdapter extends BaseBridgeAdapter {
   }
 
   validateConfig(): string | null {
-    if (this.settings.bridge_telegram_enabled !== "true") {
-      return "bridge_telegram_enabled is not true";
-    }
     if (!this.settings.bridge_telegram_bot_token) {
       return "bridge_telegram_bot_token not configured";
     }

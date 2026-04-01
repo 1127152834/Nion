@@ -30,10 +30,9 @@ import {
 export function WeixinBridgeSection() {
   const { t } = useBridgeTranslation();
   const client = getBridgeClient();
-  const { bridgeConfig, refetchConfig, saveBridgeConfig } = useBridgeConfigEditor();
+  useBridgeConfigEditor();
   const [accounts, setAccounts] = useState<WeixinBridgeAccount[]>([]);
   const [bridgeEnabled, setBridgeEnabled] = useState(false);
-  const [channelEnabled, setChannelEnabled] = useState(false);
   const [qrImage, setQrImage] = useState<string | null>(null);
   const [qrSessionId, setQrSessionId] = useState<string | null>(null);
   const [qrStatus, setQrStatus] = useState("");
@@ -44,18 +43,13 @@ export function WeixinBridgeSection() {
   const weixinConnectionVerified = accounts.some((account) => account.enabled && account.hasToken);
 
   const fetchAccounts = useCallback(async () => {
-    const weixin =
-      bridgeConfig.weixin && typeof bridgeConfig.weixin === "object"
-        ? (bridgeConfig.weixin as Record<string, unknown>)
-        : {};
     setBridgeEnabled(true);
-    setChannelEnabled(Boolean(weixin.enabled));
     if (!client) {
       setAccounts([]);
       return;
     }
     setAccounts(await client.listWeixinAccounts());
-  }, [bridgeConfig, client]);
+  }, [client]);
 
   useEffect(() => {
     void fetchAccounts();
@@ -210,20 +204,6 @@ export function WeixinBridgeSection() {
     }
   };
 
-  const ensureWeixinVerifiedBeforeEnable = async () => {
-    if (!client) {
-      return false;
-    }
-    const result = await client.verifyWeixin();
-    await refetchConfig();
-    await fetchAccounts();
-    if (!result.verified) {
-      toast.error(result.error?.trim() ? result.error : t("bridge.errorChannelNotVerified"));
-      return false;
-    }
-    return true;
-  };
-
   void qrSessionId;
 
   return (
@@ -231,25 +211,7 @@ export function WeixinBridgeSection() {
       <BridgePlatformRuntimeCard
         platform="weixin"
         bridgeEnabled={bridgeEnabled}
-        channelEnabled={channelEnabled}
         connectionVerified={weixinConnectionVerified}
-        onEnableBeforeStart={async () => {
-          const verified = await ensureWeixinVerifiedBeforeEnable();
-          if (!verified) {
-            return false;
-          }
-          const saved = await saveBridgeConfig((current) => ({
-            ...current,
-            weixin: {
-              ...current.weixin,
-              enabled: true,
-            },
-          }));
-          if (!saved) {
-            return false;
-          }
-          return true;
-        }}
       />
 
       <StatusBanner variant="warning" className="text-sm">

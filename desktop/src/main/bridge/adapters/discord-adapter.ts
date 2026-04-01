@@ -657,9 +657,6 @@ export class DiscordBridgeAdapter extends BaseBridgeAdapter {
   }
 
   validateConfig(): string | null {
-    if (this.settings.bridge_discord_enabled !== "true") {
-      return "bridge_discord_enabled is not true";
-    }
     if (!this.settings.bridge_discord_bot_token) {
       return "bridge_discord_bot_token not configured";
     }

@@ -55,6 +55,6 @@ test("desktop main refreshes bridge settings cache from config center before sta
 
   assert.match(source, /const syncBridgeSettingsCache = async \(\) => \{/);
   assert.match(source, /bridgeSettingsCache = bridgeConfigToSettingsMap\(await readBridgeConfigFromConfigCenter\(\)\)/);
-  assert.match(source, /DESKTOP_BRIDGE_IPC_CHANNELS\.start,[\s\S]*await syncBridgeSettingsCache\(\);[\s\S]*bridgeManager\.start\(\)/);
-  assert.match(source, /DESKTOP_BRIDGE_IPC_CHANNELS\.startPlatform,[\s\S]*await syncBridgeSettingsCache\(\);[\s\S]*bridgeManager\.startPlatform\(platform\)/);
+  assert.match(source, /DESKTOP_BRIDGE_IPC_CHANNELS\.start,[\s\S]*await syncBridgeSettingsCache\(\);[\s\S]*bridgeManager\.reloadAdapters\(\);[\s\S]*bridgeManager\.start\(\)/);
+  assert.match(source, /DESKTOP_BRIDGE_IPC_CHANNELS\.startPlatform,[\s\S]*await syncBridgeSettingsCache\(\);[\s\S]*bridgeManager\.reloadAdapters\(\);[\s\S]*bridgeManager\.startPlatform\(platform\)/);
 });

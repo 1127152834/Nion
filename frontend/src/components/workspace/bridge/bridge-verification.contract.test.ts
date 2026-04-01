@@ -11,7 +11,9 @@ void test("bridge shared runtime card gates start behind connection verification
   assert.match(source, /connectionVerified/);
   assert.match(source, /bridge\.errorChannelNotVerified/);
   assert.match(source, /disabled=\{starting \|\| !bridgeEnabled \|\| !connectionVerified\}/);
-  assert.match(source, /if \(!channelEnabled && onEnableBeforeStart\)/);
+  assert.doesNotMatch(source, /channel_not_enabled/);
+  assert.doesNotMatch(source, /channelEnabled/);
+  assert.doesNotMatch(source, /onEnableBeforeStart/);
 });
 
 void test("bridge runtime card is the single control surface for platform activation", async () => {
@@ -22,6 +24,21 @@ void test("bridge runtime card is the single control surface for platform activa
 
   assert.match(source, /export function BridgePlatformRuntimeCard/);
   assert.doesNotMatch(source, /export function BridgePlatformEnableCard/);
+});
+
+void test("bridge runtime card no longer requires a separate channel-enable step", async () => {
+  const managerSource = await readFile(
+    new URL("../../../../../desktop/src/main/bridge/bridge-manager.ts", import.meta.url),
+    "utf8",
+  );
+  const telegramAdapterSource = await readFile(
+    new URL("../../../../../desktop/src/main/bridge/adapters/telegram-adapter.ts", import.meta.url),
+    "utf8",
+  );
+
+  assert.doesNotMatch(managerSource, /channel_not_enabled/);
+  assert.doesNotMatch(managerSource, /settings\[`bridge_\$\{platform\}_enabled`\] !== "true"/);
+  assert.doesNotMatch(telegramAdapterSource, /bridge_telegram_enabled/);
 });
 
 void test("telegram bridge section auto-verifies before enabling", async () => {
@@ -77,7 +94,7 @@ void test("weixin bridge section requires a verified account before enabling", a
 
   assert.match(source, /const weixinConnectionVerified = accounts\.some/);
   assert.match(source, /ensureWeixinVerifiedBeforeEnable/);
-  assert.match(source, /await ensureWeixinVerifiedBeforeEnable\(\)/);
+  assert.doesNotMatch(source, /channelEnabled/);
 });
 
 void test("shared bridge verification helper rejects stale verified flags without required config", async () => {
@@ -139,19 +156,17 @@ void test("bridge config editor save path rebases on the latest config center sn
 });
 
 void test("platform enable flows stop when config persistence fails after verification", async () => {
-  const telegramSource = await readFile(
-    new URL("./TelegramBridgeSection.tsx", import.meta.url),
-    "utf8",
-  );
   const discordSource = await readFile(
     new URL("./DiscordBridgeSection.tsx", import.meta.url),
     "utf8",
   );
+  const feishuSource = await readFile(
+    new URL("./FeishuBridgeSection.tsx", import.meta.url),
+    "utf8",
+  );
 
-  assert.match(telegramSource, /const saved = await saveBridgeConfig/);
-  assert.match(telegramSource, /if \(!saved\) \{\s*return false;\s*\}/);
-  assert.match(discordSource, /const saved = await saveBridgeConfig/);
-  assert.match(discordSource, /if \(!saved\) \{\s*return false;\s*\}/);
+  assert.doesNotMatch(discordSource, /channelEnabled/);
+  assert.doesNotMatch(feishuSource, /channelEnabled/);
 });
 
 void test("bridge config forms stay renderable without desktop bridge runtime", async () => {

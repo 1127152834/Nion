@@ -32,7 +32,6 @@ export function QqBridgeSection() {
     message: string;
   } | null>(null);
   const [bridgeEnabled, setBridgeEnabled] = useState(false);
-  const [channelEnabled, setChannelEnabled] = useState(false);
   const [persistedVerified, setPersistedVerified] = useState(false);
   const savedCredentials = useRef({ appId: "", appSecret: "" });
   const credentialsDirty =
@@ -45,7 +44,6 @@ export function QqBridgeSection() {
     const qq =
       bridgeConfig.qq;
     setBridgeEnabled(true);
-    setChannelEnabled(qq.enabled);
     setPersistedVerified(qq.verified);
     setAppId(qq.app_id);
     setAppSecret(qq.app_secret);
@@ -164,25 +162,7 @@ export function QqBridgeSection() {
       <BridgePlatformRuntimeCard
         platform="qq"
         bridgeEnabled={bridgeEnabled}
-        channelEnabled={channelEnabled}
         connectionVerified={connectionVerified}
-        onEnableBeforeStart={async () => {
-          const verified = await ensureQqVerifiedBeforeEnable();
-          if (!verified) {
-            return false;
-          }
-          const saved = await saveBridgeConfig((current) => ({
-            ...current,
-            qq: {
-              ...current.qq,
-              enabled: true,
-            },
-          }));
-          if (!saved) {
-            return false;
-          }
-          return true;
-        }}
       />
 
       <SettingsCard title={t("qq.credentials")} description={t("qq.credentialsDesc")}>

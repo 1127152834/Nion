@@ -87,11 +87,11 @@ const zhCN = {
   "bridge.errorNoAdapters": "没有适配器成功启动，请检查渠道配置。",
   "bridge.errorAdapterConfig": "渠道配置无效，请检查已启用渠道的设置。",
   "bridge.errorNetwork": "启动桥接时网络错误。",
-  "bridge.errorChannelNotEnabled": "请先启用当前渠道，再启动桥接。",
+  "bridge.errorChannelNotEnabled": "当前渠道不可用。",
   "bridge.errorChannelNotVerified": "请先完成当前渠道的连接验证，再启用或启动桥接。",
   "bridge.channelStatusDesc": "当前渠道桥接运行状态",
   "bridge.bridgeChatBadge": "桥接",
-  "bridge.enableRequiresVerification": "连接验证通过后才能启用此渠道。",
+  "bridge.enableRequiresVerification": "连接验证通过后才能启动桥接。",
 
   "telegram.credentials": "Bot 凭据",
   "telegram.credentialsDesc": "输入您的 Telegram Bot Token 和 Chat ID",
@@ -191,7 +191,7 @@ const zhCN = {
   "discord.imageEnabledDesc": "允许下载和处理 Discord 中的图片附件",
   "discord.setupGuide": "配置指南",
   "discord.setupBotTitle": "创建 Discord Bot",
-  "discord.step1": "前往 Discord 开发者门户 (discord.com/developers)，点击「New Application」创建应用",
+  "discord.step1": "前往 Discord 开发者门户 (https://discord.com/developers/applications)，点击「New Application」创建应用",
   "discord.step2": "进入左侧「Bot」页面，点击「Add Bot」创建机器人",
   "discord.step3": "向下滚动到「Privileged Gateway Intents」，开启「MESSAGE CONTENT INTENT」开关",
   "discord.step4": "点击「Reset Token」复制 Bot Token，粘贴到上方「Bot 凭据」中保存",
@@ -315,11 +315,11 @@ const enUS: Record<keyof typeof zhCN, string> = {
   "bridge.errorNoAdapters": "No adapters started successfully. Check channel settings.",
   "bridge.errorAdapterConfig": "Invalid channel configuration. Check enabled channel settings.",
   "bridge.errorNetwork": "Network error while starting bridge.",
-  "bridge.errorChannelNotEnabled": "Enable this channel before starting bridge.",
+  "bridge.errorChannelNotEnabled": "This channel is unavailable.",
   "bridge.errorChannelNotVerified": "Verify this channel connection before enabling or starting it.",
   "bridge.channelStatusDesc": "Runtime status for this channel",
   "bridge.bridgeChatBadge": "Bridge",
-  "bridge.enableRequiresVerification": "This channel can only be enabled after connection verification succeeds.",
+  "bridge.enableRequiresVerification": "Bridge can only start after connection verification succeeds.",
 
   "telegram.credentials": "Bot Credentials",
   "telegram.credentialsDesc": "Enter your Telegram Bot Token and Chat ID",
@@ -692,15 +692,11 @@ export function StatusBanner({
 export function BridgePlatformRuntimeCard({
   platform,
   bridgeEnabled,
-  channelEnabled,
   connectionVerified,
-  onEnableBeforeStart,
 }: {
   platform: string;
   bridgeEnabled: boolean;
-  channelEnabled: boolean;
   connectionVerified: boolean;
-  onEnableBeforeStart?: () => Promise<boolean>;
 }) {
   const { t } = useBridgeTranslation();
   const { client, adapter, refresh } = useBridgePlatformStatus(platform);
@@ -716,17 +712,10 @@ export function BridgePlatformRuntimeCard({
   const handleStart = async () => {
     setStarting(true);
     try {
-      if (!channelEnabled && onEnableBeforeStart) {
-        const enabled = await onEnableBeforeStart();
-        if (!enabled) {
-          return;
-        }
-      }
       const reason = await createBridgeClient().startPlatform(platform);
       if (reason) {
         const reasonMessages: Record<string, string> = {
           bridge_not_enabled: t("bridge.errorNotEnabled"),
-          channel_not_enabled: t("bridge.errorChannelNotEnabled"),
           channel_not_verified: t("bridge.errorChannelNotVerified"),
           no_adapters_started: t("bridge.errorNoAdapters"),
           adapter_unavailable: t("bridge.errorNetwork"),
@@ -761,13 +750,7 @@ export function BridgePlatformRuntimeCard({
           {t("bridge.errorNotEnabled")}
         </StatusBanner>
       ) : null}
-      {bridgeEnabled && !channelEnabled ? (
-        <StatusBanner variant="warning">
-          <Warning className="size-4 shrink-0" />
-          {t("bridge.errorChannelNotEnabled")}
-        </StatusBanner>
-      ) : null}
-      {bridgeEnabled && channelEnabled && !connectionVerified ? (
+      {bridgeEnabled && !connectionVerified ? (
         <StatusBanner variant="warning">
           <Warning className="size-4 shrink-0" />
           {t("bridge.errorChannelNotVerified")}

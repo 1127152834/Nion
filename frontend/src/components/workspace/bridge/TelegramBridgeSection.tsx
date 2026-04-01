@@ -24,7 +24,6 @@ export function TelegramBridgeSection() {
   const [chatId, setChatId] = useState("");
   const [allowedUsers, setAllowedUsers] = useState("");
   const [bridgeEnabled, setBridgeEnabled] = useState(false);
-  const [channelEnabled, setChannelEnabled] = useState(false);
   const [saving, setSaving] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [detecting, setDetecting] = useState(false);
@@ -44,7 +43,6 @@ export function TelegramBridgeSection() {
     const telegram =
       bridgeConfig.telegram;
     setBridgeEnabled(true);
-    setChannelEnabled(telegram.enabled);
     setPersistedVerified(telegram.verified);
     setBotToken(telegram.bot_token);
     setChatId(telegram.chat_id);
@@ -71,31 +69,6 @@ export function TelegramBridgeSection() {
           allowed_users: allowedUsers,
         },
       }));
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleToggleChannel = async (checked: boolean) => {
-    if (checked) {
-      const verified = await ensureTelegramVerifiedBeforeEnable();
-      if (!verified) {
-        return false;
-      }
-    }
-    setSaving(true);
-    try {
-      const saved = await saveBridgeConfig((current) => ({
-        ...current,
-        telegram: {
-          ...current.telegram,
-          enabled: checked,
-        },
-      }));
-      if (!saved) {
-        return false;
-      }
-      return true;
     } finally {
       setSaving(false);
     }
@@ -193,9 +166,7 @@ export function TelegramBridgeSection() {
       <BridgePlatformRuntimeCard
         platform="telegram"
         bridgeEnabled={bridgeEnabled}
-        channelEnabled={channelEnabled}
         connectionVerified={connectionVerified}
-        onEnableBeforeStart={() => handleToggleChannel(true)}
       />
 
       <SettingsCard

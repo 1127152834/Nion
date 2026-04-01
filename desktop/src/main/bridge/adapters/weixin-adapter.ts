@@ -304,9 +304,6 @@ export class WeixinBridgeAdapter extends BaseBridgeAdapter {
   onMessageEnd(_chatId: string): void {}
 
   validateConfig(): string | null {
-    if (this.settings.bridge_weixin_enabled !== "true") {
-      return "bridge_weixin_enabled is not true";
-    }
     const enabledAccounts = this.accountsStore.listAccounts().filter((item) => item.enabled && item.token);
     if (enabledAccounts.length === 0) {
       return "No enabled Weixin accounts";

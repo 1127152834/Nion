@@ -213,9 +213,6 @@ export class FeishuBridgeAdapter extends BaseBridgeAdapter {
   }
 
   validateConfig(): string | null {
-    if (this.settings.bridge_feishu_enabled !== "true") {
-      return "bridge_feishu_enabled is not true";
-    }
     if (!this.settings.bridge_feishu_app_id) {
       return "bridge_feishu_app_id not configured";
     }

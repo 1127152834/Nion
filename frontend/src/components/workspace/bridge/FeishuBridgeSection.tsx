@@ -87,7 +87,6 @@ export function FeishuBridgeSection() {
     message: string;
   } | null>(null);
   const [bridgeEnabled, setBridgeEnabled] = useState(false);
-  const [channelEnabled, setChannelEnabled] = useState(false);
   const [persistedVerified, setPersistedVerified] = useState(false);
   const connectionVerified =
     persistedVerified
@@ -118,7 +117,6 @@ export function FeishuBridgeSection() {
     const feishu =
       bridgeConfig.feishu;
     setBridgeEnabled(true);
-    setChannelEnabled(feishu.enabled);
     setPersistedVerified(feishu.verified);
 
     setAppId(feishu.app_id);
@@ -252,25 +250,7 @@ export function FeishuBridgeSection() {
       <BridgePlatformRuntimeCard
         platform="feishu"
         bridgeEnabled={bridgeEnabled}
-        channelEnabled={channelEnabled}
         connectionVerified={connectionVerified}
-        onEnableBeforeStart={async () => {
-          const verified = await ensureFeishuVerifiedBeforeEnable();
-          if (!verified) {
-            return false;
-          }
-          const saved = await saveBridgeConfig((current) => ({
-            ...current,
-            feishu: {
-              ...current.feishu,
-              enabled: true,
-            },
-          }));
-          if (!saved) {
-            return false;
-          }
-          return true;
-        }}
       />
 
       <SettingsCard title={t("feishu.credentials")} description={t("feishu.credentialsDesc")}>
