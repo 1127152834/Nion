@@ -49,6 +49,24 @@ def _json_result(fn) -> str:
     return json.dumps(payload, ensure_ascii=False, indent=2)
 
 
+def _extract_tool_activity_timeline(events) -> list[dict[str, Any]]:
+    timeline: list[dict[str, Any]] = []
+    for event in reversed(events):
+        details = event.details if isinstance(event.details, dict) else {}
+        summary_label = details.get("latest_tool_summary")
+        activity_label = details.get("latest_tool_activity")
+        if summary_label or activity_label:
+            timeline.append(
+                {
+                    "summary_label": summary_label,
+                    "activity_label": activity_label,
+                    "event_type": event.event_type,
+                    "timestamp": event.timestamp,
+                }
+            )
+    return timeline
+
+
 def _runtime_summary() -> dict[str, Any]:
     config = get_app_config()
     diagnostics = {
@@ -281,6 +299,7 @@ def get_thread_diagnostics_tool(thread_id: str) -> str:
                     }
                     for event in events
                 ],
+                "tool_activity_timeline": _extract_tool_activity_timeline(events),
             },
         }
     return json.dumps(payload, ensure_ascii=False, indent=2)
@@ -363,6 +382,7 @@ def get_task_diagnostics_tool(task_id: str) -> str:
                     }
                     for event in events
                 ],
+                "tool_activity_timeline": _extract_tool_activity_timeline(events),
             },
         }
     return json.dumps(payload, ensure_ascii=False, indent=2)
