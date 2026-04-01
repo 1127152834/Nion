@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Literal
+from typing import Any, Literal
 
 
 @dataclass(slots=True)
@@ -71,6 +71,16 @@ class SkillCandidateDraft:
 
 
 @dataclass(slots=True)
+class ProjectConstraintCandidate:
+    id: str
+    project_id: str
+    title: str
+    content: str
+    severity: Literal["low", "medium", "high"] = "medium"
+    provenance: list[BridgeActionProvenance] = field(default_factory=list)
+
+
+@dataclass(slots=True)
 class ProjectReferenceLink:
     id: str
     project_id: str
@@ -88,3 +98,27 @@ class NotebookReferenceLink:
     artifact_id: str
     relation: str
     created_at: str
+
+
+BridgeCandidateType = Literal[
+    "notebook_draft",
+    "project_draft",
+    "memory_entry",
+    "skill_candidate",
+    "project_constraint",
+]
+BridgeCandidateStatus = Literal["draft", "ready", "applied", "dismissed", "expired"]
+
+
+@dataclass(slots=True)
+class BridgeCandidateRecord:
+    id: str
+    candidate_type: BridgeCandidateType
+    status: BridgeCandidateStatus
+    title: str
+    summary: str
+    requires_confirmation: bool
+    payload: dict[str, Any]
+    provenance: list[BridgeActionProvenance] = field(default_factory=list)
+    created_at: str = ""
+    updated_at: str = ""
