@@ -228,7 +228,7 @@ The backend can now boot without a local `config.yaml`. If you want a legacy YAM
 Two newer runtime surfaces follow that rule as well:
 
 - **ACP agent integrations** are configured through Config Center and the frontend Agent Integrations page, not by hand-editing `acp_agents` in YAML during normal workflows.
-- **Memory storage provider selection** is configured through Config Center and the frontend Memory page, which maps safe UI modes onto `memory.storage_class`.
+- **Memory storage mode** is configured through Config Center and the frontend Memory page, which maps safe UI modes onto `memory.storage_class`.
 
 Optional legacy example:
 

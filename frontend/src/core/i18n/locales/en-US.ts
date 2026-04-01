@@ -186,7 +186,6 @@ export const enUS: Translations = {
     cliTools: "CLI Tools",
     notebook: "Notebook",
     memory: "Memory",
-    selfMaintenance: "Self-Maintenance",
   },
 
   // Agents
@@ -273,27 +272,15 @@ export const enUS: Translations = {
   workspaceSurfaces: {
     memory: {
       eyebrow: "Memory",
-      title: "Memory Provider",
+      title: "Memory",
       description:
-        "Focus agent memory operations in one place, from recall workflows to memory search and console diagnostics.",
+        "Focus long-term memory operations in one place, from structured summaries to recall workflows and console diagnostics.",
       consoleTitle: "Memory Console",
       consoleDescription:
-        "Inspect memory writes, validate provider status, and review recall traces without mixing in unrelated workspace surfaces.",
+        "Inspect memory writes, manage saved facts, and review recall traces without mixing in unrelated workspace surfaces.",
       recallTitle: "Recall",
       recallDescription:
         "Run Memory Search flows and tune retrieval behavior for ongoing memory operations.",
-    },
-    selfMaintenance: {
-      eyebrow: "Self-Maintenance",
-      title: "Self-Maintenance",
-      description:
-        "Monitor agent-owned heartbeat health and keep proposal-driven self-maintenance work in a dedicated workspace surface.",
-      heartbeatTitle: "Heartbeat",
-      heartbeatDescription:
-        "Watch agent heartbeat status, maintenance cadence, and recent self-check signals.",
-      proposalsTitle: "Memory Update Proposals",
-      proposalsDescription:
-        "Review memory update proposals, prune proposals, and other proposal-backed maintenance actions.",
     },
   },
 
@@ -612,7 +599,6 @@ export const enUS: Translations = {
     toggleSidebar: "Toggle Sidebar",
     openNotebook: "Open Notebook",
     openMemory: "Open Memory",
-    openSelfMaintenance: "Open Self-Maintenance",
     openProjects: "Open Projects",
   },
 
@@ -674,33 +660,6 @@ export const enUS: Translations = {
       allowBackgroundRunningHint:
         "When enabled, closing the Electron window keeps the local daemon alive. When disabled, the daemon exits shortly after the desktop client detaches.",
     },
-    heartbeat: {
-      title: "Heartbeat",
-      status: "Status",
-      logs: "Logs",
-      clearLogs: "Clear logs",
-      lastTick: "Last tick",
-      running: "Running",
-      idle: "Idle",
-    },
-    compaction: {
-      title: "Compaction",
-      logs: "Compaction logs",
-      clearLogs: "Clear compaction logs",
-      usage: "Memory usage",
-      compactNow: "Compact now",
-      supported: "Supported",
-      unsupported: "Unsupported",
-    },
-    rebuild: {
-      title: "Rebuild",
-      logs: "Rebuild logs",
-      clearLogs: "Clear rebuild logs",
-      rebuildNow: "Rebuild now",
-      restore: "Restore runtime memory",
-      supported: "Supported",
-      unsupported: "Unsupported",
-    },
     memory: {
       title: "Memory",
       description:
@@ -730,7 +689,7 @@ export const enUS: Translations = {
         provider: {
           title: "Memory Provider",
           description:
-            "Choose which memory backend powers long-term memory, continuity, and maintenance runtime state.",
+            "Choose which storage mode keeps long-term memory data on disk.",
           modeSummary: "OpenViking modes: embedded / remote",
           activeModeLabel: "Active OpenViking mode",
         },
@@ -739,69 +698,14 @@ export const enUS: Translations = {
           description:
             "Search and inspect the memory Nion is currently using, then clean up stale facts when needed.",
         },
-        agentCore: {
-          title: "Self-Maintenance",
-          description:
-            "Reflective maintenance for the agent itself. This surface never edits notebook assets and only shows maintenance evidence plus bounded proposals.",
-        },
-      },
-      selfMaintenance: {
-        title: "Self-Maintenance",
-        description:
-          "Inspect heartbeat-driven reflective maintenance for the agent itself. This surface never edits notebook assets.",
-        runPlaceholder: "Run maintenance now",
-        runButton: "Run maintenance now",
-        emptySummary: "No summary",
-        memoryUpdates: "Memory update proposals",
-        pruneProposals: "Prune proposals",
-        actionProposals: "Action proposals",
-        selfUpgradeProposals: "Self-upgrade proposals",
-        emptyList: "No proposals in this category.",
-        unknownStatus: "Unknown",
-        active: "Active",
-        idle: "Idle",
-        notYet: "Not yet",
-        awaitingSignal: "Awaiting signal",
-        runningLabel: "Running",
-        lastRunLabel: "Last run",
-        cadenceLabel: "Maintenance cadence",
-        sessionsSinceLastRunLabel: "Sessions since last run",
-        summaryLabel: "Summary",
-        legacyCompatibilityLabel: "Legacy compatibility",
-        runArtifactsEmpty: "No run artifacts yet.",
-        reflectiveLogsTitle: "Reflective logs",
-        reflectiveLogsDescription:
-          "Review the latest maintenance runs, result status, and supporting sources.",
-        reflectiveLogsEmpty: "No reflective logs yet.",
-        reflectiveLogsFailed: "Failed to load logs.",
-        startedLabel: "Started",
-        completedLabel: "Completed",
-        whatIDid: "What I did",
-        whatILearned: "What I learned",
-        staleItems: "Stale items",
-        proposalsLabel: "Proposals",
-        triggerLabel: "Trigger",
-        latestRunLabel: "Latest run",
-        noEntryPath: "No run artifact path yet.",
-        supportingSummary:
-          "Use the dedicated Self-Maintenance page to inspect the latest maintenance run and proposal details.",
-        openPageButton: "Open page",
-      },
-      autodream: {
-        title: "AutoDream",
-        description:
-          "Legacy compatibility surface for the old AutoDream shape. Primary maintenance now lives under Self-Maintenance.",
-        runPlaceholder: "Run AutoDream now",
-        runButton: "Run AutoDream now",
-        emptySummary: "No summary",
       },
       storage: {
         title: "Memory storage",
         description:
-          "Choose the persistence provider that stores long-term memory updates.",
+          "Choose how Nion persists long-term memory updates.",
         modeLabel: "Storage mode",
         fileMode: "File storage",
-        customMode: "Custom provider",
+        customMode: "Custom storage",
         customClassLabel: "Custom storage class",
         customClassPlaceholder:
           "nion.agents.memory.storage.FileMemoryStorage",

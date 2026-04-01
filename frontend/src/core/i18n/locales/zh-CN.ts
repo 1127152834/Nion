@@ -180,7 +180,6 @@ export const zhCN: Translations = {
     cliTools: "CLI 工具",
     notebook: "笔记",
     memory: "记忆",
-    selfMaintenance: "自我维护",
   },
 
   // Agents
@@ -262,27 +261,15 @@ export const zhCN: Translations = {
   workspaceSurfaces: {
     memory: {
       eyebrow: "记忆",
-      title: "记忆提供者",
+      title: "记忆",
       description:
-        "把记忆相关操作集中在一个页面里，覆盖 recall 工作流、记忆检索和控制台诊断。",
+        "把长期记忆相关操作集中在一个页面里，覆盖结构化摘要、历史 recall 和控制台诊断。",
       consoleTitle: "记忆控制台",
       consoleDescription:
-        "查看记忆写入、确认 provider 状态，并检查 recall 轨迹，不和其他工作区界面混在一起。",
+        "查看记忆写入、管理已保存事实，并检查 recall 轨迹，不和其他工作区界面混在一起。",
       recallTitle: "记忆检索",
       recallDescription:
         "运行记忆检索流程，并为持续中的记忆操作调整检索行为。",
-    },
-    selfMaintenance: {
-      eyebrow: "自我维护",
-      title: "自我维护",
-      description:
-        "在独立页面里查看智能体自有的 heartbeat 健康状态和提案驱动的自我维护工作。",
-      heartbeatTitle: "心跳",
-      heartbeatDescription:
-        "查看智能体心跳状态、维护节奏和最近的自检信号。",
-      proposalsTitle: "记忆更新提案",
-      proposalsDescription:
-        "查看记忆更新提案、清理提案和其他基于 proposal 的维护动作。",
     },
   },
 
@@ -586,7 +573,6 @@ export const zhCN: Translations = {
     toggleSidebar: "切换侧边栏",
     openNotebook: "打开笔记",
     openMemory: "打开记忆",
-    openSelfMaintenance: "打开自我维护",
     openProjects: "打开项目",
   },
 
@@ -646,33 +632,6 @@ export const zhCN: Translations = {
       allowBackgroundRunningHint:
         "开启后，关闭 Electron 窗口不会停止本地 daemon。关闭后，桌面客户端断开后 daemon 会在短暂延迟后退出。",
     },
-    heartbeat: {
-      title: "心跳",
-      status: "状态",
-      logs: "日志",
-      clearLogs: "清空日志",
-      lastTick: "最近一次心跳",
-      running: "运行中",
-      idle: "空闲",
-    },
-    compaction: {
-      title: "压缩整理",
-      logs: "压缩日志",
-      clearLogs: "清空压缩日志",
-      usage: "记忆用量",
-      compactNow: "立即压缩",
-      supported: "支持",
-      unsupported: "不支持",
-    },
-    rebuild: {
-      title: "重建",
-      logs: "重建日志",
-      clearLogs: "清空重建日志",
-      rebuildNow: "立即重建",
-      restore: "恢复运行时记忆",
-      supported: "支持",
-      unsupported: "不支持",
-    },
     memory: {
       title: "记忆",
       description:
@@ -702,7 +661,7 @@ export const zhCN: Translations = {
         provider: {
           title: "记忆提供者",
           description:
-            "选择当前承载长期记忆、连续性与维护运行时状态的记忆后端。",
+            "选择当前用于落盘长期记忆数据的存储模式。",
           modeSummary: "OpenViking 模式：embedded / remote",
           activeModeLabel: "当前 OpenViking 模式",
         },
@@ -711,67 +670,13 @@ export const zhCN: Translations = {
           description:
             "检索和查看 Nion 当前正在使用的记忆，并在必要时清理过期事实。",
         },
-        agentCore: {
-          title: "自我维护",
-          description:
-            "用于智能体自身的反思与维护。这里只展示维护证据和有边界的提案，不会直接操作你的笔记资产。",
-        },
-      },
-      selfMaintenance: {
-        title: "自我维护",
-        description:
-          "查看由 heartbeat 驱动的智能体自我维护结果。这里不会直接操作你的笔记资产。",
-        runPlaceholder: "立即运行维护",
-        runButton: "立即运行维护",
-        emptySummary: "暂无摘要",
-        memoryUpdates: "记忆更新提案",
-        pruneProposals: "清理提案",
-        actionProposals: "行动提案",
-        selfUpgradeProposals: "自我升级提案",
-        emptyList: "当前没有这类提案。",
-        unknownStatus: "未知",
-        active: "运行中",
-        idle: "空闲",
-        notYet: "尚未运行",
-        awaitingSignal: "等待下一次触发信号",
-        runningLabel: "运行状态",
-        lastRunLabel: "最近一次运行",
-        cadenceLabel: "维护节奏",
-        sessionsSinceLastRunLabel: "距上次运行后的会话数",
-        summaryLabel: "摘要",
-        legacyCompatibilityLabel: "兼容说明",
-        runArtifactsEmpty: "暂时还没有运行产物。",
-        reflectiveLogsTitle: "反思日志",
-        reflectiveLogsDescription: "查看最近的维护运行、结果状态和相关来源。",
-        reflectiveLogsEmpty: "暂时还没有反思日志。",
-        reflectiveLogsFailed: "加载日志失败。",
-        startedLabel: "开始于",
-        completedLabel: "完成于",
-        whatIDid: "我做了什么",
-        whatILearned: "我学到了什么",
-        staleItems: "待清理项",
-        proposalsLabel: "提案数",
-        triggerLabel: "触发来源",
-        latestRunLabel: "最近一次运行",
-        noEntryPath: "暂时还没有产物路径。",
-        supportingSummary:
-          "请前往独立的自我维护页面查看最近一次维护运行与提案详情。",
-        openPageButton: "打开页面",
-      },
-      autodream: {
-        title: "AutoDream",
-        description:
-          "旧 AutoDream 兼容层。新的主维护入口已经收敛到“自我维护”。",
-        runPlaceholder: "立即运行 AutoDream",
-        runButton: "立即运行 AutoDream",
-        emptySummary: "暂无摘要",
       },
       storage: {
         title: "记忆存储",
-        description: "选择长期记忆更新的持久化 provider。",
+        description: "选择 Nion 持久化长期记忆更新的方式。",
         modeLabel: "存储模式",
         fileMode: "文件存储",
-        customMode: "自定义 provider",
+        customMode: "自定义存储",
         customClassLabel: "自定义存储类",
         customClassPlaceholder:
           "nion.agents.memory.storage.FileMemoryStorage",
