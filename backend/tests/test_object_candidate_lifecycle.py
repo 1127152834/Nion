@@ -48,6 +48,28 @@ def test_candidate_repository_dismisses_ready_candidate_with_terminal_reason(tmp
 
     assert updated.status == "dismissed"
     assert updated.terminal_reason == "user_dismissed"
+    assert updated.reviewed_at is not None
+    assert updated.reviewed_by == "user"
+
+
+def test_candidate_repository_dismiss_preserves_existing_review_metadata(tmp_path) -> None:
+    repository = ObjectBridgeRepository(base_dir=tmp_path / "nion-home")
+    candidate = replace(
+        _candidate(candidate_id="cand-dismiss-reviewed", status="ready"),
+        reviewed_at="2026-04-01T09:00:00Z",
+        reviewed_by="agent",
+    )
+    repository.save_candidate(candidate)
+
+    updated = repository.dismiss_candidate(
+        "cand-dismiss-reviewed",
+        actor_type="user",
+        terminal_reason="user_dismissed",
+    )
+
+    assert updated.status == "dismissed"
+    assert updated.reviewed_at == "2026-04-01T09:00:00Z"
+    assert updated.reviewed_by == "agent"
 
 
 def test_candidate_repository_expires_ready_candidate_with_terminal_reason(tmp_path) -> None:
@@ -214,3 +236,33 @@ def test_candidate_repository_migrates_legacy_rows_for_candidate_type_filters(tm
     records = repository.list_candidates(candidate_type="project_draft")
 
     assert [record.id for record in records] == ["cand-legacy"]
+
+
+def test_candidate_repository_rejects_invalid_lifecycle_transitions(tmp_path) -> None:
+    repository = ObjectBridgeRepository(base_dir=tmp_path / "nion-home")
+    repository.save_candidate(_candidate(candidate_id="cand-invalid-dismissed", status="ready"))
+    repository.dismiss_candidate(
+        "cand-invalid-dismissed",
+        actor_type="user",
+        terminal_reason="user_dismissed",
+    )
+    repository.save_candidate(_candidate(candidate_id="cand-invalid-expired", status="draft"))
+    repository.expire_candidate(
+        "cand-invalid-expired",
+        actor_type="system",
+        terminal_reason="guard_rejected",
+    )
+
+    try:
+        repository.mark_candidate_ready("cand-invalid-dismissed", actor_type="agent")
+    except ValueError as exc:
+        assert str(exc) == "invalid candidate transition: dismissed -> ready"
+    else:
+        raise AssertionError("expected ValueError for dismissed -> ready")
+
+    try:
+        repository.update_candidate_status("cand-invalid-expired", "applied")
+    except ValueError as exc:
+        assert str(exc) == "invalid candidate transition: expired -> applied"
+    else:
+        raise AssertionError("expected ValueError for expired -> applied")

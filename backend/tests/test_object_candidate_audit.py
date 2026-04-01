@@ -1,3 +1,5 @@
+from dataclasses import replace
+
 from nion.object_bridges.models import BridgeCandidateRecord
 from nion.object_bridges.repository import ObjectBridgeRepository
 
@@ -68,13 +70,13 @@ def test_candidate_repository_persists_last_error_and_terminal_reason(tmp_path) 
 
 def test_candidate_repository_update_candidate_status_records_audit_event(tmp_path) -> None:
     repository = ObjectBridgeRepository(base_dir=tmp_path / "nion-home")
-    repository.save_candidate(_candidate("cand-status-update"))
+    repository.save_candidate(replace(_candidate("cand-status-update"), status="draft"))
 
-    updated = repository.update_candidate_status("cand-status-update", "applied")
+    updated = repository.update_candidate_status("cand-status-update", "ready")
     events = repository.list_candidate_events("cand-status-update")
 
-    assert updated.status == "applied"
-    assert [event.action for event in events] == ["applied"]
+    assert updated.status == "ready"
+    assert [event.action for event in events] == ["ready"]
     assert events[0].actor_type == "system"
-    assert events[0].payload["from_status"] == "ready"
-    assert events[0].payload["to_status"] == "applied"
+    assert events[0].payload["from_status"] == "draft"
+    assert events[0].payload["to_status"] == "ready"

@@ -23,6 +23,15 @@ def _now_iso() -> str:
     return datetime.now(UTC).isoformat()
 
 
+_VALID_STATUS_TRANSITIONS: dict[BridgeCandidateStatus, set[BridgeCandidateStatus]] = {
+    "draft": {"ready", "expired"},
+    "ready": {"applied", "dismissed", "expired"},
+    "applied": set(),
+    "dismissed": set(),
+    "expired": set(),
+}
+
+
 class ObjectBridgeRepository:
     def __init__(self, base_dir: str | Path | None = None):
         self._paths = Paths(base_dir=base_dir) if base_dir is not None else get_paths()
@@ -177,10 +186,14 @@ class ObjectBridgeRepository:
             ).fetchall()
         return [BridgeCandidateRecord(**json.loads(str(row["payload"]))) for row in rows]
 
-    def update_candidate_status(self, candidate_id: str, status: str) -> BridgeCandidateRecord:
+    def update_candidate_status(
+        self,
+        candidate_id: str,
+        status: BridgeCandidateStatus,
+    ) -> BridgeCandidateRecord:
         return self._transition_candidate(
             candidate_id,
-            to_status=status,  # type: ignore[arg-type]
+            to_status=status,
             actor_type="system",
             action=status,
             event_payload={"requested_via": "update_candidate_status"},
@@ -193,7 +206,29 @@ class ObjectBridgeRepository:
         actor_type: str,
         reviewed_at: str | None = None,
     ) -> BridgeCandidateRecord:
+        candidate = self.get_candidate(candidate_id)
+        if candidate is None:
+            raise KeyError(candidate_id)
         review_time = reviewed_at or _now_iso()
+        if candidate.status == "ready":
+            return self._update_candidate(
+                candidate_id,
+                action="ready",
+                actor_type=actor_type,
+                field_updates={
+                    "deferred_until": None,
+                    "deferred_reason": None,
+                    "terminal_reason": None,
+                    "reviewed_at": review_time,
+                    "reviewed_by": actor_type,
+                },
+                event_payload={
+                    "from_status": "ready",
+                    "to_status": "ready",
+                    "reviewed_at": review_time,
+                },
+                updated_at=review_time,
+            )
         return self._transition_candidate(
             candidate_id,
             to_status="ready",
@@ -214,6 +249,10 @@ class ObjectBridgeRepository:
         actor_type: str,
         terminal_reason: str,
     ) -> BridgeCandidateRecord:
+        candidate = self.get_candidate(candidate_id)
+        if candidate is None:
+            raise KeyError(candidate_id)
+        review_time = candidate.reviewed_at or _now_iso()
         return self._transition_candidate(
             candidate_id,
             to_status="dismissed",
@@ -221,8 +260,14 @@ class ObjectBridgeRepository:
             action="dismissed",
             field_updates={
                 "terminal_reason": terminal_reason,
+                "reviewed_at": candidate.reviewed_at or review_time,
+                "reviewed_by": candidate.reviewed_by or actor_type,
             },
-            event_payload={"terminal_reason": terminal_reason},
+            event_payload={
+                "terminal_reason": terminal_reason,
+                "reviewed_at": review_time,
+            },
+            updated_at=review_time if candidate.reviewed_at is None else None,
         )
 
     def expire_candidate(
@@ -349,6 +394,10 @@ class ObjectBridgeRepository:
         candidate = self.get_candidate(candidate_id)
         if candidate is None:
             raise KeyError(candidate_id)
+        if to_status not in _VALID_STATUS_TRANSITIONS[candidate.status]:
+            raise ValueError(
+                f"invalid candidate transition: {candidate.status} -> {to_status}"
+            )
         effective_updated_at = updated_at or _now_iso()
         updates = self._status_field_updates(candidate.status, to_status)
         if field_updates:
