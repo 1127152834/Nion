@@ -72,8 +72,12 @@ def test_apply_skill_candidate_is_rejected_in_phase2(tmp_path) -> None:
     )
     assert candidate.status == "ready"
 
-    with pytest.raises(ValueError, match="apply handler"):
+    with pytest.raises(ValueError, match="guard rejected"):
         service.apply_candidate(candidate.id, actor_type="user")
+
+    detail = service.get_candidate_detail(candidate.id)
+    assert detail["candidate"].status == "expired"
+    assert detail["guard_state"]["reasons"] == ["unsupported_apply"]
 
 
 def test_get_candidate_detail_returns_minimum_candidate_center_shape(tmp_path) -> None:

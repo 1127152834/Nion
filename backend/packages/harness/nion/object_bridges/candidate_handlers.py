@@ -16,6 +16,8 @@ class CandidateApplyHandler(Protocol):
     target_object_type: str
 
     def apply(self, candidate: BridgeCandidateRecord) -> dict[str, Any]: ...
+    def guard_reasons(self, candidate: BridgeCandidateRecord) -> list[str]: ...
+    def target_summary(self, candidate: BridgeCandidateRecord) -> dict[str, Any]: ...
 
 
 class _BaseCandidateApplyHandler:
@@ -35,6 +37,19 @@ class _BaseCandidateApplyHandler:
     def _validate_execution(self, candidate_payload: dict[str, Any]) -> None:
         return None
 
+    def guard_reasons(self, candidate: BridgeCandidateRecord) -> list[str]:
+        return []
+
+    def target_summary(self, candidate: BridgeCandidateRecord) -> dict[str, Any]:
+        candidate_payload = _candidate_payload(candidate)
+        target_object_id = candidate_payload.get("id") or candidate.id
+        target_title = candidate_payload.get("title") or candidate_payload.get("name")
+        return {
+            "target_object_type": self.target_object_type,
+            "target_object_id": str(target_object_id),
+            "title": target_title,
+        }
+
 
 class ProjectDraftApplyHandler(_BaseCandidateApplyHandler):
     candidate_type = "project_draft"
@@ -43,6 +58,13 @@ class ProjectDraftApplyHandler(_BaseCandidateApplyHandler):
     def _validate_execution(self, candidate_payload: dict[str, Any]) -> None:
         if not str(candidate_payload.get("name", "")).strip():
             raise RuntimeError("project draft name is required")
+
+    def guard_reasons(self, candidate: BridgeCandidateRecord) -> list[str]:
+        candidate_payload = _candidate_payload(candidate)
+        reasons: list[str] = []
+        if not str(candidate_payload.get("name", "")).strip():
+            reasons.append("missing_project_name")
+        return reasons
 
 
 class NotebookDraftApplyHandler(_BaseCandidateApplyHandler):
@@ -53,6 +75,13 @@ class NotebookDraftApplyHandler(_BaseCandidateApplyHandler):
         if not str(candidate_payload.get("title", "")).strip():
             raise RuntimeError("notebook draft title is required")
 
+    def guard_reasons(self, candidate: BridgeCandidateRecord) -> list[str]:
+        candidate_payload = _candidate_payload(candidate)
+        reasons: list[str] = []
+        if candidate_payload.get("source_project_id") is None:
+            reasons.append("missing_source_project_id")
+        return reasons
+
 
 class MemoryEntryApplyHandler(_BaseCandidateApplyHandler):
     candidate_type = "memory_entry"
@@ -62,6 +91,13 @@ class MemoryEntryApplyHandler(_BaseCandidateApplyHandler):
         if not str(candidate_payload.get("content", "")).strip():
             raise RuntimeError("memory entry content is required")
 
+    def guard_reasons(self, candidate: BridgeCandidateRecord) -> list[str]:
+        candidate_payload = _candidate_payload(candidate)
+        reasons: list[str] = []
+        if not str(candidate_payload.get("category", "")).strip():
+            reasons.append("missing_memory_category")
+        return reasons
+
 
 class ProjectConstraintApplyHandler(_BaseCandidateApplyHandler):
     candidate_type = "project_constraint"
@@ -70,6 +106,13 @@ class ProjectConstraintApplyHandler(_BaseCandidateApplyHandler):
     def _validate_execution(self, candidate_payload: dict[str, Any]) -> None:
         if not str(candidate_payload.get("content", "")).strip():
             raise RuntimeError("project constraint content is required")
+
+    def guard_reasons(self, candidate: BridgeCandidateRecord) -> list[str]:
+        candidate_payload = _candidate_payload(candidate)
+        reasons: list[str] = []
+        if not str(candidate_payload.get("project_id", "")).strip():
+            reasons.append("missing_project_id")
+        return reasons
 
 
 APPLY_HANDLER_REGISTRY: dict[str, CandidateApplyHandler] = {
@@ -98,23 +141,12 @@ def with_candidate_actions(candidate: BridgeCandidateRecord) -> BridgeCandidateR
 
 
 def compute_guard_state(candidate: BridgeCandidateRecord) -> dict[str, Any]:
-    candidate_payload = _candidate_payload(candidate)
     reasons: list[str] = []
-
-    if candidate.candidate_type == "project_draft":
-        if not str(candidate_payload.get("name", "")).strip():
-            reasons.append("missing_project_name")
-    elif candidate.candidate_type == "notebook_draft":
-        if candidate_payload.get("source_project_id") is None:
-            reasons.append("missing_source_project_id")
-    elif candidate.candidate_type == "memory_entry":
-        if not str(candidate_payload.get("category", "")).strip():
-            reasons.append("missing_memory_category")
-    elif candidate.candidate_type == "project_constraint":
-        if not str(candidate_payload.get("project_id", "")).strip():
-            reasons.append("missing_project_id")
-    elif candidate.candidate_type == "skill_candidate":
+    handler = get_apply_handler(candidate.candidate_type)
+    if handler is None:
         reasons.append("unsupported_apply")
+    else:
+        reasons = handler.guard_reasons(candidate)
 
     return {
         "is_applicable": not reasons,
@@ -134,17 +166,14 @@ def source_summary(candidate: BridgeCandidateRecord) -> dict[str, Any]:
 
 
 def target_summary(candidate: BridgeCandidateRecord) -> dict[str, Any]:
-    candidate_payload = _candidate_payload(candidate)
-    target_object_type = get_target_object_type(candidate.candidate_type)
-    target_object_id = candidate_payload.get("project_id") or candidate_payload.get(
-        "source_project_id"
-    )
-    target_title = candidate_payload.get("title") or candidate_payload.get("name")
-    return {
-        "target_object_type": target_object_type,
-        "target_object_id": target_object_id,
-        "title": target_title,
-    }
+    handler = get_apply_handler(candidate.candidate_type)
+    if handler is None:
+        return {
+            "target_object_type": get_target_object_type(candidate.candidate_type),
+            "target_object_id": None,
+            "title": candidate.title,
+        }
+    return handler.target_summary(candidate)
 
 
 def get_target_object_type(candidate_type: str) -> str | None:

@@ -191,12 +191,33 @@ class ObjectBridgeRepository:
         candidate_id: str,
         status: BridgeCandidateStatus,
     ) -> BridgeCandidateRecord:
-        return self._transition_candidate(
+        return self.transition_candidate(
             candidate_id,
             to_status=status,
             actor_type="system",
             action=status,
             event_payload={"requested_via": "update_candidate_status"},
+        )
+
+    def transition_candidate(
+        self,
+        candidate_id: str,
+        *,
+        to_status: BridgeCandidateStatus,
+        actor_type: str,
+        action: str,
+        field_updates: dict[str, Any] | None = None,
+        event_payload: dict[str, Any] | None = None,
+        updated_at: str | None = None,
+    ) -> BridgeCandidateRecord:
+        return self._transition_candidate(
+            candidate_id,
+            to_status=to_status,
+            actor_type=actor_type,
+            action=action,
+            field_updates=field_updates,
+            event_payload=event_payload,
+            updated_at=updated_at,
         )
 
     def mark_candidate_ready(

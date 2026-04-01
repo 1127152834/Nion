@@ -114,7 +114,7 @@ class ObjectBridgeService:
         )
         return self._save_candidate(candidate)
 
-    def transition_candidate(
+    def _transition_candidate(
         self,
         candidate_id: str,
         *,
@@ -125,7 +125,7 @@ class ObjectBridgeService:
         event_payload: dict[str, Any] | None = None,
         updated_at: str | None = None,
     ) -> BridgeCandidateRecord:
-        candidate = self._repository._transition_candidate(
+        candidate = self._repository.transition_candidate(
             candidate_id,
             to_status=to_status,  # type: ignore[arg-type]
             actor_type=actor_type,
@@ -198,16 +198,10 @@ class ObjectBridgeService:
         if candidate.status != "ready":
             raise ValueError(f"candidate {candidate_id} is not ready")
 
-        handler = get_apply_handler(candidate.candidate_type)
-        if handler is None:
-            raise ValueError(
-                f"no apply handler registered for candidate type: {candidate.candidate_type}"
-            )
-
         guard_state = compute_guard_state(candidate)
         candidate = self._save_candidate(replace(candidate, guard_state=guard_state))
         if not guard_state["is_applicable"]:
-            expired = self.transition_candidate(
+            self._transition_candidate(
                 candidate_id,
                 to_status="expired",
                 actor_type=actor_type,
@@ -219,6 +213,12 @@ class ObjectBridgeService:
                 event_payload={"terminal_reason": "guard_rejected"},
             )
             raise ValueError(f"guard rejected candidate {candidate_id}")
+
+        handler = get_apply_handler(candidate.candidate_type)
+        if handler is None:
+            raise ValueError(
+                f"no apply handler registered for candidate type: {candidate.candidate_type}"
+            )
 
         try:
             applied_target = handler.apply(candidate)
@@ -233,7 +233,7 @@ class ObjectBridgeService:
             raise RuntimeError(f"apply failed: {exc}") from exc
 
         applied_at = _now_iso()
-        applied = self.transition_candidate(
+        applied = self._transition_candidate(
             candidate_id,
             to_status="applied",
             actor_type=actor_type,
