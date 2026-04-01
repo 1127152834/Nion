@@ -55,3 +55,21 @@ void test("buildObjectImplicitMentions appends object mentions that are not alre
   assert.equal(result.length, 1);
   assert.equal(result[0]?.value, "meetings/weekly");
 });
+
+void test("buildObjectImplicitMentions deduplicates duplicate object mentions", () => {
+  const duplicate = {
+    kind: "object" as const,
+    objectKind: "notebook-directory" as const,
+    value: "articles",
+    mention: "@articles",
+    label: "articles",
+  };
+
+  const result = buildObjectImplicitMentions({
+    text: "请保存到笔记",
+    mentions: [duplicate, duplicate],
+  });
+
+  assert.equal(result.length, 1);
+  assert.equal(result[0]?.value, "articles");
+});
