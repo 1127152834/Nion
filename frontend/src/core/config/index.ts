@@ -37,7 +37,7 @@ export function getBackendBaseURL() {
       window.location.hostname === "localhost")
   ) {
     if (typeof window.nionDesktop !== "undefined") {
-      return "http://127.0.0.1:43115";
+      return "http://localhost:8001";
     }
     return "http://localhost:8001";
   } else {
@@ -63,7 +63,7 @@ export function getLangGraphBaseURL(isMock?: boolean) {
       typeof window !== "undefined" &&
       typeof window.nionDesktop !== "undefined"
     ) {
-      return "http://127.0.0.1:43115/api/langgraph";
+      return "http://localhost:2024";
     }
     if (typeof window !== "undefined") {
       return `${window.location.origin}/api/langgraph`;

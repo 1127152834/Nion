@@ -2,6 +2,8 @@ import sqlite3
 from collections.abc import Iterable
 from pathlib import Path
 
+from pydantic import ValidationError
+
 from nion.automation.models import (
     AutomationJob,
     AutomationRun,
@@ -102,14 +104,34 @@ class AutomationRepository:
             ).fetchone()
         if row is None:
             return None
-        return self._deserialize_job(row["payload"])
+        try:
+            return self._deserialize_job(row["payload"])
+        except ValidationError:
+            self.delete_job(job_id)
+            return None
 
     def list_jobs(self) -> list[AutomationJob]:
         with self._connect() as connection:
             rows = connection.execute(
                 "SELECT payload FROM automation_jobs ORDER BY created_at ASC, id ASC"
             ).fetchall()
-        return [self._deserialize_job(row["payload"]) for row in rows]
+        jobs: list[AutomationJob] = []
+        invalid_job_ids: list[str] = []
+        for row in rows:
+            try:
+                jobs.append(self._deserialize_job(row["payload"]))
+            except ValidationError:
+                try:
+                    invalid_job_ids.append(str(sqlite3.Row(row)["id"]))
+                except Exception:
+                    pass
+        if invalid_job_ids:
+            with self._connect() as connection:
+                connection.executemany(
+                    "DELETE FROM automation_jobs WHERE id = ?",
+                    [(job_id,) for job_id in invalid_job_ids],
+                )
+        return jobs
 
     def delete_job(self, job_id: str) -> bool:
         with self._connect() as connection:

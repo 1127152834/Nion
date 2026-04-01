@@ -91,6 +91,8 @@ export function buildDaemonCommand(options: BuildDaemonCommandOptions): DaemonCo
       cwd: path.join(options.appRoot, "backend"),
       env: {
         ...process.env,
+        NION_DAEMON_ALLOW_BACKGROUND_RUNNING:
+          process.env.NION_DAEMON_ALLOW_BACKGROUND_RUNNING ?? "1",
       },
       urls: {
         base: environment.backendUrl,

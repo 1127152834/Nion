@@ -23,8 +23,33 @@ function resolveErrorMessage(rawText: string, fallback: string): string {
   return text;
 }
 
+function getAutomationFallbackBaseURL(primaryBaseURL: string) {
+  if (primaryBaseURL.startsWith("http://127.0.0.1:43115")) {
+    return primaryBaseURL.replace("http://127.0.0.1:43115", "http://localhost:8001");
+  }
+  return null;
+}
+
+async function fetchAutomation(
+  path: string,
+  init?: RequestInit,
+) {
+  const baseURL = getBackendBaseURL();
+  const primaryURL = `${baseURL}${path}`;
+
+  try {
+    return await fetch(primaryURL, init);
+  } catch (error) {
+    const fallbackBaseURL = getAutomationFallbackBaseURL(baseURL);
+    if (!fallbackBaseURL) {
+      throw error;
+    }
+    return await fetch(`${fallbackBaseURL}${path}`, init);
+  }
+}
+
 export async function loadAutomationJobs() {
-  const response = await fetch(`${getBackendBaseURL()}/api/automation/jobs`);
+  const response = await fetchAutomation("/api/automation/jobs");
   if (!response.ok) {
     throw new Error(resolveErrorMessage(await response.text(), `Failed to load automation jobs (${response.status})`));
   }
@@ -33,7 +58,7 @@ export async function loadAutomationJobs() {
 }
 
 export async function loadAutomationJob(jobId: string) {
-  const response = await fetch(`${getBackendBaseURL()}/api/automation/jobs/${jobId}`);
+  const response = await fetchAutomation(`/api/automation/jobs/${jobId}`);
   if (!response.ok) {
     throw new Error(resolveErrorMessage(await response.text(), `Failed to load automation job (${response.status})`));
   }
@@ -42,7 +67,7 @@ export async function loadAutomationJob(jobId: string) {
 }
 
 export async function createAutomationJob(input: AutomationJobCreateInput) {
-  const response = await fetch(`${getBackendBaseURL()}/api/automation/jobs`, {
+  const response = await fetchAutomation("/api/automation/jobs", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -60,7 +85,7 @@ export async function updateAutomationJob(
   jobId: string,
   input: Partial<AutomationJobCreateInput>,
 ) {
-  const response = await fetch(`${getBackendBaseURL()}/api/automation/jobs/${jobId}`, {
+  const response = await fetchAutomation(`/api/automation/jobs/${jobId}`, {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
@@ -83,8 +108,8 @@ export async function resumeAutomationJob(jobId: string) {
 }
 
 export async function runAutomationJob(jobId: string) {
-  const response = await fetch(
-    `${getBackendBaseURL()}/api/automation/jobs/${jobId}/run`,
+  const response = await fetchAutomation(
+    `/api/automation/jobs/${jobId}/run`,
     {
       method: "POST",
     },
@@ -97,8 +122,8 @@ export async function runAutomationJob(jobId: string) {
 }
 
 export async function removeAutomationJob(jobId: string) {
-  const response = await fetch(
-    `${getBackendBaseURL()}/api/automation/jobs/${jobId}`,
+  const response = await fetchAutomation(
+    `/api/automation/jobs/${jobId}`,
     {
       method: "DELETE",
     },
@@ -109,7 +134,7 @@ export async function removeAutomationJob(jobId: string) {
 }
 
 export async function loadAutomationRuns() {
-  const response = await fetch(`${getBackendBaseURL()}/api/automation/runs`);
+  const response = await fetchAutomation("/api/automation/runs");
   if (!response.ok) {
     throw new Error(resolveErrorMessage(await response.text(), `Failed to load automation runs (${response.status})`));
   }
@@ -118,7 +143,7 @@ export async function loadAutomationRuns() {
 }
 
 export async function loadAutomationStatus() {
-  const response = await fetch(`${getBackendBaseURL()}/api/automation/status`);
+  const response = await fetchAutomation("/api/automation/status");
   if (!response.ok) {
     throw new Error(resolveErrorMessage(await response.text(), `Failed to load automation status (${response.status})`));
   }
@@ -126,8 +151,8 @@ export async function loadAutomationStatus() {
 }
 
 async function postAutomationJobAction(jobId: string, action: "pause" | "resume") {
-  const response = await fetch(
-    `${getBackendBaseURL()}/api/automation/jobs/${jobId}/${action}`,
+  const response = await fetchAutomation(
+    `/api/automation/jobs/${jobId}/${action}`,
     {
       method: "POST",
     },

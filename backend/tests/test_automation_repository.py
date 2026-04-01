@@ -88,3 +88,50 @@ def test_delete_job_removes_job_record(tmp_path):
 
     assert deleted is True
     assert repo.get_job("job-1") is None
+
+
+def test_list_jobs_prunes_legacy_event_task_records(tmp_path):
+    repo = AutomationRepository(tmp_path / "automation.db")
+    legacy_payload = """
+    {
+      "id": "job-legacy",
+      "name": "Legacy hook",
+      "prompt": "old hook",
+      "job_kind": "event_task",
+      "schedule_kind": "event",
+      "schedule_value": "thread.finished",
+      "schedule_preset": "event",
+      "trigger_kind": "event",
+      "trigger_spec": {"event_name": "thread.finished"},
+      "action_kind": "script",
+      "action_spec": {"entrypoint": "hook.py"},
+      "delivery_mode": "local",
+      "delivery_targets": [],
+      "skills": [],
+      "session_policy": {},
+      "toolset_profile": "automation",
+      "package_dir": "/tmp/hooks/job-legacy",
+      "package_manifest": {"files": ["hook.py"]},
+      "created_at": "2026-03-24T00:00:00Z",
+      "updated_at": "2026-03-24T00:00:00Z"
+    }
+    """.strip()
+
+    with repo._connect() as connection:
+        connection.execute(
+            """
+            INSERT INTO automation_jobs (id, payload, created_at, updated_at)
+            VALUES (?, ?, ?, ?)
+            """,
+            (
+                "job-legacy",
+                legacy_payload,
+                "2026-03-24T00:00:00Z",
+                "2026-03-24T00:00:00Z",
+            ),
+        )
+
+    jobs = repo.list_jobs()
+
+    assert jobs == []
+    assert repo.get_job("job-legacy") is None

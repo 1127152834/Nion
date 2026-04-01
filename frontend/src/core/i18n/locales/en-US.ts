@@ -1403,12 +1403,6 @@ export const enUS: Translations = {
         overview: "Overview",
         reminders: "Reminders",
         tasks: "Scheduled tasks",
-        events: "Event tasks",
-        workflow: "Workflows",
-        templates: "Templates",
-        governance: "Governance",
-        platform: "Open Platform",
-        eventCenter: "Event Center",
         history: "History",
       },
       overview: {
@@ -1429,9 +1423,6 @@ export const enUS: Translations = {
         taskTitle: "New scheduled task",
         taskDescription:
           "Create a recurring task first, then open advanced options only if you need delivery routing or attached skills.",
-        eventTitle: "New event task",
-        eventDescription:
-          "Create an automation that reacts to a runtime event instead of a clock schedule.",
         creatorTitle: "Create automation",
         creatorDescription:
           "Use one creator for reminders and scheduled tasks, then open advanced options only when needed.",
@@ -1460,11 +1451,6 @@ export const enUS: Translations = {
           channel: "Channel",
           multi: "Multiple destinations",
         },
-        eventTypeLabel: "Event",
-        eventActionLabel: "Action",
-        eventPromptLabel: "Prompt",
-        eventPromptPlaceholder:
-          "What should Nion do when this event happens?",
         taskPromptLabel: "Task prompt",
         taskPromptPlaceholder: "What should Nion run on this schedule?",
         intervalLabel: "Interval (minutes)",
@@ -1480,24 +1466,8 @@ export const enUS: Translations = {
           interval: "Every N minutes",
           custom: "Custom schedule",
         },
-        eventOptions: {
-          agentRunCompleted: "Agent run completed",
-          agentRunFailed: "Agent run failed",
-          clarificationRequested: "Need clarification",
-          permissionRequested: "Permission requested",
-          automationRunFailed: "Automation run failed",
-          threadFinished: "Thread finished",
-          threadFailed: "Thread failed",
-        },
-        eventActionOptions: {
-          notify: "Notify me",
-          playSound: "Play sound",
-          notebookWrite: "Write to Notebook",
-          agentPrompt: "Run agent prompt",
-        },
         createReminder: "Create reminder",
         createTask: "Create scheduled task",
-        createEvent: "Create event task",
         advancedOptions: "Advanced options",
       },
       sections: {
@@ -1507,15 +1477,11 @@ export const enUS: Translations = {
         tasksTitle: "Scheduled tasks",
         tasksDescription:
           "Recurring jobs that may use delivery modes, attached skills, or manual run controls.",
-        eventsTitle: "Event tasks",
-        eventsDescription:
-          "Event-driven rules that react to chat, agent, and automation runtime moments.",
         historyTitle: "Execution history",
         historyDescription:
           "See recent automation runs, outcomes, and timing without digging through raw diagnostics.",
         emptyReminders: "No reminders yet.",
         emptyTasks: "No scheduled tasks yet.",
-        emptyEvents: "No event tasks yet.",
         emptyHistory: "No automation runs yet.",
         scheduleLabel: "Schedule",
         nextRunLabel: "Next run",

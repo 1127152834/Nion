@@ -14,9 +14,9 @@ TEXT_EXTENSIONS = {
     ".js", ".jsx", ".css", ".sh", ".env", ".example", ".conf", ".html",
 }
 FORBIDDEN = [
-    (re.compile(r"\bDeerFlow\b"), "DeerFlow"),
-    (re.compile(r"\bdeer-flow\b"), "deer-flow"),
-    (re.compile(r"\bdeerflow\b"), "deerflow"),
+    (re.compile(r"\bNion\b"), "Nion"),
+    (re.compile(r"\bnion\b"), "nion"),
+    (re.compile(r"\bnion\b"), "nion"),
     (re.compile(r"\bByteDance\b"), "ByteDance"),
     (re.compile(r"\bbytedance\b"), "bytedance"),
     (re.compile(r"\bDF\b"), "DF"),

@@ -15,6 +15,7 @@ test("desktop config resolves the daemon entrypoint in development mode", () => 
 
   assert.equal(command.executable, "uv");
   assert.deepEqual(command.args, ["run", "python", "-m", "app.daemon.main"]);
+  assert.equal(command.env.NION_DAEMON_ALLOW_BACKGROUND_RUNNING, "1");
 });
 
 test("daemon launcher refuses to reuse a healthy daemon from another worktree", () => {

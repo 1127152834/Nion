@@ -1,0 +1,507 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nion Chat History Prototype</title>
+    <style>
+      :root {
+        --bg: #f5f1e8;
+        --panel: #f7f3ea;
+        --card: #fbf8f1;
+        --card-strong: #fffdf8;
+        --line: rgba(93, 76, 50, 0.12);
+        --line-strong: rgba(63, 49, 29, 0.18);
+        --text: #1f1a14;
+        --muted: #817462;
+        --muted-2: #a19484;
+        --accent: #d3b783;
+        --accent-ink: #5e4728;
+        --shadow: 0 18px 40px rgba(73, 57, 37, 0.08);
+        --sidebar-w: 328px;
+        --radius-xl: 26px;
+        --radius-lg: 20px;
+        --radius-md: 16px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "SF Pro Display", "PingFang SC", "Helvetica Neue", sans-serif;
+        background:
+          radial-gradient(circle at top left, rgba(234, 224, 205, 0.65), transparent 26%),
+          linear-gradient(180deg, #f8f5ee 0%, var(--bg) 100%);
+        color: var(--text);
+      }
+
+      .app {
+        display: grid;
+        grid-template-columns: var(--sidebar-w) 1fr;
+        min-height: 100vh;
+      }
+
+      .sidebar {
+        border-right: 1px solid var(--line);
+        background: linear-gradient(180deg, #f7f3ea 0%, #f3eee4 100%);
+        padding: 16px 12px 12px;
+      }
+
+      .sidebar-shell {
+        height: calc(100vh - 28px);
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        border: 1px solid rgba(117, 97, 67, 0.1);
+        border-radius: 22px;
+        background: linear-gradient(180deg, rgba(255,255,255,0.42), rgba(255,255,255,0.18));
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
+        padding: 14px 10px 12px;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 6px 10px 14px;
+        border-bottom: 1px solid rgba(93, 76, 50, 0.08);
+      }
+
+      .brand h1 {
+        margin: 0;
+        font-size: 23px;
+        font-weight: 700;
+        letter-spacing: -0.04em;
+      }
+
+      .brand-badge {
+        width: 34px;
+        height: 34px;
+        border-radius: 12px;
+        border: 1px solid var(--line);
+        display: grid;
+        place-items: center;
+        color: var(--muted);
+        background: rgba(255,255,255,0.4);
+      }
+
+      .primary-action {
+        border: 1px solid var(--line-strong);
+        border-radius: 18px;
+        background: linear-gradient(180deg, rgba(255,255,255,0.84), rgba(255,255,255,0.62));
+        padding: 14px 16px;
+        font-size: 17px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .nav {
+        display: grid;
+        gap: 6px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid rgba(93, 76, 50, 0.08);
+      }
+
+      .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 12px;
+        border-radius: 16px;
+        color: #504537;
+        font-size: 16px;
+        font-weight: 600;
+      }
+
+      .nav-item.active {
+        background: rgba(92, 76, 53, 0.08);
+        color: var(--text);
+      }
+
+      .history {
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .history-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 6px 8px 10px;
+      }
+
+      .history-title {
+        font-size: 14px;
+        font-weight: 700;
+        color: #504536;
+      }
+
+      .history-select {
+        font-size: 13px;
+        font-weight: 700;
+        color: #6f6456;
+      }
+
+      .segmented {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 4px;
+        padding: 4px;
+        border-radius: 18px;
+        background: rgba(104, 86, 60, 0.08);
+        border: 1px solid rgba(93, 76, 50, 0.08);
+        margin: 0 6px 12px;
+      }
+
+      .seg-btn {
+        border: 0;
+        background: transparent;
+        border-radius: 14px;
+        padding: 10px 6px;
+        font-size: 14px;
+        font-weight: 700;
+        color: #786c5c;
+      }
+
+      .seg-btn.active {
+        background: rgba(255,255,255,0.92);
+        color: var(--text);
+        box-shadow: 0 6px 18px rgba(71, 58, 39, 0.08);
+      }
+
+      .card-list {
+        flex: 1;
+        min-height: 0;
+        min-width: 0;
+        overflow: auto;
+        padding: 0 6px 8px;
+        display: grid;
+        gap: 0;
+      }
+
+      .thread-card {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        padding: 12px 10px 13px;
+        background: transparent;
+        border: 0;
+        border-bottom: 1px solid rgba(93, 76, 50, 0.1);
+        border-radius: 0;
+        box-shadow: none;
+        overflow: hidden;
+      }
+
+      .thread-card.active {
+        background: rgba(255,255,255,0.24);
+      }
+
+      .thread-card h3 {
+        display: block;
+        width: 100%;
+        max-width: 100%;
+        margin: 0 0 6px;
+        font-size: 14px;
+        line-height: 1.3;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .meta-row {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        margin-bottom: 0;
+        overflow: hidden;
+      }
+
+      .thread-time {
+        font-size: 11px;
+        color: var(--muted);
+        font-weight: 500;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+
+      .footer-slot {
+        margin-top: auto;
+        padding: 8px 8px 0;
+        border-top: 1px solid rgba(93, 76, 50, 0.08);
+      }
+
+      .main {
+        min-width: 0;
+        padding: 22px 24px;
+      }
+
+      .main-shell {
+        min-height: calc(100vh - 44px);
+        border: 1px solid rgba(93, 76, 50, 0.08);
+        background: linear-gradient(180deg, rgba(251,248,241,0.84), rgba(247,243,234,0.74));
+      }
+
+      .breadcrumb {
+        padding: 18px 22px;
+        border-bottom: 1px solid rgba(93, 76, 50, 0.08);
+        font-size: 15px;
+        color: #726657;
+      }
+
+      .canvas {
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 38px 28px 48px;
+      }
+
+      .tabs-line {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        border-bottom: 1px solid rgba(93, 76, 50, 0.12);
+        margin-bottom: 22px;
+      }
+
+      .tabs-line button {
+        border: 0;
+        background: transparent;
+        padding: 12px 10px 16px;
+        font-size: 18px;
+        font-weight: 650;
+        color: #807361;
+        position: relative;
+      }
+
+      .tabs-line button.active {
+        color: var(--text);
+      }
+
+      .tabs-line button.active::after {
+        content: "";
+        position: absolute;
+        left: 18%;
+        right: 18%;
+        bottom: -1px;
+        height: 3px;
+        border-radius: 999px;
+        background: #1d1a16;
+      }
+
+      .toolbar {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 18px;
+        align-items: center;
+        margin-bottom: 18px;
+      }
+
+      .search {
+        height: 62px;
+        border-radius: 18px;
+        border: 1px solid rgba(93, 76, 50, 0.14);
+        background: rgba(255,255,255,0.6);
+        display: flex;
+        align-items: center;
+        padding: 0 18px;
+        color: #958877;
+        font-size: 19px;
+        box-shadow: 0 3px 10px rgba(90, 71, 45, 0.03);
+      }
+
+      .toolbar-side {
+        font-size: 17px;
+        color: #736756;
+        font-weight: 650;
+      }
+
+      .rows {
+        display: grid;
+      }
+
+      .row {
+        padding: 22px 8px 24px;
+        border-bottom: 1px solid rgba(93, 76, 50, 0.12);
+      }
+
+      .row h2 {
+        margin: 0 0 8px;
+        font-size: 24px;
+        line-height: 1.2;
+        letter-spacing: -0.03em;
+      }
+
+      .row-time {
+        font-size: 16px;
+        color: var(--muted);
+      }
+
+      .hint {
+        margin-top: 22px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 14px;
+        border-radius: 999px;
+        background: rgba(212, 194, 161, 0.22);
+        color: #6a573a;
+        font-size: 13px;
+        font-weight: 700;
+      }
+
+      @media (max-width: 1100px) {
+        .app {
+          grid-template-columns: 1fr;
+        }
+
+        .sidebar {
+          padding-bottom: 0;
+          border-right: 0;
+        }
+
+        .sidebar-shell {
+          height: auto;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <aside class="sidebar">
+        <div class="sidebar-shell">
+          <div class="brand">
+            <h1>Nion</h1>
+            <div class="brand-badge">↻</div>
+          </div>
+
+          <div class="primary-action">⊕ 新对话</div>
+
+          <div class="nav">
+            <div class="nav-item active">💬 对话</div>
+            <div class="nav-item">🗂 项目</div>
+            <div class="nav-item">🤖 智能体</div>
+            <div class="nav-item">⏰ 自动化</div>
+            <div class="nav-item">📓 笔记</div>
+          </div>
+
+          <section class="history">
+            <div class="history-header">
+              <div class="history-title">最近的对话</div>
+              <div class="history-select">选择</div>
+            </div>
+
+            <div class="segmented">
+              <button class="seg-btn">对话</button>
+              <button class="seg-btn active">项目</button>
+              <button class="seg-btn">桥接</button>
+            </div>
+
+            <div class="card-list">
+              <article class="thread-card active">
+                <h3>Probe thread for Stream Probe quality verification</h3>
+                <div class="meta-row">
+                  <div class="thread-time">大约 10 小时前</div>
+                </div>
+              </article>
+
+              <article class="thread-card">
+                <h3>Main project thread</h3>
+                <div class="meta-row">
+                  <div class="thread-time">大约 11 小时前</div>
+                </div>
+              </article>
+
+              <article class="thread-card">
+                <h3>新项目 02:47 主会话</h3>
+                <div class="meta-row">
+                  <div class="thread-time">大约 11 小时前</div>
+                </div>
+              </article>
+
+              <article class="thread-card">
+                <h3>回归脚本排查对话，涉及远程日志与主线程比对</h3>
+                <div class="meta-row">
+                  <div class="thread-time">昨天</div>
+                </div>
+              </article>
+
+              <article class="thread-card">
+                <h3>普通对话项示例</h3>
+                <div class="meta-row">
+                  <div class="thread-time">大约 5 小时前</div>
+                </div>
+              </article>
+
+              <article class="thread-card">
+                <h3>Telegram bridge / release-monitor</h3>
+                <div class="meta-row">
+                  <div class="thread-time">大约 2 小时前</div>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <div class="footer-slot">
+            <div class="nav-item" style="padding-left: 4px">⚙ 设置和更多</div>
+          </div>
+        </div>
+      </aside>
+
+      <main class="main">
+        <div class="main-shell">
+          <div class="breadcrumb">工作区　›　对话</div>
+
+          <div class="canvas">
+            <div class="tabs-line">
+              <button>对话</button>
+              <button class="active">项目</button>
+              <button>桥接</button>
+            </div>
+
+            <div class="toolbar">
+              <div class="search">搜索对话</div>
+              <div class="toolbar-side">选择</div>
+            </div>
+
+            <div class="rows">
+              <div class="row">
+                <h2>Untitled</h2>
+                <div class="row-time">大约 10 小时前</div>
+              </div>
+
+              <div class="row">
+                <h2>probe thread</h2>
+                <div class="row-time">大约 10 小时前</div>
+              </div>
+
+              <div class="row">
+                <h2>probe thread</h2>
+                <div class="row-time">大约 10 小时前</div>
+              </div>
+
+              <div class="row">
+                <h2>Main project thread</h2>
+                <div class="row-time">大约 11 小时前</div>
+              </div>
+
+              <div class="row">
+                <h2>新项目 02:47 主会话</h2>
+                <div class="row-time">大约 11 小时前</div>
+              </div>
+            </div>
+
+            <div class="hint">所有列表项先统一还原成标题 + 时间，不使用 tag 或额外状态</div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

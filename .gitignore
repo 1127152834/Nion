@@ -1,4 +1,4 @@
-# DeerFlow docker image cache
+# Nion docker image cache
 docker/.cache/
 # OS generated files
 .DS_Store
@@ -33,7 +33,7 @@ extensions_config.json
 # Coverage report
 coverage.xml
 coverage/
-.deer-flow/
+.nion/
 .claude/
 skills/custom/*
 !skills/custom/openspace-capability-rebuild/
@@ -70,6 +70,8 @@ desktop/renderer-dist/
 
 
 .omc/
+.superpowers/
 .worktrees/
 backend/tmux-client-*.log
 backend/tmux-server-*.log
+docs/**/.DS_Store
