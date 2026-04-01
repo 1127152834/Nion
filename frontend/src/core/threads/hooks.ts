@@ -14,6 +14,10 @@ import { uploadFiles } from "../uploads";
 
 import { removeThreadFromSearchCache } from "./cache";
 import { getThreadRequestErrorCopy, getThreadRequestErrorMessage } from "./error-copy";
+import {
+  mergeThreadMessages,
+  reconcileLoadedThreadMessages,
+} from "./thread-state";
 import type {
   AIMessage,
   AgentThread,
@@ -56,34 +60,6 @@ const EMPTY_THREAD_STATE: AgentThreadState = {
   todos: [],
 };
 
-function mergeMessages(existing: Message[], incoming: Message[]): Message[] {
-  if (incoming.length === 0) {
-    return existing;
-  }
-
-  const merged = [...existing];
-  const indexById = new Map<string, number>();
-
-  for (const [index, message] of merged.entries()) {
-    if (message.id) {
-      indexById.set(message.id, index);
-    }
-  }
-
-  for (const message of incoming) {
-    if (message.id && indexById.has(message.id)) {
-      merged[indexById.get(message.id)!] = message;
-      continue;
-    }
-    if (message.id) {
-      indexById.set(message.id, merged.length);
-    }
-    merged.push(message);
-  }
-
-  return merged;
-}
-
 function updateThreadSearchCacheEntry(
   oldData: Array<AgentThread> | undefined,
   threadId: string | null,
@@ -112,6 +88,8 @@ export function useThreadStream({
   // Ref to track current thread ID across async callbacks without causing re-renders,
   // and to allow access to the current thread id in onUpdateEvent
   const threadIdRef = useRef<string | null>(threadId ?? null);
+  // Track which thread the currently rendered in-memory state belongs to.
+  const loadedStateThreadIdRef = useRef<string | null>(threadId ?? null);
   const startedRef = useRef(false);
 
   const listeners = useRef({
@@ -145,6 +123,7 @@ export function useThreadStream({
   const handleStreamStart = useCallback(
     (_threadId: string) => {
       threadIdRef.current = _threadId;
+      loadedStateThreadIdRef.current = _threadId;
       _handleOnStart(_threadId);
     },
     [_handleOnStart],
@@ -195,11 +174,13 @@ export function useThreadStream({
       setValues(EMPTY_THREAD_STATE);
       setError(null);
       setIsThreadLoading(false);
+      loadedStateThreadIdRef.current = null;
       return;
     }
 
     let cancelled = false;
 
+    setError(null);
     setIsThreadLoading(true);
     void apiClient
       .getState<AgentThreadState>(currentThreadId)
@@ -208,7 +189,13 @@ export function useThreadStream({
           return;
         }
         const incomingMessages = state.values?.messages ?? [];
-        const mergedMessages = mergeMessages(messagesRef.current, incomingMessages);
+        const mergedMessages = reconcileLoadedThreadMessages({
+          currentStateThreadId: loadedStateThreadIdRef.current,
+          loadedThreadId: currentThreadId,
+          existingMessages: messagesRef.current,
+          incomingMessages,
+        });
+        loadedStateThreadIdRef.current = currentThreadId;
         const nextValues = {
           ...EMPTY_THREAD_STATE,
           ...(state.values ?? {}),
@@ -257,7 +244,7 @@ export function useThreadStream({
             if (eventType === "messages-tuple") {
               const nextMessage = eventData as unknown as Message;
               setMessages((current) => {
-                const merged = mergeMessages(current, [nextMessage]);
+                const merged = mergeThreadMessages(current, [nextMessage]);
                 updateThreadSearchCache((thread) => ({
                   ...thread,
                   updated_at: new Date().toISOString(),
@@ -295,7 +282,10 @@ export function useThreadStream({
               const snapshotMessages = Array.isArray(snapshot.messages)
                 ? snapshot.messages
                 : [];
-              const mergedMessages = mergeMessages(messagesRef.current, snapshotMessages);
+              const mergedMessages = mergeThreadMessages(
+                messagesRef.current,
+                snapshotMessages,
+              );
               setMessages(mergedMessages);
               setValues((current) => ({
                 ...current,
@@ -332,7 +322,10 @@ export function useThreadStream({
                     const snapshotMessages = Array.isArray(state.values?.messages)
                       ? state.values.messages
                       : [];
-                    const mergedMessages = mergeMessages(messagesRef.current, snapshotMessages);
+                    const mergedMessages = mergeThreadMessages(
+                      messagesRef.current,
+                      snapshotMessages,
+                    );
                     setMessages(mergedMessages);
                     setValues((current) => ({
                       ...current,
