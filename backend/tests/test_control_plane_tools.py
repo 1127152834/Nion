@@ -17,6 +17,7 @@ from nion.tools.builtins.control_plane_tools import (
     get_recent_logs_tool,
     get_runtime_status_tool,
     get_task_diagnostics_tool,
+    get_thread_diagnostics_tool,
     issue_channel_pairing_code_tool,
     list_channel_authorized_users_tool,
     list_channel_pair_requests_tool,

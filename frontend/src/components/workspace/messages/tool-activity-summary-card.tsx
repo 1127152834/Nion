@@ -5,16 +5,30 @@ import { cn } from "@/lib/utils";
 export function ToolActivitySummaryCard({
   summaryLabel,
   toolNames,
+  resultClass,
   className,
 }: {
   summaryLabel: string;
   toolNames: string[];
+  resultClass?: string;
   className?: string;
 }) {
+  const accentClass =
+    resultClass === "read"
+      ? "border-sky-200/70 bg-sky-50/70"
+      : resultClass === "search"
+        ? "border-amber-200/70 bg-amber-50/70"
+        : resultClass === "subtask"
+          ? "border-emerald-200/70 bg-emerald-50/70"
+          : resultClass === "shell"
+            ? "border-violet-200/70 bg-violet-50/70"
+            : "border-border bg-muted/40";
+
   return (
     <div
       className={cn(
-        "rounded-lg border bg-muted/40 px-3 py-2 text-sm",
+        "rounded-lg border px-3 py-2 text-sm",
+        accentClass,
         className,
       )}
     >
