@@ -1,0 +1,51 @@
+{
+  "config": {
+    "direction": "lower",
+    "goal": "\u6df1\u6316 Claude Code operating model \u5e76\u5f62\u6210 Nion \u501f\u9274/\u590d\u7528\u7814\u7a76\u6587\u6863",
+    "guard": "git diff --check -- docs/superpowers/plans/2026-04-01-claude-code-replication-roadmap.md docs/superpowers/research/2026-04-01-claude-code-operating-model-for-nion.md",
+    "iterations": null,
+    "metric": "missing_required_research_sections",
+    "parallel_mode": "serial",
+    "repos": [
+      {
+        "path": "/Users/zhangtiancheng/Documents/\u9879\u76ee/agent/nion",
+        "role": "primary",
+        "scope": "docs/superpowers/plans/2026-04-01-claude-code-replication-roadmap.md,docs/superpowers/research/2026-04-01-claude-code-operating-model-for-nion.md"
+      }
+    ],
+    "rollback_policy": null,
+    "scope": "docs/superpowers/plans/2026-04-01-claude-code-replication-roadmap.md,docs/superpowers/research/2026-04-01-claude-code-operating-model-for-nion.md",
+    "session_mode": "foreground",
+    "stop_condition": null,
+    "verify": "python3 - <<'PY'\\nfrom pathlib import Path\\np = Path('docs/superpowers/research/2026-04-01-claude-code-operating-model-for-nion.md')\\ntext = p.read_text(encoding='utf-8') if p.exists() else ''\\nmarkers = ['## 1. Prompt Assembly','## 2. Tool Runtime Governance','## 3. Agent Orchestration','## 4. Extension Plane','## 5. Productization','## 6. Nion \u53ef\u76f4\u63a5\u590d\u7528','## 7. Nion \u9002\u5408\u501f\u9274','## 8. Nion \u4e0d\u8be5\u7167\u6284','## 9. \u6700\u5c0f\u5b9e\u73b0\u987a\u5e8f','## 10. \u5173\u952e\u6e90\u7801\u951a\u70b9']\\nprint(sum(1 for m in markers if m not in text))\\nPY",
+    "web_search": "disabled"
+  },
+  "mode": "loop",
+  "run_tag": "",
+  "state": {
+    "baseline_metric": 10,
+    "best_iteration": 1,
+    "best_metric": 0,
+    "blocked": 0,
+    "consecutive_discards": 0,
+    "crashes": 0,
+    "current_metric": 0,
+    "discards": 0,
+    "iteration": 1,
+    "keeps": 1,
+    "last_commit": "388dffdd",
+    "last_repo_commits": {
+      "/Users/zhangtiancheng/Documents/\u9879\u76ee/agent/nion": "388dffdd"
+    },
+    "last_status": "keep",
+    "last_trial_commit": "388dffdd",
+    "last_trial_metric": 0,
+    "last_trial_repo_commits": {
+      "/Users/zhangtiancheng/Documents/\u9879\u76ee/agent/nion": "388dffdd"
+    },
+    "no_ops": 0,
+    "pivot_count": 0
+  },
+  "updated_at": "2026-04-01T03:11:39Z",
+  "version": 1
+}

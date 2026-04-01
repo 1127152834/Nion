@@ -1,0 +1,8 @@
+# environment: cpu=12 ram=32768MB python=3.14.2 container=unknown
+# metric_direction: lower
+# mode: loop
+# parallel: serial
+# web_search: disabled
+iteration	commit	metric	delta	guard	status	description
+0	cc4bd3c3	10	0	-	baseline	research doc absent; 10 required sections missing
+1	388dffdd	0	-10	pass	keep	added Claude Code operating model research doc and reordered roadmap around runtime contract
