@@ -10,6 +10,7 @@ import type {
   ProviderExecutionPayload,
   ProviderInstanceRecord,
   ProviderModelRecord,
+  ProviderSecretValue,
   ProviderTemplate,
   UpdateBindingPayload,
   UpdateProviderInstancePayload,
@@ -231,5 +232,13 @@ export function updateBinding(bindingKey: string, payload: UpdateBindingPayload)
       body: JSON.stringify(payload),
     },
     "Failed to update provider binding",
+  );
+}
+
+export function loadProviderSecretValue(providerId: string) {
+  return requestJson<ProviderSecretValue>(
+    `${getBackendBaseURL()}/api/model-admin/providers/${providerId}/secret`,
+    undefined,
+    "Failed to load provider secret value",
   );
 }

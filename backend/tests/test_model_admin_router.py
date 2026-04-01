@@ -175,6 +175,23 @@ def test_provider_connection_changes_reset_test_status(monkeypatch, tmp_path):
         reset_extensions_config()
 
 
+def test_provider_secret_value_endpoint_returns_plaintext(monkeypatch, tmp_path):
+    _configure_store(monkeypatch, tmp_path)
+
+    try:
+        with TestClient(create_app()) as client:
+            provider = _create_provider(client)
+            response = client.get(f"/api/model-admin/providers/{provider['id']}/secret")
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["api_key"] == "sk-test-1234"
+        assert payload["length"] == len("sk-test-1234")
+    finally:
+        reset_app_config()
+        reset_extensions_config()
+
+
 def test_model_test_updates_status(monkeypatch, tmp_path):
     _configure_store(monkeypatch, tmp_path)
 

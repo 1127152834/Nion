@@ -61,6 +61,7 @@ export async function loadLegacyModelSettingsDraft(): Promise<ConfigDraft> {
       use: defaultUseByProtocol(protocol),
       api_key: provider.api_key_masked ?? "",
       api_key_masked: provider.api_key_masked ?? "",
+      api_key_length: provider.api_key_masked?.length ?? 0,
       api_key_present: Boolean(provider.api_key_masked),
       api_key_dirty: false,
       api_base: provider.base_url_override ?? "",

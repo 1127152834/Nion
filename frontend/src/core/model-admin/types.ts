@@ -89,6 +89,11 @@ export interface ProviderInstanceRecord {
   primary_model_id?: string | null;
 }
 
+export interface ProviderSecretValue {
+  api_key: string;
+  length: number;
+}
+
 export interface ModelBindingRecord {
   id: string;
   binding_key: string;

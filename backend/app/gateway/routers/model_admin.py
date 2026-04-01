@@ -75,6 +75,11 @@ class ProviderMutationResponse(BaseModel):
     provider: ProviderInstanceView
 
 
+class ProviderSecretValueResponse(BaseModel):
+    api_key: str
+    length: int
+
+
 class CreateProviderRequest(BaseModel):
     provider_template_id: str | None = None
     kind: ProviderKind | None = None
@@ -541,6 +546,23 @@ async def update_provider(
         },
     )
     return ProviderMutationResponse(provider=_load_provider_view(repo, provider.id))
+
+
+@router.get("/providers/{provider_id}/secret", response_model=ProviderSecretValueResponse)
+async def get_provider_secret_value(provider_id: str) -> ProviderSecretValueResponse:
+    repo = _get_repo()
+    provider = repo.get_provider_instance(provider_id)
+    if provider is None:
+        raise HTTPException(status_code=404, detail=f"Provider '{provider_id}' not found")
+
+    api_key = _provider_api_key(provider)
+    if api_key is None:
+        raise HTTPException(status_code=404, detail=f"Provider '{provider_id}' has no saved API key")
+
+    return ProviderSecretValueResponse(
+        api_key=api_key,
+        length=len(api_key),
+    )
 
 
 @router.delete("/providers/{provider_id}", status_code=204)

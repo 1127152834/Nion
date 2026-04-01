@@ -44,6 +44,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useI18n } from "@/core/i18n/hooks";
+import { loadProviderSecretValue } from "@/core/model-admin/api";
 import {
   loadModelMetadata,
   loadProviderModels,
@@ -547,7 +548,14 @@ function getProviderApiKeyDisplay(provider: Record<string, unknown>): string {
   if (current !== "") {
     return current;
   }
-  return asString(provider.api_key_masked).trim();
+  const masked = asString(provider.api_key_masked).trim();
+  if (masked !== "") {
+    return masked;
+  }
+  const length = Number(provider.api_key_length);
+  return Number.isFinite(length) && length > 0
+    ? "•".repeat(length)
+    : "";
 }
 
 function isFieldBlank(value: unknown): boolean {
@@ -646,6 +654,7 @@ export function ModelsSection({
   const [providerFeedback, setProviderFeedback] = useState<Record<string, ProviderFeedback>>({});
   const [testingProviderKey, setTestingProviderKey] = useState<string | null>(null);
   const [loadingCatalogProviderId, setLoadingCatalogProviderId] = useState<string | null>(null);
+  const [loadingProviderSecretId, setLoadingProviderSecretId] = useState<string | null>(null);
 
   const [providerDetailView, setProviderDetailView] = useState<ProviderDetailView>("details");
   const [modelViewContext, setModelViewContext] = useState<ModelViewContext>("global");
@@ -2178,10 +2187,33 @@ export function ModelsSection({
                 size="icon-sm"
                 variant="ghost"
                 className="absolute top-1/2 right-1 -translate-y-1/2"
-                onClick={() => setEditApiKeyVisible((current) => !current)}
+                onClick={() => {
+                  if (editApiKeyVisible) {
+                    setEditApiKeyVisible(false);
+                    return;
+                  }
+                  if (asString(selectedProvider.api_key).trim() !== "" || !asBoolean(selectedProvider.api_key_present, false)) {
+                    setEditApiKeyVisible(true);
+                    return;
+                  }
+                  setLoadingProviderSecretId(providerId);
+                  void loadProviderSecretValue(providerId)
+                    .then((secret) => {
+                      updateProviderAt(selectedProviderIndex, (current) => ({
+                        ...current,
+                        api_key: secret.api_key,
+                        api_key_length: secret.length,
+                        api_key_present: true,
+                      }));
+                      setEditApiKeyVisible(true);
+                    })
+                    .finally(() => {
+                      setLoadingProviderSecretId((current) => (current === providerId ? null : current));
+                    });
+                }}
                 aria-label={editApiKeyVisible ? copy.hideApiKey : copy.showApiKey}
                 title={editApiKeyVisible ? copy.hideApiKey : copy.showApiKey}
-                disabled={disabled}
+                disabled={disabled === true || loadingProviderSecretId === providerId}
               >
                 {editApiKeyVisible ? (
                   <EyeOffIcon className="size-4" />

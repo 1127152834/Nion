@@ -334,15 +334,36 @@ function RichFilesList({
   threadId: string;
 }) {
   if (files.length === 0) return null;
+  const imageFiles = files.filter(
+    (file) => file.status === "uploading" || isImageFile(file.filename),
+  );
+  const nonImageFiles = files.filter(
+    (file) => file.status !== "uploading" && !isImageFile(file.filename),
+  );
   return (
-    <div className="mb-2 flex flex-wrap justify-end gap-2">
-      {files.map((file, index) => (
-        <RichFileCard
-          key={`${file.filename}-${index}`}
-          file={file}
-          threadId={threadId}
-        />
-      ))}
+    <div className="mb-2 flex flex-col items-end gap-2">
+      {imageFiles.length > 0 ? (
+        <div className="flex flex-wrap justify-end gap-2">
+          {imageFiles.map((file, index) => (
+            <RichFileCard
+              key={`${file.filename}-${index}`}
+              file={file}
+              threadId={threadId}
+            />
+          ))}
+        </div>
+      ) : null}
+      {nonImageFiles.length > 0 ? (
+        <div className="flex flex-wrap justify-end gap-2">
+          {nonImageFiles.map((file, index) => (
+            <RichFileCard
+              key={`${file.filename}-${index}`}
+              file={file}
+              threadId={threadId}
+            />
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -398,12 +419,12 @@ function RichFileCard({
         href={fileUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="group border-border/40 relative block overflow-hidden rounded-lg border"
+        className="group border-border/40 relative block overflow-hidden rounded-2xl border shadow-sm"
       >
         <img
           src={fileUrl}
           alt={file.filename}
-          className="h-32 w-auto max-w-60 object-cover transition-transform group-hover:scale-105"
+          className="max-h-60 w-auto max-w-72 object-cover transition-transform group-hover:scale-105"
         />
       </a>
     );
