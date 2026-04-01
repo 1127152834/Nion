@@ -36,6 +36,18 @@ export type AutomationRunPreview = {
   threadId: string | null;
 };
 
+export type AutomationThreadPreviewMessage = {
+  type: "human" | "ai" | "tool" | "tool_activity_summary";
+  text: string;
+};
+
+export type AutomationThreadPreview = {
+  title: string;
+  threadId: string;
+  updatedAt: string | null;
+  messages: AutomationThreadPreviewMessage[];
+};
+
 export function splitJobsByKind(jobs: AutomationJob[]) {
   return {
     reminders: jobs.filter((job) => job.job_kind === "reminder"),
@@ -88,12 +100,33 @@ export function formatActionLabel(_job: AutomationJob) {
 export function describeAutomationJob(job: AutomationJob): AutomationJobDescription {
   return {
     id: job.id,
-    title: job.name.trim() || job.id,
+    title: deriveAutomationJobTitle(job),
     summary: job.prompt.trim(),
     scheduleLabel: formatScheduleLabel(job),
     nextRunAt: readString(job.next_run_at) ?? null,
     lastResultSummary: readString(job.last_result_summary) ?? null,
   };
+}
+
+export function deriveAutomationJobTitle(job: Pick<AutomationJob, "name" | "prompt" | "id">) {
+  const name = readString(job.name);
+  if (name && !GENERIC_AUTOMATION_NAMES.has(name.toLowerCase())) {
+    return name;
+  }
+
+  const prompt = readString(job.prompt);
+  if (!prompt) {
+    return job.id;
+  }
+
+  const firstSentence = prompt
+    .split(/(?<=[.!?。！？])\s+/u, 1)[0]
+    ?.trim();
+  if (firstSentence) {
+    return firstSentence;
+  }
+
+  return prompt;
 }
 
 export function buildAutomationRunPreview(input: {
@@ -209,3 +242,11 @@ function formatDateTime(value: string) {
 }
 
 const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const GENERIC_AUTOMATION_NAMES = new Set([
+  "reminder",
+  "scheduled task",
+  "automation",
+  "提醒事项",
+  "定时任务",
+  "自动化",
+]);

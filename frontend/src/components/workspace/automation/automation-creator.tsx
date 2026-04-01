@@ -67,7 +67,7 @@ export function AutomationCreator({
     await onSubmit(
       buildAutomationDraftRequest({
         kind,
-        name: deriveAutomationName(normalizedContent, kind),
+        name: buildFallbackAutomationName(normalizedContent, kind),
         prompt: normalizedContent,
         schedule: {
           ...schedule,
@@ -183,7 +183,7 @@ export function AutomationCreator({
   );
 }
 
-function deriveAutomationName(
+function buildFallbackAutomationName(
   content: string,
   kind: Extract<AutomationJobKind, "reminder" | "scheduled_task">,
 ) {

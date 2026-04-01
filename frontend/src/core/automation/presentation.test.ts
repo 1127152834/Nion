@@ -6,6 +6,7 @@ import type { AutomationJob, AutomationRun, AutomationStatus } from "./types";
 const {
   buildAutomationRunPreview,
   describeAutomationJob,
+  deriveAutomationJobTitle,
   formatScheduleLabel,
   splitJobsByKind,
   summarizeHistory,
@@ -154,6 +155,38 @@ void test("builds concise job description for console cards", () => {
   assert.match(description.summary, /Summarize project progress/);
   assert.equal(description.scheduleLabel, "Weekdays at 18:30");
   assert.equal(description.nextRunAt, "2026-03-24T10:00:00Z");
+});
+
+void test("derives display title from prompt when name is empty or generic", () => {
+  assert.equal(
+    deriveAutomationJobTitle(
+      makeJob({
+        name: "",
+        prompt: "Summarize project progress. Include blockers and next steps.",
+      }),
+    ),
+    "Summarize project progress.",
+  );
+
+  assert.equal(
+    deriveAutomationJobTitle(
+      makeJob({
+        name: "Reminder",
+        prompt: "Review invoices before 5 PM and send confirmation",
+      }),
+    ),
+    "Review invoices before 5 PM and send confirmation",
+  );
+
+  assert.equal(
+    deriveAutomationJobTitle(
+      makeJob({
+        name: "Scheduled task",
+        prompt: "Generate weekly digest for leadership updates",
+      }),
+    ),
+    "Generate weekly digest for leadership updates",
+  );
 });
 
 void test("builds scheduled task run preview with raw summary and thread linkage", () => {

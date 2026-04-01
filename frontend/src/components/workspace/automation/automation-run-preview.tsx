@@ -1,10 +1,12 @@
 "use client";
 
+import Link from "next/link";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAutomationRunThreadPreview } from "@/core/automation/hooks";
 import type { AutomationRunPreview as AutomationRunPreviewModel } from "@/core/automation/presentation";
 import { useI18n } from "@/core/i18n/hooks";
-import { extractContentFromMessage } from "@/core/messages/utils";
+import { pathOfThread } from "@/core/threads/utils";
 
 type AutomationRunPreviewProps = {
   run: AutomationRunPreviewModel;
@@ -54,35 +56,32 @@ export function AutomationRunPreview({ run }: AutomationRunPreviewProps) {
     );
   }
 
-  const messages =
-    threadPreview?.values.messages
-      .map((message) => ({
-        type: message.type,
-        text: extractContentFromMessage(message),
-      }))
-      .filter((message) => message.text)
-      .slice(-4) ?? [];
-
   return (
     <Card className="h-full">
       <CardHeader className="space-y-2">
-        <CardTitle>{threadPreview?.values.title ?? run.jobName}</CardTitle>
+        <CardTitle>{threadPreview?.title ?? run.jobName}</CardTitle>
         <div className="text-muted-foreground text-xs">
           {run.threadId}
-          {threadPreview?.updated_at ? ` · ${threadPreview.updated_at}` : ""}
+          {threadPreview?.updatedAt ? ` · ${threadPreview.updatedAt}` : ""}
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="rounded-xl border bg-muted/20 p-3 text-sm">
           {run.summary || (isZh ? "暂无摘要。" : "No summary yet.")}
         </div>
-        {messages.length === 0 ? (
+        <Link
+          className="inline-flex text-sm font-medium underline-offset-4 hover:underline"
+          href={pathOfThread(run.threadId)}
+        >
+          {isZh ? "打开完整线程" : "Open full thread"}
+        </Link>
+        {(threadPreview?.messages.length ?? 0) === 0 ? (
           <div className="text-muted-foreground rounded-xl border border-dashed p-4 text-sm">
             {isZh ? "线程里还没有可预览的消息内容。" : "No previewable messages in this thread yet."}
           </div>
         ) : (
           <div className="space-y-3">
-            {messages.map((message, index) => (
+            {threadPreview!.messages.map((message, index) => (
               <div key={`${message.type}-${index}`} className="rounded-xl border p-3">
                 <div className="text-muted-foreground mb-1 text-xs uppercase tracking-wide">
                   {labelOfMessageType(message.type, isZh)}

@@ -10,6 +10,10 @@ import type {
   AutomationStatus,
 } from "@/core/automation/types";
 
+import {
+  pickDefaultAutomationRunId,
+  resolvePreferredAutomationJobId,
+} from "./automation-console-state";
 import { AutomationCreatePanel } from "./automation-create-panel";
 import { AutomationListPanel } from "./automation-list-panel";
 import { AutomationOverviewCards } from "./automation-overview-cards";
@@ -47,7 +51,7 @@ export function AutomationConsole({
   const [selectedRunId, setSelectedRunId] = useState<string | null>(initialRunId ?? null);
 
   const preferredJobId = useMemo(
-    () => resolvePreferredJobId(jobs, runs, initialJobId, initialRunId),
+    () => resolvePreferredAutomationJobId(jobs, runs, initialJobId, initialRunId),
     [initialJobId, initialRunId, jobs, runs],
   );
 
@@ -73,7 +77,7 @@ export function AutomationConsole({
       }
       return initialRunId && nextRuns.some((run) => run.id === initialRunId)
         ? initialRunId
-        : (nextRuns[0]?.id ?? null);
+        : pickDefaultAutomationRunId(nextRuns);
     });
   }, [initialRunId, runs, selectedJobId]);
 
@@ -81,7 +85,6 @@ export function AutomationConsole({
 
   return (
     <div className="space-y-6">
-      <AutomationOverviewCards status={status} runs={runs} jobs={jobs} />
       <AutomationCreatePanel
         isPending={createPending}
         onCreate={onCreate}
@@ -102,26 +105,7 @@ export function AutomationConsole({
         selectedRunId={selectedRunId}
         onSelectRun={setSelectedRunId}
       />
+      <AutomationOverviewCards status={status} runs={runs} jobs={jobs} />
     </div>
   );
-}
-
-function resolvePreferredJobId(
-  jobs: AutomationJob[],
-  runs: AutomationRun[],
-  initialJobId?: string | null,
-  initialRunId?: string | null,
-) {
-  if (initialJobId && jobs.some((job) => job.id === initialJobId)) {
-    return initialJobId;
-  }
-
-  if (initialRunId) {
-    const matchedRun = runs.find((run) => run.id === initialRunId);
-    if (matchedRun && jobs.some((job) => job.id === matchedRun.job_id)) {
-      return matchedRun.job_id;
-    }
-  }
-
-  return jobs[0]?.id ?? null;
 }

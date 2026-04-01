@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { getAPIClient } from "../api";
-import type { ThreadRecord } from "../api/thread-client";
+import { extractContentFromMessage } from "../messages/utils";
 import type { AgentThreadState } from "../threads/types";
 
 import {
@@ -16,6 +16,7 @@ import {
   runAutomationJob,
   updateAutomationJob,
 } from "./api";
+import type { AutomationThreadPreview } from "./presentation";
 import type { AutomationJobCreateInput } from "./types";
 
 export function useAutomationJobs() {
@@ -63,14 +64,26 @@ export function useAutomationRunThreadPreview(threadId: string | null | undefine
         throw new Error("threadId is required");
       }
       const apiClient = getAPIClient();
-      return await apiClient.getState<AgentThreadState>(threadId);
+      const thread = await apiClient.getState<AgentThreadState>(threadId);
+      return {
+        title: thread.values.title || thread.thread_id,
+        threadId: thread.thread_id,
+        updatedAt: thread.updated_at ?? null,
+        messages: (thread.values.messages ?? [])
+          .map((message) => ({
+            type: message.type,
+            text: extractContentFromMessage(message),
+          }))
+          .filter((message) => message.text)
+          .slice(-4),
+      } satisfies AutomationThreadPreview;
     },
     enabled: Boolean(threadId),
     refetchOnWindowFocus: false,
   });
 
   return {
-    threadPreview: (data ?? null) satisfies ThreadRecord<AgentThreadState> | null,
+    threadPreview: data ?? null,
     isLoading,
     error,
   };
