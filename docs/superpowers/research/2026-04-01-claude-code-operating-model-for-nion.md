@@ -229,7 +229,51 @@ Nion 当前已经有不少散点能力，但还缺一个把这些能力装配成
 - 不该把 Verification agent 简化成“跑一下测试”。Claude Code 的价值在于对抗式验证心智，这必须作为行为 contract 落地。
 - 不该把 MCP 简化成“再多接几把工具”。Claude Code 值钱的是 MCP 同时扩展工具面和行为面。
 
-## 9. 最小实现顺序
+## 9. 值得抄等级表
+
+等级说明：
+
+- `S`：应优先复刻
+- `A`：强烈借鉴
+- `B`：局部借鉴
+- `C`：低优先级
+- `D`：不建议抄
+
+| 能力/模块 | 值得抄等级 | 建议 | 理由 |
+|---|---|---|---|
+| Prompt section registry | S | 直接复刻思路 | Claude Code 稳定性的起点。把 system prompt 拆成 section，而不是一整块大模板，后续 skills、MCP、policy 都能可治理地注入。 |
+| Static / Dynamic prompt boundary | S | 直接复刻思路 | 这是 prompt cache 和长会话稳定性的关键。Nion 现在最缺这层。 |
+| 统一 Tool Runtime Contract | S | 直接复刻思路 | Claude Code 不是“模型调函数”，而是统一执行链：schema、pre-hook、permission、tool call、post-hook、failure-hook。这个最值得抄。 |
+| Hook 参与 permission 与 continuation 控制 | S | 直接复刻思路 | `updatedInput`、`permissionBehavior`、`preventContinuation` 这种语义很值钱，能把治理做成 runtime，而不是散 middleware。 |
+| SkillTool 作为一等执行原语 | S | 直接复刻思路 | Claude Code 的 skill 不是文档，而是 workflow package。Nion 现在只有 skill registry，没有真正 SkillTool，这是明显缺口。 |
+| Verification Agent 的对抗式验证合同 | S | 直接复刻思路 | 这不是“跑测试”，而是强制证据化验证，能明显提升完成质量。 |
+| Explore / Plan / Verification 角色分工 | A | 强烈借鉴 | 角色分工非常值得学，尤其是 Explore / Plan 只读化、Verification 对抗化，但 Nion 不必先复制全部 agent 名字。 |
+| Fork vs Fresh Agent 语义 | A | 强烈借鉴 | Claude Code 把“继承上下文的 fork”和“全新子代理”分开，这是上下文预算和并发体验的关键。 |
+| Deferred tools + tool discoverability | A | 强烈借鉴 | 这套很值钱，Nion 已经有 `tool_search` 雏形，说明方向是对的，值得继续做深。 |
+| Tool Activity Layer / Tool Use Summary | A | 强烈借鉴 | Claude Code 把工具从“日志”提升成“活动”。这对 Nion 的 chat、task、diagnostics 三端统一很重要。 |
+| MCP instructions 注入行为层 | A | 强烈借鉴 | MCP 不该只是多几把工具，Claude Code 真正高级的是把 MCP 变成行为扩展面。 |
+| Plugin frontmatter contract | A | 强烈借鉴 | `allowed-tools`、`model`、`effort`、`hooks`、`context=fork` 这些 frontmatter 很值得兼容，会直接打开生态。 |
+| Agent runtime constructor | A | 强烈借鉴 | Claude Code 的 `runAgent` 不是 wrapper，而是 runtime constructor。Nion 的 AgentTool 若要升级，这一层必须学。 |
+| Transcript hygiene / compact / resume model | A | 强烈借鉴 | 这是长任务稳定性的基础设施，不性感，但很值钱。 |
+| Output style / tone section | B | 局部借鉴 | 可学，但不是核心竞争力。先补 contract，再补交互风格。 |
+| Background / remote / worktree / teammate 全量模式 | B | 局部借鉴 | 值得参考，但不是现在最优先。太早全抄只会把 Nion runtime 搅复杂。 |
+| MCP auth / cache / transport 细节 | B | 局部借鉴 | 有参考价值，但属于实现细节，不是当前最缺的中轴能力。 |
+| Slash command 大全 | C | 低优先级 | 这是产品壳，不是核心 operating model。 |
+| GrowthBook / 内部 telemetry 复杂体系 | C | 低优先级 | 这是 Anthropic 的组织级产品设施，不是 Nion 现阶段该优先抄的。 |
+| 具体 prompt 文本措辞 | D | 不建议抄 | 抄文案没有护城河，反而容易把 Nion 带偏。应该抄结构和 contract。 |
+| Anthropic 内部产品壳和商业流程 | D | 不建议抄 | 例如 marketplace、内部命令、特定用户类型分支，这些不属于 Nion 当前核心。 |
+
+如果只看优先级，最值得先抄的 5 个是：
+
+| 优先级 | 项目 | 等级 | 理由 |
+|---|---|---|---|
+| 1 | Prompt section registry + static / dynamic boundary | S | 先把 prompt runtime 立住，不然后面都在大模板上叠补丁。 |
+| 2 | 统一 Tool Runtime Contract | S | 这是 Claude Code 稳定性的核心，不是工具数量。 |
+| 3 | SkillTool | S | Nion 现在最明显的 execution primitive 缺口。 |
+| 4 | Verification Agent 合同 | S | 最直接提升“真的做完了没有”的质量。 |
+| 5 | Tool Activity Layer | A | 让 Nion 从“工具日志”进化成“产品化活动流”。 |
+
+## 10. 最小实现顺序
 
 这里给的是“Claude Code operating model 在 Nion 的最小正确落地顺序”，不是功能数量最多的顺序。
 
@@ -262,7 +306,7 @@ Nion 当前已经有不少散点能力，但还缺一个把这些能力装配成
 
 如果跳过前两步，直接堆工具或 agent 名字，Nion 很容易得到一个更复杂但不更稳定的系统。
 
-## 10. 关键源码锚点
+## 11. 关键源码锚点
 
 ### Claude Code
 
