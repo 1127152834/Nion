@@ -111,3 +111,21 @@ def test_list_candidates_returns_ready_candidates_with_actions(tmp_path) -> None
     assert [item.status for item in items] == ["ready", "ready"]
     assert items[0].available_actions == ["apply", "dismiss", "defer"]
     assert items[1].available_actions == ["dismiss", "defer"]
+    assert type(items[0].provenance[0]).__name__ == "BridgeActionProvenance"
+    detail = service.get_candidate_detail(items[0].id)
+    assert detail["source_summary"]["source_object_type"] == "notebook"
+
+
+def test_skill_candidate_detail_reports_apply_as_unsupported(tmp_path) -> None:
+    service = ObjectBridgeService(base_dir=tmp_path / "nion-home")
+    candidate = service.extract_skill_candidate_from_project(
+        project_id="proj-1",
+        scope="whole_project",
+    )
+
+    detail = service.get_candidate_detail(candidate.id)
+
+    assert detail["candidate"].available_actions == ["dismiss", "defer"]
+    assert detail["guard_state"]["is_applicable"] is False
+    assert "unsupported_apply" in detail["guard_state"]["reasons"]
+    assert detail["target_summary"]["target_object_type"] == "skill"

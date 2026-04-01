@@ -41,10 +41,6 @@ class ObjectBridgeService:
         self._base_dir = Path(base_dir) if base_dir is not None else None
         self._repository = ObjectBridgeRepository(base_dir=self._base_dir)
 
-    @property
-    def repository(self) -> ObjectBridgeRepository:
-        return self._repository
-
     def _provenance(
         self,
         *,
@@ -180,14 +176,13 @@ class ObjectBridgeService:
             status=status,
             candidate_type=candidate_type,
         )
-        return [with_candidate_actions(candidate) for candidate in candidates]
+        return [self._normalize_for_response(candidate) for candidate in candidates]
 
     def get_candidate_detail(self, candidate_id: str) -> dict[str, Any]:
         candidate = self._get_candidate(candidate_id)
         guard_state = candidate.guard_state or compute_guard_state(candidate)
-        normalized = replace(
-            with_candidate_actions(candidate),
-            guard_state=guard_state,
+        normalized = self._normalize_for_response(
+            replace(candidate, guard_state=guard_state)
         )
         return {
             "candidate": normalized,
@@ -260,6 +255,9 @@ class ObjectBridgeService:
             "applied_at": applied_at,
         }
 
+    def persist_candidate_for_tests(self, candidate: BridgeCandidateRecord) -> BridgeCandidateRecord:
+        return self._save_candidate(candidate)
+
     def _get_candidate(self, candidate_id: str) -> BridgeCandidateRecord:
         candidate = self._repository.get_candidate(candidate_id)
         if candidate is None:
@@ -267,8 +265,8 @@ class ObjectBridgeService:
         return self._normalize_candidate(candidate)
 
     def _save_candidate(self, candidate: BridgeCandidateRecord) -> BridgeCandidateRecord:
-        normalized = self._normalize_candidate(candidate)
-        return self._repository.save_candidate(with_candidate_actions(normalized))
+        normalized = self._normalize_for_response(candidate)
+        return self._repository.save_candidate(normalized)
 
     def _create_ready_candidate(self, candidate: BridgeCandidateRecord) -> BridgeCandidateRecord:
         stored = self._repository.save_candidate(candidate)
@@ -301,6 +299,9 @@ class ObjectBridgeService:
                 )
             )
         return replace(candidate, provenance=normalized_provenance)
+
+    def _normalize_for_response(self, candidate: BridgeCandidateRecord) -> BridgeCandidateRecord:
+        return with_candidate_actions(self._normalize_candidate(candidate))
 
     def create_plan_from_notebook(
         self,

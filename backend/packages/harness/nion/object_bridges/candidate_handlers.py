@@ -113,6 +113,8 @@ def compute_guard_state(candidate: BridgeCandidateRecord) -> dict[str, Any]:
     elif candidate.candidate_type == "project_constraint":
         if not str(candidate_payload.get("project_id", "")).strip():
             reasons.append("missing_project_id")
+    elif candidate.candidate_type == "skill_candidate":
+        reasons.append("unsupported_apply")
 
     return {
         "is_applicable": not reasons,

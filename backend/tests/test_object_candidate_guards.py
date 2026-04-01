@@ -19,7 +19,7 @@ def test_apply_candidate_expires_when_structural_guard_fails(tmp_path) -> None:
             "project_id": "",
         },
     }
-    service.repository.save_candidate(replace(candidate, payload=broken_payload))
+    service.persist_candidate_for_tests(replace(candidate, payload=broken_payload))
 
     with pytest.raises(ValueError, match="guard"):
         service.apply_candidate(candidate.id, actor_type="user")
@@ -47,7 +47,7 @@ def test_apply_candidate_records_last_error_and_keeps_ready_on_execution_failure
             "title": "",
         },
     }
-    service.repository.save_candidate(replace(candidate, payload=broken_payload))
+    service.persist_candidate_for_tests(replace(candidate, payload=broken_payload))
 
     with pytest.raises(RuntimeError, match="apply failed"):
         service.apply_candidate(candidate.id, actor_type="user")
