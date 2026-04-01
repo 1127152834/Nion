@@ -258,6 +258,11 @@ export function useThreadStream({
                 ...current,
                 ...snapshot,
                 messages: mergedMessages,
+                tool_activity_timeline: Array.isArray(snapshot.tool_activity_timeline)
+                  ? snapshot.tool_activity_timeline
+                  : current.tool_activity_timeline,
+                latest_tool_activity:
+                  snapshot.latest_tool_activity ?? current.latest_tool_activity,
               }));
 
               if (snapshot.title) {
@@ -302,6 +307,14 @@ export function useThreadStream({
                       ...current,
                       ...(state.values ?? {}),
                       messages: mergedMessages,
+                      tool_activity_timeline: Array.isArray(
+                        state.values?.tool_activity_timeline,
+                      )
+                        ? state.values.tool_activity_timeline
+                        : current.tool_activity_timeline,
+                      latest_tool_activity:
+                        state.values?.latest_tool_activity ??
+                        current.latest_tool_activity,
                     }));
 
                     const refreshedTitle = state.values?.title;

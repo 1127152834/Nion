@@ -34,6 +34,24 @@ def _fallback_daemon_diagnostic(service: LocalDaemonService) -> DiagnosticRespon
     )
 
 
+def _extract_tool_activity_timeline(events) -> list[dict]:
+    timeline: list[dict] = []
+    for event in reversed(events):
+        details = event.details if isinstance(event.details, dict) else {}
+        summary_label = details.get("latest_tool_summary")
+        activity_label = details.get("latest_tool_activity")
+        if summary_label or activity_label:
+            timeline.append(
+                {
+                    "summary_label": summary_label,
+                    "activity_label": activity_label,
+                    "event_type": event.event_type,
+                    "timestamp": event.timestamp,
+                }
+            )
+    return timeline
+
+
 @router.get("/diagnostics", response_model=DiagnosticResponse)
 async def get_daemon_diagnostics(request: Request) -> DiagnosticResponse:
     service = get_daemon_service(request)
@@ -72,7 +90,11 @@ async def get_thread_diagnostics(thread_id: str, request: Request) -> Diagnostic
         return DiagnosticResponse(
             status="error" if latest.level == "error" else "healthy",
             summary=latest.message,
-            details={"thread_id": thread_id, "event_type": latest.event_type},
+            details={
+                "thread_id": thread_id,
+                "event_type": latest.event_type,
+                "tool_activity_timeline": _extract_tool_activity_timeline(events),
+            },
         )
 
 
@@ -99,7 +121,11 @@ async def get_skill_diagnostics(skill_name: str, request: Request) -> Diagnostic
         return DiagnosticResponse(
             status="error" if latest.level == "error" else "healthy",
             summary=latest.message,
-            details={"skill_name": skill_name, "event_type": latest.event_type},
+            details={
+                "skill_name": skill_name,
+                "event_type": latest.event_type,
+                "tool_activity_timeline": _extract_tool_activity_timeline(events),
+            },
         )
 
 
@@ -126,5 +152,9 @@ async def get_task_diagnostics(task_id: str, request: Request) -> DiagnosticResp
         return DiagnosticResponse(
             status="error" if latest.level == "error" else "healthy",
             summary=latest.message,
-            details={"task_id": task_id, "event_type": latest.event_type},
+            details={
+                "task_id": task_id,
+                "event_type": latest.event_type,
+                "tool_activity_timeline": _extract_tool_activity_timeline(events),
+            },
         )

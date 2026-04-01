@@ -34,6 +34,7 @@ import { MessageListItem } from "./message-list-item";
 import { PermissionRequestCard } from "./permission-request-card";
 import { MessageListSkeleton } from "./skeleton";
 import { SubtaskCard } from "./subtask-card";
+import { ToolActivitySummaryCard } from "./tool-activity-summary-card";
 
 export function MessageList({
   className,
@@ -240,6 +241,25 @@ export function MessageList({
               >
                 {results}
               </div>
+            );
+          } else if (group.type === "assistant:tool-activity-summary") {
+            const message = group.messages[0];
+            const toolNames = Array.isArray(
+              message?.additional_kwargs?.tool_names,
+            )
+              ? (message?.additional_kwargs?.tool_names as string[])
+              : [];
+            const resultClass =
+              typeof message?.additional_kwargs?.result_class === "string"
+                ? (message.additional_kwargs.result_class as string)
+                : undefined;
+            return (
+              <ToolActivitySummaryCard
+                key={`tool-activity-${group.id}`}
+                summaryLabel={extractTextFromMessage(message!)}
+                toolNames={toolNames}
+                resultClass={resultClass}
+              />
             );
           }
           return (

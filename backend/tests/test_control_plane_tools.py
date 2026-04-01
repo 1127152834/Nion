@@ -17,6 +17,7 @@ from nion.tools.builtins.control_plane_tools import (
     get_recent_logs_tool,
     get_runtime_status_tool,
     get_task_diagnostics_tool,
+    get_thread_diagnostics_tool,
     issue_channel_pairing_code_tool,
     list_channel_authorized_users_tool,
     list_channel_pair_requests_tool,
@@ -78,7 +79,17 @@ def test_get_task_diagnostics_tool_returns_snapshot(monkeypatch, tmp_path):
             scope_id="task-123",
             status="error",
             summary="Delegated task 'inspect logs' failed",
-            details={"task_id": "task-123", "status": "failed"},
+            details={
+                "task_id": "task-123",
+                "status": "failed",
+                "latest_tool_summary": "Delegated and tracked subtasks",
+                "tool_activity_timeline": [
+                    {
+                        "summary_label": "Delegated and tracked subtasks",
+                        "activity_label": "Subtask failed",
+                    }
+                ],
+            },
         )
     )
 
@@ -87,6 +98,36 @@ def test_get_task_diagnostics_tool_returns_snapshot(monkeypatch, tmp_path):
 
     assert payload["status"] == "error"
     assert payload["details"]["task_id"] == "task-123"
+    assert payload["details"]["latest_tool_summary"] == "Delegated and tracked subtasks"
+    assert payload["details"]["tool_activity_timeline"][0]["activity_label"] == "Subtask failed"
+
+
+def test_get_thread_diagnostics_tool_includes_tool_activity_timeline_in_fallback(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    import nion.config.paths as paths_module
+
+    paths_module._paths = None
+    store = TelemetryStore(get_paths().telemetry_db_file)
+    store.record_event(
+        EventRecord(
+            event_id="evt-thread-1",
+            category="thread",
+            level="info",
+            event_type="thread_stream_finished",
+            actor="agent",
+            thread_id="thread-1",
+            message="Thread stream finished",
+            details={
+                "latest_tool_summary": "Inspected project files",
+                "latest_tool_activity": "Completed tool batch",
+            },
+        )
+    )
+
+    result = get_thread_diagnostics_tool.invoke({"thread_id": "thread-1"})
+    payload = json.loads(result)
+
+    assert payload["details"]["tool_activity_timeline"][0]["summary_label"] == "Inspected project files"
 
 
 def test_run_doctor_tool_returns_summary(monkeypatch, tmp_path):

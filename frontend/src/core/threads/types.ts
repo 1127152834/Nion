@@ -28,7 +28,7 @@ export type MessageContentPart =
   | UnknownMessageContentPart;
 
 export interface Message {
-  type: "human" | "ai" | "tool";
+  type: "human" | "ai" | "tool" | "tool_activity_summary";
   id?: string;
   content: string | MessageContentPart[];
   additional_kwargs?: Record<string, unknown>;
@@ -47,6 +47,8 @@ export interface AgentThreadState extends Record<string, unknown> {
   messages: Message[];
   artifacts: string[];
   todos?: Todo[];
+  tool_activity_timeline?: Array<Record<string, unknown>>;
+  latest_tool_activity?: Record<string, unknown> | null;
   resolved_permission_request_ids?: string[];
   bridge?: {
     source: "bridge";

@@ -22,6 +22,9 @@ interface AssistantPermissionRequestGroup extends GenericMessageGroup<"assistant
 
 interface AssistantSubagentGroup extends GenericMessageGroup<"assistant:subagent"> {}
 
+interface AssistantToolActivitySummaryGroup
+  extends GenericMessageGroup<"assistant:tool-activity-summary"> {}
+
 type MessageGroup =
   | HumanMessageGroup
   | AssistantProcessingGroup
@@ -29,7 +32,8 @@ type MessageGroup =
   | AssistantPresentFilesGroup
   | AssistantClarificationGroup
   | AssistantPermissionRequestGroup
-  | AssistantSubagentGroup;
+  | AssistantSubagentGroup
+  | AssistantToolActivitySummaryGroup;
 
 export function groupMessages<T>(
   messages: Message[],
@@ -98,6 +102,15 @@ export function groupMessages<T>(
           );
         }
       }
+      continue;
+    }
+
+    if (message.type === "tool_activity_summary") {
+      groups.push({
+        id: message.id,
+        type: "assistant:tool-activity-summary",
+        messages: [message],
+      });
       continue;
     }
 
