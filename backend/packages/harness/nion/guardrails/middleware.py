@@ -13,6 +13,8 @@ from langgraph.graph import END
 from langgraph.prebuilt.tool_node import ToolCallRequest
 from langgraph.types import Command
 
+from nion.tools.runtime_models import ToolExecutionStage
+from nion.tools.runtime_pipeline import build_tool_runtime_metadata
 from nion.thread_permissions import (
     consume_thread_pending_allow,
     create_thread_permission_request,
@@ -194,7 +196,17 @@ class GuardrailMiddleware(AgentMiddleware[AgentState]):
                     "options": ["Allow", "Allow Session", "Deny"],
                     "reason_code": decision.reasons[0].code if decision.reasons else "oap.approval_required",
                     "reason_message": decision.reasons[0].message if decision.reasons else "",
-                }
+                },
+                "tool_runtime": build_tool_runtime_metadata(
+                    status="approval_required",
+                    stage=ToolExecutionStage.REQUEST_PERMISSION,
+                    tool_name=tool_name,
+                    tool_call_id=tool_call_id,
+                ),
+                "hook_event": {
+                    "event": "permission_request",
+                    "mode": "in_runtime",
+                },
             },
         )
         return Command(update={"messages": [tool_message]}, goto=END)
@@ -209,6 +221,19 @@ class GuardrailMiddleware(AgentMiddleware[AgentState]):
             tool_call_id=tool_call_id,
             name=tool_name,
             status="error",
+            additional_kwargs={
+                "tool_runtime": build_tool_runtime_metadata(
+                    status="failed" if reason_code == "oap.evaluator_error" else "denied",
+                    stage=ToolExecutionStage.CHECK_POLICY,
+                    tool_name=tool_name,
+                    tool_call_id=tool_call_id,
+                    reason_code=reason_code,
+                ),
+                "hook_event": {
+                    "event": "permission_denied",
+                    "mode": "in_runtime",
+                },
+            },
         )
 
     @override

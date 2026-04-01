@@ -17,6 +17,7 @@ from dataclasses import dataclass
 from langchain.tools import BaseTool
 from langchain_core.tools import tool
 from langchain_core.utils.function_calling import convert_to_openai_function
+from nion.tools.runtime_models import ToolExecutionTraits
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +34,8 @@ class DeferredToolEntry:
     name: str
     description: str
     tool: BaseTool  # Full tool object, returned only on search match
+    visibility: str = "deferred"
+    execution_traits: ToolExecutionTraits | None = None
 
 
 class DeferredToolRegistry:
@@ -47,6 +50,10 @@ class DeferredToolRegistry:
                 name=tool.name,
                 description=tool.description or "",
                 tool=tool,
+                execution_traits=ToolExecutionTraits(
+                    discoverable_only=True,
+                    supports_deferred_schema=True,
+                ),
             )
         )
 
