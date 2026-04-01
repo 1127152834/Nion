@@ -17,6 +17,7 @@ import { ThreadTitle } from "@/components/workspace/thread-title";
 import { TodoList } from "@/components/workspace/todo-list";
 import { TokenUsageIndicator } from "@/components/workspace/token-usage-indicator";
 import { Tooltip } from "@/components/workspace/tooltip";
+import { ToolActivityTimeline } from "@/components/workspace/messages/tool-activity-timeline";
 import { useAgent } from "@/core/agents";
 import { useI18n } from "@/core/i18n/hooks";
 import { useNotification } from "@/core/notification/hooks";
@@ -145,6 +146,14 @@ export default function AgentChatPage() {
               >
                 <div className="absolute -top-4 right-0 left-0 z-0">
                   <div className="absolute right-0 bottom-0 left-0">
+                    <ToolActivityTimeline
+                      className="bg-background/5"
+                      timeline={thread.values.tool_activity_timeline ?? []}
+                      hidden={
+                        !thread.values.tool_activity_timeline ||
+                        thread.values.tool_activity_timeline.length === 0
+                      }
+                    />
                     <TodoList
                       className="bg-background/5"
                       todos={thread.values.todos ?? []}
