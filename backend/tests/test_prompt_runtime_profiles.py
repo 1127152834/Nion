@@ -30,6 +30,10 @@ def test_apply_prompt_template_uses_prompt_runtime_artifact(monkeypatch) -> None
     assert "__PROMPT_DYNAMIC_BOUNDARY__" in prompt
     assert captured["context"].agent_name == "default"
     assert isinstance(captured["sections"], list)
+    keys = [section.key for section in captured["sections"]]
+    assert keys[0] == "core.prompt"
+    assert "dynamic.skills" in keys
+    assert "dynamic.current_date" in keys
 
 
 def test_apply_prompt_template_passes_available_skills_into_build_context(monkeypatch) -> None:
@@ -37,6 +41,7 @@ def test_apply_prompt_template_passes_available_skills_into_build_context(monkey
 
     def _fake_build_prompt_artifact(*, context, sections):
         captured["context"] = context
+        captured["sections"] = sections
         return PromptBuildArtifact(
             full_prompt="STATIC\n\n__PROMPT_DYNAMIC_BOUNDARY__\n\nDYNAMIC",
             static_prefix="STATIC",
@@ -56,6 +61,7 @@ def test_apply_prompt_template_passes_available_skills_into_build_context(monkey
 
     assert captured["context"].available_skills == {"bootstrap"}
     assert captured["context"].agent_name == "bootstrap"
+    assert any(section.key == "dynamic.skills" for section in captured["sections"])
 
 
 def test_subagent_prompt_runtime_context_marks_subagent_enabled(monkeypatch) -> None:
@@ -63,6 +69,7 @@ def test_subagent_prompt_runtime_context_marks_subagent_enabled(monkeypatch) -> 
 
     def _fake_build_prompt_artifact(*, context, sections):
         captured["context"] = context
+        captured["sections"] = sections
         return PromptBuildArtifact(
             full_prompt="STATIC\n\n__PROMPT_DYNAMIC_BOUNDARY__\n\nDYNAMIC",
             static_prefix="STATIC",
@@ -83,3 +90,4 @@ def test_subagent_prompt_runtime_context_marks_subagent_enabled(monkeypatch) -> 
 
     assert captured["context"].subagent_enabled is True
     assert captured["context"].max_concurrent_subagents == 4
+    assert any(section.key == "dynamic.subagent" for section in captured["sections"])

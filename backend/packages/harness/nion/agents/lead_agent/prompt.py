@@ -513,21 +513,17 @@ def apply_prompt_template(
         else ""
     )
 
-    full_prompt = SYSTEM_PROMPT_TEMPLATE.format(
+    core_prompt = SYSTEM_PROMPT_TEMPLATE.format(
         agent_name=agent_name or "Nion 2.0",
         soul=get_agent_soul(agent_name),
-        skills_section=skills_section,
-        deferred_tools_section=deferred_tools_section,
-        cli_tools_capability_section=cli_tools_capability_section,
-        acp_section=acp_section,
-        memory_context=memory_context,
-        subagent_section=subagent_section,
+        skills_section="",
+        deferred_tools_section="",
+        cli_tools_capability_section="",
+        acp_section="",
+        memory_context="",
+        subagent_section="",
         subagent_reminder=subagent_reminder,
         subagent_thinking=subagent_thinking,
-    )
-
-    dated_prompt = (
-        full_prompt + f"\n<current_date>{datetime.now().strftime('%Y-%m-%d, %A')}</current_date>"
     )
 
     context = PromptBuildContext(
@@ -554,15 +550,92 @@ def apply_prompt_template(
         ),
     )
 
-    sections = [
+    sections: list[PromptSection] = [
         PromptSection(
-            key="prompt.full",
+            key="core.prompt",
             title=None,
-            content=dated_prompt,
+            content=core_prompt,
             scope="global_static",
             layer="core",
             order=10,
         )
     ]
+
+    if memory_context:
+        sections.append(
+            PromptSection(
+                key="dynamic.memory",
+                title=None,
+                content=memory_context,
+                scope="session_dynamic",
+                layer="extension",
+                order=20,
+            )
+        )
+    if skills_section:
+        sections.append(
+            PromptSection(
+                key="dynamic.skills",
+                title=None,
+                content=skills_section,
+                scope="session_dynamic",
+                layer="extension",
+                order=30,
+            )
+        )
+    if deferred_tools_section:
+        sections.append(
+            PromptSection(
+                key="dynamic.deferred_tools",
+                title=None,
+                content=deferred_tools_section,
+                scope="session_dynamic",
+                layer="extension",
+                order=40,
+            )
+        )
+    if subagent_section:
+        sections.append(
+            PromptSection(
+                key="dynamic.subagent",
+                title=None,
+                content=subagent_section,
+                scope="session_dynamic",
+                layer="agent_overlay",
+                order=50,
+            )
+        )
+    if cli_tools_capability_section:
+        sections.append(
+            PromptSection(
+                key="dynamic.cli_tools",
+                title=None,
+                content=cli_tools_capability_section,
+                scope="session_dynamic",
+                layer="extension",
+                order=60,
+            )
+        )
+    if acp_section:
+        sections.append(
+            PromptSection(
+                key="dynamic.acp",
+                title=None,
+                content=acp_section,
+                scope="session_dynamic",
+                layer="extension",
+                order=70,
+            )
+        )
+    sections.append(
+        PromptSection(
+            key="dynamic.current_date",
+            title=None,
+            content=f"<current_date>{datetime.now().strftime('%Y-%m-%d, %A')}</current_date>",
+            scope="session_dynamic",
+            layer="extension",
+            order=80,
+        )
+    )
     artifact = build_prompt_artifact(context=context, sections=sections)
     return artifact.full_prompt
