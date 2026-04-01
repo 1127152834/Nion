@@ -21,9 +21,35 @@ export function resolvePreferredAutomationJobId(
 }
 
 export function pickDefaultAutomationRunId(runs: AutomationRun[]) {
-  const latestSucceeded = runs.find((run) => run.status === "succeeded");
+  const latestSucceeded = pickLatestAutomationRun(
+    runs.filter((run) => run.status === "succeeded"),
+  );
   if (latestSucceeded) {
     return latestSucceeded.id;
   }
-  return runs[0]?.id ?? null;
+  return pickLatestAutomationRun(runs)?.id ?? null;
+}
+
+function pickLatestAutomationRun(runs: AutomationRun[]) {
+  return runs.reduce<AutomationRun | null>((latest, candidate) => {
+    if (!latest) {
+      return candidate;
+    }
+
+    return timestampOfRun(candidate) > timestampOfRun(latest) ? candidate : latest;
+  }, null);
+}
+
+function timestampOfRun(run: AutomationRun) {
+  const primary = Date.parse(run.finished_at ?? run.started_at);
+  if (Number.isFinite(primary)) {
+    return primary;
+  }
+
+  const fallback = Date.parse(run.started_at);
+  if (Number.isFinite(fallback)) {
+    return fallback;
+  }
+
+  return Number.NEGATIVE_INFINITY;
 }

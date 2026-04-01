@@ -69,17 +69,31 @@ void test("defaults to latest succeeded run before falling back to latest run", 
     {
       id: "run-latest-succeeded",
       job_id: "job-1",
-      started_at: "2026-04-02T11:00:00Z",
-      finished_at: "2026-04-02T11:01:00Z",
+      started_at: "2026-04-02T13:00:00Z",
+      finished_at: "2026-04-02T13:01:00Z",
       status: "succeeded",
       result_summary: "ok",
       output_artifacts: [],
       delivery_results: [],
       isolated_thread_id: null,
     },
+    {
+      id: "run-older-succeeded",
+      job_id: "job-1",
+      started_at: "2026-04-02T10:00:00Z",
+      finished_at: "2026-04-02T10:01:00Z",
+      status: "succeeded",
+      result_summary: "older ok",
+      output_artifacts: [],
+      delivery_results: [],
+      isolated_thread_id: null,
+    },
   ];
 
-  assert.equal(pickDefaultAutomationRunId(runs), "run-latest-succeeded");
+  assert.equal(
+    pickDefaultAutomationRunId([runs[0]!, runs[2]!, runs[1]!]),
+    "run-latest-succeeded",
+  );
   assert.equal(pickDefaultAutomationRunId([runs[0]!]), "run-latest-failed");
   assert.equal(pickDefaultAutomationRunId([]), null);
 });
