@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronLeftIcon, ChevronRightIcon, History, Info, Minus, Sparkles, Tag, X } from "lucide-react";
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -12,6 +13,7 @@ import {
   useCreateMemoryCandidatesFromNotebook,
   useCreateProjectDraftFromNotebook,
 } from "@/core/object-bridges/hooks";
+import { pathOfObjectCandidate } from "@/core/navigation/desktop-routes";
 import { formatTimeAgo } from "@/core/utils/datetime";
 
 import { NotebookAssistantPanel } from "./notebook-assistant-panel";
@@ -130,12 +132,19 @@ export function NotebookContextPanel({
       return;
     }
     try {
-      await createProjectDraft.mutateAsync({
+      const result = await createProjectDraft.mutateAsync({
         note_ids: [note.note_id],
         fragment_ids: [],
         mode: "project_draft",
       });
-      toast.success("已生成项目草案候选，不会直接写入项目。");
+      toast.success(
+        <span>
+          已生成项目草案候选。
+          <Link href={pathOfObjectCandidate(String(result.candidate.id))} className="ml-1 underline">
+            去候选中心查看
+          </Link>
+        </span>,
+      );
     } catch (error) {
       toast.error(error instanceof Error ? error.message : String(error));
     }
@@ -146,11 +155,18 @@ export function NotebookContextPanel({
       return;
     }
     try {
-      await createMemoryCandidate.mutateAsync({
+      const result = await createMemoryCandidate.mutateAsync({
         note_ids: [note.note_id],
         fragment_ids: [],
       });
-      toast.success("已生成长期记忆候选，不会直接写入长期记忆。");
+      toast.success(
+        <span>
+          已生成长期记忆候选。
+          <Link href={pathOfObjectCandidate(String(result.candidate.id))} className="ml-1 underline">
+            去候选中心查看
+          </Link>
+        </span>,
+      );
     } catch (error) {
       toast.error(error instanceof Error ? error.message : String(error));
     }
