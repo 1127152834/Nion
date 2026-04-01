@@ -116,7 +116,13 @@ class ClarificationMiddleware(AgentMiddleware[ClarificationMiddlewareState]):
             content=formatted_message,
             tool_call_id=tool_call_id,
             name="ask_clarification",
-            additional_kwargs={"clarification": args},
+            additional_kwargs={
+                "clarification": args,
+                "hook_event": {
+                    "event": "user_prompt_submit",
+                    "mode": "in_runtime",
+                },
+            },
         )
 
         # Return a Command that:

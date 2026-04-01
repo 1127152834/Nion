@@ -42,7 +42,11 @@ class ToolErrorHandlingMiddleware(AgentMiddleware[AgentState]):
                     "stage": "execute",
                     "tool_name": tool_name,
                     "tool_call_id": tool_call_id,
-                }
+                },
+                "hook_event": {
+                    "event": "post_tool_use_failure",
+                    "mode": "in_runtime",
+                },
             },
         )
 

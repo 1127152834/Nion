@@ -201,6 +201,10 @@ class GuardrailMiddleware(AgentMiddleware[AgentState]):
                     "tool_name": tool_name,
                     "tool_call_id": tool_call_id,
                 },
+                "hook_event": {
+                    "event": "permission_request",
+                    "mode": "in_runtime",
+                },
             },
         )
         return Command(update={"messages": [tool_message]}, goto=END)
@@ -224,7 +228,11 @@ class GuardrailMiddleware(AgentMiddleware[AgentState]):
                     "tool_name": tool_name,
                     "tool_call_id": tool_call_id,
                     "reason_code": reason_code,
-                }
+                },
+                "hook_event": {
+                    "event": "permission_denied",
+                    "mode": "in_runtime",
+                },
             },
         )
 
