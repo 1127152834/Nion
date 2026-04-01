@@ -1,19 +1,17 @@
 "use client";
 
 import type { AutomationScheduleDefinition } from "@/core/automation/schedule-definition";
-import type { AutomationDeliveryMode, AutomationJobKind } from "@/core/automation/types";
+import type { AutomationJobKind } from "@/core/automation/types";
 import { useI18n } from "@/core/i18n/hooks";
 
 type AutomationPreviewCardProps = {
   kind: Extract<AutomationJobKind, "reminder" | "scheduled_task">;
   schedule: AutomationScheduleDefinition;
-  deliveryMode: AutomationDeliveryMode;
 };
 
 export function AutomationPreviewCard({
   kind,
   schedule,
-  deliveryMode,
 }: AutomationPreviewCardProps) {
   const { t } = useI18n();
   const copy = t.settings.automationWorkspace.forms;
@@ -23,7 +21,6 @@ export function AutomationPreviewCard({
       <div className="text-sm font-medium">{copy.previewLabel}</div>
       <div className="text-muted-foreground mt-2 space-y-1 text-sm">
         <div>{describeSchedule(schedule)}</div>
-        <div>{describeDelivery(copy, deliveryMode)}</div>
         <div>
           {kind === "scheduled_task"
             ? copy.previewTaskHint
@@ -54,13 +51,6 @@ function describeSchedule(schedule: AutomationScheduleDefinition) {
     return `Runs on custom schedule: ${schedule.cronExpression}`;
   }
   return "Runs on a custom schedule";
-}
-
-function describeDelivery(
-  copy: ReturnType<typeof useI18n>["t"]["settings"]["automationWorkspace"]["forms"],
-  deliveryMode: AutomationDeliveryMode,
-) {
-  return `${copy.previewDeliveryLabel}: ${copy.previewDeliveryModes[deliveryMode]}`;
 }
 
 function formatWeekdays(weekdays: number[]) {

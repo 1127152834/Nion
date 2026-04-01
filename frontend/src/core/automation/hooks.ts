@@ -1,5 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { getAPIClient } from "../api";
+import type { ThreadRecord } from "../api/thread-client";
+import type { AgentThreadState } from "../threads/types";
+
 import {
   createAutomationJob,
   loadAutomationJob,
@@ -49,6 +53,27 @@ export function useAutomationStatus() {
     refetchOnWindowFocus: false,
   });
   return { status: data ?? null, isLoading, error };
+}
+
+export function useAutomationRunThreadPreview(threadId: string | null | undefined) {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["automation", "thread-preview", threadId ?? null],
+    queryFn: async () => {
+      if (!threadId) {
+        throw new Error("threadId is required");
+      }
+      const apiClient = getAPIClient();
+      return await apiClient.getState<AgentThreadState>(threadId);
+    },
+    enabled: Boolean(threadId),
+    refetchOnWindowFocus: false,
+  });
+
+  return {
+    threadPreview: (data ?? null) satisfies ThreadRecord<AgentThreadState> | null,
+    isLoading,
+    error,
+  };
 }
 
 export function useCreateAutomationJob() {

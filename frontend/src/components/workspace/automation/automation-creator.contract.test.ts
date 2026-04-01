@@ -2,18 +2,18 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-void test("automation page uses the shared automation creator", async () => {
-  const source = await readFile(
-    new URL("./automation-page.tsx", import.meta.url),
+void test("automation console uses the shared automation creator", async () => {
+  const consoleSource = await readFile(new URL("./automation-console.tsx", import.meta.url), "utf8");
+  const createPanelSource = await readFile(
+    new URL("./automation-create-panel.tsx", import.meta.url),
     "utf8",
   );
 
-  assert.match(source, /AutomationCreator/);
-  assert.doesNotMatch(source, /<ReminderForm/);
-  assert.doesNotMatch(source, /<ScheduledTaskForm/);
+  assert.match(consoleSource, /AutomationCreatePanel/);
+  assert.match(createPanelSource, /AutomationCreator/);
 });
 
-void test("shared automation creator composes schedule builder and preview card", async () => {
+void test("shared automation creator keeps schedule builder and drops advanced controls", async () => {
   const creatorSource = await readFile(
     new URL("./automation-creator.tsx", import.meta.url),
     "utf8",
@@ -25,8 +25,10 @@ void test("shared automation creator composes schedule builder and preview card"
 
   assert.match(creatorSource, /ScheduleBuilder/);
   assert.match(creatorSource, /AutomationPreviewCard/);
-  assert.match(scheduleBuilderSource, /cadenceOptions\.interval/);
-  assert.match(scheduleBuilderSource, /cadenceOptions\.custom/);
+  assert.doesNotMatch(creatorSource, /advancedOptions/);
+  assert.doesNotMatch(creatorSource, /deliveryMode/);
+  assert.doesNotMatch(creatorSource, /skillsText/);
+  assert.match(scheduleBuilderSource, /structured-config/);
 });
 
 void test("schedule builder uses a custom date-time picker instead of native datetime-local", async () => {

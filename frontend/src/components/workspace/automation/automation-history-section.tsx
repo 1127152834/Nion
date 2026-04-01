@@ -17,11 +17,17 @@ import { useI18n } from "@/core/i18n/hooks";
 type AutomationHistorySectionProps = {
   runs: AutomationRun[];
   highlightedRunId?: string | null;
+  title?: string;
+  description?: string;
+  emptyMessage?: string;
 };
 
 export function AutomationHistorySection({
   runs,
   highlightedRunId,
+  title,
+  description,
+  emptyMessage,
 }: AutomationHistorySectionProps) {
   const { t } = useI18n();
   const copy = t.settings.automationWorkspace.sections;
@@ -37,8 +43,8 @@ export function AutomationHistorySection({
   return (
     <section className="space-y-4">
       <div className="space-y-1">
-        <h2 className="text-lg font-semibold">{copy.historyTitle}</h2>
-        <p className="text-muted-foreground text-sm">{copy.historyDescription}</p>
+        <h2 className="text-lg font-semibold">{title ?? copy.historyTitle}</h2>
+        <p className="text-muted-foreground text-sm">{description ?? copy.historyDescription}</p>
       </div>
       <div className="flex flex-wrap gap-2">
         {(["all", "failed", "succeeded"] as const).map((value) => (
@@ -58,7 +64,7 @@ export function AutomationHistorySection({
       </div>
       {filteredRuns.length === 0 ? (
         <div className="text-muted-foreground rounded-xl border border-dashed p-5 text-sm">
-          {copy.emptyHistory}
+          {emptyMessage ?? copy.emptyHistory}
         </div>
       ) : (
         <ItemGroup className="gap-3">

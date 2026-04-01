@@ -23,7 +23,11 @@ export function ScheduleBuilder({ value, onChange }: ScheduleBuilderProps) {
   const copy = t.settings.automationWorkspace.forms;
 
   return (
-    <div className="grid gap-4 md:grid-cols-2">
+    <div
+      data-testid="structured-config"
+      className="rounded-xl border bg-muted/20 p-4"
+    >
+      <div className="grid gap-4 md:grid-cols-2">
       <div className="space-y-2">
         <label className="text-sm font-medium" id="schedule-builder-cadence-label">
           {copy.cadenceLabel}
@@ -153,6 +157,7 @@ export function ScheduleBuilder({ value, onChange }: ScheduleBuilderProps) {
           />
         </div>
       ) : null}
+      </div>
     </div>
   );
 }

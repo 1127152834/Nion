@@ -22,7 +22,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { buildAutomationDraftRequest } from "@/core/automation/draft-builder";
 import type { AutomationScheduleDefinition } from "@/core/automation/schedule-definition";
 import type {
-  AutomationDeliveryMode,
   AutomationJobCreateInput,
   AutomationJobKind,
 } from "@/core/automation/types";
@@ -34,7 +33,7 @@ import { ScheduleBuilder } from "./schedule-builder";
 type AutomationCreatorProps = {
   isPending: boolean;
   defaultKind?: Extract<AutomationJobKind, "reminder" | "scheduled_task">;
-  onSubmit: (input: AutomationJobCreateInput) => Promise<void>;
+  onSubmit: (input: AutomationJobCreateInput) => Promise<unknown>;
 };
 
 export function AutomationCreator({
@@ -51,10 +50,6 @@ export function AutomationCreator({
     );
   const [name, setName] = useState("");
   const [prompt, setPrompt] = useState("");
-  const [showAdvanced, setShowAdvanced] = useState(false);
-  const [deliveryMode, setDeliveryMode] =
-    useState<AutomationDeliveryMode>("local");
-  const [skillsText, setSkillsText] = useState("");
 
   const timezone = useMemo(
     () => Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
@@ -80,20 +75,11 @@ export function AutomationCreator({
           ...schedule,
           timezone,
         },
-        deliveryMode,
-        skills:
-          kind === "scheduled_task"
-            ? skillsText
-                .split(",")
-                .map((item) => item.trim())
-                .filter(Boolean)
-            : [],
       }),
     );
 
     setName("");
     setPrompt("");
-    setSkillsText("");
   }
 
   const isTask = kind === "scheduled_task";
@@ -192,73 +178,7 @@ export function AutomationCreator({
         <AutomationPreviewCard
           kind={kind}
           schedule={{ ...schedule, timezone }}
-          deliveryMode={deliveryMode}
         />
-
-        <button
-          type="button"
-          className="text-sm font-medium underline-offset-4 hover:underline"
-          onClick={() => setShowAdvanced((value) => !value)}
-        >
-          {copy.advancedOptions}
-        </button>
-
-        {showAdvanced ? (
-          <div className="grid gap-4 rounded-xl border bg-muted/20 p-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <label
-                className="text-sm font-medium"
-                id="automation-delivery-mode-label"
-              >
-                {settingsCopy.deliveryModeLabel}
-              </label>
-              <Select
-                value={deliveryMode}
-                onValueChange={(value) =>
-                  setDeliveryMode(value as AutomationDeliveryMode)
-                }
-              >
-                <SelectTrigger aria-labelledby="automation-delivery-mode-label">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="local">
-                    {settingsCopy.deliveryModes.local}
-                  </SelectItem>
-                  <SelectItem value="thread">
-                    {settingsCopy.deliveryModes.thread}
-                  </SelectItem>
-                  <SelectItem value="channel">
-                    {settingsCopy.deliveryModes.channel}
-                  </SelectItem>
-                  <SelectItem value="multi">
-                    {settingsCopy.deliveryModes.multi}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            {isTask ? (
-              <div className="space-y-2">
-                <label className="text-sm font-medium" htmlFor="automation-skills">
-                  {settingsCopy.attachedSkillsLabel}
-                </label>
-                <Input
-                  id="automation-skills"
-                  value={skillsText}
-                  onChange={(event) => setSkillsText(event.target.value)}
-                  placeholder={settingsCopy.attachedSkillsPlaceholder}
-                />
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <div className="text-sm font-medium">{copy.previewLabel}</div>
-                <div className="text-muted-foreground text-sm">
-                  {copy.previewReminderAdvancedHint}
-                </div>
-              </div>
-            )}
-          </div>
-        ) : null}
 
         <div className="flex justify-end">
           <Button
