@@ -538,16 +538,184 @@ Prompt Runtime 需要内建最低限度的调试能力。
 
 - 为 SkillTool、MCP instructions、output style、future policy sections 提供正式 provider 接口
 
+## 测试方案
+
+Prompt Runtime 的测试不应该只验证“字符串里有没有某段文本”，而应该验证：
+
+- section 模型是否稳定
+- build artifact 是否可预测
+- static / dynamic boundary 是否正确
+- agent profile / provider 注入是否按预期生效
+- 迁移过程是否保持兼容
+
+建议分成 5 层测试。
+
+### 1. 纯模型单元测试
+
+目标：验证 `PromptSection`、`PromptBuildContext`、`PromptBuildArtifact` 这类纯数据模型的基本约束。
+
+覆盖点：
+
+- `PromptSection.scope` 只能是合法值
+- section 排序稳定
+- disabled section 不进入最终产物
+- manifest 与最终 prompt 顺序一致
+
+建议测试方式：
+
+- 纯 Python 单元测试
+- 不依赖真实 app config / skill loader / MCP
+
+### 2. Assembler 单元测试
+
+目标：验证 Prompt Assembler 本身的核心行为。
+
+覆盖点：
+
+- static sections 正确进入 `static_prefix`
+- dynamic sections 正确进入 `dynamic_suffix`
+- boundary marker 插入位置正确
+- `full_prompt == static_prefix + boundary + dynamic_suffix`
+- 同一个输入上下文重复构造时，产物稳定
+
+建议重点断言：
+
+- boundary 前后内容分类正确
+- 相同 context 多次构造结果一致
+- section manifest 可回溯每一段内容来源
+
+### 3. Provider 集成测试
+
+目标：验证现有能力迁移为 section provider 后，是否还能正确工作。
+
+覆盖对象：
+
+- memory provider
+- skills provider
+- deferred tools provider
+- ACP provider
+- subagent overlay provider
+
+覆盖点：
+
+- 各 provider 在启用时返回预期 section
+- 在禁用或无数据时返回空 section
+- provider 不直接污染别的 layer
+- provider 输出的 scope 与 layer 正确
+
+### 4. Agent Profile 集成测试
+
+目标：验证 lead / bootstrap / subagent / custom agent 在 prompt runtime 上的差异。
+
+覆盖点：
+
+- lead profile 包含完整功能段
+- bootstrap profile 限定 skill 集并启用 setup guidance
+- subagent profile 不继承 lead 的全部 section
+- custom / builtin agent 能通过 profile + overlay 控制行为
+
+建议测试方式：
+
+- 基于当前 `make_lead_agent()` 和 `apply_prompt_template()` 的调用路径做适配测试
+- 对比不同 profile 的 section manifest，而不是只对比最终字符串
+
+### 5. 兼容性回归测试
+
+目标：在迁移期确保用户可见行为没有被意外打断。
+
+覆盖点：
+
+- 默认 lead agent 的 prompt 语义与旧实现保持等价
+- subagent_enabled / cli_tools_enabled / available_skills 等输入仍能正确影响产物
+- 旧路径下的关键提醒段没有丢失
+- compact / resume 所需字段在 artifact 中可重建
+
+建议策略：
+
+- 为旧 `apply_prompt_template()` 输出保留一组 golden fixtures
+- 新 runtime 输出与旧版本做结构化对照
+- 允许文本轻微调整，但不允许丢失关键 section
+
+## 测试分层与命令建议
+
+建议至少提供下面几类测试入口：
+
+### Python 单元测试
+
+适合：
+
+- section model
+- assembler
+- provider
+- profile
+
+建议命名：
+
+- `backend/tests/test_prompt_runtime_sections.py`
+- `backend/tests/test_prompt_runtime_assembler.py`
+- `backend/tests/test_prompt_runtime_providers.py`
+- `backend/tests/test_prompt_runtime_profiles.py`
+
+### 回归测试
+
+适合：
+
+- 当前 lead agent prompt 的关键语义不丢失
+- subagent / bootstrap 差异仍存在
+
+建议命名：
+
+- `backend/tests/test_prompt_runtime_regression.py`
+
+### 调试输出测试
+
+适合：
+
+- section manifest 是否可生成
+- static/dynamic 长度统计是否存在
+
+建议命名：
+
+- `backend/tests/test_prompt_runtime_debug_artifact.py`
+
 ## 验收标准
 
-这份设计落地后，必须满足：
+这份设计落地后，必须满足下面这组更细化的验收条件。
+
+### A. 结构验收
 
 1. prompt 不再是一整块模板字符串
 2. section 可注册、排序、过滤、调试
 3. static / dynamic boundary 明确
-4. lead / subagent / bootstrap / custom agent 能通过 profile 和 overlay 管理
-5. memory / skills / deferred tools / ACP 不再直接靠模板占位插入
-6. compact / resume / SkillTool / MCP instructions 有明确扩展接口
+4. build artifact 同时暴露：
+   - `full_prompt`
+   - `static_prefix`
+   - `dynamic_suffix`
+   - `section_manifest`
+
+### B. 运行时验收
+
+5. lead / bootstrap / subagent / custom agent 能通过 profile 和 overlay 管理
+6. memory / skills / deferred tools / ACP 不再直接靠模板占位插入
+7. 新增 prompt 能力时，可以通过 section provider 接入，而不需要修改单体模板主体
+
+### C. 扩展性验收
+
+8. compact / resume / SkillTool / MCP instructions 有明确扩展接口
+9. output style、policy reminders、future hook-related sections 有可挂接位置
+
+### D. 可测试性验收
+
+10. assembler 可以独立单测
+11. provider 可以独立单测
+12. agent profile 差异可以通过 manifest 级断言验证
+13. 兼容性回归测试能证明默认 lead agent 行为未被意外破坏
+
+### E. 迁移验收
+
+14. 阶段 1 平移完成后，旧 prompt 语义与新 runtime 输出保持等价
+15. 阶段 2 引入 boundary 后，不影响当前主要行为
+16. 阶段 3 引入 agent profile 后，subagent / bootstrap / custom agent 行为差异仍然可解释且可回归验证
 
 ## 风险与取舍
 
