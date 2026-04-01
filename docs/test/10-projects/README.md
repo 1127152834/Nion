@@ -56,6 +56,7 @@ Projects 是顶层 Workspace 模块，用于管理长期工作的项目容器。
 - 时间线区展示最近项目事件
 - 受管产物区展示受管产物、版本摘要与恢复入口
 - 顶部操作区提供 `导出到笔记`、`提炼长期记忆` 两个候选式 bridge action 入口
+- 生成成功后应导向候选中心，而不是在 Projects 驾驶舱直接 apply
 
 ### 3. 项目会话
 
@@ -84,6 +85,7 @@ Projects 是顶层 Workspace 模块，用于管理长期工作的项目容器。
 - `导出到笔记` 只创建 notebook draft candidate，不直接写 Notebook 正文
 - `提炼长期记忆` 只创建 memory candidate，不直接写长期记忆
 - `attach notebook note` 必须通过 `/references/notebook-notes`，不能由页面直接改项目对象
+- 统一 review/apply 应通过 `/api/object-candidates/*`，不在项目页内复制 apply flow
 
 ### 7. 受管产物
 
@@ -103,6 +105,7 @@ Projects 是顶层 Workspace 模块，用于管理长期工作的项目容器。
 
 - `pnpm exec node --test src/components/workspace/recent-chat-list.contract.test.ts src/components/workspace/projects/project-routes.contract.test.ts src/core/navigation/desktop-routes.test.ts`
 - `pnpm exec node --test src/components/workspace/projects/project-pages.contract.test.ts src/core/object-bridges/api.test.ts`
+- `pnpm exec node --test src/components/workspace/candidates/candidate-center.contract.test.ts src/core/object-candidates/api.test.ts`
 - `pnpm exec tsc --noEmit -p tsconfig.json`
 
 ## 当前缺口

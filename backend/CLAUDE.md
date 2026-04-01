@@ -81,6 +81,7 @@ FastAPI application on port 8001 with health check at `GET /health`.
 | **Memory** (`/api/memory`) | memory data and config |
 | **Notebook** (`/api/notebook`) | notebook CRUD / history / restore / import / bridge candidate entrypoints |
 | **Projects** (`/api/projects`) | project list, dashboard, plans, threads, timeline, artifacts, memory, decisions, object bridge candidate entrypoints |
+| **Object Candidates** (`/api/object-candidates`) | list/detail/apply/dismiss/defer candidate center contract |
 | **Uploads** (`/api/threads/{id}/uploads`) | uploads list / delete |
 | **Artifacts** (`/api/threads/{id}/artifacts`) | serve artifacts |
 | **Suggestions** (`/api/threads/{id}/suggestions`) | follow-up question generation |
@@ -103,6 +104,7 @@ route surface aligned with the renderer expectations, including:
 - `/api/threads/{thread_id}/runtime-profile`
 - `/api/models`, `/api/config`, `/api/skills`, `/api/files`, `/api/cli/catalog`
 - `/api/projects`
+- `/api/object-candidates`
 - `/api/memory`
 - `/api/daemon/logs`, `/api/daemon/logs/tail`
 - `/api/daemon/diagnostics`, `/api/daemon/diagnostics/threads/{thread_id}`, `/api/daemon/diagnostics/skills/{skill_name}`
@@ -143,4 +145,5 @@ Important boundary:
 
 - Project is not a Notebook replacement and must not auto-write Notebook
 - Cross-object actions must stay candidate-first / draft-first; page entrypoints cannot bypass bridge APIs and directly write Notebook or Memory
+- Candidate review/apply must converge on `/api/object-candidates/*`; object pages can generate candidates but should not grow independent apply flows
 - Project threads are still normal thread runtime flows; `/api/projects/*` owns project state, not `/api/threads/*`
