@@ -91,6 +91,20 @@ export async function loadNotebookInbox(): Promise<NotebookInboxItem[]> {
   return json.items;
 }
 
+export async function loadNotebookAsset(assetId: string): Promise<NotebookAsset> {
+  const response = await fetch(`${getBackendBaseURL()}/api/notebook/assets/${assetId}`);
+  if (!response.ok) {
+    throw new Error(
+      resolveErrorMessage(
+        await response.text(),
+        `Failed to load notebook asset (${response.status})`,
+      ),
+    );
+  }
+  const json = await readJson<{ asset: NotebookAsset }>(response);
+  return json.asset;
+}
+
 export async function loadNotebookTrash(): Promise<NotebookDeletedNotePreview[]> {
   const response = await fetch(`${getBackendBaseURL()}/api/notebook/trash`);
   if (!response.ok) {

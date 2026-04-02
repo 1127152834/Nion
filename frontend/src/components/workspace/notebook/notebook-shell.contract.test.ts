@@ -12,6 +12,10 @@ void test("NotebookPage becomes a shell controller that renders extracted notebo
     new URL("./notebook-editor-pane.tsx", import.meta.url),
     "utf8",
   );
+  const assetViewSource = await readFile(
+    new URL("./notebook-asset-view.tsx", import.meta.url),
+    "utf8",
+  );
   const contextPanelSource = await readFile(
     new URL("./notebook-context-panel.tsx", import.meta.url),
     "utf8",
@@ -27,6 +31,8 @@ void test("NotebookPage becomes a shell controller that renders extracted notebo
   assert.match(pageSource, /<NotebookSidebar[\s\S]*treeNodes=\{treeNodes\}/);
   assert.match(pageSource, /useNotebookInbox/);
   assert.match(pageSource, /NotebookInboxPanel/);
+  assert.match(pageSource, /NotebookAssetView/);
+  assert.match(pageSource, /selectedAssetId/);
   assert.match(pageSource, /inboxItems=\{inboxItems\}/);
   assert.match(pageSource, /<NotebookEditorPane[\s\S]*draftBody=\{draftBody\}/);
   assert.match(pageSource, /<NotebookEditorPane[\s\S]*onSelectionChange=/);
@@ -36,5 +42,6 @@ void test("NotebookPage becomes a shell controller that renders extracted notebo
   assert.doesNotMatch(pageSource, /NotebookTreeItem/);
   assert.match(sidebarSource, /export function NotebookSidebar/);
   assert.match(editorPaneSource, /export function NotebookEditorPane/);
+  assert.match(assetViewSource, /export function NotebookAssetView/);
   assert.match(contextPanelSource, /export function NotebookContextPanel/);
 });

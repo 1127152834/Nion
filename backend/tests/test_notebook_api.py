@@ -205,6 +205,34 @@ def test_notebook_archive_asset_copies_thread_artifact(monkeypatch, tmp_path):
         assert (tmp_path / "notebook" / payload["relative_path"]).read_text(encoding="utf-8") == "<h1>Report</h1>"
 
 
+def test_notebook_asset_detail_returns_archived_asset(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+
+    source = tmp_path / "threads" / "thread-1" / "user-data" / "outputs" / "report.html"
+    source.parent.mkdir(parents=True, exist_ok=True)
+    source.write_text("<h1>Report</h1>", encoding="utf-8")
+
+    with TestClient(create_app()) as client:
+        created = client.post(
+            "/api/notebook/assets/archive",
+            json={
+                "thread_id": "thread-1",
+                "artifact_path": "/mnt/user-data/outputs/report.html",
+                "directory": "",
+            },
+        )
+        assert created.status_code == 200
+        asset_id = created.json()["asset"]["asset_id"]
+
+        detail = client.get(f"/api/notebook/assets/{asset_id}")
+
+        assert detail.status_code == 200
+        payload = detail.json()["asset"]
+        assert payload["asset_id"] == asset_id
+        assert payload["relative_path"].startswith("收件箱/")
+
+
 def test_notebook_metadata_patch_updates_tags_and_pin_state(monkeypatch, tmp_path):
     monkeypatch.setenv("NION_HOME", str(tmp_path))
     reset_paths()

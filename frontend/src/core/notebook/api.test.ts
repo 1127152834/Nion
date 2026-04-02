@@ -7,6 +7,7 @@ const {
   createNotebookDirectory,
   deleteNotebookDirectory,
   getNotebookDeletePreview,
+  loadNotebookAsset,
   loadNotebookImportSources,
   loadNotebookInbox,
   loadNotebookHistoryDetail,
@@ -223,6 +224,38 @@ void test("archiveNotebookAsset posts to the asset archive endpoint", async () =
     assert.match(seenUrl, /\/api\/notebook\/assets\/archive$/);
     assert.match(seenBody, /"thread_id":"thread-1"/);
     assert.equal(asset.asset_id, "asset_1");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+void test("loadNotebookAsset reads the asset detail endpoint", async () => {
+  const originalFetch = globalThis.fetch;
+  let seenUrl = "";
+
+  globalThis.fetch = async (input) => {
+    seenUrl = String(input);
+    return createJsonResponse({
+      asset: {
+        asset_id: "asset_1",
+        title: "report.html",
+        relative_path: "收件箱/report.html",
+        absolute_path: "/tmp/notebook/收件箱/report.html",
+        source_kind: "workspace_copy",
+        mime_type: "text/html",
+        created_at: "2026-04-02T00:00:00Z",
+        updated_at: "2026-04-02T00:00:00Z",
+        file_size: 18,
+        tags: [],
+      },
+    });
+  };
+
+  try {
+    const asset = await loadNotebookAsset("asset_1");
+    assert.match(seenUrl, /\/api\/notebook\/assets\/asset_1$/);
+    assert.equal(asset.asset_id, "asset_1");
+    assert.equal(asset.source_kind, "workspace_copy");
   } finally {
     globalThis.fetch = originalFetch;
   }

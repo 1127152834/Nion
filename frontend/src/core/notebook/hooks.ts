@@ -13,6 +13,7 @@ import {
   importNotebookContent,
   loadNotebookHistory,
   loadNotebookInbox,
+  loadNotebookAsset,
   loadNotebookHistoryDetail,
   loadNotebookImportSources,
   loadNotebookNote,
@@ -110,6 +111,16 @@ export function useNotebookNote(noteId: string | null) {
     isLoading,
     error,
   };
+}
+
+export function useNotebookAsset(assetId: string | null) {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["notebook", "asset", assetId],
+    queryFn: () => loadNotebookAsset(assetId!),
+    enabled: Boolean(assetId),
+    refetchOnWindowFocus: false,
+  });
+  return { asset: data ?? null, isLoading, error };
 }
 
 export function useNotebookHistory(noteId: string | null) {

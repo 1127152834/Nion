@@ -450,6 +450,15 @@ async def archive_notebook_asset(payload: NotebookArchiveAssetRequest) -> Notebo
     return NotebookAssetResponse(asset=asset)
 
 
+@router.get("/assets/{asset_id}", response_model=NotebookAssetResponse)
+async def get_notebook_asset(asset_id: str) -> NotebookAssetResponse:
+    try:
+        asset = NotebookHistoryService()._service.read_asset(asset_id)
+    except NotebookAssetNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return NotebookAssetResponse(asset=asset)
+
+
 @router.post("/directories", response_model=NotebookDirectoryResponse)
 async def create_notebook_directory(
     payload: NotebookDirectoryCreateRequest,
