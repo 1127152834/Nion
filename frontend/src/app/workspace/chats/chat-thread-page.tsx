@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
-import { useParams, usePathname } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { type PromptInputMessage } from "@/components/ai-elements/prompt-input";
@@ -40,14 +40,13 @@ import {
 } from "@/core/threads";
 import { getThreadRequestErrorCopy } from "@/core/threads/error-copy";
 import { useThreadStream } from "@/core/threads/hooks";
-import { pathOfProjectThread, pathOfThread, textOfMessage } from "@/core/threads/utils";
+import { pathOfThread, textOfMessage } from "@/core/threads/utils";
 import { env } from "@/env";
 import { cn } from "@/lib/utils";
 
 export default function ChatThreadPage() {
   const { t } = useI18n();
   const pathname = usePathname();
-  const params = useParams<{ project_id?: string }>();
   const searchParams = useSearchParams();
   const [settings, setSettings] = useLocalSettings();
 
@@ -129,15 +128,7 @@ export default function ChatThreadPage() {
     isMock,
     onStart: (startedThreadId) => {
       setIsNewThread(false);
-      if (pathname.startsWith("/workspace/projects/") && params.project_id) {
-        history.replaceState(
-          null,
-          "",
-          pathOfProjectThread(params.project_id, startedThreadId),
-        );
-      } else {
-        history.replaceState(null, "", pathOfThread(startedThreadId));
-      }
+      history.replaceState(null, "", pathOfThread(startedThreadId));
     },
     onFinish: (state) => {
       if (document.hidden || !document.hasFocus()) {

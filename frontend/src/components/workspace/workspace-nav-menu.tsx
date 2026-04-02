@@ -5,7 +5,6 @@ import {
   BookTextIcon,
   ChevronsUpDown,
   DatabaseIcon,
-  FolderKanbanIcon,
   InfoIcon,
   Settings2Icon,
   SettingsIcon,
@@ -31,7 +30,6 @@ import { useI18n } from "@/core/i18n/hooks";
 import {
   pathOfMemory,
   pathOfNotebook,
-  pathOfProjects,
 } from "@/core/navigation/desktop-routes";
 
 import { SettingsDialog } from "./settings";
@@ -67,7 +65,6 @@ export function WorkspaceNavMenu() {
   const router = useRouter();
   const notebookPath = pathOfNotebook();
   const memoryPath = pathOfMemory();
-  const projectsPath = pathOfProjects();
 
   useEffect(() => {
     setMounted(true);
@@ -127,15 +124,6 @@ export function WorkspaceNavMenu() {
                   >
                     <DatabaseIcon />
                     {t.sidebar.memory}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => {
-                      setSettingsOpen(false);
-                      router.push(projectsPath);
-                    }}
-                  >
-                    <FolderKanbanIcon />
-                    {t.sidebar.projects}
                   </DropdownMenuItem>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />

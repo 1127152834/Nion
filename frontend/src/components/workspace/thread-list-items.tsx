@@ -5,9 +5,7 @@ import Link from "next/link";
 
 import type { WorkspaceThreadType } from "@/core/threads/history-tabs";
 import {
-  pathOfProjectThread,
   pathOfThread,
-  projectInfoOfThread,
   titleOfThread,
 } from "@/core/threads/utils";
 import { formatTimeAgo } from "@/core/utils/datetime";
@@ -132,12 +130,7 @@ export function WorkspaceThreadListItem({
   selectionVariant = "inline",
   thread,
 }: WorkspaceThreadListItemProps) {
-  const projectInfo = projectInfoOfThread(thread);
-  const href = projectInfo
-    ? pathOfProjectThread(projectInfo.project_id, thread.thread_id, {
-        type: "project",
-      })
-    : pathOfThread(thread.thread_id, { type: currentType });
+  const href = pathOfThread(thread.thread_id, { type: currentType });
 
   return (
     <ThreadListRow

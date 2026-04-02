@@ -1,4 +1,4 @@
-import { HashRouter, Navigate, Route, Routes, useParams } from "react-router-dom";
+import { HashRouter, Navigate, Route, Routes } from "react-router-dom";
 
 import { ThemeProvider } from "@/components/theme-provider";
 import WorkspaceLayout from "@/app/workspace/layout";
@@ -11,9 +11,6 @@ import BridgePage from "@/app/workspace/bridge/page";
 import WorkspaceMemoryPage from "@/app/workspace/memory/page";
 import NotebookPage from "@/app/workspace/notebook/page";
 import NotebookTrashPage from "@/app/workspace/notebook/trash/page";
-import WorkspaceProjectThreadPage from "@/app/workspace/projects/[project_id]/threads/[thread_id]/page";
-import { ProjectDashboardPage } from "@/components/workspace/projects/project-dashboard-page";
-import { ProjectListPage } from "@/components/workspace/projects/project-list-page";
 import ToolPolicyPage from "@/app/workspace/tool-policy/page";
 import { I18nProvider } from "@/core/i18n/context";
 import { detectLocale } from "@/core/i18n";
@@ -22,14 +19,6 @@ import { DesktopImageProvider } from "./shims/image-context";
 
 function WorkspaceRoute({ children }: { children: React.ReactNode }) {
   return <WorkspaceLayout>{children}</WorkspaceLayout>;
-}
-
-function DesktopProjectDashboardRoute() {
-  const params = useParams<{ project_id: string }>();
-  if (!params.project_id) {
-    return <Navigate to="/workspace/projects" replace />;
-  }
-  return <ProjectDashboardPage projectId={params.project_id} />;
 }
 
 export function DesktopRendererApp() {
@@ -82,30 +71,6 @@ export function DesktopRendererApp() {
                 }
               />
               <Route
-                path="/workspace/projects"
-                element={
-                  <WorkspaceRoute>
-                    <ProjectListPage />
-                  </WorkspaceRoute>
-                }
-              />
-              <Route
-                path="/workspace/projects/:project_id"
-                element={
-                  <WorkspaceRoute>
-                    <DesktopProjectDashboardRoute />
-                  </WorkspaceRoute>
-                }
-              />
-              <Route
-                path="/workspace/projects/:project_id/threads/:thread_id"
-                element={
-                  <WorkspaceRoute>
-                    <WorkspaceProjectThreadPage />
-                  </WorkspaceRoute>
-                }
-              />
-              <Route
                 path="/workspace/notebook"
                 element={
                   <WorkspaceRoute>
@@ -137,6 +102,7 @@ export function DesktopRendererApp() {
                   </WorkspaceRoute>
                 }
               />
+                          <Route path="*" element={<Navigate to="/workspace/chats" replace />} />
             </Routes>
           </DesktopImageProvider>
         </I18nProvider>

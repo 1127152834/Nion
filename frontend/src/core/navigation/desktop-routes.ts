@@ -67,24 +67,6 @@ export function pathOfNewThread(
   return pathOfThread("new", extra);
 }
 
-export function pathOfProjects(
-  extra: Record<string, string | undefined> = {},
-) {
-  return withQuery("/workspace/projects", extra);
-}
-
-export function pathOfProject(projectId: string) {
-  return `/workspace/projects/${projectId}`;
-}
-
-export function pathOfProjectThread(
-  projectId: string,
-  threadId: string,
-  extra: Record<string, string | undefined> = {},
-) {
-  return withQuery(`/workspace/projects/${projectId}/threads/${threadId}`, extra);
-}
-
 export function pathOfAgentThread(
   agentName: string,
   threadId: string,

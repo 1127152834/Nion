@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Literal
@@ -13,7 +12,6 @@ from pydantic import BaseModel, Field
 from nion.config.paths import get_paths
 from nion.models import create_chat_model
 from nion.models.factory import resolve_model_name_with_fallback
-from nion.object_bridges.service import ObjectBridgeService
 from nion.notebook.assistant_service import (
     NotebookAssistantService,
     NotebookPendingRewrite,
@@ -223,33 +221,6 @@ class NotebookImportSourcesResponse(BaseModel):
     items: list[NotebookImportSourceItem] = Field(default_factory=list)
 
 
-class NotebookBridgeProjectDraftRequest(BaseModel):
-    note_ids: list[str]
-    fragment_ids: list[str] = Field(default_factory=list)
-    mode: Literal["project_draft"] = "project_draft"
-
-
-class NotebookBridgeProjectPlanDraftRequest(BaseModel):
-    project_id: str
-    note_ids: list[str]
-    fragment_ids: list[str] = Field(default_factory=list)
-
-
-class NotebookBridgeProjectConstraintRequest(BaseModel):
-    project_id: str
-    note_ids: list[str]
-    fragment_ids: list[str] = Field(default_factory=list)
-
-
-class NotebookBridgeMemoryCandidateRequest(BaseModel):
-    note_ids: list[str]
-    fragment_ids: list[str] = Field(default_factory=list)
-
-
-class BridgeCandidateEnvelope(BaseModel):
-    candidate: dict[str, object]
-
-
 def _now_iso() -> str:
     return datetime.now(UTC).isoformat()
 
@@ -321,10 +292,6 @@ def _list_chat_import_sources(limit: int) -> list[NotebookImportSourceItem]:
             break
 
     return candidates
-
-
-def _bridge_service() -> ObjectBridgeService:
-    return ObjectBridgeService(base_dir=get_paths().base_dir)
 
 
 def _visible_relpath(path: Path, root: Path) -> str | None:
@@ -423,50 +390,12 @@ async def get_notebook_import_sources(
     return NotebookImportSourcesResponse(items=_list_chat_import_sources(limit))
 
 
-@router.post("/bridge/project-drafts", response_model=BridgeCandidateEnvelope)
-async def create_project_draft_from_notebook(
-    payload: NotebookBridgeProjectDraftRequest,
-) -> BridgeCandidateEnvelope:
-    candidate = _bridge_service().create_project_from_notebook(
-        note_ids=payload.note_ids,
-        fragment_ids=payload.fragment_ids,
-    )
-    return BridgeCandidateEnvelope(candidate=asdict(candidate))
 
 
-@router.post("/bridge/project-plan-drafts", response_model=BridgeCandidateEnvelope)
-async def create_project_plan_draft_from_notebook(
-    payload: NotebookBridgeProjectPlanDraftRequest,
-) -> BridgeCandidateEnvelope:
-    candidate = _bridge_service().create_plan_from_notebook(
-        project_id=payload.project_id,
-        note_ids=payload.note_ids,
-        fragment_ids=payload.fragment_ids,
-    )
-    return BridgeCandidateEnvelope(candidate=asdict(candidate))
 
 
-@router.post("/bridge/project-constraint-candidates", response_model=BridgeCandidateEnvelope)
-async def create_project_constraint_candidates_from_notebook(
-    payload: NotebookBridgeProjectConstraintRequest,
-) -> BridgeCandidateEnvelope:
-    candidate = _bridge_service().extract_constraints_from_notebook(
-        project_id=payload.project_id,
-        note_ids=payload.note_ids,
-        fragment_ids=payload.fragment_ids,
-    )
-    return BridgeCandidateEnvelope(candidate=asdict(candidate))
 
 
-@router.post("/bridge/memory-candidates", response_model=BridgeCandidateEnvelope)
-async def create_memory_candidates_from_notebook(
-    payload: NotebookBridgeMemoryCandidateRequest,
-) -> BridgeCandidateEnvelope:
-    candidate = _bridge_service().extract_memory_from_notebook(
-        note_ids=payload.note_ids,
-        fragment_ids=payload.fragment_ids,
-    )
-    return BridgeCandidateEnvelope(candidate=asdict(candidate))
 
 
 @router.get("/trash", response_model=NotebookTrashResponse)

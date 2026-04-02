@@ -73,11 +73,6 @@ import { useMCPConfig } from "@/core/mcp/hooks";
 import { useModels } from "@/core/models/hooks";
 import { buildNotebookDirectoryOptions } from "@/core/notebook/directories";
 import { useNotebookTree } from "@/core/notebook/hooks";
-import {
-  useCreateProject,
-  useImportProjectThreadSnapshot,
-  useProjectThreadMentionCandidates,
-} from "@/core/projects";
 import { useSkills } from "@/core/skills/hooks";
 import type { Skill } from "@/core/skills/type";
 import type { AgentThreadContext } from "@/core/threads";
@@ -119,8 +114,7 @@ type MentionOption = {
     | "notebook-directory"
     | "skill"
     | "mcp"
-    | "cli"
-    | "project-thread";
+    | "cli";
   description?: string;
 };
 
@@ -687,26 +681,6 @@ export function InputBox({
     [cliConfig?.clis],
   );
 
-  const { data: projectThreadCandidates } = useProjectThreadMentionCandidates(
-    projectInfo?.project_id ?? null,
-    projectInfo?.project_id ? threadId : null,
-  );
-  const importProjectThreadSnapshot = useImportProjectThreadSnapshot(
-    projectInfo?.project_id ?? "",
-    threadId,
-  );
-
-  const projectThreadMentionOptions = useMemo<MentionOption[]>(
-    () =>
-      (projectThreadCandidates?.items ?? []).map((item) => ({
-        id: `project-thread:${item.thread_id}`,
-        label: item.thread_id,
-        value: item.thread_id,
-        kind: "project-thread" as const,
-        description: `${item.role} · 项目内会话`,
-      })),
-    [projectThreadCandidates?.items],
-  );
 
   const filteredMentionOptions = useMemo(() => {
     if (!mentionState) {
@@ -716,7 +690,6 @@ export function InputBox({
       mentionState.trigger === "@"
         ? [
             ...notebookDirectoryMentionOptions,
-            ...projectThreadMentionOptions,
             ...fileMentionOptions,
           ]
         : skillMentionOptions;
@@ -739,7 +712,6 @@ export function InputBox({
     fileMentionOptions,
     mentionState,
     notebookDirectoryMentionOptions,
-    projectThreadMentionOptions,
     skillMentionOptions,
   ]);
 
@@ -777,9 +749,6 @@ export function InputBox({
       }
       return groups;
     }
-    const projectThreads = remaining.filter(
-      (item) => item.kind === "project-thread",
-    );
     const notebookDirectories = remaining.filter(
       (item) => item.kind === "notebook-directory",
     );
@@ -790,13 +759,6 @@ export function InputBox({
         id: "notebook-directories",
         label: "Notebook",
         options: notebookDirectories.slice(0, 20),
-      });
-    }
-    if (projectThreads.length > 0) {
-      groups.push({
-        id: "project-threads",
-        label: "Project Threads",
-        options: projectThreads.slice(0, 20),
       });
     }
     if (directories.length > 0) {
@@ -1015,11 +977,7 @@ export function InputBox({
       textInput.setInput(nextValue);
       pushRecentMention(mentionState.trigger, option.value);
       if (mentionState.trigger === "@") {
-        if (option.kind === "project-thread") {
-          if (projectInfo?.project_id) {
-            void importProjectThreadSnapshot.mutateAsync(option.value);
-          }
-        } else if (option.kind === "notebook-directory") {
+        if (option.kind === "notebook-directory") {
           addSelectedObjectMention(
             buildNotebookDirectoryObjectMention({
               value: option.value,
@@ -1052,9 +1010,7 @@ export function InputBox({
       addSelectedContext,
       addSelectedSkill,
       focusMessageInput,
-      importProjectThreadSnapshot,
       mentionState,
-      projectInfo?.project_id,
       pushRecentMention,
       textInput,
     ],
@@ -1402,9 +1358,6 @@ export function InputBox({
                                   )}
                                   {option.kind === "file" && (
                                     <FileIcon className="size-3.5" />
-                                  )}
-                                  {option.kind === "project-thread" && (
-                                    <FolderKanbanIcon className="size-3.5" />
                                   )}
                                   {option.kind === "skill" && (
                                     <SparklesIcon className="size-3.5" />
@@ -2303,8 +2256,6 @@ export function InputBox({
 
 function SuggestionList() {
   const { t } = useI18n();
-  const router = useRouter();
-  const createProject = useCreateProject();
   const { textInput } = usePromptInputController();
   const handleSuggestionClick = useCallback(
     (prompt: string | undefined) => {
@@ -2358,17 +2309,6 @@ function SuggestionList() {
                   <DropdownMenuItem
                     key={suggestion.suggestion}
                     onClick={async () => {
-                      if (
-                        "action" in suggestion &&
-                        suggestion.action === "create-project"
-                      ) {
-                        const created = await createProject.mutateAsync({
-                          name: "新项目",
-                          goal: suggestion.prompt,
-                        });
-                        router.push(`/workspace/projects/${created.id}`);
-                        return;
-                      }
                       handleSuggestionClick(suggestion.prompt);
                     }}
                   >

@@ -614,7 +614,6 @@ export interface Translations {
     toggleSidebar: string;
     openNotebook: string;
     openMemory: string;
-    openProjects: string;
   };
 
   // Settings

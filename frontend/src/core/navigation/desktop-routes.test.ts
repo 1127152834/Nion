@@ -7,7 +7,6 @@ import {
   pathOfNotebook,
   pathOfNotebookSeededCreate,
   pathOfNotebookTrash,
-  pathOfProjectThread,
   pathOfThread,
 } from "./desktop-routes.ts";
 
@@ -18,10 +17,6 @@ void test("desktop routes keep notebook trash on its dedicated page", () => {
     "/workspace/chats?thread=thread-1&type=project",
   );
   assert.equal(pathOfChatHistoryType("bridge"), "/workspace/chats?type=bridge");
-  assert.equal(
-    pathOfProjectThread("project-1", "thread-1", { type: "project" }),
-    "/workspace/projects/project-1/threads/thread-1?type=project",
-  );
   assert.equal(
     pathOfAgentThread("writer", "thread-2"),
     "/workspace/agents?agent=writer&thread=thread-2",

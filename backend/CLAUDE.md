@@ -80,7 +80,6 @@ FastAPI application on port 8001 with health check at `GET /health`.
 | **MCP** (`/api/mcp`) | MCP config surfaces |
 | **Memory** (`/api/memory`) | memory data and config |
 | **Notebook** (`/api/notebook`) | notebook CRUD / history / restore / import / bridge candidate entrypoints |
-| **Projects** (`/api/projects`) | project list, dashboard, plans, threads, timeline, artifacts, memory, decisions, object bridge candidate entrypoints |
 | **Uploads** (`/api/threads/{id}/uploads`) | uploads list / delete |
 | **Artifacts** (`/api/threads/{id}/artifacts`) | serve artifacts |
 | **Suggestions** (`/api/threads/{id}/suggestions`) | follow-up question generation |
@@ -103,7 +102,6 @@ route surface aligned with the renderer expectations, including:
 - `/api/model-admin/*`
 - `/api/threads/{thread_id}/runtime-profile`
 - `/api/models`, `/api/config`, `/api/skills`, `/api/files`, `/api/cli/catalog`
-- `/api/projects`
 - `/api/memory`
 - `/api/daemon/logs`, `/api/daemon/logs/tail`
 - `/api/daemon/diagnostics`, `/api/daemon/diagnostics/threads/{thread_id}`, `/api/daemon/diagnostics/skills/{skill_name}`
@@ -138,8 +136,6 @@ The Project module is a top-level workspace surface for long-running work contai
 
 Current v1 lane includes:
 
-- top-level workspace route family under `/workspace/projects`
-- independent project chat routes under `/workspace/projects/{project_id}/threads/{thread_id}`
 - gateway-owned SQLite metadata store at `{NION_HOME}/projects.sqlite3`
 - project dashboard, execution plans, project threads, timeline, decisions, managed artifacts, and project memory summaries
 - object bridge candidate entrypoints for notebook draft export, long-term memory extraction, and notebook reference attachment
@@ -149,4 +145,3 @@ Important boundary:
 
 - Project is not a Notebook replacement and must not auto-write Notebook
 - Cross-object actions must stay candidate-first / draft-first; page entrypoints cannot bypass bridge APIs and directly write Notebook or Memory
-- Project threads are still normal thread runtime flows; `/api/projects/*` owns project state, not `/api/threads/*`

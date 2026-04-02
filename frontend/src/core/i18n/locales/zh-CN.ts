@@ -573,7 +573,6 @@ export const zhCN: Translations = {
     toggleSidebar: "切换侧边栏",
     openNotebook: "打开笔记",
     openMemory: "打开记忆",
-    openProjects: "打开项目",
   },
 
   // Settings
