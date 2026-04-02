@@ -79,10 +79,10 @@ def test_repository_updates_candidate_status(tmp_path) -> None:
     )
 
     repository.save_candidate(candidate)
-    updated = repository.update_candidate_status("cand-2", "applied")
+    updated = repository.update_candidate_status("cand-2", "ready")
 
-    assert updated.status == "applied"
-    assert repository.get_candidate("cand-2").status == "applied"
+    assert updated.status == "ready"
+    assert repository.get_candidate("cand-2").status == "ready"
 
 
 def test_repository_lists_candidates_by_status(tmp_path) -> None:

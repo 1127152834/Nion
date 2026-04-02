@@ -51,7 +51,7 @@ import {
   useSetPrimaryProjectThread,
   useStartProjectPlan,
 } from "@/core/projects";
-import { pathOfProjectThread } from "@/core/navigation/desktop-routes";
+import { pathOfObjectCandidate, pathOfProjectThread } from "@/core/navigation/desktop-routes";
 import { formatTimeAgo } from "@/core/utils/datetime";
 
 export function ProjectDashboardPage({ projectId }: { projectId: string }) {
@@ -129,12 +129,19 @@ export function ProjectDashboardPage({ projectId }: { projectId: string }) {
 
   const handleExportToNotebook = async () => {
     try {
-      await createNotebookDraft.mutateAsync({
+      const result = await createNotebookDraft.mutateAsync({
         kind: "summary",
         scope: "whole_project",
         target_directory: "收件箱",
       });
-      toast.success("已生成笔记草稿候选，默认导出到收件箱。");
+      toast.success(
+        <span>
+          已生成笔记草稿候选。
+          <Link href={pathOfObjectCandidate(String(result.candidate.id))} className="ml-1 underline">
+            去候选中心查看
+          </Link>
+        </span>,
+      );
     } catch (error) {
       toast.error(error instanceof Error ? error.message : String(error));
     }
@@ -142,11 +149,18 @@ export function ProjectDashboardPage({ projectId }: { projectId: string }) {
 
   const handleExtractLongTermMemory = async () => {
     try {
-      await createProjectMemoryCandidate.mutateAsync({
+      const result = await createProjectMemoryCandidate.mutateAsync({
         kind: "long_term_memory",
         scope: "whole_project",
       });
-      toast.success("已生成长期记忆候选，不会直接写入长期记忆。");
+      toast.success(
+        <span>
+          已生成长期记忆候选。
+          <Link href={pathOfObjectCandidate(String(result.candidate.id))} className="ml-1 underline">
+            去候选中心查看
+          </Link>
+        </span>,
+      );
     } catch (error) {
       toast.error(error instanceof Error ? error.message : String(error));
     }

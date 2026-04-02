@@ -1,10 +1,18 @@
 from __future__ import annotations
 
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 from uuid import uuid4
 
+from .candidate_handlers import (
+    compute_guard_state,
+    get_apply_handler,
+    source_summary,
+    target_summary,
+    with_candidate_actions,
+)
 from .repository import ObjectBridgeRepository
 from .models import (
     BridgeActionProvenance,
@@ -90,7 +98,210 @@ class ObjectBridgeService:
             created_at=_now_iso(),
             updated_at=_now_iso(),
         )
-        return self._repository.save_candidate(record)
+        return self._create_ready_candidate(record)
+
+    def mark_candidate_ready(
+        self,
+        candidate_id: str,
+        *,
+        actor_type: str,
+        reviewed_at: str | None = None,
+    ) -> BridgeCandidateRecord:
+        candidate = self._repository.mark_candidate_ready(
+            candidate_id,
+            actor_type=actor_type,
+            reviewed_at=reviewed_at,
+        )
+        return self._save_candidate(candidate)
+
+    def _transition_candidate(
+        self,
+        candidate_id: str,
+        *,
+        to_status: str,
+        actor_type: str,
+        action: str,
+        field_updates: dict[str, Any] | None = None,
+        event_payload: dict[str, Any] | None = None,
+        updated_at: str | None = None,
+    ) -> BridgeCandidateRecord:
+        candidate = self._repository.transition_candidate(
+            candidate_id,
+            to_status=to_status,  # type: ignore[arg-type]
+            actor_type=actor_type,
+            action=action,
+            field_updates=field_updates,
+            event_payload=event_payload,
+            updated_at=updated_at,
+        )
+        return self._save_candidate(candidate)
+
+    def dismiss_candidate(
+        self,
+        candidate_id: str,
+        *,
+        actor_type: str,
+        reason: str,
+    ) -> BridgeCandidateRecord:
+        candidate = self._repository.dismiss_candidate(
+            candidate_id,
+            actor_type=actor_type,
+            terminal_reason=reason,
+        )
+        return self._save_candidate(candidate)
+
+    def defer_candidate(
+        self,
+        candidate_id: str,
+        *,
+        actor_type: str,
+        deferred_until: str,
+        reason: str,
+    ) -> BridgeCandidateRecord:
+        candidate = self._repository.defer_candidate(
+            candidate_id,
+            deferred_until=deferred_until,
+            deferred_reason=reason,
+            actor_type=actor_type,
+        )
+        return self._save_candidate(candidate)
+
+    def list_candidates(
+        self,
+        *,
+        status: str | None = None,
+        candidate_type: str | None = None,
+    ) -> list[BridgeCandidateRecord]:
+        candidates = self._repository.list_candidates(
+            status=status,
+            candidate_type=candidate_type,
+        )
+        return [self._normalize_for_response(candidate) for candidate in candidates]
+
+    def get_candidate_detail(self, candidate_id: str) -> dict[str, Any]:
+        candidate = self._get_candidate(candidate_id)
+        guard_state = candidate.guard_state or compute_guard_state(candidate)
+        normalized = self._normalize_for_response(
+            replace(candidate, guard_state=guard_state)
+        )
+        return {
+            "candidate": normalized,
+            "provenance": normalized.provenance,
+            "action_history": self._repository.list_candidate_events(candidate_id),
+            "guard_state": guard_state,
+            "source_summary": source_summary(normalized),
+            "target_summary": target_summary(normalized),
+        }
+
+    def apply_candidate(self, candidate_id: str, *, actor_type: str) -> dict[str, Any]:
+        candidate = self._get_candidate(candidate_id)
+        if candidate.status != "ready":
+            raise ValueError(f"candidate {candidate_id} is not ready")
+
+        guard_state = compute_guard_state(candidate)
+        candidate = self._save_candidate(replace(candidate, guard_state=guard_state))
+        if not guard_state["is_applicable"]:
+            self._transition_candidate(
+                candidate_id,
+                to_status="expired",
+                actor_type=actor_type,
+                action="expired",
+                field_updates={
+                    "terminal_reason": "guard_rejected",
+                    "guard_state": guard_state,
+                },
+                event_payload={"terminal_reason": "guard_rejected"},
+            )
+            raise ValueError(f"guard rejected candidate {candidate_id}")
+
+        handler = get_apply_handler(candidate.candidate_type)
+        if handler is None:
+            raise ValueError(
+                f"no apply handler registered for candidate type: {candidate.candidate_type}"
+            )
+
+        try:
+            applied_target = handler.apply(candidate)
+        except RuntimeError as exc:
+            failed = self._repository.record_candidate_error(
+                candidate_id,
+                error_code="apply_failed",
+                message=str(exc),
+                actor_type=actor_type,
+            )
+            self._save_candidate(replace(failed, guard_state=guard_state))
+            raise RuntimeError(f"apply failed: {exc}") from exc
+
+        applied_at = _now_iso()
+        applied = self._transition_candidate(
+            candidate_id,
+            to_status="applied",
+            actor_type=actor_type,
+            action="applied",
+            field_updates={
+                "applied_at": applied_at,
+                "applied_by": actor_type,
+                "guard_state": guard_state,
+            },
+            event_payload={
+                "applied_target": applied_target,
+                "applied_at": applied_at,
+            },
+            updated_at=applied_at,
+        )
+        return {
+            "candidate": applied,
+            "applied_target": applied_target,
+            "applied_at": applied_at,
+        }
+
+    def persist_candidate_for_tests(self, candidate: BridgeCandidateRecord) -> BridgeCandidateRecord:
+        return self._save_candidate(candidate)
+
+    def _get_candidate(self, candidate_id: str) -> BridgeCandidateRecord:
+        candidate = self._repository.get_candidate(candidate_id)
+        if candidate is None:
+            raise KeyError(candidate_id)
+        return self._normalize_candidate(candidate)
+
+    def _save_candidate(self, candidate: BridgeCandidateRecord) -> BridgeCandidateRecord:
+        normalized = self._normalize_for_response(candidate)
+        return self._repository.save_candidate(normalized)
+
+    def _create_ready_candidate(self, candidate: BridgeCandidateRecord) -> BridgeCandidateRecord:
+        stored = self._repository.save_candidate(candidate)
+        ready = self._repository.mark_candidate_ready(
+            stored.id,
+            actor_type="agent",
+        )
+        return self._save_candidate(ready)
+
+    def _normalize_candidate(self, candidate: BridgeCandidateRecord) -> BridgeCandidateRecord:
+        normalized_provenance: list[BridgeActionProvenance] = []
+        for provenance in candidate.provenance:
+            if isinstance(provenance, BridgeActionProvenance):
+                normalized_provenance.append(provenance)
+                continue
+
+            source_objects = [
+                source
+                if isinstance(source, ObjectProvenance)
+                else ObjectProvenance(**source)
+                for source in provenance.get("source_objects", [])
+            ]
+            normalized_provenance.append(
+                BridgeActionProvenance(
+                    action_name=provenance["action_name"],
+                    source_objects=source_objects,
+                    initiated_by=provenance["initiated_by"],
+                    approval_mode=provenance["approval_mode"],
+                    created_at=provenance["created_at"],
+                )
+            )
+        return replace(candidate, provenance=normalized_provenance)
+
+    def _normalize_for_response(self, candidate: BridgeCandidateRecord) -> BridgeCandidateRecord:
+        return with_candidate_actions(self._normalize_candidate(candidate))
 
     def create_plan_from_notebook(
         self,
@@ -120,7 +331,7 @@ class ObjectBridgeService:
             created_at=_now_iso(),
             updated_at=_now_iso(),
         )
-        return self._repository.save_candidate(record)
+        return self._create_ready_candidate(record)
 
     def extract_constraints_from_notebook(
         self,
@@ -153,7 +364,7 @@ class ObjectBridgeService:
             created_at=_now_iso(),
             updated_at=_now_iso(),
         )
-        return self._repository.save_candidate(record)
+        return self._create_ready_candidate(record)
 
     def export_project_summary_to_notebook(
         self,
@@ -188,7 +399,7 @@ class ObjectBridgeService:
             created_at=_now_iso(),
             updated_at=_now_iso(),
         )
-        return self._repository.save_candidate(record)
+        return self._create_ready_candidate(record)
 
     def extract_long_term_memory_from_project(
         self,
@@ -221,7 +432,7 @@ class ObjectBridgeService:
             created_at=_now_iso(),
             updated_at=_now_iso(),
         )
-        return self._repository.save_candidate(record)
+        return self._create_ready_candidate(record)
 
     def extract_memory_from_notebook(
         self,
@@ -254,7 +465,7 @@ class ObjectBridgeService:
             created_at=_now_iso(),
             updated_at=_now_iso(),
         )
-        return self._repository.save_candidate(record)
+        return self._create_ready_candidate(record)
 
     def extract_skill_candidate_from_project(
         self,
@@ -286,7 +497,7 @@ class ObjectBridgeService:
             created_at=_now_iso(),
             updated_at=_now_iso(),
         )
-        return self._repository.save_candidate(record)
+        return self._create_ready_candidate(record)
 
     def attach_notebook_note_to_project(
         self,
