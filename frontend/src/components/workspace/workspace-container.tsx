@@ -91,7 +91,7 @@ export function WorkspaceHeader({
         </Breadcrumb>
       </div>
       <div className="pr-4">
-        <Tooltip content={t.workspace.githubTooltip}>
+        <Tooltip content={t.workspace.visitGithub}>
           <a
             href="https://github.com/huanxi/nion"
             target="_blank"
