@@ -72,13 +72,19 @@ export function MemoryMapNav(props: {
               <button
                 type="button"
                 onClick={() => props.onSectionChange(group.section, firstLeaf.key)}
-                className={`w-full rounded-md px-3 py-2 text-left text-sm font-semibold transition-colors ${
+                className={`w-full border-b border-[color:var(--border)] px-1 py-2 text-left text-sm font-semibold transition-colors ${
                   sectionActive
-                    ? "bg-foreground text-background"
-                    : "bg-[color:var(--muted)] text-foreground"
+                    ? "text-foreground"
+                    : "text-foreground/70"
                 }`}
               >
-                {group.label}
+                <span
+                  className={`inline-block ${
+                    sectionActive ? "border-b-2 border-foreground pb-1" : "pb-1"
+                  }`}
+                >
+                  {group.label}
+                </span>
               </button>
               <div className="divide-y divide-[color:var(--border)]">
                 {group.leaves.map((leaf) => {
@@ -88,13 +94,19 @@ export function MemoryMapNav(props: {
                       key={leaf.key}
                       type="button"
                       onClick={() => props.onSectionChange(group.section, leaf.key)}
-                      className={`flex w-full items-center rounded-md px-3 py-3 text-left text-sm transition-colors ${
+                      className={`flex w-full items-center px-1 py-3 text-left text-sm transition-colors ${
                         leafActive
-                          ? "bg-[color:color-mix(in_srgb,var(--muted)_62%,white)] font-semibold text-foreground"
-                          : "bg-transparent text-foreground/85"
+                          ? "font-semibold text-foreground"
+                          : "text-foreground/85"
                       }`}
                     >
-                      <span>{leaf.label}</span>
+                      <span
+                        className={`inline-block ${
+                          leafActive ? "border-b-2 border-foreground pb-1" : "pb-1"
+                        }`}
+                      >
+                        {leaf.label}
+                      </span>
                     </button>
                   );
                 })}
