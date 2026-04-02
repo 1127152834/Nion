@@ -119,6 +119,12 @@ export interface NotebookCreateInput {
   body: string;
 }
 
+export interface NotebookArchiveAssetInput {
+  thread_id: string;
+  artifact_path: string;
+  directory: string;
+}
+
 export interface NotebookDirectoryCreateInput {
   parent_directory: string;
   name: string;

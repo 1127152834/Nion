@@ -534,6 +534,10 @@ export const enUS: Translations = {
     infoContentHash: "Content hash",
     saveFromChat: "Save to notebook",
     saveLastReply: "Save last reply",
+    saveArtifact: "Save artifact",
+    saveArtifactDescription:
+      "Copy the current work artifact into Notebook. It goes to Inbox by default, or you can choose a folder.",
+    saveArtifactSuccess: "{title} was saved to Notebook",
     trashTitle: "Notebook trash",
     trashDescription:
       "Recover deleted notes before they are permanently purged in a later workflow.",

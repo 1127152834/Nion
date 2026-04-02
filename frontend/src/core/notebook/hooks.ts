@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 
 import {
   applyNotebookAssist,
+  archiveNotebookAsset,
   cancelNotebookRewrite,
   createNotebookDirectory,
   createNotebookNote,
@@ -33,6 +34,7 @@ import { mergePendingRewriteWithInitial } from "./pending-rewrite.util.ts";
 import type {
   NotebookAssistApplyInput,
   NotebookAssistPreviewInput,
+  NotebookArchiveAssetInput,
   NotebookCreateInput,
   NotebookDirectoryCreateInput,
   NotebookDirectoryDeleteInput,
@@ -146,6 +148,19 @@ export function useCreateNotebookNote() {
     mutationFn: async (input: NotebookCreateInput) => createNotebookNote(input),
     onSuccess: async (note) => {
       await invalidateNotebookQueries(queryClient, note.note_id);
+    },
+  });
+}
+
+export function useArchiveNotebookAsset() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: NotebookArchiveAssetInput) => archiveNotebookAsset(input),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["notebook", "inbox"] }),
+        queryClient.invalidateQueries({ queryKey: ["notebook", "tree"] }),
+      ]);
     },
   });
 }

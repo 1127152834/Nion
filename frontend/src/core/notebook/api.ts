@@ -4,6 +4,8 @@ import type {
   NotebookAssistApplyInput,
   NotebookAssistPreview,
   NotebookAssistPreviewInput,
+  NotebookArchiveAssetInput,
+  NotebookAsset,
   NotebookCreateInput,
   NotebookDirectoryCreateInput,
   NotebookDirectoryDeleteInput,
@@ -132,6 +134,26 @@ export async function createNotebookNote(input: NotebookCreateInput): Promise<No
   }
   const json = await readJson<{ note: NotebookNote }>(response);
   return json.note;
+}
+
+export async function archiveNotebookAsset(
+  input: NotebookArchiveAssetInput,
+): Promise<NotebookAsset> {
+  const response = await fetch(`${getBackendBaseURL()}/api/notebook/assets/archive`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) {
+    throw new Error(
+      resolveErrorMessage(
+        await response.text(),
+        `Failed to archive notebook asset (${response.status})`,
+      ),
+    );
+  }
+  const json = await readJson<{ asset: NotebookAsset }>(response);
+  return json.asset;
 }
 
 export async function createNotebookDirectory(

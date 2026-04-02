@@ -87,6 +87,34 @@ def test_move_note_moves_existing_attachment_directory(tmp_path):
     assert (moved_attachment_dir / "image.png").exists()
 
 
+def test_archive_workspace_asset_creates_notebook_copy(tmp_path):
+    service = NotebookService(base_dir=tmp_path)
+    source = tmp_path / "threads" / "thread-1" / "user-data" / "outputs" / "report.html"
+    source.parent.mkdir(parents=True, exist_ok=True)
+    source.write_text("<h1>Report</h1>", encoding="utf-8")
+
+    asset = service.archive_asset(source_path=str(source), directory="")
+
+    assert asset.relative_path.startswith("收件箱/")
+    assert asset.source_kind == "workspace_copy"
+    assert Path(asset.absolute_path).read_text(encoding="utf-8") == "<h1>Report</h1>"
+
+
+def test_list_inbox_items_includes_archived_assets(tmp_path):
+    service = NotebookService(base_dir=tmp_path)
+    source = tmp_path / "workspace" / "snapshot.html"
+    source.parent.mkdir(parents=True, exist_ok=True)
+    source.write_text("<p>snapshot</p>", encoding="utf-8")
+
+    note = service.create_note(directory="", title="Inbox Note", body="body")
+    asset = service.archive_asset(source_path=str(source), directory="")
+    items = service.list_inbox_items()
+
+    assert {item.entry_type for item in items} == {"note", "asset"}
+    assert any(item.note_id == note.note_id for item in items)
+    assert any(item.asset_id == asset.asset_id for item in items)
+
+
 def test_update_note_rejects_stale_content_hash(tmp_path):
     service = NotebookService(base_dir=tmp_path)
     created = service.create_note(directory="", title="Conflict Note", body="one")

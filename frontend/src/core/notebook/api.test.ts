@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 const {
+  archiveNotebookAsset,
   createNotebookNote,
   createNotebookDirectory,
   deleteNotebookDirectory,
@@ -180,6 +181,48 @@ void test("createNotebookNote posts to the create endpoint", async () => {
     assert.equal(seenMethod, "POST");
     assert.match(seenBody, /"title":"Roadmap"/);
     assert.equal(result.note_id, "note_1");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+void test("archiveNotebookAsset posts to the asset archive endpoint", async () => {
+  const originalFetch = globalThis.fetch;
+  let seenMethod = "";
+  let seenUrl = "";
+  let seenBody = "";
+
+  globalThis.fetch = async (input, init) => {
+    seenMethod = init?.method ?? "";
+    seenUrl = String(input);
+    seenBody = String(init?.body ?? "");
+    return createJsonResponse({
+      asset: {
+        asset_id: "asset_1",
+        title: "report.html",
+        relative_path: "收件箱/report.html",
+        absolute_path: "/tmp/notebook/收件箱/report.html",
+        source_kind: "workspace_copy",
+        mime_type: "text/html",
+        created_at: "2026-04-02T00:00:00Z",
+        updated_at: "2026-04-02T00:00:00Z",
+        file_size: 18,
+        tags: [],
+      },
+    });
+  };
+
+  try {
+    const asset = await archiveNotebookAsset({
+      thread_id: "thread-1",
+      artifact_path: "/mnt/user-data/outputs/report.html",
+      directory: "",
+    });
+
+    assert.equal(seenMethod, "POST");
+    assert.match(seenUrl, /\/api\/notebook\/assets\/archive$/);
+    assert.match(seenBody, /"thread_id":"thread-1"/);
+    assert.equal(asset.asset_id, "asset_1");
   } finally {
     globalThis.fetch = originalFetch;
   }
