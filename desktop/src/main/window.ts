@@ -1,12 +1,15 @@
-import { BrowserWindow } from "electron";
+import { BrowserWindow, type BrowserWindowConstructorOptions } from "electron";
 
 export type MainWindowOptions = {
   preloadPath: string;
   rendererUrl: string;
 };
 
-export async function createMainWindow(options: MainWindowOptions): Promise<BrowserWindow> {
-  const window = new BrowserWindow({
+export function buildMainWindowOptions(
+  options: MainWindowOptions,
+  platform: NodeJS.Platform = process.platform,
+): BrowserWindowConstructorOptions {
+  const windowOptions: BrowserWindowConstructorOptions = {
     width: 1440,
     height: 960,
     minWidth: 1180,
@@ -18,7 +21,17 @@ export async function createMainWindow(options: MainWindowOptions): Promise<Brow
       nodeIntegration: false,
       sandbox: false,
     },
-  });
+  };
+
+  if (platform === "darwin") {
+    windowOptions.titleBarStyle = "hiddenInset";
+  }
+
+  return windowOptions;
+}
+
+export async function createMainWindow(options: MainWindowOptions): Promise<BrowserWindow> {
+  const window = new BrowserWindow(buildMainWindowOptions(options));
   const isDev = !process.mainModule?.filename.includes("app.asar");
 
   if (isDev) {
