@@ -49,6 +49,7 @@ class AutomationRun(BaseModel):
     result_summary: str = ""
     output_artifacts: list[str] = Field(default_factory=list)
     delivery_results: list[dict[str, Any]] = Field(default_factory=list)
+    isolated_thread_id: str | None = None
 
 
 class AutomationExecutionOutput(BaseModel):

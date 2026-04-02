@@ -118,6 +118,11 @@ If a gateway route is added and the Electron renderer consumes it, update
 `app/daemon/app.py` too or the desktop shell will return 404 while the web/gateway
 path keeps working.
 
+Automation console contract rules:
+
+- Keep `isolated_thread_id` on automation runs end-to-end so the frontend automation console can preview the execution thread for each run.
+- Do not invent a parallel automation run-detail subsystem in the UI stack; prefer reusing existing thread state and thread routes for run preview surfaces.
+
 When Electron reports `Timed out waiting for daemon health`, treat it as a daemon
 startup regression first, not an Electron-only issue. Validate with:
 

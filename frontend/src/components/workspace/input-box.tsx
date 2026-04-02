@@ -60,11 +60,19 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import {
+  buildNotebookDirectoryObjectMention,
+  buildNotebookDirectoryMentionOptions,
+  buildObjectImplicitMentions,
+  type ObjectMention,
+} from "@/core/automation/object-mentions";
 import { useCLIConfig } from "@/core/cli";
 import { getBackendBaseURL } from "@/core/config";
 import { useI18n } from "@/core/i18n/hooks";
 import { useMCPConfig } from "@/core/mcp/hooks";
 import { useModels } from "@/core/models/hooks";
+import { buildNotebookDirectoryOptions } from "@/core/notebook/directories";
+import { useNotebookTree } from "@/core/notebook/hooks";
 import {
   useCreateProject,
   useImportProjectThreadSnapshot,
@@ -105,7 +113,14 @@ type MentionOption = {
   id: string;
   label: string;
   value: string;
-  kind: "file" | "directory" | "skill" | "mcp" | "cli" | "project-thread";
+  kind:
+    | "file"
+    | "directory"
+    | "notebook-directory"
+    | "skill"
+    | "mcp"
+    | "cli"
+    | "project-thread";
   description?: string;
 };
 
@@ -255,9 +270,15 @@ function parseMentions(
   selectedSkills: string[],
   selectedContexts: SelectedContextTag[],
   selectedMcpTools: string[],
-): Array<{ type: "skill" | "context" | "tool"; value: string; start: number; end: number }> {
+  selectedObjectMentions: ObjectMention[],
+): Array<{
+  type: "skill" | "context" | "tool" | "object";
+  value: string;
+  start: number;
+  end: number;
+}> {
   const mentions: Array<{
-    type: "skill" | "context" | "tool";
+    type: "skill" | "context" | "tool" | "object";
     value: string;
     start: number;
     end: number;
@@ -299,6 +320,15 @@ function parseMentions(
         start: match.index + leadingWhitespace.length,
         end: match.index + fullMatch.length,
       });
+    } else if (
+      selectedObjectMentions.some((mention) => mention.value === value)
+    ) {
+      mentions.push({
+        type: "object",
+        value,
+        start: match.index + leadingWhitespace.length,
+        end: match.index + fullMatch.length,
+      });
     } else if (selectedContexts.some((context) => context.value === value)) {
       mentions.push({
         type: "context",
@@ -317,7 +347,12 @@ function MentionHighlightOverlay({
   mentions,
 }: {
   text: string;
-  mentions: Array<{ type: "skill" | "context" | "tool"; value: string; start: number; end: number }>;
+  mentions: Array<{
+    type: "skill" | "context" | "tool" | "object";
+    value: string;
+    start: number;
+    end: number;
+  }>;
 }) {
   const segments: Array<{ text: string; isMention: boolean; type?: string }> = [];
   let lastIndex = 0;
@@ -352,6 +387,8 @@ function MentionHighlightOverlay({
           const colorClass =
             segment.type === "skill"
               ? "bg-purple-500/30 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300"
+              : segment.type === "object"
+                ? "bg-amber-500/30 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300"
               : segment.type === "context"
                 ? "bg-blue-500/30 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300"
                 : "bg-green-500/30 text-green-700 dark:bg-green-500/20 dark:text-green-300";
@@ -377,6 +414,7 @@ function buildSubmissionPayload(
   selectedContexts: SelectedContextTag[],
   selectedMcpTools: string[],
   selectedCliTools: string[],
+  selectedObjectMentions: ObjectMention[],
 ) {
   const trimmed = text.trim();
   const implicitMentions: NonNullable<PromptInputMessage["implicitMentions"]> = [];
@@ -409,6 +447,18 @@ function buildSubmissionPayload(
   for (const tool of selectedCliTools) {
     appendImplicitMention("cli", tool, `#${tool}`);
   }
+  implicitMentions.push(
+    ...buildObjectImplicitMentions({
+      text: trimmed,
+      mentions: selectedObjectMentions,
+    }).filter((mention) => {
+      if (seenMentions.has(mention.mention)) {
+        return false;
+      }
+      seenMentions.add(mention.mention);
+      return true;
+    }),
+  );
 
   const mentionLine = implicitMentions.map((item) => item.mention).join(" ");
   return {
@@ -485,6 +535,7 @@ export function InputBox({
   const { skills } = useSkills();
   const { config: mcpConfig } = useMCPConfig();
   const { config: cliConfig } = useCLIConfig();
+  const { tree: notebookTree } = useNotebookTree();
   const { thread, isMock } = useThread();
   const projectInfo = thread.values.project;
   const { textInput } = usePromptInputController();
@@ -495,6 +546,7 @@ export function InputBox({
   const [selectedMcpTools, setSelectedMcpTools] = useState<string[]>([]);
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const [selectedCliTools, setSelectedCliTools] = useState<string[]>([]);
+  const [selectedObjectMentions, setSelectedObjectMentions] = useState<ObjectMention[]>([]);
   const [recentMentions, setRecentMentions] = useState<RecentMentionsState>({
     "@": [],
     "/": [],
@@ -580,6 +632,17 @@ export function InputBox({
     [workspacePaths],
   );
 
+  const notebookDirectoryMentionOptions = useMemo<MentionOption[]>(
+    () =>
+      buildNotebookDirectoryMentionOptions(
+        buildNotebookDirectoryOptions({
+          entries: notebookTree.directories,
+          includeInbox: true,
+        }),
+      ),
+    [notebookTree.directories],
+  );
+
   const skillMentionOptions = useMemo<MentionOption[]>(
     () =>
       skills.map((skill: Skill) => ({
@@ -651,7 +714,11 @@ export function InputBox({
     }
     const source =
       mentionState.trigger === "@"
-        ? [...projectThreadMentionOptions, ...fileMentionOptions]
+        ? [
+            ...notebookDirectoryMentionOptions,
+            ...projectThreadMentionOptions,
+            ...fileMentionOptions,
+          ]
         : skillMentionOptions;
     const normalizedQuery = mentionState.query.trim().toLowerCase();
     return source
@@ -668,7 +735,13 @@ export function InputBox({
       })
       .slice(0, 80)
       .map((item) => item.option);
-  }, [fileMentionOptions, mentionState, projectThreadMentionOptions, skillMentionOptions]);
+  }, [
+    fileMentionOptions,
+    mentionState,
+    notebookDirectoryMentionOptions,
+    projectThreadMentionOptions,
+    skillMentionOptions,
+  ]);
 
   const mentionGroups = useMemo<MentionGroup[]>(() => {
     if (!mentionState) {
@@ -707,8 +780,18 @@ export function InputBox({
     const projectThreads = remaining.filter(
       (item) => item.kind === "project-thread",
     );
+    const notebookDirectories = remaining.filter(
+      (item) => item.kind === "notebook-directory",
+    );
     const directories = remaining.filter((item) => item.kind === "directory");
     const files = remaining.filter((item) => item.kind === "file");
+    if (notebookDirectories.length > 0) {
+      groups.push({
+        id: "notebook-directories",
+        label: "Notebook",
+        options: notebookDirectories.slice(0, 20),
+      });
+    }
     if (projectThreads.length > 0) {
       groups.push({
         id: "project-threads",
@@ -836,6 +919,7 @@ export function InputBox({
         selectedContexts,
         selectedMcpTools,
         selectedCliTools,
+        selectedObjectMentions,
       );
       if (!submissionPayload.text && message.files.length === 0) {
         return;
@@ -864,6 +948,7 @@ export function InputBox({
       selectedCliTools,
       selectedContexts,
       selectedMcpTools,
+      selectedObjectMentions,
       selectedSkills,
       status,
     ],
@@ -902,6 +987,20 @@ export function InputBox({
     setSelectedSkills((prev) => (prev.includes(value) ? prev : [...prev, value]));
   }, []);
 
+  const addSelectedObjectMention = useCallback((mention: ObjectMention) => {
+    setSelectedObjectMentions((prev) => {
+      if (
+        prev.some(
+          (item) =>
+            item.objectKind === mention.objectKind && item.value === mention.value,
+        )
+      ) {
+        return prev;
+      }
+      return [...prev, mention];
+    });
+  }, []);
+
   const applyMentionOption = useCallback(
     (option: MentionOption) => {
       if (!mentionState) {
@@ -920,6 +1019,13 @@ export function InputBox({
           if (projectInfo?.project_id) {
             void importProjectThreadSnapshot.mutateAsync(option.value);
           }
+        } else if (option.kind === "notebook-directory") {
+          addSelectedObjectMention(
+            buildNotebookDirectoryObjectMention({
+              value: option.value,
+              label: option.label,
+            }),
+          );
         } else {
           addSelectedContext(
             option.value,
@@ -942,6 +1048,7 @@ export function InputBox({
       });
     },
     [
+      addSelectedObjectMention,
       addSelectedContext,
       addSelectedSkill,
       focusMessageInput,
@@ -1182,12 +1289,20 @@ export function InputBox({
         selectedSkills,
         selectedContexts,
         selectedMcpTools,
+        selectedObjectMentions,
       ),
-    [selectedContexts, selectedMcpTools, selectedSkills, textInput.value],
+    [
+      selectedContexts,
+      selectedMcpTools,
+      selectedObjectMentions,
+      selectedSkills,
+      textInput.value,
+    ],
   );
 
   const hasAnySelectedMentions =
     selectedContexts.length > 0 ||
+    selectedObjectMentions.length > 0 ||
     selectedSkills.length > 0 ||
     selectedMcpTools.length > 0 ||
     selectedCliTools.length > 0;
@@ -1282,6 +1397,9 @@ export function InputBox({
                                   {option.kind === "directory" && (
                                     <FolderIcon className="size-3.5" />
                                   )}
+                                  {option.kind === "notebook-directory" && (
+                                    <FolderIcon className="size-3.5" />
+                                  )}
                                   {option.kind === "file" && (
                                     <FileIcon className="size-3.5" />
                                   )}
@@ -1346,6 +1464,41 @@ export function InputBox({
                           )}
                           <span className="min-w-0 truncate">
                             {basename(context.value)}
+                          </span>
+                        </button>
+                      ))}
+                  </div>
+                </div>
+              )}
+              {selectedObjectMentions.length > 0 && (
+                <div className="flex items-center gap-1.5">
+                  <span className="text-muted-foreground shrink-0 whitespace-nowrap text-[11px]">
+                    Notebook
+                  </span>
+                  <div className="flex items-center gap-1">
+                    {selectedObjectMentions
+                      .slice(0, MAX_INLINE_MENTION_SUMMARY_ITEMS)
+                      .map((mention) => (
+                        <button
+                          key={`${mention.objectKind}:${mention.value}`}
+                          type="button"
+                          className="bg-muted/50 hover:bg-muted text-foreground inline-flex max-w-32 items-center gap-1 rounded-md px-2 py-0.5 text-[11px]"
+                          title={mention.value}
+                          onClick={() =>
+                            setSelectedObjectMentions((prev) =>
+                              prev.filter(
+                                (item) =>
+                                  !(
+                                    item.objectKind === mention.objectKind &&
+                                    item.value === mention.value
+                                  ),
+                              ),
+                            )
+                          }
+                        >
+                          <FolderIcon className="size-3 shrink-0" />
+                          <span className="min-w-0 truncate">
+                            {mention.label}
                           </span>
                         </button>
                       ))}

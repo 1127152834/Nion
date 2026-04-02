@@ -22,6 +22,8 @@ type AutomationJobSectionProps = {
   description: string;
   emptyMessage: string;
   jobs: AutomationJob[];
+  selectedJobId?: string | null;
+  onSelect?: (jobId: string) => void;
   onPause: (jobId: string) => Promise<unknown>;
   onResume: (jobId: string) => Promise<unknown>;
   onRun: (jobId: string) => Promise<unknown>;
@@ -33,6 +35,8 @@ export function AutomationJobSection({
   description,
   emptyMessage,
   jobs,
+  selectedJobId,
+  onSelect,
   onPause,
   onResume,
   onRun,
@@ -66,7 +70,12 @@ export function AutomationJobSection({
             <Item
               key={job.id}
               variant="outline"
-              className="items-start gap-4 rounded-xl"
+              className={
+                job.id === selectedJobId
+                  ? "items-start gap-4 rounded-xl border-primary/60 bg-primary/5"
+                  : "items-start gap-4 rounded-xl"
+              }
+              onClick={() => onSelect?.(job.id)}
             >
               <ItemContent className="w-full">
                 <ItemHeader className="items-start">

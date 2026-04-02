@@ -37,6 +37,7 @@ export interface AutomationRun {
   job_id: string;
   started_at: string;
   finished_at?: string | null;
+  isolated_thread_id?: string | null;
   status: AutomationRunStatus;
   trigger_event_name?: string | null;
   result_summary: string;

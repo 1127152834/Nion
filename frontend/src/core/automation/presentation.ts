@@ -16,6 +16,38 @@ type ScheduleLabelCopy = {
   everyMinutesTemplate: string;
 };
 
+export type AutomationJobDescription = {
+  id: string;
+  title: string;
+  summary: string;
+  scheduleLabel: string;
+  nextRunAt: string | null;
+  lastResultSummary: string | null;
+};
+
+export type AutomationRunPreview = {
+  runId: string;
+  jobId: string;
+  jobName: string;
+  status: AutomationRun["status"];
+  summary: string;
+  startedAt: string;
+  finishedAt: string | null;
+  threadId: string | null;
+};
+
+export type AutomationThreadPreviewMessage = {
+  type: "human" | "ai" | "tool" | "tool_activity_summary";
+  text: string;
+};
+
+export type AutomationThreadPreview = {
+  title: string;
+  threadId: string;
+  updatedAt: string | null;
+  messages: AutomationThreadPreviewMessage[];
+};
+
 export function splitJobsByKind(jobs: AutomationJob[]) {
   return {
     reminders: jobs.filter((job) => job.job_kind === "reminder"),
@@ -63,6 +95,54 @@ export function formatScheduleLabel(
 
 export function formatActionLabel(_job: AutomationJob) {
   return "Agent prompt";
+}
+
+export function describeAutomationJob(job: AutomationJob): AutomationJobDescription {
+  return {
+    id: job.id,
+    title: deriveAutomationJobTitle(job),
+    summary: job.prompt.trim(),
+    scheduleLabel: formatScheduleLabel(job),
+    nextRunAt: readString(job.next_run_at) ?? null,
+    lastResultSummary: readString(job.last_result_summary) ?? null,
+  };
+}
+
+export function deriveAutomationJobTitle(job: Pick<AutomationJob, "name" | "prompt" | "id">) {
+  const name = readString(job.name);
+  if (name && !GENERIC_AUTOMATION_NAMES.has(name.toLowerCase())) {
+    return name;
+  }
+
+  const prompt = readString(job.prompt);
+  if (!prompt) {
+    return job.id;
+  }
+
+  const firstSentence = prompt
+    .split(/(?<=[.!?。！？])\s+/u, 1)[0]
+    ?.trim();
+  if (firstSentence) {
+    return firstSentence;
+  }
+
+  return prompt;
+}
+
+export function buildAutomationRunPreview(input: {
+  job: AutomationJob;
+  run: AutomationRun;
+}): AutomationRunPreview {
+  return {
+    runId: input.run.id,
+    jobId: input.job.id,
+    jobName: input.job.name.trim() || input.job.id,
+    status: input.run.status,
+    summary: input.run.result_summary.trim(),
+    startedAt: input.run.started_at,
+    finishedAt: input.run.finished_at ?? null,
+    threadId: readString(input.run.isolated_thread_id) ?? null,
+  };
 }
 
 export function summarizeHistory(runs: AutomationRun[]) {
@@ -162,3 +242,11 @@ function formatDateTime(value: string) {
 }
 
 const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const GENERIC_AUTOMATION_NAMES = new Set([
+  "reminder",
+  "scheduled task",
+  "automation",
+  "提醒事项",
+  "定时任务",
+  "自动化",
+]);

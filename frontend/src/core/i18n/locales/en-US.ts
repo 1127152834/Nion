@@ -1302,13 +1302,7 @@ export const enUS: Translations = {
     automationWorkspace: {
       title: "Automation",
       description:
-        "Organize recurring work into clear reminders and scheduled tasks without hunting through settings.",
-      tabs: {
-        overview: "Overview",
-        reminders: "Reminders",
-        tasks: "Scheduled tasks",
-        history: "History",
-      },
+        "Automation is now a single workspace: create reminders and scheduled tasks, manage lists, and inspect run results or linked thread previews in one place.",
       overview: {
         scheduler: "Scheduler",
         schedulerRunning: "Running",
@@ -1321,15 +1315,9 @@ export const enUS: Translations = {
         notRecordedYet: "Not recorded yet",
       },
       forms: {
-        reminderTitle: "New reminder",
-        reminderDescription:
-          "Create a simple reminder with a name, a prompt, a repeat rule, and a time.",
-        taskTitle: "New scheduled task",
-        taskDescription:
-          "Create a recurring task first, then open advanced options only if you need delivery routing or attached skills.",
         creatorTitle: "Create automation",
         creatorDescription:
-          "Use one creator for reminders and scheduled tasks, then open advanced options only when needed.",
+          "Use one creator for reminders and scheduled tasks with one content field and one schedule setup; scheduled tasks reuse the main chat input capabilities and currently support @笔记.",
         creatorKindLabel: "Automation type",
         creatorKinds: {
           reminder: "Reminder",
@@ -1344,19 +1332,12 @@ export const enUS: Translations = {
         dateTimeClear: "Clear",
         dateTimeConfirm: "Confirm",
         previewLabel: "Quick summary",
-        previewDeliveryLabel: "Delivery",
         previewReminderHint: "This reminder will appear on the selected schedule.",
         previewTaskHint: "This task will execute automatically on the selected schedule.",
-        previewReminderAdvancedHint:
-          "Advanced options can change where the reminder is delivered.",
-        previewDeliveryModes: {
-          local: "Local notification",
-          thread: "Current thread",
-          channel: "Channel",
-          multi: "Multiple destinations",
-        },
-        taskPromptLabel: "Task prompt",
-        taskPromptPlaceholder: "What should Nion run on this schedule?",
+        contentLabel: "Reminder content",
+        contentPlaceholder: "For example: remind me every day at 5 PM to wrap up my top priorities",
+        taskContentLabel: "Task content",
+        taskContentPlaceholder: "For example: summarize project progress and generate a daily report every weekday at 18:30",
         intervalLabel: "Interval (minutes)",
         weekdayLabel: "Days of week",
         weekdayOptions: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
@@ -1372,7 +1353,6 @@ export const enUS: Translations = {
         },
         createReminder: "Create reminder",
         createTask: "Create scheduled task",
-        advancedOptions: "Advanced options",
       },
       sections: {
         remindersTitle: "Reminders",
@@ -1380,7 +1360,7 @@ export const enUS: Translations = {
           "Lightweight routines and nudges that should stay easy to scan and edit.",
         tasksTitle: "Scheduled tasks",
         tasksDescription:
-          "Recurring jobs that may use delivery modes, attached skills, or manual run controls.",
+          "Recurring jobs that reuse chat input abilities, support manual runs, and show runs plus linked thread previews in the results area.",
         historyTitle: "Execution history",
         historyDescription:
           "See recent automation runs, outcomes, and timing without digging through raw diagnostics.",

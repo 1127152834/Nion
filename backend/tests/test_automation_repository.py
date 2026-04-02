@@ -80,6 +80,25 @@ def test_automation_run_round_trip(tmp_path):
     assert loaded.delivery_results[0]["status"] == "delivered"
 
 
+def test_automation_run_round_trip_preserves_isolated_thread_id(tmp_path):
+    repo = AutomationRepository(tmp_path / "automation.db")
+    repo.save_job(_job("job-1"))
+    run = AutomationRun(
+        id="run-1",
+        job_id="job-1",
+        started_at="2026-03-24T01:00:00Z",
+        finished_at="2026-03-24T01:01:00Z",
+        status="succeeded",
+        isolated_thread_id="thread-automation-preview",
+    )
+
+    repo.save_run(run)
+
+    loaded = repo.get_run("run-1")
+    assert loaded is not None
+    assert loaded.isolated_thread_id == "thread-automation-preview"
+
+
 def test_delete_job_removes_job_record(tmp_path):
     repo = AutomationRepository(tmp_path / "automation.db")
     repo.save_job(_job("job-1"))
