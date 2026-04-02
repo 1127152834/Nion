@@ -158,6 +158,28 @@ def test_notebook_notes_list_exposes_summary_and_metadata(monkeypatch, tmp_path)
         assert note["is_pinned"] is False
 
 
+def test_notebook_inbox_lists_default_inbox_entries(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+
+    with TestClient(create_app()) as client:
+        created = client.post(
+            "/api/notebook/notes",
+            json={"directory": "", "title": "Inbox Note", "body": "body"},
+        )
+        assert created.status_code == 200
+        note_id = created.json()["note"]["note_id"]
+
+        inbox = client.get("/api/notebook/inbox")
+        assert inbox.status_code == 200
+        payload = inbox.json()
+
+        assert len(payload["items"]) == 1
+        assert payload["items"][0]["entry_type"] == "note"
+        assert payload["items"][0]["note_id"] == note_id
+        assert payload["items"][0]["relative_path"].startswith("收件箱/")
+
+
 def test_notebook_metadata_patch_updates_tags_and_pin_state(monkeypatch, tmp_path):
     monkeypatch.setenv("NION_HOME", str(tmp_path))
     reset_paths()

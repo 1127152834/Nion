@@ -13,6 +13,7 @@ import type {
   NotebookDeletedNotePreview,
   NotebookHistoryDetail,
   NotebookHistoryEntry,
+  NotebookInboxItem,
   NotebookImportInput,
   NotebookImportSourcesResponse,
   NotebookMetadataInput,
@@ -72,6 +73,20 @@ export async function loadNotebookNotes(): Promise<NotebookNoteSummary[]> {
   }
   const json = await readJson<{ notes: NotebookNoteSummary[] }>(response);
   return json.notes;
+}
+
+export async function loadNotebookInbox(): Promise<NotebookInboxItem[]> {
+  const response = await fetch(`${getBackendBaseURL()}/api/notebook/inbox`);
+  if (!response.ok) {
+    throw new Error(
+      resolveErrorMessage(
+        await response.text(),
+        `Failed to load notebook inbox (${response.status})`,
+      ),
+    );
+  }
+  const json = await readJson<{ items: NotebookInboxItem[] }>(response);
+  return json.items;
 }
 
 export async function loadNotebookTrash(): Promise<NotebookDeletedNotePreview[]> {

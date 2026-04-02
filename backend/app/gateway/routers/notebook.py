@@ -24,6 +24,7 @@ from nion.notebook import (
     build_assist_preview,
 )
 from nion.notebook.models import NotebookDeletedNotePreview, NotebookNoteSummary
+from nion.notebook.models import NotebookInboxItem
 from nion.notebook.service import (
     NotebookDirectoryAlreadyExistsError,
     NotebookConflictError,
@@ -77,6 +78,10 @@ class NotebookPendingRewriteResponse(BaseModel):
 
 class NotebookNotesResponse(BaseModel):
     notes: list[NotebookNoteSummary]
+
+
+class NotebookInboxResponse(BaseModel):
+    items: list[NotebookInboxItem]
 
 
 class NotebookHistoryResponse(BaseModel):
@@ -485,6 +490,12 @@ async def move_notebook_directory(
 async def list_notebook_notes() -> NotebookNotesResponse:
     notes = NotebookHistoryService()._service.list_note_summaries()
     return NotebookNotesResponse(notes=notes)
+
+
+@router.get("/inbox", response_model=NotebookInboxResponse)
+async def list_notebook_inbox() -> NotebookInboxResponse:
+    items = NotebookHistoryService()._service.list_inbox_items()
+    return NotebookInboxResponse(items=items)
 
 
 @router.get("/notes/{note_id}", response_model=NotebookPendingRewriteResponse)

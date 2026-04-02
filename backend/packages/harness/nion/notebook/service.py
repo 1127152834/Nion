@@ -9,7 +9,10 @@ from pathlib import Path
 
 from nion.config.paths import Paths, get_paths
 from nion.notebook.frontmatter import render_frontmatter, split_frontmatter
-from nion.notebook.models import NotebookNote, NotebookNoteSummary
+from nion.notebook.models import NotebookAsset, NotebookInboxItem, NotebookNote, NotebookNoteSummary
+
+
+INBOX_DIRECTORY_NAME = "收件箱"
 
 
 class NotebookError(Exception):
@@ -108,6 +111,8 @@ class NotebookService:
 
     def _resolve_directory(self, directory: str) -> Path:
         stripped = directory.strip().strip("/")
+        if stripped.lower() == "inbox":
+            stripped = INBOX_DIRECTORY_NAME
         root = self._paths.notebook_root_dir.resolve()
         target = (root / stripped).resolve() if stripped else root
         try:
@@ -115,6 +120,10 @@ class NotebookService:
         except ValueError as exc:
             raise ValueError("Notebook directory traversal detected") from exc
         return target
+
+    def _resolve_default_note_directory(self, directory: str) -> Path:
+        stripped = directory.strip().strip("/")
+        return self._resolve_directory(stripped or INBOX_DIRECTORY_NAME)
 
     def _relative_path(self, path: Path) -> str:
         return path.resolve().relative_to(self._paths.notebook_root_dir.resolve()).as_posix()
@@ -139,6 +148,21 @@ class NotebookService:
 
     def _attachment_dir_for_path(self, path: Path, note_id: str) -> Path:
         return path.parent / ".assets" / note_id
+
+    def _build_inbox_item_from_note(self, note: NotebookNote) -> NotebookInboxItem:
+        compact = " ".join(note.body.strip().split())
+        summary = compact[:140] + ("..." if len(compact) > 140 else "")
+        return NotebookInboxItem(
+            inbox_id=f"note:{note.note_id}",
+            entry_type="note",
+            note_id=note.note_id,
+            title=note.title,
+            relative_path=note.relative_path,
+            created_at=note.created_at,
+            updated_at=note.updated_at,
+            summary=summary or None,
+            tags=note.tags,
+        )
 
     def _build_note(self, path: Path) -> NotebookNote:
         text = path.read_text(encoding="utf-8")
@@ -187,7 +211,7 @@ class NotebookService:
         raise NotebookNotFoundError(f"Notebook note not found: {note_id}")
 
     def create_note(self, *, directory: str, title: str, body: str) -> NotebookNote:
-        target_dir = self._resolve_directory(directory)
+        target_dir = self._resolve_default_note_directory(directory)
         slug = _slugify(title)
         candidate = target_dir / f"{slug}.md"
         suffix = 2
@@ -363,6 +387,44 @@ class NotebookService:
                 )
             )
         return summaries
+
+    def build_inbox_items(
+        self,
+        *,
+        notes: list[NotebookNote],
+        assets: list[NotebookAsset],
+    ) -> list[NotebookInboxItem]:
+        note_items = [self._build_inbox_item_from_note(note) for note in notes]
+        asset_items = [
+            NotebookInboxItem(
+                inbox_id=f"asset:{asset.asset_id}",
+                entry_type="asset",
+                asset_id=asset.asset_id,
+                title=asset.title,
+                relative_path=asset.relative_path,
+                created_at=asset.created_at,
+                updated_at=asset.updated_at,
+                mime_type=asset.mime_type,
+                tags=asset.tags,
+            )
+            for asset in assets
+        ]
+        return sorted(
+            [*note_items, *asset_items],
+            key=lambda item: (item.updated_at, item.created_at),
+            reverse=True,
+        )
+
+    def list_inbox_items(self) -> list[NotebookInboxItem]:
+        notes = [
+            self._build_note(path)
+            for path in sorted(self._paths.notebook_root_dir.rglob("*.md"), key=lambda item: item.as_posix().lower())
+            if is_visible_notebook_relative_path(
+                path.resolve().relative_to(self._paths.notebook_root_dir.resolve())
+            )
+            and self._relative_path(path).startswith(f"{INBOX_DIRECTORY_NAME}/")
+        ]
+        return self.build_inbox_items(notes=notes, assets=[])
 
     def note_attachment_dir(self, note_id: str) -> Path:
         note_path = self._find_note_path(note_id)

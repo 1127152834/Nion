@@ -64,6 +64,10 @@ export interface NotebookInboxItem {
   tags: string[];
 }
 
+export interface NotebookInboxResponse {
+  items: NotebookInboxItem[];
+}
+
 export interface NotebookNoteSummary {
   note_id: string;
   title: string;

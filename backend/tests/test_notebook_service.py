@@ -35,6 +35,8 @@ def test_update_note_preserves_id_and_changes_updated_at(tmp_path):
     service = NotebookService(base_dir=tmp_path)
     created = service.create_note(directory="", title="My Note", body="one")
 
+    assert created.relative_path == "收件箱/my-note.md"
+
     updated = service.update_note(
         note_id=created.note_id,
         body="two",
@@ -88,6 +90,8 @@ def test_move_note_moves_existing_attachment_directory(tmp_path):
 def test_update_note_rejects_stale_content_hash(tmp_path):
     service = NotebookService(base_dir=tmp_path)
     created = service.create_note(directory="", title="Conflict Note", body="one")
+
+    assert created.relative_path == "收件箱/conflict-note.md"
 
     service.update_note(
         note_id=created.note_id,

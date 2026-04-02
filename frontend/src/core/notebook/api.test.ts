@@ -7,6 +7,7 @@ const {
   deleteNotebookDirectory,
   getNotebookDeletePreview,
   loadNotebookImportSources,
+  loadNotebookInbox,
   loadNotebookHistoryDetail,
   loadNotebookNotes,
   loadNotebookHistory,
@@ -110,6 +111,38 @@ void test("loadNotebookTrash calls the trash endpoint", async () => {
   try {
     await loadNotebookTrash();
     assert.match(seenUrl, /\/api\/notebook\/trash$/);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+void test("loadNotebookInbox calls the inbox endpoint", async () => {
+  const originalFetch = globalThis.fetch;
+  let seenUrl = "";
+
+  globalThis.fetch = async (input) => {
+    seenUrl = String(input);
+    return createJsonResponse({
+      items: [
+        {
+          inbox_id: "note:note_1",
+          entry_type: "note",
+          note_id: "note_1",
+          title: "聊天总结",
+          relative_path: "收件箱/聊天总结.md",
+          created_at: "2026-04-02T00:00:00Z",
+          updated_at: "2026-04-02T00:00:00Z",
+          summary: "总结内容",
+          tags: [],
+        },
+      ],
+    });
+  };
+
+  try {
+    const items = await loadNotebookInbox();
+    assert.match(seenUrl, /\/api\/notebook\/inbox$/);
+    assert.equal(items[0]?.entry_type, "note");
   } finally {
     globalThis.fetch = originalFetch;
   }

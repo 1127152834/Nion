@@ -11,6 +11,7 @@ import {
   getNotebookDeletePreview,
   importNotebookContent,
   loadNotebookHistory,
+  loadNotebookInbox,
   loadNotebookHistoryDetail,
   loadNotebookImportSources,
   loadNotebookNote,
@@ -85,6 +86,15 @@ export function useNotebookNotes() {
   return { notes: data ?? [], isLoading, error };
 }
 
+export function useNotebookInbox() {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["notebook", "inbox"],
+    queryFn: () => loadNotebookInbox(),
+    refetchOnWindowFocus: false,
+  });
+  return { items: data ?? [], isLoading, error };
+}
+
 export function useNotebookNote(noteId: string | null) {
   const { data, isLoading, error } = useQuery({
     queryKey: ["notebook", "note", noteId],
@@ -147,6 +157,7 @@ export function useCreateNotebookDirectory() {
       createNotebookDirectory(input),
     onSuccess: async () => {
       await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["notebook", "inbox"] }),
         queryClient.invalidateQueries({ queryKey: ["notebook", "tree"] }),
         queryClient.invalidateQueries({ queryKey: ["notebook", "notes"] }),
       ]);
@@ -161,6 +172,7 @@ export function useRenameNotebookDirectory() {
       renameNotebookDirectory(input),
     onSuccess: async () => {
       await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["notebook", "inbox"] }),
         queryClient.invalidateQueries({ queryKey: ["notebook", "tree"] }),
         queryClient.invalidateQueries({ queryKey: ["notebook", "notes"] }),
       ]);
@@ -175,6 +187,7 @@ export function useDeleteNotebookDirectory() {
       deleteNotebookDirectory(input),
     onSuccess: async () => {
       await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["notebook", "inbox"] }),
         queryClient.invalidateQueries({ queryKey: ["notebook", "tree"] }),
         queryClient.invalidateQueries({ queryKey: ["notebook", "notes"] }),
       ]);
@@ -189,6 +202,7 @@ export function useMoveNotebookDirectory() {
       moveNotebookDirectory(input),
     onSuccess: async () => {
       await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["notebook", "inbox"] }),
         queryClient.invalidateQueries({ queryKey: ["notebook", "tree"] }),
         queryClient.invalidateQueries({ queryKey: ["notebook", "notes"] }),
       ]);
@@ -261,6 +275,7 @@ export function useDeleteNotebookNote(noteId: string) {
     mutationFn: async () => deleteNotebookNote(noteId),
     onSuccess: async () => {
       await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["notebook", "inbox"] }),
         queryClient.invalidateQueries({ queryKey: ["notebook", "tree"] }),
         queryClient.invalidateQueries({ queryKey: ["notebook", "history", noteId] }),
         queryClient.invalidateQueries({
@@ -364,6 +379,7 @@ async function invalidateNotebookQueries(
   noteId: string,
 ) {
   await Promise.all([
+    queryClient.invalidateQueries({ queryKey: ["notebook", "inbox"] }),
     queryClient.invalidateQueries({ queryKey: ["notebook", "tree"] }),
     queryClient.invalidateQueries({ queryKey: ["notebook", "trash"] }),
     queryClient.invalidateQueries({ queryKey: ["notebook", "notes"] }),
