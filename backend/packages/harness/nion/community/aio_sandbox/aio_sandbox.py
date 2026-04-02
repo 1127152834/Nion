@@ -1,5 +1,6 @@
 import base64
 import logging
+import threading
 
 from agent_sandbox import Sandbox as AioSandboxClient
 
@@ -26,6 +27,7 @@ class AioSandbox(Sandbox):
         self._base_url = base_url
         self._client = AioSandboxClient(base_url=base_url, timeout=600)
         self._home_dir = home_dir
+        self._command_lock = threading.Lock()
 
     @property
     def base_url(self) -> str:
@@ -49,7 +51,8 @@ class AioSandbox(Sandbox):
             The output of the command.
         """
         try:
-            result = self._client.shell.exec_command(command=command)
+            with self._command_lock:
+                result = self._client.shell.exec_command(command=command)
             output = result.data.output if result.data else ""
             return output if output else "(no output)"
         except Exception as e:

@@ -1,12 +1,16 @@
 from pathlib import Path
-from unittest.mock import patch
+from types import SimpleNamespace
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from nion.sandbox.tools import (
     VIRTUAL_PATH_PREFIX,
+    _apply_cwd_prefix,
+    _head_truncate_output,
     _is_acp_workspace_path,
     _is_skills_path,
+    _middle_truncate_output,
     _reject_path_traversal,
     _resolve_acp_workspace_path,
     _resolve_and_validate_user_data_path,
@@ -360,6 +364,17 @@ def test_validate_local_bash_command_paths_allows_acp_workspace() -> None:
     )
 
 
+def test_validate_local_bash_command_paths_allows_mcp_filesystem_host_paths() -> None:
+    with patch(
+        "nion.sandbox.tools._get_mcp_allowed_paths",
+        return_value=["/Users/demo/project/"],
+    ):
+        validate_local_bash_command_paths(
+            "cat /Users/demo/project/README.md",
+            _THREAD_DATA,
+        )
+
+
 def test_resolve_acp_workspace_path_resolves_correctly(tmp_path: Path) -> None:
     acp_dir = tmp_path / "acp-workspace"
     acp_dir.mkdir()
@@ -386,3 +401,55 @@ def test_mask_local_paths_in_output_hides_acp_workspace_host_paths() -> None:
 
         assert acp_host not in masked
         assert "/mnt/acp-workspace/hello.py" in masked
+
+
+def test_apply_cwd_prefix_uses_workspace_path() -> None:
+    command = "python script.py"
+    prefixed = _apply_cwd_prefix(command, _THREAD_DATA)
+
+    assert prefixed.startswith("cd ")
+    assert "workspace" in prefixed
+    assert prefixed.endswith("&& python script.py")
+
+
+def test_apply_cwd_prefix_without_thread_data_returns_original() -> None:
+    assert _apply_cwd_prefix("pwd", None) == "pwd"
+
+
+def test_middle_truncate_output_keeps_head_and_tail() -> None:
+    value = "A" * 100 + "B" * 100
+    truncated = _middle_truncate_output(value, 80)
+
+    assert len(truncated) <= 80
+    assert truncated.startswith("A")
+    assert truncated.endswith("B" * 25)
+    assert "output truncated" in truncated
+
+
+def test_head_truncate_output_adds_hint() -> None:
+    value = "line\n" * 100
+    truncated = _head_truncate_output(value, 120)
+
+    assert len(truncated) <= 120
+    assert truncated.startswith("line")
+    assert "start_line/end_line" in truncated
+
+
+def test_bash_tool_blocks_local_host_bash_when_disallowed() -> None:
+    runtime = SimpleNamespace(
+        state={"sandbox": {"sandbox_id": "local"}, "thread_data": _THREAD_DATA},
+        context={"thread_id": "thread-1"},
+    )
+
+    with (
+        patch("nion.sandbox.tools.ensure_sandbox_initialized", return_value=MagicMock()),
+        patch("nion.sandbox.tools.ensure_thread_directories_exist"),
+        patch("nion.sandbox.tools.is_host_bash_allowed", return_value=False),
+    ):
+        result = __import__("nion.sandbox.tools", fromlist=["bash_tool"]).bash_tool.func(
+            runtime=runtime,
+            description="test",
+            command="pwd",
+        )
+
+    assert "Host bash execution is disabled" in result

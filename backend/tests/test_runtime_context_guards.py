@@ -1,6 +1,6 @@
 import importlib
 from types import SimpleNamespace
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 from langchain_core.messages import AIMessage, HumanMessage
@@ -90,3 +90,20 @@ def test_ensure_sandbox_initialized_raises_clear_error_when_runtime_context_is_n
 
     with pytest.raises(SandboxRuntimeError, match="Thread ID not available in runtime context"):
         ensure_sandbox_initialized(runtime)
+
+
+def test_ensure_sandbox_initialized_uses_configurable_thread_id_when_context_missing():
+    provider = MagicMock()
+    provider.acquire.return_value = "sandbox-1"
+    provider.get.return_value = SimpleNamespace(id="sandbox-1")
+    runtime = SimpleNamespace(
+        state={},
+        context=None,
+        config={"configurable": {"thread_id": "thread-from-configurable"}},
+    )
+
+    with patch("nion.sandbox.tools.get_sandbox_provider", return_value=provider):
+        sandbox = ensure_sandbox_initialized(runtime)
+
+    assert sandbox.id == "sandbox-1"
+    provider.acquire.assert_called_once_with("thread-from-configurable")

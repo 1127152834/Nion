@@ -1,4 +1,5 @@
 import re
+import shlex
 from pathlib import Path
 
 from langchain.tools import ToolRuntime, tool
@@ -13,6 +14,7 @@ from nion.sandbox.exceptions import (
 )
 from nion.sandbox.sandbox import Sandbox
 from nion.sandbox.sandbox_provider import get_sandbox_provider
+from nion.sandbox.security import LOCAL_HOST_BASH_DISABLED_MESSAGE, is_host_bash_allowed
 
 _ABSOLUTE_PATH_PATTERN = re.compile(r"(?<![:\w])/(?:[^\s\"'`;&|<>()]+)")
 _LOCAL_BASH_SYSTEM_PATH_PREFIXES = (
@@ -26,6 +28,8 @@ _LOCAL_BASH_SYSTEM_PATH_PREFIXES = (
 
 _DEFAULT_SKILLS_CONTAINER_PATH = "/mnt/skills"
 _ACP_WORKSPACE_VIRTUAL_PREFIX = "/mnt/acp-workspace"
+_DEFAULT_BASH_OUTPUT_MAX_CHARS = 20000
+_DEFAULT_READ_FILE_OUTPUT_MAX_CHARS = 50000
 
 
 def _get_skills_container_path() -> str:
@@ -109,7 +113,7 @@ def _resolve_acp_workspace_path(path: str, thread_data: ThreadDataState | None =
         return acp_host
 
     relative = path[len(_ACP_WORKSPACE_VIRTUAL_PREFIX):].lstrip("/")
-    return str(Path(acp_host) / relative) if relative else acp_host
+    return _join_path_preserving_style(acp_host, relative)
 
 
 def _resolve_skills_path(path: str) -> str:
@@ -133,11 +137,81 @@ def _resolve_skills_path(path: str) -> str:
         return skills_host
 
     relative = path[len(skills_container):].lstrip("/")
-    return str(Path(skills_host) / relative) if relative else skills_host
+    return _join_path_preserving_style(skills_host, relative)
 
 
 def _path_variants(path: str) -> set[str]:
     return {path, path.replace("\\", "/"), path.replace("/", "\\")}
+
+
+def _join_path_preserving_style(base: str, relative: str) -> str:
+    if not relative:
+        return base
+    if "/" in base and "\\" not in base:
+        return f"{base.rstrip('/')}/{relative}"
+    return str(Path(base) / relative)
+
+
+def _get_sandbox_output_limit(field_name: str, default: int) -> int:
+    try:
+        from nion.config import get_app_config
+
+        sandbox_cfg = getattr(get_app_config(), "sandbox", None)
+        value = getattr(sandbox_cfg, field_name, default)
+        if isinstance(value, int) and value >= 0:
+            return value
+    except Exception:
+        pass
+    return default
+
+
+def _get_mcp_allowed_paths() -> list[str]:
+    """Get allowed host paths exposed by MCP filesystem servers."""
+
+    allowed_paths: list[str] = []
+    try:
+        from nion.config.extensions_config import get_extensions_config
+
+        extensions_config = get_extensions_config()
+
+        for _, server in extensions_config.mcp_servers.items():
+            if not server.enabled:
+                continue
+
+            args = server.args or []
+            has_filesystem = any("server-filesystem" in arg for arg in args)
+            if not has_filesystem:
+                continue
+
+            for arg in args:
+                if not arg.startswith("-") and arg.startswith("/"):
+                    allowed_paths.append(arg.rstrip("/") + "/")
+    except Exception:
+        pass
+
+    return allowed_paths
+
+
+def _middle_truncate_output(value: str, max_chars: int) -> str:
+    if max_chars <= 0 or len(value) <= max_chars:
+        return value
+    marker = "\n... [output truncated] ...\n"
+    budget = max_chars - len(marker)
+    if budget <= 0:
+        return value[:max_chars]
+    head = budget // 2
+    tail = budget - head
+    return f"{value[:head]}{marker}{value[-tail:]}"
+
+
+def _head_truncate_output(value: str, max_chars: int) -> str:
+    if max_chars <= 0 or len(value) <= max_chars:
+        return value
+    marker = "\n... [output truncated, use start_line/end_line for narrower reads] ..."
+    budget = max_chars - len(marker)
+    if budget <= 0:
+        return value[:max_chars]
+    return f"{value[:budget]}{marker}"
 
 
 def _sanitize_error(error: Exception, runtime: "ToolRuntime[ContextT, ThreadState] | None" = None) -> str:
@@ -406,6 +480,9 @@ def validate_local_bash_command_paths(command: str, thread_data: ThreadDataState
             _reject_path_traversal(absolute_path)
             continue
 
+        if any(absolute_path.startswith(prefix) for prefix in _get_mcp_allowed_paths()):
+            continue
+
         if any(
             absolute_path == prefix.rstrip("/") or absolute_path.startswith(prefix)
             for prefix in _LOCAL_BASH_SYSTEM_PATH_PREFIXES
@@ -460,6 +537,15 @@ def replace_virtual_paths_in_command(command: str, thread_data: ThreadDataState 
         result = pattern.sub(replace_user_data_match, result)
 
     return result
+
+
+def _apply_cwd_prefix(command: str, thread_data: ThreadDataState | None) -> str:
+    if thread_data is None:
+        return command
+    workspace_path = thread_data.get("workspace_path")
+    if not workspace_path:
+        return command
+    return f"cd {shlex.quote(workspace_path)} && {command}"
 
 
 def get_thread_data(runtime: ToolRuntime[ContextT, ThreadState] | None) -> ThreadDataState | None:
@@ -558,7 +644,10 @@ def ensure_sandbox_initialized(runtime: ToolRuntime[ContextT, ThreadState] | Non
     runtime_context = runtime.context or {}
     thread_id = runtime_context.get("thread_id")
     if thread_id is None:
-        raise SandboxRuntimeError("Thread ID not available in runtime context")
+        runtime_config = getattr(runtime, "config", {}) or {}
+        thread_id = ((runtime_config.get("configurable") or {}).get("thread_id"))
+    if thread_id is None:
+        raise SandboxRuntimeError("Thread ID not available in runtime context or config.configurable")
 
     provider = get_sandbox_provider()
     sandbox_id = provider.acquire(thread_id)
@@ -632,11 +721,22 @@ def bash_tool(runtime: ToolRuntime[ContextT, ThreadState], description: str, com
         ensure_thread_directories_exist(runtime)
         thread_data = get_thread_data(runtime)
         if is_local_sandbox(runtime):
+            if not is_host_bash_allowed():
+                return f"Error: {LOCAL_HOST_BASH_DISABLED_MESSAGE}"
             validate_local_bash_command_paths(command, thread_data)
             command = replace_virtual_paths_in_command(command, thread_data)
+            command = _apply_cwd_prefix(command, thread_data)
             output = sandbox.execute_command(command)
+            output = _middle_truncate_output(
+                output,
+                _get_sandbox_output_limit("bash_output_max_chars", _DEFAULT_BASH_OUTPUT_MAX_CHARS),
+            )
             return mask_local_paths_in_output(output, thread_data)
-        return sandbox.execute_command(command)
+        output = sandbox.execute_command(command)
+        return _middle_truncate_output(
+            output,
+            _get_sandbox_output_limit("bash_output_max_chars", _DEFAULT_BASH_OUTPUT_MAX_CHARS),
+        )
     except SandboxError as e:
         return f"Error: {e}"
     except PermissionError as e:
@@ -710,7 +810,10 @@ def read_file_tool(
             return "(empty)"
         if start_line is not None and end_line is not None:
             content = "\n".join(content.splitlines()[start_line - 1 : end_line])
-        return content
+        return _head_truncate_output(
+            content,
+            _get_sandbox_output_limit("read_file_output_max_chars", _DEFAULT_READ_FILE_OUTPUT_MAX_CHARS),
+        )
     except SandboxError as e:
         return f"Error: {e}"
     except FileNotFoundError:

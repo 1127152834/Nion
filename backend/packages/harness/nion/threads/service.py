@@ -6,6 +6,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from nion.client import NionClient, StreamEvent
+from nion.config.agents_config import AGENT_NAME_PATTERN
 
 from .models import (
     ThreadCliManagementState,
@@ -81,9 +82,15 @@ class ThreadService:
     ) -> Generator[StreamEvent, None, None]:
         human_payload = _extract_human_message_payload(request.messages)
         message_text = _extract_message_text(request.messages)
-        context = request.context
+        context = dict(request.context)
         config = request.config
         latest_values: dict[str, Any] | None = None
+
+        context.setdefault("thread_id", thread_id)
+        if request.assistant_id and "agent_name" not in context:
+            normalized_agent_name = _normalize_assistant_id_to_agent_name(request.assistant_id)
+            if normalized_agent_name is not None:
+                context["agent_name"] = normalized_agent_name
 
         selected_cli_tools = _extract_selected_cli_tools(request.messages)
         cli_tools_enabled = self._should_enable_cli_tools_for_request(
@@ -353,6 +360,17 @@ def _thread_history_has_cli_tools_intent(messages: list[dict[str, Any]]) -> bool
         if should_enable_cli_tools_for_request(text):
             return True
     return False
+
+
+def _normalize_assistant_id_to_agent_name(assistant_id: str | None) -> str | None:
+    if assistant_id is None:
+        return None
+    normalized = assistant_id.strip().lower()
+    if not normalized or normalized == "lead_agent":
+        return None
+    if not AGENT_NAME_PATTERN.match(normalized):
+        return None
+    return normalized
 
 
 def _message_text_from_history_content(content: Any) -> str:

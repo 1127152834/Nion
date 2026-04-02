@@ -1,5 +1,5 @@
+from nion.agents.lead_agent.prompt import _build_subagent_section, apply_prompt_template
 from nion.prompt_runtime.models import PromptBuildArtifact
-from nion.agents.lead_agent.prompt import apply_prompt_template
 
 
 def test_apply_prompt_template_uses_prompt_runtime_artifact(monkeypatch) -> None:
@@ -91,3 +91,15 @@ def test_subagent_prompt_runtime_context_marks_subagent_enabled(monkeypatch) -> 
     assert captured["context"].subagent_enabled is True
     assert captured["context"].max_concurrent_subagents == 4
     assert any(section.key == "dynamic.subagent" for section in captured["sections"])
+
+
+def test_build_subagent_section_hides_bash_when_host_bash_is_unavailable(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "nion.agents.lead_agent.prompt.get_available_subagent_names",
+        lambda: ["general-purpose"],
+    )
+
+    section = _build_subagent_section(3)
+
+    assert "Not available in the current sandbox configuration" in section
+    assert 'read_file("/mnt/user-data/workspace/README.md")' in section

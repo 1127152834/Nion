@@ -1,11 +1,15 @@
 import json
+from types import SimpleNamespace
+from unittest.mock import MagicMock
 
 from fastapi.testclient import TestClient
 
 from app.daemon.app import create_app as create_daemon_app
 from app.gateway.app import create_app
 from app.gateway.routers import threads
+from nion.threads.models import ThreadStreamRequest
 from nion.threads.repository import ThreadRepository
+from nion.threads.service import ThreadService
 
 
 def test_threads_search_route_exists() -> None:
@@ -156,3 +160,51 @@ def test_threads_stream_failed_keeps_legacy_memory_surfaces_removed(
         maintenance_after = client.get("/api/self-maintenance/status")
         assert autodream_after.status_code == 404
         assert maintenance_after.status_code == 404
+
+
+def test_thread_service_stream_maps_assistant_id_to_agent_name():
+    client = MagicMock()
+    client.stream.return_value = iter(
+        [SimpleNamespace(type="values", data={"title": "T", "messages": [], "artifacts": []})]
+    )
+    repository = MagicMock()
+    repository.get_thread.return_value = None
+    repository.upsert_thread.return_value = SimpleNamespace(values=SimpleNamespace(model_dump=lambda: {}))
+    service = ThreadService(repository=repository, client=client)
+
+    request = ThreadStreamRequest(
+        messages=[{"type": "human", "content": [{"type": "text", "text": "hi"}]}],
+        context={},
+        config={},
+        assistant_id="finalis",
+    )
+
+    list(service.stream("thread-1", request))
+
+    client.stream.assert_called_once()
+    kwargs = client.stream.call_args.kwargs
+    assert kwargs["thread_id"] == "thread-1"
+    assert kwargs["agent_name"] == "finalis"
+
+
+def test_thread_service_stream_preserves_explicit_context_agent_name():
+    client = MagicMock()
+    client.stream.return_value = iter(
+        [SimpleNamespace(type="values", data={"title": "T", "messages": [], "artifacts": []})]
+    )
+    repository = MagicMock()
+    repository.get_thread.return_value = None
+    repository.upsert_thread.return_value = SimpleNamespace(values=SimpleNamespace(model_dump=lambda: {}))
+    service = ThreadService(repository=repository, client=client)
+
+    request = ThreadStreamRequest(
+        messages=[{"type": "human", "content": [{"type": "text", "text": "hi"}]}],
+        context={"agent_name": "custom-agent"},
+        config={},
+        assistant_id="finalis",
+    )
+
+    list(service.stream("thread-1", request))
+
+    kwargs = client.stream.call_args.kwargs
+    assert kwargs["agent_name"] == "custom-agent"
