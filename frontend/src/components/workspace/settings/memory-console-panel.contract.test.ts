@@ -11,5 +11,8 @@ void test("memory console panel owns search overview and fact management", async
   assert.match(source, /searchPlaceholder|记忆检索|Memory Search/);
   assert.match(source, /current memory overview|当前记忆概览|overview/i);
   assert.match(source, /onOpenDangerZone|onDeleteFact|manageCleanup/);
+  assert.match(source, /border-b pb-4/);
+  assert.match(source, /ToggleGroupItem value="all"/);
+  assert.match(source, /className="border bg-background\/60 p-5"|className="border bg-background p-5"/);
   assert.doesNotMatch(source, /rounded-2xl/);
 });

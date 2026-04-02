@@ -64,12 +64,12 @@ export function MemoryConsolePanel(props: {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between gap-4 border-b pb-4">
+      <div className="flex items-start justify-between gap-4 border-b pb-4">
         <div>
           <div className="text-[11px] tracking-[0.14em] text-muted-foreground uppercase">
             Search console
           </div>
-          <div className="mt-1 text-sm text-muted-foreground">
+          <div className="mt-2 text-sm leading-6 text-muted-foreground">
             {t.settings.memory.quickSearchDescription}
           </div>
         </div>
@@ -78,12 +78,12 @@ export function MemoryConsolePanel(props: {
         </Button>
       </div>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+      <div className="flex flex-col gap-3 border-b pb-4 sm:flex-row sm:items-center">
         <Input
           value={props.query}
           onChange={(event) => props.onQueryChange(event.target.value)}
           placeholder={t.settings.memory.searchPlaceholder}
-          className="sm:max-w-xs"
+          className="sm:max-w-[420px]"
         />
         <ToggleGroup
           type="single"
@@ -106,7 +106,7 @@ export function MemoryConsolePanel(props: {
       </div>
 
       <form
-        className="flex gap-2"
+        className="flex gap-2 border-b pb-4"
         onSubmit={(event) => {
           event.preventDefault();
           props.onSubmitSearch();
@@ -213,7 +213,7 @@ export function MemoryConsolePanel(props: {
         </div>
       )}
 
-      <div className="border bg-background/60 p-5">
+      <div className="border bg-background p-5">
         <div className="mb-4 flex items-center gap-2">
           <Badge variant="secondary">{props.memory?.facts.length ?? 0}</Badge>
           <span className="text-sm text-muted-foreground">
