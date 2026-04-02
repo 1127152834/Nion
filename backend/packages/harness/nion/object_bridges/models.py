@@ -108,18 +108,6 @@ BridgeCandidateType = Literal[
     "project_constraint",
 ]
 BridgeCandidateStatus = Literal["draft", "ready", "applied", "dismissed", "expired"]
-BridgeCandidateRiskLevel = Literal["low", "medium", "high"]
-CandidateActorType = Literal["user", "agent", "system"]
-
-
-@dataclass(slots=True)
-class CandidateActionEvent:
-    id: str
-    candidate_id: str
-    action: str
-    actor_type: CandidateActorType
-    created_at: str
-    payload: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass(slots=True)
@@ -132,16 +120,5 @@ class BridgeCandidateRecord:
     requires_confirmation: bool
     payload: dict[str, Any]
     provenance: list[BridgeActionProvenance] = field(default_factory=list)
-    risk_level: BridgeCandidateRiskLevel = "medium"
-    available_actions: list[str] = field(default_factory=list)
-    deferred_until: str | None = None
-    deferred_reason: str | None = None
-    reviewed_at: str | None = None
-    reviewed_by: CandidateActorType | None = None
-    applied_at: str | None = None
-    applied_by: CandidateActorType | None = None
-    terminal_reason: str | None = None
-    guard_state: dict[str, Any] | None = None
-    last_error: dict[str, Any] | None = None
     created_at: str = ""
     updated_at: str = ""

@@ -65,7 +65,6 @@
 - 页面入口：`/workspace/notebook`、`/workspace/notebook/trash`。
 - 首屏渲染：sidebar、editor、context panel、search、create/quick capture 按钮。
 - 对象桥接入口：信息面板显示 `生成项目草案`、`提炼长期记忆` 两个按钮，并明确提示“只生成候选，不直接写入”。
-- 候选中心导向：生成成功后应能跳转或导向 `/workspace/candidates/[candidate_id]`，而不是在 Notebook 页面直接 apply。
 - 加载态：tree/note/history 加载文案和 skeleton。
 - 空态：无笔记、空回收站、空搜索结果。
 - 错误态：API 失败 toast 或错误卡片。
@@ -96,7 +95,6 @@
 - 场景 5：assist preview + apply，P1。
 - 场景 6：从聊天 import source 导入到当前笔记，P1。
 - 场景 7：从信息面板生成项目草案候选与长期记忆候选，P1。
-- 场景 8：从 Notebook 生成 candidate 后进入候选中心详情页处理，P1。
 - 每个场景都要写明具体 agent-browser 动作：open -> snapshot -> click/fill -> wait -> snapshot。
 
 ### 6.3 必须覆盖的 E2E 场景类型

@@ -34,6 +34,4 @@ void test("project dashboard page exposes primary thread, plan, timeline, and ar
   assert.match(source, /待确认事项/);
   assert.match(source, /受管产物/);
   assert.match(source, /导出到笔记|提炼长期记忆/);
-  assert.match(source, /候选中心|pathOfObjectCandidate/);
-  assert.doesNotMatch(source, /applyObjectCandidate/);
 });
