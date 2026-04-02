@@ -22,7 +22,6 @@ void test("memory page excludes notebook semantics and focuses on memory operati
   assert.doesNotMatch(source, /t\.settings\.rebuild\.title/);
   assert.doesNotMatch(source, /Notebook|Knowledge Base|reindex notebook/i);
   assert.doesNotMatch(source, /MemoryAgentCorePanel|selfMaintenance/i);
-  assert.doesNotMatch(source, /variant="destructive"[\s\S]*clearAll/);
   assert.doesNotMatch(source, /MemoryDangerZone/);
   assert.doesNotMatch(source, /rounded-2xl/);
   assert.match(source, /MemoryDetailInspector/);

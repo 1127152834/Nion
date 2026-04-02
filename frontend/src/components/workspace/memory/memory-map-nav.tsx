@@ -78,12 +78,13 @@ export function MemoryMapNav(props: {
                     : "text-foreground/70"
                 }`}
               >
-                <span
-                  className={`inline-block ${
-                    sectionActive ? "border-b-2 border-foreground pb-1" : "pb-1"
-                  }`}
-                >
+                <span className="inline-flex flex-col pb-1">
                   {group.label}
+                  <span
+                    className={`mt-1 h-0.5 bg-foreground transition-[width] duration-200 ease-out ${
+                      sectionActive ? "w-full" : "w-0"
+                    }`}
+                  />
                 </span>
               </button>
               <div className="divide-y divide-[color:var(--border)]">
@@ -100,12 +101,13 @@ export function MemoryMapNav(props: {
                           : "text-foreground/85"
                       }`}
                     >
-                      <span
-                        className={`inline-block ${
-                          leafActive ? "border-b-2 border-foreground pb-1" : "pb-1"
-                        }`}
-                      >
+                      <span className="inline-flex flex-col pb-1">
                         {leaf.label}
+                        <span
+                          className={`mt-1 h-0.5 bg-foreground transition-[width] duration-200 ease-out ${
+                            leafActive ? "w-full" : "w-0"
+                          }`}
+                        />
                       </span>
                     </button>
                   );
