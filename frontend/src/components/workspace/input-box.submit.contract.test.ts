@@ -25,6 +25,7 @@ void test("input box mention highlight overlay does not render duplicate visible
 
   assert.match(source, /function MentionHighlightOverlay/);
   assert.match(source, /pointer-events-none absolute inset-0/);
-  assert.doesNotMatch(source, /rounded px-0\.5 font-semibold", colorClass\)/);
+  assert.doesNotMatch(source, /text-purple-700|text-amber-700|text-blue-700|text-green-700/);
+  assert.doesNotMatch(source, /dark:text-purple-300|dark:text-amber-300|dark:text-blue-300|dark:text-green-300/);
   assert.match(source, /rounded px-0\.5 font-semibold text-transparent", colorClass\)/);
 });
