@@ -68,13 +68,13 @@ export function WorkspaceHeader({ className }: { className?: string }) {
       </div>
 
       {isCollapsed ? (
-        <div className="flex h-14 items-center justify-center group-data-[collapsible=icon]:h-[4.5rem]">
+        <div className="flex h-14 items-center justify-center group-data-[collapsible=icon]:h-[4.75rem]">
           <button
             type="button"
             aria-label="Expand sidebar"
             className={cn(
               "text-primary font-serif tracking-[0.12em] transition-[font-size,letter-spacing,transform] duration-200",
-              isDesktopShell && "text-[2.1rem] leading-none tracking-[0.02em]",
+              isDesktopShell && "mt-2 text-[1.75rem] leading-none tracking-[0.01em]",
             )}
             onClick={toggleSidebar}
           >
