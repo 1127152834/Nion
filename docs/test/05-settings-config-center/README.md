@@ -125,10 +125,10 @@
 - 预期：页面聚焦 structured memory、recall、console；不得出现 notebook ownership、自我维护主操作或 OpenViking 产品级 tab 心智。
 - 优先级：P0。
 
-#### 场景 7：Notebook / Memory / Projects 导航路由
-- 目标：验证三个 IA 域具备独立导航入口与正确路由。
-- 步骤：从 workspace 导航或命令面板依次进入 `/workspace/notebook`、`/workspace/memory`、`/workspace/projects`。
-- 预期：每个页面都渲染对应 domain，且不会借用错误心智模型；Memory 不再承载 notebook，Projects 仍独立存在。
+#### 场景 7：Notebook / Memory 导航路由
+- 目标：验证两个 IA 域具备独立导航入口与正确路由。
+- 步骤：从 workspace 导航或命令面板依次进入 `/workspace/notebook`、`/workspace/memory`。
+- 预期：每个页面都渲染对应 domain，且不会借用错误心智模型；Memory 不再承载 notebook。
 - 优先级：P0。
 
 ### 6.3 必须覆盖的 E2E 场景类型
@@ -139,7 +139,7 @@
 - 重复点击链路：save/discard 连点。
 - 模块间联动链路：Session Policy -> Chat suggestions；Daemon -> runtime-info。
 - web / desktop-client 差异链路：sandbox/desktop-only 提示。
-- IA 冒烟链路：Notebook / Memory / Projects 三个域的独立导航与心智分离。
+- IA 冒烟链路：Notebook / Memory 两个域的独立导航与心智分离。
 
 ### 6.4 agent-browser 与 skill 使用建议
 - 适合 `/browse`：设置打开、字段编辑、保存验证。
@@ -171,7 +171,7 @@
 - 适合 agent-browser E2E：确定性分区的保存链路。
 - 适合人工探索式测试：复杂 YAML、跨分区联动。
 - 最小冒烟集合：打开设置、改 daemon 设置、save 成功、reload 一致。
-- 当前最小 IA 冒烟集合：打开 `/workspace/notebook`、`/workspace/memory`、`/workspace/projects`，确认 domain 文案、入口和主操作不串位。
+- 当前最小 IA 冒烟集合：打开 `/workspace/notebook`、`/workspace/memory`，确认 domain 文案、入口和主操作不串位。
 - 最小回归闭环：save success + 409 + 422。
 - 高收益自动化优先级：P0 是 config API/useConfigEditor；P1 是各 section UI。
 
