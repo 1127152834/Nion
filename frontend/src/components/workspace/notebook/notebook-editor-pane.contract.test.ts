@@ -19,7 +19,6 @@ void test("NotebookEditorPane matches the reference writing-pane structure", asy
   assert.match(source, /DropdownMenuItem/);
   assert.match(source, /重命名|copy\.rename/);
   assert.match(source, /Folder/);
-  assert.match(source, /Clock/);
   assert.match(source, /onOpenDelete/);
   assert.match(source, /onOpenHistory/);
   assert.match(source, /onOpenRename/);
@@ -27,4 +26,7 @@ void test("NotebookEditorPane matches the reference writing-pane structure", asy
   assert.match(source, /selectionStart/);
   assert.match(source, /previewMode/);
   assert.match(source, /min-h-\[500px\]/);
+  assert.doesNotMatch(source, /lastEditedPrefix/);
+  assert.doesNotMatch(source, /formatLastEdited/);
+  assert.doesNotMatch(source, /Clock/);
 });

@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -630,7 +631,6 @@ export function NotebookPage() {
                 delete: copy.delete,
                 edit: copy.edit,
                 history: copy.history,
-                lastEditedPrefix: "最后编辑于",
                 move: copy.move,
                 noSelectionCta: copy.createNote,
                 noSelectionDescription: copy.noSelectionDescription,

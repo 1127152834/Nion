@@ -3,7 +3,6 @@
 import {
   AlertCircle,
   CheckCircle2,
-  Clock,
   Edit3,
   Eye,
   FileText,
@@ -33,7 +32,6 @@ type NotebookEditorPaneCopy = {
   draftMetaLabel: string;
   edit: string;
   history: string;
-  lastEditedPrefix: string;
   move: string;
   noSelectionCta: string;
   noSelectionDescription: string;
@@ -99,7 +97,6 @@ export function NotebookEditorPane({
   onSelectionChange,
 }: NotebookEditorPaneProps) {
   const [previewMode, setPreviewMode] = useState(false);
-  const lastEdited = note ? formatLastEdited(note.updated_at) : "";
 
   useEffect(() => {
     if (previewMode) {
@@ -136,15 +133,6 @@ export function NotebookEditorPane({
                 <div className="mb-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[var(--notebook-soft-text)]">
                   <Folder className="size-3" />
                   <span>{isDraft ? copy.draftMetaLabel : note?.relative_path}</span>
-                  {isDraft ? null : (
-                    <>
-                      <span>/</span>
-                      <span className="flex items-center">
-                        <Clock className="mr-1 size-3" />
-                        {copy.lastEditedPrefix} {lastEdited}
-                      </span>
-                    </>
-                  )}
                 </div>
                 <Input
                   value={draftTitle}
@@ -332,13 +320,4 @@ export function NotebookEditorPane({
       </div>
     </div>
   );
-}
-
-function formatLastEdited(value: string) {
-  return new Date(value).toLocaleString("zh-CN", {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 }
