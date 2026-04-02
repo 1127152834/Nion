@@ -53,11 +53,11 @@ export function MemorySummaryCards(props: { memory: UserMemory | null }) {
   ];
 
   return (
-    <div className="grid gap-3 border border-[color:var(--border)] bg-background md:grid-cols-2 xl:grid-cols-4">
+    <div className="grid gap-3 rounded-lg border border-[color:var(--border)] bg-background md:grid-cols-2 xl:grid-cols-4">
       {cards.map((card) => (
         <article
           key={card.label}
-          className="border-r border-[color:var(--border)] px-4 py-4 last:border-r-0"
+          className="rounded-md border border-[color:var(--border)] px-4 py-4"
         >
           <div className="text-[11px] tracking-[0.14em] text-muted-foreground uppercase">
             {card.label}

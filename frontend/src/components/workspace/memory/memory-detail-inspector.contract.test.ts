@@ -11,4 +11,5 @@ void test("memory detail inspector uses compact stacked sections without oversiz
   assert.match(source, /Detail inspector/);
   assert.match(source, /space-y-4 px-4 py-4/);
   assert.match(source, /text-\[2rem\]/);
+  assert.match(source, /rounded-md|rounded-lg/);
 });

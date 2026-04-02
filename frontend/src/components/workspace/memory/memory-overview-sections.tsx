@@ -12,7 +12,7 @@ function MemorySectionCard(props: {
   onOpenDetail: () => void;
 }) {
   return (
-    <article className="flex min-h-[214px] flex-col border bg-background px-5 py-4">
+    <article className="flex min-h-[214px] flex-col rounded-lg border bg-background px-5 py-4">
       <div className="flex items-start justify-between gap-3">
         <div className="text-[1.15rem] font-semibold tracking-tight">{props.title}</div>
         <div className="text-xs text-muted-foreground">

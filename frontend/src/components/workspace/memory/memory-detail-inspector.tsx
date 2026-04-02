@@ -38,7 +38,7 @@ export function MemoryDetailInspector(props: {
   });
 
   return (
-    <aside className="border bg-background">
+    <aside className="rounded-lg border bg-background">
       <div className="border-b px-5 py-4">
         <div className="text-[11px] tracking-[0.16em] text-muted-foreground uppercase">
           Detail inspector
@@ -49,7 +49,7 @@ export function MemoryDetailInspector(props: {
       </div>
 
       <div className="space-y-4 px-4 py-4">
-        <section className="border bg-background p-4">
+        <section className="rounded-md border bg-background p-4">
           <div className="text-sm font-medium text-muted-foreground">
             {t.settings.memory.detailSummaryTitle}
           </div>
@@ -89,7 +89,7 @@ export function MemoryDetailInspector(props: {
                   updatedAt: props.memory?.history.longTermBackground.updatedAt,
                 },
               ].map((item) => (
-                <div key={item.key} className="border bg-background p-4">
+                <div key={item.key} className="rounded-md border bg-background p-4">
                   <div className="text-sm font-medium">{item.title}</div>
                   <div className="mt-1 text-xs text-muted-foreground">
                     {item.updatedAt
@@ -109,13 +109,13 @@ export function MemoryDetailInspector(props: {
               {t.settings.memory.detailFactsTitle}
             </div>
             {relatedFacts.length === 0 ? (
-              <div className="border bg-background p-4 text-sm text-muted-foreground">
+              <div className="rounded-md border bg-background p-4 text-sm text-muted-foreground">
                 {t.settings.memory.noFacts}
               </div>
             ) : (
               <div className="space-y-3">
                 {relatedFacts.map((fact) => (
-                  <div key={fact.id} className="border bg-background p-4">
+                  <div key={fact.id} className="rounded-md border bg-background p-4">
                     <div className="flex items-center gap-2">
                       <Badge variant="outline">{fact.category}</Badge>
                       <span className="text-xs text-muted-foreground">

@@ -58,7 +58,7 @@ export function MemoryMapNav(props: {
   ];
 
   return (
-    <aside className="border border-[color:var(--border)] bg-[color:var(--background)] p-3">
+    <aside className="rounded-lg border border-[color:var(--border)] bg-[color:var(--background)] p-3">
       <div className="mb-3 text-[11px] tracking-[0.16em] text-muted-foreground uppercase">
         Memory map
       </div>
@@ -72,7 +72,7 @@ export function MemoryMapNav(props: {
               <button
                 type="button"
                 onClick={() => props.onSectionChange(group.section, firstLeaf.key)}
-                className={`w-full border px-3 py-2 text-left text-sm font-semibold transition-colors ${
+                className={`w-full rounded-md border px-3 py-2 text-left text-sm font-semibold transition-colors ${
                   sectionActive
                     ? "border-foreground bg-foreground text-background"
                     : "border-[color:var(--border)] bg-[color:var(--muted)] text-foreground"
@@ -88,7 +88,7 @@ export function MemoryMapNav(props: {
                       key={leaf.key}
                       type="button"
                       onClick={() => props.onSectionChange(group.section, leaf.key)}
-                      className={`flex w-full items-center border-b px-3 py-3 text-left text-sm transition-colors ${
+                      className={`flex w-full items-center rounded-md border px-3 py-3 text-left text-sm transition-colors ${
                         leafActive
                           ? "border-[color:var(--border)] bg-[color:color-mix(in_srgb,var(--muted)_68%,white)] font-semibold text-foreground"
                           : "border-[color:var(--border)] bg-transparent text-foreground/85"

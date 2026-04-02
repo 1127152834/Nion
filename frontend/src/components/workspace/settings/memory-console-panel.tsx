@@ -93,13 +93,13 @@ export function MemoryConsolePanel(props: {
           }}
           variant="outline"
         >
-          <ToggleGroupItem value="all" className="rounded-none">
+          <ToggleGroupItem value="all" className="rounded-md">
             {t.settings.memory.filterAll}
           </ToggleGroupItem>
-          <ToggleGroupItem value="facts" className="rounded-none">
+          <ToggleGroupItem value="facts" className="rounded-md">
             {t.settings.memory.filterFacts}
           </ToggleGroupItem>
-          <ToggleGroupItem value="summaries" className="rounded-none">
+          <ToggleGroupItem value="summaries" className="rounded-md">
             {t.settings.memory.filterSummaries}
           </ToggleGroupItem>
         </ToggleGroup>
@@ -144,7 +144,7 @@ export function MemoryConsolePanel(props: {
                   return (
                     <div
                       key={result.id}
-                      className="border bg-background/70 p-4"
+                      className="rounded-md border bg-background/70 p-4"
                     >
                       <div className="mb-2 flex flex-wrap items-center gap-2">
                         <Badge variant="outline">{result.title}</Badge>
@@ -192,7 +192,7 @@ export function MemoryConsolePanel(props: {
                   return (
                     <div
                       key={`${result.thread_id}-${result.agent_name}-${index}`}
-                      className="border bg-background/70 p-4"
+                      className="rounded-md border bg-background/70 p-4"
                     >
                       <div className="mb-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
                         <span>
@@ -213,7 +213,7 @@ export function MemoryConsolePanel(props: {
         </div>
       )}
 
-      <div className="border bg-background p-5">
+      <div className="rounded-lg border bg-background p-5">
         <div className="mb-4 flex items-center gap-2">
           <Badge variant="secondary">{props.memory?.facts.length ?? 0}</Badge>
           <span className="text-sm text-muted-foreground">
@@ -246,7 +246,7 @@ export function MemoryConsolePanel(props: {
               props.filteredFacts.map((fact) => (
                 <div
                   key={fact.id}
-                  className="flex flex-col gap-3 border bg-background p-4 sm:flex-row sm:items-start sm:justify-between"
+                  className="flex flex-col gap-3 rounded-md border bg-background p-4 sm:flex-row sm:items-start sm:justify-between"
                 >
                   <div className="space-y-2">
                     <p className="text-sm leading-6">{fact.content}</p>
