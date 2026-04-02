@@ -387,7 +387,10 @@ function MentionHighlightOverlay({
                 ? "bg-blue-500/30 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300"
                 : "bg-green-500/30 text-green-700 dark:bg-green-500/20 dark:text-green-300";
           return (
-            <span key={index} className={cn("rounded px-0.5 font-semibold", colorClass)}>
+            <span
+              key={index}
+              className={cn("rounded px-0.5 font-semibold text-transparent", colorClass)}
+            >
               {segment.text}
             </span>
           );
