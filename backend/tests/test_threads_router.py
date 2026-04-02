@@ -9,7 +9,7 @@ from app.gateway.app import create_app
 from app.gateway.routers import threads
 from nion.threads.models import ThreadStreamRequest
 from nion.threads.repository import ThreadRepository
-from nion.threads.service import ThreadService
+from nion.threads.service import ThreadBusyError, ThreadService
 
 
 def test_threads_search_route_exists() -> None:
@@ -208,3 +208,56 @@ def test_thread_service_stream_preserves_explicit_context_agent_name():
 
     kwargs = client.stream.call_args.kwargs
     assert kwargs["agent_name"] == "custom-agent"
+
+
+def test_thread_service_stream_rejects_concurrent_same_thread_runs():
+    client = MagicMock()
+    client.stream.return_value = iter(
+        [SimpleNamespace(type="values", data={"title": "T", "messages": [], "artifacts": []})]
+    )
+    repository = MagicMock()
+    repository.get_thread.return_value = None
+    repository.upsert_thread.return_value = SimpleNamespace(values=SimpleNamespace(model_dump=lambda: {}))
+    service = ThreadService(repository=repository, client=client)
+
+    request = ThreadStreamRequest(
+        messages=[{"type": "human", "content": [{"type": "text", "text": "hi"}]}],
+        context={},
+        config={},
+    )
+
+    from nion.threads import service as thread_service_module
+
+    thread_service_module._active_thread_run_ids.add("thread-1")
+    try:
+        try:
+            list(service.stream("thread-1", request))
+        except ThreadBusyError as exc:
+            assert "already has an active run" in str(exc)
+        else:
+            raise AssertionError("Expected ThreadBusyError")
+    finally:
+        thread_service_module._active_thread_run_ids.discard("thread-1")
+
+
+def test_threads_stream_surfaces_thread_busy_as_sse_error_event() -> None:
+    app = create_daemon_app()
+
+    class BusyThreadService:
+        def stream(self, thread_id: str, payload):
+            raise ThreadBusyError("Thread 'new' already has an active run in progress.")
+
+    app.dependency_overrides[threads.get_thread_service] = lambda: BusyThreadService()
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/threads/new/stream",
+            json={
+                "messages": [{"type": "human", "content": [{"type": "text", "text": "hi"}]}],
+                "context": {},
+                "config": {},
+            },
+        )
+
+    assert response.status_code == 200
+    assert 'event: error' in response.text
+    assert "already has an active run in progress" in response.text

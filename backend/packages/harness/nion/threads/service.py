@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import threading
 from collections.abc import Generator
 from datetime import UTC, datetime
 from typing import Any
@@ -16,6 +17,28 @@ from .models import (
 )
 from .repository import ThreadRepository
 from .title_generation import generate_thread_title_in_background
+
+
+class ThreadBusyError(RuntimeError):
+    """Raised when a thread already has an active run in progress."""
+
+
+_active_thread_run_ids: set[str] = set()
+_active_thread_run_ids_lock = threading.Lock()
+
+
+def _claim_thread_run(thread_id: str) -> None:
+    with _active_thread_run_ids_lock:
+        if thread_id in _active_thread_run_ids:
+            raise ThreadBusyError(
+                f"Thread '{thread_id}' already has an active run in progress."
+            )
+        _active_thread_run_ids.add(thread_id)
+
+
+def _release_thread_run(thread_id: str) -> None:
+    with _active_thread_run_ids_lock:
+        _active_thread_run_ids.discard(thread_id)
 
 
 class ThreadService:
@@ -80,86 +103,89 @@ class ThreadService:
         thread_id: str,
         request: ThreadStreamRequest,
     ) -> Generator[StreamEvent, None, None]:
+        _claim_thread_run(thread_id)
         human_payload = _extract_human_message_payload(request.messages)
         message_text = _extract_message_text(request.messages)
         context = dict(request.context)
         config = request.config
         latest_values: dict[str, Any] | None = None
+        try:
+            context.setdefault("thread_id", thread_id)
+            if request.assistant_id and "agent_name" not in context:
+                normalized_agent_name = _normalize_assistant_id_to_agent_name(request.assistant_id)
+                if normalized_agent_name is not None:
+                    context["agent_name"] = normalized_agent_name
 
-        context.setdefault("thread_id", thread_id)
-        if request.assistant_id and "agent_name" not in context:
-            normalized_agent_name = _normalize_assistant_id_to_agent_name(request.assistant_id)
-            if normalized_agent_name is not None:
-                context["agent_name"] = normalized_agent_name
-
-        selected_cli_tools = _extract_selected_cli_tools(request.messages)
-        cli_tools_enabled = self._should_enable_cli_tools_for_request(
-            message_text,
-            thread_id=thread_id,
-            selected_cli_tools=selected_cli_tools,
-        )
-        if selected_cli_tools:
-            message_text = (
-                f"{message_text}\n\n<selected_cli_tools>\n"
-                f"Prefer using these CLI tools when they are relevant to the task: "
-                f"{', '.join(selected_cli_tools)}.\n"
-                f"</selected_cli_tools>"
-            ).strip()
-            human_payload["content"] = message_text
-
-        for event in self._client.stream(
-            message_text,
-            thread_id=thread_id,
-            human_message_payload=human_payload,
-            model_name=context.get("model_name"),
-            thinking_enabled=bool(context.get("thinking_enabled", True)),
-            plan_mode=bool(context.get("is_plan_mode", False)),
-            subagent_enabled=bool(context.get("subagent_enabled", False)),
-            cli_tools_enabled=cli_tools_enabled,
-            agent_name=context.get("agent_name"),
-            recursion_limit=config.get("recursion_limit", 100),
-            surface=context.get("surface", "workspace"),
-            project_id=context.get("project_id"),
-            project_phase=context.get("project_phase"),
-            primary_plan_id=context.get("primary_plan_id"),
-        ):
-            if event.type == "values":
-                latest_values = {
-                    "title": event.data.get("title") or "Untitled",
-                    "messages": event.data.get("messages", []),
-                    "artifacts": event.data.get("artifacts", []),
-                }
-            yield event
-
-        if latest_values is not None:
-            latest_values["cli_management"] = self._next_cli_management_state(
-                message_text=message_text,
-                cli_tools_enabled=cli_tools_enabled,
-                previous_state=self._get_cli_management_state(thread_id),
-            ).model_dump()
-            if context.get("project_id"):
-                latest_values["project"] = {
-                    "source": "project",
-                    "project_id": str(context.get("project_id")),
-                    "project_name": str(
-                        context.get("project_name")
-                        or latest_values.get("project", {}).get("project_name")
-                        or "Project"
-                    ),
-                    "project_phase": context.get("project_phase"),
-                    "primary_plan_id": context.get("primary_plan_id"),
-                    "inherit_project_context": True,
-                }
-            persisted = self._repository.upsert_thread(
-                thread_id,
-                agent_name=str(context.get("agent_name") or "lead_agent"),
-                values=latest_values,
-            )
-            self._queue_title_generation(
+            selected_cli_tools = _extract_selected_cli_tools(request.messages)
+            cli_tools_enabled = self._should_enable_cli_tools_for_request(
+                message_text,
                 thread_id=thread_id,
-                values=persisted.values.model_dump(),
-                context=context,
+                selected_cli_tools=selected_cli_tools,
             )
+            if selected_cli_tools:
+                message_text = (
+                    f"{message_text}\n\n<selected_cli_tools>\n"
+                    f"Prefer using these CLI tools when they are relevant to the task: "
+                    f"{', '.join(selected_cli_tools)}.\n"
+                    f"</selected_cli_tools>"
+                ).strip()
+                human_payload["content"] = message_text
+
+            for event in self._client.stream(
+                message_text,
+                thread_id=thread_id,
+                human_message_payload=human_payload,
+                model_name=context.get("model_name"),
+                thinking_enabled=bool(context.get("thinking_enabled", True)),
+                plan_mode=bool(context.get("is_plan_mode", False)),
+                subagent_enabled=bool(context.get("subagent_enabled", False)),
+                cli_tools_enabled=cli_tools_enabled,
+                agent_name=context.get("agent_name"),
+                recursion_limit=config.get("recursion_limit", 100),
+                surface=context.get("surface", "workspace"),
+                project_id=context.get("project_id"),
+                project_phase=context.get("project_phase"),
+                primary_plan_id=context.get("primary_plan_id"),
+            ):
+                if event.type == "values":
+                    latest_values = {
+                        "title": event.data.get("title") or "Untitled",
+                        "messages": event.data.get("messages", []),
+                        "artifacts": event.data.get("artifacts", []),
+                    }
+                yield event
+
+            if latest_values is not None:
+                latest_values["cli_management"] = self._next_cli_management_state(
+                    message_text=message_text,
+                    cli_tools_enabled=cli_tools_enabled,
+                    previous_state=self._get_cli_management_state(thread_id),
+                ).model_dump()
+                if context.get("project_id"):
+                    latest_values["project"] = {
+                        "source": "project",
+                        "project_id": str(context.get("project_id")),
+                        "project_name": str(
+                            context.get("project_name")
+                            or latest_values.get("project", {}).get("project_name")
+                            or "Project"
+                        ),
+                        "project_phase": context.get("project_phase"),
+                        "primary_plan_id": context.get("primary_plan_id"),
+                        "inherit_project_context": True,
+                    }
+                persisted = self._repository.upsert_thread(
+                    thread_id,
+                    agent_name=str(context.get("agent_name") or "lead_agent"),
+                    values=latest_values,
+                )
+                self._queue_title_generation(
+                    thread_id=thread_id,
+                    values=persisted.values.model_dump(),
+                    context=context,
+                )
+        finally:
+            _release_thread_run(thread_id)
 
     def _queue_title_generation(
         self,
