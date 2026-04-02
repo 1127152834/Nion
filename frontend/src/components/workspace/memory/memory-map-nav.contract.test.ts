@@ -13,5 +13,8 @@ void test("memory map nav exposes the left navigation hierarchy without large ra
   assert.match(source, /markdown\.historyBackground/);
   assert.match(source, /markdown\.facts/);
   assert.match(source, /rounded-md|rounded-lg/);
+  assert.match(source, /border-b|divide-y/);
+  assert.doesNotMatch(source, /rounded-md border px-3 py-2 text-left text-sm font-semibold/);
+  assert.doesNotMatch(source, /rounded-md border px-3 py-3 text-left text-sm/);
   assert.doesNotMatch(source, /rounded-2xl|rounded-full/);
 });

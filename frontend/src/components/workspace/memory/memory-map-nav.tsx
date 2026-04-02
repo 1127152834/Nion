@@ -72,15 +72,15 @@ export function MemoryMapNav(props: {
               <button
                 type="button"
                 onClick={() => props.onSectionChange(group.section, firstLeaf.key)}
-                className={`w-full rounded-md border px-3 py-2 text-left text-sm font-semibold transition-colors ${
+                className={`w-full rounded-md px-3 py-2 text-left text-sm font-semibold transition-colors ${
                   sectionActive
-                    ? "border-foreground bg-foreground text-background"
-                    : "border-[color:var(--border)] bg-[color:var(--muted)] text-foreground"
+                    ? "bg-foreground text-background"
+                    : "bg-[color:var(--muted)] text-foreground"
                 }`}
               >
                 {group.label}
               </button>
-              <div className="space-y-0 border-t border-[color:var(--border)]">
+              <div className="divide-y divide-[color:var(--border)]">
                 {group.leaves.map((leaf) => {
                   const leafActive = props.activeLeaf === leaf.key;
                   return (
@@ -88,10 +88,10 @@ export function MemoryMapNav(props: {
                       key={leaf.key}
                       type="button"
                       onClick={() => props.onSectionChange(group.section, leaf.key)}
-                      className={`flex w-full items-center rounded-md border px-3 py-3 text-left text-sm transition-colors ${
+                      className={`flex w-full items-center rounded-md px-3 py-3 text-left text-sm transition-colors ${
                         leafActive
-                          ? "border-[color:var(--border)] bg-[color:color-mix(in_srgb,var(--muted)_68%,white)] font-semibold text-foreground"
-                          : "border-[color:var(--border)] bg-transparent text-foreground/85"
+                          ? "bg-[color:color-mix(in_srgb,var(--muted)_62%,white)] font-semibold text-foreground"
+                          : "bg-transparent text-foreground/85"
                       }`}
                     >
                       <span>{leaf.label}</span>
