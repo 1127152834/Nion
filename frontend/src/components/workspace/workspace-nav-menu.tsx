@@ -96,7 +96,7 @@ export function WorkspaceNavMenu() {
               <DropdownMenuTrigger asChild>
                 <SidebarMenuButton
                   size="lg"
-                  className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+                  className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground group-data-[collapsible=icon]:mx-auto"
                 >
                   <NavMenuButtonContent isSidebarOpen={isSidebarOpen} t={t} />
                 </SidebarMenuButton>
@@ -160,7 +160,10 @@ export function WorkspaceNavMenu() {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <SidebarMenuButton size="lg" className="pointer-events-none">
+            <SidebarMenuButton
+              size="lg"
+              className="pointer-events-none group-data-[collapsible=icon]:mx-auto"
+            >
               <NavMenuButtonContent isSidebarOpen={isSidebarOpen} t={t} />
             </SidebarMenuButton>
           )}

@@ -14,6 +14,7 @@ export function WorkspaceHeader({ className }: { className?: string }) {
   const { state, toggleSidebar } = useSidebar();
   const isDesktopShell = useIsDesktopShell();
   const isCollapsed = state === "collapsed";
+  const collapsedWordmark = isDesktopShell ? "N" : "NION";
   const wordmarkClassName = cn(
     "text-primary shrink-0 font-serif transition-[font-size,letter-spacing,margin,padding] duration-200",
     isDesktopShell && "text-[1.625rem] tracking-[0.04em]",
@@ -67,14 +68,17 @@ export function WorkspaceHeader({ className }: { className?: string }) {
       </div>
 
       {isCollapsed ? (
-        <div className="flex h-14 items-center justify-center">
+        <div className="flex h-14 items-center justify-center group-data-[collapsible=icon]:h-[4.5rem]">
           <button
             type="button"
             aria-label="Expand sidebar"
-            className="text-primary font-serif tracking-[0.12em]"
+            className={cn(
+              "text-primary font-serif tracking-[0.12em] transition-[font-size,letter-spacing,transform] duration-200",
+              isDesktopShell && "text-[2.1rem] leading-none tracking-[0.02em]",
+            )}
             onClick={toggleSidebar}
           >
-            NION
+            {collapsedWordmark}
           </button>
         </div>
       ) : null}

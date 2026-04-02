@@ -33,7 +33,9 @@ export function WorkspaceSidebarPrimaryAction() {
       size={isCollapsed ? "icon-sm" : "sm"}
       className={cn(
         "border-sidebar-border bg-background text-foreground shadow-none hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-        isCollapsed ? "mx-auto" : "h-10 w-full justify-start rounded-2xl px-3.5",
+        isCollapsed
+          ? "mx-auto size-10 rounded-2xl p-0"
+          : "h-10 w-full justify-start rounded-2xl px-3.5",
       )}
     >
       <Link href={href}>

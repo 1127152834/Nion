@@ -16,3 +16,12 @@ void test("workspace header applies desktop-only top-left spacing refinement", a
   assert.match(source, /isDesktopShell[\s\S]*"size-6 border-sidebar-border\/50/);
   assert.match(source, /bg-sidebar-accent\/20 text-sidebar-foreground\/70/);
 });
+
+void test("workspace header collapses desktop branding to a single N", async () => {
+  const source = await readFile(
+    new URL("./workspace-header.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /isDesktopShell \? "N" : "NION"/);
+});
