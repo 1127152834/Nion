@@ -17,7 +17,7 @@ export function NotebookAssistantComposer({
   disabled = false,
   isSending = false,
   onSubmit,
-  placeholder = "继续围绕这篇笔记提问、改写或拆解任务",
+  placeholder = "围绕当前笔记继续处理内容，或总结聊天内容并整理成笔记",
 }: NotebookAssistantComposerProps) {
   const [value, setValue] = useState("");
 
