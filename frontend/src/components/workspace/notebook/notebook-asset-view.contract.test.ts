@@ -9,5 +9,10 @@ void test("NotebookAssetView renders notebook-scoped asset preview metadata", as
   assert.match(source, /mime_type|mimeType/);
   assert.match(source, /relative_path|relativePath/);
   assert.match(source, /source_kind|sourceKind/);
+  assert.match(source, /created_at|createdAt/);
+  assert.match(source, /updated_at|updatedAt/);
+  assert.match(source, /file_size|fileSize/);
+  assert.match(source, /downloadAsFile/);
+  assert.match(source, /下载|Download/);
   assert.match(source, /iframe|pre|img/);
 });
