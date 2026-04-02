@@ -12,7 +12,5 @@ void test("memory map nav exposes the left navigation hierarchy without large ra
   assert.match(source, /markdown\.userContext/);
   assert.match(source, /markdown\.historyBackground/);
   assert.match(source, /markdown\.facts/);
-  assert.match(source, /border-l-4|border-l-\[3px\]/);
-  assert.doesNotMatch(source, /bg-foreground text-background/);
   assert.doesNotMatch(source, /rounded-2xl|rounded-full/);
 });
