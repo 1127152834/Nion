@@ -25,6 +25,9 @@ void test("NotebookPage becomes a shell controller that renders extracted notebo
   assert.match(pageSource, /from "\.\/notebook-editor-pane"/);
   assert.match(pageSource, /from "\.\/notebook-context-panel"/);
   assert.match(pageSource, /<NotebookSidebar[\s\S]*treeNodes=\{treeNodes\}/);
+  assert.match(pageSource, /useNotebookInbox/);
+  assert.match(pageSource, /NotebookInboxPanel/);
+  assert.match(pageSource, /inboxItems=\{inboxItems\}/);
   assert.match(pageSource, /<NotebookEditorPane[\s\S]*draftBody=\{draftBody\}/);
   assert.match(pageSource, /<NotebookEditorPane[\s\S]*onSelectionChange=/);
   assert.match(pageSource, /<NotebookContextPanel[\s\S]*notebookAssistantSessionId=\{notebookAssistantSessionId\}/);

@@ -29,4 +29,5 @@ void test("NotebookSidebar matches the reference left-rail structure", async () 
   assert.match(source, /border-t border-\[var\(--notebook-border\)\]/);
   assert.match(source, /bg-\[var\(--notebook-sidebar\)\]/);
   assert.match(source, /copy\.trashTitle/);
+  assert.doesNotMatch(source, /SectionLabel[\s\S]*copy\.noteListTitle[\s\S]*NotebookTreeView/);
 });

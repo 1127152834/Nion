@@ -223,9 +223,12 @@ export function NotebookSidebar({
           <section>
             <SectionLabel
               actionLabel={copy.createFolder}
-              label={copy.noteListTitle}
+              label="目录整理"
               onAction={onOpenCreateFolder}
             />
+            <div className="mb-2 px-2 text-xs leading-relaxed text-[var(--notebook-soft-text)]">
+              {copy.noteListDescription}
+            </div>
             {isLoading ? (
               <div className="px-2 py-2 text-sm text-[var(--notebook-soft-text)]">{loadingLabel}</div>
             ) : !hasTreeContent ? (

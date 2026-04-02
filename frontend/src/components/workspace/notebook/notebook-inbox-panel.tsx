@@ -1,0 +1,85 @@
+"use client";
+
+import { Clock3Icon, FileIcon, FileTextIcon, InboxIcon } from "lucide-react";
+
+import type { NotebookInboxItem } from "@/core/notebook";
+
+type NotebookInboxPanelCopy = {
+  inboxLabel: string;
+  recentTitle: string;
+  emptyTitle: string;
+  emptyDescription: string;
+};
+
+type NotebookInboxPanelProps = {
+  copy: NotebookInboxPanelCopy;
+  inboxItems: NotebookInboxItem[];
+  onSelectItem: (item: NotebookInboxItem) => void;
+};
+
+export function NotebookInboxPanel({
+  copy,
+  inboxItems,
+  onSelectItem,
+}: NotebookInboxPanelProps) {
+  return (
+    <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden rounded-[1.5rem] border border-[var(--notebook-border)] bg-[var(--notebook-panel)] p-4">
+      <section className="rounded-2xl border border-[var(--notebook-border)] bg-[var(--notebook-sidebar)] p-4">
+        <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-[var(--notebook-ink)]">
+          <InboxIcon className="size-4 text-[var(--notebook-soft-text)]" />
+          <span>{copy.inboxLabel}</span>
+        </div>
+        <p className="text-sm text-[var(--notebook-soft-text)]">
+          新进入 Notebook 的内容会先出现在这里，之后再由你决定是否整理到其他目录。
+        </p>
+      </section>
+
+      <section className="min-h-0 flex-1 overflow-hidden rounded-2xl border border-[var(--notebook-border)] bg-[var(--notebook-shell)]">
+        <div className="flex items-center gap-2 border-b border-[var(--notebook-border)] px-4 py-3 text-sm font-semibold text-[var(--notebook-ink)]">
+          <Clock3Icon className="size-4 text-[var(--notebook-soft-text)]" />
+          <span>{copy.recentTitle || "Recent"}</span>
+        </div>
+        <div className="custom-scrollbar flex max-h-full min-h-0 flex-col overflow-y-auto p-2">
+          {inboxItems.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-[var(--notebook-border)] bg-[var(--notebook-panel)] p-4 text-sm text-[var(--notebook-soft-text)]">
+              <div className="mb-1 font-medium text-[var(--notebook-ink)]">{copy.emptyTitle}</div>
+              <div>{copy.emptyDescription}</div>
+            </div>
+          ) : (
+            inboxItems.map((entry) => (
+              <button
+                key={entry.inbox_id}
+                type="button"
+                onClick={() => onSelectItem(entry)}
+                className="flex items-start gap-3 rounded-xl px-3 py-3 text-left transition-colors hover:bg-[var(--notebook-hover)]"
+              >
+                <span className="mt-0.5 shrink-0 text-[var(--notebook-soft-text)]">
+                  {entry.entry_type === "asset" ? (
+                    <FileIcon className="size-4" />
+                  ) : entry.entry_type === "note" ? (
+                    <FileTextIcon className="size-4" />
+                  ) : (
+                    <FileIcon className="size-4" />
+                  )}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-medium text-[var(--notebook-ink)]">
+                    {entry.title}
+                  </span>
+                  <span className="mt-1 block truncate text-xs text-[var(--notebook-soft-text)]">
+                    {entry.relative_path}
+                  </span>
+                  {entry.summary ? (
+                    <span className="mt-1 block line-clamp-2 text-xs text-[var(--notebook-soft-text)]">
+                      {entry.summary}
+                    </span>
+                  ) : null}
+                </span>
+              </button>
+            ))
+          )}
+        </div>
+      </section>
+    </div>
+  );
+}
