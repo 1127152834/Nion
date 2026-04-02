@@ -10,7 +10,10 @@ void test("memory overview cards expose summary-first presentation with detail a
 
   assert.match(source, /查看详情/);
   assert.doesNotMatch(source, /\(空\)/);
-  assert.match(source, /min-h-\[206px\]/);
+  assert.match(source, /min-h-\[214px\]/);
   assert.match(source, /border-t/);
+  assert.match(source, /justify-between/);
+  assert.match(source, /text-xs text-muted-foreground/);
+  assert.match(source, /flex-1 text-sm leading-7/);
   assert.doesNotMatch(source, /rounded-2xl/);
 });

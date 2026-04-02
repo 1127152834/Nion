@@ -12,19 +12,19 @@ function MemorySectionCard(props: {
   onOpenDetail: () => void;
 }) {
   return (
-    <article className="flex min-h-[206px] flex-col border bg-background px-5 py-4">
+    <article className="flex min-h-[214px] flex-col border bg-background px-5 py-4">
       <div className="flex items-start justify-between gap-3">
-        <div className="text-[1.05rem] font-semibold">{props.title}</div>
+        <div className="text-[1.15rem] font-semibold tracking-tight">{props.title}</div>
         <div className="text-xs text-muted-foreground">
           {props.updatedAt ? formatTimeAgo(props.updatedAt) : "暂无"}
         </div>
       </div>
-      <div className="mt-5 flex-1 text-sm leading-7 text-foreground/80">
+      <div className="mt-6 flex-1 text-sm leading-7 text-foreground/80">
         {props.summary.trim() || props.emptyText}
       </div>
       <button
         type="button"
-        className="mt-5 border-t pt-4 text-left text-sm font-semibold text-foreground"
+        className="mt-6 border-t pt-4 text-left text-sm font-semibold text-foreground"
         onClick={props.onOpenDetail}
       >
         查看详情
@@ -58,7 +58,7 @@ export function MemoryOverviewSections(props: {
     <div className="space-y-6">
       <section className="space-y-3">
         <div className="flex items-end justify-between gap-4">
-          <h2 className="text-[1.6rem] font-semibold tracking-tight">
+          <h2 className="text-[1.7rem] font-semibold tracking-tight">
             {t.settings.memory.markdown.userContext}
           </h2>
           <div className="text-sm text-muted-foreground">
@@ -92,7 +92,7 @@ export function MemoryOverviewSections(props: {
 
       <section className="space-y-3">
         <div>
-          <h2 className="text-[1.6rem] font-semibold tracking-tight">
+          <h2 className="text-[1.7rem] font-semibold tracking-tight">
             {t.settings.memory.markdown.historyBackground}
           </h2>
         </div>
