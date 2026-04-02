@@ -98,10 +98,18 @@
 ```python
 def test_notebook_asset_has_copy_semantics() -> None:
     asset = NotebookAsset(
-        asset_id=\"asset_1\",
-        title=\"report.html\",
-        relative_path=\"收件箱/report.html\",
-        source_kind=\"workspace_copy\",\n+        mime_type=\"text/html\",\n+        created_at=\"2026-04-02T00:00:00Z\",\n+        updated_at=\"2026-04-02T00:00:00Z\",\n+    )\n+\n+    assert asset.source_kind == \"workspace_copy\"\n+    assert asset.relative_path == \"收件箱/report.html\"\n+```
+        asset_id="asset_1",
+        title="report.html",
+        relative_path="收件箱/report.html",
+        source_kind="workspace_copy",
+        mime_type="text/html",
+        created_at="2026-04-02T00:00:00Z",
+        updated_at="2026-04-02T00:00:00Z",
+    )
+
+    assert asset.source_kind == "workspace_copy"
+    assert asset.relative_path == "收件箱/report.html"
+```
 
 - [ ] **Step 2: 运行测试确认失败**
 
@@ -165,12 +173,14 @@ git commit -m "feat(notebook): add note asset inbox contracts"
 def test_save_chat_summary_defaults_to_inbox(tmp_path) -> None:
     service = NotebookHistoryService(base_dir=tmp_path / "nion-home")
     note = service.create_note(
-        directory=\"\",
-        title=\"聊天总结\",
-        body=\"总结内容\",
-        actor_type=\"user\",
+        directory="",
+        title="聊天总结",
+        body="总结内容",
+        actor_type="user",
     )
-\n+    assert note.relative_path.startswith(\"收件箱/\")\n+```
+
+    assert note.relative_path.startswith("收件箱/")
+```
 
 - [ ] **Step 2: 运行测试确认失败**
 
@@ -230,10 +240,16 @@ git commit -m "feat(notebook): add inbox contract"
 - 不要求项目对象或长期记忆概念
 
 ```ts
-void test(\"SaveToNotebookTrigger stays notebook-only\", async () => {
+void test("SaveToNotebookTrigger stays notebook-only", async () => {
   const source = await readFile(
-    new URL(\"../save-to-notebook-trigger.tsx\", import.meta.url),
-    \"utf8\",\n+  );\n+\n+  assert.match(source, /saveFromChat/)\n+  assert.doesNotMatch(source, /project|memory/i)\n+})\n+```
+    new URL("../save-to-notebook-trigger.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /saveFromChat/);
+  assert.doesNotMatch(source, /project|memory/i);
+});
+```
 
 - [ ] **Step 2: 运行测试确认失败**
 
@@ -294,7 +310,20 @@ git commit -m "feat(notebook): strengthen chat-to-note flow"
 
 ```python
 def test_archive_workspace_asset_creates_notebook_copy(tmp_path) -> None:
-    source = tmp_path / \"workspace\" / \"report.html\"\n+    source.parent.mkdir(parents=True)\n+    source.write_text(\"<h1>Report</h1>\")\n+\n+    service = NotebookHistoryService(base_dir=tmp_path / \"nion-home\")\n+    asset = service.archive_asset(\n+        source_path=str(source),\n+        directory=\"\",\n+        actor_type=\"user\",\n+    )\n+\n+    assert asset.relative_path.startswith(\"收件箱/\")\n+    assert asset.source_kind == \"workspace_copy\"\n+```
+    source = tmp_path / "workspace" / "report.html"
+    source.parent.mkdir(parents=True)
+    source.write_text("<h1>Report</h1>")
+
+    service = NotebookHistoryService(base_dir=tmp_path / "nion-home")
+    asset = service.archive_asset(
+        source_path=str(source),
+        directory="",
+        actor_type="user",
+    )
+
+    assert asset.relative_path.startswith("收件箱/")
+    assert asset.source_kind == "workspace_copy"
+```
 
 - [ ] **Step 2: 运行测试确认失败**
 
@@ -356,8 +385,11 @@ git commit -m "feat(notebook): add explicit asset archive flow"
 - Note 与 Asset 可在 Inbox 中共同出现
 
 ```ts
-void test(\"NotebookPage prioritizes inbox over tree-only navigation\", async () => {
-  const source = await readFile(new URL(\"./notebook-page.tsx\", import.meta.url), \"utf8\")\n+  assert.match(source, /Inbox|收件箱/)\n+})\n+```
+void test("NotebookPage prioritizes inbox over tree-only navigation", async () => {
+  const source = await readFile(new URL("./notebook-page.tsx", import.meta.url), "utf8");
+  assert.match(source, /Inbox|收件箱/);
+});
+```
 
 - [ ] **Step 2: 运行测试确认失败**
 
@@ -422,8 +454,12 @@ git commit -m "feat(notebook): switch notebook home to inbox-first"
 - 不出现 project / memory 提炼语义
 
 ```ts
-void test(\"NotebookAssistantPanel stays note-centric and notebook-only\", async () => {
-  const source = await readFile(new URL(\"./notebook-assistant-panel.tsx\", import.meta.url), \"utf8\")\n+  assert.match(source, /笔记助手/)\n+  assert.doesNotMatch(source, /project|memory/i)\n+})\n+```
+void test("NotebookAssistantPanel stays note-centric and notebook-only", async () => {
+  const source = await readFile(new URL("./notebook-assistant-panel.tsx", import.meta.url), "utf8");
+  assert.match(source, /笔记助手/);
+  assert.doesNotMatch(source, /project|memory/i);
+});
+```
 
 - [ ] **Step 2: 运行测试确认失败**
 
