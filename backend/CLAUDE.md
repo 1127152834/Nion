@@ -79,7 +79,7 @@ FastAPI application on port 8001 with health check at `GET /health`.
 | **Models** (`/api/models`) | runtime model catalog |
 | **MCP** (`/api/mcp`) | MCP config surfaces |
 | **Memory** (`/api/memory`) | memory data and config |
-| **Notebook** (`/api/notebook`) | notebook CRUD / history / restore / import / bridge candidate entrypoints |
+| **Notebook** (`/api/notebook`) | notebook CRUD / history / restore / inbox / import / asset archive |
 | **Uploads** (`/api/threads/{id}/uploads`) | uploads list / delete |
 | **Artifacts** (`/api/threads/{id}/artifacts`) | serve artifacts |
 | **Suggestions** (`/api/threads/{id}/suggestions`) | follow-up question generation |
@@ -130,18 +130,21 @@ startup regression first, not an Electron-only issue. Validate with:
 This catches truncated service modules, broken runtime factory exports, and
 middleware import regressions before they are misdiagnosed as shell timing issues.
 
-### Projects Module
+### Notebook Boundaries
 
-The Project module is a top-level workspace surface for long-running work containers.
+Notebook is a user-owned knowledge and work-material library.
 
-Current v1 lane includes:
+Current Notebook lane includes:
 
-- gateway-owned SQLite metadata store at `{NION_HOME}/projects.sqlite3`
-- project dashboard, execution plans, project threads, timeline, decisions, managed artifacts, and project memory summaries
-- object bridge candidate entrypoints for notebook draft export, long-term memory extraction, and notebook reference attachment
-- project thread context propagation through `context.project_id`, `context.project_phase`, and `context.primary_plan_id`
+- note / directory / trash / history CRUD
+- inbox-first default organization
+- explicit chat-to-note save flow
+- explicit workspace artifact copy archive flow
+- notebook assistant note-scoped rewrite / summarize flow
 
 Important boundary:
 
-- Project is not a Notebook replacement and must not auto-write Notebook
-- Cross-object actions must stay candidate-first / draft-first; page entrypoints cannot bypass bridge APIs and directly write Notebook or Memory
+- Notebook is not memory
+- Notebook is not project management
+- Notebook must not auto-ingest workspace artifacts
+- Notebook assistant stays note-scoped and content-focused

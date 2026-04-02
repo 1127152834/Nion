@@ -19,7 +19,7 @@
 - 上传与产物链路：文件上传、解析、产物访问与下载能力完整闭环
 - 附件发送语义：聊天输入框现在支持“纯附件”直接发送；附件只会在消息真正提交成功后清空，失败时会保留当前文本与附件便于重试
 - 模型设置持久化：自定义供应商的连接状态会按 `protocol/base_url/api key` 变更自动失效；测试成功后在配置未变化时保持“已连接”，已保存 API Key 会以部分掩码形式回显
-- Notebook 第二大脑：本地 Markdown 知识库、收件箱闪记、目录管理、版本历史与回收站恢复
+- Notebook 个人知识库：收件箱优先的笔记与工作材料库，支持聊天沉淀、显式保存工作产物副本、目录管理、版本历史与回收站恢复
 - 上下文存储：支持 workspace/thread 级上下文沉淀与召回
 - 临时会话保护：`temporary_chat` 默认允许读取长期记忆但禁止写回，避免污染长期记忆文件
 - 聊天追问建议模型可在“模型设置”页单独指定；未设置时默认跟随当前聊天模型
@@ -49,20 +49,22 @@
 
 ## Notebook
 
-桌面端 Notebook 现在是一个本地优先的个人知识库工作台，根目录固定为：
+桌面端 Notebook 现在是一个本地优先的个人知识与工作材料库，根目录固定为：
 
 `~/.nion-data/notebook`
 
 当前版本已支持：
 
 - Markdown 笔记创建与编辑
-- `收件箱` 优先的闪记捕获
+- `收件箱` 优先的首页与闪记捕获
 - 目录树浏览与目录创建
 - 笔记移动、重命名、删除到回收站
 - 版本历史查看与恢复
+- 从聊天内容显式沉淀为笔记
+- 从工作空间产物显式保存副本到 Notebook
 - Agent 协助改写、总结、扩写与从对话导入内容
 
-Notebook 是用户资产，不是 agent memory。用户笔记、agent memory、agent diary 仍然保持边界分离。
+Notebook 是用户资产，不是 agent memory，也不是项目管理器。用户笔记、agent memory、agent diary 仍然保持边界分离。
 
 ## 控制平面
 
@@ -220,7 +222,7 @@ make docker-start
 ```text
 .
 ├── backend/        # FastAPI Gateway + LangGraph + 配置/沙箱/上下文存储能力
-├── frontend/       # Next.js 前端工作台（Chats / Projects / Automation / Notebook 等顶层模块）
+├── frontend/       # Next.js 前端工作台（Chats / Automation / Notebook 等顶层模块）
 ├── docker/         # Nginx、开发容器与沙箱相关配置
 ├── scripts/        # 开发与运维脚本
 ├── skills/         # 内置与扩展技能目录
