@@ -45,6 +45,7 @@ export const enUS: Translations = {
     code: "Code",
     preview: "Preview",
     cancel: "Cancel",
+    continue: "Continue",
     save: "Save",
     install: "Install",
     create: "Create",
@@ -232,7 +233,6 @@ export const enUS: Translations = {
   // Workspace
   workspace: {
     officialWebsite: "Nion's official website",
-    githubTooltip: "Nion on Github",
     settingsAndMore: "Settings and more",
     navigationMenu: "Workspace",
     visitGithub: "Nion on GitHub",
@@ -680,11 +680,42 @@ export const enUS: Translations = {
         "Summary sections are read-only for now. You can currently clear all memory or delete individual facts.",
       memoryFullyEmpty: "No memory saved yet.",
       factPreviewLabel: "Fact to delete",
+      quickSearchTitle: "Memory search console",
+      quickSearchDescription:
+        "Search long-term memory and conversation history, then review saved facts before cleanup.",
+      manageCleanup: "Review cleanup flow",
+      notAvailable: "Not available",
+      emptySectionText: "No summary available yet.",
+      dangerZoneTitle: "Cleanup readiness",
+      dangerZoneDescription:
+        "Review the current footprint before entering the multi-step cleanup flow.",
+      detailSummaryTitle: "Summary",
+      detailTimelineTitle: "Timeline detail",
+      detailFactsTitle: "Related facts",
+      summaryCards: {
+        factCount: "Saved facts",
+        lastUpdated: "Last updated",
+        userContext: "User context",
+        historyBackground: "History background",
+        ready: "Ready",
+        empty: "Empty",
+      },
       searchPlaceholder: "Search current memory",
       filterAll: "All",
       filterFacts: "Facts",
       filterSummaries: "Summaries",
       noMatches: "No matching memory found.",
+      clearFlowRiskSummary:
+        "{facts} saved facts will be removed. Last updated: {updated}.",
+      clearFlowIrreversible:
+        "This action permanently removes the current structured memory snapshot.",
+      clearFlowAffectedSections: "Affected sections",
+      clearFlowTypePhrase:
+        'Type "清空记忆" to confirm you want to continue.',
+      clearFlowFinalWarning: "Final confirmation",
+      clearFlowCountdownHint:
+        "Wait for the countdown to finish before confirming. {seconds}s remaining.",
+      clearFlowFinalAction: "Permanently clear memory",
       surfaces: {
         provider: {
           title: "Memory Provider",

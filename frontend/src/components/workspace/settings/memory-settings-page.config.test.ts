@@ -20,8 +20,15 @@ void test("memory settings page includes memory management actions and local fil
     "utf8",
   );
 
-  assert.match(source, /onClearAll/);
+  assert.match(source, /onOpenDangerZone/);
   assert.match(source, /onDeleteFact/);
   assert.match(source, /ToggleGroup/);
   assert.match(source, /searchPlaceholder/);
+});
+
+void test("memory settings page reuses the unified visual memory surface instead of markdown rendering", async () => {
+  const source = await readFile(new URL("./settings-dialog.tsx", import.meta.url), "utf8");
+
+  assert.match(source, /MemoryPage/);
+  assert.doesNotMatch(source, /MemorySettingsPage/);
 });

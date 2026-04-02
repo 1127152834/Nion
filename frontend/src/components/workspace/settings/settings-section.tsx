@@ -11,15 +11,19 @@ export function SettingsSection({
   description?: React.ReactNode;
   children: React.ReactNode;
 }) {
+  const hasHeader = title != null || description != null;
+
   return (
     <section className={cn(className)}>
-      <header className="space-y-2">
-        <div className="text-lg font-semibold">{title}</div>
-        {description && (
-          <div className="text-muted-foreground text-sm">{description}</div>
-        )}
-      </header>
-      <main className="mt-4">{children}</main>
+      {hasHeader ? (
+        <header className="space-y-2">
+          {title != null ? <div className="text-lg font-semibold">{title}</div> : null}
+          {description && (
+            <div className="text-muted-foreground text-sm">{description}</div>
+          )}
+        </header>
+      ) : null}
+      <main className={hasHeader ? "mt-4" : undefined}>{children}</main>
     </section>
   );
 }

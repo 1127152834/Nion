@@ -1,6 +1,7 @@
 "use client";
 
 import { useDeferredValue, useMemo, useState } from "react";
+import { toast } from "sonner";
 
 import { useI18n } from "@/core/i18n/hooks";
 import {
@@ -17,6 +18,14 @@ import { useRecallSearch } from "@/core/recall/hooks";
 import { formatTimeAgo } from "@/core/utils/datetime";
 
 import { MemoryConsolePanel } from "../settings/memory-console-panel";
+import { MemoryClearFlow } from "./memory-clear-flow";
+import { MemoryDangerZone } from "./memory-danger-zone";
+import {
+  type MemoryDetailKind,
+  MemoryDetailDrawer,
+} from "./memory-detail-drawer";
+import { MemoryOverviewSections } from "./memory-overview-sections";
+import { MemorySummaryCards } from "./memory-summary-cards";
 
 type MemoryViewFilter = "all" | "facts" | "summaries";
 
@@ -30,25 +39,6 @@ type MemorySectionGroup = {
   title: string;
   sections: MemorySection[];
 };
-
-function formatMemorySection(
-  section: MemorySection,
-  t: ReturnType<typeof useI18n>["t"],
-): string {
-  const updatedAtLabel = formatTimeAgo(section.updatedAt);
-  const content =
-    section.summary.trim() ||
-    `<span class="text-muted-foreground">${t.settings.memory.markdown.empty}</span>`;
-  return [
-    `### ${section.title}`,
-    content,
-    "",
-    updatedAtLabel &&
-      `> ${t.settings.memory.markdown.updatedAt}: \`${updatedAtLabel}\``,
-  ]
-    .filter(Boolean)
-    .join("\n");
-}
 
 function buildMemorySectionGroups(
   memory: UserMemory,
@@ -98,66 +88,18 @@ function buildMemorySectionGroups(
   ];
 }
 
-function summariesToMarkdown(
-  memory: UserMemory,
-  sectionGroups: MemorySectionGroup[],
-  t: ReturnType<typeof useI18n>["t"],
-) {
-  const parts: string[] = [];
-  const lastUpdatedLabel = formatTimeAgo(memory.lastUpdated);
-
-  parts.push(`## ${t.settings.memory.markdown.overview}`);
-  if (lastUpdatedLabel) {
-    parts.push(`- **${t.common.lastUpdated}**: \`${lastUpdatedLabel}\``);
-  }
-
-  for (const group of sectionGroups) {
-    parts.push(`\n## ${group.title}`);
-    for (const section of group.sections) {
-      parts.push(formatMemorySection(section, t));
-    }
-  }
-
-  const markdown = parts.join("\n\n");
-  const lines = markdown.split("\n");
-  const out: string[] = [];
-  let index = 0;
-  for (const line of lines) {
-    index++;
-    if (index !== 1 && line.startsWith("## ")) {
-      if (out.length === 0 || out[out.length - 1] !== "---") {
-        out.push("---");
-      }
-    }
-    out.push(line);
-  }
-
-  return out.join("\n");
-}
-
-function emptyMemory(): UserMemory {
-  return {
-    version: "1.0",
-    lastUpdated: "",
-    user: {
-      workContext: { summary: "", updatedAt: "" },
-      personalContext: { summary: "", updatedAt: "" },
-      topOfMind: { summary: "", updatedAt: "" },
-    },
-    history: {
-      recentMonths: { summary: "", updatedAt: "" },
-      earlierContext: { summary: "", updatedAt: "" },
-      longTermBackground: { summary: "", updatedAt: "" },
-    },
-    facts: [],
-  };
-}
-
 export function MemoryPage() {
   const { t } = useI18n();
   const { memory, isLoading, error } = useMemory();
   const clearMemory = useClearMemory();
   const deleteMemoryFact = useDeleteMemoryFact();
+  const [clearFlowOpen, setClearFlowOpen] = useState(false);
+  const [clearSuccessBanner, setClearSuccessBanner] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [detailKind, setDetailKind] = useState<MemoryDetailKind>("user-context");
+  const [detailTitle, setDetailTitle] = useState("");
+  const [detailSummary, setDetailSummary] = useState("");
+  const [detailUpdatedAt, setDetailUpdatedAt] = useState<string | undefined>();
   const [draftQuery, setDraftQuery] = useState("");
   const [submittedQuery, setSubmittedQuery] = useState("");
   const [query, setQuery] = useState("");
@@ -238,51 +180,131 @@ export function MemoryPage() {
     (showSummaries && filteredSectionGroups.length > 0) ||
     (showFacts && filteredFacts.length > 0);
 
-  return (
-    <div className="flex flex-1 flex-col gap-6 overflow-y-auto px-4 py-6 sm:px-6">
-      <header className="space-y-2">
-        <p className="text-sm font-medium uppercase tracking-[0.2em] text-muted-foreground">
-          {t.workspaceSurfaces.memory.eyebrow}
-        </p>
-        <h1 className="text-2xl font-semibold tracking-tight">
-          {t.workspaceSurfaces.memory.title}
-        </h1>
-        <p className="max-w-3xl text-sm text-muted-foreground">
-          {t.workspaceSurfaces.memory.description}
-        </p>
-      </header>
+  const lastUpdatedLabel = formatTimeAgo(memory?.lastUpdated);
+  const affectedSections = [
+    t.settings.memory.markdown.userContext,
+    t.settings.memory.markdown.historyBackground,
+    t.settings.memory.markdown.facts,
+  ];
 
-      <MemoryConsolePanel
-        memory={memory}
-        isLoading={isLoading}
-        error={error instanceof Error ? error : null}
-        draftQuery={draftQuery}
-        submittedQuery={submittedQuery}
-        onDraftQueryChange={setDraftQuery}
-        onSubmitSearch={() => setSubmittedQuery(draftQuery.trim())}
-        structuredResults={structuredResults}
-        recall={recall}
-        overviewMarkdown={summariesToMarkdown(
-          memory ?? emptyMemory(),
-          filteredSectionGroups,
-          t,
-        )}
-        query={query}
-        filter={filter}
-        filteredFacts={filteredFacts}
-        filteredSectionGroups={filteredSectionGroups}
-        hasMatchingVisibleContent={hasMatchingVisibleContent}
-        normalizedQuery={normalizedQuery}
-        onQueryChange={setQuery}
-        onFilterChange={setFilter}
-        onClearAll={() => {
-          void clearMemory.mutateAsync();
-        }}
-        onDeleteFact={(fact) => {
-          void deleteMemoryFact.mutateAsync(fact.id);
-        }}
-        clearPending={clearMemory.isPending}
+  async function handleConfirmClearMemory() {
+    try {
+      await clearMemory.mutateAsync();
+      setClearSuccessBanner(true);
+      toast.success(t.settings.memory.clearAllSuccess);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  function openDetail(
+    kind: MemoryDetailKind,
+    title: string,
+    summary: string,
+    updatedAt?: string,
+  ) {
+    setDetailKind(kind);
+    setDetailTitle(title);
+    setDetailSummary(summary);
+    setDetailUpdatedAt(updatedAt);
+    setDetailOpen(true);
+  }
+
+  return (
+    <>
+      <div className="flex flex-1 flex-col gap-6 overflow-y-auto px-4 py-6 sm:px-6">
+        <header className="space-y-4">
+          <div className="rounded-2xl border bg-background/80 p-6 shadow-sm">
+            <div className="space-y-2">
+              <p className="text-sm font-medium uppercase tracking-[0.2em] text-muted-foreground">
+                {t.workspaceSurfaces.memory.eyebrow}
+              </p>
+              <h1 className="text-2xl font-semibold tracking-tight">
+                {t.workspaceSurfaces.memory.title}
+              </h1>
+              <p className="max-w-3xl text-sm text-muted-foreground">
+                {t.workspaceSurfaces.memory.description}
+              </p>
+            </div>
+
+            {clearSuccessBanner ? (
+              <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                {t.settings.memory.clearAllSuccess}
+              </div>
+            ) : null}
+
+            <div className="mt-5">
+              <MemorySummaryCards memory={memory} />
+            </div>
+          </div>
+        </header>
+
+        <section className="rounded-2xl border bg-background/80 p-5 shadow-sm">
+          <div className="space-y-1">
+            <h2 className="text-base font-semibold">
+              {t.settings.memory.quickSearchTitle}
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              {t.settings.memory.quickSearchDescription}
+            </p>
+          </div>
+
+          <div className="mt-4">
+            <MemoryConsolePanel
+              memory={memory}
+              isLoading={isLoading}
+              error={error instanceof Error ? error : null}
+              draftQuery={draftQuery}
+              submittedQuery={submittedQuery}
+              onDraftQueryChange={setDraftQuery}
+              onSubmitSearch={() => setSubmittedQuery(draftQuery.trim())}
+              structuredResults={structuredResults}
+              recall={recall}
+              query={query}
+              filter={filter}
+              filteredFacts={filteredFacts}
+              filteredSectionGroups={filteredSectionGroups}
+              hasMatchingVisibleContent={hasMatchingVisibleContent}
+              normalizedQuery={normalizedQuery}
+              onQueryChange={setQuery}
+              onFilterChange={setFilter}
+              onOpenDangerZone={() => setClearFlowOpen(true)}
+              onDeleteFact={(fact) => {
+                void deleteMemoryFact.mutateAsync(fact.id);
+              }}
+            />
+          </div>
+        </section>
+
+        <section className="grid gap-6 xl:grid-cols-[minmax(0,1.6fr)_320px]">
+          <MemoryOverviewSections memory={memory} onOpenDetail={openDetail} />
+          <MemoryDangerZone
+            factsCount={memory?.facts.length ?? 0}
+            lastUpdatedLabel={lastUpdatedLabel}
+          />
+        </section>
+      </div>
+
+      <MemoryClearFlow
+        open={clearFlowOpen}
+        factsCount={memory?.facts.length ?? 0}
+        lastUpdatedLabel={lastUpdatedLabel}
+        affectedSections={affectedSections}
+        pending={clearMemory.isPending}
+        onOpenChange={setClearFlowOpen}
+        onConfirm={handleConfirmClearMemory}
       />
-    </div>
+
+      <MemoryDetailDrawer
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+        kind={detailKind}
+        title={detailTitle}
+        summary={detailSummary}
+        updatedAt={detailUpdatedAt}
+        memory={memory}
+        facts={memory?.facts ?? []}
+      />
+    </>
   );
 }

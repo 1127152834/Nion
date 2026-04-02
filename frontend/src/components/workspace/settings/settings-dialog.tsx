@@ -28,7 +28,7 @@ import { AgentIntegrationsSettingsPage } from "@/components/workspace/settings/a
 import { CLIToolsPage } from "@/components/workspace/settings/cli-tools-page";
 import { DaemonSettingsPage } from "@/components/workspace/settings/daemon-settings-page";
 import { MCPServersPage } from "@/components/workspace/settings/mcp-servers-page";
-import { MemorySettingsPage } from "@/components/workspace/settings/memory-settings-page";
+import { MemoryPage } from "@/components/workspace/memory/memory-page";
 import { ModelSettingsPage } from "@/components/workspace/settings/model-settings-page";
 import { NotificationSettingsPage } from "@/components/workspace/settings/notification-settings-page";
 import { SandboxSettingsPage } from "@/components/workspace/settings/sandbox-settings-page";
@@ -287,7 +287,7 @@ export function SettingsDialog(props: SettingsDialogProps) {
                 {activeSection === "sessionPolicy" && (
                   <SessionPolicySettingsPage />
                 )}
-                {activeSection === "memory" && <MemorySettingsPage />}
+                {activeSection === "memory" && <MemoryPage />}
                 {activeSection === "daemon" && <DaemonSettingsPage />}
                 {activeSection === "tools" && <ToolSettingsPage />}
                 {activeSection === "search" && <SearchSettingsPage />}

@@ -45,6 +45,7 @@ export const zhCN: Translations = {
     code: "代码",
     preview: "预览",
     cancel: "取消",
+    continue: "继续",
     save: "保存",
     install: "安装",
     create: "创建",
@@ -221,7 +222,6 @@ export const zhCN: Translations = {
   // Workspace
   workspace: {
     officialWebsite: "访问 Nion 官方网站",
-    githubTooltip: "访问 Nion 的 Github 仓库",
     settingsAndMore: "设置和更多",
     navigationMenu: "工作区",
     visitGithub: "在 Github 上查看 Nion",
@@ -652,11 +652,41 @@ export const zhCN: Translations = {
         "摘要分区当前仍是只读。现在支持清空全部记忆，以及删除单条事实。",
       memoryFullyEmpty: "当前还没有保存任何记忆。",
       factPreviewLabel: "待删除事实",
+      quickSearchTitle: "记忆检索控制台",
+      quickSearchDescription:
+        "统一搜索长期记忆和历史对话，在进入清理流程前先核对已保存的事实。",
+      manageCleanup: "查看清理流程",
+      notAvailable: "暂无",
+      emptySectionText: "该分区暂时还没有摘要。",
+      dangerZoneTitle: "清理准备区",
+      dangerZoneDescription:
+        "进入多步清理流程前，先核对当前记忆体量和最近更新时间。",
+      detailSummaryTitle: "摘要详情",
+      detailTimelineTitle: "时间线详情",
+      detailFactsTitle: "关联事实",
+      summaryCards: {
+        factCount: "已保存事实",
+        lastUpdated: "最后更新",
+        userContext: "用户上下文",
+        historyBackground: "历史背景",
+        ready: "已建立",
+        empty: "为空",
+      },
       searchPlaceholder: "搜索当前记忆",
       filterAll: "全部",
       filterFacts: "事实",
       filterSummaries: "摘要",
       noMatches: "没有找到匹配的记忆。",
+      clearFlowRiskSummary:
+        "本次会删除 {facts} 条已保存事实。最近更新时间：{updated}。",
+      clearFlowIrreversible:
+        "该操作会永久移除当前结构化记忆快照，无法撤销。",
+      clearFlowAffectedSections: "受影响分区",
+      clearFlowTypePhrase: "输入“清空记忆”后才能继续下一步。",
+      clearFlowFinalWarning: "最终确认",
+      clearFlowCountdownHint:
+        "请等待倒计时结束后再确认，剩余 {seconds} 秒。",
+      clearFlowFinalAction: "永久清空记忆",
       surfaces: {
         provider: {
           title: "记忆提供者",

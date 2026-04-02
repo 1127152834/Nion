@@ -277,6 +277,7 @@ export interface Translations {
     code: string;
     preview: string;
     cancel: string;
+    continue: string;
     save: string;
     install: string;
     create: string;
@@ -408,7 +409,6 @@ export interface Translations {
   // Workspace
   workspace: {
     officialWebsite: string;
-    githubTooltip: string;
     settingsAndMore: string;
     navigationMenu: string;
     visitGithub: string;
@@ -676,6 +676,9 @@ export interface Translations {
       description: string;
       empty: string;
       rawJson: string;
+      quickSearchTitle: string;
+      quickSearchDescription: string;
+      manageCleanup: string;
       clearAll: string;
       clearAllConfirmTitle: string;
       clearAllConfirmDescription: string;
@@ -687,11 +690,33 @@ export interface Translations {
       summaryReadOnly: string;
       memoryFullyEmpty: string;
       factPreviewLabel: string;
+      notAvailable: string;
+      emptySectionText: string;
+      dangerZoneTitle: string;
+      dangerZoneDescription: string;
+      detailSummaryTitle: string;
+      detailTimelineTitle: string;
+      detailFactsTitle: string;
+      summaryCards: {
+        factCount: string;
+        lastUpdated: string;
+        userContext: string;
+        historyBackground: string;
+        ready: string;
+        empty: string;
+      };
       searchPlaceholder: string;
       filterAll: string;
       filterFacts: string;
       filterSummaries: string;
       noMatches: string;
+      clearFlowRiskSummary: string;
+      clearFlowIrreversible: string;
+      clearFlowAffectedSections: string;
+      clearFlowTypePhrase: string;
+      clearFlowFinalWarning: string;
+      clearFlowCountdownHint: string;
+      clearFlowFinalAction: string;
       surfaces: {
         provider: {
           title: string;
