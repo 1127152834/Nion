@@ -57,10 +57,14 @@ export function MemorySummaryCards(props: { memory: UserMemory | null }) {
       {cards.map((card) => (
         <article
           key={card.label}
-          className="rounded-2xl border bg-background/80 p-4 shadow-sm"
+          className="border bg-background px-4 py-3"
         >
-          <div className="text-xs text-muted-foreground">{card.label}</div>
-          <div className="mt-2 text-xl font-semibold">{card.value}</div>
+          <div className="text-[11px] tracking-[0.14em] text-muted-foreground uppercase">
+            {card.label}
+          </div>
+          <div className="mt-2 text-[1.9rem] leading-none font-semibold">
+            {card.value}
+          </div>
         </article>
       ))}
     </div>

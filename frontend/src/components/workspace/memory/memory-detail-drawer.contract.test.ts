@@ -13,6 +13,7 @@ void test("memory detail drawer supports timeline and structured detail views", 
   assert.match(source, /props\.kind === "history"/);
   assert.match(source, /props\.kind === "user-context"|props\.kind !== "history"/);
   assert.match(source, /bg-primary|rounded-full/);
+  assert.doesNotMatch(source, /rounded-2xl/);
   assert.match(source, /recentMonths/);
   assert.match(source, /earlierContext/);
   assert.match(source, /longTermBackground/);

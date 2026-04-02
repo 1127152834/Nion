@@ -51,13 +51,18 @@ export function MemoryDetailDrawer(props: {
 
   return (
     <Sheet open={props.open} onOpenChange={props.onOpenChange}>
-      <SheetContent side="right" className="w-[520px] sm:max-w-[520px]">
+      <SheetContent side="right" className="w-[340px] sm:max-w-[340px]">
         <SheetHeader className="border-b px-6 py-5">
-          <SheetTitle className="text-xl font-semibold">{props.title}</SheetTitle>
+          <div className="mb-1 text-[11px] tracking-[0.16em] text-muted-foreground uppercase">
+            Detail inspector
+          </div>
+          <SheetTitle className="text-[2rem] font-semibold tracking-tight">
+            {props.title}
+          </SheetTitle>
         </SheetHeader>
 
         <div className="space-y-6 overflow-y-auto px-6 py-6">
-          <section className="rounded-2xl border bg-background/80 p-5">
+          <section className="border bg-background p-4">
             <div className="text-sm font-medium text-muted-foreground">
               {t.settings.memory.detailSummaryTitle}
             </div>
@@ -99,7 +104,7 @@ export function MemoryDetailDrawer(props: {
                 ].map((item) => (
                   <div key={item.key} className="relative pl-6">
                     <div className="absolute top-2 left-2 h-full w-px bg-border" />
-                    <div className="relative rounded-2xl border bg-background/80 p-4">
+                    <div className="relative border bg-background p-4">
                       <div className="absolute top-5 -left-[18px] size-3 rounded-full bg-primary" />
                       <div className="text-sm font-medium">{item.title}</div>
                       <div className="mt-1 text-xs text-muted-foreground">
@@ -143,7 +148,7 @@ export function MemoryDetailDrawer(props: {
                     updatedAt: props.memory?.user.topOfMind.updatedAt,
                   },
                 ].map((item) => (
-                  <div key={item.key} className="rounded-2xl border bg-background/80 p-4">
+                  <div key={item.key} className="border bg-background p-4">
                     <div className="text-sm font-medium">{item.title}</div>
                     <div className="mt-1 text-xs text-muted-foreground">
                       {item.updatedAt
@@ -165,13 +170,13 @@ export function MemoryDetailDrawer(props: {
                 {t.settings.memory.detailFactsTitle}
               </div>
               {relatedFacts.length === 0 ? (
-                <div className="rounded-2xl border bg-background/80 p-4 text-sm text-muted-foreground">
+                <div className="border bg-background p-4 text-sm text-muted-foreground">
                   {t.settings.memory.noFacts}
                 </div>
               ) : (
                 <div className="space-y-3">
                   {relatedFacts.map((fact) => (
-                    <div key={fact.id} className="rounded-2xl border bg-background/80 p-4">
+                    <div key={fact.id} className="border bg-background p-4">
                       <div className="flex items-center gap-2">
                         <Badge variant="outline">{fact.category}</Badge>
                         <span className="text-xs text-muted-foreground">

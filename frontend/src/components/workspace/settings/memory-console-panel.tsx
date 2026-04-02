@@ -64,7 +64,15 @@ export function MemoryConsolePanel(props: {
 
   return (
     <div className="space-y-5">
-      <div className="flex justify-end">
+      <div className="flex items-center justify-between gap-4 border-b pb-4">
+        <div>
+          <div className="text-[11px] tracking-[0.14em] text-muted-foreground uppercase">
+            Search console
+          </div>
+          <div className="mt-1 text-sm text-muted-foreground">
+            {t.settings.memory.quickSearchDescription}
+          </div>
+        </div>
         <Button variant="outline" onClick={props.onOpenDangerZone}>
           {t.settings.memory.manageCleanup}
         </Button>
@@ -85,13 +93,13 @@ export function MemoryConsolePanel(props: {
           }}
           variant="outline"
         >
-          <ToggleGroupItem value="all">
+          <ToggleGroupItem value="all" className="rounded-none">
             {t.settings.memory.filterAll}
           </ToggleGroupItem>
-          <ToggleGroupItem value="facts">
+          <ToggleGroupItem value="facts" className="rounded-none">
             {t.settings.memory.filterFacts}
           </ToggleGroupItem>
-          <ToggleGroupItem value="summaries">
+          <ToggleGroupItem value="summaries" className="rounded-none">
             {t.settings.memory.filterSummaries}
           </ToggleGroupItem>
         </ToggleGroup>
@@ -136,7 +144,7 @@ export function MemoryConsolePanel(props: {
                   return (
                     <div
                       key={result.id}
-                      className="rounded-xl border bg-background/70 p-4"
+                      className="border bg-background/70 p-4"
                     >
                       <div className="mb-2 flex flex-wrap items-center gap-2">
                         <Badge variant="outline">{result.title}</Badge>
@@ -184,7 +192,7 @@ export function MemoryConsolePanel(props: {
                   return (
                     <div
                       key={`${result.thread_id}-${result.agent_name}-${index}`}
-                      className="rounded-xl border bg-background/70 p-4"
+                      className="border bg-background/70 p-4"
                     >
                       <div className="mb-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
                         <span>
@@ -205,7 +213,7 @@ export function MemoryConsolePanel(props: {
         </div>
       )}
 
-      <div className="rounded-2xl border bg-background/60 p-5">
+      <div className="border bg-background/60 p-5">
         <div className="mb-4 flex items-center gap-2">
           <Badge variant="secondary">{props.memory?.facts.length ?? 0}</Badge>
           <span className="text-sm text-muted-foreground">
@@ -238,7 +246,7 @@ export function MemoryConsolePanel(props: {
               props.filteredFacts.map((fact) => (
                 <div
                   key={fact.id}
-                  className="flex flex-col gap-3 rounded-xl border bg-background p-4 sm:flex-row sm:items-start sm:justify-between"
+                  className="flex flex-col gap-3 border bg-background p-4 sm:flex-row sm:items-start sm:justify-between"
                 >
                   <div className="space-y-2">
                     <p className="text-sm leading-6">{fact.content}</p>

@@ -12,4 +12,5 @@ void test("memory summary cards expose facts updated user-context and history st
   assert.match(source, /summaryCards\.lastUpdated/);
   assert.match(source, /summaryCards\.userContext/);
   assert.match(source, /summaryCards\.historyBackground/);
+  assert.doesNotMatch(source, /rounded-2xl/);
 });

@@ -12,19 +12,19 @@ function MemorySectionCard(props: {
   onOpenDetail: () => void;
 }) {
   return (
-    <article className="rounded-2xl border bg-background/80 p-4 shadow-sm">
-      <div className="text-sm font-medium">{props.title}</div>
-      <div className="mt-3 text-sm leading-6 text-muted-foreground">
+    <article className="flex min-h-[206px] flex-col border bg-background px-5 py-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="text-[1.05rem] font-semibold">{props.title}</div>
+        <div className="text-xs text-muted-foreground">
+          {props.updatedAt ? formatTimeAgo(props.updatedAt) : "暂无"}
+        </div>
+      </div>
+      <div className="mt-5 flex-1 text-sm leading-7 text-foreground/80">
         {props.summary.trim() || props.emptyText}
       </div>
-      {props.updatedAt ? (
-        <div className="mt-3 text-xs text-muted-foreground">
-          {formatTimeAgo(props.updatedAt)}
-        </div>
-      ) : null}
       <button
         type="button"
-        className="mt-4 text-sm font-medium text-primary"
+        className="mt-5 border-t pt-4 text-left text-sm font-semibold text-foreground"
         onClick={props.onOpenDetail}
       >
         查看详情
@@ -36,10 +36,14 @@ function MemorySectionCard(props: {
 export function MemoryOverviewSections(props: {
   memory: UserMemory | null;
   onOpenDetail: (
-    kind: "user-context" | "history",
-    title: string,
-    summary: string,
-    updatedAt?: string,
+    section: "user" | "history",
+    leaf:
+      | "work"
+      | "personal"
+      | "topOfMind"
+      | "recentMonths"
+      | "earlierContext"
+      | "longTermBackground",
   ) => void;
 }) {
   const { t } = useI18n();
@@ -53,10 +57,13 @@ export function MemoryOverviewSections(props: {
   return (
     <div className="space-y-6">
       <section className="space-y-3">
-        <div>
-          <h2 className="text-lg font-semibold">
+        <div className="flex items-end justify-between gap-4">
+          <h2 className="text-[1.6rem] font-semibold tracking-tight">
             {t.settings.memory.markdown.userContext}
           </h2>
+          <div className="text-sm text-muted-foreground">
+            所有卡片统一高度、统一标题线、统一底部动作位
+          </div>
         </div>
         <div className="grid gap-3 md:grid-cols-3">
           <MemorySectionCard
@@ -64,49 +71,28 @@ export function MemoryOverviewSections(props: {
             summary={memory.user.workContext.summary}
             updatedAt={memory.user.workContext.updatedAt}
             emptyText={emptyText}
-            onOpenDetail={() =>
-              props.onOpenDetail(
-                "user-context",
-                t.settings.memory.markdown.work,
-                memory.user.workContext.summary,
-                memory.user.workContext.updatedAt,
-              )
-            }
+            onOpenDetail={() => props.onOpenDetail("user", "work")}
           />
           <MemorySectionCard
             title={t.settings.memory.markdown.personal}
             summary={memory.user.personalContext.summary}
             updatedAt={memory.user.personalContext.updatedAt}
             emptyText={emptyText}
-            onOpenDetail={() =>
-              props.onOpenDetail(
-                "user-context",
-                t.settings.memory.markdown.personal,
-                memory.user.personalContext.summary,
-                memory.user.personalContext.updatedAt,
-              )
-            }
+            onOpenDetail={() => props.onOpenDetail("user", "personal")}
           />
           <MemorySectionCard
             title={t.settings.memory.markdown.topOfMind}
             summary={memory.user.topOfMind.summary}
             updatedAt={memory.user.topOfMind.updatedAt}
             emptyText={emptyText}
-            onOpenDetail={() =>
-              props.onOpenDetail(
-                "user-context",
-                t.settings.memory.markdown.topOfMind,
-                memory.user.topOfMind.summary,
-                memory.user.topOfMind.updatedAt,
-              )
-            }
+            onOpenDetail={() => props.onOpenDetail("user", "topOfMind")}
           />
         </div>
       </section>
 
       <section className="space-y-3">
         <div>
-          <h2 className="text-lg font-semibold">
+          <h2 className="text-[1.6rem] font-semibold tracking-tight">
             {t.settings.memory.markdown.historyBackground}
           </h2>
         </div>
@@ -116,28 +102,14 @@ export function MemoryOverviewSections(props: {
             summary={memory.history.recentMonths.summary}
             updatedAt={memory.history.recentMonths.updatedAt}
             emptyText={emptyText}
-            onOpenDetail={() =>
-              props.onOpenDetail(
-                "history",
-                t.settings.memory.markdown.recentMonths,
-                memory.history.recentMonths.summary,
-                memory.history.recentMonths.updatedAt,
-              )
-            }
+            onOpenDetail={() => props.onOpenDetail("history", "recentMonths")}
           />
           <MemorySectionCard
             title={t.settings.memory.markdown.earlierContext}
             summary={memory.history.earlierContext.summary}
             updatedAt={memory.history.earlierContext.updatedAt}
             emptyText={emptyText}
-            onOpenDetail={() =>
-              props.onOpenDetail(
-                "history",
-                t.settings.memory.markdown.earlierContext,
-                memory.history.earlierContext.summary,
-                memory.history.earlierContext.updatedAt,
-              )
-            }
+            onOpenDetail={() => props.onOpenDetail("history", "earlierContext")}
           />
           <MemorySectionCard
             title={t.settings.memory.markdown.longTermBackground}
@@ -145,12 +117,7 @@ export function MemoryOverviewSections(props: {
             updatedAt={memory.history.longTermBackground.updatedAt}
             emptyText={emptyText}
             onOpenDetail={() =>
-              props.onOpenDetail(
-                "history",
-                t.settings.memory.markdown.longTermBackground,
-                memory.history.longTermBackground.summary,
-                memory.history.longTermBackground.updatedAt,
-              )
+              props.onOpenDetail("history", "longTermBackground")
             }
           />
         </div>
