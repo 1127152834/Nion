@@ -10,7 +10,7 @@ void test("workspace header applies desktop-only top-left spacing refinement", a
 
   assert.match(source, /useIsDesktopShell/);
   assert.match(source, /isDesktopShell && "min-h-\[4\.75rem\] px-4 pt-7 pb-3"/);
-  assert.match(source, /isDesktopShell && "w-full items-end justify-between pl-5 pr-1"/);
+  assert.match(source, /isDesktopShell && "w-full items-end justify-between pl-2 pr-0"/);
   assert.match(source, /isDesktopShell && "text-\[1\.625rem\] tracking-\[0\.04em\]"/);
   assert.match(source, /isDesktopShell[\s\S]*\? "leading-none"/);
   assert.match(source, /isDesktopShell[\s\S]*"size-6 border-sidebar-border\/50/);

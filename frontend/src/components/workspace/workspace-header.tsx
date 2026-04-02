@@ -39,7 +39,7 @@ export function WorkspaceHeader({ className }: { className?: string }) {
         <div
           className={cn(
             "flex items-center gap-2",
-            isDesktopShell && "w-full items-end justify-between pl-5 pr-1",
+            isDesktopShell && "w-full items-end justify-between pl-2 pr-0",
           )}
         >
           {env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY === "true" ? (
