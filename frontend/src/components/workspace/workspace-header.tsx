@@ -18,7 +18,7 @@ export function WorkspaceHeader({ className }: { className?: string }) {
     "text-primary shrink-0 font-serif transition-[font-size,letter-spacing,margin,padding] duration-200",
     isDesktopShell && "text-[1.625rem] tracking-[0.04em]",
     isDesktopShell
-      ? "leading-none ml-1.5 mt-2.5"
+      ? "leading-none"
       : "tracking-[0.08em]",
   );
 
@@ -32,14 +32,14 @@ export function WorkspaceHeader({ className }: { className?: string }) {
       <div
         className={cn(
           "flex h-14 items-center justify-between px-3",
-          isDesktopShell && "h-16 px-4 pt-6 pb-2",
+          isDesktopShell && "min-h-[4.75rem] px-4 pt-7 pb-3",
           isCollapsed && "hidden",
         )}
       >
         <div
           className={cn(
             "flex items-center gap-2",
-            isDesktopShell && "gap-2.5 pl-5",
+            isDesktopShell && "w-full items-end justify-between pl-5 pr-1",
           )}
         >
           {env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY === "true" ? (
@@ -54,7 +54,7 @@ export function WorkspaceHeader({ className }: { className?: string }) {
               Nion
             </div>
           )}
-          <div className={cn(isDesktopShell && "mt-2.5")}>
+          <div>
             <SidebarTrigger
               className={cn(
                 "rounded-full border border-sidebar-border/70 bg-sidebar-accent/35 hover:bg-sidebar-accent/70",
