@@ -21,7 +21,6 @@
 - 模型设置持久化：自定义供应商的连接状态会按 `protocol/base_url/api key` 变更自动失效；测试成功后在配置未变化时保持“已连接”，已保存 API Key 会以部分掩码形式回显
 - Notebook 第二大脑：本地 Markdown 知识库、收件箱闪记、目录管理、版本历史与回收站恢复，并提供候选式对象桥接入口，可从笔记生成项目草案或长期记忆候选
 - Projects 长期工作容器：顶层 Projects 模块支持项目列表、项目驾驶舱、实施计划、项目会话、项目时间线、完成阶段提炼建议、受管产物恢复，以及候选式导出到 Notebook / Memory 的桥接入口
-- Candidate Center 候选中心：统一承接 object bridge candidates，提供全局抽屉、详情页、apply / dismiss / defer 治理链
 - 上下文存储：支持 workspace/thread 级上下文沉淀与召回
 - 临时会话保护：`temporary_chat` 默认允许读取长期记忆但禁止写回，避免污染长期记忆文件
 - 聊天追问建议模型可在“模型设置”页单独指定；未设置时默认跟随当前聊天模型

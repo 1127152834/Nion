@@ -1,9 +1,3 @@
-from .candidate_handlers import (
-    APPLY_HANDLER_REGISTRY,
-    CandidateApplyHandler,
-    compute_guard_state,
-    get_apply_handler,
-)
 from .models import (
     BridgeCandidateRecord,
     BridgeCandidateStatus,
@@ -23,7 +17,6 @@ __all__ = [
     "BridgeCandidateStatus",
     "BridgeCandidateType",
     "BridgeActionProvenance",
-    "CandidateApplyHandler",
     "MemoryEntryCandidate",
     "NotebookDraftCandidate",
     "NotebookReferenceLink",
@@ -31,7 +24,4 @@ __all__ = [
     "ProjectDraftCandidate",
     "ProjectReferenceLink",
     "SkillCandidateDraft",
-    "APPLY_HANDLER_REGISTRY",
-    "compute_guard_state",
-    "get_apply_handler",
 ]
