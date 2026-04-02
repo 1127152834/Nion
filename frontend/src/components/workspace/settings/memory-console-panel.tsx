@@ -7,12 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useI18n } from "@/core/i18n/hooks";
-import type { UserMemory } from "@/core/memory/types";
+import type { MemoryFact, UserMemory } from "@/core/memory/types";
 import { pathOfThread } from "@/core/threads/utils";
 import { formatTimeAgo } from "@/core/utils/datetime";
 
 type MemoryViewFilter = "all" | "facts" | "summaries";
-type MemoryFact = UserMemory["facts"][number];
 type MemorySection = {
   title: string;
   summary: string;
@@ -57,7 +56,11 @@ export function MemoryConsolePanel(props: {
   onQueryChange: (value: string) => void;
   onFilterChange: (value: MemoryViewFilter) => void;
   onOpenDangerZone: () => void;
+  onCreateFact: () => void;
+  onEditFact: (fact: MemoryFact) => void;
   onDeleteFact: (fact: MemoryFact) => void;
+  onExportMemory: () => void;
+  onImportMemory: (event: Event) => void;
 }) {
   const { t } = useI18n();
   const showFacts = props.filter !== "summaries";
@@ -73,6 +76,23 @@ export function MemoryConsolePanel(props: {
             {t.settings.memory.quickSearchDescription}
           </div>
         </div>
+        <label className="inline-flex">
+          <input
+            type="file"
+            accept="application/json"
+            className="hidden"
+            onChange={(event) => props.onImportMemory(event.nativeEvent)}
+          />
+          <Button variant="outline" asChild>
+            <span>{t.settings.memory.importAction}</span>
+          </Button>
+        </label>
+        <Button variant="outline" onClick={props.onExportMemory}>
+          {t.settings.memory.exportAction}
+        </Button>
+        <Button variant="outline" onClick={props.onCreateFact}>
+          {t.settings.memory.addFact}
+        </Button>
         <Button variant="outline" onClick={props.onOpenDangerZone}>
           {t.settings.memory.manageCleanup}
         </Button>
@@ -250,6 +270,11 @@ export function MemoryConsolePanel(props: {
                 >
                   <div className="space-y-2">
                     <p className="text-sm leading-6">{fact.content}</p>
+                    <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                      <span>{fact.category}</span>
+                      <span>{fact.source || t.settings.memory.manualFactSource}</span>
+                      <span>{formatTimeAgo(fact.createdAt)}</span>
+                    </div>
                     <Link
                       href={pathOfThread(fact.source)}
                       className="text-primary text-sm underline-offset-4 hover:underline"
@@ -257,14 +282,15 @@ export function MemoryConsolePanel(props: {
                       {t.settings.memory.markdown.table.view}
                     </Link>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => props.onDeleteFact(fact)}
-                  >
-                    {t.common.delete}
-                    <span className="sr-only">{t.common.delete}</span>
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={() => props.onEditFact(fact)}>
+                      {t.settings.memory.editFactTitle}
+                    </Button>
+                    <Button variant="ghost" size="icon" onClick={() => props.onDeleteFact(fact)}>
+                      {t.common.delete}
+                      <span className="sr-only">{t.common.delete}</span>
+                    </Button>
+                  </div>
                 </div>
               ))
             )}

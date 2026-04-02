@@ -16,4 +16,5 @@ void test("memory console panel owns search overview and fact management", async
   assert.match(source, /className="rounded-lg border bg-background\/60 p-5"|className="rounded-lg border bg-background p-5"/);
   assert.match(source, /rounded-md|rounded-lg|rounded-none/);
   assert.doesNotMatch(source, /rounded-2xl/);
+  assert.match(source, /onCreateFact|onEditFact|onExportMemory|onImportMemory/);
 });

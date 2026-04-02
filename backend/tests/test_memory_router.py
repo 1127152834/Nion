@@ -94,6 +94,99 @@ def test_delete_memory_fact_route_returns_404_for_missing_fact() -> None:
     assert response.json()["detail"] == "Memory fact 'fact_missing' not found."
 
 
+def test_create_memory_fact_route_returns_updated_memory() -> None:
+    app = FastAPI()
+    app.include_router(memory.router)
+    updated_memory = _sample_memory(
+        facts=[
+            {
+                "id": "fact_new",
+                "content": "User likes structured memory",
+                "category": "preference",
+                "confidence": 0.8,
+                "createdAt": "2026-04-02T00:00:00Z",
+                "source": "manual",
+            }
+        ]
+    )
+
+    with patch(
+        "app.gateway.routers.memory.create_memory_fact",
+        return_value=updated_memory,
+    ):
+        with TestClient(app) as client:
+            response = client.post(
+                "/api/memory/facts",
+                json={
+                    "content": "User likes structured memory",
+                    "category": "preference",
+                    "confidence": 0.8,
+                },
+            )
+
+    assert response.status_code == 200
+    assert response.json()["facts"] == updated_memory["facts"]
+
+
+def test_patch_memory_fact_route_returns_updated_memory() -> None:
+    app = FastAPI()
+    app.include_router(memory.router)
+    updated_memory = _sample_memory(
+        facts=[
+            {
+                "id": "fact_1",
+                "content": "Updated fact",
+                "category": "context",
+                "confidence": 0.9,
+                "createdAt": "2026-04-02T00:00:00Z",
+                "source": "manual",
+            }
+        ]
+    )
+
+    with patch(
+        "app.gateway.routers.memory.update_memory_fact",
+        return_value=updated_memory,
+    ):
+        with TestClient(app) as client:
+            response = client.patch(
+                "/api/memory/facts/fact_1",
+                json={"content": "Updated fact"},
+            )
+
+    assert response.status_code == 200
+    assert response.json()["facts"] == updated_memory["facts"]
+
+
+def test_export_memory_route_returns_current_memory() -> None:
+    app = FastAPI()
+    app.include_router(memory.router)
+
+    with patch("app.gateway.routers.memory.get_memory_data", return_value=_sample_memory()):
+        with TestClient(app) as client:
+            response = client.get("/api/memory/export")
+
+    assert response.status_code == 200
+    assert response.json()["version"] == "1.0"
+
+
+def test_import_memory_route_returns_imported_memory() -> None:
+    app = FastAPI()
+    app.include_router(memory.router)
+    imported_memory = _sample_memory()
+    imported_memory["lastUpdated"] = "2026-04-02T12:00:00Z"
+
+    with patch(
+        "app.gateway.routers.memory.import_memory_data",
+        return_value=imported_memory,
+    ):
+        with TestClient(app) as client:
+            response = client.post("/api/memory/import", json=_sample_memory())
+
+    assert response.status_code == 200
+    assert response.json()["lastUpdated"] == "2026-04-02T12:00:00Z"
+
+
 def test_memory_router_status_has_no_runtime_block() -> None:
     app = create_app()
 

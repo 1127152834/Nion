@@ -156,6 +156,39 @@ class TestConfigQueries:
             mock_delete.assert_called_once_with("fact_delete")
         assert result == memory
 
+    def test_export_memory(self, client):
+        memory = {"version": "1.0", "facts": []}
+        with patch("nion.agents.memory.updater.get_memory_data", return_value=memory) as mock_get:
+            result = client.export_memory()
+            mock_get.assert_called_once()
+        assert result == memory
+
+    def test_import_memory(self, client):
+        memory = {"version": "1.0", "facts": []}
+        with patch("nion.agents.memory.updater.import_memory_data", return_value=memory) as mock_import:
+            result = client.import_memory(memory)
+            mock_import.assert_called_once_with(memory)
+        assert result == memory
+
+    def test_create_memory_fact(self, client):
+        memory = {"version": "1.0", "facts": [{"id": "fact_new"}]}
+        with patch("nion.agents.memory.updater.create_memory_fact", return_value=memory) as mock_create:
+            result = client.create_memory_fact("hello", category="context", confidence=0.8)
+            mock_create.assert_called_once_with(content="hello", category="context", confidence=0.8)
+        assert result == memory
+
+    def test_update_memory_fact(self, client):
+        memory = {"version": "1.0", "facts": [{"id": "fact_edit"}]}
+        with patch("nion.agents.memory.updater.update_memory_fact", return_value=memory) as mock_update:
+            result = client.update_memory_fact("fact_edit", content="updated")
+            mock_update.assert_called_once_with(
+                fact_id="fact_edit",
+                content="updated",
+                category=None,
+                confidence=None,
+            )
+        assert result == memory
+
 
 # ---------------------------------------------------------------------------
 # stream / chat

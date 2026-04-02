@@ -18,6 +18,7 @@ class ConversationContext:
     messages: list[Any]
     timestamp: datetime = field(default_factory=datetime.utcnow)
     agent_name: str | None = None
+    correction_detected: bool = False
 
 
 class MemoryUpdateQueue:
@@ -40,7 +41,13 @@ class MemoryUpdateQueue:
         self._processing = False
         self._updater_factory = updater_factory
 
-    def add(self, thread_id: str, messages: list[Any], agent_name: str | None = None) -> None:
+    def add(
+        self,
+        thread_id: str,
+        messages: list[Any],
+        agent_name: str | None = None,
+        correction_detected: bool = False,
+    ) -> None:
         """Add a conversation to the update queue.
 
         Args:
@@ -52,13 +59,20 @@ class MemoryUpdateQueue:
         if not config.enabled:
             return
 
-        context = ConversationContext(
-            thread_id=thread_id,
-            messages=messages,
-            agent_name=agent_name,
-        )
-
         with self._lock:
+            existing_context = next(
+                (context for context in self._queue if context.thread_id == thread_id),
+                None,
+            )
+            merged_correction_detected = correction_detected or (
+                existing_context.correction_detected if existing_context is not None else False
+            )
+            context = ConversationContext(
+                thread_id=thread_id,
+                messages=messages,
+                agent_name=agent_name,
+                correction_detected=merged_correction_detected,
+            )
             # Check if this thread already has a pending update
             # If so, replace it with the newer one
             self._queue = [c for c in self._queue if c.thread_id != thread_id]
@@ -115,6 +129,7 @@ class MemoryUpdateQueue:
                         messages=context.messages,
                         thread_id=context.thread_id,
                         agent_name=context.agent_name,
+                        correction_detected=context.correction_detected,
                     )
                     if success:
                         print(f"Memory updated successfully for thread {context.thread_id}")

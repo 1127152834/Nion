@@ -1,6 +1,10 @@
 import { getBackendBaseURL } from "../config/index.ts";
 
-import type { UserMemory } from "./types";
+import type {
+  MemoryFactInput,
+  MemoryFactPatchInput,
+  UserMemory,
+} from "./types";
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -95,4 +99,48 @@ export async function deleteMemoryFact(factId: string) {
     },
   );
   return readMemoryResponse(response, "deleteMemoryFact");
+}
+
+export async function exportMemory() {
+  const response = await fetch(`${getBackendBaseURL()}/api/memory/export`);
+  return readMemoryResponse(response, "exportMemory");
+}
+
+export async function importMemory(memory: UserMemory) {
+  const response = await fetch(`${getBackendBaseURL()}/api/memory/import`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(memory),
+  });
+  return readMemoryResponse(response, "importMemory");
+}
+
+export async function createMemoryFact(input: MemoryFactInput) {
+  const response = await fetch(`${getBackendBaseURL()}/api/memory/facts`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(input),
+  });
+  return readMemoryResponse(response, "createMemoryFact");
+}
+
+export async function updateMemoryFact(
+  factId: string,
+  input: MemoryFactPatchInput,
+) {
+  const response = await fetch(
+    `${getBackendBaseURL()}/api/memory/facts/${encodeURIComponent(factId)}`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(input),
+    },
+  );
+  return readMemoryResponse(response, "updateMemoryFact");
 }

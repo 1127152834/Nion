@@ -26,9 +26,12 @@ from nion.agents.memory.storage import (
 from nion.agents.memory.updater import (
     MemoryUpdater,
     clear_memory_data,
+    create_memory_fact,
     delete_memory_fact,
     get_memory_data,
+    import_memory_data,
     reload_memory_data,
+    update_memory_fact,
     update_memory_from_conversation,
 )
 
@@ -50,8 +53,11 @@ __all__ = [
     # Updater
     "MemoryUpdater",
     "clear_memory_data",
+    "create_memory_fact",
     "delete_memory_fact",
     "get_memory_data",
+    "import_memory_data",
     "reload_memory_data",
+    "update_memory_fact",
     "update_memory_from_conversation",
 ]

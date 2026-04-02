@@ -1,11 +1,15 @@
 from unittest.mock import MagicMock, patch
 
 from nion.agents.memory.prompt import format_conversation_for_update
+from nion.agents.memory.queue import ConversationContext, MemoryUpdateQueue
 from nion.agents.memory.updater import (
     MemoryUpdater,
     _extract_text,
     clear_memory_data,
+    create_memory_fact,
     delete_memory_fact,
+    import_memory_data,
+    update_memory_fact,
 )
 from nion.config.memory_config import MemoryConfig
 
@@ -194,6 +198,61 @@ def test_delete_memory_fact_raises_for_unknown_id() -> None:
             raise AssertionError("Expected KeyError for missing fact id")
 
 
+def test_create_memory_fact_appends_manual_fact() -> None:
+    with (
+        patch("nion.agents.memory.updater.get_memory_data", return_value=_make_memory()),
+        patch("nion.agents.memory.updater._save_memory_to_file", return_value=True),
+    ):
+        result = create_memory_fact("User prefers markdown", category="preference", confidence=0.8)
+
+    assert result["facts"][0]["content"] == "User prefers markdown"
+    assert result["facts"][0]["source"] == "manual"
+
+
+def test_update_memory_fact_patches_only_requested_fields() -> None:
+    current_memory = _make_memory(
+        facts=[
+            {
+                "id": "fact_edit",
+                "content": "Old fact",
+                "category": "context",
+                "confidence": 0.5,
+                "createdAt": "2026-03-18T00:00:00Z",
+                "source": "manual",
+            }
+        ]
+    )
+
+    with (
+        patch("nion.agents.memory.updater.get_memory_data", return_value=current_memory),
+        patch("nion.agents.memory.updater._save_memory_to_file", return_value=True),
+    ):
+        result = update_memory_fact("fact_edit", content="New fact")
+
+    assert result["facts"][0]["content"] == "New fact"
+    assert result["facts"][0]["category"] == "context"
+
+
+def test_import_memory_data_persists_supplied_payload() -> None:
+    imported = _make_memory()
+    imported["version"] = "2.0"
+
+    with patch("nion.agents.memory.updater._save_memory_to_file", return_value=True):
+        result = import_memory_data(imported)
+
+    assert result["version"] == "2.0"
+
+
+def test_memory_queue_merges_correction_signal() -> None:
+    queue = MemoryUpdateQueue(updater_factory=lambda: MagicMock())
+    queue.add("thread-1", ["a"], correction_detected=False)
+    queue.add("thread-1", ["b"], correction_detected=True)
+
+    pending = queue._queue[0]
+    assert isinstance(pending, ConversationContext)
+    assert pending.correction_detected is True
+
+
 def test_apply_updates_filters_relationship_control_state_from_facts() -> None:
     updater = MemoryUpdater()
     current_memory = _make_memory()
@@ -327,11 +386,7 @@ class TestUpdateMemoryStructuredResponse:
         with (
             patch.object(updater, "_get_model", return_value=self._make_mock_model(valid_json)),
             patch("nion.agents.memory.updater.get_memory_config", return_value=_memory_config(enabled=True)),
-            patch("nion.agents.memory.updater.get_memory_data", return_value=_make_memory()),
-            patch(
-                "nion.agents.memory.updater.get_memory_storage",
-                return_value=MagicMock(save=MagicMock(return_value=True)),
-            ),
+            patch.object(updater, "_get_memory_storage", return_value=MagicMock(load=MagicMock(return_value=_make_memory()), save=MagicMock(return_value=True))),
         ):
             msg = MagicMock()
             msg.type = "human"
@@ -353,11 +408,7 @@ class TestUpdateMemoryStructuredResponse:
         with (
             patch.object(updater, "_get_model", return_value=self._make_mock_model(list_content)),
             patch("nion.agents.memory.updater.get_memory_config", return_value=_memory_config(enabled=True)),
-            patch("nion.agents.memory.updater.get_memory_data", return_value=_make_memory()),
-            patch(
-                "nion.agents.memory.updater.get_memory_storage",
-                return_value=MagicMock(save=MagicMock(return_value=True)),
-            ),
+            patch.object(updater, "_get_memory_storage", return_value=MagicMock(load=MagicMock(return_value=_make_memory()), save=MagicMock(return_value=True))),
         ):
             msg = MagicMock()
             msg.type = "human"
