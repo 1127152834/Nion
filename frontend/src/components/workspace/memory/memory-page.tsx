@@ -19,7 +19,6 @@ import { formatTimeAgo } from "@/core/utils/datetime";
 
 import { MemoryConsolePanel } from "../settings/memory-console-panel";
 import { MemoryClearFlow } from "./memory-clear-flow";
-import { MemoryDangerZone } from "./memory-danger-zone";
 import {
   type MemoryDetailKind,
   MemoryDetailDrawer,
@@ -276,12 +275,8 @@ export function MemoryPage() {
           </div>
         </section>
 
-        <section className="grid gap-6 xl:grid-cols-[minmax(0,1.6fr)_320px]">
+        <section>
           <MemoryOverviewSections memory={memory} onOpenDetail={openDetail} />
-          <MemoryDangerZone
-            factsCount={memory?.facts.length ?? 0}
-            lastUpdatedLabel={lastUpdatedLabel}
-          />
         </section>
       </div>
 

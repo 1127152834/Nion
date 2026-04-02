@@ -12,7 +12,6 @@ void test("memory page excludes notebook semantics and focuses on memory operati
   assert.match(source, /useClearMemory\(/);
   assert.match(source, /useDeleteMemoryFact\(/);
   assert.match(source, /MemorySummaryCards/);
-  assert.match(source, /MemoryDangerZone/);
   assert.match(source, /MemoryOverviewSections/);
   assert.match(source, /MemoryDetailDrawer/);
   assert.doesNotMatch(source, /useRunMemoryCompaction/);
@@ -22,4 +21,5 @@ void test("memory page excludes notebook semantics and focuses on memory operati
   assert.doesNotMatch(source, /Notebook|Knowledge Base|reindex notebook/i);
   assert.doesNotMatch(source, /MemoryAgentCorePanel|selfMaintenance/i);
   assert.doesNotMatch(source, /variant="destructive"[\s\S]*clearAll/);
+  assert.doesNotMatch(source, /MemoryDangerZone/);
 });
