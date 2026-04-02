@@ -16,6 +16,33 @@ class NotebookNote(BaseModel):
     is_pinned: bool = False
 
 
+class NotebookAsset(BaseModel):
+    asset_id: str
+    title: str
+    relative_path: str
+    absolute_path: str
+    source_kind: str
+    mime_type: str | None = None
+    created_at: str
+    updated_at: str
+    file_size: int | None = None
+    tags: list[str] = Field(default_factory=list)
+
+
+class NotebookInboxItem(BaseModel):
+    inbox_id: str
+    entry_type: str
+    title: str
+    relative_path: str
+    created_at: str
+    updated_at: str
+    note_id: str | None = None
+    asset_id: str | None = None
+    summary: str | None = None
+    mime_type: str | None = None
+    tags: list[str] = Field(default_factory=list)
+
+
 class NotebookNoteSummary(BaseModel):
     note_id: str
     title: str
