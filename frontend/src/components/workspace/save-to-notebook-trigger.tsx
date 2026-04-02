@@ -45,6 +45,8 @@ export function SaveToNotebookTrigger({ threadId }: { threadId: string }) {
         title: thread.values.title || t.pages.untitled,
         body: formatThreadAsMarkdown(agentThread, messages),
         directory: "",
+        source: "chat",
+        capture: "thread",
       }),
     );
   }, [messages, router, t, thread.values, threadId]);
@@ -62,6 +64,8 @@ export function SaveToNotebookTrigger({ threadId }: { threadId: string }) {
         title: thread.values.title || t.pages.untitled,
         body: content,
         directory: "",
+        source: "chat",
+        capture: "reply",
       }),
     );
   }, [messages, router, t, thread.values.title]);

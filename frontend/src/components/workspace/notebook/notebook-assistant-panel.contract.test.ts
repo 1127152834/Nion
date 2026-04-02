@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-void test("NotebookAssistantPanel keeps the ask tab as a lightweight notebook chat shell", async () => {
+void test("NotebookAssistantPanel stays note-centric and notebook-only", async () => {
   const panelSource = await readFile(
     new URL("./notebook-assistant-panel.tsx", import.meta.url),
     "utf8",
@@ -33,16 +33,19 @@ void test("NotebookAssistantPanel keeps the ask tab as a lightweight notebook ch
   assert.match(panelSource, /notebook-assistant-header/);
   assert.match(panelSource, /notebook-assistant-new-chat/);
   assert.match(panelSource, /notebook-assistant-stream/);
-  assert.doesNotMatch(panelSource, /围绕当前笔记继续提问、分析和改写/);
+  assert.doesNotMatch(panelSource, /项目|记忆|memory|project/i);
+  assert.doesNotMatch(panelSource, /拆解任务/);
   assert.doesNotMatch(panelSource, /PromptInputActionMenu/);
 
   assert.match(composerSource, /textarea|Textarea/i);
   assert.match(composerSource, /发送/);
   assert.match(composerSource, /placeholder=/);
+  assert.match(composerSource, /围绕当前笔记继续处理内容|总结聊天内容并整理成笔记/);
   assert.match(composerSource, /max-h-\[3\.6rem\]/);
   assert.match(composerSource, /min-h-\[3\.6rem\]/);
   assert.match(composerSource, /overflow-y-auto/);
   assert.match(composerSource, /notebook-assistant-composer/);
+  assert.doesNotMatch(composerSource, /project|memory/i);
   assert.doesNotMatch(composerSource, /PromptInputActionMenu/);
 
   assert.match(contextPanelSource, /NotebookAssistantPanel/);
@@ -54,4 +57,5 @@ void test("NotebookAssistantPanel keeps the ask tab as a lightweight notebook ch
   assert.match(pageSource, /onStartNewConversation=/);
   assert.doesNotMatch(pageSource, /pathOfNewThread/);
   assert.doesNotMatch(pageSource, /buildNotebookAssistPrompt/);
+  assert.doesNotMatch(pageSource, /生成项目草案|提炼长期记忆/);
 });

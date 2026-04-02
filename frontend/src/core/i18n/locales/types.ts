@@ -554,6 +554,9 @@ export interface Translations {
     infoContentHash: string;
     saveFromChat: string;
     saveLastReply: string;
+    saveArtifact: string;
+    saveArtifactDescription: string;
+    saveArtifactSuccess: string;
     trashTitle: string;
     trashDescription: string;
     trashEmpty: string;

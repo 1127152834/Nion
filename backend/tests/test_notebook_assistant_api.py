@@ -97,6 +97,8 @@ def test_notebook_assistant_session_bootstrap_reuses_existing_thread(
     assert restored_payload["values"]["scope"] == "notebook_assistant"
     assert restored_payload["values"]["note_id"] == "note-1"
     assert restored_payload["values"]["notebook_session_id"] == "session-1"
+    assert "project_id" not in restored_payload["values"]
+    assert "memory" not in restored_payload["values"]
 
 
 def test_notebook_assistant_session_bootstrap_creates_distinct_threads_per_session(

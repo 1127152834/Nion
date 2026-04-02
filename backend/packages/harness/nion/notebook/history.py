@@ -9,6 +9,7 @@ from pathlib import Path
 from nion.config.paths import Paths, get_paths
 from nion.notebook.frontmatter import split_frontmatter
 from nion.notebook.models import (
+    NotebookAsset,
     NotebookDeletedNote,
     NotebookDeletedNotePreview,
     NotebookHistoryEntry,
@@ -167,6 +168,10 @@ class NotebookHistoryService:
         snapshot = Path(note.absolute_path).read_text(encoding="utf-8")
         self._record(note=note, operation="create", actor_type=actor_type, snapshot=snapshot)
         return note
+
+    def archive_asset(self, *, source_path: str, directory: str, actor_type: str) -> NotebookAsset:
+        del actor_type
+        return self._service.archive_asset(source_path=source_path, directory=directory)
 
     def update_note(self, *, note_id: str, body: str, expected_content_hash: str, actor_type: str, title: str | None = None) -> NotebookNote:
         before = self._service.read_note(note_id)

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 
 import {
   applyNotebookAssist,
+  archiveNotebookAsset,
   cancelNotebookRewrite,
   createNotebookDirectory,
   createNotebookNote,
@@ -11,6 +12,7 @@ import {
   getNotebookDeletePreview,
   importNotebookContent,
   loadNotebookHistory,
+  loadNotebookInbox,
   loadNotebookHistoryDetail,
   loadNotebookImportSources,
   loadNotebookNote,
@@ -32,6 +34,7 @@ import { mergePendingRewriteWithInitial } from "./pending-rewrite.util.ts";
 import type {
   NotebookAssistApplyInput,
   NotebookAssistPreviewInput,
+  NotebookArchiveAssetInput,
   NotebookCreateInput,
   NotebookDirectoryCreateInput,
   NotebookDirectoryDeleteInput,
@@ -83,6 +86,15 @@ export function useNotebookNotes() {
     refetchOnWindowFocus: false,
   });
   return { notes: data ?? [], isLoading, error };
+}
+
+export function useNotebookInbox() {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["notebook", "inbox"],
+    queryFn: () => loadNotebookInbox(),
+    refetchOnWindowFocus: false,
+  });
+  return { items: data ?? [], isLoading, error };
 }
 
 export function useNotebookNote(noteId: string | null) {
@@ -140,6 +152,19 @@ export function useCreateNotebookNote() {
   });
 }
 
+export function useArchiveNotebookAsset() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: NotebookArchiveAssetInput) => archiveNotebookAsset(input),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["notebook", "inbox"] }),
+        queryClient.invalidateQueries({ queryKey: ["notebook", "tree"] }),
+      ]);
+    },
+  });
+}
+
 export function useCreateNotebookDirectory() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -147,6 +172,7 @@ export function useCreateNotebookDirectory() {
       createNotebookDirectory(input),
     onSuccess: async () => {
       await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["notebook", "inbox"] }),
         queryClient.invalidateQueries({ queryKey: ["notebook", "tree"] }),
         queryClient.invalidateQueries({ queryKey: ["notebook", "notes"] }),
       ]);
@@ -161,6 +187,7 @@ export function useRenameNotebookDirectory() {
       renameNotebookDirectory(input),
     onSuccess: async () => {
       await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["notebook", "inbox"] }),
         queryClient.invalidateQueries({ queryKey: ["notebook", "tree"] }),
         queryClient.invalidateQueries({ queryKey: ["notebook", "notes"] }),
       ]);
@@ -175,6 +202,7 @@ export function useDeleteNotebookDirectory() {
       deleteNotebookDirectory(input),
     onSuccess: async () => {
       await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["notebook", "inbox"] }),
         queryClient.invalidateQueries({ queryKey: ["notebook", "tree"] }),
         queryClient.invalidateQueries({ queryKey: ["notebook", "notes"] }),
       ]);
@@ -189,6 +217,7 @@ export function useMoveNotebookDirectory() {
       moveNotebookDirectory(input),
     onSuccess: async () => {
       await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["notebook", "inbox"] }),
         queryClient.invalidateQueries({ queryKey: ["notebook", "tree"] }),
         queryClient.invalidateQueries({ queryKey: ["notebook", "notes"] }),
       ]);
@@ -261,6 +290,7 @@ export function useDeleteNotebookNote(noteId: string) {
     mutationFn: async () => deleteNotebookNote(noteId),
     onSuccess: async () => {
       await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["notebook", "inbox"] }),
         queryClient.invalidateQueries({ queryKey: ["notebook", "tree"] }),
         queryClient.invalidateQueries({ queryKey: ["notebook", "history", noteId] }),
         queryClient.invalidateQueries({
@@ -364,6 +394,7 @@ async function invalidateNotebookQueries(
   noteId: string,
 ) {
   await Promise.all([
+    queryClient.invalidateQueries({ queryKey: ["notebook", "inbox"] }),
     queryClient.invalidateQueries({ queryKey: ["notebook", "tree"] }),
     queryClient.invalidateQueries({ queryKey: ["notebook", "trash"] }),
     queryClient.invalidateQueries({ queryKey: ["notebook", "notes"] }),

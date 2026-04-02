@@ -158,6 +158,53 @@ def test_notebook_notes_list_exposes_summary_and_metadata(monkeypatch, tmp_path)
         assert note["is_pinned"] is False
 
 
+def test_notebook_inbox_lists_default_inbox_entries(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+
+    with TestClient(create_app()) as client:
+        created = client.post(
+            "/api/notebook/notes",
+            json={"directory": "", "title": "Inbox Note", "body": "body"},
+        )
+        assert created.status_code == 200
+        note_id = created.json()["note"]["note_id"]
+
+        inbox = client.get("/api/notebook/inbox")
+        assert inbox.status_code == 200
+        payload = inbox.json()
+
+        assert len(payload["items"]) == 1
+        assert payload["items"][0]["entry_type"] == "note"
+        assert payload["items"][0]["note_id"] == note_id
+        assert payload["items"][0]["relative_path"].startswith("收件箱/")
+
+
+def test_notebook_archive_asset_copies_thread_artifact(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+
+    source = tmp_path / "threads" / "thread-1" / "user-data" / "outputs" / "report.html"
+    source.parent.mkdir(parents=True, exist_ok=True)
+    source.write_text("<h1>Report</h1>", encoding="utf-8")
+
+    with TestClient(create_app()) as client:
+        response = client.post(
+            "/api/notebook/assets/archive",
+            json={
+                "thread_id": "thread-1",
+                "artifact_path": "/mnt/user-data/outputs/report.html",
+                "directory": "",
+            },
+        )
+
+        assert response.status_code == 200
+        payload = response.json()["asset"]
+        assert payload["source_kind"] == "workspace_copy"
+        assert payload["relative_path"].startswith("收件箱/")
+        assert (tmp_path / "notebook" / payload["relative_path"]).read_text(encoding="utf-8") == "<h1>Report</h1>"
+
+
 def test_notebook_metadata_patch_updates_tags_and_pin_state(monkeypatch, tmp_path):
     monkeypatch.setenv("NION_HOME", str(tmp_path))
     reset_paths()

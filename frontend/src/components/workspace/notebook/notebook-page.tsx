@@ -26,6 +26,7 @@ import {
   useConfirmNotebookRewrite,
   useNotebookDeletePreview,
   useNotebookHistory,
+  useNotebookInbox,
   useNotebookPendingRewrite,
   useNotebookNotes,
   useNotebookNote,
@@ -44,6 +45,7 @@ import { NotebookDialogShell } from "./notebook-dialog-shell";
 import { NotebookEditorPane } from "./notebook-editor-pane";
 import { NotebookFolderDialog } from "./notebook-folder-dialog";
 import { NotebookFolderPicker } from "./notebook-folder-picker";
+import { NotebookInboxPanel } from "./notebook-inbox-panel";
 import { NotebookQuickCaptureDialog } from "./notebook-quick-capture-dialog";
 import { NotebookSidebar } from "./notebook-sidebar";
 import { notebookThemeStyle } from "./notebook-theme";
@@ -66,6 +68,8 @@ type FolderDialogState = {
 type DraftSession = {
   directory: string;
   needsMetadataBeforeSave: boolean;
+  source: "chat" | "note";
+  capture: "thread" | "reply" | null;
 };
 
 type NotebookConversationStartInput = {
@@ -116,6 +120,7 @@ export function NotebookPage() {
   });
 
   const { notes: noteSummaries } = useNotebookNotes();
+  const { items: inboxItems } = useNotebookInbox();
   const { note, pendingRewrite: initialPendingRewrite, isLoading: noteLoading } =
     useNotebookNote(selectedNoteId);
   const { pendingRewrite, clearPendingRewrite } =
@@ -157,6 +162,11 @@ export function NotebookPage() {
     setDraftSession({
       directory: seededDirectory,
       needsMetadataBeforeSave: !seededDirectory,
+      source: searchParams.get("source") === "chat" ? "chat" : "note",
+      capture:
+        searchParams.get("capture") === "thread" || searchParams.get("capture") === "reply"
+          ? (searchParams.get("capture") as "thread" | "reply")
+          : null,
     });
     setSelectedNoteId(null);
     setDraftTitle(seededTitle);
@@ -202,6 +212,12 @@ export function NotebookPage() {
 
   const dirty = note !== null && (draftBody !== savedBody || draftTitle !== savedTitle);
   const isDraft = draftSession !== null;
+
+  function handleSelectInboxItem(item: { note_id?: string | null }) {
+    if (item.note_id) {
+      setSelectedNoteId(item.note_id);
+    }
+  }
 
   async function handleCreate() {
     try {
@@ -421,6 +437,8 @@ export function NotebookPage() {
     setDraftSession({
       directory,
       needsMetadataBeforeSave: false,
+      source: "note",
+      capture: null,
     });
     setSelectedNoteId(null);
     setDraftTitle("");
@@ -471,6 +489,8 @@ export function NotebookPage() {
     setDraftSession({
       directory: "",
       needsMetadataBeforeSave: true,
+      source: "note",
+      capture: null,
     });
     setSelectedNoteId(null);
     setDraftTitle("");
@@ -626,50 +646,70 @@ export function NotebookPage() {
               onToggleCollapse={() => setLeftRailCollapsed((value) => !value)}
             />
 
-            <NotebookEditorPane
-              copy={{
-                delete: copy.delete,
-                edit: copy.edit,
-                history: copy.history,
-                move: copy.move,
-                noSelectionCta: copy.createNote,
-                noSelectionDescription: copy.noSelectionDescription,
-                noSelectionTitle: copy.noSelectionTitle,
-                noteTitlePlaceholder: copy.noteTitlePlaceholder,
-                preview: copy.preview,
-                rename: copy.rename,
-                saved: copy.saved,
-                saveDraft: copy.saveDraft,
-                saving: copy.saving,
-                selectNote: copy.selectNote,
-                draftMetaLabel: copy.draftMetaLabel,
-                untitledDraftTitle: copy.untitledDraftTitle,
-                unsaved: copy.unsaved,
-              }}
-              draftBody={draftBody}
-              draftTitle={draftTitle}
-              isLoading={noteLoading}
-              loadingLabel={t.common.loading}
-              note={note}
-              pendingRewrite={pendingRewrite}
-              saveState={saveState}
-              pendingRewriteActionPending={
-                confirmNotebookRewrite.isPending || cancelNotebookRewrite.isPending
-              }
-              onCancelPendingRewrite={() => void handleCancelPendingRewrite()}
-              onConfirmPendingRewrite={() => void handleConfirmPendingRewrite()}
-              onDraftBodyChange={setDraftBody}
-              onDraftTitleChange={setDraftTitle}
-              onOpenDelete={() => setDeleteOpen(true)}
-              onOpenHistory={() => setContextTab("history")}
-              onOpenRename={() => setRenameOpen(true)}
-              onOpenMove={() => setMoveOpen(true)}
-              onPrimaryCreate={() => openDraftComposer()}
-              draftDirectory={draftSession?.directory ?? ""}
-              isDraft={isDraft}
-              onSaveDraft={handleSaveDraft}
-              onSelectionChange={setEditorSelection}
-            />
+            <div className="flex min-h-0 min-w-0 flex-col gap-4">
+              <NotebookInboxPanel
+                copy={{
+                  emptyDescription: copy.emptyDescription,
+                  emptyTitle: copy.emptyTitle,
+                  inboxLabel: copy.inboxLabel,
+                  recentTitle: copy.recentTitle,
+                }}
+                inboxItems={inboxItems}
+                onSelectItem={handleSelectInboxItem}
+              />
+
+              <NotebookEditorPane
+                copy={{
+                  delete: copy.delete,
+                  edit: copy.edit,
+                  history: copy.history,
+                  move: copy.move,
+                  noSelectionCta: copy.createNote,
+                  noSelectionDescription: copy.noSelectionDescription,
+                  noSelectionTitle: copy.noSelectionTitle,
+                  noteTitlePlaceholder: copy.noteTitlePlaceholder,
+                  preview: copy.preview,
+                  rename: copy.rename,
+                  saved: copy.saved,
+                  saveDraft: copy.saveDraft,
+                  saving: copy.saving,
+                  selectNote: copy.selectNote,
+                  draftMetaLabel: copy.draftMetaLabel,
+                  untitledDraftTitle: copy.untitledDraftTitle,
+                  unsaved: copy.unsaved,
+                }}
+                draftBody={draftBody}
+                draftTitle={draftTitle}
+                isLoading={noteLoading}
+                loadingLabel={t.common.loading}
+                note={note}
+                pendingRewrite={pendingRewrite}
+                saveState={saveState}
+                pendingRewriteActionPending={
+                  confirmNotebookRewrite.isPending || cancelNotebookRewrite.isPending
+                }
+                onCancelPendingRewrite={() => void handleCancelPendingRewrite()}
+                onConfirmPendingRewrite={() => void handleConfirmPendingRewrite()}
+                onDraftBodyChange={setDraftBody}
+                onDraftTitleChange={setDraftTitle}
+                onOpenDelete={() => setDeleteOpen(true)}
+                onOpenHistory={() => setContextTab("history")}
+                onOpenRename={() => setRenameOpen(true)}
+                onOpenMove={() => setMoveOpen(true)}
+                onPrimaryCreate={() => openDraftComposer()}
+                draftDirectory={draftSession?.directory ?? ""}
+                draftSourceLabel={
+                  draftSession?.source === "chat"
+                    ? draftSession.capture === "reply"
+                      ? copy.saveLastReply
+                      : copy.saveFromChat
+                    : copy.draftMetaLabel
+                }
+                isDraft={isDraft}
+                onSaveDraft={handleSaveDraft}
+                onSelectionChange={setEditorSelection}
+              />
+            </div>
 
             <NotebookContextPanel
               activeTab={contextTab}

@@ -37,6 +37,37 @@ export interface NotebookNote {
   is_pinned: boolean;
 }
 
+export interface NotebookAsset {
+  asset_id: string;
+  title: string;
+  relative_path: string;
+  absolute_path: string;
+  source_kind: string;
+  mime_type?: string | null;
+  created_at: string;
+  updated_at: string;
+  file_size?: number | null;
+  tags: string[];
+}
+
+export interface NotebookInboxItem {
+  inbox_id: string;
+  entry_type: "note" | "asset";
+  title: string;
+  relative_path: string;
+  created_at: string;
+  updated_at: string;
+  note_id?: string | null;
+  asset_id?: string | null;
+  summary?: string | null;
+  mime_type?: string | null;
+  tags: string[];
+}
+
+export interface NotebookInboxResponse {
+  items: NotebookInboxItem[];
+}
+
 export interface NotebookNoteSummary {
   note_id: string;
   title: string;
@@ -86,6 +117,12 @@ export interface NotebookCreateInput {
   directory: string;
   title: string;
   body: string;
+}
+
+export interface NotebookArchiveAssetInput {
+  thread_id: string;
+  artifact_path: string;
+  directory: string;
 }
 
 export interface NotebookDirectoryCreateInput {

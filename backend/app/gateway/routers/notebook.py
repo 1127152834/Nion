@@ -9,6 +9,7 @@ from typing import Literal
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
+from app.gateway.path_utils import resolve_thread_virtual_path
 from nion.config.paths import get_paths
 from nion.models import create_chat_model
 from nion.models.factory import resolve_model_name_with_fallback
@@ -23,8 +24,9 @@ from nion.notebook import (
     apply_assist_content,
     build_assist_preview,
 )
-from nion.notebook.models import NotebookDeletedNotePreview, NotebookNoteSummary
+from nion.notebook.models import NotebookAsset, NotebookDeletedNotePreview, NotebookInboxItem, NotebookNoteSummary
 from nion.notebook.service import (
+    NotebookAssetNotFoundError,
     NotebookDirectoryAlreadyExistsError,
     NotebookConflictError,
     NotebookDirectoryNotEmptyError,
@@ -70,6 +72,10 @@ class NotebookNoteResponse(BaseModel):
     note: NotebookNote
 
 
+class NotebookAssetResponse(BaseModel):
+    asset: NotebookAsset
+
+
 class NotebookPendingRewriteResponse(BaseModel):
     note: NotebookNote
     pending_rewrite: NotebookPendingRewrite | None = None
@@ -77,6 +83,10 @@ class NotebookPendingRewriteResponse(BaseModel):
 
 class NotebookNotesResponse(BaseModel):
     notes: list[NotebookNoteSummary]
+
+
+class NotebookInboxResponse(BaseModel):
+    items: list[NotebookInboxItem]
 
 
 class NotebookHistoryResponse(BaseModel):
@@ -111,6 +121,12 @@ class NotebookCreateRequest(BaseModel):
     directory: str = ""
     title: str
     body: str
+
+
+class NotebookArchiveAssetRequest(BaseModel):
+    thread_id: str
+    artifact_path: str
+    directory: str = ""
 
 
 class NotebookDirectoryCreateRequest(BaseModel):
@@ -414,6 +430,26 @@ async def create_notebook_note(payload: NotebookCreateRequest) -> NotebookNoteRe
     return NotebookNoteResponse(note=note)
 
 
+@router.post("/assets/archive", response_model=NotebookAssetResponse)
+async def archive_notebook_asset(payload: NotebookArchiveAssetRequest) -> NotebookAssetResponse:
+    try:
+        source_path = resolve_thread_virtual_path(payload.thread_id, payload.artifact_path)
+        asset = NotebookHistoryService().archive_asset(
+            source_path=str(source_path),
+            directory=payload.directory,
+            actor_type="user",
+        )
+    except HTTPException:
+        raise
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except NotebookAssetNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return NotebookAssetResponse(asset=asset)
+
+
 @router.post("/directories", response_model=NotebookDirectoryResponse)
 async def create_notebook_directory(
     payload: NotebookDirectoryCreateRequest,
@@ -485,6 +521,12 @@ async def move_notebook_directory(
 async def list_notebook_notes() -> NotebookNotesResponse:
     notes = NotebookHistoryService()._service.list_note_summaries()
     return NotebookNotesResponse(notes=notes)
+
+
+@router.get("/inbox", response_model=NotebookInboxResponse)
+async def list_notebook_inbox() -> NotebookInboxResponse:
+    items = NotebookHistoryService()._service.list_inbox_items()
+    return NotebookInboxResponse(items=items)
 
 
 @router.get("/notes/{note_id}", response_model=NotebookPendingRewriteResponse)
