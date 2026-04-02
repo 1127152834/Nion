@@ -23,5 +23,5 @@ void test("NotebookContextPanel matches the reference collaboration rail structu
   assert.match(source, /collapsed: boolean/);
   assert.match(source, /rounded-\[1\.5rem\]/);
   assert.match(source, /onToggleCollapse/);
-  assert.match(source, /生成项目草案|提炼长期记忆/);
+  assert.doesNotMatch(source, /生成项目草案|提炼长期记忆/);
 });

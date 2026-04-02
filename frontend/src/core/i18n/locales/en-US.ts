@@ -599,7 +599,6 @@ export const enUS: Translations = {
     toggleSidebar: "Toggle Sidebar",
     openNotebook: "Open Notebook",
     openMemory: "Open Memory",
-    openProjects: "Open Projects",
   },
 
   // Settings

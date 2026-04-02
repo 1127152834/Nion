@@ -5,7 +5,6 @@ import test from "node:test";
 import { enUS } from "../../core/i18n/locales/en-US.ts";
 import { zhCN } from "../../core/i18n/locales/zh-CN.ts";
 import {
-  pathOfProjects,
   pathOfNotebook,
   pathOfMemory,
 } from "../../core/navigation/desktop-routes.ts";
@@ -24,7 +23,6 @@ function assertSourceIncludesEntry(
 void test("workspace route helpers expose notebook memory and project paths", () => {
   assert.equal(pathOfNotebook(), "/workspace/notebook");
   assert.equal(pathOfMemory(), "/workspace/memory");
-  assert.equal(pathOfProjects(), "/workspace/projects");
 });
 
 void test("workspace menu and command palette expose notebook memory and project entry labels with target paths", async () => {
@@ -49,10 +47,6 @@ void test("workspace menu and command palette expose notebook memory and project
     assertSourceIncludesEntry(source, {
       labelRef: /t\.sidebar\.memory/,
       pathRef: /pathOfMemory/,
-    });
-    assertSourceIncludesEntry(source, {
-      labelRef: /t\.sidebar\.projects/,
-      pathRef: /pathOfProjects|\/workspace\/projects/,
     });
   }
 

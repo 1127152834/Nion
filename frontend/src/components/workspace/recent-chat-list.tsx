@@ -70,7 +70,6 @@ import type { AgentThread, AgentThreadState } from "@/core/threads/types";
 import {
   bridgeInfoOfThread,
   pathOfThread,
-  projectInfoOfThread,
   titleOfThread,
 } from "@/core/threads/utils";
 import { env } from "@/env";
@@ -97,28 +96,12 @@ function groupEntriesBySource(
     thread: AgentThread;
     pendingClarification: boolean;
   }>,
-  type: "project" | "bridge",
+  type: "bridge",
   bt: ReturnType<typeof useBridgeTranslation>["t"],
 ): ThreadGroupSection[] {
   const sections = new Map<string, ThreadGroupSection>();
 
   for (const entry of entries) {
-    if (type === "project") {
-      const project = projectInfoOfThread(entry.thread);
-      const groupId = project?.project_id ?? "project:unknown";
-      const existing = sections.get(groupId);
-      if (existing) {
-        existing.entries.push(entry);
-      } else {
-        sections.set(groupId, {
-          id: groupId,
-          label: project?.project_name ?? "未命名项目",
-          entries: [entry],
-        });
-      }
-      continue;
-    }
-
     const bridge = bridgeInfoOfThread(entry.thread);
     const bridgeLabel = bridge?.label?.trim();
     const normalizedBridgeLabel =
@@ -157,9 +140,7 @@ export function RecentChatList() {
   const { mutate: deleteThreads } = useDeleteThreads();
   const { mutate: renameThread } = useRenameThread();
   const [settings, setSettings] = useLocalSettings();
-  const activeType = pathname.startsWith("/workspace/projects/")
-    ? "project"
-    : parseWorkspaceThreadType(settings.layout.recent_chat_tab);
+  const activeType = parseWorkspaceThreadType(settings.layout.recent_chat_tab);
 
   const threadGroups = useMemo(
     () =>
@@ -175,14 +156,11 @@ export function RecentChatList() {
   );
   const activeGroup = filterThreadsByWorkspaceType(threadGroups, activeType);
   const groupedSections = useMemo(() => {
-    if (activeType === "project") {
-      return groupEntriesBySource(threadGroups.project, "project", bt);
-    }
     if (activeType === "bridge") {
       return groupEntriesBySource(threadGroups.bridge, "bridge", bt);
     }
     return [];
-  }, [activeType, bt, threadGroups.bridge, threadGroups.project]);
+  }, [activeType, bt, threadGroups.bridge]);
 
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
   const [renameThreadId, setRenameThreadId] = useState<string | null>(null);
@@ -321,7 +299,6 @@ export function RecentChatList() {
   );
 
   if (
-    threadGroups.project.length === 0 &&
     threadGroups.bridge.length === 0 &&
     threadGroups.general.length === 0
   ) {

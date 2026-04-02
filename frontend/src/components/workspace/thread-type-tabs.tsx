@@ -21,7 +21,6 @@ export function ThreadTypeTabs({
   const { t } = useI18n();
   const items: Array<{ value: WorkspaceThreadType; label: string }> = [
     { value: "general", label: t.sidebar.chats },
-    { value: "project", label: t.sidebar.projects },
     { value: "bridge", label: t.bridge.menuLabel },
   ];
   const activeIndex = items.findIndex((item) => item.value === value);
@@ -36,11 +35,11 @@ export function ThreadTypeTabs({
       >
         <TabsList
           variant="line"
-          className="relative grid h-10 w-full grid-cols-3 items-end border-b border-border/35 px-0"
+          className="relative grid h-10 w-full grid-cols-2 items-end border-b border-border/35 px-0"
         >
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute bottom-0 left-0 h-0.5 w-1/3 rounded-full bg-foreground/90 transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
+            className="pointer-events-none absolute bottom-0 left-0 h-0.5 w-1/2 rounded-full bg-foreground/90 transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
             style={{ transform: `translateX(${Math.max(activeIndex, 0) * 100}%)` }}
           />
           {items.map((item) => (
@@ -69,9 +68,6 @@ export function ThreadTypeTabs({
       <TabsList variant="line" className="w-full justify-start border-b px-0">
         <TabsTrigger value="general">
           {t.sidebar.chats}
-        </TabsTrigger>
-        <TabsTrigger value="project">
-          {t.sidebar.projects}
         </TabsTrigger>
         <TabsTrigger value="bridge">
           {t.bridge.menuLabel}

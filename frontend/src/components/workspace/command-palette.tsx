@@ -4,7 +4,6 @@ import {
   ActivityIcon,
   BookTextIcon,
   DatabaseIcon,
-  FolderKanbanIcon,
   KeyboardIcon,
   MessageSquarePlusIcon,
   SettingsIcon,
@@ -32,7 +31,6 @@ import { useI18n } from "@/core/i18n/hooks";
 import {
   pathOfMemory,
   pathOfNotebook,
-  pathOfProjects,
 } from "@/core/navigation/desktop-routes";
 import { pathOfNewThread } from "@/core/threads/utils";
 import { useGlobalShortcuts } from "@/hooks/use-global-shortcuts";
@@ -47,7 +45,6 @@ export function CommandPalette() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const notebookPath = pathOfNotebook();
   const memoryPath = pathOfMemory();
-  const projectsPath = pathOfProjects();
 
   const handleNewChat = useCallback(() => {
     router.push(pathOfNewThread());
@@ -78,11 +75,6 @@ export function CommandPalette() {
     router.push(memoryPath);
     setOpen(false);
   }, [memoryPath, router]);
-
-  const handleOpenProjects = useCallback(() => {
-    router.push(projectsPath);
-    setOpen(false);
-  }, [projectsPath, router]);
 
   const shortcuts = useMemo(
     () => [
@@ -125,11 +117,6 @@ export function CommandPalette() {
       id: "open-memory",
       keys: "Palette",
       label: t.shortcuts.openMemory,
-    },
-    {
-      id: "open-projects",
-      keys: "Palette",
-      label: t.shortcuts.openProjects,
     },
     {
       id: "open-settings",
@@ -190,13 +177,6 @@ export function CommandPalette() {
             >
               <DatabaseIcon className="mr-2 h-4 w-4" />
               {t.sidebar.memory}
-            </CommandItem>
-            <CommandItem
-              keywords={[t.shortcuts.openProjects, t.sidebar.projects]}
-              onSelect={handleOpenProjects}
-            >
-              <FolderKanbanIcon className="mr-2 h-4 w-4" />
-              {t.sidebar.projects}
             </CommandItem>
           </CommandGroup>
         </CommandList>

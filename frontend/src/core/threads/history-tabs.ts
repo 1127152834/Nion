@@ -1,14 +1,14 @@
 import type { AgentThread } from "./types";
-import { bridgeInfoOfThread, projectInfoOfThread } from "./utils";
+import { bridgeInfoOfThread } from "./utils";
 
-export type WorkspaceThreadType = "general" | "project" | "bridge";
+export type WorkspaceThreadType = "general" | "bridge";
 
 export const DEFAULT_WORKSPACE_THREAD_TYPE: WorkspaceThreadType = "general";
 
 export function parseWorkspaceThreadType(
   value: string | null | undefined,
 ): WorkspaceThreadType {
-  return value === "project" || value === "bridge" || value === "general"
+  return value === "bridge" || value === "general"
     ? value
     : DEFAULT_WORKSPACE_THREAD_TYPE;
 }
@@ -18,11 +18,8 @@ export function resolveWorkspaceThreadType(input: {
   value?: string | null;
 }): WorkspaceThreadType {
   const parsed = parseWorkspaceThreadType(input.value);
-  if (input.value === "project" || input.value === "bridge" || input.value === "general") {
+  if (input.value === "bridge" || input.value === "general") {
     return parsed;
-  }
-  if (input.pathname?.startsWith("/workspace/projects/")) {
-    return "project";
   }
   return parsed;
 }
@@ -35,24 +32,14 @@ export type WorkspaceThreadEntry = {
 export function groupThreadsByWorkspaceType(entries: WorkspaceThreadEntry[]) {
   const pending = entries.filter((entry) => entry.pendingClarification);
   const regular = entries.filter((entry) => !entry.pendingClarification);
-  const ordered = [...pending, ...regular].sort((a, b) => {
-    const aProject = Boolean(projectInfoOfThread(a.thread));
-    const bProject = Boolean(projectInfoOfThread(b.thread));
-    if (aProject !== bProject) {
-      return aProject ? -1 : 1;
-    }
-    return 0;
-  });
+  const ordered = [...pending, ...regular];
 
   return {
-    project: ordered.filter((entry) => projectInfoOfThread(entry.thread)),
     bridge: ordered.filter(
-      (entry) =>
-        !projectInfoOfThread(entry.thread) && bridgeInfoOfThread(entry.thread),
+      (entry) => bridgeInfoOfThread(entry.thread),
     ),
     general: ordered.filter(
-      (entry) =>
-        !projectInfoOfThread(entry.thread) && !bridgeInfoOfThread(entry.thread),
+      (entry) => !bridgeInfoOfThread(entry.thread),
     ),
   };
 }
