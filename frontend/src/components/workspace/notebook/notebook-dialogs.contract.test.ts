@@ -21,3 +21,20 @@ void test("Notebook dialogs match the reference create / quick capture / delete 
   assert.match(deleteSource, /恢复/);
   assert.match(deleteSource, /summary|content|路径/);
 });
+
+void test("SaveToNotebookTrigger stays notebook-only and seeds notebook create flow", async () => {
+  const triggerSource = await readFile(new URL("../save-to-notebook-trigger.tsx", import.meta.url), "utf8");
+  const pageSource = await readFile(new URL("./notebook-page.tsx", import.meta.url), "utf8");
+
+  assert.match(triggerSource, /saveFromChat/);
+  assert.match(triggerSource, /pathOfNotebookSeededCreate/);
+  assert.match(triggerSource, /source:\s*"chat"/);
+  assert.match(triggerSource, /capture:\s*"thread"/);
+  assert.match(triggerSource, /capture:\s*"reply"/);
+  assert.doesNotMatch(triggerSource, /project|memory/i);
+  assert.match(pageSource, /searchParams\.get\("title"\)/);
+  assert.match(pageSource, /searchParams\.get\("body"\)/);
+  assert.match(pageSource, /searchParams\.get\("directory"\)/);
+  assert.match(pageSource, /searchParams\.get\("source"\)/);
+  assert.match(pageSource, /searchParams\.get\("capture"\)/);
+});

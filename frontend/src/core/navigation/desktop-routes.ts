@@ -52,12 +52,16 @@ export function pathOfNotebookSeededCreate(input: {
   title?: string;
   body?: string;
   directory?: string;
+  source?: "chat";
+  capture?: "thread" | "reply";
 }) {
   return pathOfNotebook({
     create: "1",
     title: input.title,
     body: input.body,
     directory: input.directory,
+    source: input.source,
+    capture: input.capture,
   });
 }
 

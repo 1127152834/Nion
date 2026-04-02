@@ -50,8 +50,9 @@ type NotebookEditorPaneCopy = {
 type NotebookEditorPaneProps = {
   copy: NotebookEditorPaneCopy;
   draftBody: string;
-  draftTitle: string;
   draftDirectory: string;
+  draftSourceLabel: string;
+  draftTitle: string;
   isDraft: boolean;
   isLoading: boolean;
   loadingLabel: string;
@@ -75,8 +76,9 @@ type NotebookEditorPaneProps = {
 export function NotebookEditorPane({
   copy,
   draftBody,
-  draftTitle,
   draftDirectory: _draftDirectory,
+  draftSourceLabel,
+  draftTitle,
   isDraft,
   isLoading,
   loadingLabel,
@@ -132,7 +134,7 @@ export function NotebookEditorPane({
               <div className="min-w-0 flex-1">
                 <div className="mb-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[var(--notebook-soft-text)]">
                   <Folder className="size-3" />
-                  <span>{isDraft ? copy.draftMetaLabel : note?.relative_path}</span>
+                  <span>{isDraft ? draftSourceLabel : note?.relative_path}</span>
                 </div>
                 <Input
                   value={draftTitle}

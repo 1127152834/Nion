@@ -28,7 +28,9 @@ void test("desktop routes keep notebook trash on its dedicated page", () => {
       title: "Roadmap",
       body: "# Roadmap",
       directory: "projects/alpha",
+      source: "chat",
+      capture: "thread",
     }),
-    "/workspace/notebook?create=1&title=Roadmap&body=%23+Roadmap&directory=projects%2Falpha",
+    "/workspace/notebook?create=1&title=Roadmap&body=%23+Roadmap&directory=projects%2Falpha&source=chat&capture=thread",
   );
 });

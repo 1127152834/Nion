@@ -66,6 +66,8 @@ type FolderDialogState = {
 type DraftSession = {
   directory: string;
   needsMetadataBeforeSave: boolean;
+  source: "chat" | "note";
+  capture: "thread" | "reply" | null;
 };
 
 type NotebookConversationStartInput = {
@@ -157,6 +159,11 @@ export function NotebookPage() {
     setDraftSession({
       directory: seededDirectory,
       needsMetadataBeforeSave: !seededDirectory,
+      source: searchParams.get("source") === "chat" ? "chat" : "note",
+      capture:
+        searchParams.get("capture") === "thread" || searchParams.get("capture") === "reply"
+          ? (searchParams.get("capture") as "thread" | "reply")
+          : null,
     });
     setSelectedNoteId(null);
     setDraftTitle(seededTitle);
@@ -421,6 +428,8 @@ export function NotebookPage() {
     setDraftSession({
       directory,
       needsMetadataBeforeSave: false,
+      source: "note",
+      capture: null,
     });
     setSelectedNoteId(null);
     setDraftTitle("");
@@ -471,6 +480,8 @@ export function NotebookPage() {
     setDraftSession({
       directory: "",
       needsMetadataBeforeSave: true,
+      source: "note",
+      capture: null,
     });
     setSelectedNoteId(null);
     setDraftTitle("");
@@ -666,6 +677,13 @@ export function NotebookPage() {
               onOpenMove={() => setMoveOpen(true)}
               onPrimaryCreate={() => openDraftComposer()}
               draftDirectory={draftSession?.directory ?? ""}
+              draftSourceLabel={
+                draftSession?.source === "chat"
+                  ? draftSession.capture === "reply"
+                    ? copy.saveLastReply
+                    : copy.saveFromChat
+                  : copy.draftMetaLabel
+              }
               isDraft={isDraft}
               onSaveDraft={handleSaveDraft}
               onSelectionChange={setEditorSelection}
