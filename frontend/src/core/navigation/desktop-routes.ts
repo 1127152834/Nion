@@ -36,6 +36,22 @@ export function pathOfMemory() {
   return "/workspace/memory";
 }
 
+export function pathOfMemorySearch() {
+  return "/workspace/memory/search";
+}
+
+export function pathOfMemoryUser() {
+  return "/workspace/memory/user";
+}
+
+export function pathOfMemoryHistory() {
+  return "/workspace/memory/history";
+}
+
+export function pathOfMemoryFacts() {
+  return "/workspace/memory/facts";
+}
+
 export function pathOfAutomation(
   extra: Record<string, string | undefined> = {},
 ) {
