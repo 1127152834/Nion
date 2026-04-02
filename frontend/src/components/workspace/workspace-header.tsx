@@ -73,8 +73,9 @@ export function WorkspaceHeader({ className }: { className?: string }) {
             type="button"
             aria-label="Expand sidebar"
             className={cn(
-              "text-primary font-serif tracking-[0.12em] transition-[font-size,letter-spacing,transform] duration-200",
-              isDesktopShell && "mt-2 text-[1.75rem] leading-none tracking-[0.01em]",
+              "text-primary font-serif tracking-[0.12em] transition-[font-size,letter-spacing,transform,margin,border-color,background-color] duration-200",
+              isDesktopShell
+                && "mt-3 size-10 rounded-full border border-sidebar-border/60 bg-sidebar-accent/10 text-[1.75rem] leading-none tracking-[0.01em] shadow-none",
             )}
             onClick={toggleSidebar}
           >

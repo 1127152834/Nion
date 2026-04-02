@@ -25,5 +25,8 @@ void test("workspace header collapses desktop branding to a single N", async () 
 
   assert.match(source, /isDesktopShell \? "N" : "NION"/);
   assert.match(source, /group-data-\[collapsible=icon\]:h-\[4\.75rem\]/);
-  assert.match(source, /isDesktopShell && "mt-2 text-\[1\.75rem\] leading-none tracking-\[0\.01em\]"/);
+  assert.match(source, /isDesktopShell[\s\S]*"mt-3 size-10 rounded-full/);
+  assert.match(source, /text-\[1\.75rem\] leading-none tracking-\[0\.01em\]/);
+  assert.match(source, /size-10 rounded-full border border-sidebar-border\/60 bg-sidebar-accent\/10/);
+  assert.match(source, /shadow-none/);
 });
