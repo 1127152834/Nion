@@ -32,7 +32,7 @@ import {
   fetchRuntimeProfile,
   updateRuntimeProfile,
 } from "@/core/runtime";
-import { useLocalSettings } from "@/core/settings";
+import { useThreadSettings } from "@/core/settings";
 import {
   derivePendingClarification,
   derivePendingPermissionRequest,
@@ -48,9 +48,8 @@ export default function ChatThreadPage() {
   const { t } = useI18n();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [settings, setSettings] = useLocalSettings();
-
   const { threadId, isNewThread, setIsNewThread, isMock } = useThreadChat();
+  const [settings, setSettings] = useThreadSettings(threadId);
   useSpecificChatMode();
 
   const { showNotification } = useNotification();

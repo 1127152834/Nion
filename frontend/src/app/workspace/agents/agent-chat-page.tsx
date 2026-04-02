@@ -21,7 +21,7 @@ import { Tooltip } from "@/components/workspace/tooltip";
 import { useAgent } from "@/core/agents";
 import { useI18n } from "@/core/i18n/hooks";
 import { useNotification } from "@/core/notification/hooks";
-import { useLocalSettings } from "@/core/settings";
+import { useThreadSettings } from "@/core/settings";
 import { getThreadRequestErrorCopy } from "@/core/threads/error-copy";
 import { useThreadStream } from "@/core/threads/hooks";
 import {
@@ -34,7 +34,6 @@ import { cn } from "@/lib/utils";
 
 export default function AgentChatPage() {
   const { t } = useI18n();
-  const [settings, setSettings] = useLocalSettings();
   const router = useRouter();
   const params = useParams<{ agent_name?: string }>();
   const searchParams = useSearchParams();
@@ -43,6 +42,7 @@ export default function AgentChatPage() {
   const { agent } = useAgent(agentName);
 
   const { threadId, isNewThread, setIsNewThread } = useThreadChat();
+  const [settings, setSettings] = useThreadSettings(threadId);
 
   const { showNotification } = useNotification();
   const [thread, sendMessage] = useThreadStream({
