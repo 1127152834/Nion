@@ -58,9 +58,6 @@ pnpm start
 
 ```
 ├── /workspace/chats                         # Chat list / chat threads
-├── /workspace/projects                      # Project list
-├── /workspace/projects/[project_id]         # Project dashboard
-├── /workspace/projects/[project_id]/threads/[thread_id] # Project chat
 ├── /workspace/automation                    # Automation workspace
 └── /workspace/notebook                      # Notebook workspace
 ```
@@ -82,8 +79,6 @@ NEXT_PUBLIC_LANGGRAPH_BASE_URL="http://localhost:2024"
 
 When running behind the local nginx entrypoint (`http://localhost:2026`), the frontend can use relative `/api/*` requests. When running standalone via `pnpm dev`, `next.config.js` rewrites `/api/langgraph/*` to `http://127.0.0.1:2024/*` and rewrites the remaining `/api/*` requests to `http://127.0.0.1:8001/api/*`. The settings shell now expects `/api/config`, `/api/config/schema`, and `/api/config/runtime-status` to be proxied to the gateway.
 The chat runtime shell also expects `/api/threads/{thread_id}/runtime-profile`, `/api/threads/{thread_id}/files/*`, and `/api/cli/catalog`.
-The Projects workspace also expects `/api/projects*` for dashboard, plans, project threads, decisions, timeline, memory, and managed artifact flows.
-
 ## Project Structure
 
 ```
@@ -108,7 +103,6 @@ src/
 │   ├── mcp/                # MCP integration
 │   ├── messages/           # Message handling
 │   ├── models/             # Data models & types
-│   ├── projects/           # Project dashboard / plans / threads / timeline client
 │   ├── settings/           # User settings
 │   ├── skills/             # Skills system
 │   ├── threads/            # Thread management

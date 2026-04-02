@@ -1,6 +1,6 @@
 # 测试文档 06 - Notebook 模块
 
-- 文档用途：指导其他 agent 对 Notebook 的树、笔记、历史、回收站、目录、assist、聊天导入链路，以及对象桥接候选入口进行完整测试。
+- 文档用途：指导其他 agent 对 Notebook 的树、笔记、历史、回收站、目录、assist、聊天导入链路进行完整测试。
 - 适合交给哪类 agent 执行：后端 notebook API 测试 agent、前端编辑器/UI 测试 agent、E2E/QA agent。
 - 推荐优先级：P1。
 - 推荐测试方式：接口 + UI + agent-browser E2E。
@@ -15,7 +15,6 @@
   - directory create / rename / delete / move
   - assist-preview / assist-apply
   - import-sources(chat) / note import
-  - bridge candidate entrypoints from notebook to project draft / long-term memory
 - 典型用户角色：桌面知识管理用户、需要把聊天结果落笔记的高级用户。
 - 上下游依赖：NotebookHistoryService、Notebook service、ThreadRepository、聊天页 save-to-notebook。
 - 与其他模块关系：
@@ -31,7 +30,6 @@
 
 ## 2. 模块边界与测试范围
 - 本模块覆盖：notes、directories、trash、history、assist、chat import、quick capture、drag/drop 移动。
-- 本模块覆盖：notes、directories、trash、history、assist、chat import、quick capture、drag/drop 移动，以及候选式 bridge actions 入口。
 - 不属于本模块：长期 memory、agent diary、普通聊天消息流。
 - 交叉测试点：聊天导入作为 import source；save-to-notebook 跳 seeded create。
 - 易混淆边界：Notebook 是用户资产，不是 agent memory；回收站恢复与 history restore 是两条不同链路。
@@ -123,7 +121,7 @@
 
 ## 9. 自动化建议
 - 后端接口自动化优先：notes/directories/history/trash/import。
-- 前端 contract 自动化：sidebar/tree/editor/context panel、object bridge action entrypoints。
+- 前端 contract 自动化：sidebar/tree/editor/context panel。
 - agent-browser E2E：创建编辑删除恢复。
 - 人工探索：长文档、复杂 markdown、拖拽与大树结构。
 - 冒烟：创建 note、保存、删除恢复。
