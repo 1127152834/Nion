@@ -25,4 +25,5 @@ void test("memory page excludes notebook semantics and focuses on memory operati
   assert.doesNotMatch(source, /variant="destructive"[\s\S]*clearAll/);
   assert.doesNotMatch(source, /MemoryDangerZone/);
   assert.doesNotMatch(source, /rounded-2xl/);
+  assert.match(source, /MemoryDetailInspector/);
 });

@@ -39,24 +39,24 @@ export function MemoryDetailInspector(props: {
 
   return (
     <aside className="border bg-background">
-      <div className="border-b px-5 py-4">
+      <div className="border-b px-4 py-3">
         <div className="text-[11px] tracking-[0.16em] text-muted-foreground uppercase">
           Detail inspector
         </div>
-        <div className="mt-2 text-[2rem] font-semibold tracking-tight">
+        <div className="mt-1.5 text-[1.5rem] font-semibold tracking-tight">
           {props.title}
         </div>
       </div>
 
-      <div className="space-y-4 px-4 py-4">
-        <section className="border bg-background p-4">
+      <div className="space-y-3 px-3 py-3">
+        <section className="border bg-background p-3">
           <div className="text-sm font-medium text-muted-foreground">
             {t.settings.memory.detailSummaryTitle}
           </div>
-          <div className="mt-3 text-sm leading-7">
+          <div className="mt-2 text-sm leading-6.5">
             {props.summary || t.settings.memory.emptySectionText}
           </div>
-          <div className="mt-3 text-xs text-muted-foreground">
+          <div className="mt-2 text-xs text-muted-foreground">
             {props.updatedAt
               ? formatTimeAgo(props.updatedAt)
               : t.settings.memory.notAvailable}
@@ -89,7 +89,7 @@ export function MemoryDetailInspector(props: {
                   updatedAt: props.memory?.history.longTermBackground.updatedAt,
                 },
               ].map((item) => (
-                <div key={item.key} className="border bg-background p-4">
+                <div key={item.key} className="border bg-background p-3">
                   <div className="text-sm font-medium">{item.title}</div>
                   <div className="mt-1 text-xs text-muted-foreground">
                     {item.updatedAt
@@ -109,20 +109,20 @@ export function MemoryDetailInspector(props: {
               {t.settings.memory.detailFactsTitle}
             </div>
             {relatedFacts.length === 0 ? (
-              <div className="border bg-background p-4 text-sm text-muted-foreground">
+              <div className="border bg-background p-3 text-sm text-muted-foreground">
                 {t.settings.memory.noFacts}
               </div>
             ) : (
               <div className="space-y-3">
                 {relatedFacts.map((fact) => (
-                  <div key={fact.id} className="border bg-background p-4">
+                  <div key={fact.id} className="border bg-background p-3">
                     <div className="flex items-center gap-2">
                       <Badge variant="outline">{fact.category}</Badge>
                       <span className="text-xs text-muted-foreground">
                         {formatTimeAgo(fact.createdAt)}
                       </span>
                     </div>
-                    <div className="mt-3 text-sm leading-6">{fact.content}</div>
+                    <div className="mt-2 text-sm leading-6">{fact.content}</div>
                   </div>
                 ))}
               </div>

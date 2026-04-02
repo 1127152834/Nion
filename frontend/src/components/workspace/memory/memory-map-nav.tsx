@@ -68,19 +68,19 @@ export function MemoryMapNav(props: {
           const firstLeaf = group.leaves[0];
           if (!firstLeaf) return null;
           return (
-            <div key={group.section} className="space-y-2">
+            <div key={group.section} className="space-y-1">
               <button
                 type="button"
                 onClick={() => props.onSectionChange(group.section, firstLeaf.key)}
-                className={`w-full border px-3 py-2 text-left text-sm font-semibold transition-colors ${
+                className={`w-full border-b px-1 py-2 text-left text-sm font-semibold transition-colors ${
                   sectionActive
-                    ? "border-foreground bg-foreground text-background"
-                    : "border-[color:var(--border)] bg-[color:var(--muted)] text-foreground"
+                    ? "border-[color:var(--foreground)] text-foreground"
+                    : "border-[color:var(--border)] text-foreground/70"
                 }`}
               >
                 {group.label}
               </button>
-              <div className="space-y-0 border-t border-[color:var(--border)]">
+              <div className="space-y-0">
                 {group.leaves.map((leaf) => {
                   const leafActive = props.activeLeaf === leaf.key;
                   return (
@@ -88,10 +88,10 @@ export function MemoryMapNav(props: {
                       key={leaf.key}
                       type="button"
                       onClick={() => props.onSectionChange(group.section, leaf.key)}
-                      className={`flex w-full items-center border-b px-3 py-3 text-left text-sm transition-colors ${
+                      className={`flex w-full items-center px-3 py-2.5 text-left text-sm transition-colors ${
                         leafActive
-                          ? "border-[color:var(--border)] bg-[color:color-mix(in_srgb,var(--muted)_68%,white)] font-semibold text-foreground"
-                          : "border-[color:var(--border)] bg-transparent text-foreground/85"
+                          ? "border-l-4 border-l-[color:var(--foreground)] bg-[color:color-mix(in_srgb,var(--muted)_58%,white)] font-semibold text-foreground"
+                          : "border-l-[3px] border-l-transparent text-foreground/78"
                       }`}
                     >
                       <span>{leaf.label}</span>
