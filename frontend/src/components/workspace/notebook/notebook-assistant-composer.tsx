@@ -48,30 +48,29 @@ export function NotebookAssistantComposer({
         rows={2}
         className="min-h-[3.6rem] max-h-[3.6rem] resize-none overflow-y-auto border-0 bg-transparent px-0 py-0 text-[0.92rem] leading-6 text-[var(--notebook-ink)] shadow-none focus-visible:ring-0"
       />
-      <div className="mt-2 flex items-center justify-between gap-3">
-        <p className="text-[0.74rem] text-[color-mix(in_srgb,var(--notebook-soft-text)_90%,var(--notebook-ink)_10%)]">
-          Enter 发送，Shift + Enter 换行
-        </p>
+      <div className="mt-2 flex items-center justify-end">
         {isSending ? (
           <Button
             type="button"
-            size="sm"
+            size="icon"
             onClick={() => void onStop?.()}
-            className="h-9 rounded-full bg-[color-mix(in_srgb,var(--notebook-danger-surface)_70%,var(--notebook-soft-text)_30%)] px-4 text-[0.9rem] text-[var(--notebook-ink)] shadow-[0_10px_20px_-18px_rgba(15,23,42,0.65)] transition-all duration-200 hover:opacity-90"
+            className="h-10 w-10 rounded-full bg-[var(--notebook-danger)] text-white shadow-[0_10px_20px_-18px_rgba(15,23,42,0.65)] transition-all duration-200 hover:opacity-90"
+            aria-label="停止"
+            title="停止"
           >
             <SquareIcon className="size-4" />
-            停止
           </Button>
         ) : (
           <Button
             type="button"
-            size="sm"
+            size="icon"
             onClick={() => void handleSubmit()}
             disabled={disabled || value.trim().length === 0}
-            className="h-9 rounded-full bg-[color-mix(in_srgb,var(--notebook-brand)_82%,var(--notebook-soft-text)_18%)] px-4 text-[0.9rem] text-[var(--notebook-panel)] shadow-[0_10px_20px_-18px_rgba(15,23,42,0.65)] transition-all duration-200 hover:opacity-90"
+            className="h-10 w-10 rounded-full bg-[color-mix(in_srgb,var(--notebook-brand)_82%,var(--notebook-soft-text)_18%)] text-[var(--notebook-panel)] shadow-[0_10px_20px_-18px_rgba(15,23,42,0.65)] transition-all duration-200 hover:opacity-90"
+            aria-label="发送"
+            title="发送"
           >
             <SendIcon className="size-4" />
-            发送
           </Button>
         )}
       </div>
