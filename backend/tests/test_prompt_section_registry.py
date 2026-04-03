@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 
+import pytest
+
 from nion.prompt_runtime.models import PromptBuildContext, PromptSection
 from nion.prompt_runtime.profiles import AgentPromptProfile
 from nion.prompt_runtime.registry import PromptSectionRegistration, PromptSectionRegistry
@@ -37,6 +39,8 @@ def _make_section(
     order: int,
     content: str | None = None,
     priority: int = 0,
+    tags: tuple[str, ...] = (),
+    source: str | None = None,
 ) -> PromptSection:
     return PromptSection(
         key=key,
@@ -46,55 +50,46 @@ def _make_section(
         layer="extension",
         order=order,
         priority=priority,
+        tags=tags,
+        source=source,
     )
 
 
-def test_registry_collects_matching_sections_in_registration_then_order_sequence() -> None:
-    registry = PromptSectionRegistry()
-    first_provider = _StaticProvider(
-        provider_id="provider.first",
-        sections=[
-            _make_section("first.z", order=30),
-            _make_section("first.a", order=10),
-        ],
+def test_public_models_expose_stable_task3_facing_fields() -> None:
+    registration = PromptSectionRegistration(
+        provider_id="provider.default",
+        provider=_StaticProvider(
+            provider_id="provider.default",
+            sections=[_make_section("default.section", order=10)],
+        ),
+        enabled_by_default=False,
+        order_hint=25,
     )
-    second_provider = _StaticProvider(
-        provider_id="provider.second",
-        sections=[
-            _make_section("second.b", order=20),
-            _make_section("second.a", order=5),
-        ],
-    )
-    registry.register(
-        PromptSectionRegistration(
-            provider=first_provider,
-            agent_kinds=("lead",),
-        )
-    )
-    registry.register(
-        PromptSectionRegistration(
-            provider=second_provider,
-            agent_kinds=("lead",),
-        )
+    profile = AgentPromptProfile(
+        profile_id="lead.default",
+        kind="lead",
+        enabled_section_tags={"stable"},
+        required_providers={"provider.default"},
+        overlay_providers=("provider.overlay",),
     )
 
-    sections = registry.build_sections(_make_context(agent_kind="lead"))
+    assert registration.provider_id == "provider.default"
+    assert registration.enabled_by_default is False
+    assert registration.order_hint == 25
+    assert profile.kind == "lead"
+    assert profile.enabled_section_tags == frozenset({"stable"})
+    assert profile.required_providers == frozenset({"provider.default"})
+    assert profile.overlay_providers == ("provider.overlay",)
 
-    assert [section.key for section in sections] == [
-        "first.a",
-        "first.z",
-        "second.a",
-        "second.b",
-    ]
 
-
-def test_registry_filters_by_agent_kind_and_surface() -> None:
+def test_registry_selects_matching_provider_and_keeps_source_normalized_to_registration_id() -> None:
     registry = PromptSectionRegistry()
     registry.register(
         PromptSectionRegistration(
+            provider_id="provider.workspace",
             provider=_StaticProvider(
-                provider_id="provider.workspace",
-                sections=[_make_section("workspace.only", order=10)],
+                provider_id="provider.impl.workspace",
+                sections=[_make_section("workspace.only", order=10, source="upstream-source")],
             ),
             agent_kinds=("lead",),
             surfaces=("workspace",),
@@ -102,6 +97,7 @@ def test_registry_filters_by_agent_kind_and_surface() -> None:
     )
     registry.register(
         PromptSectionRegistration(
+            provider_id="provider.chat",
             provider=_StaticProvider(
                 provider_id="provider.chat",
                 sections=[_make_section("chat.only", order=10)],
@@ -111,82 +107,101 @@ def test_registry_filters_by_agent_kind_and_surface() -> None:
         )
     )
 
-    lead_workspace_sections = registry.build_sections(
-        _make_context(agent_kind="lead", surface="workspace")
-    )
-    builtin_chat_sections = registry.build_sections(
-        _make_context(agent_kind="builtin", surface="chat")
-    )
+    sections = registry.build_sections(_make_context(agent_kind="lead", surface="workspace"))
 
-    assert [section.key for section in lead_workspace_sections] == ["workspace.only"]
-    assert [section.key for section in builtin_chat_sections] == ["chat.only"]
+    assert [section.key for section in sections] == ["workspace.only"]
+    assert sections[0].source == "provider.workspace"
 
 
-def test_registry_deduplicates_keys_by_highest_priority_then_latest_registration() -> None:
+def test_registry_profile_can_disable_provider_and_filter_section_tags() -> None:
     registry = PromptSectionRegistry()
     registry.register(
         PromptSectionRegistration(
+            provider_id="provider.keep",
             provider=_StaticProvider(
-                provider_id="provider.low",
-                sections=[_make_section("shared.key", order=10, content="low", priority=10)],
-            )
+                provider_id="provider.keep",
+                sections=[
+                    _make_section("keep.tagged", order=10, tags=("stable",)),
+                    _make_section("drop.untagged", order=20),
+                ],
+            ),
         )
     )
     registry.register(
         PromptSectionRegistration(
+            provider_id="provider.overlay",
             provider=_StaticProvider(
-                provider_id="provider.high",
-                sections=[_make_section("shared.key", order=1, content="high", priority=50)],
-            )
+                provider_id="provider.overlay",
+                sections=[_make_section("drop.provider", order=5, tags=("stable",))],
+            ),
+            enabled_by_default=False,
+        )
+    )
+    profile = AgentPromptProfile(
+        profile_id="lead.default",
+        kind="lead",
+        enabled_section_tags={"stable"},
+        overlay_providers=("provider.overlay",),
+        disabled_section_keys={"drop.provider"},
+    )
+
+    sections = registry.build_sections(_make_context(), profile=profile)
+
+    assert [section.key for section in sections] == ["keep.tagged"]
+
+
+def test_registry_uses_priority_then_order_hint_then_provider_id_for_conflict_resolution() -> None:
+    registry = PromptSectionRegistry()
+    registry.register(
+        PromptSectionRegistration(
+            provider_id="provider.alpha",
+            provider=_StaticProvider(
+                provider_id="provider.alpha",
+                sections=[_make_section("shared.key", order=20, content="alpha", priority=50)],
+            ),
+            order_hint=10,
         )
     )
     registry.register(
         PromptSectionRegistration(
+            provider_id="provider.beta",
             provider=_StaticProvider(
-                provider_id="provider.tie",
-                sections=[_make_section("shared.key", order=99, content="tie", priority=50)],
-            )
+                provider_id="provider.beta",
+                sections=[_make_section("shared.key", order=5, content="beta", priority=50)],
+            ),
+            order_hint=20,
         )
     )
 
     sections = registry.build_sections(_make_context())
 
     assert len(sections) == 1
-    assert sections[0].key == "shared.key"
-    assert sections[0].content == "tie"
-    assert sections[0].source == "provider.tie"
+    assert sections[0].content == "beta"
+    assert sections[0].source == "provider.beta"
 
 
-def test_registry_applies_profile_disabled_section_keys_after_resolution() -> None:
+def test_registry_rejects_ambiguous_conflicts_when_priority_and_order_hint_are_identical() -> None:
     registry = PromptSectionRegistry()
     registry.register(
         PromptSectionRegistration(
+            provider_id="provider.beta",
             provider=_StaticProvider(
-                provider_id="provider.default",
-                sections=[
-                    _make_section("keep.me", order=10),
-                    _make_section("disable.me", order=20),
-                ],
-            )
+                provider_id="provider.beta",
+                sections=[_make_section("shared.key", order=10, content="beta", priority=50)],
+            ),
+            order_hint=20,
         )
     )
-    profile = AgentPromptProfile(
-        profile_id="lead.default",
-        disabled_section_keys={"disable.me"},
-    )
-
-    sections = registry.build_sections(_make_context(), profile=profile)
-
-    assert [section.key for section in sections] == ["keep.me"]
-
-
-def test_registration_matches_without_explicit_filters() -> None:
-    registration = PromptSectionRegistration(
-        provider=_StaticProvider(
-            provider_id="provider.default",
-            sections=[_make_section("default.section", order=10)],
+    registry.register(
+        PromptSectionRegistration(
+            provider_id="provider.alpha",
+            provider=_StaticProvider(
+                provider_id="provider.alpha",
+                sections=[_make_section("shared.key", order=10, content="alpha", priority=50)],
+            ),
+            order_hint=20,
         )
     )
 
-    assert registration.matches(_make_context(agent_kind="lead", surface="workspace")) is True
-    assert registration.matches(_make_context(agent_kind="builtin", surface="chat")) is True
+    with pytest.raises(ValueError, match="shared.key"):
+        registry.build_sections(_make_context())
