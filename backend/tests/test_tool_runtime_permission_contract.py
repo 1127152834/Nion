@@ -53,8 +53,12 @@ def test_guardrail_denied_message_exposes_runtime_status() -> None:
     result = middleware.wrap_tool_call(_request(), lambda _req: None)
 
     assert result.status == "error"
-    assert result.additional_kwargs["tool_runtime"]["status"] == "denied"
-    assert result.additional_kwargs["tool_runtime"]["stage"] == "check_policy"
+    assert result.additional_kwargs["tool_runtime"] == {
+        "status": "denied",
+        "stage": "check_policy",
+        "tool_name": "bash",
+        "tool_call_id": "call-1",
+    }
 
 
 def test_guardrail_permission_request_exposes_runtime_status() -> None:
@@ -65,8 +69,12 @@ def test_guardrail_permission_request_exposes_runtime_status() -> None:
 
     tool_message = result.update["messages"][0]
     assert tool_message.name == "permission_request"
-    assert tool_message.additional_kwargs["tool_runtime"]["status"] == "approval_required"
-    assert tool_message.additional_kwargs["tool_runtime"]["stage"] == "request_permission"
+    assert tool_message.additional_kwargs["tool_runtime"] == {
+        "status": "approval_required",
+        "stage": "request_permission",
+        "tool_name": "bash",
+        "tool_call_id": "call-1",
+    }
 
 
 def test_guardrail_fail_closed_exposes_runtime_status() -> None:
@@ -74,8 +82,12 @@ def test_guardrail_fail_closed_exposes_runtime_status() -> None:
     result = middleware.wrap_tool_call(_request(), lambda _req: None)
 
     assert result.status == "error"
-    assert result.additional_kwargs["tool_runtime"]["status"] == "failed"
-    assert result.additional_kwargs["tool_runtime"]["stage"] == "check_policy"
+    assert result.additional_kwargs["tool_runtime"] == {
+        "status": "failed",
+        "stage": "check_policy",
+        "tool_name": "bash",
+        "tool_call_id": "call-1",
+    }
 
 
 def test_tool_error_message_exposes_runtime_status() -> None:
@@ -87,8 +99,12 @@ def test_tool_error_message_exposes_runtime_status() -> None:
     result = middleware.wrap_tool_call(_request(name="web_search", tool_call_id="tc-1"), _boom)
 
     assert result.status == "error"
-    assert result.additional_kwargs["tool_runtime"]["status"] == "failed"
-    assert result.additional_kwargs["tool_runtime"]["stage"] == "execute"
+    assert result.additional_kwargs["tool_runtime"] == {
+        "status": "failed",
+        "stage": "execute",
+        "tool_name": "web_search",
+        "tool_call_id": "tc-1",
+    }
 
 
 def test_graph_bubble_up_still_propagates() -> None:

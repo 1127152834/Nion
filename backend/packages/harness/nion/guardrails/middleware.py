@@ -13,15 +13,15 @@ from langgraph.graph import END
 from langgraph.prebuilt.tool_node import ToolCallRequest
 from langgraph.types import Command
 
-from nion.tools.runtime_models import ToolExecutionStage
-from nion.tools.runtime_pipeline import build_tool_runtime_metadata
+from nion.guardrails.provider import GuardrailDecision, GuardrailProvider, GuardrailReason, GuardrailRequest
 from nion.thread_permissions import (
     consume_thread_pending_allow,
     create_thread_permission_request,
     get_thread_permission_profile,
 )
 from nion.threads.repository import ThreadRepository
-from nion.guardrails.provider import GuardrailDecision, GuardrailProvider, GuardrailReason, GuardrailRequest
+from nion.tools.runtime_models import ToolExecutionStage
+from nion.tools.runtime_pipeline import build_tool_runtime_contract_summary
 
 logger = logging.getLogger(__name__)
 
@@ -197,7 +197,7 @@ class GuardrailMiddleware(AgentMiddleware[AgentState]):
                     "reason_code": decision.reasons[0].code if decision.reasons else "oap.approval_required",
                     "reason_message": decision.reasons[0].message if decision.reasons else "",
                 },
-                "tool_runtime": build_tool_runtime_metadata(
+                "tool_runtime": build_tool_runtime_contract_summary(
                     status="approval_required",
                     stage=ToolExecutionStage.REQUEST_PERMISSION,
                     tool_name=tool_name,
@@ -222,12 +222,11 @@ class GuardrailMiddleware(AgentMiddleware[AgentState]):
             name=tool_name,
             status="error",
             additional_kwargs={
-                "tool_runtime": build_tool_runtime_metadata(
+                "tool_runtime": build_tool_runtime_contract_summary(
                     status="failed" if reason_code == "oap.evaluator_error" else "denied",
                     stage=ToolExecutionStage.CHECK_POLICY,
                     tool_name=tool_name,
                     tool_call_id=tool_call_id,
-                    reason_code=reason_code,
                 ),
                 "hook_event": {
                     "event": "permission_denied",

@@ -12,7 +12,7 @@ from langgraph.prebuilt.tool_node import ToolCallRequest
 from langgraph.types import Command
 
 from nion.tools.runtime_models import ToolExecutionStage
-from nion.tools.runtime_pipeline import build_tool_runtime_metadata
+from nion.tools.runtime_pipeline import build_tool_runtime_contract_summary
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +40,7 @@ class ToolErrorHandlingMiddleware(AgentMiddleware[AgentState]):
             name=tool_name,
             status="error",
             additional_kwargs={
-                "tool_runtime": build_tool_runtime_metadata(
+                "tool_runtime": build_tool_runtime_contract_summary(
                     status="failed",
                     stage=ToolExecutionStage.EXECUTE,
                     tool_name=tool_name,
