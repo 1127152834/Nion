@@ -114,6 +114,12 @@ def _agent_config_to_response(agent_cfg: AgentConfig, include_soul: bool = False
     )
 
 
+def _is_catalog_visible(agent_cfg: AgentConfig) -> bool:
+    if agent_cfg.kind == "builtin":
+        return agent_cfg.visibility == "public"
+    return True
+
+
 @router.get(
     "/agents",
     response_model=AgentsListResponse,
@@ -128,7 +134,9 @@ async def list_agents() -> AgentsListResponse:
     """
     try:
         agents = list_agent_catalog()
-        return AgentsListResponse(agents=[_agent_config_to_response(a) for a in agents])
+        return AgentsListResponse(
+            agents=[_agent_config_to_response(a) for a in agents if _is_catalog_visible(a)]
+        )
     except Exception as e:
         logger.error(f"Failed to list agents: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Failed to list agents: {str(e)}")
@@ -181,6 +189,8 @@ async def get_agent(name: str) -> AgentResponse:
     try:
         agent_cfg = resolve_agent_config(name)
         if agent_cfg is None:
+            raise FileNotFoundError(name)
+        if not _is_catalog_visible(agent_cfg):
             raise FileNotFoundError(name)
         return _agent_config_to_response(agent_cfg, include_soul=True)
     except FileNotFoundError:
@@ -274,7 +284,10 @@ async def update_agent(name: str, request: AgentUpdateRequest) -> AgentResponse:
     _validate_agent_name(name)
     name = _normalize_agent_name(name)
 
-    if get_builtin_agent(name) is not None:
+    builtin_agent = get_builtin_agent(name)
+    if builtin_agent is not None:
+        if not _is_catalog_visible(builtin_agent):
+            raise HTTPException(status_code=404, detail=f"Agent '{name}' not found")
         raise HTTPException(status_code=403, detail=f"Built-in agent '{name}' cannot be edited")
 
     try:
@@ -401,7 +414,10 @@ async def delete_agent(name: str) -> None:
     _validate_agent_name(name)
     name = _normalize_agent_name(name)
 
-    if get_builtin_agent(name) is not None:
+    builtin_agent = get_builtin_agent(name)
+    if builtin_agent is not None:
+        if not _is_catalog_visible(builtin_agent):
+            raise HTTPException(status_code=404, detail=f"Agent '{name}' not found")
         raise HTTPException(status_code=403, detail=f"Built-in agent '{name}' cannot be deleted")
 
     agent_dir = get_paths().agent_dir(name)

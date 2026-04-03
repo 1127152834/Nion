@@ -30,6 +30,7 @@ NOTEBOOK_ASSISTANT = BuiltinAgentConfig(
     description="内置的笔记工作流助手，作为公开 catalog agent 出现在 Agent 页面。",
     entrypoint="notebook-chat",
     tool_policy="notebook-basic",
+    visibility="internal",
     soul="""
 你是 Nion 的笔记助手，不是通用 open-domain 助手。
 
