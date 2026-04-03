@@ -153,6 +153,26 @@ class Paths:
         return self.base_dir / "automation"
 
     @property
+    def memory_os_dir(self) -> Path:
+        """Root directory for Memory OS metadata and artifacts."""
+        return self.base_dir / "memory-os"
+
+    @property
+    def memory_os_index_db_file(self) -> Path:
+        """Path to the Memory OS metadata database."""
+        return self.memory_os_dir / "index.sqlite3"
+
+    @property
+    def memory_os_access_log_db_file(self) -> Path:
+        """Path to the Memory OS access log database."""
+        return self.memory_os_dir / "access_logs.sqlite3"
+
+    @property
+    def memory_os_artifacts_dir(self) -> Path:
+        """Root directory for Memory OS artifact files."""
+        return self.memory_os_dir / "artifacts"
+
+    @property
     def automation_hooks_dir(self) -> Path:
         """Root directory for event-task package folders."""
         return self.automation_dir / "hooks"
