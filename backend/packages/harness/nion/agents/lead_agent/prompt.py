@@ -151,7 +151,6 @@ def _build_prompt_registry(
             provider=CorePromptSectionProvider(
                 agent_display_name=agent_display_name,
                 soul=soul,
-                memory_context=memory_context,
                 subagent_reminder=subagent_reminder,
                 subagent_thinking=subagent_thinking,
             ),

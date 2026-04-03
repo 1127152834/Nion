@@ -184,7 +184,6 @@ SYSTEM_PROMPT_TEMPLATE = "\n\n".join(
     [
         ROLE_SECTION_TEMPLATE,
         "{soul}",
-        "{memory_context}",
         THINKING_STYLE_TEMPLATE,
         CLARIFICATION_SYSTEM_SECTION,
         WORKING_DIRECTORY_SECTION,
@@ -199,7 +198,6 @@ SYSTEM_PROMPT_TEMPLATE = "\n\n".join(
 class CorePromptSectionProvider:
     agent_display_name: str
     soul: str
-    memory_context: str
     subagent_reminder: str
     subagent_thinking: str
     provider_id: str = "prompt.core"
@@ -279,18 +277,6 @@ class CorePromptSectionProvider:
                     scope="global_static",
                     layer="core",
                     order=20,
-                ),
-            )
-        if self.memory_context:
-            sections.insert(
-                2 if self.soul else 1,
-                PromptSection(
-                    key="core.memory_context",
-                    title=None,
-                    content=self.memory_context,
-                    scope="global_static",
-                    layer="core",
-                    order=25,
                 ),
             )
         return sections
