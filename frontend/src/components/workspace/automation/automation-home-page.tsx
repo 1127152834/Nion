@@ -26,7 +26,7 @@ const modules = [
 
 export function AutomationHomePage() {
   return (
-    <section className="space-y-6">
+    <section className="flex min-h-[calc(100vh-12rem)] flex-col justify-center space-y-8">
       <header className="space-y-2">
         <h1 className="text-2xl font-semibold tracking-tight">自动化</h1>
         <p className="text-muted-foreground max-w-2xl text-sm">
@@ -34,24 +34,24 @@ export function AutomationHomePage() {
         </p>
       </header>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid max-w-3xl gap-4">
         {modules.map((module) => {
           const Icon = module.icon;
           return (
             <Link key={module.href} href={module.href}>
               <Card className="transition-colors hover:border-primary/40 hover:bg-primary/5">
-                <CardHeader className="flex flex-row items-start justify-between space-y-0">
-                  <div className="space-y-2">
-                    <div className="bg-primary/10 text-primary inline-flex size-10 items-center justify-center rounded-xl">
+                <CardHeader className="flex min-h-56 flex-col items-center justify-center space-y-6 text-center">
+                  <div className="space-y-4">
+                    <div className="bg-primary/10 text-primary mx-auto inline-flex size-12 items-center justify-center rounded-2xl">
                       <Icon className="size-5" />
                     </div>
                     <CardTitle>{module.title}</CardTitle>
+                    <CardContent className="text-muted-foreground p-0 text-sm">
+                      {module.description}
+                    </CardContent>
                   </div>
                   <ChevronRightIcon className="text-muted-foreground size-5" />
                 </CardHeader>
-                <CardContent className="text-muted-foreground text-sm">
-                  {module.description}
-                </CardContent>
               </Card>
             </Link>
           );
