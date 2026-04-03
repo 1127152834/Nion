@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2Icon, SendIcon } from "lucide-react";
+import { Loader2Icon, SendIcon, SquareIcon } from "lucide-react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ type NotebookAssistantComposerProps = {
   disabled?: boolean;
   isSending?: boolean;
   onSubmit: (value: string) => Promise<void> | void;
+  onStop?: () => Promise<void> | void;
   placeholder?: string;
 };
 
@@ -17,6 +18,7 @@ export function NotebookAssistantComposer({
   disabled = false,
   isSending = false,
   onSubmit,
+  onStop,
   placeholder = "围绕当前笔记继续处理内容，或总结聊天内容并整理成笔记",
 }: NotebookAssistantComposerProps) {
   const [value, setValue] = useState("");
@@ -50,16 +52,28 @@ export function NotebookAssistantComposer({
         <p className="text-[0.74rem] text-[color-mix(in_srgb,var(--notebook-soft-text)_90%,var(--notebook-ink)_10%)]">
           Enter 发送，Shift + Enter 换行
         </p>
-        <Button
-          type="button"
-          size="sm"
-          onClick={() => void handleSubmit()}
-          disabled={disabled || isSending || value.trim().length === 0}
-          className="h-9 rounded-full bg-[color-mix(in_srgb,var(--notebook-brand)_82%,var(--notebook-soft-text)_18%)] px-4 text-[0.9rem] text-[var(--notebook-panel)] shadow-[0_10px_20px_-18px_rgba(15,23,42,0.65)] transition-all duration-200 hover:opacity-90"
-        >
-          {isSending ? <Loader2Icon className="size-4 animate-spin" /> : <SendIcon className="size-4" />}
-          发送
-        </Button>
+        {isSending ? (
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => void onStop?.()}
+            className="h-9 rounded-full bg-[color-mix(in_srgb,var(--notebook-danger-surface)_70%,var(--notebook-soft-text)_30%)] px-4 text-[0.9rem] text-[var(--notebook-ink)] shadow-[0_10px_20px_-18px_rgba(15,23,42,0.65)] transition-all duration-200 hover:opacity-90"
+          >
+            <SquareIcon className="size-4" />
+            停止
+          </Button>
+        ) : (
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => void handleSubmit()}
+            disabled={disabled || value.trim().length === 0}
+            className="h-9 rounded-full bg-[color-mix(in_srgb,var(--notebook-brand)_82%,var(--notebook-soft-text)_18%)] px-4 text-[0.9rem] text-[var(--notebook-panel)] shadow-[0_10px_20px_-18px_rgba(15,23,42,0.65)] transition-all duration-200 hover:opacity-90"
+          >
+            <SendIcon className="size-4" />
+            发送
+          </Button>
+        )}
       </div>
     </div>
   );

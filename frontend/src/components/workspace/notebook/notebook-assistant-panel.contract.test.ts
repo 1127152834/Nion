@@ -43,6 +43,8 @@ void test("NotebookAssistantPanel stays note-centric and notebook-only", async (
   assert.match(composerSource, /发送/);
   assert.match(composerSource, /placeholder=/);
   assert.match(composerSource, /围绕当前笔记继续处理内容|总结聊天内容并整理成笔记/);
+  assert.match(composerSource, /停止|Stop/);
+  assert.match(panelSource, /<NotebookAssistantComposer[\s\S]*onStop=\{\(\) => thread\.stop\(\)\}/);
   assert.match(composerSource, /max-h-\[3\.6rem\]/);
   assert.match(composerSource, /min-h-\[3\.6rem\]/);
   assert.match(composerSource, /overflow-y-auto/);

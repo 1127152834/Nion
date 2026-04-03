@@ -161,6 +161,7 @@ export function NotebookAssistantPanel({
         disabled={!thread.threadId || !noteId}
         isSending={thread.isLoading}
         onSubmit={handleSubmit}
+        onStop={() => thread.stop()}
       />
     </div>
   );

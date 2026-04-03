@@ -35,3 +35,4 @@ def test_notebook_chat_prompt_with_current_note_requires_note_grounded_answers()
     assert "我叫张天成，哈哈哈你是谁啊阿斯顿" in prompt
     assert "当用户问“这篇笔记讲了什么”时，直接总结当前 note 内容" in prompt
     assert "不能回答成通用的 Nion 2.0 身份介绍" in prompt
+    assert "不要去列上传文件" in prompt
