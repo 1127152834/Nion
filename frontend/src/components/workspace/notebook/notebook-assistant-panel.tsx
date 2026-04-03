@@ -68,7 +68,11 @@ export function NotebookAssistantPanel({
       })
       .catch((error) => {
         if (!cancelled) {
-          setSessionError(error instanceof Error ? error.message : "连接笔记助手失败");
+          setSessionError(
+            error instanceof Error
+              ? error.message
+              : "当前笔记内容不可用，暂时无法连接笔记助手。",
+          );
         }
       });
 
@@ -132,7 +136,7 @@ export function NotebookAssistantPanel({
           </div>
         ) : !thread.threadId ? (
           <div className="flex h-full items-center justify-center px-6 text-center text-[0.82rem] text-[var(--notebook-soft-text)]">
-            正在连接笔记助手会话…
+            正在连接当前笔记上下文…
           </div>
         ) : (
           <ThreadContext.Provider value={{ thread }}>

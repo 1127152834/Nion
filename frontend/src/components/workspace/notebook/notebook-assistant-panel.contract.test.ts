@@ -35,6 +35,7 @@ void test("NotebookAssistantPanel stays note-centric and notebook-only", async (
   assert.match(panelSource, /notebook-assistant-stream/);
   assert.doesNotMatch(panelSource, /项目|记忆|memory|project/i);
   assert.doesNotMatch(panelSource, /拆解任务/);
+  assert.match(panelSource, /当前笔记内容不可用|笔记上下文/);
   assert.doesNotMatch(panelSource, /PromptInputActionMenu/);
 
   assert.match(composerSource, /textarea|Textarea/i);
