@@ -19,6 +19,28 @@
   - 成熟记忆系统能力矩阵，说明哪些模式值得吸收、哪些不该照抄。
 - `nion-memory-os-final-architecture.md`
   - 收敛后的完整方案：对象模型、生命周期、后台维护、自动化 ownership、接线顺序。
+- `specification-package-plan.md`
+  - 实施前置规格包总计划，说明要写哪些冻结文档、谁依赖谁。
+- `00-memory-os-scope-and-principles.md`
+  - 冻结范围、非目标、术语与核心原则。
+- `01-memory-os-domain-model.md`
+  - 冻结 domain / owner / scope / canonical source。
+- `02-memory-os-business-rules.md`
+  - 冻结 candidate、晋升、失效、升级链的业务逻辑。
+- `03-memory-os-data-contracts.md`
+  - 冻结核心数据对象、artifact 合同、automation ownership 字段。
+- `04-memory-os-runtime-flows.md`
+  - 冻结 hot path、post-turn、heartbeat、consolidation 时序。
+- `05-memory-os-governance-and-permissions.md`
+  - 冻结 `AUTO / SUGGEST / CONFIRM / FORBID` 治理矩阵。
+- `06-memory-os-interaction-model.md`
+  - 冻结用户看到什么、能控制什么、如何理解 agent 成长。
+- `07-memory-os-migration-and-compatibility.md`
+  - 冻结 legacy -> Memory OS 的渐进迁移与回滚路径。
+- `08-memory-os-observability-and-risk.md`
+  - 冻结预算、背压、drift、日志与降级策略。
+- `09-memory-os-implementation-plan.md`
+  - 基于规格包生成的正式实施方案。
 - `sources.md`
   - 本轮调研用到的内部材料与外部公开来源。
 
@@ -54,4 +76,5 @@ Nion 现在已经不是“完全没有记忆”的状态，但它仍然更像一
 
 1. 先读 [current-memory-system-audit.md](/Users/zhangtiancheng/Documents/项目/agent/nion/docs/memory-update/current-memory-system-audit.md)
 2. 再读 [mature-memory-systems-matrix.md](/Users/zhangtiancheng/Documents/项目/agent/nion/docs/memory-update/mature-memory-systems-matrix.md)
-3. 最后读 [nion-memory-os-final-architecture.md](/Users/zhangtiancheng/Documents/项目/agent/nion/docs/memory-update/nion-memory-os-final-architecture.md)
+3. 再读 [nion-memory-os-final-architecture.md](/Users/zhangtiancheng/Documents/项目/agent/nion/docs/memory-update/nion-memory-os-final-architecture.md)
+4. 然后从 [specification-package-plan.md](/Users/zhangtiancheng/Documents/项目/agent/nion/docs/memory-update/specification-package-plan.md) 开始顺着 `00 -> 09` 阅读
