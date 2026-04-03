@@ -10,6 +10,9 @@ def build_prompt_artifact(
     del context
     enabled_sections = [section for section in sections if section.enabled]
     ordered_sections = sorted(enabled_sections, key=lambda section: section.order)
+    provider_manifest = list(dict.fromkeys(
+        section.source for section in ordered_sections if section.source
+    ))
 
     static_sections = [
         section.content.strip()
@@ -35,4 +38,5 @@ def build_prompt_artifact(
         static_prefix=static_prefix,
         dynamic_suffix=dynamic_suffix,
         section_manifest=ordered_sections,
+        provider_manifest=provider_manifest,
     )

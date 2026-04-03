@@ -31,6 +31,7 @@ def test_build_prompt_artifact_splits_static_and_dynamic_sections() -> None:
             scope="global_static",
             layer="core",
             order=10,
+            source="prompt.core",
         ),
         PromptSection(
             key="dynamic.skills",
@@ -39,6 +40,7 @@ def test_build_prompt_artifact_splits_static_and_dynamic_sections() -> None:
             scope="session_dynamic",
             layer="extension",
             order=20,
+            source="prompt.extensions",
         ),
     ]
 
@@ -47,6 +49,9 @@ def test_build_prompt_artifact_splits_static_and_dynamic_sections() -> None:
     assert artifact.static_prefix == "You are Nion."
     assert artifact.dynamic_suffix == "Use skills."
     assert PROMPT_DYNAMIC_BOUNDARY in artifact.full_prompt
+    assert artifact.provider_manifest == ["prompt.core", "prompt.extensions"]
+    assert artifact.static_char_count == len("You are Nion.")
+    assert artifact.dynamic_char_count == len("Use skills.")
 
 
 def test_build_prompt_artifact_keeps_manifest_sorted_and_filters_disabled() -> None:
@@ -67,6 +72,7 @@ def test_build_prompt_artifact_keeps_manifest_sorted_and_filters_disabled() -> N
             scope="global_static",
             layer="core",
             order=20,
+            source="prompt.core",
         ),
         PromptSection(
             key="core.b",
@@ -75,6 +81,7 @@ def test_build_prompt_artifact_keeps_manifest_sorted_and_filters_disabled() -> N
             scope="global_static",
             layer="core",
             order=10,
+            source="prompt.core",
         ),
     ]
 
@@ -83,6 +90,9 @@ def test_build_prompt_artifact_keeps_manifest_sorted_and_filters_disabled() -> N
     assert [section.key for section in artifact.section_manifest] == ["core.b", "core.a"]
     assert artifact.static_prefix == "B\n\nA"
     assert artifact.dynamic_suffix == ""
+    assert artifact.provider_manifest == ["prompt.core"]
+    assert artifact.static_char_count == len("B\n\nA")
+    assert artifact.dynamic_char_count == 0
 
 
 def test_build_prompt_artifact_is_stable_for_same_input() -> None:
@@ -94,6 +104,7 @@ def test_build_prompt_artifact_is_stable_for_same_input() -> None:
             scope="global_static",
             layer="core",
             order=10,
+            source="prompt.core",
         ),
         PromptSection(
             key="dynamic.memory",
@@ -102,6 +113,7 @@ def test_build_prompt_artifact_is_stable_for_same_input() -> None:
             scope="session_dynamic",
             layer="extension",
             order=20,
+            source="prompt.session",
         ),
     ]
 
@@ -109,3 +121,39 @@ def test_build_prompt_artifact_is_stable_for_same_input() -> None:
     artifact_b = build_prompt_artifact(_make_context(), sections)
 
     assert artifact_a == artifact_b
+
+
+def test_build_prompt_artifact_uses_section_sources_as_provider_manifest() -> None:
+    sections = [
+        PromptSection(
+            key="core.role",
+            title="Role",
+            content="You are Nion.",
+            scope="global_static",
+            layer="core",
+            order=10,
+            source="prompt.core",
+        ),
+        PromptSection(
+            key="dynamic.skills",
+            title="Skills",
+            content="Use skills.",
+            scope="session_dynamic",
+            layer="extension",
+            order=20,
+            source="prompt.extensions",
+        ),
+        PromptSection(
+            key="dynamic.overlay",
+            title="Overlay",
+            content="Extra guidance.",
+            scope="turn_dynamic",
+            layer="agent_overlay",
+            order=30,
+            source="prompt.extensions",
+        ),
+    ]
+
+    artifact = build_prompt_artifact(_make_context(), sections)
+
+    assert artifact.provider_manifest == ["prompt.core", "prompt.extensions"]
