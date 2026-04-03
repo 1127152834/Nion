@@ -135,6 +135,8 @@ class ThreadService:
                 plan_mode=bool(context.get("is_plan_mode", False)),
                 subagent_enabled=bool(context.get("subagent_enabled", False)),
                 cli_tools_enabled=cli_tools_enabled,
+                requested_skills=context.get("requested_skills", []),
+                selected_mcp_tools=context.get("selected_mcp_tools", []),
                 selected_cli_tools=selected_cli_tools,
                 agent_name=context.get("agent_name"),
                 recursion_limit=config.get("recursion_limit", 100),

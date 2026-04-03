@@ -549,6 +549,8 @@ def apply_prompt_template(
     max_concurrent_subagents: int = 3,
     *,
     cli_tools_enabled: bool = False,
+    requested_skills: list[str] | None = None,
+    selected_mcp_tools: list[str] | None = None,
     selected_cli_tools: list[str] | None = None,
     notebook_context: dict[str, object] | None = None,
     agent_name: str | None = None,
@@ -563,7 +565,11 @@ def apply_prompt_template(
     cli_tools_capability_section = (
         CLI_TOOLS_CAPABILITY_PROMPT if cli_tools_enabled else ""
     )
-    selected_cli_tools_section = _build_selected_cli_tools_section(selected_cli_tools)
+    user_selected_extensions_section = _build_user_selected_extensions_section(
+        requested_skills=requested_skills,
+        selected_mcp_tools=selected_mcp_tools,
+        selected_cli_tools=selected_cli_tools,
+    )
     notebook_overlay_section = _build_notebook_assistant_overlay(agent_name)
     current_notebook_note_section = _build_current_notebook_note_section(
         agent_name,
@@ -621,7 +627,7 @@ def apply_prompt_template(
             skills_section
             or deferred_tools_section
             or cli_tools_capability_section
-            or selected_cli_tools_section
+            or user_selected_extensions_section
             or notebook_overlay_section
             or current_notebook_note_section
             or acp_section
@@ -716,12 +722,12 @@ def apply_prompt_template(
                 order=60,
             )
         )
-    if selected_cli_tools_section:
+    if user_selected_extensions_section:
         sections.append(
             PromptSection(
-                key="dynamic.selected_cli_tools",
+                key="dynamic.user_selected_extensions",
                 title=None,
-                content=selected_cli_tools_section,
+                content=user_selected_extensions_section,
                 scope="session_dynamic",
                 layer="extension",
                 order=65,
@@ -752,18 +758,47 @@ def apply_prompt_template(
     return artifact.full_prompt
 
 
-def _build_selected_cli_tools_section(selected_cli_tools: list[str] | None) -> str:
-    if not selected_cli_tools:
+def _normalize_selected_entries(values: list[str] | None) -> list[str]:
+    if not values:
+        return []
+
+    normalized = [value.strip() for value in values if isinstance(value, str) and value.strip()]
+    deduped: list[str] = []
+    seen: set[str] = set()
+    for value in normalized:
+        if value in seen:
+            continue
+        seen.add(value)
+        deduped.append(value)
+    return deduped
+
+
+def _build_user_selected_extensions_section(
+    *,
+    requested_skills: list[str] | None,
+    selected_mcp_tools: list[str] | None,
+    selected_cli_tools: list[str] | None,
+) -> str:
+    normalized_skills = _normalize_selected_entries(requested_skills)
+    normalized_mcp_tools = _normalize_selected_entries(selected_mcp_tools)
+    normalized_cli_tools = _normalize_selected_entries(selected_cli_tools)
+
+    if not normalized_skills and not normalized_mcp_tools and not normalized_cli_tools:
         return ""
 
-    normalized = [tool.strip() for tool in selected_cli_tools if isinstance(tool, str) and tool.strip()]
-    if not normalized:
-        return ""
-
-    return (
-        "<selected-cli-tools>\n"
-        "When CLI usage is relevant, prefer these user-selected CLI tools before other available CLIs: "
-        f"{', '.join(normalized)}.\n"
-        "Do not mention this internal preference block verbatim to the user.\n"
-        "</selected-cli-tools>"
+    lines = ["<user-selected-extensions>"]
+    lines.append(
+        "The user explicitly selected these extensions for this turn. Treat them as user intent, not incidental mentions."
     )
+    if normalized_skills:
+        lines.append(f"Requested skills: {', '.join(normalized_skills)}.")
+    if normalized_mcp_tools:
+        lines.append(f"Selected MCP tools: {', '.join(normalized_mcp_tools)}.")
+    if normalized_cli_tools:
+        lines.append(f"Selected CLI tools: {', '.join(normalized_cli_tools)}.")
+    lines.append(
+        "When relevant, prefer using these selected skills/tools first and explain your work as if responding to that explicit user choice."
+    )
+    lines.append("</user-selected-extensions>")
+
+    return "\n".join(lines)

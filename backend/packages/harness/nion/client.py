@@ -252,6 +252,8 @@ class NionClient:
             "is_plan_mode": overrides.get("plan_mode", self._plan_mode),
             "subagent_enabled": overrides.get("subagent_enabled", self._subagent_enabled),
             "cli_tools_enabled": overrides.get("cli_tools_enabled", False),
+            "requested_skills": overrides.get("requested_skills", []),
+            "selected_mcp_tools": overrides.get("selected_mcp_tools", []),
             "selected_cli_tools": overrides.get("selected_cli_tools", []),
             "surface": overrides.get("surface", "workspace"),
             "notebook_context": overrides.get("notebook_context"),
@@ -270,6 +272,8 @@ class NionClient:
             cfg.get("is_plan_mode"),
             cfg.get("subagent_enabled"),
             cfg.get("cli_tools_enabled"),
+            tuple(cfg.get("requested_skills") or []),
+            tuple(cfg.get("selected_mcp_tools") or []),
             tuple(cfg.get("selected_cli_tools") or []),
             cfg.get("surface"),
             json.dumps(cfg.get("notebook_context") or {}, sort_keys=True, ensure_ascii=False),
@@ -282,6 +286,8 @@ class NionClient:
         model_name = cfg.get("model_name")
         subagent_enabled = cfg.get("subagent_enabled", False)
         cli_tools_enabled = cfg.get("cli_tools_enabled", False)
+        requested_skills = cfg.get("requested_skills") or []
+        selected_mcp_tools = cfg.get("selected_mcp_tools") or []
         selected_cli_tools = cfg.get("selected_cli_tools") or []
         surface = cfg.get("surface", "workspace")
         notebook_context = cfg.get("notebook_context")
@@ -299,6 +305,8 @@ class NionClient:
             "system_prompt": apply_prompt_template(
                 subagent_enabled=subagent_enabled,
                 cli_tools_enabled=cli_tools_enabled,
+                requested_skills=requested_skills,
+                selected_mcp_tools=selected_mcp_tools,
                 selected_cli_tools=selected_cli_tools,
                 notebook_context=notebook_context,
                 max_concurrent_subagents=max_concurrent_subagents,
@@ -326,6 +334,8 @@ class NionClient:
                 "thinking_enabled": thinking_enabled,
                 "subagent_enabled": subagent_enabled,
                 "cli_tools_enabled": cli_tools_enabled,
+                "requested_skills": requested_skills,
+                "selected_mcp_tools": selected_mcp_tools,
                 "selected_cli_tools": selected_cli_tools,
                 "surface": surface,
             },

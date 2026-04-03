@@ -1,4 +1,12 @@
-import { FileIcon, Loader2Icon } from "lucide-react";
+import {
+  AtSignIcon,
+  FileIcon,
+  FolderIcon,
+  Loader2Icon,
+  SparklesIcon,
+  SquareTerminalIcon,
+  WrenchIcon,
+} from "lucide-react";
 import { useParams } from "next/navigation";
 import { memo, useMemo, type ImgHTMLAttributes } from "react";
 import rehypeKatex from "rehype-katex";
@@ -35,6 +43,14 @@ import { cn } from "@/lib/utils";
 import { CopyButton } from "../copy-button";
 
 import { MarkdownContent } from "./markdown-content";
+
+const MAX_SELECTION_TAGS = 2;
+
+type SelectionTag = {
+  key: string;
+  icon: typeof SparklesIcon;
+  label: string;
+};
 
 export function MessageListItem({
   className,
@@ -173,29 +189,60 @@ function MessageContent_({
     ) : null;
   const shortcutSelections = extractShortcutSelectionsFromMessage(message);
 
-  const shortcutBadges =
-    isHuman && shortcutSelections ? (
-      <div className="flex flex-wrap items-center gap-1.5">
-        {shortcutSelections.contexts.map((context) => (
-          <Badge key={`context:${context.value}`} variant="secondary">
-            @{context.value}
+  const selectionTagItems = useMemo<SelectionTag[]>(() => {
+    if (!isHuman || !shortcutSelections) {
+      return [];
+    }
+
+    const contextTags = shortcutSelections.contexts.map((context) => ({
+      key: `context:${context.value}`,
+      icon: context.kind === "directory" ? FolderIcon : FileIcon,
+      label: context.value,
+    }));
+    const skillTags = shortcutSelections.skills.map((skill) => ({
+      key: `skill:${skill}`,
+      icon: SparklesIcon,
+      label: skill,
+    }));
+    const mcpTags = shortcutSelections.mcpTools.map((tool) => ({
+      key: `mcp:${tool}`,
+      icon: WrenchIcon,
+      label: tool,
+    }));
+    const cliTags = shortcutSelections.cliTools.map((tool) => ({
+      key: `cli:${tool}`,
+      icon: SquareTerminalIcon,
+      label: tool,
+    }));
+
+    return [...skillTags, ...mcpTags, ...cliTags, ...contextTags];
+  }, [isHuman, shortcutSelections]);
+
+  const selectionTags =
+    selectionTagItems.length > 0 ? (
+      <div className="flex flex-wrap items-center justify-end gap-1.5">
+        {selectionTagItems.slice(0, MAX_SELECTION_TAGS).map((tag) => {
+          const Icon = tag.icon;
+          return (
+            <Badge
+              key={tag.key}
+              variant="secondary"
+              className="max-w-44 gap-1 rounded-full px-2.5 py-1 text-[11px]"
+            >
+              <Icon className="size-3 shrink-0" />
+              <span className="truncate">{tag.label}</span>
+            </Badge>
+          );
+        })}
+        {selectionTagItems.length > MAX_SELECTION_TAGS ? (
+          <Badge
+            key="selection-tags-overflow"
+            variant="secondary"
+            className="rounded-full px-2.5 py-1 text-[11px]"
+          >
+            +{selectionTagItems.length - MAX_SELECTION_TAGS}
           </Badge>
-        ))}
-        {shortcutSelections.skills.map((skill) => (
-          <Badge key={`skill:${skill}`} variant="secondary">
-            /{skill}
-          </Badge>
-        ))}
-        {shortcutSelections.mcpTools.map((tool) => (
-          <Badge key={`mcp:${tool}`} variant="secondary">
-            MCP {tool}
-          </Badge>
-        ))}
-        {shortcutSelections.cliTools.map((tool) => (
-          <Badge key={`cli:${tool}`} variant="secondary">
-            CLI {tool}
-          </Badge>
-        ))}
+        ) : null}
       </div>
     ) : null;
 
@@ -239,7 +286,6 @@ function MessageContent_({
     ) : null;
     return (
       <div className={cn("ml-auto flex flex-col gap-2", className)}>
-        {shortcutBadges}
         {filesList}
         {messageResponse && (
           <AIElementMessageContent
@@ -252,6 +298,7 @@ function MessageContent_({
             {messageResponse}
           </AIElementMessageContent>
         )}
+        {selectionTags}
       </div>
     );
   }

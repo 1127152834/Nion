@@ -103,3 +103,39 @@ def test_build_subagent_section_hides_bash_when_host_bash_is_unavailable(monkeyp
 
     assert "Not available in the current sandbox configuration" in section
     assert 'read_file("/mnt/user-data/workspace/README.md")' in section
+
+
+def test_apply_prompt_template_injects_user_selected_extensions_section(monkeypatch) -> None:
+    captured: dict[str, object] = {}
+
+    def _fake_build_prompt_artifact(*, context, sections):
+        captured["context"] = context
+        captured["sections"] = sections
+        return PromptBuildArtifact(
+            full_prompt="STATIC\n\n__PROMPT_DYNAMIC_BOUNDARY__\n\nDYNAMIC",
+            static_prefix="STATIC",
+            dynamic_suffix="DYNAMIC",
+            section_manifest=sections,
+        )
+
+    monkeypatch.setattr(
+        "nion.agents.lead_agent.prompt.build_prompt_artifact",
+        _fake_build_prompt_artifact,
+    )
+
+    apply_prompt_template(
+        agent_name="default",
+        cli_tools_enabled=True,
+        selected_cli_tools=["docker"],
+        selected_mcp_tools=["slack.search"],
+        requested_skills=["claude-to-nion"],
+    )
+
+    keys = [section.key for section in captured["sections"]]
+    assert "dynamic.user_selected_extensions" in keys
+    selected_section = next(
+        section for section in captured["sections"] if section.key == "dynamic.user_selected_extensions"
+    )
+    assert "claude-to-nion" in selected_section.content
+    assert "slack.search" in selected_section.content
+    assert "docker" in selected_section.content
