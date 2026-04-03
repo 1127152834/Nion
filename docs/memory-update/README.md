@@ -15,6 +15,10 @@
   - 外部产品与论文里值得借鉴的 memory / self-maintenance / growth 模式。
 - `memory-upgrade-direction-v1.md`
   - 面向 Nion 的升级主张，强调“更懂用户、更会服务、更会自我维护”。
+- `mature-memory-systems-matrix.md`
+  - 成熟记忆系统能力矩阵，说明哪些模式值得吸收、哪些不该照抄。
+- `nion-memory-os-final-architecture.md`
+  - 收敛后的完整方案：对象模型、生命周期、后台维护、自动化 ownership、接线顺序。
 - `sources.md`
   - 本轮调研用到的内部材料与外部公开来源。
 
@@ -45,3 +49,9 @@ Nion 现在已经不是“完全没有记忆”的状态，但它仍然更像一
 因此这轮升级不该理解成“给 memory.json 再加几个字段”，而应该理解成：
 
 **把 Nion 从“有几个记忆机制的 agent”升级成“有长期用户模型、自我维护、自主学习和可治理成长回路的 personal agent”。**
+
+## 当前推荐阅读顺序
+
+1. 先读 [current-memory-system-audit.md](/Users/zhangtiancheng/Documents/项目/agent/nion/docs/memory-update/current-memory-system-audit.md)
+2. 再读 [mature-memory-systems-matrix.md](/Users/zhangtiancheng/Documents/项目/agent/nion/docs/memory-update/mature-memory-systems-matrix.md)
+3. 最后读 [nion-memory-os-final-architecture.md](/Users/zhangtiancheng/Documents/项目/agent/nion/docs/memory-update/nion-memory-os-final-architecture.md)

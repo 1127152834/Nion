@@ -53,14 +53,29 @@
 - [Long-term memory - LangChain Docs](https://docs.langchain.com/oss/python/langchain/long-term-memory)
 - [Long-term memory - Deep Agents JS Docs](https://docs.langchain.com/oss/javascript/deepagents/long-term-memory)
 
+### Amazon Bedrock AgentCore Memory
+
+- [User preference memory strategy - Amazon Bedrock AgentCore](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/user-preference-memory-strategy.html)
+- [System prompt for user preference memory strategy - Amazon Bedrock AgentCore](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/memory-user-prompt.html)
+- [Self-managed strategies - Amazon Bedrock AgentCore](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/memory-self-managed-strategies.html)
+
 ### Zep / Graphiti
 
 - [Zep Homepage](https://www.getzep.com/)
+- [Facts - Zep Documentation](https://help.getzep.com/facts)
 - [Graph Overview - Zep Docs](https://help.getzep.com/understanding-the-graph)
 - [Understanding the Graph - Zep Docs](https://help.getzep.com/v2/understanding-the-graph)
 - [Agent Memory - Zep](https://www.getzep.com/product/agent-memory/)
 - [Knowledge Graph MCP Server - Zep](https://www.getzep.com/product/knowledge-graph-mcp/)
 - [Zep: A Temporal Knowledge Graph Architecture for Agent Memory - arXiv](https://arxiv.org/abs/2501.13956)
+
+### MemOS / OpenMemory / AgentMem
+
+- [什么是 MemOS？](https://memos-docs.openmem.net/cn/home/memos_intro/)
+- [架构设计 - MemOS](https://memos-docs.openmem.net/cn/open_source/home/architecture)
+- [MemScheduler - MemOS](https://memos-docs.openmem.net/modules/mem_scheduler)
+- [OpenMemory](https://openmemory.ai/)
+- [AgentMem Docs](https://agentmem.io/docs)
 
 ### 认知架构
 
