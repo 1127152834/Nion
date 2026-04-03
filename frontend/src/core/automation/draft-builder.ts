@@ -6,6 +6,7 @@ import type {
   AutomationDeliveryMode,
   AutomationJobCreateInput,
   AutomationJobKind,
+  AutomationImplicitMention,
 } from "./types";
 
 export type AutomationDraftInput = {
@@ -16,6 +17,7 @@ export type AutomationDraftInput = {
   deliveryMode?: AutomationDeliveryMode;
   deliveryTargets?: Array<Record<string, unknown>>;
   skills?: string[];
+  implicitMentions?: AutomationImplicitMention[];
 };
 
 export function buildAutomationDraftRequest(
@@ -31,5 +33,12 @@ export function buildAutomationDraftRequest(
     delivery_mode: input.deliveryMode ?? "local",
     delivery_targets: input.deliveryTargets ?? [],
     skills: input.skills ?? [],
+    implicit_mentions: input.implicitMentions ?? [],
+    session_policy:
+      input.implicitMentions && input.implicitMentions.length > 0
+        ? {
+            implicit_mentions: input.implicitMentions,
+          }
+        : undefined,
   };
 }

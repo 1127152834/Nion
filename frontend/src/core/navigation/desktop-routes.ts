@@ -75,6 +75,32 @@ export function pathOfAutomation(
   return withQuery("/workspace/automation", extra);
 }
 
+export function pathOfAutomationReminders(
+  extra: Record<string, string | undefined> = {},
+) {
+  return withQuery("/workspace/automation/reminders", extra);
+}
+
+export function pathOfAutomationReminderDetail(
+  jobId: string,
+  extra: Record<string, string | undefined> = {},
+) {
+  return withQuery(`/workspace/automation/reminders/${jobId}`, extra);
+}
+
+export function pathOfAutomationTasks(
+  extra: Record<string, string | undefined> = {},
+) {
+  return withQuery("/workspace/automation/tasks", extra);
+}
+
+export function pathOfAutomationTaskDetail(
+  jobId: string,
+  extra: Record<string, string | undefined> = {},
+) {
+  return withQuery(`/workspace/automation/tasks/${jobId}`, extra);
+}
+
 export function pathOfNotebookTrash(
   extra: Record<string, string | undefined> = {},
 ) {
