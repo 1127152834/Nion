@@ -1,7 +1,6 @@
 from nion.agents.lead_agent.prompt import _build_subagent_section, apply_prompt_template
 from nion.prompt_runtime.models import PromptBuildArtifact
-from nion.prompt_runtime.profiles import AgentPromptProfile
-from nion.prompt_runtime.registry import PromptSectionRegistry
+from nion.prompt_sections import SYSTEM_PROMPT_TEMPLATE
 
 
 def test_apply_prompt_template_uses_prompt_runtime_artifact(monkeypatch) -> None:
@@ -33,7 +32,9 @@ def test_apply_prompt_template_uses_prompt_runtime_artifact(monkeypatch) -> None
     assert captured["context"].agent_name == "default"
     assert isinstance(captured["sections"], list)
     keys = [section.key for section in captured["sections"]]
-    assert keys[0] == "core.prompt"
+    assert keys[0] == "core.role"
+    assert "core.thinking_style" in keys
+    assert "core.working_directory" in keys
     assert "dynamic.skills" in keys
     assert "dynamic.current_date" in keys
     sources = {section.source for section in captured["sections"]}
@@ -107,17 +108,11 @@ def test_subagent_prompt_runtime_context_marks_subagent_enabled(monkeypatch) -> 
     assert subagent_section.source == "prompt.overlays"
 
 
-def test_apply_prompt_template_uses_prompt_registry_with_resolved_profile(monkeypatch) -> None:
+def test_apply_prompt_template_default_registry_builds_real_provider_sections(monkeypatch) -> None:
     captured: dict[str, object] = {}
 
-    def _fake_build_sections(self, context, *, profile=None):
-        del self
-        captured["context"] = context
-        captured["profile"] = profile
-        return []
-
     def _fake_build_prompt_artifact(*, context, sections):
-        captured["artifact_context"] = context
+        captured["context"] = context
         captured["sections"] = sections
         return PromptBuildArtifact(
             full_prompt="STATIC\n\n__PROMPT_DYNAMIC_BOUNDARY__",
@@ -127,22 +122,59 @@ def test_apply_prompt_template_uses_prompt_registry_with_resolved_profile(monkey
         )
 
     monkeypatch.setattr(
-        PromptSectionRegistry,
-        "build_sections",
-        _fake_build_sections,
-    )
-    monkeypatch.setattr(
         "nion.agents.lead_agent.prompt.build_prompt_artifact",
         _fake_build_prompt_artifact,
     )
 
-    apply_prompt_template(agent_name="notebook-chat")
+    apply_prompt_template(
+        agent_name="notebook-chat",
+        notebook_context={
+            "note_id": "note_1",
+            "note_title": "测试笔记",
+            "note_relative_path": "Inbox/test.md",
+            "note_body": "这是当前笔记正文",
+            "selection_text": "",
+        },
+        cli_tools_enabled=True,
+        selected_cli_tools=["docker"],
+    )
 
     assert captured["context"].agent_name == "notebook-chat"
-    assert captured["artifact_context"] is captured["context"]
-    assert captured["sections"] == []
-    assert isinstance(captured["profile"], AgentPromptProfile)
-    assert captured["profile"].profile_id == "builtin.notebook-chat"
+    keys = [section.key for section in captured["sections"]]
+    assert keys[:4] == [
+        "core.role",
+        "core.soul",
+        "core.thinking_style",
+        "core.clarification_system",
+    ]
+    assert "dynamic.notebook_assistant" in keys
+    assert "dynamic.current_notebook_note" in keys
+    assert "dynamic.cli_tools" in keys
+    assert "dynamic.user_selected_extensions" in keys
+    notebook_overlay = next(
+        section for section in captured["sections"] if section.key == "dynamic.notebook_assistant"
+    )
+    current_note = next(
+        section for section in captured["sections"] if section.key == "dynamic.current_notebook_note"
+    )
+    assert notebook_overlay.source == "prompt.overlays"
+    assert current_note.source == "prompt.overlays"
+    assert "这是当前笔记正文" in current_note.content
+
+
+def test_apply_prompt_template_real_prompt_removes_legacy_extension_placeholders() -> None:
+    prompt = apply_prompt_template(cli_tools_enabled=True, subagent_enabled=True)
+
+    assert "{skills_section}" not in prompt
+    assert "{deferred_tools_section}" not in prompt
+    assert "{cli_tools_capability_section}" not in prompt
+    assert "{subagent_section}" not in prompt
+    assert "{acp_section}" not in prompt
+    assert "{skills_section}" not in SYSTEM_PROMPT_TEMPLATE
+    assert "{deferred_tools_section}" not in SYSTEM_PROMPT_TEMPLATE
+    assert "{cli_tools_capability_section}" not in SYSTEM_PROMPT_TEMPLATE
+    assert "{subagent_section}" not in SYSTEM_PROMPT_TEMPLATE
+    assert "{acp_section}" not in SYSTEM_PROMPT_TEMPLATE
 
 
 def test_build_subagent_section_hides_bash_when_host_bash_is_unavailable(monkeypatch) -> None:

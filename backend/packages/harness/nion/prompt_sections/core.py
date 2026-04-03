@@ -4,24 +4,20 @@ from dataclasses import dataclass
 
 from nion.prompt_runtime import PromptBuildContext, PromptSection
 
-SYSTEM_PROMPT_TEMPLATE = """
-<role>
+ROLE_SECTION_TEMPLATE = """<role>
 You are {agent_name}, an open-source super agent.
-</role>
+</role>"""
 
-{soul}
-{memory_context}
-
-<thinking_style>
+THINKING_STYLE_TEMPLATE = """<thinking_style>
 - Think concisely and strategically about the user's request BEFORE taking action
 - Break down the task: What is clear? What is ambiguous? What is missing?
 - **PRIORITY CHECK: If anything is unclear, missing, or has multiple interpretations, you MUST ask for clarification FIRST - do NOT proceed with work**
 {subagent_thinking}- Never write down your full final answer or report in thinking process, but only outline
 - CRITICAL: After thinking, you MUST provide your actual response to the user. Thinking is for planning, the response is for delivery.
 - Your response must contain the actual answer, not just a reference to what you thought about
-</thinking_style>
+</thinking_style>"""
 
-<clarification_system>
+CLARIFICATION_SYSTEM_SECTION = """<clarification_system>
 **WORKFLOW PRIORITY: CLARIFY → PLAN → ACT**
 1. **FIRST**: Analyze the request in your thinking - identify what's unclear, missing, or ambiguous
 2. **SECOND**: If clarification is needed, call `ask_clarification` tool IMMEDIATELY - do NOT start working
@@ -88,17 +84,9 @@ You (action): ask_clarification(
 
 User: "staging"
 You: "Deploying to staging..." [proceed]
-</clarification_system>
+</clarification_system>"""
 
-{skills_section}
-
-{deferred_tools_section}
-
-{cli_tools_capability_section}
-
-{subagent_section}
-
-<working_directory existed="true">
+WORKING_DIRECTORY_SECTION = """<working_directory existed="true">
 - User uploads: `/mnt/user-data/uploads` - Files uploaded by the user (automatically listed in context)
 - User workspace: `/mnt/user-data/workspace` - Working directory for temporary files
 - Output files: `/mnt/user-data/outputs` - Final deliverables must be saved here
@@ -109,16 +97,15 @@ You: "Deploying to staging..." [proceed]
 - For PDF, PPT, Excel, and Word files, converted Markdown versions (*.md) are available alongside originals
 - All temporary work happens in `/mnt/user-data/workspace`
 - Final deliverables must be copied to `/mnt/user-data/outputs` and presented using `present_file` tool
-{acp_section}
-</working_directory>
+</working_directory>"""
 
-<response_style>
+RESPONSE_STYLE_SECTION = """<response_style>
 - Clear and Concise: Avoid over-formatting unless requested
 - Natural Tone: Use paragraphs and prose, not bullet points by default
 - Action-Oriented: Focus on delivering results, not explaining processes
-</response_style>
+</response_style>"""
 
-<citations>
+CITATIONS_SECTION = """<citations>
 **CRITICAL: Always include citations when using web search results**
 
 - **When to Use**: MANDATORY after web_search, web_fetch, or any external information source
@@ -179,9 +166,9 @@ combined with a FastAPI gateway for REST API access [citation:FastAPI](https://f
 - ❌ DO NOT forget to extract URLs from search results
 - ✅ ALWAYS add `[citation:Title](URL)` after claims from external sources
 - ✅ ALWAYS include a "Sources" section listing all references
-</citations>
+</citations>"""
 
-<critical_reminders>
+CRITICAL_REMINDERS_TEMPLATE = """<critical_reminders>
 - **Clarification First**: ALWAYS clarify unclear/missing/ambiguous requirements BEFORE starting work - never assume or guess
 {subagent_reminder}- Skill First: Always load the relevant skill before starting **complex** tasks.
 - Progressive Loading: Load resources incrementally as referenced in skills
@@ -191,53 +178,119 @@ combined with a FastAPI gateway for REST API access [citation:FastAPI](https://f
 - Multi-task: Better utilize parallel tool calling to call multiple tools at one time for better performance
 - Language Consistency: Keep using the same language as user's
 - Always Respond: Your thinking is internal. You MUST always provide a visible response to the user after thinking.
-</critical_reminders>
-"""
+</critical_reminders>"""
 
-
-def build_core_prompt(
-    *,
-    agent_name: str,
-    soul: str,
-    subagent_reminder: str,
-    subagent_thinking: str,
-) -> str:
-    return SYSTEM_PROMPT_TEMPLATE.format(
-        agent_name=agent_name,
-        soul=soul,
-        skills_section="",
-        deferred_tools_section="",
-        cli_tools_capability_section="",
-        acp_section="",
-        memory_context="",
-        subagent_section="",
-        subagent_reminder=subagent_reminder,
-        subagent_thinking=subagent_thinking,
-    )
+SYSTEM_PROMPT_TEMPLATE = "\n\n".join(
+    [
+        ROLE_SECTION_TEMPLATE,
+        "{soul}",
+        "{memory_context}",
+        THINKING_STYLE_TEMPLATE,
+        CLARIFICATION_SYSTEM_SECTION,
+        WORKING_DIRECTORY_SECTION,
+        RESPONSE_STYLE_SECTION,
+        CITATIONS_SECTION,
+        CRITICAL_REMINDERS_TEMPLATE,
+    ]
+)
 
 
 @dataclass(slots=True)
 class CorePromptSectionProvider:
     agent_display_name: str
     soul: str
+    memory_context: str
     subagent_reminder: str
     subagent_thinking: str
     provider_id: str = "prompt.core"
 
     def build(self, context: PromptBuildContext) -> list[PromptSection]:
         del context
-        return [
+        sections = [
             PromptSection(
-                key="core.prompt",
+                key="core.role",
                 title=None,
-                content=build_core_prompt(
-                    agent_name=self.agent_display_name,
-                    soul=self.soul,
-                    subagent_reminder=self.subagent_reminder,
+                content=ROLE_SECTION_TEMPLATE.format(agent_name=self.agent_display_name),
+                scope="global_static",
+                layer="core",
+                order=10,
+            ),
+            PromptSection(
+                key="core.thinking_style",
+                title=None,
+                content=THINKING_STYLE_TEMPLATE.format(
                     subagent_thinking=self.subagent_thinking,
                 ),
                 scope="global_static",
                 layer="core",
-                order=10,
-            )
+                order=30,
+            ),
+            PromptSection(
+                key="core.clarification_system",
+                title=None,
+                content=CLARIFICATION_SYSTEM_SECTION,
+                scope="global_static",
+                layer="core",
+                order=40,
+            ),
+            PromptSection(
+                key="core.working_directory",
+                title=None,
+                content=WORKING_DIRECTORY_SECTION,
+                scope="global_static",
+                layer="core",
+                order=50,
+            ),
+            PromptSection(
+                key="core.response_style",
+                title=None,
+                content=RESPONSE_STYLE_SECTION,
+                scope="global_static",
+                layer="core",
+                order=60,
+            ),
+            PromptSection(
+                key="core.citations",
+                title=None,
+                content=CITATIONS_SECTION,
+                scope="global_static",
+                layer="core",
+                order=70,
+            ),
+            PromptSection(
+                key="core.critical_reminders",
+                title=None,
+                content=CRITICAL_REMINDERS_TEMPLATE.format(
+                    subagent_reminder=self.subagent_reminder,
+                ),
+                scope="global_static",
+                layer="core",
+                order=80,
+            ),
         ]
+
+        if self.soul:
+            sections.insert(
+                1,
+                PromptSection(
+                    key="core.soul",
+                    title=None,
+                    content=self.soul,
+                    scope="global_static",
+                    layer="core",
+                    order=20,
+                ),
+            )
+        if self.memory_context:
+            sections.insert(
+                2 if self.soul else 1,
+                PromptSection(
+                    key="core.memory_context",
+                    title=None,
+                    content=self.memory_context,
+                    scope="global_static",
+                    layer="core",
+                    order=25,
+                ),
+            )
+        return sections

@@ -151,6 +151,7 @@ def _build_prompt_registry(
             provider=CorePromptSectionProvider(
                 agent_display_name=agent_display_name,
                 soul=soul,
+                memory_context=memory_context,
                 subagent_reminder=subagent_reminder,
                 subagent_thinking=subagent_thinking,
             ),
@@ -203,9 +204,6 @@ def apply_prompt_template(
     notebook_context: dict[str, object] | None = None,
     agent_name: str | None = None,
     available_skills: set[str] | None = None,
-    surface: str = "workspace",
-    model_name: str | None = None,
-    session_mode: str | None = None,
 ) -> str:
     memory_context = _get_memory_context(agent_name)
     context = PromptBuildContext(
@@ -219,9 +217,9 @@ def apply_prompt_template(
         cli_tools_enabled=cli_tools_enabled,
         available_skills=available_skills,
         max_concurrent_subagents=max_concurrent_subagents,
-        surface=surface,
-        model_name=model_name,
-        session_mode=session_mode,
+        surface="workspace",
+        model_name=None,
+        session_mode=None,
         memory_enabled=bool(memory_context),
         extensions_enabled=True,
     )

@@ -338,9 +338,6 @@ def make_lead_agent(config: RunnableConfig):
                 cli_tools_enabled=cli_tools_enabled,
                 max_concurrent_subagents=max_concurrent_subagents,
                 available_skills=set(["bootstrap"]),
-                surface=surface,
-                model_name=model_name,
-                session_mode=cfg.get("session_mode"),
             ),
             state_schema=ThreadState,
         )
@@ -364,9 +361,6 @@ def make_lead_agent(config: RunnableConfig):
             cli_tools_enabled=cli_tools_enabled,
             max_concurrent_subagents=max_concurrent_subagents,
             agent_name=agent_name,
-            surface=surface,
-            model_name=model_name,
-            session_mode=cfg.get("session_mode"),
         ),
         state_schema=ThreadState,
     )

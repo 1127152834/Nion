@@ -1,4 +1,4 @@
-from .core import CorePromptSectionProvider, SYSTEM_PROMPT_TEMPLATE, build_core_prompt
+from .core import CorePromptSectionProvider, SYSTEM_PROMPT_TEMPLATE
 from .extensions import (
     CLI_TOOLS_CAPABILITY_PROMPT,
     ExtensionPromptSectionProvider,
@@ -23,7 +23,6 @@ __all__ = [
     "SYSTEM_PROMPT_TEMPLATE",
     "SessionPromptSectionProvider",
     "build_acp_section",
-    "build_core_prompt",
     "build_current_notebook_note_section",
     "build_notebook_assistant_overlay",
     "build_subagent_section",

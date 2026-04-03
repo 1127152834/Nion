@@ -292,7 +292,6 @@ class NionClient:
         surface = cfg.get("surface", "workspace")
         notebook_context = cfg.get("notebook_context")
         max_concurrent_subagents = cfg.get("max_concurrent_subagents", 3)
-        session_mode = cfg.get("session_mode")
 
         kwargs: dict[str, Any] = {
             "model": create_chat_model(name=model_name, thinking_enabled=thinking_enabled),
@@ -312,9 +311,6 @@ class NionClient:
                 notebook_context=notebook_context,
                 max_concurrent_subagents=max_concurrent_subagents,
                 agent_name=self._agent_name,
-                surface=surface,
-                model_name=model_name,
-                session_mode=session_mode,
             ),
             "state_schema": ThreadState,
         }
