@@ -8,6 +8,7 @@ from typing import Any
 
 from nion.client import NionClient, StreamEvent
 from nion.config.agents_config import AGENT_NAME_PATTERN
+from nion.notebook.service import NotebookNotFoundError, NotebookService
 
 from .models import (
     ThreadCliManagementState,
@@ -116,6 +117,8 @@ class ThreadService:
                 if normalized_agent_name is not None:
                     context["agent_name"] = normalized_agent_name
 
+            notebook_context = _build_notebook_runtime_context(context)
+
             selected_cli_tools = _extract_selected_cli_tools(request.messages)
             cli_tools_enabled = self._should_enable_cli_tools_for_request(
                 message_text,
@@ -136,6 +139,7 @@ class ThreadService:
                 agent_name=context.get("agent_name"),
                 recursion_limit=config.get("recursion_limit", 100),
                 surface=context.get("surface", "workspace"),
+                notebook_context=notebook_context,
                 execution_mode=context.get("execution_mode"),
                 host_workdir=context.get("host_workdir"),
                 project_id=context.get("project_id"),
@@ -406,6 +410,49 @@ def _message_text_from_history_content(content: Any) -> str:
                     parts.append(text)
         return "\n".join(parts)
     return ""
+
+
+def _build_notebook_runtime_context(context: dict[str, Any]) -> dict[str, Any] | None:
+    if context.get("agent_name") != "notebook-chat":
+        return None
+
+    note_id = context.get("notebook_note_id")
+    if not isinstance(note_id, str) or not note_id.strip():
+        return {
+            "note_id": "",
+            "note_title": "",
+            "note_relative_path": "",
+            "note_body": "",
+            "selection_text": "",
+            "selection_start": None,
+            "selection_end": None,
+            "session_id": context.get("notebook_session_id"),
+        }
+
+    try:
+        note = NotebookService().read_note(note_id)
+    except NotebookNotFoundError:
+        return {
+            "note_id": note_id,
+            "note_title": str(context.get("notebook_note_title") or ""),
+            "note_relative_path": "",
+            "note_body": "",
+            "selection_text": "",
+            "selection_start": None,
+            "selection_end": None,
+            "session_id": context.get("notebook_session_id"),
+        }
+
+    return {
+        "note_id": note.note_id,
+        "note_title": note.title,
+        "note_relative_path": note.relative_path,
+        "note_body": note.body,
+        "selection_text": str(context.get("selection_text") or ""),
+        "selection_start": context.get("selection_start"),
+        "selection_end": context.get("selection_end"),
+        "session_id": context.get("notebook_session_id"),
+    }
 
 
 def _infer_cli_intent(message_text: str) -> str:

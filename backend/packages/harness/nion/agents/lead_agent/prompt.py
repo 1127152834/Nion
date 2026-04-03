@@ -456,6 +456,36 @@ You are the Notebook Assistant.
 </notebook_assistant_contract>"""
 
 
+def _build_current_notebook_note_section(
+    agent_name: str | None,
+    notebook_context: dict[str, object] | None,
+) -> str:
+    if agent_name != "notebook-chat" or not notebook_context:
+        return ""
+    note_id = str(notebook_context.get("note_id") or "").strip()
+    note_title = str(notebook_context.get("note_title") or "").strip()
+    note_relative_path = str(notebook_context.get("note_relative_path") or "").strip()
+    note_body = str(notebook_context.get("note_body") or "").strip()
+    selection_text = str(notebook_context.get("selection_text") or "").strip()
+
+    if not note_id or not note_body:
+        return "<current_notebook_note_unavailable>Current notebook note content is unavailable.</current_notebook_note_unavailable>"
+
+    return (
+        "<current_notebook_note>\n"
+        f"<note_id>{note_id}</note_id>\n"
+        f"<title>{note_title}</title>\n"
+        f"<relative_path>{note_relative_path}</relative_path>\n"
+        "<body>\n"
+        f"{note_body}\n"
+        "</body>\n"
+        "<selection>\n"
+        f"{selection_text}\n"
+        "</selection>\n"
+        "</current_notebook_note>"
+    )
+
+
 def get_deferred_tools_prompt_section() -> str:
     """Generate <available-deferred-tools> block for the system prompt.
 
@@ -518,6 +548,7 @@ def apply_prompt_template(
     *,
     cli_tools_enabled: bool = False,
     selected_cli_tools: list[str] | None = None,
+    notebook_context: dict[str, object] | None = None,
     agent_name: str | None = None,
     available_skills: set[str] | None = None,
 ) -> str:
@@ -532,6 +563,10 @@ def apply_prompt_template(
     )
     selected_cli_tools_section = _build_selected_cli_tools_section(selected_cli_tools)
     notebook_overlay_section = _build_notebook_assistant_overlay(agent_name)
+    current_notebook_note_section = _build_current_notebook_note_section(
+        agent_name,
+        notebook_context,
+    )
     subagent_section = _build_subagent_section(n) if subagent_enabled else ""
     subagent_reminder = (
         "- **Orchestrator Mode**: You are a task orchestrator - decompose complex tasks into parallel sub-tasks. "
@@ -586,6 +621,7 @@ def apply_prompt_template(
             or cli_tools_capability_section
             or selected_cli_tools_section
             or notebook_overlay_section
+            or current_notebook_note_section
             or acp_section
         ),
     )
@@ -643,6 +679,17 @@ def apply_prompt_template(
                 scope="session_dynamic",
                 layer="agent_overlay",
                 order=45,
+            )
+        )
+    if current_notebook_note_section:
+        sections.append(
+            PromptSection(
+                key="dynamic.current_notebook_note",
+                title=None,
+                content=current_notebook_note_section,
+                scope="session_dynamic",
+                layer="agent_overlay",
+                order=46,
             )
         )
     if subagent_section:

@@ -2,7 +2,9 @@ from fastapi.testclient import TestClient
 
 from app.gateway.app import create_app
 from nion.config.paths import reset_paths
+from nion.notebook.service import NotebookService
 from nion.threads.repository import ThreadRepository
+from nion.threads.service import ThreadService
 
 
 def test_notebook_assistant_threads_are_excluded_from_general_search(
@@ -246,3 +248,59 @@ def test_notebook_assistant_rewrite_sessions_share_note_scoped_pending_state(
             json={},
         )
         assert cancelled_b.status_code == 404
+
+
+def test_notebook_assistant_runtime_reads_note_body_without_persisting_it(
+    monkeypatch,
+    tmp_path,
+):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+
+    service = NotebookService(base_dir=tmp_path)
+    note = service.create_note(directory="", title="搜索阿斯顿", body="我叫张天成，哈哈哈你是谁啊阿斯顿")
+
+    captured: dict[str, object] = {}
+
+    def fake_stream(
+        self,
+        message,
+        *,
+        thread_id=None,
+        human_message_payload=None,
+        **kwargs,
+    ):
+        del self, message, thread_id, human_message_payload
+        captured["kwargs"] = kwargs
+        yield from ()
+
+    monkeypatch.setattr("nion.client.NionClient.stream", fake_stream)
+
+    thread_service = ThreadService()
+    list(
+        thread_service.stream(
+            "thread-1",
+            type("Req", (), {
+                "messages": [{"type": "human", "content": "这篇笔记说了什么"}],
+                "context": {
+                    "agent_name": "notebook-chat",
+                    "notebook_note_id": note.note_id,
+                    "notebook_note_title": note.title,
+                    "notebook_session_id": "session-1",
+                },
+                "config": {},
+                "assistant_id": None,
+            })(),
+        )
+    )
+
+    notebook_context = captured["kwargs"]["notebook_context"]
+    assert notebook_context["note_id"] == note.note_id
+    assert notebook_context["note_title"] == note.title
+    assert notebook_context["note_body"] == note.body
+
+    stored = thread_service.get_or_create_notebook_assistant_session(
+        note_id=note.note_id,
+        session_id="session-1",
+    )[0]
+    assert "note_body" not in stored.values.model_dump()

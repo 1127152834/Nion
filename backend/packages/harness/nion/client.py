@@ -254,6 +254,7 @@ class NionClient:
             "cli_tools_enabled": overrides.get("cli_tools_enabled", False),
             "selected_cli_tools": overrides.get("selected_cli_tools", []),
             "surface": overrides.get("surface", "workspace"),
+            "notebook_context": overrides.get("notebook_context"),
         }
         return RunnableConfig(
             configurable=configurable,
@@ -271,6 +272,7 @@ class NionClient:
             cfg.get("cli_tools_enabled"),
             tuple(cfg.get("selected_cli_tools") or []),
             cfg.get("surface"),
+            json.dumps(cfg.get("notebook_context") or {}, sort_keys=True, ensure_ascii=False),
         )
 
         if self._agent is not None and self._agent_config_key == key:
@@ -282,6 +284,7 @@ class NionClient:
         cli_tools_enabled = cfg.get("cli_tools_enabled", False)
         selected_cli_tools = cfg.get("selected_cli_tools") or []
         surface = cfg.get("surface", "workspace")
+        notebook_context = cfg.get("notebook_context")
         max_concurrent_subagents = cfg.get("max_concurrent_subagents", 3)
 
         kwargs: dict[str, Any] = {
@@ -297,6 +300,7 @@ class NionClient:
                 subagent_enabled=subagent_enabled,
                 cli_tools_enabled=cli_tools_enabled,
                 selected_cli_tools=selected_cli_tools,
+                notebook_context=notebook_context,
                 max_concurrent_subagents=max_concurrent_subagents,
                 agent_name=self._agent_name,
             ),
