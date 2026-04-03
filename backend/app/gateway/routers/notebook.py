@@ -459,6 +459,18 @@ async def get_notebook_asset(asset_id: str) -> NotebookAssetResponse:
     return NotebookAssetResponse(asset=asset)
 
 
+@router.post("/assets/{asset_id}/move", response_model=NotebookAssetResponse)
+async def move_notebook_asset(
+    asset_id: str,
+    payload: NotebookMoveRequest,
+) -> NotebookAssetResponse:
+    try:
+        asset = NotebookHistoryService()._service.move_asset(asset_id, payload.directory)
+    except NotebookAssetNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return NotebookAssetResponse(asset=asset)
+
+
 @router.post("/directories", response_model=NotebookDirectoryResponse)
 async def create_notebook_directory(
     payload: NotebookDirectoryCreateRequest,

@@ -115,6 +115,20 @@ def test_list_inbox_items_includes_archived_assets(tmp_path):
     assert any(item.asset_id == asset.asset_id for item in items)
 
 
+def test_move_asset_moves_archived_copy_into_target_directory(tmp_path):
+    service = NotebookService(base_dir=tmp_path)
+    source = tmp_path / "workspace" / "snapshot.html"
+    source.parent.mkdir(parents=True, exist_ok=True)
+    source.write_text("<p>snapshot</p>", encoding="utf-8")
+
+    asset = service.archive_asset(source_path=str(source), directory="")
+    moved = service.move_asset(asset.asset_id, "资料归档")
+
+    assert moved.asset_id == asset.asset_id
+    assert moved.relative_path == "资料归档/snapshot.html"
+    assert Path(moved.absolute_path).read_text(encoding="utf-8") == "<p>snapshot</p>"
+
+
 def test_update_note_rejects_stale_content_hash(tmp_path):
     service = NotebookService(base_dir=tmp_path)
     created = service.create_note(directory="", title="Conflict Note", body="one")

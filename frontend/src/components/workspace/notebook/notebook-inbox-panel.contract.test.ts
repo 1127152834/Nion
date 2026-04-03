@@ -11,4 +11,6 @@ void test("NotebookInboxPanel renders inbox-first mixed note and asset feed", as
   assert.match(source, /entry_type === "note"|entry\.entry_type === "note"/);
   assert.match(source, /Inbox|收件箱/);
   assert.match(source, /Recent|最近/);
+  assert.match(source, /整理|organize|move/i);
+  assert.match(source, /NotebookFolderPicker/);
 });

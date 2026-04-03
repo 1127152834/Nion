@@ -21,6 +21,7 @@ import {
   loadNotebookTrash,
   loadNotebookTree,
   moveNotebookDirectory,
+  moveNotebookAsset,
   moveNotebookNote,
   previewNotebookAssist,
   confirmNotebookRewrite,
@@ -280,6 +281,25 @@ export function useMoveNotebookNoteAction() {
     }) => moveNotebookNote(noteId, { directory }),
     onSuccess: async (note) => {
       await invalidateNotebookQueries(queryClient, note.note_id);
+    },
+  });
+}
+
+export function useMoveNotebookAssetAction() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      assetId,
+      directory,
+    }: {
+      assetId: string;
+      directory: string;
+    }) => moveNotebookAsset(assetId, { directory }),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["notebook", "inbox"] }),
+        queryClient.invalidateQueries({ queryKey: ["notebook", "tree"] }),
+      ]);
     },
   });
 }

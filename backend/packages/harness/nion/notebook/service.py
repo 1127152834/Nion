@@ -575,6 +575,29 @@ class NotebookService:
             raise NotebookAssetNotFoundError(f"Notebook asset file not found: {asset.relative_path}")
         return asset
 
+    def move_asset(self, asset_id: str, directory: str) -> NotebookAsset:
+        current = self.read_asset(asset_id)
+        current_path = Path(current.absolute_path)
+        target_dir = self._resolve_directory(directory)
+        moved_path = target_dir / current_path.name
+        if moved_path != current_path:
+            moved_path.parent.mkdir(parents=True, exist_ok=True)
+            current_path.rename(moved_path)
+        moved = NotebookAsset(
+            asset_id=current.asset_id,
+            title=moved_path.name,
+            relative_path=self._relative_path(moved_path),
+            absolute_path=str(moved_path.resolve()),
+            source_kind=current.source_kind,
+            mime_type=current.mime_type,
+            created_at=current.created_at,
+            updated_at=_now_iso(),
+            file_size=current.file_size,
+            tags=current.tags,
+        )
+        self._upsert_asset(moved)
+        return moved
+
     def list_inbox_items(self) -> list[NotebookInboxItem]:
         notes = [
             self._build_note(path)

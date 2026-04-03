@@ -1,26 +1,38 @@
 "use client";
 
-import { Clock3Icon, FileIcon, FileTextIcon, InboxIcon } from "lucide-react";
+import { Clock3Icon, FileIcon, FileTextIcon, InboxIcon, MoveRightIcon } from "lucide-react";
 
+import { NotebookFolderPicker } from "./notebook-folder-picker";
 import type { NotebookInboxItem } from "@/core/notebook";
+import type { NotebookDirectoryOption } from "@/core/notebook";
 
 type NotebookInboxPanelCopy = {
   inboxLabel: string;
   recentTitle: string;
   emptyTitle: string;
   emptyDescription: string;
+  organizeLabel: string;
+  selectFolderPlaceholder: string;
 };
 
 type NotebookInboxPanelProps = {
   copy: NotebookInboxPanelCopy;
+  directoryOptions: NotebookDirectoryOption[];
   inboxItems: NotebookInboxItem[];
+  moveDirectory: string;
   onSelectItem: (item: NotebookInboxItem) => void;
+  onMoveDirectoryChange: (value: string) => void;
+  onOrganizeItem: (item: NotebookInboxItem) => void;
 };
 
 export function NotebookInboxPanel({
   copy,
+  directoryOptions,
   inboxItems,
+  moveDirectory,
   onSelectItem,
+  onMoveDirectoryChange,
+  onOrganizeItem,
 }: NotebookInboxPanelProps) {
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden rounded-[1.5rem] border border-[var(--notebook-border)] bg-[var(--notebook-panel)] p-4">
@@ -74,6 +86,27 @@ export function NotebookInboxPanel({
                       {entry.summary}
                     </span>
                   ) : null}
+                </span>
+                <span className="ml-3 flex shrink-0 items-center gap-2">
+                  <div className="w-44">
+                    <NotebookFolderPicker
+                      options={directoryOptions}
+                      placeholder={copy.selectFolderPlaceholder}
+                      value={moveDirectory}
+                      onValueChange={onMoveDirectoryChange}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onOrganizeItem(entry);
+                    }}
+                    className="flex items-center gap-1 rounded-md border border-[var(--notebook-border)] px-2 py-1 text-xs text-[var(--notebook-soft-text)] transition-colors hover:bg-[var(--notebook-hover)] hover:text-[var(--notebook-ink)]"
+                  >
+                    <MoveRightIcon className="size-3.5" />
+                    <span>{copy.organizeLabel}</span>
+                  </button>
                 </span>
               </button>
             ))

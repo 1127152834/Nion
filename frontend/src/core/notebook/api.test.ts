@@ -17,6 +17,7 @@ const {
   loadNotebookTrash,
   loadNotebookTree,
   moveNotebookNote,
+  moveNotebookAsset,
   moveNotebookDirectory,
   previewNotebookAssist,
   applyNotebookAssist,
@@ -256,6 +257,43 @@ void test("loadNotebookAsset reads the asset detail endpoint", async () => {
     assert.match(seenUrl, /\/api\/notebook\/assets\/asset_1$/);
     assert.equal(asset.asset_id, "asset_1");
     assert.equal(asset.source_kind, "workspace_copy");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+void test("moveNotebookAsset posts to the asset move endpoint", async () => {
+  const originalFetch = globalThis.fetch;
+  let seenMethod = "";
+  let seenUrl = "";
+  let seenBody = "";
+
+  globalThis.fetch = async (input, init) => {
+    seenMethod = init?.method ?? "";
+    seenUrl = String(input);
+    seenBody = String(init?.body ?? "");
+    return createJsonResponse({
+      asset: {
+        asset_id: "asset_1",
+        title: "report.html",
+        relative_path: "资料归档/report.html",
+        absolute_path: "/tmp/notebook/资料归档/report.html",
+        source_kind: "workspace_copy",
+        mime_type: "text/html",
+        created_at: "2026-04-02T00:00:00Z",
+        updated_at: "2026-04-03T00:00:00Z",
+        file_size: 18,
+        tags: [],
+      },
+    });
+  };
+
+  try {
+    const asset = await moveNotebookAsset("asset_1", { directory: "资料归档" });
+    assert.equal(seenMethod, "POST");
+    assert.match(seenUrl, /\/api\/notebook\/assets\/asset_1\/move$/);
+    assert.match(seenBody, /"directory":"资料归档"/);
+    assert.equal(asset.relative_path, "资料归档/report.html");
   } finally {
     globalThis.fetch = originalFetch;
   }

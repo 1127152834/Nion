@@ -313,6 +313,27 @@ export async function moveNotebookNote(
   return json.note;
 }
 
+export async function moveNotebookAsset(
+  assetId: string,
+  input: NotebookMoveInput,
+): Promise<NotebookAsset> {
+  const response = await fetch(`${getBackendBaseURL()}/api/notebook/assets/${assetId}/move`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) {
+    throw new Error(
+      resolveErrorMessage(
+        await response.text(),
+        `Failed to move notebook asset (${response.status})`,
+      ),
+    );
+  }
+  const json = await readJson<{ asset: NotebookAsset }>(response);
+  return json.asset;
+}
+
 export async function loadNotebookHistory(
   noteId: string,
 ): Promise<NotebookHistoryEntry[]> {

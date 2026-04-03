@@ -22,6 +22,7 @@ import {
   useDeleteNotebookDirectory,
   useDeleteNotebookNote,
   useMoveNotebookDirectory,
+  useMoveNotebookAssetAction,
   useMoveNotebookNote,
   useMoveNotebookNoteAction,
   useConfirmNotebookRewrite,
@@ -108,6 +109,7 @@ export function NotebookPage() {
   const [renameOpen, setRenameOpen] = useState(false);
   const [moveOpen, setMoveOpen] = useState(false);
   const [moveDirectory, setMoveDirectory] = useState("");
+  const [inboxMoveDirectory, setInboxMoveDirectory] = useState("inbox");
   const [draftSession, setDraftSession] = useState<DraftSession | null>(null);
   const [editorSelection, setEditorSelection] = useState<NotebookSelection | null>(null);
   const [leftRailCollapsed, setLeftRailCollapsed] = useState(false);
@@ -139,6 +141,7 @@ export function NotebookPage() {
   const deleteDirectory = useDeleteNotebookDirectory();
   const renameDirectory = useRenameNotebookDirectory();
   const moveAnyDirectory = useMoveNotebookDirectory();
+  const moveAnyAsset = useMoveNotebookAssetAction();
   const updateNote = useUpdateNotebookNote(selectedNoteId ?? "");
   const renameNote = useRenameNotebookNote(selectedNoteId ?? "");
   const moveAnyNote = useMoveNotebookNoteAction();
@@ -489,6 +492,15 @@ export function NotebookPage() {
     }
   }
 
+  async function handleMoveAssetToDirectory(assetId: string, directory: string) {
+    try {
+      await moveAnyAsset.mutateAsync({ assetId, directory });
+      toast.success(copy.saved);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    }
+  }
+
   async function handleMoveDirectoryToDirectory(directory: string, parentDirectory: string) {
     try {
       await moveAnyDirectory.mutateAsync({ directory, parent_directory: parentDirectory });
@@ -669,10 +681,24 @@ export function NotebookPage() {
                   emptyDescription: copy.emptyDescription,
                   emptyTitle: copy.emptyTitle,
                   inboxLabel: copy.inboxLabel,
+                  organizeLabel: "整理到目录",
                   recentTitle: copy.recentTitle,
+                  selectFolderPlaceholder: copy.selectFolderPlaceholder,
                 }}
+                directoryOptions={directoryOptions}
                 inboxItems={inboxItems}
+                moveDirectory={inboxMoveDirectory}
                 onSelectItem={handleSelectInboxItem}
+                onMoveDirectoryChange={setInboxMoveDirectory}
+                onOrganizeItem={(item) => {
+                  if (item.note_id) {
+                    void handleMoveNoteToDirectory(item.note_id, inboxMoveDirectory);
+                    return;
+                  }
+                  if (item.asset_id) {
+                    void handleMoveAssetToDirectory(item.asset_id, inboxMoveDirectory);
+                  }
+                }}
               />
 
               {selectedAssetId ? (
