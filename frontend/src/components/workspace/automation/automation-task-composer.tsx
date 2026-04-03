@@ -7,7 +7,14 @@ import {
   SquareTerminalIcon,
   WrenchIcon,
 } from "lucide-react";
-import { useMemo, useRef, useState, type SyntheticEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type SyntheticEvent,
+} from "react";
 
 import {
   PromptInput,
@@ -41,10 +48,15 @@ import { useMCPConfig } from "@/core/mcp/hooks";
 import { buildNotebookDirectoryOptions } from "@/core/notebook/directories";
 import { useNotebookTree } from "@/core/notebook/hooks";
 import { useSkills } from "@/core/skills/hooks";
+import {
+  hasInlineMention,
+  resolveInlineMentionBackspaceDelete,
+  resolveInlineMentionState,
+} from "@/core/utils/inline-mentions";
 import { cn } from "@/lib/utils";
 
-import { ScheduleBuilder } from "./schedule-builder";
 import type { AutomationComposerImplicitMention } from "./automation-types";
+import { ScheduleBuilder } from "./schedule-builder";
 
 type MentionTrigger = "@" | "/";
 
@@ -80,6 +92,37 @@ type MentionGroup = {
   options: MentionOption[];
 };
 
+function isSelectedInlineMention(params: {
+  trigger: MentionTrigger;
+  value: string;
+  selectedSkills: string[];
+  selectedContexts: SelectedContextTag[];
+  selectedMcpTools: string[];
+  selectedCliTools: string[];
+  selectedObjectMentions: ObjectMention[];
+}) {
+  const {
+    trigger,
+    value,
+    selectedSkills,
+    selectedContexts,
+    selectedMcpTools,
+    selectedCliTools,
+    selectedObjectMentions,
+  } = params;
+
+  if (trigger === "/") {
+    return selectedSkills.includes(value);
+  }
+
+  return (
+    selectedContexts.some((item) => item.value === value) ||
+    selectedObjectMentions.some((item) => item.value === value) ||
+    selectedMcpTools.includes(value) ||
+    selectedCliTools.includes(value)
+  );
+}
+
 type AutomationTaskComposerProps = {
   isPending: boolean;
   onSubmit: (input: AutomationJobCreateInput) => Promise<unknown>;
@@ -97,7 +140,7 @@ export function AutomationTaskComposer({
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   const timezone = useMemo(
-    () => Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+    () => Intl.DateTimeFormat().resolvedOptions().timeZone ?? "UTC",
     [],
   );
   const [schedule, setSchedule] = useState<AutomationScheduleDefinition>({
@@ -158,18 +201,13 @@ export function AutomationTaskComposer({
         .filter((cli) => cli.enabled)
         .map((cli) => ({
           id: `cli:${cli.id}`,
-          label: cli.displayName || cli.id,
+          label: cli.displayName ?? cli.id,
           value: cli.id,
           kind: "cli" as const,
           description: cli.description,
         })),
     [cliConfig?.clis],
   );
-  const inlineMentionOptions = useMemo<MentionOption[]>(
-    () => [...notebookOptions, ...skillOptions, ...mcpOptions, ...cliOptions],
-    [cliOptions, mcpOptions, notebookOptions, skillOptions],
-  );
-
   const mentionGroups = useMemo<MentionGroup[]>(() => {
     if (!mentionState) {
       return [];
@@ -337,6 +375,24 @@ export function AutomationTaskComposer({
     }
   }
 
+  const syncSelectedMentionsFromText = useCallback((value: string) => {
+    setSelectedContexts((current) =>
+      current.filter((item) => hasInlineMention(value, `@${item.value}`)),
+    );
+    setSelectedObjectMentions((current) =>
+      current.filter((item) => hasInlineMention(value, item.mention)),
+    );
+    setSelectedSkills((current) =>
+      current.filter((item) => hasInlineMention(value, `/${item}`)),
+    );
+    setSelectedMcpTools((current) =>
+      current.filter((item) => hasInlineMention(value, `@${item}`)),
+    );
+    setSelectedCliTools((current) =>
+      current.filter((item) => hasInlineMention(value, `@${item}`)),
+    );
+  }, []);
+
   function handleMentionKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
     const hasPrimaryModifier = event.metaKey || event.ctrlKey;
     if (hasPrimaryModifier && !event.altKey && event.key === "/") {
@@ -352,6 +408,49 @@ export function AutomationTaskComposer({
       event.preventDefault();
       insertTrigger("@");
       return;
+    }
+
+    if (event.key === "Backspace") {
+      const target = event.currentTarget;
+      const selectionStart = target.selectionStart ?? 0;
+      const selectionEnd = target.selectionEnd ?? selectionStart;
+      if (selectionStart === selectionEnd) {
+        const deletion = resolveInlineMentionBackspaceDelete(
+          target.value,
+          selectionStart,
+        );
+        if (deletion) {
+          if (
+            !isSelectedInlineMention({
+              trigger: deletion.trigger,
+              value: deletion.value,
+              selectedSkills,
+              selectedContexts,
+              selectedMcpTools,
+              selectedCliTools,
+              selectedObjectMentions,
+            })
+          ) {
+            return;
+          }
+          event.preventDefault();
+          controller.textInput.setInput(deletion.nextValue);
+          syncSelectedMentionsFromText(deletion.nextValue);
+          requestAnimationFrame(() => {
+            const nextTarget = textareaRef.current;
+            if (!nextTarget) {
+              return;
+            }
+            nextTarget.focus();
+            nextTarget.setSelectionRange(deletion.nextCaret, deletion.nextCaret);
+            setMentionState(
+              resolveMentionState(deletion.nextValue, deletion.nextCaret),
+            );
+            setMentionActiveIndex(0);
+          });
+          return;
+        }
+      }
     }
 
     if (!mentionState) {
@@ -422,6 +521,10 @@ export function AutomationTaskComposer({
       setMentionActiveIndex(0);
     });
   }
+
+  useEffect(() => {
+    syncSelectedMentionsFromText(controller.textInput.value);
+  }, [controller.textInput.value, syncSelectedMentionsFromText]);
 
   const hasContent =
     controller.textInput.value.trim().length > 0 ||
@@ -670,35 +773,7 @@ function rankMentionOption(option: MentionOption, normalizedQuery: string): numb
 }
 
 function resolveMentionState(value: string, caret: number): MentionState | null {
-  const safeCaret = Math.max(0, Math.min(caret, value.length));
-  if (safeCaret <= 0) {
-    return null;
-  }
-
-  let triggerIndex = -1;
-  let trigger: MentionTrigger | null = null;
-  for (let index = safeCaret - 1; index >= 0; index -= 1) {
-    const char = value.charAt(index);
-    if (char === " " || char === "\n") {
-      break;
-    }
-    if (char === "@" || char === "/") {
-      triggerIndex = index;
-      trigger = char as MentionTrigger;
-      break;
-    }
-  }
-
-  if (triggerIndex === -1 || !trigger) {
-    return null;
-  }
-
-  return {
-    trigger,
-    query: value.slice(triggerIndex + 1, safeCaret),
-    start: triggerIndex,
-    end: safeCaret,
-  };
+  return resolveInlineMentionState(value, caret);
 }
 
 function SelectedMentionsSummary({
@@ -778,17 +853,12 @@ function buildAutomationTaskSubmissionPayload({
   const implicitMentions: AutomationComposerImplicitMention[] = [];
   const seenMentions = new Set<string>();
 
-  const hasInlineMention = (mention: string) =>
-    new RegExp(
-      `(^|\\s)${mention.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?=\\s|$)`,
-    ).test(trimmed);
-
   const appendImplicitMention = (
     kind: "context" | "skill" | "mcp" | "cli",
     value: string,
     mention: string,
   ) => {
-    if (hasInlineMention(mention) || seenMentions.has(mention)) {
+    if (hasInlineMention(trimmed, mention) || seenMentions.has(mention)) {
       return;
     }
     seenMentions.add(mention);

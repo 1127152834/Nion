@@ -78,6 +78,11 @@ import type { Skill } from "@/core/skills/type";
 import type { AgentThreadContext } from "@/core/threads";
 import type { PendingClarification } from "@/core/threads";
 import { textOfMessage } from "@/core/threads/utils";
+import {
+  hasInlineMention,
+  resolveInlineMentionBackspaceDelete,
+  resolveInlineMentionState,
+} from "@/core/utils/inline-mentions";
 import { cn } from "@/lib/utils";
 
 import {
@@ -228,35 +233,38 @@ function rankMentionOption(option: MentionOption, normalizedQuery: string): numb
 }
 
 function resolveMentionState(value: string, caret: number): MentionState | null {
-  const safeCaret = Math.max(0, Math.min(caret, value.length));
-  if (safeCaret <= 0) {
-    return null;
-  }
+  return resolveInlineMentionState(value, caret);
+}
 
-  let triggerIndex = -1;
-  let trigger: MentionTrigger | null = null;
-  for (let index = safeCaret - 1; index >= 0; index -= 1) {
-    const char = value.charAt(index);
-    if (char === " " || char === "\n") {
-      break;
-    }
-    if (char === "@" || char === "/") {
-      triggerIndex = index;
-      trigger = char as MentionTrigger;
-      break;
-    }
-  }
-
-  if (triggerIndex === -1 || !trigger) {
-    return null;
-  }
-
-  return {
+function isSelectedInlineMention(params: {
+  trigger: MentionTrigger;
+  value: string;
+  selectedSkills: string[];
+  selectedContexts: SelectedContextTag[];
+  selectedMcpTools: string[];
+  selectedCliTools: string[];
+  selectedObjectMentions: ObjectMention[];
+}) {
+  const {
     trigger,
-    query: value.slice(triggerIndex + 1, safeCaret),
-    start: triggerIndex,
-    end: safeCaret,
-  };
+    value,
+    selectedSkills,
+    selectedContexts,
+    selectedMcpTools,
+    selectedCliTools,
+    selectedObjectMentions,
+  } = params;
+
+  if (trigger === "/") {
+    return selectedSkills.includes(value);
+  }
+
+  return (
+    selectedContexts.some((item) => item.value === value) ||
+    selectedObjectMentions.some((item) => item.value === value) ||
+    selectedMcpTools.includes(value) ||
+    selectedCliTools.includes(value)
+  );
 }
 
 function parseMentions(
@@ -417,15 +425,12 @@ function buildSubmissionPayload(
   const implicitMentions: NonNullable<PromptInputMessage["implicitMentions"]> = [];
   const seenMentions = new Set<string>();
 
-  const hasInlineMention = (mention: string) =>
-    new RegExp(`(^|\\s)${mention.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?=\\s|$)`).test(trimmed);
-
   const appendImplicitMention = (
     kind: "context" | "skill" | "mcp" | "cli",
     value: string,
     mention: string,
   ) => {
-    if (hasInlineMention(mention) || seenMentions.has(mention)) {
+    if (hasInlineMention(trimmed, mention) || seenMentions.has(mention)) {
       return;
     }
     seenMentions.add(mention);
@@ -544,6 +549,10 @@ export function InputBox({
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const [selectedCliTools, setSelectedCliTools] = useState<string[]>([]);
   const [selectedObjectMentions, setSelectedObjectMentions] = useState<ObjectMention[]>([]);
+  const [pinnedContexts, setPinnedContexts] = useState<string[]>([]);
+  const [pinnedSkills, setPinnedSkills] = useState<string[]>([]);
+  const [pinnedMcpTools, setPinnedMcpTools] = useState<string[]>([]);
+  const [pinnedCliTools, setPinnedCliTools] = useState<string[]>([]);
   const [recentMentions, setRecentMentions] = useState<RecentMentionsState>({
     "@": [],
     "/": [],
@@ -674,7 +683,7 @@ export function InputBox({
         .sort(([left], [right]) => left.localeCompare(right))
         .map(([toolId, tool]) => ({
           id: `cli:${toolId}`,
-          label: tool.displayName?.trim() || toolId,
+          label: tool.displayName?.trim() ?? toolId,
           value: toolId,
           kind: "cli" as const,
           description: tool.version
@@ -966,6 +975,67 @@ export function InputBox({
     });
   }, []);
 
+  const syncSelectedMentionsFromText = useCallback((value: string) => {
+    setSelectedContexts((prev) =>
+      prev.filter(
+        (item) =>
+          pinnedContexts.includes(item.value) ||
+          hasInlineMention(value, `@${item.value}`),
+      ),
+    );
+    setSelectedObjectMentions((prev) =>
+      prev.filter((item) => hasInlineMention(value, item.mention)),
+    );
+    setSelectedSkills((prev) =>
+      prev.filter(
+        (item) =>
+          pinnedSkills.includes(item)
+            ? true
+            : hasInlineMention(value, `/${item}`),
+      ),
+    );
+    setSelectedMcpTools((prev) =>
+      prev.filter(
+        (item) =>
+          pinnedMcpTools.includes(item)
+            ? true
+            : hasInlineMention(value, `@${item}`),
+      ),
+    );
+    setSelectedCliTools((prev) =>
+      prev.filter(
+        (item) =>
+          pinnedCliTools.includes(item)
+            ? true
+            : hasInlineMention(value, `#${item}`),
+      ),
+    );
+  }, [pinnedCliTools, pinnedContexts, pinnedMcpTools, pinnedSkills]);
+
+  useEffect(() => {
+    syncSelectedMentionsFromText(textInput.value);
+  }, [syncSelectedMentionsFromText, textInput.value]);
+
+  const removeSelectedContext = useCallback((value: string) => {
+    setPinnedContexts((prev) => prev.filter((item) => item !== value));
+    setSelectedContexts((prev) => prev.filter((item) => item.value !== value));
+  }, []);
+
+  const removeSelectedSkill = useCallback((value: string) => {
+    setPinnedSkills((prev) => prev.filter((item) => item !== value));
+    setSelectedSkills((prev) => prev.filter((item) => item !== value));
+  }, []);
+
+  const removeSelectedMcpTool = useCallback((value: string) => {
+    setPinnedMcpTools((prev) => prev.filter((item) => item !== value));
+    setSelectedMcpTools((prev) => prev.filter((item) => item !== value));
+  }, []);
+
+  const removeSelectedCliTool = useCallback((value: string) => {
+    setPinnedCliTools((prev) => prev.filter((item) => item !== value));
+    setSelectedCliTools((prev) => prev.filter((item) => item !== value));
+  }, []);
+
   const applyMentionOption = useCallback(
     (option: MentionOption) => {
       if (!mentionState) {
@@ -1079,6 +1149,42 @@ export function InputBox({
         return;
       }
 
+      if (event.key === "Backspace") {
+        const target = event.currentTarget;
+        const selectionStart = target.selectionStart ?? 0;
+        const selectionEnd = target.selectionEnd ?? selectionStart;
+        if (selectionStart === selectionEnd) {
+          const deletion = resolveInlineMentionBackspaceDelete(
+            target.value,
+            selectionStart,
+          );
+          if (deletion) {
+            if (
+              !isSelectedInlineMention({
+                trigger: deletion.trigger,
+                value: deletion.value,
+                selectedSkills,
+                selectedContexts,
+                selectedMcpTools,
+                selectedCliTools,
+                selectedObjectMentions,
+              })
+            ) {
+              return;
+            }
+            event.preventDefault();
+            textInput.setInput(deletion.nextValue);
+            syncSelectedMentionsFromText(deletion.nextValue);
+            requestAnimationFrame(() => {
+              target.focus();
+              target.setSelectionRange(deletion.nextCaret, deletion.nextCaret);
+              syncMentionState(deletion.nextValue, deletion.nextCaret);
+            });
+            return;
+          }
+        }
+      }
+
       if (!mentionState) {
         return;
       }
@@ -1116,7 +1222,21 @@ export function InputBox({
         }
       }
     },
-    [applyMentionOption, insertMentionTrigger, mentionActiveIndex, mentionGroups, mentionState],
+    [
+      applyMentionOption,
+      insertMentionTrigger,
+      mentionActiveIndex,
+      mentionGroups,
+      mentionState,
+      selectedCliTools,
+      selectedContexts,
+      selectedMcpTools,
+      selectedObjectMentions,
+      selectedSkills,
+      syncMentionState,
+      syncSelectedMentionsFromText,
+      textInput,
+    ],
   );
 
   const handleMentionSelectionSync = useCallback(
@@ -1407,11 +1527,7 @@ export function InputBox({
                           type="button"
                           className="bg-muted/50 hover:bg-muted text-foreground inline-flex max-w-32 items-center gap-1 rounded-md px-2 py-0.5 text-[11px]"
                           title={context.value}
-                          onClick={() =>
-                            setSelectedContexts((prev) =>
-                              prev.filter((item) => item.value !== context.value),
-                            )
-                          }
+                          onClick={() => removeSelectedContext(context.value)}
                         >
                           {context.kind === "directory" ? (
                             <FolderIcon className="size-3 shrink-0" />
@@ -1475,11 +1591,7 @@ export function InputBox({
                           key={skill}
                           type="button"
                           className="bg-muted/50 hover:bg-muted text-foreground inline-flex max-w-40 items-center gap-1 rounded-md px-2 py-0.5 text-[11px]"
-                          onClick={() =>
-                            setSelectedSkills((prev) =>
-                              prev.filter((item) => item !== skill),
-                            )
-                          }
+                          onClick={() => removeSelectedSkill(skill)}
                         >
                           <span className="min-w-0 truncate">{skill}</span>
                         </button>
@@ -1501,11 +1613,7 @@ export function InputBox({
                           key={tool}
                           type="button"
                           className="bg-muted/50 hover:bg-muted text-foreground inline-flex max-w-32 items-center gap-1 rounded-md px-2 py-0.5 text-[11px]"
-                          onClick={() =>
-                            setSelectedMcpTools((prev) =>
-                              prev.filter((item) => item !== tool),
-                            )
-                          }
+                          onClick={() => removeSelectedMcpTool(tool)}
                         >
                           <span className="min-w-0 truncate">{tool}</span>
                         </button>
@@ -1527,11 +1635,7 @@ export function InputBox({
                           key={tool}
                           type="button"
                           className="bg-muted/50 hover:bg-muted text-foreground inline-flex max-w-32 items-center gap-1 rounded-md px-2 py-0.5 text-[11px]"
-                          onClick={() =>
-                            setSelectedCliTools((prev) =>
-                              prev.filter((item) => item !== tool),
-                            )
-                          }
+                          onClick={() => removeSelectedCliTool(tool)}
                         >
                           <span className="min-w-0 truncate">{tool}</span>
                         </button>
@@ -1594,9 +1698,20 @@ export function InputBox({
                       className="flex items-start gap-2 px-3 py-2"
                       onSelect={(event) => {
                         event.preventDefault();
+                        const inlineSelected = hasInlineMention(
+                          textInput.value,
+                          `@${option.value}`,
+                        );
+                        setPinnedContexts((prev) =>
+                          prev.includes(option.value)
+                            ? prev.filter((item) => item !== option.value)
+                            : [...prev, option.value],
+                        );
                         setSelectedContexts((prev) =>
                           prev.some((item) => item.value === option.value)
-                            ? prev.filter((item) => item.value !== option.value)
+                            ? inlineSelected
+                              ? prev
+                              : prev.filter((item) => item.value !== option.value)
                             : [
                                 ...prev,
                                 {
@@ -1670,9 +1785,20 @@ export function InputBox({
                       className="flex items-start gap-2 px-3 py-2"
                       onSelect={(event) => {
                         event.preventDefault();
-                        setSelectedSkills((prev) =>
+                        const inlineSelected = hasInlineMention(
+                          textInput.value,
+                          `/${option.value}`,
+                        );
+                        setPinnedSkills((prev) =>
                           prev.includes(option.value)
                             ? prev.filter((item) => item !== option.value)
+                            : [...prev, option.value],
+                        );
+                        setSelectedSkills((prev) =>
+                          prev.includes(option.value)
+                            ? inlineSelected
+                              ? prev
+                              : prev.filter((item) => item !== option.value)
                             : [...prev, option.value],
                         );
                       }}
@@ -1737,9 +1863,20 @@ export function InputBox({
                       className="flex items-start gap-2 px-3 py-2"
                       onSelect={(event) => {
                         event.preventDefault();
-                        setSelectedMcpTools((prev) =>
+                        const inlineSelected = hasInlineMention(
+                          textInput.value,
+                          `@${option.value}`,
+                        );
+                        setPinnedMcpTools((prev) =>
                           prev.includes(option.value)
                             ? prev.filter((item) => item !== option.value)
+                            : [...prev, option.value],
+                        );
+                        setSelectedMcpTools((prev) =>
+                          prev.includes(option.value)
+                            ? inlineSelected
+                              ? prev
+                              : prev.filter((item) => item !== option.value)
                             : [...prev, option.value],
                         );
                       }}
@@ -1818,9 +1955,20 @@ export function InputBox({
                       className="flex items-start gap-2 px-3 py-2"
                       onSelect={(event) => {
                         event.preventDefault();
-                        setSelectedCliTools((prev) =>
+                        const inlineSelected = hasInlineMention(
+                          textInput.value,
+                          `#${option.value}`,
+                        );
+                        setPinnedCliTools((prev) =>
                           prev.includes(option.value)
                             ? prev.filter((item) => item !== option.value)
+                            : [...prev, option.value],
+                        );
+                        setSelectedCliTools((prev) =>
+                          prev.includes(option.value)
+                            ? inlineSelected
+                              ? prev
+                              : prev.filter((item) => item !== option.value)
                             : [...prev, option.value],
                         );
                       }}

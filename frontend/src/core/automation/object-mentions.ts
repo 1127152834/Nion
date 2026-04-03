@@ -1,4 +1,5 @@
 import type { NotebookDirectoryOption } from "../notebook/directories";
+import { hasInlineMention } from "../utils/inline-mentions.ts";
 
 export type ObjectMentionKind = "notebook-directory";
 
@@ -20,18 +21,6 @@ export type NotebookDirectoryMentionOption = {
   description: string;
   metadata?: Record<string, unknown>;
 };
-
-function escapeRegex(value: string) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-function hasInlineMention(text: string, mention: string) {
-  const trimmed = text.trim();
-  if (!trimmed || !mention) {
-    return false;
-  }
-  return new RegExp(`(^|\\s)${escapeRegex(mention)}(?=\\s|$)`).test(trimmed);
-}
 
 export function buildNotebookDirectoryMentionOptions(
   options: NotebookDirectoryOption[],
