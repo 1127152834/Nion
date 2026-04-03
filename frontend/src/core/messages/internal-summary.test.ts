@@ -7,6 +7,7 @@ import {
   groupMessages,
   hasContent,
   isInternalSummaryMessage,
+  stripInternalSelectedCliToolsTag,
 } from "./utils.ts";
 
 void test("recognizes internal summarization messages", () => {
@@ -56,4 +57,20 @@ void test("thread text helper also ignores internal summary messages", async () 
 
   assert.match(source, /isInternalSummaryMessage/);
   assert.match(source, /return null/);
+});
+
+void test("selected CLI tools tag is hidden from rendered human content", () => {
+  const message = {
+    type: "human",
+    content:
+      "看看我们现在 docker 的状态\n\n<selected_cli_tools>\nPrefer using these CLI tools when they are relevant to the task: docker.\n</selected_cli_tools>",
+  } as const;
+
+  assert.equal(extractContentFromMessage(message), "看看我们现在 docker 的状态");
+  assert.equal(
+    stripInternalSelectedCliToolsTag(
+      "foo\n<selected_cli_tools>\nPrefer using docker.\n</selected_cli_tools>\nbar",
+    ),
+    "foo\n\nbar",
+  );
 });

@@ -177,6 +177,12 @@ make dev
 - Thread Files API：`http://localhost:2026/api/threads/{thread_id}/files/*`
 - CLI Catalog API：`http://localhost:2026/api/cli/catalog`
 
+当前与 CLI / runtime profile 相关的行为约定：
+
+- 输入框里选择的 CLI 工具会作为运行时偏好传给 agent，不再把内部提示标签写进用户消息正文。
+- `runtime-profile` 的 `execution_mode=host` 现在会实际传到执行链路；在本地 sandbox provider 下，host 模式会允许主 agent 与 task 子任务走本机 `bash`/CLI 执行。
+- 如果线程仍处于 `sandbox` 模式，`docker` 这类本机命令仍会被本地 sandbox 安全策略拦截。
+
 如果只调试 web 前端，也可以直接运行：
 
 ```bash

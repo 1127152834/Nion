@@ -122,14 +122,6 @@ class ThreadService:
                 thread_id=thread_id,
                 selected_cli_tools=selected_cli_tools,
             )
-            if selected_cli_tools:
-                message_text = (
-                    f"{message_text}\n\n<selected_cli_tools>\n"
-                    f"Prefer using these CLI tools when they are relevant to the task: "
-                    f"{', '.join(selected_cli_tools)}.\n"
-                    f"</selected_cli_tools>"
-                ).strip()
-                human_payload["content"] = message_text
 
             for event in self._client.stream(
                 message_text,
@@ -140,9 +132,12 @@ class ThreadService:
                 plan_mode=bool(context.get("is_plan_mode", False)),
                 subagent_enabled=bool(context.get("subagent_enabled", False)),
                 cli_tools_enabled=cli_tools_enabled,
+                selected_cli_tools=selected_cli_tools,
                 agent_name=context.get("agent_name"),
                 recursion_limit=config.get("recursion_limit", 100),
                 surface=context.get("surface", "workspace"),
+                execution_mode=context.get("execution_mode"),
+                host_workdir=context.get("host_workdir"),
                 project_id=context.get("project_id"),
                 project_phase=context.get("project_phase"),
                 primary_plan_id=context.get("primary_plan_id"),

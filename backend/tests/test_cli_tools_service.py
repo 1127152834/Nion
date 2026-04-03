@@ -141,6 +141,49 @@ def test_update_tool_uses_stored_install_package_and_refreshes_version(tmp_path,
     assert tool.installPackage == "stripe/stripe-cli/stripe"
 
 
+def test_list_installed_payload_hides_catalog_tool_from_custom_after_install(tmp_path, monkeypatch) -> None:
+    repo = CliToolsRepository(tmp_path / "cli.sqlite3")
+    service = CliToolsService(repository=repo)
+    installed_exec = tmp_path / "ncm-cli"
+    _make_exec(installed_exec)
+
+    repo.upsert_custom_tool(
+        name="网易云音乐 CLI",
+        bin_path=str(installed_exec),
+        bin_name="ncm-cli",
+        version="0.1.1",
+        install_method="npm",
+        install_package="@music163/ncm-cli",
+    )
+
+    monkeypatch.setattr(
+        "nion.cli_tools.service.detect_all_cli_tools",
+        lambda: {
+            "catalog": [
+                SimpleNamespace(
+                    id="ncm-cli",
+                    status="installed",
+                    version="0.1.1",
+                    binPath=str(installed_exec),
+                    model_dump=lambda: {
+                        "id": "ncm-cli",
+                        "status": "installed",
+                        "version": "0.1.1",
+                        "binPath": str(installed_exec),
+                    },
+                )
+            ],
+            "extra": [],
+        },
+    )
+    monkeypatch.setattr("nion.cli_tools.service.detect_brew", lambda: True)
+
+    payload = service.list_installed_payload()
+
+    assert [item["id"] for item in payload["tools"]] == ["ncm-cli"]
+    assert payload["custom"] == []
+
+
 def test_describe_tool_persists_structured_payload(monkeypatch, tmp_path) -> None:
     repo = CliToolsRepository(tmp_path / "cli.sqlite3")
     service = CliToolsService(repository=repo)

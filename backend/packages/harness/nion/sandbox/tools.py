@@ -548,6 +548,33 @@ def _apply_cwd_prefix(command: str, thread_data: ThreadDataState | None) -> str:
     return f"cd {shlex.quote(workspace_path)} && {command}"
 
 
+def _is_host_execution_mode(runtime: ToolRuntime[ContextT, ThreadState] | None) -> bool:
+    if runtime is None:
+        return False
+    runtime_context = runtime.context or {}
+    return runtime_context.get("execution_mode") == "host"
+
+
+def _host_runtime_thread_data(
+    runtime: ToolRuntime[ContextT, ThreadState] | None,
+    thread_data: ThreadDataState | None,
+) -> ThreadDataState | None:
+    if not _is_host_execution_mode(runtime):
+        return thread_data
+
+    runtime_context = (runtime.context or {}) if runtime is not None else {}
+    host_workdir = runtime_context.get("host_workdir")
+    if not isinstance(host_workdir, str) or not host_workdir.strip():
+        return thread_data
+
+    normalized = host_workdir.strip()
+    return {
+        "workspace_path": normalized,
+        "uploads_path": normalized,
+        "outputs_path": normalized,
+    }
+
+
 def get_thread_data(runtime: ToolRuntime[ContextT, ThreadState] | None) -> ThreadDataState | None:
     """Extract thread_data from runtime state."""
     if runtime is None:
@@ -719,9 +746,9 @@ def bash_tool(runtime: ToolRuntime[ContextT, ThreadState], description: str, com
     try:
         sandbox = ensure_sandbox_initialized(runtime)
         ensure_thread_directories_exist(runtime)
-        thread_data = get_thread_data(runtime)
+        thread_data = _host_runtime_thread_data(runtime, get_thread_data(runtime))
         if is_local_sandbox(runtime):
-            if not is_host_bash_allowed():
+            if not _is_host_execution_mode(runtime) and not is_host_bash_allowed():
                 return f"Error: {LOCAL_HOST_BASH_DISABLED_MESSAGE}"
             validate_local_bash_command_paths(command, thread_data)
             command = replace_virtual_paths_in_command(command, thread_data)

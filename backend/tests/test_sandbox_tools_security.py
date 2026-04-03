@@ -453,3 +453,34 @@ def test_bash_tool_blocks_local_host_bash_when_disallowed() -> None:
         )
 
     assert "Host bash execution is disabled" in result
+
+
+def test_bash_tool_allows_local_host_bash_in_host_mode_even_when_global_flag_is_disabled() -> None:
+    runtime = SimpleNamespace(
+        state={"sandbox": {"sandbox_id": "local"}, "thread_data": _THREAD_DATA},
+        context={
+            "thread_id": "thread-1",
+            "execution_mode": "host",
+            "host_workdir": "/tmp/nion-host",
+        },
+    )
+    sandbox = MagicMock()
+    sandbox.execute_command.return_value = "/tmp/nion-host\n"
+
+    with (
+        patch("nion.sandbox.tools.ensure_sandbox_initialized", return_value=sandbox),
+        patch("nion.sandbox.tools.ensure_thread_directories_exist"),
+        patch("nion.sandbox.tools.is_host_bash_allowed", return_value=False),
+        patch("nion.sandbox.tools.validate_local_bash_command_paths"),
+        patch("nion.sandbox.tools.replace_virtual_paths_in_command", side_effect=lambda command, _: command),
+        patch("nion.sandbox.tools._apply_cwd_prefix", side_effect=lambda command, _: command),
+        patch("nion.sandbox.tools.mask_local_paths_in_output", side_effect=lambda output, _: output),
+    ):
+        result = __import__("nion.sandbox.tools", fromlist=["bash_tool"]).bash_tool.func(
+            runtime=runtime,
+            description="test",
+            command="pwd",
+        )
+
+    assert result == "/tmp/nion-host\n"
+    sandbox.execute_command.assert_called_once_with("pwd")

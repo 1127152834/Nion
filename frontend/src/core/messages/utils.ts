@@ -1,6 +1,7 @@
 import type { Message } from "../threads";
 
 const INTERNAL_SUMMARY_PREFIX = "Here is a summary of the conversation to date:";
+const SELECTED_CLI_TOOLS_TAG_RE = /<selected_cli_tools>[\s\S]*?<\/selected_cli_tools>/g;
 
 interface GenericMessageGroup<T = string> {
   type: T;
@@ -204,7 +205,8 @@ export function extractContentFromMessage(message: Message) {
     return "";
   }
   if (typeof message.content === "string") {
-    return splitInlineReasoningFromAIMessage(message)?.content ?? message.content.trim();
+    const content = splitInlineReasoningFromAIMessage(message)?.content ?? message.content.trim();
+    return stripInternalSelectedCliToolsTag(content);
   }
   if (Array.isArray(message.content)) {
     return message.content
@@ -458,7 +460,12 @@ export function extractShortcutSelectionsFromMessage(
 export function stripUploadedFilesTag(content: string): string {
   return content
     .replace(/<uploaded_files>[\s\S]*?<\/uploaded_files>/g, "")
+    .replace(SELECTED_CLI_TOOLS_TAG_RE, "")
     .trim();
+}
+
+export function stripInternalSelectedCliToolsTag(content: string): string {
+  return content.replace(SELECTED_CLI_TOOLS_TAG_RE, "").trim();
 }
 
 export function parseUploadedFiles(content: string): FileInMessage[] {

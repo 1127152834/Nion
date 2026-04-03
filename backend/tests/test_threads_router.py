@@ -210,6 +210,51 @@ def test_thread_service_stream_preserves_explicit_context_agent_name():
     assert kwargs["agent_name"] == "custom-agent"
 
 
+def test_thread_service_stream_passes_runtime_profile_and_keeps_cli_selection_out_of_message_text():
+    client = MagicMock()
+    client.stream.return_value = iter(
+        [SimpleNamespace(type="values", data={"title": "T", "messages": [], "artifacts": []})]
+    )
+    repository = MagicMock()
+    repository.get_thread.return_value = None
+    repository.upsert_thread.return_value = SimpleNamespace(values=SimpleNamespace(model_dump=lambda: {}))
+    service = ThreadService(repository=repository, client=client)
+
+    request = ThreadStreamRequest(
+        messages=[
+            {
+                "type": "human",
+                "content": [{"type": "text", "text": "看看我们现在 docker 的状态"}],
+                "additional_kwargs": {
+                    "shortcut_selections": {
+                        "cliTools": ["docker"],
+                    }
+                },
+            }
+        ],
+        context={
+            "execution_mode": "host",
+            "host_workdir": "/tmp/nion-host",
+        },
+        config={},
+    )
+
+    list(service.stream("thread-1", request))
+
+    kwargs = client.stream.call_args.kwargs
+    assert kwargs["thread_id"] == "thread-1"
+    assert kwargs["execution_mode"] == "host"
+    assert kwargs["host_workdir"] == "/tmp/nion-host"
+    assert client.stream.call_args.args[0] == "看看我们现在 docker 的状态"
+    assert "<selected_cli_tools>" not in client.stream.call_args.args[0]
+    assert kwargs["human_message_payload"]["content"] == [
+        {"type": "text", "text": "看看我们现在 docker 的状态"}
+    ]
+    assert kwargs["human_message_payload"]["additional_kwargs"]["shortcut_selections"] == {
+        "cliTools": ["docker"]
+    }
+
+
 def test_thread_service_stream_rejects_concurrent_same_thread_runs():
     client = MagicMock()
     client.stream.return_value = iter(

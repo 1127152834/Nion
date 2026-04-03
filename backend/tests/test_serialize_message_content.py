@@ -1,4 +1,4 @@
-"""Regression tests for ToolMessage content normalization in serialization.
+"""Regression tests for message serialization normalization.
 
 Ensures that structured content (list-of-blocks) is properly extracted to
 plain text, preventing raw Python repr strings from reaching the UI.
@@ -6,6 +6,7 @@ plain text, preventing raw Python repr strings from reaching the UI.
 See: https://github.com/huanxi/nion/issues/1149
 """
 
+from langchain_core.messages import HumanMessage
 from langchain_core.messages import ToolMessage
 
 from nion.client import NionClient
@@ -139,3 +140,27 @@ class TestExtractText:
 
     def test_fallback_non_iterable(self):
         assert NionClient._extract_text(123) == "123"
+
+
+class TestSerializeHumanMessageContent:
+    """HumanMessage serialization should preserve UI metadata."""
+
+    def test_preserves_human_additional_kwargs(self):
+        msg = HumanMessage(
+            content="看看 docker 状态",
+            additional_kwargs={
+                "shortcut_selections": {
+                    "cliTools": ["docker"],
+                }
+            },
+        )
+
+        result = NionClient._serialize_message(msg)
+
+        assert result["type"] == "human"
+        assert result["content"] == "看看 docker 状态"
+        assert result["additional_kwargs"] == {
+            "shortcut_selections": {
+                "cliTools": ["docker"],
+            }
+        }

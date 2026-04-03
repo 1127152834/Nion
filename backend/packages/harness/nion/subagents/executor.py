@@ -448,6 +448,8 @@ class SubagentExecutor:
         thread_data: ThreadDataState | None = None,
         thread_id: str | None = None,
         surface: str = "workspace",
+        execution_mode: str | None = None,
+        host_workdir: str | None = None,
         trace_id: str | None = None,
     ):
         """Initialize the executor.
@@ -468,6 +470,8 @@ class SubagentExecutor:
         self.thread_data = thread_data
         self.thread_id = thread_id
         self.surface = surface
+        self.execution_mode = execution_mode
+        self.host_workdir = host_workdir
         # Generate trace_id if not provided (for top-level calls)
         self.trace_id = trace_id or str(uuid.uuid4())[:8]
 
@@ -560,6 +564,10 @@ class SubagentExecutor:
             if self.thread_id:
                 run_config["configurable"] = {"thread_id": self.thread_id}
                 context["thread_id"] = self.thread_id
+            if self.execution_mode:
+                context["execution_mode"] = self.execution_mode
+            if self.host_workdir:
+                context["host_workdir"] = self.host_workdir
 
             logger.info(f"[trace={self.trace_id}] Subagent {self.config.name} starting async execution with max_turns={self.config.max_turns}")
             _record_subagent_started(

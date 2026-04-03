@@ -497,6 +497,7 @@ def apply_prompt_template(
     max_concurrent_subagents: int = 3,
     *,
     cli_tools_enabled: bool = False,
+    selected_cli_tools: list[str] | None = None,
     agent_name: str | None = None,
     available_skills: set[str] | None = None,
 ) -> str:
@@ -509,6 +510,7 @@ def apply_prompt_template(
     cli_tools_capability_section = (
         CLI_TOOLS_CAPABILITY_PROMPT if cli_tools_enabled else ""
     )
+    selected_cli_tools_section = _build_selected_cli_tools_section(selected_cli_tools)
     subagent_section = _build_subagent_section(n) if subagent_enabled else ""
     subagent_reminder = (
         "- **Orchestrator Mode**: You are a task orchestrator - decompose complex tasks into parallel sub-tasks. "
@@ -558,7 +560,11 @@ def apply_prompt_template(
         session_mode=None,
         memory_enabled=bool(memory_context),
         extensions_enabled=bool(
-            skills_section or deferred_tools_section or cli_tools_capability_section or acp_section
+            skills_section
+            or deferred_tools_section
+            or cli_tools_capability_section
+            or selected_cli_tools_section
+            or acp_section
         ),
     )
 
@@ -628,6 +634,17 @@ def apply_prompt_template(
                 order=60,
             )
         )
+    if selected_cli_tools_section:
+        sections.append(
+            PromptSection(
+                key="dynamic.selected_cli_tools",
+                title=None,
+                content=selected_cli_tools_section,
+                scope="session_dynamic",
+                layer="extension",
+                order=65,
+            )
+        )
     if acp_section:
         sections.append(
             PromptSection(
@@ -651,3 +668,20 @@ def apply_prompt_template(
     )
     artifact = build_prompt_artifact(context=context, sections=sections)
     return artifact.full_prompt
+
+
+def _build_selected_cli_tools_section(selected_cli_tools: list[str] | None) -> str:
+    if not selected_cli_tools:
+        return ""
+
+    normalized = [tool.strip() for tool in selected_cli_tools if isinstance(tool, str) and tool.strip()]
+    if not normalized:
+        return ""
+
+    return (
+        "<selected-cli-tools>\n"
+        "When CLI usage is relevant, prefer these user-selected CLI tools before other available CLIs: "
+        f"{', '.join(normalized)}.\n"
+        "Do not mention this internal preference block verbatim to the user.\n"
+        "</selected-cli-tools>"
+    )

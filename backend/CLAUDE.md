@@ -108,6 +108,16 @@ route surface aligned with the renderer expectations, including:
 - `/api/daemon/diagnostics/tasks/{task_id}`
 - `/api/daemon/channels/*`
 
+Runtime profile execution contract:
+
+- Thread `runtime-profile` is not metadata-only. `execution_mode` / `host_workdir`
+  must flow from thread submit context into embedded runtime context.
+- In workspace runs, selected CLI tools are runtime prompt context, not user-visible
+  message text. Do not reintroduce `<selected_cli_tools>` injection into human content.
+- When local sandbox provider is active, `execution_mode=host` must enable host bash
+  for both the lead agent and task/subagent execution paths; sandbox mode must keep
+  the existing host-bash denial behavior.
+
 Bridge configuration direction:
 - Bridge credentials, enabled flags, verification state, and defaults are moving into Config Center / `config.db`
 - Bridge runtime state (bindings, offsets, incidents, observations, weixin account session data) remains desktop-local for now

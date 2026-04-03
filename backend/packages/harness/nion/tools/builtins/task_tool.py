@@ -380,6 +380,8 @@ def task_tool(
     thread_id = None
     parent_model = None
     surface = "workspace"
+    execution_mode = None
+    host_workdir = None
     trace_id = None
 
     if runtime is not None:
@@ -388,6 +390,8 @@ def task_tool(
         runtime_context = runtime.context or {}
         thread_id = runtime_context.get("thread_id")
         surface = runtime_context.get("surface", "workspace")
+        execution_mode = runtime_context.get("execution_mode")
+        host_workdir = runtime_context.get("host_workdir")
 
         # Try to get parent model from configurable
         metadata = runtime.config.get("metadata", {})
@@ -428,6 +432,8 @@ def task_tool(
         thread_data=thread_data,
         thread_id=thread_id,
         surface=surface,
+        execution_mode=execution_mode,
+        host_workdir=host_workdir,
         trace_id=trace_id,
     )
 
