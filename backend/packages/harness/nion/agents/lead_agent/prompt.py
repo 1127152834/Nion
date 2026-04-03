@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime
 
-from nion.config.agents_config import load_agent_soul
+from nion.config.agents_config import get_builtin_agent, load_agent_soul
 from nion.prompt_runtime import PromptBuildContext, PromptSection, build_prompt_artifact
 from nion.skills import load_skills
 from nion.subagents import get_available_subagent_names
@@ -429,11 +429,31 @@ You have access to skills that provide optimized workflows for specific tasks. E
 
 
 def get_agent_soul(agent_name: str | None) -> str:
+    builtin_agent = get_builtin_agent(agent_name)
+    if builtin_agent is not None and builtin_agent.soul:
+        return f"<soul>\n{builtin_agent.soul}\n</soul>\n"
+
     # Append SOUL.md (agent personality) if present
     soul = load_agent_soul(agent_name)
     if soul:
         return f"<soul>\n{soul}\n</soul>\n" if soul else ""
     return ""
+
+
+def _build_notebook_assistant_overlay(agent_name: str | None) -> str:
+    if agent_name != "notebook-chat":
+        return ""
+    return """<notebook_assistant_contract>
+You are the Notebook Assistant.
+
+- You must answer as a note-grounded assistant, not as the generic Nion 2.0 assistant.
+- Your default scope is the current notebook note.
+- When the user asks what the current note says, summarize the current note directly.
+- You must base your answer on the current notebook note content whenever it is available.
+- You cannot claim the user did not upload a file when notebook note context exists.
+- If notebook note context is missing, explicitly state that the current notebook note content is unavailable.
+- You cannot retreat to generic self-introduction when the user is asking about the current note.
+</notebook_assistant_contract>"""
 
 
 def get_deferred_tools_prompt_section() -> str:
@@ -511,6 +531,7 @@ def apply_prompt_template(
         CLI_TOOLS_CAPABILITY_PROMPT if cli_tools_enabled else ""
     )
     selected_cli_tools_section = _build_selected_cli_tools_section(selected_cli_tools)
+    notebook_overlay_section = _build_notebook_assistant_overlay(agent_name)
     subagent_section = _build_subagent_section(n) if subagent_enabled else ""
     subagent_reminder = (
         "- **Orchestrator Mode**: You are a task orchestrator - decompose complex tasks into parallel sub-tasks. "
@@ -564,6 +585,7 @@ def apply_prompt_template(
             or deferred_tools_section
             or cli_tools_capability_section
             or selected_cli_tools_section
+            or notebook_overlay_section
             or acp_section
         ),
     )
@@ -610,6 +632,17 @@ def apply_prompt_template(
                 scope="session_dynamic",
                 layer="extension",
                 order=40,
+            )
+        )
+    if notebook_overlay_section:
+        sections.append(
+            PromptSection(
+                key="dynamic.notebook_assistant",
+                title=None,
+                content=notebook_overlay_section,
+                scope="session_dynamic",
+                layer="agent_overlay",
+                order=45,
             )
         )
     if subagent_section:
