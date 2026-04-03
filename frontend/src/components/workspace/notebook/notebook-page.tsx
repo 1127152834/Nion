@@ -676,30 +676,32 @@ export function NotebookPage() {
             />
 
             <div className="flex min-h-0 min-w-0 flex-col gap-4">
-              <NotebookInboxPanel
-                copy={{
-                  emptyDescription: copy.emptyDescription,
-                  emptyTitle: copy.emptyTitle,
-                  inboxLabel: copy.inboxLabel,
-                  organizeLabel: "整理到目录",
-                  recentTitle: copy.recentTitle,
-                  selectFolderPlaceholder: copy.selectFolderPlaceholder,
-                }}
-                directoryOptions={directoryOptions}
-                inboxItems={inboxItems}
-                moveDirectory={inboxMoveDirectory}
-                onSelectItem={handleSelectInboxItem}
-                onMoveDirectoryChange={setInboxMoveDirectory}
-                onOrganizeItem={(item) => {
-                  if (item.note_id) {
-                    void handleMoveNoteToDirectory(item.note_id, inboxMoveDirectory);
-                    return;
-                  }
-                  if (item.asset_id) {
-                    void handleMoveAssetToDirectory(item.asset_id, inboxMoveDirectory);
-                  }
-                }}
-              />
+              {!selectedNoteId && !selectedAssetId && !isDraft ? (
+                <NotebookInboxPanel
+                  copy={{
+                    emptyDescription: copy.emptyDescription,
+                    emptyTitle: copy.emptyTitle,
+                    inboxLabel: copy.inboxLabel,
+                    organizeLabel: "整理到目录",
+                    recentTitle: copy.recentTitle,
+                    selectFolderPlaceholder: copy.selectFolderPlaceholder,
+                  }}
+                  directoryOptions={directoryOptions}
+                  inboxItems={inboxItems}
+                  moveDirectory={inboxMoveDirectory}
+                  onSelectItem={handleSelectInboxItem}
+                  onMoveDirectoryChange={setInboxMoveDirectory}
+                  onOrganizeItem={(item) => {
+                    if (item.note_id) {
+                      void handleMoveNoteToDirectory(item.note_id, inboxMoveDirectory);
+                      return;
+                    }
+                    if (item.asset_id) {
+                      void handleMoveAssetToDirectory(item.asset_id, inboxMoveDirectory);
+                    }
+                  }}
+                />
+              ) : null}
 
               {selectedAssetId ? (
                 <NotebookAssetView
