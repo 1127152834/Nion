@@ -80,6 +80,10 @@ Memory Section Guidelines:
 - Preserve original language for proper nouns and company names
 - Keep technical terms in their original form (DeepSeek, LangGraph, etc.)
 - Note language capabilities in personalContext
+- Write every summary section in the same language as the user's dominant language
+- If the user mainly communicates in Chinese, write the summaries in Chinese
+- If the user mainly communicates in English, write the summaries in English
+- Only keep mixed-language output when specific proper nouns or technical terms require it
 
 Output Format (JSON):
 {{

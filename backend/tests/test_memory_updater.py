@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock, patch
 
-from nion.agents.memory.prompt import format_conversation_for_update
+from nion.agents.memory.prompt import MEMORY_UPDATE_PROMPT, format_conversation_for_update
 from nion.agents.memory.queue import ConversationContext, MemoryUpdateQueue
 from nion.agents.memory.updater import (
     MemoryUpdater,
@@ -76,6 +76,11 @@ def test_apply_updates_skips_existing_duplicate_and_preserves_removals() -> None
 
     assert [fact["content"] for fact in result["facts"]] == ["User likes Python"]
     assert all(fact["id"] != "fact_remove" for fact in result["facts"])
+
+
+def test_memory_update_prompt_requires_summary_language_to_follow_user_language() -> None:
+    assert "same language as the user's dominant language" in MEMORY_UPDATE_PROMPT
+    assert "If the user mainly communicates in Chinese" in MEMORY_UPDATE_PROMPT
 
 
 def test_apply_updates_skips_same_batch_duplicates_and_keeps_source_metadata() -> None:

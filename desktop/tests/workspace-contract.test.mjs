@@ -31,6 +31,10 @@ test("desktop renderer wires notebook and memory workspace routes without self-m
   assert.match(source, /path="\/workspace\/notebook"/);
   assert.match(source, /path="\/workspace\/notebook\/trash"/);
   assert.match(source, /path="\/workspace\/memory"/);
+  assert.match(source, /path="\/workspace\/memory\/search"/);
+  assert.match(source, /path="\/workspace\/memory\/user"/);
+  assert.match(source, /path="\/workspace\/memory\/history"/);
+  assert.match(source, /path="\/workspace\/memory\/facts"/);
   assert.doesNotMatch(source, /path="\/workspace\/self-maintenance"/);
 });
 

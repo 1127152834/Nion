@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -19,6 +20,7 @@ import {
   useMemory,
   useUpdateMemoryFact,
 } from "@/core/memory/hooks";
+import { pathOfMemory } from "@/core/navigation/desktop-routes";
 import type {
   MemoryFact,
   MemoryFactInput,
@@ -108,7 +110,15 @@ export function MemoryFactsPage() {
                 {t.settings.memory.markdown.facts}
               </h1>
             </div>
-            <Button onClick={handleCreateFact}>{t.settings.memory.addFact}</Button>
+            <div className="flex gap-2">
+              <Link
+                href={pathOfMemory()}
+                className="rounded-md border bg-background px-3 py-2 text-sm font-medium"
+              >
+                返回记忆首页
+              </Link>
+              <Button onClick={handleCreateFact}>{t.settings.memory.addFact}</Button>
+            </div>
           </div>
         </header>
 

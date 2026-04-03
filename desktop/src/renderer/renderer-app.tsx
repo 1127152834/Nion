@@ -10,6 +10,10 @@ import AboutPage from "@/app/workspace/about/page";
 import AutomationPage from "@/app/workspace/automation/page";
 import BridgePage from "@/app/workspace/bridge/page";
 import WorkspaceMemoryPage from "@/app/workspace/memory/page";
+import WorkspaceMemoryFactsPage from "@/app/workspace/memory/facts/page";
+import WorkspaceMemoryHistoryPage from "@/app/workspace/memory/history/page";
+import WorkspaceMemorySearchPage from "@/app/workspace/memory/search/page";
+import WorkspaceMemoryUserPage from "@/app/workspace/memory/user/page";
 import NotebookPage from "@/app/workspace/notebook/page";
 import NotebookTrashPage from "@/app/workspace/notebook/trash/page";
 import ToolPolicyPage from "@/app/workspace/tool-policy/page";
@@ -104,6 +108,38 @@ export function DesktopRendererApp() {
                 }
               />
               <Route
+                path="/workspace/memory/search"
+                element={
+                  <WorkspaceRoute>
+                    <WorkspaceMemorySearchPage />
+                  </WorkspaceRoute>
+                }
+              />
+              <Route
+                path="/workspace/memory/user"
+                element={
+                  <WorkspaceRoute>
+                    <WorkspaceMemoryUserPage />
+                  </WorkspaceRoute>
+                }
+              />
+              <Route
+                path="/workspace/memory/history"
+                element={
+                  <WorkspaceRoute>
+                    <WorkspaceMemoryHistoryPage />
+                  </WorkspaceRoute>
+                }
+              />
+              <Route
+                path="/workspace/memory/facts"
+                element={
+                  <WorkspaceRoute>
+                    <WorkspaceMemoryFactsPage />
+                  </WorkspaceRoute>
+                }
+              />
+              <Route
                 path="/workspace/tool-policy"
                 element={
                   <WorkspaceRoute>
@@ -111,7 +147,7 @@ export function DesktopRendererApp() {
                   </WorkspaceRoute>
                 }
               />
-                          <Route path="*" element={<Navigate to="/workspace/chats" replace />} />
+              <Route path="*" element={<Navigate to="/workspace/chats" replace />} />
             </Routes>
           </DesktopImageProvider>
         </I18nProvider>

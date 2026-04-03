@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useDeferredValue, useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -25,6 +26,7 @@ import {
   searchStructuredMemory,
   type StructuredMemorySearchLabels,
 } from "@/core/memory/search";
+import { pathOfMemory } from "@/core/navigation/desktop-routes";
 import type {
   MemoryFact,
   MemoryFactInput,
@@ -206,16 +208,21 @@ export function MemorySearchPage() {
     <>
       <main className="flex size-full min-h-0 flex-col gap-6 overflow-y-auto px-4 py-6 sm:px-6">
         <header className="border bg-background px-6 py-5">
-          <p className="text-[11px] font-medium tracking-[0.16em] text-muted-foreground uppercase">
-            Memory workspace
-          </p>
-          <div className="mt-2 flex items-end justify-between gap-4">
-            <h1 className="text-[1.85rem] font-semibold tracking-tight">
-              {t.settings.memory.quickSearchTitle}
-            </h1>
-            <div className="text-sm text-muted-foreground">
-              统一处理搜索、导入导出、事实管理和清理流程。
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-[11px] font-medium tracking-[0.16em] text-muted-foreground uppercase">
+                Memory workspace
+              </p>
+              <h1 className="mt-2 text-[1.85rem] font-semibold tracking-tight">
+                {t.settings.memory.quickSearchTitle}
+              </h1>
             </div>
+            <Link
+              href={pathOfMemory()}
+              className="rounded-md border bg-background px-3 py-2 text-sm font-medium"
+            >
+              返回记忆首页
+            </Link>
           </div>
         </header>
 
