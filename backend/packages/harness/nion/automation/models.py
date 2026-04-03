@@ -35,6 +35,14 @@ class AutomationJob(BaseModel):
     last_run_at: str | None = None
     last_status: str | None = None
     last_result_summary: str | None = None
+    owner_type: Literal["user", "agent"] = "user"
+    owner_id: str = "user:default"
+    mutability: Literal["editable", "pause_only"] = "editable"
+    provenance_memory_id: str | None = None
+    provenance_learning_id: str | None = None
+    retention_policy: dict[str, Any] = Field(default_factory=dict)
+    visible_in_ui: bool = True
+    policy_flags: dict[str, Any] = Field(default_factory=dict)
     created_at: str
     updated_at: str
 
