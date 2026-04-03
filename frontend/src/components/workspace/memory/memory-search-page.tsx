@@ -1,364 +1,95 @@
 "use client";
 
-import Link from "next/link";
-import { useDeferredValue, useMemo, useState } from "react";
-import { toast } from "sonner";
+import { SearchIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { useI18n } from "@/core/i18n/hooks";
 import {
-  useClearMemory,
-  useCreateMemoryFact,
-  useDeleteMemoryFact,
-  useImportMemory,
-  useMemory,
-  useUpdateMemoryFact,
-} from "@/core/memory/hooks";
-import {
-  searchStructuredMemory,
-  type StructuredMemorySearchLabels,
-} from "@/core/memory/search";
-import { pathOfMemory } from "@/core/navigation/desktop-routes";
-import type {
-  MemoryFact,
-  MemoryFactInput,
-  MemoryFactPatchInput,
-} from "@/core/memory/types";
-import { useRecallSearch } from "@/core/recall/hooks";
-import { formatTimeAgo } from "@/core/utils/datetime";
+  pathOfMemory,
+  pathOfMemorySearchResults,
+} from "@/core/navigation/desktop-routes";
 
-import { MemoryConsolePanel } from "../settings/memory-console-panel";
-import { MemoryClearFlow } from "./memory-clear-flow";
-import { MemoryDetailInspector } from "./memory-detail-inspector";
-
-type MemoryViewFilter = "all" | "facts" | "summaries";
+import { MemoryBackLink } from "./memory-back-link";
 
 export function MemorySearchPage() {
   const { t } = useI18n();
-  const { memory, isLoading, error } = useMemory();
-  const clearMemory = useClearMemory();
-  const createMemoryFact = useCreateMemoryFact();
-  const deleteMemoryFact = useDeleteMemoryFact();
-  const updateMemoryFact = useUpdateMemoryFact();
-  const importMemory = useImportMemory();
-  const [clearFlowOpen, setClearFlowOpen] = useState(false);
+  const router = useRouter();
   const [draftQuery, setDraftQuery] = useState("");
-  const [submittedQuery, setSubmittedQuery] = useState("");
-  const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState<MemoryViewFilter>("all");
-  const [selectedFact, setSelectedFact] = useState<MemoryFact | null>(null);
-  const [factDialogOpen, setFactDialogOpen] = useState(false);
-  const [editingFact, setEditingFact] = useState<MemoryFact | null>(null);
-  const [factForm, setFactForm] = useState<MemoryFactInput>({
-    content: "",
-    category: "context",
-    confidence: 0.8,
-  });
-  const deferredQuery = useDeferredValue(query);
-  const normalizedQuery = deferredQuery.trim().toLowerCase();
-  const recall = useRecallSearch(submittedQuery, 5);
 
-  const searchLabels = useMemo<StructuredMemorySearchLabels>(
-    () => ({
-      work: t.settings.memory.markdown.work,
-      personal: t.settings.memory.markdown.personal,
-      topOfMind: t.settings.memory.markdown.topOfMind,
-      recentMonths: t.settings.memory.markdown.recentMonths,
-      earlierContext: t.settings.memory.markdown.earlierContext,
-      longTermBackground: t.settings.memory.markdown.longTermBackground,
-      facts: t.settings.memory.markdown.facts,
-    }),
-    [
-      t.settings.memory.markdown.work,
-      t.settings.memory.markdown.personal,
-      t.settings.memory.markdown.topOfMind,
-      t.settings.memory.markdown.recentMonths,
-      t.settings.memory.markdown.earlierContext,
-      t.settings.memory.markdown.longTermBackground,
-      t.settings.memory.markdown.facts,
-    ],
-  );
+  const suggestionQueries = [
+    t.settings.memory.recall.suggestProject,
+    t.settings.memory.recall.suggestPreference,
+    t.settings.memory.recall.suggestHistory,
+  ];
 
-  const structuredResults = useMemo(
-    () =>
-      memory && submittedQuery
-        ? searchStructuredMemory(memory, submittedQuery, searchLabels)
-        : [],
-    [memory, searchLabels, submittedQuery],
-  );
-
-  const filteredFacts = useMemo(
-    () =>
-      memory
-        ? memory.facts.filter((fact) =>
-            normalizedQuery
-              ? `${fact.content} ${fact.category}`
-                  .toLowerCase()
-                  .includes(normalizedQuery)
-              : true,
-          )
-        : [],
-    [memory, normalizedQuery],
-  );
-
-  async function handleConfirmClearMemory() {
-    try {
-      await clearMemory.mutateAsync();
-      toast.success(t.settings.memory.clearAllSuccess);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
-    }
-  }
-
-  async function handleExportMemory() {
-    if (!memory) return;
-    const blob = new Blob([JSON.stringify(memory, null, 2)], {
-      type: "application/json",
-    });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = "nion-memory-export.json";
-    anchor.click();
-    URL.revokeObjectURL(url);
-    toast.success(t.settings.memory.exportSuccess);
-  }
-
-  async function handleImportMemory(event: Event) {
-    const input = event.target as HTMLInputElement | null;
-    const file = input?.files?.[0];
-    if (!file) return;
-
-    try {
-      const text = await file.text();
-      await importMemory.mutateAsync(JSON.parse(text));
-      toast.success(t.settings.memory.importSuccess);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
-    } finally {
-      if (input) input.value = "";
-    }
-  }
-
-  function openCreateFactDialog() {
-    setEditingFact(null);
-    setFactForm({ content: "", category: "context", confidence: 0.8 });
-    setFactDialogOpen(true);
-  }
-
-  function openEditFactDialog(fact: MemoryFact) {
-    setEditingFact(fact);
-    setSelectedFact(fact);
-    setFactForm({
-      content: fact.content,
-      category: fact.category,
-      confidence: fact.confidence,
-    });
-    setFactDialogOpen(true);
-  }
-
-  async function handleSaveFact() {
-    const trimmedContent = factForm.content.trim();
-    if (!trimmedContent) {
-      toast.error(t.settings.memory.factValidationContent);
-      return;
-    }
-    if (
-      !Number.isFinite(factForm.confidence) ||
-      factForm.confidence < 0 ||
-      factForm.confidence > 1
-    ) {
-      toast.error(t.settings.memory.factValidationConfidence);
-      return;
-    }
-
-    try {
-      if (editingFact) {
-        const input: MemoryFactPatchInput = {
-          content: trimmedContent,
-          category: factForm.category,
-          confidence: factForm.confidence,
-        };
-        await updateMemoryFact.mutateAsync({ factId: editingFact.id, input });
-        toast.success(t.settings.memory.editFactSuccess);
-      } else {
-        const input: MemoryFactInput = {
-          content: trimmedContent,
-          category: factForm.category,
-          confidence: factForm.confidence,
-        };
-        await createMemoryFact.mutateAsync(input);
-        toast.success(t.settings.memory.addFactSuccess);
-      }
-      setFactDialogOpen(false);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
-    }
+  function submitQuery(query: string) {
+    const trimmed = query.trim();
+    if (!trimmed) return;
+    router.push(pathOfMemorySearchResults(trimmed));
   }
 
   return (
-    <>
-      <main className="flex size-full min-h-0 flex-col gap-6 overflow-y-auto px-4 py-6 sm:px-6">
-        <header className="border bg-background px-6 py-5">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-[11px] font-medium tracking-[0.16em] text-muted-foreground uppercase">
-                Memory workspace
-              </p>
-              <h1 className="mt-2 text-[1.85rem] font-semibold tracking-tight">
-                {t.settings.memory.quickSearchTitle}
-              </h1>
-            </div>
-            <Link
-              href={pathOfMemory()}
-              className="rounded-md border bg-background px-3 py-2 text-sm font-medium"
-            >
-              返回记忆首页
-            </Link>
+    <main className="flex size-full min-h-0 flex-col overflow-y-auto px-4 py-6 sm:px-6">
+      <div className="mx-auto flex w-full max-w-5xl flex-col gap-8">
+        <MemoryBackLink href={pathOfMemory()} label="返回记忆首页" />
+
+        <section className="flex min-h-[calc(100vh-12rem)] flex-col items-center justify-center gap-8 py-6">
+          <div className="space-y-4 text-center">
+            <p className="text-[11px] font-medium tracking-[0.2em] text-muted-foreground uppercase">
+              Memory
+            </p>
+            <h1 className="text-[clamp(2.75rem,7vw,4.5rem)] font-semibold tracking-[-0.06em] text-foreground">
+              {t.settings.memory.recall.title}
+            </h1>
+            <p className="mx-auto max-w-2xl text-sm leading-7 text-muted-foreground sm:text-base">
+              {t.settings.memory.recall.description}
+            </p>
           </div>
-        </header>
 
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
-          <section className="border bg-background px-5 py-4">
-            <MemoryConsolePanel
-              memory={memory}
-              isLoading={isLoading}
-              error={error instanceof Error ? error : null}
-              draftQuery={draftQuery}
-              submittedQuery={submittedQuery}
-              onDraftQueryChange={setDraftQuery}
-              onSubmitSearch={() => setSubmittedQuery(draftQuery.trim())}
-              structuredResults={structuredResults}
-              recall={recall}
-              query={query}
-              filter={filter}
-              filteredFacts={filteredFacts}
-              filteredSectionGroups={[]}
-              hasMatchingVisibleContent
-              normalizedQuery={normalizedQuery}
-              onQueryChange={setQuery}
-              onFilterChange={setFilter}
-              onOpenDangerZone={() => setClearFlowOpen(true)}
-              onCreateFact={openCreateFactDialog}
-              onEditFact={openEditFactDialog}
-              onDeleteFact={(fact) => {
-                setSelectedFact(fact);
-                void deleteMemoryFact.mutateAsync(fact.id);
-              }}
-              onExportMemory={() => void handleExportMemory()}
-              onImportMemory={(event) => void handleImportMemory(event)}
-            />
-          </section>
-
-          <MemoryDetailInspector
-            kind="facts"
-            title={selectedFact?.content ? "事实详情" : t.settings.memory.markdown.facts}
-            summary={selectedFact?.content ?? ""}
-            updatedAt={selectedFact?.createdAt}
-            memory={memory}
-            facts={selectedFact ? [selectedFact] : memory?.facts ?? []}
-          />
-        </div>
-      </main>
-
-      <MemoryClearFlow
-        open={clearFlowOpen}
-        factsCount={memory?.facts.length ?? 0}
-        lastUpdatedLabel={formatTimeAgo(memory?.lastUpdated)}
-        affectedSections={[t.settings.memory.markdown.facts]}
-        pending={clearMemory.isPending}
-        onOpenChange={setClearFlowOpen}
-        onConfirm={handleConfirmClearMemory}
-      />
-
-      <Dialog open={factDialogOpen} onOpenChange={setFactDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {editingFact
-                ? t.settings.memory.editFactTitle
-                : t.settings.memory.addFactTitle}
-            </DialogTitle>
-            <DialogDescription>
-              {t.settings.memory.summaryReadOnly}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <label className="block space-y-2">
-              <span className="text-sm font-medium">
-                {t.settings.memory.factContentLabel}
-              </span>
-              <textarea
-                className="min-h-28 w-full rounded-md border bg-background px-3 py-2 text-sm"
-                value={factForm.content}
-                placeholder={t.settings.memory.factContentPlaceholder}
-                onChange={(event) =>
-                  setFactForm((current) => ({
-                    ...current,
-                    content: event.target.value,
-                  }))
-                }
-              />
-            </label>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <label className="block space-y-2">
-                <span className="text-sm font-medium">
-                  {t.settings.memory.factCategoryLabel}
-                </span>
-                <input
-                  className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-                  value={factForm.category}
-                  placeholder={t.settings.memory.factCategoryPlaceholder}
-                  onChange={(event) =>
-                    setFactForm((current) => ({
-                      ...current,
-                      category: event.target.value,
-                    }))
-                  }
+          <form
+            className="w-full max-w-3xl"
+            onSubmit={(event) => {
+              event.preventDefault();
+              submitQuery(draftQuery);
+            }}
+          >
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <div className="relative flex-1">
+                <SearchIcon className="pointer-events-none absolute top-1/2 left-4 size-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={draftQuery}
+                  onChange={(event) => setDraftQuery(event.target.value)}
+                  placeholder={t.settings.memory.recall.placeholder}
+                  className="h-12 rounded-full border-border/70 bg-background pl-11 text-sm shadow-sm sm:text-base"
                 />
-              </label>
-              <label className="block space-y-2">
-                <span className="text-sm font-medium">
-                  {t.settings.memory.factConfidenceLabel}
-                </span>
-                <input
-                  className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-                  type="number"
-                  min="0"
-                  max="1"
-                  step="0.1"
-                  value={factForm.confidence}
-                  onChange={(event) =>
-                    setFactForm((current) => ({
-                      ...current,
-                      confidence: Number(event.target.value),
-                    }))
-                  }
-                />
-                <p className="text-xs text-muted-foreground">
-                  {t.settings.memory.factConfidenceHint}
-                </p>
-              </label>
+              </div>
+              <Button
+                type="submit"
+                className="h-11 rounded-full px-5"
+                disabled={draftQuery.trim().length === 0}
+              >
+                {t.settings.memory.recall.searchButton}
+              </Button>
             </div>
+          </form>
+
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            {suggestionQueries.map((query) => (
+              <button
+                key={query}
+                type="button"
+                className="rounded-md border border-border/70 px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                onClick={() => submitQuery(query)}
+              >
+                {query}
+              </button>
+            ))}
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setFactDialogOpen(false)}>
-              {t.common.cancel}
-            </Button>
-            <Button onClick={() => void handleSaveFact()}>
-              {t.settings.memory.factSave}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
+        </section>
+      </div>
+    </main>
   );
 }

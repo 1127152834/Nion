@@ -11,6 +11,10 @@ void test("memory route pages reference the expected dedicated surface component
     new URL("../../../app/workspace/memory/search/page.tsx", import.meta.url),
     "utf8",
   );
+  const searchResultsRoute = await readFile(
+    new URL("../../../app/workspace/memory/search/results/page.tsx", import.meta.url),
+    "utf8",
+  );
   const userRoute = await readFile(
     new URL("../../../app/workspace/memory/user/page.tsx", import.meta.url),
     "utf8",
@@ -26,6 +30,7 @@ void test("memory route pages reference the expected dedicated surface component
 
   assert.match(homeRoute, /MemoryHomePage/);
   assert.match(searchRoute, /MemorySearchPage/);
+  assert.match(searchResultsRoute, /MemorySearchResultsPage/);
   assert.match(userRoute, /MemoryUserPage/);
   assert.match(historyRoute, /MemoryHistoryPage/);
   assert.match(factsRoute, /MemoryFactsPage/);

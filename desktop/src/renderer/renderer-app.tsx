@@ -8,11 +8,16 @@ import AgentsPage from "@/app/workspace/agents/page";
 import NewAgentPage from "@/app/workspace/agents/new/page";
 import AboutPage from "@/app/workspace/about/page";
 import AutomationPage from "@/app/workspace/automation/page";
+import AutomationRemindersPage from "@/app/workspace/automation/reminders/page";
+import AutomationReminderDetailPage from "@/app/workspace/automation/reminders/[jobId]/page";
+import AutomationTasksPage from "@/app/workspace/automation/tasks/page";
+import AutomationTaskDetailPage from "@/app/workspace/automation/tasks/[jobId]/page";
 import BridgePage from "@/app/workspace/bridge/page";
 import WorkspaceMemoryPage from "@/app/workspace/memory/page";
 import WorkspaceMemoryFactsPage from "@/app/workspace/memory/facts/page";
 import WorkspaceMemoryHistoryPage from "@/app/workspace/memory/history/page";
 import WorkspaceMemorySearchPage from "@/app/workspace/memory/search/page";
+import WorkspaceMemorySearchResultsPage from "@/app/workspace/memory/search/results/page";
 import WorkspaceMemoryUserPage from "@/app/workspace/memory/user/page";
 import NotebookPage from "@/app/workspace/notebook/page";
 import NotebookTrashPage from "@/app/workspace/notebook/trash/page";
@@ -84,6 +89,38 @@ export function DesktopRendererApp() {
                 }
               />
               <Route
+                path="/workspace/automation/reminders"
+                element={
+                  <WorkspaceRoute>
+                    <AutomationRemindersPage />
+                  </WorkspaceRoute>
+                }
+              />
+              <Route
+                path="/workspace/automation/reminders/:jobId"
+                element={
+                  <WorkspaceRoute>
+                    <AutomationReminderDetailPage />
+                  </WorkspaceRoute>
+                }
+              />
+              <Route
+                path="/workspace/automation/tasks"
+                element={
+                  <WorkspaceRoute>
+                    <AutomationTasksPage />
+                  </WorkspaceRoute>
+                }
+              />
+              <Route
+                path="/workspace/automation/tasks/:jobId"
+                element={
+                  <WorkspaceRoute>
+                    <AutomationTaskDetailPage />
+                  </WorkspaceRoute>
+                }
+              />
+              <Route
                 path="/workspace/notebook"
                 element={
                   <WorkspaceRoute>
@@ -112,6 +149,14 @@ export function DesktopRendererApp() {
                 element={
                   <WorkspaceRoute>
                     <WorkspaceMemorySearchPage />
+                  </WorkspaceRoute>
+                }
+              />
+              <Route
+                path="/workspace/memory/search/results"
+                element={
+                  <WorkspaceRoute>
+                    <WorkspaceMemorySearchResultsPage />
                   </WorkspaceRoute>
                 }
               />

@@ -7,12 +7,17 @@ import {
   pathOfMemoryFacts,
   pathOfMemoryHistory,
   pathOfMemorySearch,
+  pathOfMemorySearchResults,
   pathOfMemoryUser,
 } from "../../../core/navigation/desktop-routes.ts";
 
 void test("memory routes expose dedicated pages for split surfaces", () => {
   assert.equal(pathOfMemory(), "/workspace/memory");
   assert.equal(pathOfMemorySearch(), "/workspace/memory/search");
+  assert.equal(
+    pathOfMemorySearchResults("query"),
+    "/workspace/memory/search/results?q=query",
+  );
   assert.equal(pathOfMemoryUser(), "/workspace/memory/user");
   assert.equal(pathOfMemoryHistory(), "/workspace/memory/history");
   assert.equal(pathOfMemoryFacts(), "/workspace/memory/facts");
@@ -31,6 +36,10 @@ void test("memory route components exist for each split surface", async () => {
     new URL("../../../app/workspace/memory/user/page.tsx", import.meta.url),
     "utf8",
   );
+  const searchResultsPageSource = await readFile(
+    new URL("../../../app/workspace/memory/search/results/page.tsx", import.meta.url),
+    "utf8",
+  );
   const historyPageSource = await readFile(
     new URL("../../../app/workspace/memory/history/page.tsx", import.meta.url),
     "utf8",
@@ -42,6 +51,7 @@ void test("memory route components exist for each split surface", async () => {
 
   assert.match(routePageSource, /MemoryHomePage/);
   assert.match(searchPageSource, /MemorySearchPage/);
+  assert.match(searchResultsPageSource, /MemorySearchResultsPage/);
   assert.match(userPageSource, /MemoryUserPage/);
   assert.match(historyPageSource, /MemoryHistoryPage/);
   assert.match(factsPageSource, /MemoryFactsPage/);

@@ -9,6 +9,7 @@ import {
   pathOfMemoryFacts,
   pathOfMemoryHistory,
   pathOfMemorySearch,
+  pathOfMemorySearchResults,
   pathOfMemoryUser,
 } from "@/core/navigation/desktop-routes";
 
@@ -46,7 +47,10 @@ export function MemoryMapNav() {
       </div>
       <div className="space-y-2">
         {items.map((item) => {
-          const active = pathname === item.href;
+          const active =
+            pathname === item.href ||
+            (item.href === pathOfMemorySearch() &&
+              pathname.startsWith(pathOfMemorySearchResults()));
           return (
             <Link
               key={item.href}

@@ -32,10 +32,24 @@ test("desktop renderer wires notebook and memory workspace routes without self-m
   assert.match(source, /path="\/workspace\/notebook\/trash"/);
   assert.match(source, /path="\/workspace\/memory"/);
   assert.match(source, /path="\/workspace\/memory\/search"/);
+  assert.match(source, /path="\/workspace\/memory\/search\/results"/);
   assert.match(source, /path="\/workspace\/memory\/user"/);
   assert.match(source, /path="\/workspace\/memory\/history"/);
   assert.match(source, /path="\/workspace\/memory\/facts"/);
   assert.doesNotMatch(source, /path="\/workspace\/self-maintenance"/);
+});
+
+test("desktop renderer wires the multi-page automation workspace routes", () => {
+  const source = fs.readFileSync(
+    new URL("../src/renderer/renderer-app.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /path="\/workspace\/automation"/);
+  assert.match(source, /path="\/workspace\/automation\/reminders"/);
+  assert.match(source, /path="\/workspace\/automation\/reminders\/:jobId"/);
+  assert.match(source, /path="\/workspace\/automation\/tasks"/);
+  assert.match(source, /path="\/workspace\/automation\/tasks\/:jobId"/);
 });
 
 test("desktop renderer wires the dedicated new-agent route", () => {

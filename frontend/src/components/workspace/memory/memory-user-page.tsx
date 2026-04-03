@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
-
 import { useI18n } from "@/core/i18n/hooks";
 import { useMemory } from "@/core/memory/hooks";
 import { pathOfMemory } from "@/core/navigation/desktop-routes";
+
+import { MemoryBackLink } from "./memory-back-link";
 
 export function MemoryUserPage() {
   const { t } = useI18n();
@@ -29,7 +29,8 @@ export function MemoryUserPage() {
     <main className="flex size-full min-h-0 flex-col gap-6 overflow-y-auto px-4 py-6 sm:px-6">
       <header className="border bg-background px-6 py-5">
         <div className="flex items-start justify-between gap-4">
-          <div>
+          <div className="space-y-2">
+            <MemoryBackLink href={pathOfMemory()} label="返回记忆首页" />
             <p className="text-[11px] font-medium tracking-[0.16em] text-muted-foreground uppercase">
               User context
             </p>
@@ -37,12 +38,6 @@ export function MemoryUserPage() {
               {t.settings.memory.markdown.userContext}
             </h1>
           </div>
-          <Link
-            href={pathOfMemory()}
-            className="rounded-md border bg-background px-3 py-2 text-sm font-medium"
-          >
-            返回记忆首页
-          </Link>
         </div>
       </header>
       <section className="grid gap-4 md:grid-cols-3">

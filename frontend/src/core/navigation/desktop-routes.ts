@@ -40,6 +40,12 @@ export function pathOfMemorySearch() {
   return "/workspace/memory/search";
 }
 
+export function pathOfMemorySearchResults(query?: string) {
+  return withQuery("/workspace/memory/search/results", {
+    q: query?.trim() || undefined,
+  });
+}
+
 export function pathOfMemoryUser() {
   return "/workspace/memory/user";
 }
@@ -53,13 +59,15 @@ export function pathOfMemoryFacts() {
 }
 
 export function pathOfMemorySection(
-  section: "home" | "search" | "user" | "history" | "facts",
+  section: "home" | "search" | "searchResults" | "user" | "history" | "facts",
 ) {
   switch (section) {
     case "home":
       return pathOfMemory();
     case "search":
       return pathOfMemorySearch();
+    case "searchResults":
+      return pathOfMemorySearchResults();
     case "user":
       return pathOfMemoryUser();
     case "history":

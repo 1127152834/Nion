@@ -767,6 +767,8 @@ export interface Translations {
         description: string;
         placeholder: string;
         searchButton: string;
+        backToSearchHome: string;
+        emptyQuery: string;
         idle: string;
         empty: string;
         loadFailed: string;
@@ -774,6 +776,13 @@ export interface Translations {
         structuredEmpty: string;
         historyTitle: string;
         historyEmpty: string;
+        filterMemory: string;
+        filterHistory: string;
+        openThread: string;
+        resultsCount: (count: number) => string;
+        suggestProject: string;
+        suggestPreference: string;
+        suggestHistory: string;
         overviewTitle: string;
         overviewDescription: string;
         threadLabel: string;

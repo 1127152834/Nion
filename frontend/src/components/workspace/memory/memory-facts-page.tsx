@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -15,8 +14,10 @@ import {
 } from "@/components/ui/dialog";
 import { useI18n } from "@/core/i18n/hooks";
 import {
+  useClearMemory,
   useCreateMemoryFact,
   useDeleteMemoryFact,
+  useImportMemory,
   useMemory,
   useUpdateMemoryFact,
 } from "@/core/memory/hooks";
@@ -28,14 +29,20 @@ import type {
 } from "@/core/memory/types";
 import { formatTimeAgo } from "@/core/utils/datetime";
 
+import { MemoryBackLink } from "./memory-back-link";
+import { MemoryClearFlow } from "./memory-clear-flow";
+
 export function MemoryFactsPage() {
   const { t } = useI18n();
   const { memory } = useMemory();
+  const clearMemory = useClearMemory();
   const createMemoryFact = useCreateMemoryFact();
   const updateMemoryFact = useUpdateMemoryFact();
   const deleteMemoryFact = useDeleteMemoryFact();
+  const importMemory = useImportMemory();
   const [factDialogOpen, setFactDialogOpen] = useState(false);
   const [editingFact, setEditingFact] = useState<MemoryFact | null>(null);
+  const [clearFlowOpen, setClearFlowOpen] = useState(false);
   const [factForm, setFactForm] = useState<MemoryFactInput>({
     content: "",
     category: "context",
@@ -97,12 +104,52 @@ export function MemoryFactsPage() {
     }
   }
 
+  async function handleExportMemory() {
+    if (!memory) return;
+    const blob = new Blob([JSON.stringify(memory, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = "nion-memory-export.json";
+    anchor.click();
+    URL.revokeObjectURL(url);
+    toast.success(t.settings.memory.exportSuccess);
+  }
+
+  async function handleImportMemory(event: Event) {
+    const input = event.target as HTMLInputElement | null;
+    const file = input?.files?.[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      await importMemory.mutateAsync(JSON.parse(text));
+      toast.success(t.settings.memory.importSuccess);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    } finally {
+      if (input) input.value = "";
+    }
+  }
+
+  async function handleConfirmClearMemory() {
+    try {
+      await clearMemory.mutateAsync();
+      toast.success(t.settings.memory.clearAllSuccess);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    }
+  }
+
   return (
     <>
       <main className="flex size-full min-h-0 flex-col gap-6 overflow-y-auto px-4 py-6 sm:px-6">
-        <header className="border bg-background px-6 py-5">
+        <header className="space-y-4 border bg-background px-6 py-5">
           <div className="flex items-end justify-between gap-4">
-            <div>
+            <div className="space-y-2">
+              <MemoryBackLink href={pathOfMemory()} label="返回记忆首页" />
               <p className="text-[11px] font-medium tracking-[0.16em] text-muted-foreground uppercase">
                 Facts library
               </p>
@@ -110,13 +157,24 @@ export function MemoryFactsPage() {
                 {t.settings.memory.markdown.facts}
               </h1>
             </div>
-            <div className="flex gap-2">
-              <Link
-                href={pathOfMemory()}
-                className="rounded-md border bg-background px-3 py-2 text-sm font-medium"
-              >
-                返回记忆首页
-              </Link>
+            <div className="flex flex-wrap gap-2">
+              <label className="inline-flex">
+                <input
+                  type="file"
+                  accept="application/json"
+                  className="hidden"
+                  onChange={(event) => void handleImportMemory(event.nativeEvent)}
+                />
+                <Button variant="outline" asChild>
+                  <span>{t.settings.memory.importAction}</span>
+                </Button>
+              </label>
+              <Button variant="outline" onClick={() => void handleExportMemory()}>
+                {t.settings.memory.exportAction}
+              </Button>
+              <Button variant="outline" onClick={() => setClearFlowOpen(true)}>
+                {t.settings.memory.manageCleanup}
+              </Button>
               <Button onClick={handleCreateFact}>{t.settings.memory.addFact}</Button>
             </div>
           </div>
@@ -190,6 +248,16 @@ export function MemoryFactsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <MemoryClearFlow
+        open={clearFlowOpen}
+        factsCount={memory?.facts.length ?? 0}
+        lastUpdatedLabel={formatTimeAgo(memory?.lastUpdated)}
+        affectedSections={[t.settings.memory.markdown.facts]}
+        pending={clearMemory.isPending}
+        onOpenChange={setClearFlowOpen}
+        onConfirm={handleConfirmClearMemory}
+      />
     </>
   );
 }

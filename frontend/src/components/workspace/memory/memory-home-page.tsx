@@ -21,7 +21,7 @@ export function MemoryHomePage() {
     {
       href: pathOfMemorySearch(),
       title: "检索控制台",
-      description: "搜索长期记忆、历史对话和事实库，并进入清理流程。",
+      description: "像搜索引擎一样发起记忆检索，并进入独立结果页查看命中。",
     },
     {
       href: pathOfMemoryUser(),
@@ -36,7 +36,7 @@ export function MemoryHomePage() {
     {
       href: pathOfMemoryFacts(),
       title: t.settings.memory.markdown.facts,
-      description: "查看、编辑、导入和导出事实库。",
+      description: "查看、编辑、导入、导出事实库，并从这里进入清理流程。",
     },
   ];
 
