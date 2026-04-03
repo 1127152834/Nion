@@ -88,6 +88,22 @@ def test_notebook_tree_ignores_hidden_notebook_metadata(monkeypatch, tmp_path):
         assert all(".nion" not in item["path"] for item in payload["files"])
 
 
+def test_notebook_tree_assigns_note_id_for_legacy_markdown_without_frontmatter(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+
+    legacy_path = tmp_path / "notebook" / "AI学习" / "工作" / "搜索.md"
+    legacy_path.parent.mkdir(parents=True, exist_ok=True)
+    legacy_path.write_text("计划尽快哈看来你撒打算", encoding="utf-8")
+
+    with TestClient(create_app()) as client:
+        tree = client.get("/api/notebook/tree")
+
+        assert tree.status_code == 200
+        file_entry = next(item for item in tree.json()["files"] if item["path"] == "AI学习/工作/搜索.md")
+        assert file_entry["note_id"]
+
+
 def test_notebook_notes_list_ignores_hidden_paths(monkeypatch, tmp_path):
     monkeypatch.setenv("NION_HOME", str(tmp_path))
     reset_paths()

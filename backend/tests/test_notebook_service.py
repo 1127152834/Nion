@@ -206,3 +206,22 @@ def test_move_directory_rejects_descendant_target(tmp_path):
 
     with pytest.raises(NotebookDirectoryMoveError):
         service.move_directory(directory="projects/alpha", parent_directory="projects/alpha/nested")
+
+
+def test_legacy_markdown_without_frontmatter_still_round_trips_as_note(tmp_path):
+    service = NotebookService(base_dir=tmp_path)
+    legacy_path = tmp_path / "notebook" / "AI学习" / "工作" / "搜索.md"
+    legacy_path.parent.mkdir(parents=True, exist_ok=True)
+    legacy_path.write_text("计划尽快哈看来你撒打算", encoding="utf-8")
+
+    summaries = service.list_note_summaries()
+
+    assert len(summaries) == 1
+    summary = summaries[0]
+    assert summary.title == "搜索"
+    assert summary.relative_path == "AI学习/工作/搜索.md"
+    assert summary.note_id
+
+    loaded = service.read_note(summary.note_id)
+    assert loaded.title == "搜索"
+    assert loaded.body == "计划尽快哈看来你撒打算"

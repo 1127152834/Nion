@@ -72,6 +72,11 @@ def _asset_id() -> str:
     return f"asset_{datetime.now(UTC).strftime('%Y%m%d')}_{uuid.uuid4().hex[:8]}"
 
 
+def _stable_note_id_for_path(path: Path) -> str:
+    digest = hashlib.sha1(str(path.resolve()).encode("utf-8")).hexdigest()[:12]
+    return f"note_legacy_{digest}"
+
+
 def is_visible_notebook_relative_path(path: Path) -> bool:
     return ".nion" not in path.parts and not any(part.startswith(".") for part in path.parts)
 
@@ -255,19 +260,29 @@ class NotebookService:
     def _build_note(self, path: Path) -> NotebookNote:
         text = path.read_text(encoding="utf-8")
         frontmatter, body = split_frontmatter(text)
+        note_id = str(frontmatter.get("id") or _stable_note_id_for_path(path))
+        title = str(frontmatter.get("title") or path.stem)
+        created_at = str(
+            frontmatter.get("created_at")
+            or datetime.fromtimestamp(path.stat().st_ctime, UTC).isoformat()
+        )
+        updated_at = str(
+            frontmatter.get("updated_at")
+            or datetime.fromtimestamp(path.stat().st_mtime, UTC).isoformat()
+        )
         tags = frontmatter.get("tags")
         normalized_tags = [str(tag) for tag in tags] if isinstance(tags, list) else []
         return NotebookNote(
-            note_id=str(frontmatter["id"]),
-            title=str(frontmatter["title"]),
+            note_id=note_id,
+            title=title,
             relative_path=self._relative_path(path),
             absolute_path=str(path.resolve()),
-            created_at=str(frontmatter["created_at"]),
-            updated_at=str(frontmatter["updated_at"]),
+            created_at=created_at,
+            updated_at=updated_at,
             content_hash=_hash_text(text),
             body=body.lstrip("\n").rstrip("\n"),
             tags=normalized_tags,
-            is_pinned=self._read_pinned_state(str(frontmatter["id"])),
+            is_pinned=self._read_pinned_state(note_id),
         )
 
     def _write_note(self, path: Path, *, note_id: str, title: str, created_at: str, updated_at: str, body: str, tags: list[str] | None = None) -> NotebookNote:
@@ -290,6 +305,8 @@ class NotebookService:
             relative = path.resolve().relative_to(self._paths.notebook_root_dir.resolve())
             if not is_visible_notebook_relative_path(relative):
                 continue
+            if _stable_note_id_for_path(path) == note_id:
+                return path
             try:
                 frontmatter, _body = split_frontmatter(path.read_text(encoding="utf-8"))
             except OSError:
