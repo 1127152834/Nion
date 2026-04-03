@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Literal
+
 from .runtime_models import ToolExecutionStage, ToolRuntimeResult
 
 
@@ -42,7 +44,7 @@ def build_tool_runtime_metadata(
 
 def build_tool_runtime_result(
     *,
-    status: str,
+    status: Literal["success", "denied", "approval_required", "failed", "blocked"],
     stage: ToolExecutionStage,
     tool_name: str,
     tool_call_id: str | None,
@@ -51,7 +53,7 @@ def build_tool_runtime_result(
 ) -> ToolRuntimeResult:
     return ToolRuntimeResult(
         stage=stage,
-        status=status,  # type: ignore[arg-type]
+        status=status,
         tool_name=tool_name,
         tool_call_id=tool_call_id,
         message=message,

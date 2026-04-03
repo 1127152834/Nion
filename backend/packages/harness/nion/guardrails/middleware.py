@@ -199,7 +199,7 @@ class GuardrailMiddleware(AgentMiddleware[AgentState]):
                 },
                 "tool_runtime": build_tool_runtime_contract_summary(
                     status="approval_required",
-                    stage=ToolExecutionStage.REQUEST_PERMISSION,
+                    stage=ToolExecutionStage.PERMISSION_DECISION,
                     tool_name=tool_name,
                     tool_call_id=tool_call_id,
                 ),
@@ -224,7 +224,7 @@ class GuardrailMiddleware(AgentMiddleware[AgentState]):
             additional_kwargs={
                 "tool_runtime": build_tool_runtime_contract_summary(
                     status="failed" if reason_code == "oap.evaluator_error" else "denied",
-                    stage=ToolExecutionStage.CHECK_POLICY,
+                    stage=ToolExecutionStage.PERMISSION_DECISION,
                     tool_name=tool_name,
                     tool_call_id=tool_call_id,
                 ),

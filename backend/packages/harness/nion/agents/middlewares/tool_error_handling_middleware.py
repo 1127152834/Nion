@@ -26,6 +26,26 @@ _CLI_APPROVAL_TOOLS = [
 class ToolErrorHandlingMiddleware(AgentMiddleware[AgentState]):
     """Convert tool exceptions into error ToolMessages so the run can continue."""
 
+    def _attach_success_runtime_summary(
+        self,
+        request: ToolCallRequest,
+        result: ToolMessage | Command,
+    ) -> ToolMessage | Command:
+        if not isinstance(result, ToolMessage):
+            return result
+
+        tool_name = str(request.tool_call.get("name") or result.name or "unknown_tool")
+        tool_call_id = str(request.tool_call.get("id") or result.tool_call_id or _MISSING_TOOL_CALL_ID)
+        additional_kwargs = dict(result.additional_kwargs or {})
+        additional_kwargs["tool_runtime"] = build_tool_runtime_contract_summary(
+            status="success",
+            stage=ToolExecutionStage.EXECUTE,
+            tool_name=tool_name,
+            tool_call_id=tool_call_id,
+        )
+        result.additional_kwargs = additional_kwargs
+        return result
+
     def _build_error_message(self, request: ToolCallRequest, exc: Exception) -> ToolMessage:
         tool_name = str(request.tool_call.get("name") or "unknown_tool")
         tool_call_id = str(request.tool_call.get("id") or _MISSING_TOOL_CALL_ID)
@@ -42,7 +62,7 @@ class ToolErrorHandlingMiddleware(AgentMiddleware[AgentState]):
             additional_kwargs={
                 "tool_runtime": build_tool_runtime_contract_summary(
                     status="failed",
-                    stage=ToolExecutionStage.EXECUTE,
+                    stage=ToolExecutionStage.POST_TOOL_USE_FAILURE_HOOK,
                     tool_name=tool_name,
                     tool_call_id=tool_call_id,
                 ),
@@ -60,7 +80,7 @@ class ToolErrorHandlingMiddleware(AgentMiddleware[AgentState]):
         handler: Callable[[ToolCallRequest], ToolMessage | Command],
     ) -> ToolMessage | Command:
         try:
-            return handler(request)
+            return self._attach_success_runtime_summary(request, handler(request))
         except GraphBubbleUp:
             # Preserve LangGraph control-flow signals (interrupt/pause/resume).
             raise
@@ -75,7 +95,7 @@ class ToolErrorHandlingMiddleware(AgentMiddleware[AgentState]):
         handler: Callable[[ToolCallRequest], Awaitable[ToolMessage | Command]],
     ) -> ToolMessage | Command:
         try:
-            return await handler(request)
+            return self._attach_success_runtime_summary(request, await handler(request))
         except GraphBubbleUp:
             # Preserve LangGraph control-flow signals (interrupt/pause/resume).
             raise

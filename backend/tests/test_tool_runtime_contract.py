@@ -31,47 +31,48 @@ def test_tool_execution_context_captures_runtime_governance_inputs() -> None:
 def test_tool_runtime_result_reuses_existing_runtime_result_model() -> None:
     approval_required = ToolRuntimeResult(
         status="approval_required",
-        stage=ToolExecutionStage.REQUEST_PERMISSION,
+        stage=ToolExecutionStage.PERMISSION_DECISION,
         tool_name="bash",
         tool_call_id="call-1",
         message="approval required",
     )
     denied = ToolRuntimeResult(
         status="denied",
-        stage=ToolExecutionStage.CHECK_POLICY,
+        stage=ToolExecutionStage.PERMISSION_DECISION,
         tool_name="bash",
         tool_call_id="call-2",
         message="blocked",
     )
     failed = ToolRuntimeResult(
         status="failed",
-        stage=ToolExecutionStage.FAILURE_HOOKS,
+        stage=ToolExecutionStage.POST_TOOL_USE_FAILURE_HOOK,
         tool_name="web_search",
         tool_call_id="call-3",
         payload={"reason": "network down"},
     )
 
     assert approval_required.status == "approval_required"
-    assert approval_required.stage == ToolExecutionStage.REQUEST_PERMISSION
+    assert approval_required.stage == ToolExecutionStage.PERMISSION_DECISION
     assert approval_required.message == "approval required"
     assert denied.status == "denied"
-    assert denied.stage == ToolExecutionStage.CHECK_POLICY
+    assert denied.stage == ToolExecutionStage.PERMISSION_DECISION
     assert denied.message == "blocked"
     assert failed.status == "failed"
-    assert failed.stage == ToolExecutionStage.FAILURE_HOOKS
+    assert failed.stage == ToolExecutionStage.POST_TOOL_USE_FAILURE_HOOK
     assert failed.payload == {"reason": "network down"}
 
 
 def test_tool_execution_stage_reuses_existing_runtime_stage_vocabulary() -> None:
-    assert ToolExecutionStage.NORMALIZE_INPUT == "normalize_input"
+    assert ToolExecutionStage.LOOKUP == "lookup"
+    assert ToolExecutionStage.SCHEMA_PARSE == "schema_parse"
     assert ToolExecutionStage.VALIDATE_INPUT == "validate_input"
-    assert ToolExecutionStage.CHECK_POLICY == "check_policy"
-    assert ToolExecutionStage.PRE_HOOKS == "pre_hooks"
-    assert ToolExecutionStage.REQUEST_PERMISSION == "request_permission"
+    assert ToolExecutionStage.PRE_TOOL_USE_HOOK == "pre_tool_use_hook"
+    assert ToolExecutionStage.PERMISSION_DECISION == "permission_decision"
     assert ToolExecutionStage.EXECUTE == "execute"
-    assert ToolExecutionStage.POST_HOOKS == "post_hooks"
-    assert ToolExecutionStage.FAILURE_HOOKS == "failure_hooks"
-    assert ToolExecutionStage.NORMALIZE_RESULT == "normalize_result"
+    assert ToolExecutionStage.POST_TOOL_USE_HOOK == "post_tool_use_hook"
+    assert ToolExecutionStage.POST_TOOL_USE_FAILURE_HOOK == "post_tool_use_failure_hook"
+    assert ToolExecutionStage.RESULT_NORMALIZATION == "result_normalization"
+    assert ToolExecutionStage.ACTIVITY_PROJECTION == "activity_projection"
 
 
 def test_tool_runtime_diagnostics_projection_is_pure_summary() -> None:
@@ -123,21 +124,21 @@ def test_tool_runtime_diagnostics_projection_preserves_runtime_status_branches()
     results = [
         ToolRuntimeResult(
             status="approval_required",
-            stage=ToolExecutionStage.REQUEST_PERMISSION,
+            stage=ToolExecutionStage.PERMISSION_DECISION,
             tool_name="bash",
             tool_call_id="call-1",
             message="approval required",
         ),
         ToolRuntimeResult(
             status="denied",
-            stage=ToolExecutionStage.CHECK_POLICY,
+            stage=ToolExecutionStage.PERMISSION_DECISION,
             tool_name="bash",
             tool_call_id="call-2",
             message="blocked",
         ),
         ToolRuntimeResult(
             status="failed",
-            stage=ToolExecutionStage.FAILURE_HOOKS,
+            stage=ToolExecutionStage.POST_TOOL_USE_FAILURE_HOOK,
             tool_name="web_search",
             tool_call_id="call-3",
             payload={"reason": "network down"},
@@ -147,9 +148,9 @@ def test_tool_runtime_diagnostics_projection_preserves_runtime_status_branches()
     projections = [project_tool_runtime_diagnostics(context, result) for result in results]
 
     assert [(item["status"], item["stage"]) for item in projections] == [
-        ("approval_required", ToolExecutionStage.REQUEST_PERMISSION.value),
-        ("denied", ToolExecutionStage.CHECK_POLICY.value),
-        ("failed", ToolExecutionStage.FAILURE_HOOKS.value),
+        ("approval_required", ToolExecutionStage.PERMISSION_DECISION.value),
+        ("denied", ToolExecutionStage.PERMISSION_DECISION.value),
+        ("failed", ToolExecutionStage.POST_TOOL_USE_FAILURE_HOOK.value),
     ]
     for diagnostics in projections:
         assert diagnostics["selected_extension_groups"] == ["cli_tools", "skills"]
