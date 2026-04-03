@@ -118,6 +118,12 @@ Middlewares execute in strict order, each handling a specific concern:
 | 8 | **ViewImageMiddleware** | Injects image data for vision-capable models (conditional) |
 | 9 | **ClarificationMiddleware** | Intercepts clarification requests and interrupts execution (must be last) |
 
+Thread title persistence rule:
+
+- `"Untitled"` is treated as a placeholder only.
+- If a thread already has a non-placeholder title, later stream snapshots must not overwrite it back to `"Untitled"`.
+- Automatic background title generation still only runs while the thread remains in a placeholder-title state.
+
 ### Sandbox System
 
 Per-thread isolated execution with virtual path translation:

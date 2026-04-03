@@ -136,6 +136,7 @@ src/
 - Set `NION_STATIC_EXPORT=1` only when you intentionally need a static export build
 - The settings dialog shell is grouped into Experience / Knowledge & Memory / Tools & Skills and preloads Config Center state when opened
 - The chat page now exposes a runtime toggle plus Context / Skill / MCP / CLI shortcut lanes
+- Chat thread titles now keep user-renamed titles stable during follow-up turns; later stream snapshots treat `"Untitled"` as a placeholder instead of a title reset
 - The workspace now includes a top-level **Projects** module for long-running work containers, execution plans, project threads, timeline, managed artifacts, and completion-stage extraction suggestions
 - The settings dialog now includes an **Agent Integrations** page for ACP adapters and a **Memory** storage selector that maps UI-safe modes onto Config Center state
 - The desktop Remote Bridge now gates each platform behind a persisted verification state: users must verify the connection before enabling a channel, and each re-enable automatically re-verifies the platform

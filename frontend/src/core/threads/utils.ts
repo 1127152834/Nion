@@ -1,6 +1,7 @@
 import { isInternalSummaryMessage } from "../messages/utils";
 
 import type { AgentThread, Message } from "./types";
+import { resolvePreferredThreadTitle } from "./title";
 export {
   pathOfAutomation,
   pathOfChatHistoryType,
@@ -27,7 +28,9 @@ export function textOfMessage(message: Message) {
 }
 
 export function titleOfThread(thread: AgentThread) {
-  return thread.values?.title ?? "Untitled";
+  return resolvePreferredThreadTitle({
+    incomingTitle: thread.values?.title,
+  }) ?? "Untitled";
 }
 
 export function bridgeInfoOfThread(thread: AgentThread) {

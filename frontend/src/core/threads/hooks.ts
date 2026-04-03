@@ -14,6 +14,7 @@ import { uploadFiles } from "../uploads";
 
 import { removeThreadFromSearchCache } from "./cache";
 import { getThreadRequestErrorCopy, getThreadRequestErrorMessage } from "./error-copy";
+import { resolvePreferredThreadTitle } from "./title";
 import {
   mergeThreadMessages,
   reconcileLoadedThreadMessages,
@@ -302,22 +303,34 @@ export function useThreadStream({
                 snapshotMessages,
               );
               setMessages(mergedMessages);
-              setValues((current) => ({
-                ...current,
-                ...snapshot,
-                messages: mergedMessages,
-                tool_activity_timeline: Array.isArray(snapshot.tool_activity_timeline)
-                  ? snapshot.tool_activity_timeline
-                  : current.tool_activity_timeline,
-                latest_tool_activity:
-                  snapshot.latest_tool_activity ?? current.latest_tool_activity,
-              }));
+              setValues((current) => {
+                const nextTitle = resolvePreferredThreadTitle({
+                  currentTitle: current.title,
+                  incomingTitle: snapshot.title,
+                });
+
+                return {
+                  ...current,
+                  ...snapshot,
+                  title: nextTitle ?? current.title,
+                  messages: mergedMessages,
+                  tool_activity_timeline: Array.isArray(snapshot.tool_activity_timeline)
+                    ? snapshot.tool_activity_timeline
+                    : current.tool_activity_timeline,
+                  latest_tool_activity:
+                    snapshot.latest_tool_activity ?? current.latest_tool_activity,
+                };
+              });
               updateThreadSearchCache((thread) => ({
                 ...thread,
                 updated_at: new Date().toISOString(),
                 values: {
                   ...thread.values,
                   ...snapshot,
+                  title: resolvePreferredThreadTitle({
+                    currentTitle: thread.values?.title,
+                    incomingTitle: snapshot.title,
+                  }) ?? thread.values?.title ?? EMPTY_THREAD_STATE.title,
                   messages: mergedMessages,
                 },
               }));
@@ -348,6 +361,11 @@ export function useThreadStream({
                     setValues((current) => ({
                       ...current,
                       ...(state.values ?? {}),
+                      title:
+                        resolvePreferredThreadTitle({
+                          currentTitle: current.title,
+                          incomingTitle: state.values?.title,
+                        }) ?? current.title,
                       messages: mergedMessages,
                       tool_activity_timeline: Array.isArray(
                         state.values?.tool_activity_timeline,
@@ -368,7 +386,11 @@ export function useThreadStream({
                           ...thread.values,
                           ...(state.values ?? {}),
                           messages: mergedMessages,
-                          title: refreshedTitle,
+                          title:
+                            resolvePreferredThreadTitle({
+                              currentTitle: thread.values?.title,
+                              incomingTitle: refreshedTitle,
+                            }) ?? thread.values?.title ?? EMPTY_THREAD_STATE.title,
                         },
                       }));
                     }

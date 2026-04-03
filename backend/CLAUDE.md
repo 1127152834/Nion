@@ -94,6 +94,12 @@ Memory currently uses the legacy `memory.json` path through `nion.agents.memory.
 Do not reintroduce provider-based memory, AutoDream, self-maintenance, heartbeat,
 compaction, or rebuild behavior unless the user explicitly starts a new design cycle.
 
+Thread title handling:
+
+- Treat `"Untitled"` as a placeholder state, not a user-confirmed title.
+- Later stream snapshots may carry `"Untitled"` again, but they must not overwrite an existing non-placeholder thread title such as a manually renamed title.
+- Background title generation should keep using the placeholder/non-placeholder distinction when deciding whether another title pass is allowed.
+
 ### Local Daemon Surface
 
 The desktop local daemon reuses the gateway router modules directly. Keep its

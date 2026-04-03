@@ -10,6 +10,8 @@ from langchain_core.messages import AIMessage, HumanMessage
 from nion.agents.middlewares.title_middleware import TitleMiddleware
 from nion.config.title_config import get_title_config
 
+from .title_policy import is_placeholder_thread_title
+
 logger = logging.getLogger(__name__)
 
 
@@ -19,7 +21,7 @@ def should_generate_thread_title(values: dict[str, Any]) -> bool:
         return False
 
     title = values.get("title")
-    if isinstance(title, str) and title.strip() and title.strip() != "Untitled":
+    if isinstance(title, str) and not is_placeholder_thread_title(title):
         return False
 
     messages = values.get("messages", [])

@@ -17,6 +17,7 @@ from .models import (
     ThreadStreamRequest,
 )
 from .repository import ThreadRepository
+from .title_policy import is_placeholder_thread_title, resolve_preferred_thread_title
 from .title_generation import generate_thread_title_in_background
 
 
@@ -110,6 +111,8 @@ class ThreadService:
         context = dict(request.context)
         config = request.config
         latest_values: dict[str, Any] | None = None
+        existing_record = self._repository.get_thread(thread_id)
+        existing_title = existing_record.values.title if existing_record is not None else None
         try:
             context.setdefault("thread_id", thread_id)
             if request.assistant_id and "agent_name" not in context:
@@ -149,11 +152,18 @@ class ThreadService:
                 primary_plan_id=context.get("primary_plan_id"),
             ):
                 if event.type == "values":
+                    incoming_title = event.data.get("title")
+                    resolved_title = resolve_preferred_thread_title(
+                        current_title=existing_title,
+                        incoming_title=incoming_title if isinstance(incoming_title, str) else None,
+                    )
                     latest_values = {
-                        "title": event.data.get("title") or "Untitled",
+                        "title": resolved_title or "Untitled",
                         "messages": event.data.get("messages", []),
                         "artifacts": event.data.get("artifacts", []),
                     }
+                    existing_title = latest_values["title"]
+                    event.data["title"] = latest_values["title"]
                 yield event
 
             if latest_values is not None:
@@ -213,7 +223,7 @@ class ThreadService:
             return
 
         current_title = existing.values.title.strip()
-        if current_title and current_title != "Untitled":
+        if not is_placeholder_thread_title(current_title):
             return
 
         self._repository.update_state(thread_id, {"title": title})
