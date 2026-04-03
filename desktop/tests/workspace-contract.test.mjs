@@ -33,3 +33,12 @@ test("desktop renderer wires notebook and memory workspace routes without self-m
   assert.match(source, /path="\/workspace\/memory"/);
   assert.doesNotMatch(source, /path="\/workspace\/self-maintenance"/);
 });
+
+test("desktop renderer wires the dedicated new-agent route", () => {
+  const source = fs.readFileSync(
+    new URL("../src/renderer/renderer-app.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /path="\/workspace\/agents\/new"/);
+});

@@ -5,6 +5,7 @@ import WorkspaceLayout from "@/app/workspace/layout";
 import WorkspacePage from "@/app/workspace/page";
 import ChatsPage from "@/app/workspace/chats/page";
 import AgentsPage from "@/app/workspace/agents/page";
+import NewAgentPage from "@/app/workspace/agents/new/page";
 import AboutPage from "@/app/workspace/about/page";
 import AutomationPage from "@/app/workspace/automation/page";
 import BridgePage from "@/app/workspace/bridge/page";
@@ -43,6 +44,14 @@ export function DesktopRendererApp() {
                 element={
                   <WorkspaceRoute>
                     <AgentsPage />
+                  </WorkspaceRoute>
+                }
+              />
+              <Route
+                path="/workspace/agents/new"
+                element={
+                  <WorkspaceRoute>
+                    <NewAgentPage />
                   </WorkspaceRoute>
                 }
               />
