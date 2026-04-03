@@ -1,5 +1,7 @@
 from nion.agents.lead_agent.prompt import _build_subagent_section, apply_prompt_template
 from nion.prompt_runtime.models import PromptBuildArtifact
+from nion.prompt_runtime.profiles import AgentPromptProfile
+from nion.prompt_runtime.registry import PromptSectionRegistry
 
 
 def test_apply_prompt_template_uses_prompt_runtime_artifact(monkeypatch) -> None:
@@ -34,6 +36,10 @@ def test_apply_prompt_template_uses_prompt_runtime_artifact(monkeypatch) -> None
     assert keys[0] == "core.prompt"
     assert "dynamic.skills" in keys
     assert "dynamic.current_date" in keys
+    sources = {section.source for section in captured["sections"]}
+    assert "prompt.core" in sources
+    assert "prompt.session" in sources
+    assert "prompt.extensions" in sources
 
 
 def test_apply_prompt_template_passes_available_skills_into_build_context(monkeypatch) -> None:
@@ -62,6 +68,10 @@ def test_apply_prompt_template_passes_available_skills_into_build_context(monkey
     assert captured["context"].available_skills == {"bootstrap"}
     assert captured["context"].agent_name == "bootstrap"
     assert any(section.key == "dynamic.skills" for section in captured["sections"])
+    skills_section = next(
+        section for section in captured["sections"] if section.key == "dynamic.skills"
+    )
+    assert skills_section.source == "prompt.extensions"
 
 
 def test_subagent_prompt_runtime_context_marks_subagent_enabled(monkeypatch) -> None:
@@ -91,6 +101,48 @@ def test_subagent_prompt_runtime_context_marks_subagent_enabled(monkeypatch) -> 
     assert captured["context"].subagent_enabled is True
     assert captured["context"].max_concurrent_subagents == 4
     assert any(section.key == "dynamic.subagent" for section in captured["sections"])
+    subagent_section = next(
+        section for section in captured["sections"] if section.key == "dynamic.subagent"
+    )
+    assert subagent_section.source == "prompt.overlays"
+
+
+def test_apply_prompt_template_uses_prompt_registry_with_resolved_profile(monkeypatch) -> None:
+    captured: dict[str, object] = {}
+
+    def _fake_build_sections(self, context, *, profile=None):
+        del self
+        captured["context"] = context
+        captured["profile"] = profile
+        return []
+
+    def _fake_build_prompt_artifact(*, context, sections):
+        captured["artifact_context"] = context
+        captured["sections"] = sections
+        return PromptBuildArtifact(
+            full_prompt="STATIC\n\n__PROMPT_DYNAMIC_BOUNDARY__",
+            static_prefix="STATIC",
+            dynamic_suffix="",
+            section_manifest=sections,
+        )
+
+    monkeypatch.setattr(
+        PromptSectionRegistry,
+        "build_sections",
+        _fake_build_sections,
+    )
+    monkeypatch.setattr(
+        "nion.agents.lead_agent.prompt.build_prompt_artifact",
+        _fake_build_prompt_artifact,
+    )
+
+    apply_prompt_template(agent_name="notebook-chat")
+
+    assert captured["context"].agent_name == "notebook-chat"
+    assert captured["artifact_context"] is captured["context"]
+    assert captured["sections"] == []
+    assert isinstance(captured["profile"], AgentPromptProfile)
+    assert captured["profile"].profile_id == "builtin.notebook-chat"
 
 
 def test_build_subagent_section_hides_bash_when_host_bash_is_unavailable(monkeypatch) -> None:
@@ -136,6 +188,7 @@ def test_apply_prompt_template_injects_user_selected_extensions_section(monkeypa
     selected_section = next(
         section for section in captured["sections"] if section.key == "dynamic.user_selected_extensions"
     )
+    assert selected_section.source == "prompt.extensions"
     assert "claude-to-nion" in selected_section.content
     assert "slack.search" in selected_section.content
     assert "docker" in selected_section.content

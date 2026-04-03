@@ -118,6 +118,13 @@ Runtime profile execution contract:
   for both the lead agent and task/subagent execution paths; sandbox mode must keep
   the existing host-bash denial behavior.
 
+Prompt assembly contract:
+
+- `nion.agents.lead_agent.prompt.apply_prompt_template()` is the prompt assembly entrypoint.
+- Keep `SYSTEM_PROMPT_TEMPLATE` as the core static prompt body, but assemble prompt sections through prompt section providers under `packages/harness/nion/prompt_sections/`.
+- `apply_prompt_template()` should build `PromptBuildContext`, resolve an `AgentPromptProfile`, ask the prompt section registry for sections, then call `build_prompt_artifact()`.
+- `threads/service.py` may pass session/runtime guidance through context, but must not reintroduce direct prompt text concatenation.
+
 Bridge configuration direction:
 - Bridge credentials, enabled flags, verification state, and defaults are moving into Config Center / `config.db`
 - Bridge runtime state (bindings, offsets, incidents, observations, weixin account session data) remains desktop-local for now

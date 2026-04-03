@@ -183,6 +183,12 @@ make dev
 - `runtime-profile` 的 `execution_mode=host` 现在会实际传到执行链路；在本地 sandbox provider 下，host 模式会允许主 agent 与 task 子任务走本机 `bash`/CLI 执行。
 - 如果线程仍处于 `sandbox` 模式，`docker` 这类本机命令仍会被本地 sandbox 安全策略拦截。
 
+当前 prompt runtime 的装配约定：
+
+- `SYSTEM_PROMPT_TEMPLATE` 继续作为核心静态 prompt 主体。
+- 动态 section 不再由 `lead_agent.prompt` 手工逐段拼接，而是通过 `backend/packages/harness/nion/prompt_sections/` 下的 provider 组装。
+- `threads/service.py` 只负责把 notebook / runtime-profile / session guidance 透传到运行时上下文，不负责拼接 prompt 文本。
+
 如果只调试 web 前端，也可以直接运行：
 
 ```bash
