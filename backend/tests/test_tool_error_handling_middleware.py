@@ -22,6 +22,12 @@ def test_wrap_tool_call_passthrough_on_success():
     result = middleware.wrap_tool_call(req, lambda _req: expected)
 
     assert result is expected
+    assert result.additional_kwargs["tool_runtime"] == {
+        "status": "success",
+        "stage": "execute",
+        "tool_name": "web_search",
+        "tool_call_id": "tc-1",
+    }
 
 
 def test_wrap_tool_call_returns_error_tool_message_on_exception():
@@ -39,6 +45,12 @@ def test_wrap_tool_call_returns_error_tool_message_on_exception():
     assert result.status == "error"
     assert "Tool 'web_search' failed" in result.text
     assert "network down" in result.text
+    assert result.additional_kwargs["tool_runtime"] == {
+        "status": "failed",
+        "stage": "post_tool_use_failure_hook",
+        "tool_name": "web_search",
+        "tool_call_id": "tc-42",
+    }
 
 
 def test_wrap_tool_call_uses_fallback_tool_call_id_when_missing():
@@ -82,6 +94,52 @@ async def test_awrap_tool_call_returns_error_tool_message_on_exception():
     assert result.name == "mcp_tool"
     assert result.status == "error"
     assert "request timed out" in result.text
+    assert result.additional_kwargs["tool_runtime"] == {
+        "status": "failed",
+        "stage": "post_tool_use_failure_hook",
+        "tool_name": "mcp_tool",
+        "tool_call_id": "tc-async",
+    }
+
+
+@pytest.mark.anyio
+async def test_awrap_tool_call_passthrough_on_success_with_runtime_summary():
+    middleware = ToolErrorHandlingMiddleware()
+    req = _request(name="mcp_tool", tool_call_id="tc-ok")
+    expected = ToolMessage(content="ok", tool_call_id="tc-ok", name="mcp_tool")
+
+    async def _ok(_req):
+        return expected
+
+    result = await middleware.awrap_tool_call(req, _ok)
+
+    assert result is expected
+    assert result.additional_kwargs["tool_runtime"] == {
+        "status": "success",
+        "stage": "execute",
+        "tool_name": "mcp_tool",
+        "tool_call_id": "tc-ok",
+    }
+
+
+@pytest.mark.anyio
+async def test_awrap_tool_call_adds_runtime_summary_on_success():
+    middleware = ToolErrorHandlingMiddleware()
+    req = _request(name="web_search", tool_call_id="tc-ok")
+    expected = ToolMessage(content="ok", tool_call_id="tc-ok", name="web_search")
+
+    async def _ok(_req):
+        return expected
+
+    result = await middleware.awrap_tool_call(req, _ok)
+
+    assert result is expected
+    assert result.additional_kwargs["tool_runtime"] == {
+        "status": "success",
+        "stage": "execute",
+        "tool_name": "web_search",
+        "tool_call_id": "tc-ok",
+    }
 
 
 @pytest.mark.anyio

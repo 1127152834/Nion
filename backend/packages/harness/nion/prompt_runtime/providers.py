@@ -6,5 +6,7 @@ from .models import PromptBuildContext, PromptSection
 
 
 class PromptSectionProvider(Protocol):
+    provider_id: str
+
     def build(self, context: PromptBuildContext) -> list[PromptSection]:
         ...

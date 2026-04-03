@@ -21,9 +21,9 @@ def test_tool_execution_traits_has_runtime_flags() -> None:
 
 
 def test_tool_execution_stage_enumerates_pipeline() -> None:
-    assert ToolExecutionStage.NORMALIZE_INPUT == "normalize_input"
-    assert ToolExecutionStage.REQUEST_PERMISSION == "request_permission"
-    assert ToolExecutionStage.NORMALIZE_RESULT == "normalize_result"
+    assert ToolExecutionStage.LOOKUP == "lookup"
+    assert ToolExecutionStage.PERMISSION_DECISION == "permission_decision"
+    assert ToolExecutionStage.RESULT_NORMALIZATION == "result_normalization"
 
 
 def test_tool_runtime_result_captures_status_and_stage() -> None:

@@ -16,15 +16,16 @@ class ToolExecutionTraits:
 
 
 class ToolExecutionStage(StrEnum):
-    NORMALIZE_INPUT = "normalize_input"
+    LOOKUP = "lookup"
+    SCHEMA_PARSE = "schema_parse"
     VALIDATE_INPUT = "validate_input"
-    CHECK_POLICY = "check_policy"
-    PRE_HOOKS = "pre_hooks"
-    REQUEST_PERMISSION = "request_permission"
+    PRE_TOOL_USE_HOOK = "pre_tool_use_hook"
+    PERMISSION_DECISION = "permission_decision"
     EXECUTE = "execute"
-    POST_HOOKS = "post_hooks"
-    FAILURE_HOOKS = "failure_hooks"
-    NORMALIZE_RESULT = "normalize_result"
+    POST_TOOL_USE_HOOK = "post_tool_use_hook"
+    POST_TOOL_USE_FAILURE_HOOK = "post_tool_use_failure_hook"
+    RESULT_NORMALIZATION = "result_normalization"
+    ACTIVITY_PROJECTION = "activity_projection"
 
 
 @dataclass(slots=True)
