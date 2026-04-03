@@ -20,6 +20,9 @@ class PromptSection:
     order: int
     enabled: bool = True
     tags: tuple[str, ...] = ()
+    source: str | None = None
+    priority: int = 0
+    cache_group: str | None = None
 
 
 @dataclass(slots=True)
@@ -43,3 +46,12 @@ class PromptBuildArtifact:
     static_prefix: str
     dynamic_suffix: str
     section_manifest: list[PromptSection] = field(default_factory=list)
+    provider_manifest: dict[str, object] = field(default_factory=dict)
+    static_char_count: int | None = None
+    dynamic_char_count: int | None = None
+
+    def __post_init__(self) -> None:
+        if self.static_char_count is None:
+            self.static_char_count = len(self.static_prefix)
+        if self.dynamic_char_count is None:
+            self.dynamic_char_count = len(self.dynamic_suffix)
