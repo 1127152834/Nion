@@ -1,3 +1,5 @@
+import type { ObjectMention } from "./object-mentions";
+
 export type AutomationScheduleKind = "once" | "interval" | "cron";
 export type AutomationSchedulePreset = "once" | "daily" | "weekdays" | "weekly" | "interval" | "cron";
 export type AutomationJobKind = "reminder" | "scheduled_task";
@@ -6,6 +8,13 @@ export type AutomationDeliveryMode = "local" | "thread" | "channel" | "multi";
 export type AutomationRunStatus = "running" | "succeeded" | "failed" | "skipped";
 export type AutomationTriggerKind = "schedule" | "manual";
 export type AutomationActionKind = "agent_prompt";
+export type AutomationImplicitMention =
+  | {
+      kind: "context" | "skill" | "mcp" | "cli";
+      value: string;
+      mention: string;
+    }
+  | ObjectMention;
 
 export interface AutomationJob {
   id: string;
@@ -22,6 +31,7 @@ export interface AutomationJob {
   delivery_mode: AutomationDeliveryMode;
   delivery_targets: Array<Record<string, unknown>>;
   skills: string[];
+  implicit_mentions: AutomationImplicitMention[];
   session_policy: Record<string, unknown>;
   toolset_profile: string;
   next_run_at?: string | null;
@@ -70,6 +80,7 @@ export interface AutomationJobCreateInput {
   delivery_mode: AutomationDeliveryMode;
   delivery_targets: Array<Record<string, unknown>>;
   skills: string[];
+  implicit_mentions?: AutomationImplicitMention[];
   session_policy?: Record<string, unknown>;
   toolset_profile?: string;
 }

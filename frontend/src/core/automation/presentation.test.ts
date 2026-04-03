@@ -29,6 +29,7 @@ function makeJob(overrides: Partial<AutomationJob>): AutomationJob {
     delivery_mode: "local",
     delivery_targets: [],
     skills: [],
+    implicit_mentions: [],
     session_policy: {},
     toolset_profile: "automation",
     created_at: "2026-03-24T00:00:00Z",
