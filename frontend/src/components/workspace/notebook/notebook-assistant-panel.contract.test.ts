@@ -21,6 +21,7 @@ void test("NotebookAssistantPanel stays note-centric and notebook-only", async (
   assert.match(panelSource, /新对话/);
   assert.match(panelSource, /MessageList/);
   assert.match(panelSource, /ThreadContext\.Provider/);
+  assert.match(panelSource, /ArtifactsProvider/);
   assert.match(panelSource, /useThreadStream/);
   assert.match(panelSource, /useCreateOrResumeNotebookAssistantSession/);
   assert.match(panelSource, /\}, \[noteId, sessionId\]\)/);

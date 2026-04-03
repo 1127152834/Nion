@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
 import { Button } from "@/components/ui/button";
+import { ArtifactsProvider } from "@/components/workspace/artifacts";
 import { MessageList } from "@/components/workspace/messages";
 import { ThreadContext } from "@/components/workspace/messages/context";
 import { useCreateOrResumeNotebookAssistantSession } from "@/core/notebook-assistant/hooks";
@@ -139,18 +140,20 @@ export function NotebookAssistantPanel({
             正在连接当前笔记上下文…
           </div>
         ) : (
-          <ThreadContext.Provider value={{ thread }}>
-            <MessageList
-              className="h-full px-2"
-              contentClassName="notebook-assistant-message-list max-w-none gap-5 px-4 pt-20 pb-4 [&_[data-slot='message']]:text-[0.92rem] [&_.group\\/conversation-message_p]:leading-6 [&_.group\\/conversation-message_pre]:text-[0.8rem] [&_.group\\/conversation-message_ul]:my-2 [&_.group\\/conversation-message_ol]:my-2"
-              density="compact"
-              threadId={thread.threadId}
-              thread={thread}
-              pendingClarification={pendingClarification}
-              pendingPermissionRequest={pendingPermissionRequest}
-              paddingBottom={128}
-            />
-          </ThreadContext.Provider>
+          <ArtifactsProvider>
+            <ThreadContext.Provider value={{ thread }}>
+              <MessageList
+                className="h-full px-2"
+                contentClassName="notebook-assistant-message-list max-w-none gap-5 px-4 pt-20 pb-4 [&_[data-slot='message']]:text-[0.92rem] [&_.group\\/conversation-message_p]:leading-6 [&_.group\\/conversation-message_pre]:text-[0.8rem] [&_.group\\/conversation-message_ul]:my-2 [&_.group\\/conversation-message_ol]:my-2"
+                density="compact"
+                threadId={thread.threadId}
+                thread={thread}
+                pendingClarification={pendingClarification}
+                pendingPermissionRequest={pendingPermissionRequest}
+                paddingBottom={128}
+              />
+            </ThreadContext.Provider>
+          </ArtifactsProvider>
         )}
       </section>
 
