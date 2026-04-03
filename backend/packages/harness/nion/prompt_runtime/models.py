@@ -46,12 +46,10 @@ class PromptBuildArtifact:
     static_prefix: str
     dynamic_suffix: str
     section_manifest: list[PromptSection] = field(default_factory=list)
-    provider_manifest: dict[str, object] = field(default_factory=dict)
-    static_char_count: int | None = None
-    dynamic_char_count: int | None = None
+    provider_manifest: list[str] = field(default_factory=list)
+    static_char_count: int = field(init=False)
+    dynamic_char_count: int = field(init=False)
 
     def __post_init__(self) -> None:
-        if self.static_char_count is None:
-            self.static_char_count = len(self.static_prefix)
-        if self.dynamic_char_count is None:
-            self.dynamic_char_count = len(self.dynamic_suffix)
+        self.static_char_count = len(self.static_prefix)
+        self.dynamic_char_count = len(self.dynamic_suffix)

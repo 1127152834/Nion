@@ -84,24 +84,22 @@ def test_prompt_build_artifact_exposes_all_layers() -> None:
     assert artifact.static_prefix == "static"
     assert artifact.dynamic_suffix == "dynamic"
     assert artifact.section_manifest == [section]
-    assert artifact.provider_manifest == {}
+    assert artifact.provider_manifest == []
     assert artifact.static_char_count == len("static")
     assert artifact.dynamic_char_count == len("dynamic")
 
 
-def test_prompt_build_artifact_supports_provider_manifest_and_char_counts() -> None:
+def test_prompt_build_artifact_supports_provider_id_manifest_and_stable_char_counts() -> None:
     artifact = PromptBuildArtifact(
         full_prompt=f"prefix\n{PROMPT_DYNAMIC_BOUNDARY}\nsuffix",
         static_prefix="prefix",
         dynamic_suffix="suffix",
-        provider_manifest={"openai": {"model": "gpt-4.1"}},
-        static_char_count=123,
-        dynamic_char_count=456,
+        provider_manifest=["openai", "anthropic"],
     )
 
-    assert artifact.provider_manifest == {"openai": {"model": "gpt-4.1"}}
-    assert artifact.static_char_count == 123
-    assert artifact.dynamic_char_count == 456
+    assert artifact.provider_manifest == ["openai", "anthropic"]
+    assert artifact.static_char_count == len("prefix")
+    assert artifact.dynamic_char_count == len("suffix")
 
 
 def test_prompt_dynamic_boundary_is_stable_marker() -> None:
