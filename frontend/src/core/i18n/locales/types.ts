@@ -456,6 +456,7 @@ export interface Translations {
   conversation: {
     noMessages: string;
     startConversation: string;
+    compressedSummary: string;
   };
 
   // Chats

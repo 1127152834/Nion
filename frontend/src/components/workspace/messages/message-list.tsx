@@ -87,6 +87,17 @@ export function MessageList({
                 />
               );
             });
+          } else if (group.type === "system:internal-summary") {
+            return (
+              <div
+                key={group.id}
+                className="flex w-full justify-center py-1"
+              >
+                <span className="text-muted-foreground bg-muted/60 inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] leading-none">
+                  {t.conversation.compressedSummary}
+                </span>
+              </div>
+            );
           } else if (group.type === "assistant:clarification") {
             const message = group.messages[0];
             if (

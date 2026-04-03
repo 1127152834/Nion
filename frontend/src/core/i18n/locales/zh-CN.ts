@@ -279,6 +279,7 @@ export const zhCN: Translations = {
   conversation: {
     noMessages: "还没有消息",
     startConversation: "开始新的对话以查看消息",
+    compressedSummary: "已自动压缩",
   },
 
   // Chats

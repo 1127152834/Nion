@@ -79,6 +79,7 @@ The frontend is a stateful chat application. Users create **threads** (conversat
 - **LangGraph client** is a singleton obtained via `getAPIClient()` in `core/api/`
 - **Environment validation** uses `@t3-oss/env-nextjs` with Zod schemas (`src/env.js`). Skip with `SKIP_ENV_VALIDATION=1`
 - **Thread titles** treat `"Untitled"` as a placeholder only; stream snapshots must not overwrite an existing manual or generated title back to that placeholder
+- **Internal conversation summaries** are still kept in thread context, but the message timeline should render them only as a compact compression tag, never as an expanded body block
 
 ## Code Style
 

@@ -116,6 +116,7 @@
 - 列表/详情/卡片/面板展示：
   - 线程列表 title、bridge badge、pending clarification badge 正确。
   - MessageList 能正确区分 human/assistant/clarification/permission/subtask/present-files。
+  - 自动对话压缩产生的内部 summary 只显示一个小型压缩 tag，不应展开正文块。
   - artifact detail 与 file list 切换正常。
 - 用户交互：
   - 输入消息、点击发送、点击 stop、点击 follow-up suggestion、点击 artifact、切换 panel、打开 terminal。

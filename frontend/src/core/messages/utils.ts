@@ -1,6 +1,14 @@
 import type { Message } from "../threads";
 
 const INTERNAL_SUMMARY_PREFIX = "Here is a summary of the conversation to date:";
+const INTERNAL_SUMMARY_TITLE = "conversation summary";
+const INTERNAL_SUMMARY_SECTION_HEADINGS = [
+  "goal",
+  "confirmed decisions",
+  "constraints",
+  "completed work",
+  "remaining open questions",
+] as const;
 const SELECTED_CLI_TOOLS_TAG_RE = /<selected_cli_tools>[\s\S]*?<\/selected_cli_tools>/g;
 
 interface GenericMessageGroup<T = string> {
@@ -26,6 +34,9 @@ interface AssistantSubagentGroup extends GenericMessageGroup<"assistant:subagent
 interface AssistantToolActivitySummaryGroup
   extends GenericMessageGroup<"assistant:tool-activity-summary"> {}
 
+interface InternalSummaryGroup
+  extends GenericMessageGroup<"system:internal-summary"> {}
+
 type MessageGroup =
   | HumanMessageGroup
   | AssistantProcessingGroup
@@ -34,7 +45,8 @@ type MessageGroup =
   | AssistantClarificationGroup
   | AssistantPermissionRequestGroup
   | AssistantSubagentGroup
-  | AssistantToolActivitySummaryGroup;
+  | AssistantToolActivitySummaryGroup
+  | InternalSummaryGroup;
 
 export function groupMessages<T>(
   messages: Message[],
@@ -63,6 +75,11 @@ export function groupMessages<T>(
 
   for (const message of messages) {
     if (isInternalSummaryMessage(message)) {
+      groups.push({
+        id: message.id,
+        type: "system:internal-summary",
+        messages: [message],
+      });
       continue;
     }
 
@@ -290,10 +307,26 @@ export function hasContent(message: Message) {
 }
 
 export function isInternalSummaryMessage(message: Message) {
-  return (
-    message.type === "human" &&
-    typeof message.content === "string" &&
-    message.content.trimStart().startsWith(INTERNAL_SUMMARY_PREFIX)
+  if (message.type !== "human" || typeof message.content !== "string") {
+    return false;
+  }
+
+  const normalized = message.content.trimStart();
+  if (normalized.startsWith(INTERNAL_SUMMARY_PREFIX)) {
+    return true;
+  }
+
+  return isStructuredInternalSummary(normalized);
+}
+
+function isStructuredInternalSummary(content: string) {
+  const normalized = content.trim().toLowerCase();
+  if (!normalized.startsWith(INTERNAL_SUMMARY_TITLE)) {
+    return false;
+  }
+
+  return INTERNAL_SUMMARY_SECTION_HEADINGS.some((heading) =>
+    normalized.includes(`## ${heading}`),
   );
 }
 

@@ -20,6 +20,25 @@ void test("recognizes internal summarization messages", () => {
   assert.equal(isInternalSummaryMessage(message), true);
 });
 
+void test("recognizes structured conversation compression summaries", () => {
+  const message = {
+    type: "human",
+    content: `Conversation Summary
+
+## Goal
+User wants the thread summary to be hidden behind a small UI tag.
+
+## Confirmed decisions
+- Keep the actual summary in the background context.
+- Only show a lightweight compressed marker in the chat history.
+
+## Constraints
+- Do not expand the summary body in the message list.`,
+  } as const;
+
+  assert.equal(isInternalSummaryMessage(message), true);
+});
+
 void test("summary messages are hidden from content helpers", () => {
   const message = {
     type: "human",
@@ -31,7 +50,7 @@ void test("summary messages are hidden from content helpers", () => {
   assert.equal(hasContent(message), false);
 });
 
-void test("groupMessages skips internal summary messages", () => {
+void test("groupMessages converts internal summary messages into a lightweight system item", () => {
   const groups = groupMessages(
     [
       {
@@ -49,7 +68,10 @@ void test("groupMessages skips internal summary messages", () => {
     (group) => ({ type: group.type, count: group.messages.length }),
   );
 
-  assert.deepEqual(groups, [{ type: "human", count: 1 }]);
+  assert.deepEqual(groups, [
+    { type: "system:internal-summary", count: 1 },
+    { type: "human", count: 1 },
+  ]);
 });
 
 void test("thread text helper also ignores internal summary messages", async () => {
