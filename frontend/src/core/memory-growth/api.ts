@@ -49,6 +49,19 @@ export async function freezeUserModelItem(memoryId: string) {
   return (await response.json()) as { memory_id: string; action: string };
 }
 
+export async function forgetUserModelItem(memoryId: string) {
+  const response = await fetch(
+    `${getBackendBaseURL()}/api/memory/growth/user-model/${encodeURIComponent(memoryId)}/forget`,
+    {
+      method: "POST",
+    },
+  );
+  if (!response.ok) {
+    throw new Error(`Failed to request forgetting user model item (${response.status})`);
+  }
+  return (await response.json()) as { memory_id: string; action: string };
+}
+
 export async function loadUserModelItems(): Promise<MemoryGrowthItem[]> {
   const response = await fetch(`${getBackendBaseURL()}/api/memory/growth/user-model`);
   if (!response.ok) {

@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { useI18n } from "@/core/i18n/hooks";
 import { useMemory } from "@/core/memory/hooks";
 import {
+  useForgetUserModelItem,
   useFreezeUserModelItem,
   useUserModelItems,
 } from "@/core/memory-growth/hooks";
@@ -17,6 +18,7 @@ export function MemoryUserPage() {
   const { memory } = useMemory();
   const { items } = useUserModelItems();
   const freezeUserModel = useFreezeUserModelItem();
+  const forgetUserModel = useForgetUserModelItem();
 
   const workRecord = items.find((item) => item.subtype === "workContext");
   const personalRecord = items.find((item) => item.subtype === "personalContext");
@@ -47,6 +49,15 @@ export function MemoryUserPage() {
       toast.success("已冻结该用户画像项");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "冻结失败");
+    }
+  }
+
+  async function handleForget(memoryId: string) {
+    try {
+      await forgetUserModel.mutateAsync(memoryId);
+      toast.success("已提交遗忘请求");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "遗忘请求失败");
     }
   }
 
@@ -84,6 +95,13 @@ export function MemoryUserPage() {
                 onClick={() => void handleFreeze(card.id)}
               >
                 冻结
+              </button>
+              <button
+                type="button"
+                className="rounded border px-2 py-1 text-xs text-foreground"
+                onClick={() => void handleForget(card.id)}
+              >
+                申请遗忘
               </button>
             </div>
           </article>

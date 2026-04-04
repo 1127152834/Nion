@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
   freezeMemoryGrowthItem,
+  forgetUserModelItem,
   freezeUserModelItem,
   loadUserModelItems,
   loadMemoryGrowth,
@@ -53,6 +54,17 @@ export function useFreezeUserModelItem() {
     mutationFn: (memoryId: string) => freezeUserModelItem(memoryId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["memory-growth"] });
+      queryClient.invalidateQueries({ queryKey: ["memory-user-model-items"] });
+    },
+  });
+}
+
+export function useForgetUserModelItem() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (memoryId: string) => forgetUserModelItem(memoryId),
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["memory-user-model-items"] });
     },
   });
