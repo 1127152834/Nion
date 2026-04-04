@@ -4,7 +4,7 @@ import json
 import sqlite3
 from pathlib import Path
 
-from .models import AccessLogEntry
+from .models import AccessLogEntry, CandidateRecord, ConsolidationEvent
 
 
 class MemoryOSRepository:
@@ -262,3 +262,116 @@ class MemoryOSRepository:
             payload["provenance"] = json.loads(str(payload.pop("provenance_json")))
             results.append(payload)
         return results
+
+    def save_candidate_record(self, candidate: CandidateRecord) -> CandidateRecord:
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO candidate_records (
+                    candidate_id,
+                    proposed_domain,
+                    proposed_subtype,
+                    owner_type,
+                    scope,
+                    memory_type,
+                    summary,
+                    confidence,
+                    status,
+                    created_at,
+                    expires_at,
+                    producer
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(candidate_id) DO UPDATE SET
+                    proposed_domain = excluded.proposed_domain,
+                    proposed_subtype = excluded.proposed_subtype,
+                    owner_type = excluded.owner_type,
+                    scope = excluded.scope,
+                    memory_type = excluded.memory_type,
+                    summary = excluded.summary,
+                    confidence = excluded.confidence,
+                    status = excluded.status,
+                    created_at = excluded.created_at,
+                    expires_at = excluded.expires_at,
+                    producer = excluded.producer
+                """,
+                (
+                    candidate.candidate_id,
+                    candidate.proposed_domain,
+                    candidate.proposed_subtype,
+                    candidate.owner_type,
+                    candidate.scope,
+                    candidate.memory_type,
+                    candidate.summary,
+                    candidate.confidence,
+                    candidate.status,
+                    candidate.created_at,
+                    candidate.expires_at,
+                    candidate.producer,
+                ),
+            )
+        return candidate
+
+    def list_candidate_records(self) -> list[CandidateRecord]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT
+                    candidate_id,
+                    proposed_domain,
+                    proposed_subtype,
+                    owner_type,
+                    scope,
+                    memory_type,
+                    summary,
+                    confidence,
+                    status,
+                    created_at,
+                    expires_at,
+                    producer
+                FROM candidate_records
+                ORDER BY created_at ASC, candidate_id ASC
+                """
+            ).fetchall()
+        return [CandidateRecord.model_validate(dict(row)) for row in rows]
+
+    def delete_candidate_record(self, candidate_id: str) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                "DELETE FROM candidate_records WHERE candidate_id = ?",
+                (candidate_id,),
+            )
+
+    def save_consolidation_event(self, event: ConsolidationEvent) -> ConsolidationEvent:
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO consolidation_events (
+                    event_id,
+                    input_candidate_ids_json,
+                    affected_memory_ids_json,
+                    action,
+                    notes,
+                    created_at,
+                    executor
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(event_id) DO UPDATE SET
+                    input_candidate_ids_json = excluded.input_candidate_ids_json,
+                    affected_memory_ids_json = excluded.affected_memory_ids_json,
+                    action = excluded.action,
+                    notes = excluded.notes,
+                    created_at = excluded.created_at,
+                    executor = excluded.executor
+                """,
+                (
+                    event.event_id,
+                    json.dumps(event.input_candidate_ids, ensure_ascii=False),
+                    json.dumps(event.affected_memory_ids, ensure_ascii=False),
+                    event.action,
+                    event.notes,
+                    event.created_at,
+                    event.executor,
+                ),
+            )
+        return event
