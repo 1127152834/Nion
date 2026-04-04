@@ -1,11 +1,19 @@
 "use client";
 
-import { useMemoryGrowth } from "@/core/memory-growth/hooks";
+import { toast } from "sonner";
+
+import {
+  useFreezeMemoryGrowthItem,
+  useMemoryGrowth,
+  useRejectMemoryGrowthItem,
+} from "@/core/memory-growth/hooks";
 
 function Section(props: {
   title: string;
   items: { memory_id: string; title?: string | null; summary: string }[];
   empty: string;
+  onFreeze: (memoryId: string) => void;
+  onReject: (memoryId: string) => void;
 }) {
   return (
     <article className="rounded-lg border bg-background px-5 py-4">
@@ -18,6 +26,22 @@ function Section(props: {
             <li key={item.memory_id} className="text-sm leading-6">
               <div className="font-medium">{item.title || "未命名条目"}</div>
               <div className="text-muted-foreground">{item.summary}</div>
+              <div className="mt-2 flex gap-2 text-xs">
+                <button
+                  type="button"
+                  className="rounded border px-2 py-1 text-foreground"
+                  onClick={() => props.onFreeze(item.memory_id)}
+                >
+                  冻结
+                </button>
+                <button
+                  type="button"
+                  className="rounded border px-2 py-1 text-foreground"
+                  onClick={() => props.onReject(item.memory_id)}
+                >
+                  拒绝
+                </button>
+              </div>
             </li>
           ))}
         </ul>
@@ -28,6 +52,26 @@ function Section(props: {
 
 export function MemoryGrowthPanel() {
   const { growth, isLoading, error } = useMemoryGrowth();
+  const freeze = useFreezeMemoryGrowthItem();
+  const reject = useRejectMemoryGrowthItem();
+
+  async function handleFreeze(memoryId: string) {
+    try {
+      await freeze.mutateAsync(memoryId);
+      toast.success("已冻结该成长项");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "冻结失败");
+    }
+  }
+
+  async function handleReject(memoryId: string) {
+    try {
+      await reject.mutateAsync(memoryId);
+      toast.success("已拒绝该成长项");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "拒绝失败");
+    }
+  }
 
   if (isLoading) {
     return (
@@ -58,16 +102,22 @@ export function MemoryGrowthPanel() {
           title="学习主题"
           items={growth.learning}
           empty="当前还没有学习主题。"
+          onFreeze={(memoryId) => void handleFreeze(memoryId)}
+          onReject={(memoryId) => void handleReject(memoryId)}
         />
         <Section
           title="方法草案"
           items={growth.procedures}
           empty="当前还没有方法草案。"
+          onFreeze={(memoryId) => void handleFreeze(memoryId)}
+          onReject={(memoryId) => void handleReject(memoryId)}
         />
         <Section
           title="灵魂提案"
           items={growth.soul_proposals}
           empty="当前还没有灵魂提案。"
+          onFreeze={(memoryId) => void handleFreeze(memoryId)}
+          onReject={(memoryId) => void handleReject(memoryId)}
         />
       </div>
     </section>
