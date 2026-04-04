@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from nion.config.paths import get_paths
@@ -30,6 +30,14 @@ async def get_memory_growth():
     }
 
 
+@router.get("/user-model")
+async def list_user_model_items():
+    repo = _repo()
+    return {
+        "items": repo.list_memory_records(domain="user_model"),
+    }
+
+
 @router.post("/learning")
 async def create_learning(request: LearningCreateRequest):
     item = create_learning_topic(_repo(), title=request.title, summary=request.summary)
@@ -48,3 +56,16 @@ async def reject_growth_item(memory_id: str):
     repo = _repo()
     repo.update_memory_status(memory_id, "invalidated")
     return {"memory_id": memory_id, "action": GOVERNANCE_ACTION_REJECT}
+
+
+@router.post("/user-model/{memory_id}/freeze")
+async def freeze_user_model_item(memory_id: str):
+    repo = _repo()
+    record = next(
+        (item for item in repo.list_memory_records(domain="user_model") if item["memory_id"] == memory_id),
+        None,
+    )
+    if record is None:
+        raise HTTPException(status_code=404, detail=f"Memory item {memory_id} not found")
+    repo.update_memory_status(memory_id, "archived")
+    return {"memory_id": memory_id, "action": GOVERNANCE_ACTION_FREEZE}

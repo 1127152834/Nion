@@ -1,7 +1,13 @@
 "use client";
 
+import { toast } from "sonner";
+
 import { useI18n } from "@/core/i18n/hooks";
 import { useMemory } from "@/core/memory/hooks";
+import {
+  useFreezeUserModelItem,
+  useUserModelItems,
+} from "@/core/memory-growth/hooks";
 import { pathOfMemory } from "@/core/navigation/desktop-routes";
 
 import { MemoryBackLink } from "./memory-back-link";
@@ -9,21 +15,40 @@ import { MemoryBackLink } from "./memory-back-link";
 export function MemoryUserPage() {
   const { t } = useI18n();
   const { memory } = useMemory();
+  const { items } = useUserModelItems();
+  const freezeUserModel = useFreezeUserModelItem();
+
+  const workRecord = items.find((item) => item.subtype === "workContext");
+  const personalRecord = items.find((item) => item.subtype === "personalContext");
+  const topOfMindRecord = items.find((item) => item.subtype === "topOfMind");
 
   const cards = [
     {
+      id: workRecord?.memory_id ?? "user-work",
       title: t.settings.memory.markdown.work,
-      summary: memory?.user.workContext.summary ?? "",
+      summary: workRecord?.summary ?? memory?.user.workContext.summary ?? "",
     },
     {
+      id: personalRecord?.memory_id ?? "user-personal",
       title: t.settings.memory.markdown.personal,
-      summary: memory?.user.personalContext.summary ?? "",
+      summary:
+        personalRecord?.summary ?? memory?.user.personalContext.summary ?? "",
     },
     {
+      id: topOfMindRecord?.memory_id ?? "user-top-of-mind",
       title: t.settings.memory.markdown.topOfMind,
-      summary: memory?.user.topOfMind.summary ?? "",
+      summary: topOfMindRecord?.summary ?? memory?.user.topOfMind.summary ?? "",
     },
   ];
+
+  async function handleFreeze(memoryId: string) {
+    try {
+      await freezeUserModel.mutateAsync(memoryId);
+      toast.success("已冻结该用户画像项");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "冻结失败");
+    }
+  }
 
   return (
     <main className="flex size-full min-h-0 flex-col gap-6 overflow-y-auto px-4 py-6 sm:px-6">
@@ -52,6 +77,15 @@ export function MemoryUserPage() {
             <p className="mt-6 text-sm leading-8 text-muted-foreground">
               {card.summary || t.settings.memory.emptySectionText}
             </p>
+            <div className="mt-6 flex gap-2">
+              <button
+                type="button"
+                className="rounded border px-2 py-1 text-xs text-foreground"
+                onClick={() => void handleFreeze(card.id)}
+              >
+                冻结
+              </button>
+            </div>
           </article>
         ))}
       </section>

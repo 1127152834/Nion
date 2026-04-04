@@ -12,3 +12,7 @@ export interface MemoryGrowthResponse {
   procedures: MemoryGrowthItem[];
   soul_proposals: MemoryGrowthItem[];
 }
+
+export interface UserModelItemsResponse {
+  items: MemoryGrowthItem[];
+}

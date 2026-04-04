@@ -9,6 +9,8 @@ void test("memory user page focuses on user context content only", async () => {
   );
 
   assert.match(source, /markdown\.work|markdown\.personal|markdown\.topOfMind/);
+  assert.match(source, /useFreezeUserModelItem/);
+  assert.match(source, /冻结/);
   assert.doesNotMatch(source, /MemoryConsolePanel/);
   assert.doesNotMatch(source, /markdown\.recentMonths/);
 });
