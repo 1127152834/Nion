@@ -10,11 +10,16 @@ from .models import CandidateRecord, MemoryArtifact, MemoryRecord
 from .paths import get_memory_os_paths
 from .repository import MemoryOSRepository
 from .access_log import MemoryOSAccessLogger
+from .context_assembler import MemoryOSContextAssembler
+from .context_pack import MemoryContextPack, MemoryContextPackItem
 from .import_legacy import import_legacy_memory_payload
 from .projections import build_automation_projection
 
 __all__ = [
     "CandidateRecord",
+    "MemoryContextPack",
+    "MemoryContextPackItem",
+    "MemoryOSContextAssembler",
     "MemoryOSAccessLogger",
     "MemoryArtifact",
     "MemoryOSRepository",

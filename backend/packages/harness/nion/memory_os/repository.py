@@ -217,3 +217,48 @@ class MemoryOSRepository:
                     json.dumps(payload["provenance"], ensure_ascii=False),
                 ),
             )
+
+    def list_memory_records(
+        self,
+        *,
+        domain: str | None = None,
+        status: str | None = None,
+    ) -> list[dict[str, object]]:
+        query = """
+            SELECT
+                memory_id,
+                domain,
+                subtype,
+                owner_type,
+                scope,
+                memory_type,
+                subject_id,
+                status,
+                summary,
+                confidence,
+                created_at,
+                updated_at,
+                provenance_json
+            FROM memory_records
+        """
+        where: list[str] = []
+        params: list[object] = []
+        if domain is not None:
+            where.append("domain = ?")
+            params.append(domain)
+        if status is not None:
+            where.append("status = ?")
+            params.append(status)
+        if where:
+            query += " WHERE " + " AND ".join(where)
+        query += " ORDER BY updated_at DESC, memory_id DESC"
+
+        with self._connect() as conn:
+            rows = conn.execute(query, tuple(params)).fetchall()
+
+        results: list[dict[str, object]] = []
+        for row in rows:
+            payload = dict(row)
+            payload["provenance"] = json.loads(str(payload.pop("provenance_json")))
+            results.append(payload)
+        return results

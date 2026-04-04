@@ -8,6 +8,8 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.runtime import Runtime
 
 from nion.config.paths import Paths, get_paths
+from nion.memory_os.context_assembler import MemoryOSContextAssembler
+from nion.memory_os.repository import MemoryOSRepository
 from nion.openviking import build_continuity_context_block, classify_retrieval_intent
 from nion.openviking.runtime_retriever import RuntimeNotebookRetriever
 from nion.recall.local_archive import LocalRecallArchive
@@ -19,6 +21,7 @@ class ContinuityMiddleware(AgentMiddleware[AgentState]):
         self._paths = Paths(base_dir) if base_dir else get_paths()
         self._archive = LocalRecallArchive(self._paths.recall_db_file)
         self._notebook_retriever = RuntimeNotebookRetriever(base_dir=base_dir)
+        self._memory_repo = MemoryOSRepository(self._paths.memory_os_index_db_file)
 
     def before_model(self, state: AgentState, runtime: Runtime) -> dict | None:
         thread_id = runtime.context.get("thread_id") if runtime.context else None
@@ -37,18 +40,28 @@ class ContinuityMiddleware(AgentMiddleware[AgentState]):
             return None
 
         latest_content = str(latest_human.content)
+        memory_pack = MemoryOSContextAssembler(self._memory_repo).build_continuity_memory_pack()
         recall_results = self._search_candidates(thread_id, latest_content)
         notebook_items = self._search_notebook_context_items(latest_content)
-        if not recall_results and not notebook_items:
+        memory_block = memory_pack.to_prompt_block()
+        if not recall_results and not notebook_items and not memory_block:
             return None
+
+        blocks: list[str] = []
+        if memory_block:
+            blocks.append(memory_block)
+        if recall_results or notebook_items:
+            blocks.append(
+                build_continuity_context_block(
+                    recall_results=recall_results,
+                    notebook_items=notebook_items,
+                )
+            )
 
         return {
             "messages": [
                 SystemMessage(
-                    content=build_continuity_context_block(
-                        recall_results=recall_results,
-                        notebook_items=notebook_items,
-                    )
+                    content="\n\n".join(blocks)
                 )
             ]
         }

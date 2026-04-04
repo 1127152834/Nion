@@ -37,6 +37,19 @@ def _build_subagent_section(max_concurrent: int) -> str:
 
 def _get_memory_context(agent_name: str | None = None) -> str:
     try:
+        from nion.memory_os.context_assembler import MemoryOSContextAssembler
+        from nion.memory_os.repository import MemoryOSRepository
+        from nion.config.paths import get_paths
+
+        repo = MemoryOSRepository(get_paths().memory_os_index_db_file)
+        pack = MemoryOSContextAssembler(repo).build_prompt_memory_pack()
+        block = pack.to_prompt_block()
+        if block:
+            return block
+    except Exception as exc:
+        print(f"Failed to load memory os context: {exc}")
+
+    try:
         from nion.agents.memory import format_memory_for_injection
         from nion.agents.memory.updater import get_memory_data
         from nion.config.memory_config import get_memory_config
