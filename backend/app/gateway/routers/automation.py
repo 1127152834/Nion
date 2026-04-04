@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from pydantic import BaseModel, Field
 
 from nion.automation.delivery import AutomationChannelDeliveryRequest
@@ -111,8 +111,11 @@ def _resume_now() -> datetime:
 
 
 @router.get("/jobs", response_model=AutomationJobsListResponse)
-def list_automation_jobs(service: AutomationService = Depends(get_automation_service)) -> AutomationJobsListResponse:
-    return AutomationJobsListResponse(jobs=service.list_jobs())
+def list_automation_jobs(
+    owner_type: str | None = Query(default=None),
+    service: AutomationService = Depends(get_automation_service),
+) -> AutomationJobsListResponse:
+    return AutomationJobsListResponse(jobs=service.list_jobs(owner_type=owner_type))
 
 
 @router.post("/jobs", response_model=AutomationJobResponse, status_code=201)
@@ -142,6 +145,8 @@ def update_automation_job(
         job = service.update_job(job_id, request.model_dump(exclude_none=True))
     except KeyError:
         raise HTTPException(status_code=404, detail=f"Automation job {job_id} not found")
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc))
     return AutomationJobResponse(job=job)
 
 

@@ -41,8 +41,11 @@ class AutomationService:
         self._clock = clock or (lambda: datetime.now(UTC))
         self._paths = paths or get_paths()
 
-    def list_jobs(self) -> list[AutomationJob]:
-        return self._repository.list_jobs()
+    def list_jobs(self, *, owner_type: str | None = None) -> list[AutomationJob]:
+        jobs = self._repository.list_jobs()
+        if owner_type is None:
+            return jobs
+        return [job for job in jobs if job.owner_type == owner_type]
 
     def create_job(self, payload: Mapping[str, Any]) -> AutomationJob:
         now = self._clock()
@@ -107,6 +110,8 @@ class AutomationService:
 
     def update_job(self, job_id: str, payload: Mapping[str, Any]) -> AutomationJob:
         job = self.get_job(job_id)
+        if job.owner_type == "agent" and job.mutability == "pause_only":
+            raise PermissionError("Agent-owned automation jobs cannot be edited directly.")
 
         for field in [
             "name",

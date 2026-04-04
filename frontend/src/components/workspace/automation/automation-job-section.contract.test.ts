@@ -12,3 +12,13 @@ void test("job cards do not expose technical governance badges in the primary he
   assert.doesNotMatch(source, /visibility:/);
   assert.doesNotMatch(source, /approval_policy:/);
 });
+
+void test("job cards visibly distinguish agent-owned jobs without exposing raw governance internals", async () => {
+  const source = await readFile(
+    new URL("./automation-job-section.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /job\.owner_type === "agent"/);
+  assert.match(source, /Agent|智能体/);
+});
