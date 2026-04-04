@@ -120,7 +120,14 @@ export function AutomationJobListPage({ kind }: AutomationJobListPageProps) {
                       <ItemContent className="w-full">
                         <ItemHeader className="items-start gap-4">
                           <div className="space-y-2">
-                            <ItemTitle>{job.name}</ItemTitle>
+                            <ItemTitle>
+                              <span>{job.name}</span>
+                              {job.owner_type === "agent" ? (
+                                <span className="ml-2 inline-flex rounded border px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                                  Agent
+                                </span>
+                              ) : null}
+                            </ItemTitle>
                             <ItemDescription>{job.prompt}</ItemDescription>
                           </div>
                           <Button variant="ghost" size="sm">
