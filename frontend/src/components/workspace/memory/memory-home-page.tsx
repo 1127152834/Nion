@@ -11,6 +11,7 @@ import {
   pathOfMemoryUser,
 } from "@/core/navigation/desktop-routes";
 
+import { MemoryGrowthPanel } from "./memory-growth-panel";
 import { MemorySummaryCards } from "./memory-summary-cards";
 
 export function MemoryHomePage() {
@@ -75,6 +76,8 @@ export function MemoryHomePage() {
           </Link>
         ))}
       </section>
+
+      <MemoryGrowthPanel />
     </main>
   );
 }
