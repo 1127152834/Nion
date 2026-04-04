@@ -263,6 +263,17 @@ class MemoryOSRepository:
             results.append(payload)
         return results
 
+    def update_memory_status(self, memory_id: str, status: str) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                """
+                UPDATE memory_records
+                SET status = ?, updated_at = datetime('now')
+                WHERE memory_id = ?
+                """,
+                (status, memory_id),
+            )
+
     def save_candidate_record(self, candidate: CandidateRecord) -> CandidateRecord:
         with self._connect() as conn:
             conn.execute(

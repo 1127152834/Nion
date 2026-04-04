@@ -16,9 +16,18 @@ from .context_pack import MemoryContextPack, MemoryContextPackItem
 from .consolidation import MemoryOSConsolidationEngine
 from .diary import MemoryOSDiaryWriter
 from .extractor import extract_candidates_from_exchange
+from .governance import (
+    GOVERNANCE_ACTION_ACCEPT,
+    GOVERNANCE_ACTION_FREEZE,
+    GOVERNANCE_ACTION_REJECT,
+    GOVERNANCE_ACTION_RESUME,
+)
 from .heartbeat import MemoryOSHeartbeat
 from .import_legacy import import_legacy_memory_payload
+from .learning import create_learning_topic
 from .projections import build_automation_projection
+from .procedures import create_procedure_draft
+from .soul import create_soul_proposal
 
 __all__ = [
     "CandidateRecord",
@@ -41,6 +50,13 @@ __all__ = [
     "MEMORY_TYPES",
     "build_automation_projection",
     "extract_candidates_from_exchange",
+    "GOVERNANCE_ACTION_ACCEPT",
+    "GOVERNANCE_ACTION_FREEZE",
+    "GOVERNANCE_ACTION_REJECT",
+    "GOVERNANCE_ACTION_RESUME",
     "get_memory_os_paths",
     "import_legacy_memory_payload",
+    "create_learning_topic",
+    "create_procedure_draft",
+    "create_soul_proposal",
 ]
