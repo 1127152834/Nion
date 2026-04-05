@@ -77,4 +77,4 @@ flowchart LR
 - 后端已覆盖 threads、permission、guardrail、cli tools、runtime profile、files、config、automation、notebook、agents、desktop/daemon 多数路由与 service。
 - 前端以 contract test / node test 为主，重点覆盖 permission request、cli tools routes、notebook 组件 contract、legacy memory product-surface contract、desktop thread client、settings 分区逻辑。
 - 缺口主要在真实 UI 交互与跨模块 E2E；本批文档的价值就是把这些缺口转成可执行任务。
-- 当前必做 IA 冒烟：`/workspace/notebook`、`/workspace/memory` 的独立导航与心智分离验证。
+- 当前必做 IA 冒烟：`/workspace/notebook`、`/workspace/memory`、`/workspace/memory/growth` 的独立导航与心智分离验证；`/workspace/memory/user` 还要验证对真实 user model record 的控制动作入口（修正 / 冻结 / 遗忘请求 / 拒绝）。

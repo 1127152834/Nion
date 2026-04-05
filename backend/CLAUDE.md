@@ -79,6 +79,7 @@ FastAPI application on port 8001 with health check at `GET /health`.
 | **Models** (`/api/models`) | runtime model catalog |
 | **MCP** (`/api/mcp`) | MCP config surfaces |
 | **Memory** (`/api/memory`) | memory data and config |
+| **Memory Growth** (`/api/memory/growth`) | growth / user-model governance actions |
 | **Notebook** (`/api/notebook`) | notebook CRUD / history / restore / inbox / import / asset archive |
 | **Uploads** (`/api/threads/{id}/uploads`) | uploads list / delete |
 | **Artifacts** (`/api/threads/{id}/artifacts`) | serve artifacts |
@@ -90,9 +91,19 @@ Model registry rule:
 - The model factory must ignore obviously invalid request caps where `max_tokens >= context_window`.
 - Custom provider connection health is signature-based: a saved success only remains valid while the normalized `protocol/base_url/api_key_masked` signature is unchanged. Any provider credential/base URL/protocol mutation must reset `provider_test_status` to `untested`.
 
-Memory currently uses the legacy `memory.json` path through `nion.agents.memory.*`.
-Do not reintroduce provider-based memory, AutoDream, self-maintenance, heartbeat,
-compaction, or rebuild behavior unless the user explicitly starts a new design cycle.
+Memory currently still keeps the legacy `memory.json` path through `nion.agents.memory.*` as a compatibility fallback,
+but this branch also contains incremental `nion.memory_os.*` runtime pieces:
+- metadata/artifact substrate
+- prompt memory bridge
+- continuity bridge
+- heartbeat/self-maintenance skeleton
+- `/api/memory/growth` governance surface
+- `agent-owned automation` ownership controls
+
+When extending memory in this branch:
+- prefer `nion.memory_os.*` instead of expanding legacy `memory.json`
+- keep legacy fallback behavior working unless an explicit cutover plan removes it
+- do not reintroduce the old provider-based memory / AutoDream product shell
 
 Thread title handling:
 

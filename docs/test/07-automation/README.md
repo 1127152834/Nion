@@ -44,6 +44,7 @@
   - overview cards 是 `status + runs + jobs` 的聚合展示，不是单独数据源。
   - `run now` 返回的是 `AutomationRun`，pause/resume 返回的是 `AutomationJob`。
   - reminder 的结果区是列表视图；scheduled task 的结果区是 `runs + thread preview` 双栏视图。
+  - 当前分支新增了 `owner_type / mutability / provenance_*` 语义：`agent-owned` 任务必须在列表、卡片、详情页明确可见，并限制普通编辑链路。
 
 ## 3. 核心业务链路
 1. 用户进入 `/workspace/automation`，前端并发调用：
