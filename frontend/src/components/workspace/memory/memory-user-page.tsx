@@ -7,6 +7,7 @@ import { useMemory } from "@/core/memory/hooks";
 import {
   useForgetUserModelItem,
   useFreezeUserModelItem,
+  useRejectUserModelItem,
   useUserModelItems,
 } from "@/core/memory-growth/hooks";
 import { pathOfMemory } from "@/core/navigation/desktop-routes";
@@ -19,6 +20,7 @@ export function MemoryUserPage() {
   const { items } = useUserModelItems();
   const freezeUserModel = useFreezeUserModelItem();
   const forgetUserModel = useForgetUserModelItem();
+  const rejectUserModel = useRejectUserModelItem();
 
   const workRecord = items.find((item) => item.subtype === "workContext");
   const personalRecord = items.find((item) => item.subtype === "personalContext");
@@ -58,6 +60,15 @@ export function MemoryUserPage() {
       toast.success("已提交遗忘请求");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "遗忘请求失败");
+    }
+  }
+
+  async function handleReject(memoryId: string) {
+    try {
+      await rejectUserModel.mutateAsync(memoryId);
+      toast.success("已拒绝该用户画像项");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "拒绝失败");
     }
   }
 
@@ -102,6 +113,13 @@ export function MemoryUserPage() {
                 onClick={() => void handleForget(card.id)}
               >
                 申请遗忘
+              </button>
+              <button
+                type="button"
+                className="rounded border px-2 py-1 text-xs text-foreground"
+                onClick={() => void handleReject(card.id)}
+              >
+                拒绝
               </button>
             </div>
           </article>

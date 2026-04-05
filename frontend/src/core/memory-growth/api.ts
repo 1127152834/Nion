@@ -88,6 +88,19 @@ export async function forgetUserModelItem(memoryId: string) {
   return (await response.json()) as { memory_id: string; action: string };
 }
 
+export async function rejectUserModelItem(memoryId: string) {
+  const response = await fetch(
+    `${getBackendBaseURL()}/api/memory/growth/user-model/${encodeURIComponent(memoryId)}/reject`,
+    {
+      method: "POST",
+    },
+  );
+  if (!response.ok) {
+    throw new Error(`Failed to reject user model item (${response.status})`);
+  }
+  return (await response.json()) as { memory_id: string; action: string };
+}
+
 export async function loadUserModelItems(): Promise<MemoryGrowthItem[]> {
   const response = await fetch(`${getBackendBaseURL()}/api/memory/growth/user-model`);
   if (!response.ok) {

@@ -7,6 +7,7 @@ import {
   freezeUserModelItem,
   loadUserModelItems,
   loadMemoryGrowth,
+  rejectUserModelItem,
   resumeMemoryGrowthItem,
   rejectMemoryGrowthItem,
 } from "./api";
@@ -88,6 +89,17 @@ export function useForgetUserModelItem() {
 
   return useMutation({
     mutationFn: (memoryId: string) => forgetUserModelItem(memoryId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["memory-user-model-items"] });
+    },
+  });
+}
+
+export function useRejectUserModelItem() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (memoryId: string) => rejectUserModelItem(memoryId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["memory-user-model-items"] });
     },

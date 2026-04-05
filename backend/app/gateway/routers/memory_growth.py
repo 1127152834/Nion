@@ -96,3 +96,16 @@ async def forget_user_model_item(memory_id: str):
         raise HTTPException(status_code=404, detail=f"Memory item {memory_id} not found")
     repo.update_memory_status(memory_id, "invalidated")
     return {"memory_id": memory_id, "action": "forget_request"}
+
+
+@router.post("/user-model/{memory_id}/reject")
+async def reject_user_model_item(memory_id: str):
+    repo = _repo()
+    record = next(
+        (item for item in repo.list_memory_records(domain="user_model") if item["memory_id"] == memory_id),
+        None,
+    )
+    if record is None:
+        raise HTTPException(status_code=404, detail=f"Memory item {memory_id} not found")
+    repo.update_memory_status(memory_id, "invalidated")
+    return {"memory_id": memory_id, "action": GOVERNANCE_ACTION_REJECT}
