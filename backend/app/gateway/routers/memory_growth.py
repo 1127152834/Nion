@@ -16,6 +16,10 @@ class LearningCreateRequest(BaseModel):
     summary: str
 
 
+class UserModelCorrectRequest(BaseModel):
+    summary: str
+
+
 def _repo() -> MemoryOSRepository:
     return MemoryOSRepository(get_paths().memory_os_index_db_file)
 
@@ -109,3 +113,19 @@ async def reject_user_model_item(memory_id: str):
         raise HTTPException(status_code=404, detail=f"Memory item {memory_id} not found")
     repo.update_memory_status(memory_id, "invalidated")
     return {"memory_id": memory_id, "action": GOVERNANCE_ACTION_REJECT}
+
+
+@router.post("/user-model/{memory_id}/correct")
+async def correct_user_model_item(memory_id: str, request: UserModelCorrectRequest):
+    repo = _repo()
+    record = next(
+        (item for item in repo.list_memory_records(domain="user_model") if item["memory_id"] == memory_id),
+        None,
+    )
+    if record is None:
+        raise HTTPException(status_code=404, detail=f"Memory item {memory_id} not found")
+    corrected = dict(record)
+    corrected["summary"] = request.summary.strip() or corrected["summary"]
+    corrected["updated_at"] = "2026-04-05T00:00:00Z"
+    repo.save_memory_record(corrected)
+    return {"item": corrected, "action": "correct"}

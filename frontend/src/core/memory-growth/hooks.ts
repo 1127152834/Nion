@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
   acceptMemoryGrowthItem,
+  correctUserModelItem,
   freezeMemoryGrowthItem,
   forgetUserModelItem,
   freezeUserModelItem,
@@ -100,6 +101,18 @@ export function useRejectUserModelItem() {
 
   return useMutation({
     mutationFn: (memoryId: string) => rejectUserModelItem(memoryId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["memory-user-model-items"] });
+    },
+  });
+}
+
+export function useCorrectUserModelItem() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ memoryId, summary }: { memoryId: string; summary: string }) =>
+      correctUserModelItem(memoryId, summary),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["memory-user-model-items"] });
     },

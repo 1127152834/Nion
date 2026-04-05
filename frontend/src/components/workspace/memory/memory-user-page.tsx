@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { useI18n } from "@/core/i18n/hooks";
 import { useMemory } from "@/core/memory/hooks";
 import {
+  useCorrectUserModelItem,
   useForgetUserModelItem,
   useFreezeUserModelItem,
   useRejectUserModelItem,
@@ -18,6 +19,7 @@ export function MemoryUserPage() {
   const { t } = useI18n();
   const { memory } = useMemory();
   const { items } = useUserModelItems();
+  const correctUserModel = useCorrectUserModelItem();
   const freezeUserModel = useFreezeUserModelItem();
   const forgetUserModel = useForgetUserModelItem();
   const rejectUserModel = useRejectUserModelItem();
@@ -72,6 +74,19 @@ export function MemoryUserPage() {
     }
   }
 
+  async function handleCorrect(memoryId: string, currentSummary: string) {
+    const nextSummary = window.prompt("请输入新的画像描述", currentSummary);
+    if (!nextSummary || nextSummary.trim() === currentSummary.trim()) {
+      return;
+    }
+    try {
+      await correctUserModel.mutateAsync({ memoryId, summary: nextSummary.trim() });
+      toast.success("已更新该用户画像项");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "更新失败");
+    }
+  }
+
   return (
     <main className="flex size-full min-h-0 flex-col gap-6 overflow-y-auto px-4 py-6 sm:px-6">
       <header className="border bg-background px-6 py-5">
@@ -100,6 +115,13 @@ export function MemoryUserPage() {
               {card.summary || t.settings.memory.emptySectionText}
             </p>
             <div className="mt-6 flex gap-2">
+              <button
+                type="button"
+                className="rounded border px-2 py-1 text-xs text-foreground"
+                onClick={() => void handleCorrect(card.id, card.summary)}
+              >
+                修正
+              </button>
               <button
                 type="button"
                 className="rounded border px-2 py-1 text-xs text-foreground"
