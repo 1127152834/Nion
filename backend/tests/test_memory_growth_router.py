@@ -53,3 +53,17 @@ def test_memory_growth_router_supports_freezing_user_model_item(monkeypatch, tmp
         freeze = client.post(f"/api/memory/growth/user-model/{learning_id}/freeze")
 
     assert freeze.status_code == 404
+
+
+def test_memory_growth_router_supports_forgetting_user_model_item(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    with TestClient(create_app()) as client:
+        create = client.post(
+            "/api/memory/growth/learning",
+            json={"title": "财务表达", "summary": "重复出现"},
+        )
+        learning_id = create.json()["item"]["memory_id"]
+
+        forget = client.post(f"/api/memory/growth/user-model/{learning_id}/forget")
+
+    assert forget.status_code == 404

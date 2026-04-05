@@ -86,6 +86,11 @@ export function AutomationJobDetailPage({
           <p className="text-muted-foreground max-w-3xl text-sm">
             {description.summary}
           </p>
+          {job.owner_type === "agent" ? (
+            <p className="max-w-3xl text-sm text-muted-foreground">
+              这是一个由 Agent 创建的自动化任务。你可以暂停或恢复它，但不能直接编辑其内部逻辑。
+            </p>
+          ) : null}
         </div>
       </div>
 

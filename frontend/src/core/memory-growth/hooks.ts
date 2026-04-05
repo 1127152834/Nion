@@ -1,11 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
+  acceptMemoryGrowthItem,
   freezeMemoryGrowthItem,
   forgetUserModelItem,
   freezeUserModelItem,
   loadUserModelItems,
   loadMemoryGrowth,
+  resumeMemoryGrowthItem,
   rejectMemoryGrowthItem,
 } from "./api";
 
@@ -41,6 +43,28 @@ export function useRejectMemoryGrowthItem() {
 
   return useMutation({
     mutationFn: (memoryId: string) => rejectMemoryGrowthItem(memoryId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["memory-growth"] });
+    },
+  });
+}
+
+export function useResumeMemoryGrowthItem() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (memoryId: string) => resumeMemoryGrowthItem(memoryId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["memory-growth"] });
+    },
+  });
+}
+
+export function useAcceptMemoryGrowthItem() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (memoryId: string) => acceptMemoryGrowthItem(memoryId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["memory-growth"] });
     },

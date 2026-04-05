@@ -58,6 +58,20 @@ async def reject_growth_item(memory_id: str):
     return {"memory_id": memory_id, "action": GOVERNANCE_ACTION_REJECT}
 
 
+@router.post("/{memory_id}/resume")
+async def resume_growth_item(memory_id: str):
+    repo = _repo()
+    repo.update_memory_status(memory_id, "active")
+    return {"memory_id": memory_id, "action": "resume"}
+
+
+@router.post("/{memory_id}/accept")
+async def accept_growth_item(memory_id: str):
+    repo = _repo()
+    repo.update_memory_status(memory_id, "active")
+    return {"memory_id": memory_id, "action": "accept"}
+
+
 @router.post("/user-model/{memory_id}/freeze")
 async def freeze_user_model_item(memory_id: str):
     repo = _repo()

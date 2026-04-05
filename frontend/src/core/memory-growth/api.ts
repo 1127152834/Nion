@@ -36,6 +36,32 @@ export async function rejectMemoryGrowthItem(memoryId: string) {
   return (await response.json()) as { memory_id: string; action: string };
 }
 
+export async function resumeMemoryGrowthItem(memoryId: string) {
+  const response = await fetch(
+    `${getBackendBaseURL()}/api/memory/growth/${encodeURIComponent(memoryId)}/resume`,
+    {
+      method: "POST",
+    },
+  );
+  if (!response.ok) {
+    throw new Error(`Failed to resume memory growth item (${response.status})`);
+  }
+  return (await response.json()) as { memory_id: string; action: string };
+}
+
+export async function acceptMemoryGrowthItem(memoryId: string) {
+  const response = await fetch(
+    `${getBackendBaseURL()}/api/memory/growth/${encodeURIComponent(memoryId)}/accept`,
+    {
+      method: "POST",
+    },
+  );
+  if (!response.ok) {
+    throw new Error(`Failed to accept memory growth item (${response.status})`);
+  }
+  return (await response.json()) as { memory_id: string; action: string };
+}
+
 export async function freezeUserModelItem(memoryId: string) {
   const response = await fetch(
     `${getBackendBaseURL()}/api/memory/growth/user-model/${encodeURIComponent(memoryId)}/freeze`,
