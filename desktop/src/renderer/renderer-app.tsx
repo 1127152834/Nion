@@ -15,6 +15,7 @@ import AutomationTaskDetailPage from "@/app/workspace/automation/tasks/[jobId]/p
 import BridgePage from "@/app/workspace/bridge/page";
 import WorkspaceMemoryPage from "@/app/workspace/memory/page";
 import WorkspaceMemoryFactsPage from "@/app/workspace/memory/facts/page";
+import WorkspaceMemoryGrowthPage from "@/app/workspace/memory/growth/page";
 import WorkspaceMemoryHistoryPage from "@/app/workspace/memory/history/page";
 import WorkspaceMemorySearchPage from "@/app/workspace/memory/search/page";
 import WorkspaceMemorySearchResultsPage from "@/app/workspace/memory/search/results/page";
@@ -181,6 +182,14 @@ export function DesktopRendererApp() {
                 element={
                   <WorkspaceRoute>
                     <WorkspaceMemoryFactsPage />
+                  </WorkspaceRoute>
+                }
+              />
+              <Route
+                path="/workspace/memory/growth"
+                element={
+                  <WorkspaceRoute>
+                    <WorkspaceMemoryGrowthPage />
                   </WorkspaceRoute>
                 }
               />

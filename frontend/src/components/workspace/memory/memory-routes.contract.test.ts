@@ -63,3 +63,13 @@ void test("memory route components exist for each split surface", async () => {
   assert.match(factsPageSource, /MemoryFactsPage/);
   assert.match(growthPageSource, /MemoryGrowthPage/);
 });
+
+void test("desktop renderer also wires the memory growth route", async () => {
+  const rendererSource = await readFile(
+    new URL("../../../../../desktop/src/renderer/renderer-app.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(rendererSource, /WorkspaceMemoryGrowthPage/);
+  assert.match(rendererSource, /path="\/workspace\/memory\/growth"/);
+});
