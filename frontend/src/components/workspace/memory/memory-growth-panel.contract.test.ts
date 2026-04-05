@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-void test("memory growth panel exposes minimal freeze and reject controls", async () => {
+void test("memory growth panel exposes status-aware growth governance controls", async () => {
   const source = await readFile(
     new URL("./memory-growth-panel.tsx", import.meta.url),
     "utf8",
@@ -16,4 +16,8 @@ void test("memory growth panel exposes minimal freeze and reject controls", asyn
   assert.match(source, /冻结/);
   assert.match(source, /恢复/);
   assert.match(source, /拒绝/);
+  assert.match(source, /候选中/);
+  assert.match(source, /已生效/);
+  assert.match(source, /已冻结/);
+  assert.match(source, /已拒绝/);
 });

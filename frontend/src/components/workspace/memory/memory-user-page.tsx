@@ -2,6 +2,8 @@
 
 import { toast } from "sonner";
 
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { useI18n } from "@/core/i18n/hooks";
 import { useMemory } from "@/core/memory/hooks";
 import {
@@ -33,17 +35,35 @@ export function MemoryUserPage() {
       id: workRecord?.memory_id ?? "user-work",
       title: t.settings.memory.markdown.work,
       summary: workRecord?.summary ?? memory?.user.workContext.summary ?? "",
+      status: workRecord?.status ?? "legacy",
+      sourceLabel: workRecord ? "真实记录" : "legacy 映射",
+      sourceDescription: workRecord
+        ? "当前卡片已绑定到真实 user_model record，下面的控制会直接作用到这条记录。"
+        : "当前内容仍来自 legacy memory 映射，只用于阅读，不提供可写控制，避免产生假成功操作。",
+      isActionable: Boolean(workRecord),
     },
     {
       id: personalRecord?.memory_id ?? "user-personal",
       title: t.settings.memory.markdown.personal,
       summary:
         personalRecord?.summary ?? memory?.user.personalContext.summary ?? "",
+      status: personalRecord?.status ?? "legacy",
+      sourceLabel: personalRecord ? "真实记录" : "legacy 映射",
+      sourceDescription: personalRecord
+        ? "当前卡片已绑定到真实 user_model record，下面的控制会直接作用到这条记录。"
+        : "当前内容仍来自 legacy memory 映射，只用于阅读，不提供可写控制，避免产生假成功操作。",
+      isActionable: Boolean(personalRecord),
     },
     {
       id: topOfMindRecord?.memory_id ?? "user-top-of-mind",
       title: t.settings.memory.markdown.topOfMind,
       summary: topOfMindRecord?.summary ?? memory?.user.topOfMind.summary ?? "",
+      status: topOfMindRecord?.status ?? "legacy",
+      sourceLabel: topOfMindRecord ? "真实记录" : "legacy 映射",
+      sourceDescription: topOfMindRecord
+        ? "当前卡片已绑定到真实 user_model record，下面的控制会直接作用到这条记录。"
+        : "当前内容仍来自 legacy memory 映射，只用于阅读，不提供可写控制，避免产生假成功操作。",
+      isActionable: Boolean(topOfMindRecord),
     },
   ];
 
@@ -108,42 +128,65 @@ export function MemoryUserPage() {
             key={card.title}
             className="flex min-h-[420px] flex-col rounded-lg border bg-background p-5"
           >
-            <div className="text-[1.05rem] font-semibold tracking-tight">
-              {card.title}
+            <div className="space-y-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="text-[1.05rem] font-semibold tracking-tight">
+                  {card.title}
+                </div>
+                <Badge variant={card.isActionable ? "secondary" : "outline"}>
+                  {card.sourceLabel}
+                </Badge>
+              </div>
+              <p className="text-xs leading-6 text-muted-foreground">
+                {card.sourceDescription}
+              </p>
             </div>
             <p className="mt-6 text-sm leading-8 text-muted-foreground">
               {card.summary || t.settings.memory.emptySectionText}
             </p>
-            <div className="mt-6 flex gap-2">
-              <button
+            <div className="mt-6 flex flex-wrap gap-2">
+              <Button
                 type="button"
-                className="rounded border px-2 py-1 text-xs text-foreground"
+                size="sm"
+                variant="outline"
+                disabled={!card.isActionable}
                 onClick={() => void handleCorrect(card.id, card.summary)}
               >
                 修正
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
-                className="rounded border px-2 py-1 text-xs text-foreground"
+                size="sm"
+                variant="outline"
+                disabled={!card.isActionable}
                 onClick={() => void handleFreeze(card.id)}
               >
                 冻结
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
-                className="rounded border px-2 py-1 text-xs text-foreground"
+                size="sm"
+                variant="outline"
+                disabled={!card.isActionable}
                 onClick={() => void handleForget(card.id)}
               >
                 申请遗忘
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
-                className="rounded border px-2 py-1 text-xs text-foreground"
+                size="sm"
+                variant="outline"
+                disabled={!card.isActionable}
                 onClick={() => void handleReject(card.id)}
               >
                 拒绝
-              </button>
+              </Button>
             </div>
+            {!card.isActionable ? (
+              <p className="mt-3 text-xs leading-6 text-muted-foreground">
+                当前还是 legacy 映射内容。等这类画像沉淀为真实记录后，才会开放修正、冻结、遗忘与拒绝控制。
+              </p>
+            ) : null}
           </article>
         ))}
       </section>

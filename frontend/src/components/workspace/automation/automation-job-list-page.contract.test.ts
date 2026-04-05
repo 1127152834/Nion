@@ -10,4 +10,6 @@ void test("automation job list page visibly distinguishes agent-owned jobs", asy
 
   assert.match(source, /job\.owner_type === "agent"/);
   assert.match(source, /Agent/);
+  assert.match(source, /用户创建/);
+  assert.match(source, /Agent 创建/);
 });

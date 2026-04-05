@@ -88,15 +88,22 @@
   - 内容为空时禁止提交。
   - scheduled task 文案体现当前支持 `@笔记`。
 - 列表区验证：
+  - 列表按 `用户创建` 与 `Agent 创建` 分组，避免把 ownership 只藏在小 badge 里。
   - reminder / scheduled task 各自空态文案正确。
   - job card 展示 state badge、next run、schedule、summary、last result。
   - pause / resume / run now / remove 操作状态正确。
+  - agent-owned job 仍可见，但其编辑限制需要在详情页被解释清楚。
 - 结果区验证：
   - 未选中 job 时展示引导空态。
   - 选中 reminder 时，只展示运行列表。
   - 选中 scheduled task 时，展示左侧 runs、右侧 thread preview。
   - selected run 变化时，thread preview 跟随切换。
   - run 没有关联 `isolated_thread_id` 时，右侧展示“仅保留结果摘要”类空态。
+- 详情页验证：
+  - 必须展示 `编辑权限`
+  - 必须展示 `来源记忆`
+  - 必须展示 `来源学习主题`
+  - agent-owned job 必须解释为什么不能直接编辑
 - overview cards 验证：
   - scheduler / active / runs / attention 四张卡片可见。
   - `status` 变化后 cards 刷新。

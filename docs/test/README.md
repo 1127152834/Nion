@@ -78,3 +78,7 @@ flowchart LR
 - 前端以 contract test / node test 为主，重点覆盖 permission request、cli tools routes、notebook 组件 contract、legacy memory product-surface contract、desktop thread client、settings 分区逻辑。
 - 缺口主要在真实 UI 交互与跨模块 E2E；本批文档的价值就是把这些缺口转成可执行任务。
 - 当前必做 IA 冒烟：`/workspace/notebook`、`/workspace/memory`、`/workspace/memory/growth` 的独立导航与心智分离验证；`/workspace/memory/user` 还要验证对真实 user model record 的控制动作入口（修正 / 冻结 / 遗忘请求 / 拒绝）。
+- 当前必做产品解释面冒烟：
+  - `/workspace/memory/user` 必须区分 `真实记录` 与 `legacy 映射`，fallback 卡片不可给假控制
+  - `/workspace/memory/growth` 必须展示状态语义，并按 domain/status 收敛动作集合
+  - `/workspace/automation/*` 必须区分 `用户创建` 与 `Agent 创建`，详情页必须解释来源与编辑限制

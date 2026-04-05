@@ -2,6 +2,8 @@
 
 import { toast } from "sonner";
 
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   useAcceptMemoryGrowthItem,
   useFreezeMemoryGrowthItem,
@@ -9,10 +11,16 @@ import {
   useResumeMemoryGrowthItem,
   useRejectMemoryGrowthItem,
 } from "@/core/memory-growth/hooks";
+import {
+  describeMemoryGrowthDomain,
+  describeMemoryGrowthStatus,
+  listMemoryGrowthActions,
+} from "@/core/memory-growth/presentation";
+import type { MemoryGrowthItem } from "@/core/memory-growth/types";
 
 function Section(props: {
   title: string;
-  items: { memory_id: string; title?: string | null; summary: string }[];
+  items: MemoryGrowthItem[];
   empty: string;
   onAccept: (memoryId: string) => void;
   onFreeze: (memoryId: string) => void;
@@ -27,38 +35,61 @@ function Section(props: {
       ) : (
         <ul className="mt-3 space-y-3">
           {props.items.map((item) => (
-            <li key={item.memory_id} className="text-sm leading-6">
-              <div className="font-medium">{item.title || "未命名条目"}</div>
-              <div className="text-muted-foreground">{item.summary}</div>
-              <div className="mt-2 flex gap-2 text-xs">
-                <button
-                  type="button"
-                  className="rounded border px-2 py-1 text-foreground"
-                  onClick={() => props.onAccept(item.memory_id)}
-                >
-                  接受
-                </button>
-                <button
-                  type="button"
-                  className="rounded border px-2 py-1 text-foreground"
-                  onClick={() => props.onFreeze(item.memory_id)}
-                >
-                  冻结
-                </button>
-                <button
-                  type="button"
-                  className="rounded border px-2 py-1 text-foreground"
-                  onClick={() => props.onResume(item.memory_id)}
-                >
-                  恢复
-                </button>
-                <button
-                  type="button"
-                  className="rounded border px-2 py-1 text-foreground"
-                  onClick={() => props.onReject(item.memory_id)}
-                >
-                  拒绝
-                </button>
+            <li
+              key={item.memory_id}
+              className="rounded-lg border border-border/70 bg-muted/20 p-4 text-sm leading-6"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="font-medium">{item.title || "未命名条目"}</div>
+                <Badge variant={describeMemoryGrowthStatus(item.status).variant}>
+                  {describeMemoryGrowthStatus(item.status).label}
+                </Badge>
+              </div>
+              <div className="mt-2 text-muted-foreground">{item.summary}</div>
+              <p className="mt-3 text-xs leading-6 text-muted-foreground">
+                {describeMemoryGrowthDomain(item.domain).explanation}
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                {listMemoryGrowthActions(item).includes("accept") ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => props.onAccept(item.memory_id)}
+                  >
+                    接受
+                  </Button>
+                ) : null}
+                {listMemoryGrowthActions(item).includes("freeze") ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => props.onFreeze(item.memory_id)}
+                  >
+                    冻结
+                  </Button>
+                ) : null}
+                {listMemoryGrowthActions(item).includes("resume") ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => props.onResume(item.memory_id)}
+                  >
+                    恢复
+                  </Button>
+                ) : null}
+                {listMemoryGrowthActions(item).includes("reject") ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => props.onReject(item.memory_id)}
+                  >
+                    拒绝
+                  </Button>
+                ) : null}
               </div>
             </li>
           ))}
@@ -132,8 +163,14 @@ export function MemoryGrowthPanel() {
       <div>
         <h2 className="text-[1.7rem] font-semibold tracking-tight">Agent Growth</h2>
         <p className="text-sm text-muted-foreground">
-          这里展示记忆系统已经形成的学习主题、方法草案和灵魂提案。
+          这里展示记忆系统已经形成的学习主题、方法草案和灵魂提案。不同类型的条目只会开放与其治理语义一致的动作。
         </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Badge variant="secondary">候选中</Badge>
+          <Badge variant="default">已生效</Badge>
+          <Badge variant="outline">已冻结</Badge>
+          <Badge variant="destructive">已拒绝</Badge>
+        </div>
       </div>
       <div className="grid gap-3 md:grid-cols-3">
         <Section

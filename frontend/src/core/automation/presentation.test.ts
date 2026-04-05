@@ -4,10 +4,12 @@ import test from "node:test";
 import type { AutomationJob, AutomationRun, AutomationStatus } from "./types";
 
 const {
+  describeAutomationOwnership,
   buildAutomationRunPreview,
   describeAutomationJob,
   deriveAutomationJobTitle,
   formatScheduleLabel,
+  splitJobsByOwner,
   splitJobsByKind,
   summarizeHistory,
   summarizeOverview,
@@ -69,6 +71,17 @@ void test("groups reminder jobs separately from scheduled tasks", () => {
   assert.equal(result.reminders.length, 1);
   assert.equal(result.tasks.length, 1);
   assert.equal(result.tasks[0]?.name, "Weekly review");
+});
+
+void test("groups jobs by owner for product-facing sections", () => {
+  const result = splitJobsByOwner([
+    makeJob({ id: "job-1", owner_type: "user" }),
+    makeJob({ id: "job-2", owner_type: "agent", mutability: "pause_only" }),
+  ]);
+
+  assert.equal(result.userOwned.length, 1);
+  assert.equal(result.agentOwned.length, 1);
+  assert.equal(result.agentOwned[0]?.id, "job-2");
 });
 
 void test("formats friendly schedule labels from presets and metadata", () => {
@@ -163,6 +176,22 @@ void test("builds concise job description for console cards", () => {
   assert.match(description.summary, /Summarize project progress/);
   assert.equal(description.scheduleLabel, "Weekdays at 18:30");
   assert.equal(description.nextRunAt, "2026-03-24T10:00:00Z");
+});
+
+void test("describes ownership, provenance, and mutability for detail pages", () => {
+  const description = describeAutomationOwnership(
+    makeJob({
+      owner_type: "agent",
+      mutability: "pause_only",
+      provenance_memory_id: "mem-1",
+      provenance_learning_id: "learning-2",
+    }),
+  );
+
+  assert.equal(description.ownerLabel, "Agent 创建");
+  assert.equal(description.mutabilityLabel, "仅允许暂停或恢复");
+  assert.match(description.reason, /学习主题/);
+  assert.match(description.reason, /记忆/);
 });
 
 void test("derives display title from prompt when name is empty or generic", () => {

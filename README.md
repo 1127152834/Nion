@@ -221,13 +221,17 @@ NION_STATIC_EXPORT=1 pnpm --dir frontend build
 
 - `/workspace/memory/growth`
   - 展示学习主题、方法草案、灵魂提案
-  - 当前支持 `接受 / 冻结 / 恢复 / 拒绝`
+  - 当前展示 `候选中 / 已生效 / 已冻结 / 已拒绝` 状态语义
+  - learning / procedure / soul 会按各自治理语义开放 `接受 / 冻结 / 恢复 / 拒绝`
 - `/workspace/memory/user`
   - 已开始优先读取真实 `user_model` records
-  - 当前支持 `修正 / 冻结 / 申请遗忘 / 拒绝`
+  - legacy memory 仍可只读 fallback，并明确标识为 `legacy 映射`
+  - 只有真实 `user_model` record 才开放 `修正 / 冻结 / 申请遗忘 / 拒绝`
 - `/workspace/automation/*`
   - 已开始区分 `user-owned` 与 `agent-owned` automation
+  - 列表页会分开呈现 `用户创建` 与 `Agent 创建`
   - `agent-owned` 任务可见、可 pause/resume，但不能走普通编辑链路
+  - 详情页会解释 `编辑权限 / 来源记忆 / 来源学习主题`
 
 ---
 

@@ -25,7 +25,10 @@ import {
   useAutomationRuns,
   useCreateAutomationJob,
 } from "@/core/automation/hooks";
-import { formatScheduleLabel } from "@/core/automation/presentation";
+import {
+  formatScheduleLabel,
+  splitJobsByOwner,
+} from "@/core/automation/presentation";
 import type { AutomationJobKind } from "@/core/automation/types";
 import {
   pathOfAutomationReminderDetail,
@@ -63,6 +66,10 @@ export function AutomationJobListPage({ kind }: AutomationJobListPageProps) {
   const filteredJobs = useMemo(
     () => jobs.filter((job) => job.job_kind === kind),
     [jobs, kind],
+  );
+  const groupedJobs = useMemo(
+    () => splitJobsByOwner(filteredJobs),
+    [filteredJobs],
   );
   const firstError = jobsError ?? runsError ?? createJob.error;
 
@@ -107,63 +114,95 @@ export function AutomationJobListPage({ kind }: AutomationJobListPageProps) {
               {pageCopy.empty}
             </div>
           ) : (
-            <ItemGroup className="gap-3">
-              {filteredJobs.map((job) => {
-                const latestRun = runs.find((run) => run.job_id === job.id) ?? null;
-                const href =
-                  kind === "reminder"
-                    ? pathOfAutomationReminderDetail(job.id)
-                    : pathOfAutomationTaskDetail(job.id);
-                return (
-                  <Link key={job.id} href={href}>
-                    <Item variant="outline" className="cursor-pointer rounded-xl">
-                      <ItemContent className="w-full">
-                        <ItemHeader className="items-start gap-4">
-                          <div className="space-y-2">
-                            <ItemTitle>
-                              <span>{job.name}</span>
-                              {job.owner_type === "agent" ? (
-                                <span className="ml-2 inline-flex rounded border px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-                                  Agent
-                                </span>
-                              ) : null}
-                            </ItemTitle>
-                            <ItemDescription>{job.prompt}</ItemDescription>
-                          </div>
-                          <Button variant="ghost" size="sm">
-                            <PlusIcon className="size-4 rotate-45" />
-                            进入详情
-                          </Button>
-                        </ItemHeader>
-                        <div className="text-muted-foreground grid gap-3 pt-3 text-xs md:grid-cols-3">
-                          <div>
-                            <div className="font-medium text-foreground/80">
-                              调度
-                            </div>
-                            <div>{formatScheduleLabel(job)}</div>
-                          </div>
-                          <div>
-                            <div className="font-medium text-foreground/80">
-                              最近执行
-                            </div>
-                            <div>{latestRun?.started_at ?? "暂无记录"}</div>
-                          </div>
-                          <div>
-                            <div className="font-medium text-foreground/80">
-                              最近结果
-                            </div>
-                            <div>{latestRun?.result_summary ?? job.last_result_summary ?? "暂无摘要"}</div>
-                          </div>
-                        </div>
-                      </ItemContent>
-                    </Item>
-                  </Link>
-                );
-              })}
-            </ItemGroup>
+            <div className="space-y-6">
+              <JobGroup
+                title="用户创建"
+                jobs={groupedJobs.userOwned}
+                kind={kind}
+                runs={runs}
+              />
+              <JobGroup
+                title="Agent 创建"
+                jobs={groupedJobs.agentOwned}
+                kind={kind}
+                runs={runs}
+              />
+            </div>
           )}
         </CardContent>
       </Card>
+    </section>
+  );
+}
+
+function JobGroup({
+  title,
+  jobs,
+  kind,
+  runs,
+}: {
+  title: string;
+  jobs: ReturnType<typeof useAutomationJobs>["jobs"];
+  kind: Extract<AutomationJobKind, "reminder" | "scheduled_task">;
+  runs: ReturnType<typeof useAutomationRuns>["runs"];
+}) {
+  if (jobs.length === 0) {
+    return null;
+  }
+
+  return (
+    <section className="space-y-3">
+      <div className="text-sm font-medium text-foreground/80">{title}</div>
+      <ItemGroup className="gap-3">
+        {jobs.map((job) => {
+          const latestRun = runs.find((run) => run.job_id === job.id) ?? null;
+          const href =
+            kind === "reminder"
+              ? pathOfAutomationReminderDetail(job.id)
+              : pathOfAutomationTaskDetail(job.id);
+          return (
+            <Link key={job.id} href={href}>
+              <Item variant="outline" className="cursor-pointer rounded-xl">
+                <ItemContent className="w-full">
+                  <ItemHeader className="items-start gap-4">
+                    <div className="space-y-2">
+                      <ItemTitle>
+                        <span>{job.name}</span>
+                        {job.owner_type === "agent" ? (
+                          <span className="ml-2 inline-flex rounded border px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                            Agent
+                          </span>
+                        ) : null}
+                      </ItemTitle>
+                      <ItemDescription>{job.prompt}</ItemDescription>
+                    </div>
+                    <Button variant="ghost" size="sm">
+                      <PlusIcon className="size-4 rotate-45" />
+                      进入详情
+                    </Button>
+                  </ItemHeader>
+                  <div className="text-muted-foreground grid gap-3 pt-3 text-xs md:grid-cols-3">
+                    <div>
+                      <div className="font-medium text-foreground/80">调度</div>
+                      <div>{formatScheduleLabel(job)}</div>
+                    </div>
+                    <div>
+                      <div className="font-medium text-foreground/80">最近执行</div>
+                      <div>{latestRun?.started_at ?? "暂无记录"}</div>
+                    </div>
+                    <div>
+                      <div className="font-medium text-foreground/80">最近结果</div>
+                      <div>
+                        {latestRun?.result_summary ?? job.last_result_summary ?? "暂无摘要"}
+                      </div>
+                    </div>
+                  </div>
+                </ItemContent>
+              </Item>
+            </Link>
+          );
+        })}
+      </ItemGroup>
     </section>
   );
 }

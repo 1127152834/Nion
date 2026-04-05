@@ -104,6 +104,10 @@ When extending memory in this branch:
 - prefer `nion.memory_os.*` instead of expanding legacy `memory.json`
 - keep legacy fallback behavior working unless an explicit cutover plan removes it
 - do not reintroduce the old provider-based memory / AutoDream product shell
+- current product surface expectation:
+  - `/workspace/memory/user` must clearly distinguish real `user_model` records from read-only legacy fallback mappings
+  - `/workspace/memory/growth` must expose state-aware governance semantics instead of a flat action row
+  - `/workspace/automation/*` must distinguish `user-owned` vs `agent-owned`, and explain provenance/mutability in product language
 
 Thread title handling:
 

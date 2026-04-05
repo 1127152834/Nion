@@ -3,10 +3,14 @@
 import Link from "next/link";
 import { ArrowLeftIcon } from "lucide-react";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAutomationJob, useAutomationRuns } from "@/core/automation/hooks";
-import { describeAutomationJob } from "@/core/automation/presentation";
+import {
+  describeAutomationJob,
+  describeAutomationOwnership,
+} from "@/core/automation/presentation";
 import type { AutomationJobKind } from "@/core/automation/types";
 import {
   pathOfAutomationReminders,
@@ -66,6 +70,9 @@ export function AutomationJobDetailPage({
   }
 
   const description = describeAutomationJob(job);
+  const ownership = describeAutomationOwnership(job);
+  const editPermissionLabel =
+    job.mutability === "pause_only" ? "仅允许暂停或恢复" : "允许直接编辑";
   const jobRuns = runs.filter((run) => run.job_id === job.id);
   const preferredRunId = pickDefaultAutomationRunId(jobRuns);
   const latestRun = jobRuns.find((run) => run.id === preferredRunId) ?? null;
@@ -80,6 +87,12 @@ export function AutomationJobDetailPage({
           </Button>
         </Link>
         <div className="space-y-2">
+          <div className="flex flex-wrap gap-2">
+            <Badge variant={job.owner_type === "agent" ? "outline" : "secondary"}>
+              {ownership.ownerLabel}
+            </Badge>
+            <Badge variant="outline">编辑权限：{editPermissionLabel}</Badge>
+          </div>
           <h1 className="text-2xl font-semibold tracking-tight">
             {description.title}
           </h1>
@@ -88,9 +101,12 @@ export function AutomationJobDetailPage({
           </p>
           {job.owner_type === "agent" ? (
             <p className="max-w-3xl text-sm text-muted-foreground">
-              这是一个由 Agent 创建的自动化任务。你可以暂停或恢复它，但不能直接编辑其内部逻辑。
+              这是一个 Agent 创建的自动化任务。
             </p>
           ) : null}
+          <p className="max-w-3xl text-sm text-muted-foreground">
+            {ownership.reason}
+          </p>
         </div>
       </div>
 
@@ -121,6 +137,18 @@ export function AutomationJobDetailPage({
             <div className="font-medium">最近结果</div>
             <div className="text-muted-foreground">
               {description.lastResultSummary ?? "暂无摘要"}
+            </div>
+          </div>
+          <div className="space-y-1">
+            <div className="font-medium">来源记忆</div>
+            <div className="text-muted-foreground">
+              {job.provenance_memory_id ?? "无"}
+            </div>
+          </div>
+          <div className="space-y-1">
+            <div className="font-medium">来源学习主题</div>
+            <div className="text-muted-foreground">
+              {job.provenance_learning_id ?? "无"}
             </div>
           </div>
         </CardContent>

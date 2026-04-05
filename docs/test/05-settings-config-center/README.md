@@ -172,6 +172,10 @@
 - 适合人工探索式测试：复杂 YAML、跨分区联动。
 - 最小冒烟集合：打开设置、改 daemon 设置、save 成功、reload 一致。
 - 当前最小 IA 冒烟集合：打开 `/workspace/notebook`、`/workspace/memory`，确认 domain 文案、入口和主操作不串位。
+- 当前 Memory OS 增量冒烟集合：
+  - `/workspace/memory/user` 中，legacy fallback 必须明确标识且不可执行写操作
+  - `/workspace/memory/growth` 中，状态标签与治理动作必须一致
+  - `/workspace/automation/*` 中，agent-owned 详情必须解释来源与限制
 - 最小回归闭环：save success + 409 + 422。
 - 高收益自动化优先级：P0 是 config API/useConfigEditor；P1 是各 section UI。
 
