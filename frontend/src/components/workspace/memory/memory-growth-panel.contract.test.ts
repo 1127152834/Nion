@@ -10,6 +10,10 @@ void test("memory growth panel exposes minimal freeze and reject controls", asyn
 
   assert.match(source, /useFreezeMemoryGrowthItem/);
   assert.match(source, /useRejectMemoryGrowthItem/);
+  assert.match(source, /useAcceptMemoryGrowthItem/);
+  assert.match(source, /useResumeMemoryGrowthItem/);
+  assert.match(source, /接受/);
   assert.match(source, /冻结/);
+  assert.match(source, /恢复/);
   assert.match(source, /拒绝/);
 });
