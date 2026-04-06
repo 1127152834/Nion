@@ -17,6 +17,7 @@ dependencies = [
     "langgraph-runtime-inmem>=0.22.1",
     "markdownify>=1.2.2",
     "markitdown[docx,pdf,pptx,xls,xlsx]>=0.0.1a2",
+    "pymupdf4llm>=0.0.27",
     "pydantic>=2.12.5",
     "pyyaml>=6.0.3",
     "readabilipy>=0.3.0",

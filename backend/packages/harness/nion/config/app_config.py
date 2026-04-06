@@ -53,6 +53,16 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 
+class DocumentConversionConfig(BaseModel):
+    """Document conversion runtime settings."""
+
+    thread_offload_threshold_bytes: int = Field(
+        default=5 * 1024 * 1024,
+        ge=1,
+        description="Minimum file size that triggers asyncio.to_thread offload during document conversion",
+    )
+
+
 class AppConfig(BaseModel):
     """Config for the Nion application"""
 
@@ -96,6 +106,10 @@ class AppConfig(BaseModel):
     skills: SkillsConfig = Field(default_factory=SkillsConfig, description="Skills configuration")
     extensions: ExtensionsConfig = Field(default_factory=ExtensionsConfig, description="Extensions configuration (MCP servers and skills state)")
     tool_search: ToolSearchConfig = Field(default_factory=ToolSearchConfig, description="Tool search / deferred loading configuration")
+    document_conversion: DocumentConversionConfig = Field(
+        default_factory=DocumentConversionConfig,
+        description="Document conversion runtime settings",
+    )
     model_config = ConfigDict(extra="allow", frozen=False)
     checkpointer: CheckpointerConfig | None = Field(default=None, description="Checkpointer configuration")
 
