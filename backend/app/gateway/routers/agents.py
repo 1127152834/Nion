@@ -135,7 +135,7 @@ async def list_agents() -> AgentsListResponse:
     try:
         agents = list_agent_catalog()
         return AgentsListResponse(
-            agents=[_agent_config_to_response(a) for a in agents if _is_catalog_visible(a)]
+            agents=[_agent_config_to_response(a, include_soul=True) for a in agents if _is_catalog_visible(a)]
         )
     except Exception as e:
         logger.error(f"Failed to list agents: {e}", exc_info=True)

@@ -73,6 +73,17 @@ _HARD_STOP_MSG = (
 )
 
 
+def _append_text_block(content: object, text: str) -> object:
+    """Append plain text to message content while preserving block/list shapes."""
+    if isinstance(content, list):
+        return [*content, {"type": "text", "text": text}]
+    if isinstance(content, str):
+        return f"{content}\n\n{text}" if content else text
+    if content is None:
+        return text
+    return f"{content}\n\n{text}"
+
+
 class LoopDetectionMiddleware(AgentMiddleware[AgentState]):
     """Detects and breaks repetitive tool call loops.
 
@@ -198,7 +209,7 @@ class LoopDetectionMiddleware(AgentMiddleware[AgentState]):
             last_msg = messages[-1]
             stripped_msg = last_msg.model_copy(update={
                 "tool_calls": [],
-                "content": (last_msg.content or "") + f"\n\n{_HARD_STOP_MSG}",
+                "content": _append_text_block(last_msg.content, _HARD_STOP_MSG),
             })
             return {"messages": [stripped_msg]}
 

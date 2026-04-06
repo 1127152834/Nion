@@ -415,6 +415,15 @@ class TestAgentsAPI:
         assert "agent-one" in names
         assert "agent-two" in names
 
+    def test_list_agents_includes_soul(self, agent_client):
+        agent_client.post("/api/agents", json={"name": "agent-one", "soul": "custom soul"})
+
+        response = agent_client.get("/api/agents")
+
+        assert response.status_code == 200
+        agent = next(a for a in response.json()["agents"] if a["name"] == "agent-one")
+        assert agent["soul"] == "custom soul"
+
     def test_get_agent(self, agent_client):
         agent_client.post("/api/agents", json={"name": "test-agent", "soul": "Hello world"})
 

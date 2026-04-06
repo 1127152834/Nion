@@ -1,7 +1,9 @@
+import inspect
 import json
 import logging
 
 from fastapi import APIRouter
+from langchain_core.messages import HumanMessage, SystemMessage
 from pydantic import BaseModel, Field
 
 from nion.config.suggestions_config import get_suggestions_config
@@ -93,6 +95,43 @@ def _format_conversation(messages: list[SuggestionMessage]) -> str:
     return "\n".join(parts).strip()
 
 
+def _build_suggestions_prompt(conversation: str, n: int) -> list[SystemMessage | HumanMessage]:
+    return [
+        SystemMessage(
+            content=(
+                "You are generating follow-up questions to help the user continue the conversation.\n"
+                f"Based on the provided conversation, produce EXACTLY {n} short questions the user might ask next.\n"
+                "Requirements:\n"
+                "- Questions must be relevant to the conversation.\n"
+                "- Questions must be written in the same language as the user.\n"
+                "- Keep each question concise (ideally <= 20 words / <= 40 Chinese characters).\n"
+                "- Do NOT include numbering, markdown, or any extra text.\n"
+                "- Output MUST be a JSON array of strings only."
+            )
+        ),
+        HumanMessage(content=f"Conversation:\n{conversation}"),
+    ]
+
+
+def _serialize_prompt_messages(prompt: list[SystemMessage | HumanMessage]) -> str:
+    return "\n\n".join(str(message.content) for message in prompt if str(message.content).strip())
+
+
+def _resolve_suggestions_model_name() -> str:
+    configured_model_name = (get_suggestions_config().model_name or "").strip()
+    if configured_model_name:
+        return configured_model_name
+    return resolve_model_name_with_fallback(None)
+
+
+async def _invoke_suggestions_model(model: object, prompt: list[SystemMessage | HumanMessage]) -> object:
+    ainvoke = getattr(model, "ainvoke", None)
+    if ainvoke is not None and inspect.iscoroutinefunction(ainvoke):
+        return await ainvoke(prompt)
+    invoke = getattr(model, "invoke")
+    return invoke(_serialize_prompt_messages(prompt))
+
+
 @router.post(
     "/threads/{thread_id}/suggestions",
     response_model=SuggestionsResponse,
@@ -108,24 +147,12 @@ async def generate_suggestions(thread_id: str, request: SuggestionsRequest) -> S
     if not conversation:
         return SuggestionsResponse(suggestions=[])
 
-    prompt = (
-        "You are generating follow-up questions to help the user continue the conversation.\n"
-        f"Based on the conversation below, produce EXACTLY {n} short questions the user might ask next.\n"
-        "Requirements:\n"
-        "- Questions must be relevant to the conversation.\n"
-        "- Questions must be written in the same language as the user.\n"
-        "- Keep each question concise (ideally <= 20 words / <= 40 Chinese characters).\n"
-        "- Do NOT include numbering, markdown, or any extra text.\n"
-        "- Output MUST be a JSON array of strings only.\n\n"
-        "Conversation:\n"
-        f"{conversation}\n"
-    )
+    prompt = _build_suggestions_prompt(conversation, n)
 
     try:
-        configured_model_name = (get_suggestions_config().model_name or "").strip()
-        model_name = resolve_model_name_with_fallback(configured_model_name or None)
+        model_name = _resolve_suggestions_model_name()
         model = create_chat_model(name=model_name, thinking_enabled=False)
-        response = model.invoke(prompt)
+        response = await _invoke_suggestions_model(model, prompt)
         raw = _extract_response_text(response.content)
         suggestions = _parse_json_string_list(raw) or []
         cleaned = [s.replace("\n", " ").strip() for s in suggestions if s.strip()]

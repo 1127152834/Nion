@@ -121,6 +121,30 @@ class TestLoopDetection:
         assert msgs[0].tool_calls == []
         assert _HARD_STOP_MSG in msgs[0].content
 
+    def test_hard_stop_preserves_list_content_blocks(self):
+        mw = LoopDetectionMiddleware(warn_threshold=1, hard_limit=1)
+        runtime = _make_runtime()
+        result = mw._apply(
+            {
+                "messages": [
+                    AIMessage(
+                        content=[{"type": "text", "text": "partial result"}],
+                        tool_calls=[_bash_call("ls")],
+                    )
+                ]
+            },
+            runtime,
+        )
+
+        assert result is not None
+        msgs = result["messages"]
+        assert len(msgs) == 1
+        assert isinstance(msgs[0], AIMessage)
+        assert msgs[0].tool_calls == []
+        assert isinstance(msgs[0].content, list)
+        assert msgs[0].content[0] == {"type": "text", "text": "partial result"}
+        assert msgs[0].content[-1] == {"type": "text", "text": _HARD_STOP_MSG}
+
     def test_different_calls_dont_trigger(self):
         mw = LoopDetectionMiddleware(warn_threshold=2)
         runtime = _make_runtime()

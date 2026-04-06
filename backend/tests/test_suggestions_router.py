@@ -1,6 +1,8 @@
 import asyncio
 from unittest.mock import MagicMock
 
+from langchain_core.messages import HumanMessage, SystemMessage
+
 from app.gateway.routers import suggestions
 
 
@@ -157,3 +159,45 @@ def test_generate_suggestions_uses_default_policy_model_when_no_override(monkeyp
 
     assert result.suggestions == ["Q1", "Q2"]
     assert captured["name"] == "default-model"
+
+
+def test_generate_suggestions_uses_async_message_prompt(monkeypatch):
+    req = suggestions.SuggestionsRequest(
+        messages=[
+            suggestions.SuggestionMessage(role="user", content="你好"),
+            suggestions.SuggestionMessage(role="assistant", content="我可以帮你检查代码"),
+        ],
+        n=2,
+    )
+    captured: dict[str, object] = {}
+
+    class _FakeResponse:
+        content = '["下一步要先看哪里？", "需要我先跑测试吗？"]'
+
+    class _FakeChatModel:
+        def invoke(self, _prompt):
+            raise AssertionError("should use async model invocation")
+
+        async def ainvoke(self, prompt):
+            captured["prompt"] = prompt
+            return _FakeResponse()
+
+    monkeypatch.setattr(
+        suggestions,
+        "resolve_model_name_with_fallback",
+        lambda configured_model_name=None: "default-model",
+    )
+    monkeypatch.setattr(suggestions, "create_chat_model", lambda **kwargs: _FakeChatModel())
+
+    result = asyncio.run(suggestions.generate_suggestions("t1", req))
+
+    assert result.suggestions == ["下一步要先看哪里？", "需要我先跑测试吗？"]
+    prompt = captured["prompt"]
+    assert isinstance(prompt, list)
+    assert len(prompt) == 2
+    assert isinstance(prompt[0], SystemMessage)
+    assert isinstance(prompt[1], HumanMessage)
+    assert "EXACTLY 2 short questions" in prompt[0].content
+    assert "Conversation:" in prompt[1].content
+    assert "User: 你好" in prompt[1].content
+    assert "Assistant: 我可以帮你检查代码" in prompt[1].content

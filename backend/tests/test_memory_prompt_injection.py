@@ -120,3 +120,19 @@ def test_format_memory_skips_non_string_content_facts() -> None:
     assert "| 0.85]" not in result
     assert "Valid fact" in result
 
+
+def test_format_memory_includes_long_term_background() -> None:
+    memory_data = {
+        "history": {
+            "recentMonths": {"summary": "最近在推进代理系统稳定性。"},
+            "earlierContext": {"summary": "此前持续做多代理和工具链集成。"},
+            "longTermBackground": {"summary": "长期专注 AI agent、开发工具与中文技术写作。"},
+        }
+    }
+
+    result = format_memory_for_injection(memory_data, max_tokens=2000)
+
+    assert "History:" in result
+    assert "Recent: 最近在推进代理系统稳定性。" in result
+    assert "Earlier: 此前持续做多代理和工具链集成。" in result
+    assert "Background: 长期专注 AI agent、开发工具与中文技术写作。" in result

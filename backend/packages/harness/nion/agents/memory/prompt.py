@@ -240,6 +240,10 @@ def format_memory_for_injection(memory_data: dict[str, Any], max_tokens: int = 2
         if earlier.get("summary"):
             history_sections.append(f"Earlier: {earlier['summary']}")
 
+        long_term = history_data.get("longTermBackground", {})
+        if long_term.get("summary"):
+            history_sections.append(f"Background: {long_term['summary']}")
+
         if history_sections:
             sections.append("History:\n" + "\n".join(f"- {s}" for s in history_sections))
 
