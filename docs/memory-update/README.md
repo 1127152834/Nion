@@ -47,6 +47,8 @@
   - 说明 soul system 应如何和现有 Memory OS 自我成长体系一体化，而不是平行存在。
 - `12-nion-complete-soul-system-architecture.md`
   - 收敛后的完整 Soul System 架构：对象、artifact、runtime、成长闭环、治理与接线方式。
+- `13-soul-data-contracts.md`
+  - Soul System 实施前置规格第 1 篇，冻结 soul 相关对象、artifact、metadata、状态合同。
 - `sources.md`
   - 本轮调研用到的内部材料与外部公开来源。
 
@@ -86,4 +88,5 @@ Nion 现在已经不是“完全没有记忆”的状态，但它仍然更像一
 4. 再读 [10-soul-system-research.md](/Users/zhangtiancheng/Documents/项目/agent/nion/.worktrees/codex-memory-os-m0-contract-foundation/docs/memory-update/10-soul-system-research.md)
 5. 再读 [11-soul-memory-os-integration.md](/Users/zhangtiancheng/Documents/项目/agent/nion/.worktrees/codex-memory-os-m0-contract-foundation/docs/memory-update/11-soul-memory-os-integration.md)
 6. 再读 [12-nion-complete-soul-system-architecture.md](/Users/zhangtiancheng/Documents/项目/agent/nion/.worktrees/codex-memory-os-m0-contract-foundation/docs/memory-update/12-nion-complete-soul-system-architecture.md)
-7. 然后从 [specification-package-plan.md](/Users/zhangtiancheng/Documents/项目/agent/nion/docs/memory-update/specification-package-plan.md) 开始顺着 `00 -> 09` 阅读
+7. 再读 [13-soul-data-contracts.md](/Users/zhangtiancheng/Documents/项目/agent/nion/.worktrees/codex-memory-os-m0-contract-foundation/docs/memory-update/13-soul-data-contracts.md)
+8. 然后从 [specification-package-plan.md](/Users/zhangtiancheng/Documents/项目/agent/nion/docs/memory-update/specification-package-plan.md) 开始顺着 `00 -> 09` 阅读
