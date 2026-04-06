@@ -96,7 +96,11 @@ def _iter_searchable_paths(root: Path):
 
 
 def glob_search(path: str, pattern: str) -> list[str]:
-    root = Path(path).resolve()
+    requested_root = Path(path)
+    if requested_root.is_symlink():
+        return []
+
+    root = requested_root.resolve()
     matches: list[str] = []
 
     if root.is_file():
@@ -113,7 +117,11 @@ def glob_search(path: str, pattern: str) -> list[str]:
 
 
 def grep_search(path: str, query: str) -> list[GrepMatch]:
-    root = Path(path).resolve()
+    requested_root = Path(path)
+    if requested_root.is_symlink():
+        return []
+
+    root = requested_root.resolve()
     matches: list[GrepMatch] = []
 
     for candidate in _iter_searchable_paths(root):

@@ -289,6 +289,22 @@ def test_validate_local_bash_command_paths_blocks_acp_workspace_write_path() -> 
         )
 
 
+def test_validate_local_bash_command_paths_blocks_relative_path_escape_to_acp_workspace() -> None:
+    with pytest.raises(PermissionError, match="relative path traversal"):
+        validate_local_bash_command_paths(
+            "cd ..; cd ..; echo hacked > acp-workspace/pwned.txt",
+            _THREAD_DATA,
+        )
+
+
+def test_validate_local_bash_command_paths_blocks_python_relative_path_escape() -> None:
+    with pytest.raises(PermissionError, match="relative path traversal"):
+        validate_local_bash_command_paths(
+            'python -c "from pathlib import Path; Path(\'..\').joinpath(\'..\',\'acp-workspace\',\'pyc.txt\').write_text(\'x\')"',
+            _THREAD_DATA,
+        )
+
+
 # ---------- Skills path tests ----------
 
 

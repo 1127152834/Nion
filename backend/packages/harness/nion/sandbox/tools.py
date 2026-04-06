@@ -17,6 +17,7 @@ from nion.sandbox.sandbox_provider import get_sandbox_provider
 from nion.sandbox.security import LOCAL_HOST_BASH_DISABLED_MESSAGE, is_host_bash_allowed
 
 _ABSOLUTE_PATH_PATTERN = re.compile(r"(?<![:\w])/(?:[^\s\"'`;&|<>()]+)")
+_RELATIVE_PARENT_SEGMENT_PATTERN = re.compile(r"(?<![\w/\\.-])\.\.(?:[/\\]|(?![\w.-]))")
 _LOCAL_BASH_SYSTEM_PATH_PREFIXES = (
     "/bin/",
     "/usr/bin/",
@@ -487,12 +488,15 @@ def validate_local_bash_command_paths(command: str, thread_data: ThreadDataState
     """Validate absolute paths in local-sandbox bash commands.
 
     In local mode, commands must use virtual paths under /mnt/user-data for
-    user data access. Skills paths under /mnt/skills are allowed for reading.
-    A small allowlist of common system path prefixes is kept for executable
-    and device references (e.g. /bin/sh, /dev/null).
+    user data access. Read-only virtual mounts such as skills and ACP workspace
+    are not available to bash. A small allowlist of common system path prefixes
+    is kept for executable and device references (e.g. /bin/sh, /dev/null).
     """
     if thread_data is None:
         raise SandboxRuntimeError("Thread data not available for local sandbox")
+
+    if _RELATIVE_PARENT_SEGMENT_PATTERN.search(command):
+        raise PermissionError("Unsafe relative path traversal in command is not allowed")
 
     unsafe_paths: list[str] = []
 

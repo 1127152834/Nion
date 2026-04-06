@@ -72,6 +72,34 @@ def test_local_sandbox_glob_skips_symlink_pointing_outside_root(tmp_path: Path) 
     assert matches == []
 
 
+def test_local_sandbox_grep_ignores_root_path_when_it_is_symlink_file(tmp_path: Path) -> None:
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    outside = tmp_path / "outside.txt"
+    outside.write_text("needle outside\n", encoding="utf-8")
+    root_link = workspace / "root-link.txt"
+    root_link.symlink_to(outside)
+
+    sandbox = LocalSandbox("local")
+    matches = sandbox.grep(str(root_link), "needle")
+
+    assert matches == []
+
+
+def test_local_sandbox_glob_ignores_root_path_when_it_is_symlink_file(tmp_path: Path) -> None:
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    outside = tmp_path / "outside.py"
+    outside.write_text("print('outside')\n", encoding="utf-8")
+    root_link = workspace / "root-link.py"
+    root_link.symlink_to(outside)
+
+    sandbox = LocalSandbox("local")
+    matches = sandbox.glob(str(root_link), "**/*.py")
+
+    assert matches == []
+
+
 def test_glob_tool_reads_skills_paths_without_leaking_host_paths() -> None:
     runtime = SimpleNamespace(
         state={"sandbox": {"sandbox_id": "local"}, "thread_data": _THREAD_DATA},
