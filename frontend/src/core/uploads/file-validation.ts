@@ -19,6 +19,11 @@ export type ValidatePromptInputFilesResult = {
   errors: PromptInputFileError[];
 };
 
+export type PreparePromptInputFilesOptions = ValidatePromptInputFilesOptions & {
+  currentCount?: number;
+  maxFiles?: number;
+};
+
 function matchesAcceptPattern(file: File, accept?: string) {
   if (!accept || accept.trim() === "") {
     return true;
@@ -95,4 +100,30 @@ export function validatePromptInputFiles(
   }
 
   return { accepted, errors };
+}
+
+export function preparePromptInputFiles(
+  files: File[] | FileList,
+  options: PreparePromptInputFilesOptions = {},
+): ValidatePromptInputFilesResult {
+  const { accepted, errors } = validatePromptInputFiles(files, options);
+  const currentCount = options.currentCount ?? 0;
+  const maxFiles = options.maxFiles;
+
+  if (typeof maxFiles !== "number") {
+    return { accepted, errors };
+  }
+
+  const remainingCapacity = Math.max(0, maxFiles - currentCount);
+  if (accepted.length <= remainingCapacity) {
+    return { accepted, errors };
+  }
+
+  return {
+    accepted: accepted.slice(0, remainingCapacity),
+    errors: errors.concat({
+      code: "max_files",
+      message: "Too many files. Some were not added.",
+    }),
+  };
 }

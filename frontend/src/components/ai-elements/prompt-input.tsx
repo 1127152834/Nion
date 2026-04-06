@@ -40,7 +40,7 @@ import {
   createPromptInputFileParts,
   type PromptInputAttachmentItem,
   type PromptInputFileError,
-  validatePromptInputFiles,
+  preparePromptInputFiles,
 } from "@/core/uploads";
 import type { ChatStatus, FileUIPart } from "ai";
 import {
@@ -174,13 +174,19 @@ export function PromptInputProvider({
       return;
     }
 
-    setAttachmentFiles((prev) =>
-      prev.concat(
-        createPromptInputFileParts(incoming, {
+    setAttachmentFiles((prev) => {
+      const { accepted } = preparePromptInputFiles(incoming, {
+        currentCount: prev.length,
+      });
+      if (accepted.length === 0) {
+        return prev;
+      }
+      return prev.concat(
+        createPromptInputFileParts(accepted, {
           createId: () => nanoid(),
         }),
-      ),
-    );
+      );
+    });
   }, []);
 
   const remove = useCallback((id: string) => {
@@ -513,47 +519,39 @@ export const PromptInput = ({
     inputRef.current?.click();
   }, []);
 
-  const addFiles = useCallback(
-    (fileList: File[] | FileList) => {
-      const incoming = Array.from(fileList);
-      const { accepted, errors } = validatePromptInputFiles(incoming, {
+  const applyPreparedFiles = useCallback(
+    (
+      acceptedFiles: File[],
+      currentFilesLength: number,
+      append: (nextFiles: File[]) => void,
+    ) => {
+      const { accepted, errors } = preparePromptInputFiles(acceptedFiles, {
         accept,
         maxFileSize,
+        maxFiles,
+        currentCount: currentFilesLength,
       });
 
       for (const error of errors) {
         onError?.(error);
       }
 
-      if (accepted.length === 0) {
+      if (accepted.length > 0) {
+        append(accepted);
+      }
+    },
+    [accept, maxFileSize, maxFiles, onError],
+  );
+
+  const addFiles = useCallback(
+    (fileList: File[] | FileList) => {
+      const incoming = Array.from(fileList);
+      if (incoming.length === 0) {
         return;
       }
 
-      const appendAcceptedFiles = (
-        currentFilesLength: number,
-        append: (nextFiles: File[]) => void,
-      ) => {
-        const capacity =
-          typeof maxFiles === "number"
-            ? Math.max(0, maxFiles - currentFilesLength)
-            : undefined;
-        const capped =
-          typeof capacity === "number" ? accepted.slice(0, capacity) : accepted;
-
-        if (typeof capacity === "number" && accepted.length > capacity) {
-          onError?.({
-            code: "max_files",
-            message: "Too many files. Some were not added.",
-          });
-        }
-
-        if (capped.length > 0) {
-          append(capped);
-        }
-      };
-
       if (usingProvider) {
-        appendAcceptedFiles(files.length, (nextFiles) => {
+        applyPreparedFiles(incoming, files.length, (nextFiles) => {
           controller.attachments.add(nextFiles);
         });
         return;
@@ -561,7 +559,7 @@ export const PromptInput = ({
 
       setItems((prev) => {
         const next: PromptInputAttachmentItem[] = [];
-        appendAcceptedFiles(prev.length, (nextFiles) => {
+        applyPreparedFiles(incoming, prev.length, (nextFiles) => {
           next.push(
             ...createPromptInputFileParts(nextFiles, {
               createId: () => nanoid(),
@@ -571,7 +569,7 @@ export const PromptInput = ({
         return prev.concat(next);
       });
     },
-    [accept, controller, files.length, maxFiles, maxFileSize, onError, usingProvider],
+    [applyPreparedFiles, controller, files.length, usingProvider],
   );
 
   const removeLocal = useCallback(

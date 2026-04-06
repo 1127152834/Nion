@@ -1,18 +1,17 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import path from "node:path";
 import test from "node:test";
 import ts from "typescript";
 
 async function loadModule(relativePath) {
-  const absolutePath = path.resolve(process.cwd(), "..", relativePath);
+  const absolutePath = new URL(relativePath, import.meta.url);
   const source = await readFile(absolutePath, "utf8");
   const transpiled = ts.transpileModule(source, {
     compilerOptions: {
       module: ts.ModuleKind.ESNext,
       target: ts.ScriptTarget.ES2022,
     },
-    fileName: absolutePath,
+    fileName: absolutePath.pathname,
   });
 
   return import(
@@ -22,7 +21,7 @@ async function loadModule(relativePath) {
 
 void test("createPromptInputFileParts preserves the original File object", async () => {
   const { createPromptInputFileParts } = await loadModule(
-    "frontend/src/core/uploads/prompt-input-files.ts",
+    "./prompt-input-files.ts",
   );
 
   const file = new File(["hello"], "hello.txt", { type: "text/plain" });
@@ -41,7 +40,7 @@ void test("createPromptInputFileParts preserves the original File object", async
 
 void test("getFilesForUpload returns original File instances and reports missing files", async () => {
   const { getFilesForUpload } = await loadModule(
-    "frontend/src/core/uploads/prompt-input-files.ts",
+    "./prompt-input-files.ts",
   );
 
   const file = new File(["hello"], "hello.txt", { type: "text/plain" });
