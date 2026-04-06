@@ -27,6 +27,7 @@ from .import_legacy import import_legacy_memory_payload
 from .learning import create_learning_topic
 from .projections import build_automation_projection
 from .procedures import create_procedure_draft
+from .relationship_soul import build_relationship_soul_summary
 from .soul_artifacts import MemoryOSSoulArtifactStore, import_legacy_soul_file
 from .soul_governance import accept_soul_proposal, reject_soul_proposal, rollback_soul_overlay
 from .soul_journal import write_soul_journal
@@ -54,6 +55,7 @@ __all__ = [
     "MEMORY_STATUSES",
     "MEMORY_TYPES",
     "build_automation_projection",
+    "build_relationship_soul_summary",
     "extract_candidates_from_exchange",
     "GOVERNANCE_ACTION_ACCEPT",
     "GOVERNANCE_ACTION_FREEZE",

@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from nion.config.paths import get_paths
 from nion.memory_os.governance import GOVERNANCE_ACTION_FREEZE, GOVERNANCE_ACTION_REJECT
 from nion.memory_os.learning import create_learning_topic
+from nion.memory_os.relationship_soul import build_relationship_soul_summary
 from nion.memory_os.repository import MemoryOSRepository
 from nion.memory_os.soul_governance import (
     accept_soul_proposal,
@@ -71,11 +72,7 @@ async def get_soul_summary():
         "core_soul": core_soul,
         "summary": {
             "baseline": core_soul["summary"] if core_soul else None,
-            "relationship": (
-                "面对当前用户时保持低刺激、少施压、结论先行。"
-                if current_soul
-                else None
-            ),
+            "relationship": build_relationship_soul_summary(repo),
             "current": current_soul["summary"] if current_soul else None,
         },
     }

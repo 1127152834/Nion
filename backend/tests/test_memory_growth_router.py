@@ -132,6 +132,23 @@ def test_memory_growth_router_exposes_soul_summary_and_proposal_controls(monkeyp
         title="减少鼓励式措辞",
         summary="长期证据显示用户偏好低刺激支持。",
     )
+    repo.save_memory_record(
+        {
+            "memory_id": "rel_01",
+            "domain": "relationship",
+            "subtype": "initiative_policy",
+            "owner_type": "agent",
+            "scope": "user",
+            "memory_type": "semantic",
+            "subject_id": "user:default",
+            "status": "active",
+            "summary": "用户偏好低打扰、少施压、结论先行的支持方式。",
+            "confidence": 0.9,
+            "created_at": "2026-04-07T00:00:00Z",
+            "updated_at": "2026-04-07T00:00:00Z",
+            "provenance": {"source_type": "test"},
+        }
+    )
 
     with TestClient(create_app()) as client:
         summary = client.get("/api/memory/growth/soul")
@@ -141,6 +158,7 @@ def test_memory_growth_router_exposes_soul_summary_and_proposal_controls(monkeyp
 
     assert summary.status_code == 200
     assert "summary" in summary.json()
+    assert "低打扰" in summary.json()["summary"]["relationship"]
     assert proposals.status_code == 200
     assert proposals.json()["proposals"][0]["memory_id"] == proposal["memory_id"]
     assert accept.status_code == 200
