@@ -1,9 +1,60 @@
 from __future__ import annotations
 
+import fnmatch
 from pathlib import Path, PurePosixPath
 from typing import TypedDict
 
-from nion.sandbox.local.list_dir import _should_ignore
+_IGNORE_PATTERNS = [
+    ".git",
+    ".svn",
+    ".hg",
+    ".bzr",
+    "node_modules",
+    "__pycache__",
+    ".venv",
+    "venv",
+    ".env",
+    "env",
+    ".tox",
+    ".nox",
+    ".eggs",
+    "*.egg-info",
+    "site-packages",
+    "dist",
+    "build",
+    ".next",
+    ".nuxt",
+    ".output",
+    ".turbo",
+    "target",
+    "out",
+    ".idea",
+    ".vscode",
+    "*.swp",
+    "*.swo",
+    "*~",
+    ".project",
+    ".classpath",
+    ".settings",
+    ".DS_Store",
+    "Thumbs.db",
+    "desktop.ini",
+    "*.lnk",
+    "*.log",
+    "*.tmp",
+    "*.temp",
+    "*.bak",
+    "*.cache",
+    ".cache",
+    "logs",
+    ".coverage",
+    "coverage",
+    ".nyc_output",
+    "htmlcov",
+    ".pytest_cache",
+    ".mypy_cache",
+    ".ruff_cache",
+]
 
 
 class GrepMatch(TypedDict):
@@ -12,12 +63,19 @@ class GrepMatch(TypedDict):
     line: str
 
 
+def _should_ignore(name: str) -> bool:
+    for pattern in _IGNORE_PATTERNS:
+        if fnmatch.fnmatch(name, pattern):
+            return True
+    return False
+
+
 def _iter_searchable_paths(root: Path):
     if not root.exists():
         raise FileNotFoundError(root)
 
     if root.is_file():
-        if not _should_ignore(root.name):
+        if not root.is_symlink() and not _should_ignore(root.name):
             yield root.resolve()
         return
 
@@ -26,7 +84,15 @@ def _iter_searchable_paths(root: Path):
         for file_name in sorted(file_names):
             if _should_ignore(file_name):
                 continue
-            yield (current_root / file_name).resolve()
+            candidate = current_root / file_name
+            if candidate.is_symlink():
+                continue
+            resolved = candidate.resolve()
+            try:
+                resolved.relative_to(root)
+            except ValueError:
+                continue
+            yield resolved
 
 
 def glob_search(path: str, pattern: str) -> list[str]:

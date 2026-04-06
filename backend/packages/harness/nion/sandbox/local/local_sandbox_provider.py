@@ -9,13 +9,7 @@ _singleton: LocalSandbox | None = None
 
 class LocalSandboxProvider(SandboxProvider):
     def configure_path_mappings(self, sandbox: LocalSandbox, thread_data: dict | None) -> None:
-        from nion.sandbox.tools import (
-            VIRTUAL_PATH_PREFIX,
-            _ACP_WORKSPACE_VIRTUAL_PREFIX,
-            _get_acp_workspace_host_path,
-            _get_skills_container_path,
-            _get_skills_host_path,
-        )
+        from nion.sandbox import tools as sandbox_tools
 
         mappings = []
 
@@ -25,33 +19,42 @@ class LocalSandboxProvider(SandboxProvider):
             outputs = thread_data.get("outputs_path")
             if workspace:
                 mappings.append(
-                    PathMapping(host_path=str(Path(workspace).resolve()), virtual_path=f"{VIRTUAL_PATH_PREFIX}/workspace")
+                    PathMapping(
+                        host_path=str(Path(workspace).resolve()),
+                        virtual_path=f"{sandbox_tools.VIRTUAL_PATH_PREFIX}/workspace",
+                    )
                 )
             if uploads:
                 mappings.append(
-                    PathMapping(host_path=str(Path(uploads).resolve()), virtual_path=f"{VIRTUAL_PATH_PREFIX}/uploads")
+                    PathMapping(
+                        host_path=str(Path(uploads).resolve()),
+                        virtual_path=f"{sandbox_tools.VIRTUAL_PATH_PREFIX}/uploads",
+                    )
                 )
             if outputs:
                 mappings.append(
-                    PathMapping(host_path=str(Path(outputs).resolve()), virtual_path=f"{VIRTUAL_PATH_PREFIX}/outputs")
+                    PathMapping(
+                        host_path=str(Path(outputs).resolve()),
+                        virtual_path=f"{sandbox_tools.VIRTUAL_PATH_PREFIX}/outputs",
+                    )
                 )
 
-            acp_workspace = _get_acp_workspace_host_path(thread_data)
+            acp_workspace = sandbox_tools._get_acp_workspace_host_path(thread_data)
             if acp_workspace:
                 mappings.append(
                     PathMapping(
                         host_path=str(Path(acp_workspace).resolve()),
-                        virtual_path=_ACP_WORKSPACE_VIRTUAL_PREFIX,
+                        virtual_path=sandbox_tools._ACP_WORKSPACE_VIRTUAL_PREFIX,
                         read_only=True,
                     )
                 )
 
-        skills_host = _get_skills_host_path()
+        skills_host = sandbox_tools._get_skills_host_path()
         if skills_host:
             mappings.append(
                 PathMapping(
                     host_path=str(Path(skills_host).resolve()),
-                    virtual_path=_get_skills_container_path(),
+                    virtual_path=sandbox_tools._get_skills_container_path(),
                     read_only=True,
                 )
             )

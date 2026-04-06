@@ -501,14 +501,13 @@ def validate_local_bash_command_paths(command: str, thread_data: ThreadDataState
             _reject_path_traversal(absolute_path)
             continue
 
-        # Allow skills container path (resolved by tools.py before passing to sandbox)
         if _is_skills_path(absolute_path):
             _reject_path_traversal(absolute_path)
-            continue
+            raise PermissionError(f"Path is read-only and not available to bash: {absolute_path}")
 
         if _is_acp_workspace_path(absolute_path):
             _reject_path_traversal(absolute_path)
-            continue
+            raise PermissionError(f"Path is read-only and not available to bash: {absolute_path}")
 
         if any(absolute_path.startswith(prefix) for prefix in _get_mcp_allowed_paths()):
             continue

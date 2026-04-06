@@ -4,8 +4,8 @@ import subprocess
 from dataclasses import dataclass
 
 from nion.sandbox.local.list_dir import list_dir
-from nion.sandbox.search import GrepMatch, glob_search, grep_search
 from nion.sandbox.sandbox import Sandbox
+from nion.sandbox.search import GrepMatch, glob_search, grep_search
 
 
 @dataclass(frozen=True, slots=True)

@@ -264,6 +264,31 @@ def test_validate_local_bash_command_paths_blocks_traversal_in_skills() -> None:
             )
 
 
+def test_validate_local_bash_command_paths_blocks_skills_paths_entirely() -> None:
+    with patch("nion.sandbox.tools._get_skills_container_path", return_value="/mnt/skills"):
+        with pytest.raises(PermissionError, match="not available to bash"):
+            validate_local_bash_command_paths(
+                "echo hacked > /mnt/skills/x.txt",
+                _THREAD_DATA,
+            )
+
+
+def test_validate_local_bash_command_paths_blocks_acp_workspace_read_path() -> None:
+    with pytest.raises(PermissionError, match="not available to bash"):
+        validate_local_bash_command_paths(
+            "cat /mnt/acp-workspace/a.txt",
+            _THREAD_DATA,
+        )
+
+
+def test_validate_local_bash_command_paths_blocks_acp_workspace_write_path() -> None:
+    with pytest.raises(PermissionError, match="not available to bash"):
+        validate_local_bash_command_paths(
+            "echo x > /mnt/acp-workspace/a.txt",
+            _THREAD_DATA,
+        )
+
+
 # ---------- Skills path tests ----------
 
 
@@ -297,13 +322,14 @@ def test_validate_local_tool_path_blocks_skills_write() -> None:
             )
 
 
-def test_validate_local_bash_command_paths_allows_skills_path() -> None:
-    """bash commands referencing /mnt/skills should be allowed."""
+def test_validate_local_bash_command_paths_blocks_skills_read_path() -> None:
+    """bash commands may not access read-only skills mounts."""
     with patch("nion.sandbox.tools._get_skills_container_path", return_value="/mnt/skills"):
-        validate_local_bash_command_paths(
-            "cat /mnt/skills/public/bootstrap/SKILL.md",
-            _THREAD_DATA,
-        )
+        with pytest.raises(PermissionError, match="not available to bash"):
+            validate_local_bash_command_paths(
+                "cat /mnt/skills/public/bootstrap/SKILL.md",
+                _THREAD_DATA,
+            )
 
 
 def test_validate_local_bash_command_paths_still_blocks_other_paths() -> None:
@@ -359,11 +385,12 @@ def test_validate_local_tool_path_blocks_acp_workspace_write() -> None:
         )
 
 
-def test_validate_local_bash_command_paths_allows_acp_workspace() -> None:
-    validate_local_bash_command_paths(
-        "cp /mnt/acp-workspace/hello_world.py /mnt/user-data/outputs/hello_world.py",
-        _THREAD_DATA,
-    )
+def test_validate_local_bash_command_paths_blocks_acp_workspace_copy_path() -> None:
+    with pytest.raises(PermissionError, match="not available to bash"):
+        validate_local_bash_command_paths(
+            "cp /mnt/acp-workspace/hello_world.py /mnt/user-data/outputs/hello_world.py",
+            _THREAD_DATA,
+        )
 
 
 def test_validate_local_bash_command_paths_allows_mcp_filesystem_host_paths() -> None:
