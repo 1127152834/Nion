@@ -3,10 +3,10 @@ from __future__ import annotations
 import asyncio
 from pathlib import Path
 
-from nion.utils import file_conversion
 from nion.config.app_config import get_app_config, reset_app_config
 from nion.config.config_repository import ConfigRepository
 from nion.config.extensions_config import reset_extensions_config
+from nion.utils import file_conversion
 
 
 def test_pdf_conversion_uses_pymupdf4llm_first(monkeypatch, tmp_path: Path) -> None:
