@@ -35,6 +35,7 @@ class MemoryOSRepository:
                     confidence REAL NOT NULL,
                     created_at TEXT NOT NULL,
                     updated_at TEXT NOT NULL,
+                    artifact_uri TEXT,
                     provenance_json TEXT NOT NULL
                 );
 
@@ -184,9 +185,10 @@ class MemoryOSRepository:
                     confidence,
                     created_at,
                     updated_at,
+                    artifact_uri,
                     provenance_json
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(memory_id) DO UPDATE SET
                     domain = excluded.domain,
                     subtype = excluded.subtype,
@@ -199,6 +201,7 @@ class MemoryOSRepository:
                     confidence = excluded.confidence,
                     created_at = excluded.created_at,
                     updated_at = excluded.updated_at,
+                    artifact_uri = excluded.artifact_uri,
                     provenance_json = excluded.provenance_json
                 """,
                 (
@@ -214,6 +217,7 @@ class MemoryOSRepository:
                     payload["confidence"],
                     payload["created_at"],
                     payload["updated_at"],
+                    payload.get("artifact_uri"),
                     json.dumps(payload["provenance"], ensure_ascii=False),
                 ),
             )
@@ -238,6 +242,7 @@ class MemoryOSRepository:
                 confidence,
                 created_at,
                 updated_at,
+                artifact_uri,
                 provenance_json
             FROM memory_records
         """

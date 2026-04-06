@@ -27,6 +27,7 @@ from .import_legacy import import_legacy_memory_payload
 from .learning import create_learning_topic
 from .projections import build_automation_projection
 from .procedures import create_procedure_draft
+from .soul_artifacts import MemoryOSSoulArtifactStore, import_legacy_soul_file
 from .soul import create_soul_proposal
 
 __all__ = [
@@ -58,5 +59,7 @@ __all__ = [
     "import_legacy_memory_payload",
     "create_learning_topic",
     "create_procedure_draft",
+    "MemoryOSSoulArtifactStore",
+    "import_legacy_soul_file",
     "create_soul_proposal",
 ]
