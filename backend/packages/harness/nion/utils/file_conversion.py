@@ -9,7 +9,6 @@ import asyncio
 import logging
 import re
 from pathlib import Path
-from types import SimpleNamespace
 
 logger = logging.getLogger(__name__)
 
@@ -73,13 +72,13 @@ def _should_offload_to_thread(file_path: Path) -> bool:
         return False
 
 
-def extract_outline(md_path: Path) -> list[SimpleNamespace]:
+def extract_outline(md_path: Path) -> list[dict[str, int | str]]:
     """Extract a shallow outline from a markdown file.
 
     Supports standard markdown headings and split-bold numbered headings like:
     `**1** **实验设置**`.
     """
-    outline: list[SimpleNamespace] = []
+    outline: list[dict[str, int | str]] = []
     for line_number, raw_line in enumerate(md_path.read_text(encoding="utf-8").splitlines(), start=1):
         line = raw_line.strip()
         if not line:
@@ -88,11 +87,11 @@ def extract_outline(md_path: Path) -> list[SimpleNamespace]:
         markdown_match = _MARKDOWN_HEADING_RE.match(line)
         if markdown_match is not None:
             outline.append(
-                SimpleNamespace(
-                    level=len(markdown_match.group(1)),
-                    title=markdown_match.group(2).strip(),
-                    line=line_number,
-                )
+                {
+                    "level": len(markdown_match.group(1)),
+                    "title": markdown_match.group(2).strip(),
+                    "line": line_number,
+                }
             )
             continue
 
@@ -101,11 +100,12 @@ def extract_outline(md_path: Path) -> list[SimpleNamespace]:
             number = split_bold_match.group(1).strip()
             title = split_bold_match.group(2).strip()
             outline.append(
-                SimpleNamespace(
-                    level=min(number.count(".") + 2, 6),
-                    title=f"{number} {title}",
-                    line=line_number,
-                )
+                {
+                    "level": min(number.count(".") + 2, 6),
+                    "title": title,
+                    "number": number,
+                    "line": line_number,
+                }
             )
 
     return outline

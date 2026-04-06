@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 from pathlib import Path
-from types import SimpleNamespace
 
 from nion.utils import file_conversion
 from nion.config.app_config import get_app_config, reset_app_config
@@ -92,12 +91,16 @@ def test_extract_outline_supports_markdown_and_split_bold_headings(tmp_path: Pat
         encoding="utf-8",
     )
 
-    assert file_conversion.extract_outline(md_path) == [
-        SimpleNamespace(level=1, title="项目概述", line=1),
-        SimpleNamespace(level=2, title="实施计划", line=3),
-        SimpleNamespace(level=2, title="1 实验设置", line=4),
-        SimpleNamespace(level=3, title="2.1 结果分析", line=6),
+    outline = file_conversion.extract_outline(md_path)
+
+    assert outline == [
+        {"level": 1, "title": "项目概述", "line": 1},
+        {"level": 2, "title": "实施计划", "line": 3},
+        {"level": 2, "title": "实验设置", "number": "1", "line": 4},
+        {"level": 3, "title": "结果分析", "number": "2.1", "line": 6},
     ]
+    assert outline[2]["title"] == "实验设置"
+    assert outline[2]["line"] == 4
 
 
 def test_app_config_loads_document_conversion_section_from_store(tmp_path: Path, monkeypatch) -> None:
