@@ -10,7 +10,7 @@ from nion.agents.middlewares.loop_detection_middleware import LoopDetectionMiddl
 from nion.agents.middlewares.memory_middleware import MemoryMiddleware
 from nion.agents.middlewares.recall_capture_middleware import RecallCaptureMiddleware
 from nion.sandbox.exceptions import SandboxRuntimeError
-from nion.sandbox.tools import ensure_sandbox_initialized
+from nion.sandbox.tools import ensure_sandbox_initialized, sandbox_from_runtime
 
 present_file_tool_module = importlib.import_module("nion.tools.builtins.present_file_tool")
 
@@ -107,3 +107,18 @@ def test_ensure_sandbox_initialized_uses_configurable_thread_id_when_context_mis
 
     assert sandbox.id == "sandbox-1"
     provider.acquire.assert_called_once_with("thread-from-configurable")
+
+
+def test_sandbox_from_runtime_returns_sandbox_without_writing_context_when_missing():
+    provider = MagicMock()
+    provider.get.return_value = SimpleNamespace(id="sandbox-1")
+    runtime = SimpleNamespace(
+        state={"sandbox": {"sandbox_id": "sandbox-1"}},
+        context=None,
+    )
+
+    with patch("nion.sandbox.tools.get_sandbox_provider", return_value=provider):
+        sandbox = sandbox_from_runtime(runtime)
+
+    assert sandbox.id == "sandbox-1"
+    provider.get.assert_called_once_with("sandbox-1")

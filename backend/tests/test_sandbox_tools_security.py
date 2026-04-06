@@ -42,6 +42,39 @@ def test_replace_virtual_path_maps_virtual_root_and_subpaths() -> None:
     assert Path(replace_virtual_path("/mnt/user-data", _THREAD_DATA)).as_posix() == "/tmp/nion/threads/t1/user-data"
 
 
+def test_replace_virtual_path_preserves_trailing_slash() -> None:
+    result = replace_virtual_path("/mnt/user-data/workspace/", _THREAD_DATA)
+
+    assert result.endswith("/")
+    assert result == "/tmp/nion/threads/t1/user-data/workspace/"
+
+
+def test_replace_virtual_path_preserves_trailing_slash_windows_style() -> None:
+    win_thread_data = {
+        "workspace_path": r"C:\nion\threads\t1\user-data\workspace",
+        "uploads_path": r"C:\nion\threads\t1\user-data\uploads",
+        "outputs_path": r"C:\nion\threads\t1\user-data\outputs",
+    }
+
+    result = replace_virtual_path("/mnt/user-data/workspace/", win_thread_data)
+
+    assert result.endswith("\\")
+    assert "/" not in result
+
+
+def test_replace_virtual_path_preserves_windows_style_for_nested_subdir_trailing_slash() -> None:
+    win_thread_data = {
+        "workspace_path": r"C:\nion\threads\t1\user-data\workspace",
+        "uploads_path": r"C:\nion\threads\t1\user-data\uploads",
+        "outputs_path": r"C:\nion\threads\t1\user-data\outputs",
+    }
+
+    result = replace_virtual_path("/mnt/user-data/workspace/subdir/", win_thread_data)
+
+    assert result == "C:\\nion\\threads\\t1\\user-data\\workspace\\subdir\\"
+    assert "/" not in result
+
+
 # ---------- mask_local_paths_in_output ----------
 
 
@@ -230,12 +263,34 @@ def test_replace_virtual_paths_in_command_replaces_both() -> None:
         assert "/tmp/nion/threads/t1/user-data/workspace/out.txt" in result
 
 
+def test_replace_virtual_paths_in_command_preserves_trailing_slash() -> None:
+    cmd = """python -c "output_dir = '/mnt/user-data/workspace/'; print(output_dir + 'some_file.txt')\""""
+
+    result = replace_virtual_paths_in_command(cmd, _THREAD_DATA)
+
+    assert "/tmp/nion/threads/t1/user-data/workspace/" in result
+
+
 # ---------- validate_local_bash_command_paths ----------
 
 
 def test_validate_local_bash_command_paths_blocks_host_paths() -> None:
     with pytest.raises(PermissionError, match="Unsafe absolute paths"):
         validate_local_bash_command_paths("cat /etc/passwd", _THREAD_DATA)
+
+
+def test_validate_local_bash_command_paths_allows_https_urls() -> None:
+    validate_local_bash_command_paths(
+        "cd /mnt/user-data/workspace && git clone https://github.com/CherryHQ/cherry-studio.git",
+        _THREAD_DATA,
+    )
+
+
+def test_validate_local_bash_command_paths_allows_http_urls() -> None:
+    validate_local_bash_command_paths(
+        "curl http://example.com/file.tar.gz -o /mnt/user-data/workspace/file.tar.gz",
+        _THREAD_DATA,
+    )
 
 
 def test_validate_local_bash_command_paths_allows_virtual_and_system_paths() -> None:

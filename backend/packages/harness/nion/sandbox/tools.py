@@ -16,7 +16,7 @@ from nion.sandbox.sandbox import Sandbox
 from nion.sandbox.sandbox_provider import get_sandbox_provider
 from nion.sandbox.security import LOCAL_HOST_BASH_DISABLED_MESSAGE, is_host_bash_allowed
 
-_ABSOLUTE_PATH_PATTERN = re.compile(r"(?<![:\w])/(?:[^\s\"'`;&|<>()]+)")
+_ABSOLUTE_PATH_PATTERN = re.compile(r"(?<![:/\w])/(?:[^\s\"'`;&|<>()]+)")
 _COMMAND_TOKEN_PATTERN = re.compile(r"""[^\s"'`;|&<>]+|"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'""")
 _NON_PATH_TOKEN_CHARS_PATTERN = re.compile(r"[^A-Za-z0-9._/-]+")
 _LOCAL_BASH_SYSTEM_PATH_PREFIXES = (
@@ -151,7 +151,19 @@ def _join_path_preserving_style(base: str, relative: str) -> str:
         return base
     if "/" in base and "\\" not in base:
         return f"{base.rstrip('/')}/{relative}"
+    if "\\" in base and "/" not in base:
+        return f"{base.rstrip('\\')}\\{relative.replace('/', '\\')}"
     return str(Path(base) / relative)
+
+
+def _join_path_preserving_trailing_separator(base: str, relative: str, *, keep_trailing_separator: bool) -> str:
+    joined = _join_path_preserving_style(base, relative)
+    if not keep_trailing_separator:
+        return joined
+    separator = "\\" if "\\" in joined and "/" not in joined else "/"
+    if joined.endswith(("/", "\\")):
+        return joined
+    return f"{joined}{separator}"
 
 
 def _get_sandbox_output_limit(field_name: str, default: int) -> int:
@@ -258,7 +270,11 @@ def replace_virtual_path(path: str, thread_data: ThreadDataState | None) -> str:
             return actual_base
         if path.startswith(f"{virtual_base}/"):
             rest = path[len(virtual_base) :].lstrip("/")
-            return str(Path(actual_base) / rest) if rest else actual_base
+            return _join_path_preserving_trailing_separator(
+                actual_base,
+                rest.rstrip("/"),
+                keep_trailing_separator=path.endswith("/"),
+            )
 
     return path
 
