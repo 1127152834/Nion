@@ -77,7 +77,12 @@ def _get_thread_offload_threshold_bytes() -> int:
         from nion.config.app_config import get_app_config
 
         return get_app_config().document_conversion.thread_offload_threshold_bytes
-    except Exception:
+    except Exception as exc:
+        logger.warning(
+            "Failed to load document conversion thread offload threshold, using default %s: %s",
+            DEFAULT_THREAD_OFFLOAD_THRESHOLD_BYTES,
+            exc,
+        )
         return DEFAULT_THREAD_OFFLOAD_THRESHOLD_BYTES
 
 
