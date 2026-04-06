@@ -49,6 +49,36 @@ def rollback_soul_overlay(repository: MemoryOSRepository) -> dict[str, object]:
     return {"memory_id": overlay["memory_id"], "action": "rollback"}
 
 
+def list_soul_events(repository: MemoryOSRepository) -> list[dict[str, object]]:
+    events: list[dict[str, object]] = []
+    for row in repository.list_memory_records(domain="soul"):
+        if row["subtype"] == "proposal" and row["status"] == "archived":
+            events.append(
+                {
+                    "event_type": "proposal_accepted",
+                    "memory_id": row["memory_id"],
+                    "summary": row["summary"],
+                }
+            )
+        elif row["subtype"] == "proposal" and row["status"] == "invalidated":
+            events.append(
+                {
+                    "event_type": "proposal_rejected",
+                    "memory_id": row["memory_id"],
+                    "summary": row["summary"],
+                }
+            )
+        elif row["subtype"] == "adaptive_overlay" and row["status"] == "archived":
+            events.append(
+                {
+                    "event_type": "overlay_rollback",
+                    "memory_id": row["memory_id"],
+                    "summary": row["summary"],
+                }
+            )
+    return events
+
+
 def _find_record(
     repository: MemoryOSRepository,
     *,

@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
   acceptSoulProposal,
+  loadSoulEvents,
   loadSoulProposals,
   loadSoulSummary,
   rejectSoulProposal,
@@ -21,6 +22,14 @@ export function useSoulProposals() {
     queryFn: () => loadSoulProposals(),
   });
   return { proposals: data?.proposals ?? [], isLoading, error };
+}
+
+export function useSoulEvents() {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["soul", "events"],
+    queryFn: () => loadSoulEvents(),
+  });
+  return { events: data?.events ?? [], isLoading, error };
 }
 
 export function useAcceptSoulProposal() {

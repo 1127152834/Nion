@@ -14,3 +14,13 @@ export interface SoulSummaryResponse {
 export interface SoulProposalResponse {
   proposals: MemoryGrowthItem[];
 }
+
+export interface SoulEvent {
+  event_type: string;
+  memory_id: string;
+  summary: string;
+}
+
+export interface SoulEventsResponse {
+  events: SoulEvent[];
+}

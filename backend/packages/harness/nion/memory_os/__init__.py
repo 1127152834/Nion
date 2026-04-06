@@ -30,6 +30,7 @@ from .procedures import create_procedure_draft
 from .relationship_soul import build_relationship_soul_summary
 from .soul_artifacts import MemoryOSSoulArtifactStore, import_legacy_soul_file
 from .soul_governance import accept_soul_proposal, reject_soul_proposal, rollback_soul_overlay
+from .soul_governance import list_soul_events
 from .soul_journal import write_soul_journal
 from .soul_reflection import reflect_soul_growth
 from .soul_runtime import compile_soul_runtime
@@ -70,6 +71,7 @@ __all__ = [
     "accept_soul_proposal",
     "reject_soul_proposal",
     "rollback_soul_overlay",
+    "list_soul_events",
     "write_soul_journal",
     "reflect_soul_growth",
     "compile_soul_runtime",

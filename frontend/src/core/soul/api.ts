@@ -1,6 +1,6 @@
 import { getBackendBaseURL } from "../config/index.ts";
 
-import type { SoulProposalResponse, SoulSummaryResponse } from "./types";
+import type { SoulEventsResponse, SoulProposalResponse, SoulSummaryResponse } from "./types";
 
 export async function loadSoulSummary(): Promise<SoulSummaryResponse> {
   const response = await fetch(`${getBackendBaseURL()}/api/memory/growth/soul`);
@@ -16,6 +16,14 @@ export async function loadSoulProposals(): Promise<SoulProposalResponse> {
     throw new Error(`Failed to load soul proposals (${response.status})`);
   }
   return (await response.json()) as SoulProposalResponse;
+}
+
+export async function loadSoulEvents(): Promise<SoulEventsResponse> {
+  const response = await fetch(`${getBackendBaseURL()}/api/memory/growth/soul/events`);
+  if (!response.ok) {
+    throw new Error(`Failed to load soul events (${response.status})`);
+  }
+  return (await response.json()) as SoulEventsResponse;
 }
 
 export async function acceptSoulProposal(memoryId: string) {

@@ -172,6 +172,7 @@ def test_memory_growth_router_exposes_soul_summary_and_proposal_controls(monkeyp
         summary = client.get("/api/memory/growth/soul")
         proposals = client.get("/api/memory/growth/soul/proposals")
         accept = client.post(f"/api/memory/growth/soul/proposals/{proposal['memory_id']}/accept")
+        events = client.get("/api/memory/growth/soul/events")
         rollback = client.post("/api/memory/growth/soul/overlay/rollback")
 
     assert summary.status_code == 200
@@ -181,4 +182,5 @@ def test_memory_growth_router_exposes_soul_summary_and_proposal_controls(monkeyp
     assert proposals.status_code == 200
     assert proposals.json()["proposals"][0]["memory_id"] == proposal["memory_id"]
     assert accept.status_code == 200
+    assert events.status_code == 200
     assert rollback.status_code == 200

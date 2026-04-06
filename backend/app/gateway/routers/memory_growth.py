@@ -10,6 +10,7 @@ from nion.memory_os.relationship_soul import build_relationship_soul_summary
 from nion.memory_os.repository import MemoryOSRepository
 from nion.memory_os.soul_governance import (
     accept_soul_proposal,
+    list_soul_events,
     reject_soul_proposal,
     rollback_soul_overlay,
 )
@@ -97,6 +98,11 @@ async def list_soul_proposals():
             if item["subtype"] == "proposal"
         ],
     }
+
+
+@router.get("/soul/events")
+async def get_soul_events():
+    return {"events": list_soul_events(_repo())}
 
 
 @router.post("/learning")

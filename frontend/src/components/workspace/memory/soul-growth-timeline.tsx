@@ -1,15 +1,15 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useSoulProposals } from "@/core/soul/hooks";
+import { useSoulEvents } from "@/core/soul/hooks";
 import { describeSoulGrowthEvents } from "@/core/soul/presentation";
 
 export function SoulGrowthTimeline(props: {
   lastAcceptedProposalId?: string | null;
   lastRejectedProposalId?: string | null;
 }) {
-  const { proposals } = useSoulProposals();
-  const events = describeSoulGrowthEvents(proposals, {
+  const { events: backendEvents } = useSoulEvents();
+  const events = describeSoulGrowthEvents(backendEvents as never, {
     lastAcceptedProposalId: props.lastAcceptedProposalId ?? null,
     lastRejectedProposalId: props.lastRejectedProposalId ?? null,
   });
