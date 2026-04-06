@@ -1,4 +1,5 @@
 import type { MemoryGrowthItem } from "@/core/memory-growth/types";
+import type { SoulEvent } from "./types";
 
 export function describeSoulSummary(input: {
   currentSoul: MemoryGrowthItem | null;
@@ -31,7 +32,7 @@ export function describeSoulSummary(input: {
 }
 
 export function describeSoulGrowthEvents(
-  items: MemoryGrowthItem[],
+  items: Array<MemoryGrowthItem | SoulEvent>,
   uiState?: {
     lastAcceptedProposalId: string | null;
     lastRejectedProposalId: string | null;
@@ -44,9 +45,15 @@ export function describeSoulGrowthEvents(
         ? "刚刚生效"
         : item.memory_id === uiState?.lastRejectedProposalId
           ? "已拒绝"
-          : item.subtype === "adaptive_overlay" && item.status === "archived"
+          : "event_type" in item && item.event_type === "overlay_rollback"
         ? "已回退"
-        : item.subtype === "proposal" && item.status === "candidate"
+        : "event_type" in item && item.event_type === "proposal_rejected"
+          ? "已拒绝"
+          : "event_type" in item && item.event_type === "proposal_accepted"
+            ? "刚刚生效"
+          : "subtype" in item && item.subtype === "adaptive_overlay" && item.status === "archived"
+        ? "已回退"
+        : "subtype" in item && item.subtype === "proposal" && item.status === "candidate"
           ? "提案生成"
           : "刚刚生效",
     summary: item.summary,

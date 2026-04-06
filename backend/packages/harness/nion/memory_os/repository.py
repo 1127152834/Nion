@@ -4,7 +4,7 @@ import json
 import sqlite3
 from pathlib import Path
 
-from .models import AccessLogEntry, CandidateRecord, ConsolidationEvent
+from .models import AccessLogEntry, CandidateRecord, ConsolidationEvent, SoulEventRecord
 
 
 class MemoryOSRepository:
@@ -107,6 +107,14 @@ class MemoryOSRepository:
                     payload_json TEXT NOT NULL,
                     created_at TEXT NOT NULL,
                     updated_at TEXT NOT NULL
+                );
+
+                CREATE TABLE IF NOT EXISTS soul_events (
+                    event_id TEXT PRIMARY KEY,
+                    event_type TEXT NOT NULL,
+                    memory_id TEXT NOT NULL,
+                    summary TEXT NOT NULL,
+                    created_at TEXT NOT NULL
                 );
                 """
             )
@@ -391,3 +399,42 @@ class MemoryOSRepository:
                 ),
             )
         return event
+
+    def save_soul_event(self, event: SoulEventRecord) -> SoulEventRecord:
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO soul_events (
+                    event_id,
+                    event_type,
+                    memory_id,
+                    summary,
+                    created_at
+                )
+                VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(event_id) DO UPDATE SET
+                    event_type = excluded.event_type,
+                    memory_id = excluded.memory_id,
+                    summary = excluded.summary,
+                    created_at = excluded.created_at
+                """,
+                (
+                    event.event_id,
+                    event.event_type,
+                    event.memory_id,
+                    event.summary,
+                    event.created_at,
+                ),
+            )
+        return event
+
+    def list_soul_events(self) -> list[SoulEventRecord]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT event_id, event_type, memory_id, summary, created_at
+                FROM soul_events
+                ORDER BY created_at DESC, event_id DESC
+                """
+            ).fetchall()
+        return [SoulEventRecord.model_validate(dict(row)) for row in rows]

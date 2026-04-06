@@ -144,3 +144,11 @@ class AutomationProjection(BaseModel):
     retention_policy: dict[str, Any] = Field(default_factory=dict)
     visible_in_ui: bool = True
     policy_flags: dict[str, Any] = Field(default_factory=dict)
+
+
+class SoulEventRecord(BaseModel):
+    event_id: str
+    event_type: str
+    memory_id: str
+    summary: str
+    created_at: str

@@ -25,8 +25,8 @@ def test_soul_events_capture_accept_reject_and_rollback(tmp_path: Path):
     )
 
     accept_soul_proposal(repo, accepted["memory_id"], created_at="2026-04-07T00:00:00Z")
-    reject_soul_proposal(repo, rejected["memory_id"])
-    rollback_soul_overlay(repo)
+    reject_soul_proposal(repo, rejected["memory_id"], created_at="2026-04-07T00:01:00Z")
+    rollback_soul_overlay(repo, created_at="2026-04-07T00:02:00Z")
 
     events = list_soul_events(repo)
 

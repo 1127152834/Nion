@@ -9,7 +9,7 @@ export function SoulGrowthTimeline(props: {
   lastRejectedProposalId?: string | null;
 }) {
   const { events: backendEvents } = useSoulEvents();
-  const events = describeSoulGrowthEvents(backendEvents as never, {
+  const events = describeSoulGrowthEvents(backendEvents, {
     lastAcceptedProposalId: props.lastAcceptedProposalId ?? null,
     lastRejectedProposalId: props.lastRejectedProposalId ?? null,
   });
