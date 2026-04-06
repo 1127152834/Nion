@@ -4,6 +4,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from nion.sandbox.local.local_sandbox import LocalSandbox
+from nion.sandbox.local.local_sandbox_provider import LocalSandboxProvider
 from nion.sandbox.tools import (
     VIRTUAL_PATH_PREFIX,
     _apply_cwd_prefix,
@@ -484,3 +486,51 @@ def test_bash_tool_allows_local_host_bash_in_host_mode_even_when_global_flag_is_
 
     assert result == "/tmp/nion-host\n"
     sandbox.execute_command.assert_called_once_with("pwd")
+
+
+def test_local_sandbox_write_file_blocks_read_only_mapped_path(tmp_path: Path) -> None:
+    sandbox = LocalSandbox("local")
+    provider = LocalSandboxProvider()
+    skills_dir = tmp_path / "skills"
+    workspace = tmp_path / "workspace"
+    uploads = tmp_path / "uploads"
+    outputs = tmp_path / "outputs"
+    for directory in (skills_dir, workspace, uploads, outputs):
+        directory.mkdir()
+
+    thread_data = {
+        "workspace_path": str(workspace),
+        "uploads_path": str(uploads),
+        "outputs_path": str(outputs),
+    }
+
+    with (
+        patch("nion.sandbox.tools._get_skills_container_path", return_value="/mnt/skills"),
+        patch("nion.sandbox.tools._get_skills_host_path", return_value=str(skills_dir)),
+    ):
+        provider.configure_path_mappings(sandbox, thread_data)
+
+    with pytest.raises(PermissionError, match="read-only path"):
+        sandbox.write_file(str(skills_dir / "public" / "bootstrap" / "SKILL.md"), "changed")
+
+
+def test_local_sandbox_update_file_blocks_read_only_mapped_path(tmp_path: Path) -> None:
+    sandbox = LocalSandbox("local")
+    provider = LocalSandboxProvider()
+    acp_dir = tmp_path / "thread" / "acp-workspace"
+    workspace = tmp_path / "thread" / "user-data" / "workspace"
+    uploads = tmp_path / "thread" / "user-data" / "uploads"
+    outputs = tmp_path / "thread" / "user-data" / "outputs"
+    for directory in (acp_dir, workspace, uploads, outputs):
+        directory.mkdir(parents=True, exist_ok=True)
+
+    thread_data = {
+        "workspace_path": str(workspace),
+        "uploads_path": str(uploads),
+        "outputs_path": str(outputs),
+    }
+
+    provider.configure_path_mappings(sandbox, thread_data)
+
+    with pytest.raises(PermissionError, match="read-only path"):
+        sandbox.update_file(str(acp_dir / "generated.txt"), b"changed")

@@ -453,6 +453,36 @@ def _resolve_and_validate_user_data_path(path: str, thread_data: ThreadDataState
     return str(resolved)
 
 
+def _resolve_local_read_path(path: str, thread_data: ThreadDataState | None) -> str:
+    validate_local_tool_path(path, thread_data, read_only=True)
+    if _is_skills_path(path):
+        return _resolve_skills_path(path)
+    if _is_acp_workspace_path(path):
+        return _resolve_acp_workspace_path(path, thread_data)
+    if thread_data is None:
+        raise SandboxRuntimeError("Thread data not available for local sandbox")
+    return _resolve_and_validate_user_data_path(path, thread_data)
+
+
+def _configure_local_sandbox_path_mappings(
+    sandbox: Sandbox,
+    runtime: ToolRuntime[ContextT, ThreadState] | None,
+) -> None:
+    if runtime is None or not is_local_sandbox(runtime):
+        return
+
+    provider = get_sandbox_provider()
+    configure = getattr(provider, "configure_path_mappings", None)
+    if callable(configure):
+        configure(sandbox, get_thread_data(runtime))
+
+
+def _mask_local_path(path: str, runtime: ToolRuntime[ContextT, ThreadState] | None) -> str:
+    if runtime is None or not is_local_sandbox(runtime):
+        return path
+    return mask_local_paths_in_output(path, get_thread_data(runtime))
+
+
 def validate_local_bash_command_paths(command: str, thread_data: ThreadDataState | None) -> None:
     """Validate absolute paths in local-sandbox bash commands.
 
@@ -746,6 +776,7 @@ def bash_tool(runtime: ToolRuntime[ContextT, ThreadState], description: str, com
     try:
         sandbox = ensure_sandbox_initialized(runtime)
         ensure_thread_directories_exist(runtime)
+        _configure_local_sandbox_path_mappings(sandbox, runtime)
         thread_data = _host_runtime_thread_data(runtime, get_thread_data(runtime))
         if is_local_sandbox(runtime):
             if not _is_host_execution_mode(runtime) and not is_host_bash_allowed():
@@ -783,17 +814,16 @@ def ls_tool(runtime: ToolRuntime[ContextT, ThreadState], description: str, path:
     try:
         sandbox = ensure_sandbox_initialized(runtime)
         ensure_thread_directories_exist(runtime)
+        _configure_local_sandbox_path_mappings(sandbox, runtime)
         requested_path = path
         if is_local_sandbox(runtime):
             thread_data = get_thread_data(runtime)
-            validate_local_tool_path(path, thread_data, read_only=True)
-            if _is_skills_path(path):
-                path = _resolve_skills_path(path)
-            else:
-                path = _resolve_and_validate_user_data_path(path, thread_data)
+            path = _resolve_local_read_path(path, thread_data)
         children = sandbox.list_dir(path)
         if not children:
             return "(empty)"
+        if is_local_sandbox(runtime):
+            return "\n".join(_mask_local_path(child, runtime) for child in children)
         return "\n".join(children)
     except SandboxError as e:
         return f"Error: {e}"
@@ -824,14 +854,11 @@ def read_file_tool(
     try:
         sandbox = ensure_sandbox_initialized(runtime)
         ensure_thread_directories_exist(runtime)
+        _configure_local_sandbox_path_mappings(sandbox, runtime)
         requested_path = path
         if is_local_sandbox(runtime):
             thread_data = get_thread_data(runtime)
-            validate_local_tool_path(path, thread_data, read_only=True)
-            if _is_skills_path(path):
-                path = _resolve_skills_path(path)
-            else:
-                path = _resolve_and_validate_user_data_path(path, thread_data)
+            path = _resolve_local_read_path(path, thread_data)
         content = sandbox.read_file(path)
         if not content:
             return "(empty)"
@@ -871,6 +898,7 @@ def write_file_tool(
     try:
         sandbox = ensure_sandbox_initialized(runtime)
         ensure_thread_directories_exist(runtime)
+        _configure_local_sandbox_path_mappings(sandbox, runtime)
         requested_path = path
         if is_local_sandbox(runtime):
             thread_data = get_thread_data(runtime)
@@ -912,6 +940,7 @@ def str_replace_tool(
     try:
         sandbox = ensure_sandbox_initialized(runtime)
         ensure_thread_directories_exist(runtime)
+        _configure_local_sandbox_path_mappings(sandbox, runtime)
         requested_path = path
         if is_local_sandbox(runtime):
             thread_data = get_thread_data(runtime)
@@ -936,3 +965,74 @@ def str_replace_tool(
         return f"Error: Permission denied accessing file: {requested_path}"
     except Exception as e:
         return f"Error: Unexpected error replacing string: {_sanitize_error(e, runtime)}"
+
+
+@tool("glob", parse_docstring=True)
+def glob_tool(runtime: ToolRuntime[ContextT, ThreadState], description: str, path: str, pattern: str) -> str:
+    """Find files under a directory using a glob pattern.
+
+    Args:
+        description: Explain why you are searching in short words. ALWAYS PROVIDE THIS PARAMETER FIRST.
+        path: The **absolute** directory path to search from.
+        pattern: The glob pattern to match, such as `**/*.py`.
+    """
+    try:
+        sandbox = ensure_sandbox_initialized(runtime)
+        ensure_thread_directories_exist(runtime)
+        _configure_local_sandbox_path_mappings(sandbox, runtime)
+        requested_path = path
+        if is_local_sandbox(runtime):
+            path = _resolve_local_read_path(path, get_thread_data(runtime))
+        if not hasattr(sandbox, "glob"):
+            raise SandboxRuntimeError("Sandbox does not support glob search")
+        matches = sandbox.glob(path, pattern)
+        if not matches:
+            return "(no matches)"
+        if is_local_sandbox(runtime):
+            return "\n".join(_mask_local_path(match, runtime) for match in matches)
+        return "\n".join(matches)
+    except SandboxError as e:
+        return f"Error: {e}"
+    except FileNotFoundError:
+        return f"Error: Directory not found: {requested_path}"
+    except PermissionError:
+        return f"Error: Permission denied: {requested_path}"
+    except Exception as e:
+        return f"Error: Unexpected error running glob search: {_sanitize_error(e, runtime)}"
+
+
+@tool("grep", parse_docstring=True)
+def grep_tool(runtime: ToolRuntime[ContextT, ThreadState], description: str, path: str, query: str) -> str:
+    """Search for a plain-text string in files under a directory.
+
+    Args:
+        description: Explain why you are searching in short words. ALWAYS PROVIDE THIS PARAMETER FIRST.
+        path: The **absolute** file or directory path to search.
+        query: The plain-text string to look for.
+    """
+    try:
+        sandbox = ensure_sandbox_initialized(runtime)
+        ensure_thread_directories_exist(runtime)
+        _configure_local_sandbox_path_mappings(sandbox, runtime)
+        requested_path = path
+        if is_local_sandbox(runtime):
+            path = _resolve_local_read_path(path, get_thread_data(runtime))
+        if not hasattr(sandbox, "grep"):
+            raise SandboxRuntimeError("Sandbox does not support grep search")
+        matches = sandbox.grep(path, query)
+        if not matches:
+            return "(no matches)"
+
+        formatted: list[str] = []
+        for match in matches:
+            rendered = f"{match['path']}:{match['line_number']}: {match['line']}"
+            formatted.append(_mask_local_path(rendered, runtime) if is_local_sandbox(runtime) else rendered)
+        return "\n".join(formatted)
+    except SandboxError as e:
+        return f"Error: {e}"
+    except FileNotFoundError:
+        return f"Error: Directory not found: {requested_path}"
+    except PermissionError:
+        return f"Error: Permission denied: {requested_path}"
+    except Exception as e:
+        return f"Error: Unexpected error running grep search: {_sanitize_error(e, runtime)}"

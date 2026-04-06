@@ -1,9 +1,18 @@
 import os
 import shutil
 import subprocess
+from dataclasses import dataclass
 
 from nion.sandbox.local.list_dir import list_dir
+from nion.sandbox.search import GrepMatch, glob_search, grep_search
 from nion.sandbox.sandbox import Sandbox
+
+
+@dataclass(frozen=True, slots=True)
+class PathMapping:
+    host_path: str
+    virtual_path: str
+    read_only: bool = False
 
 
 class LocalSandbox(Sandbox):
@@ -15,6 +24,19 @@ class LocalSandbox(Sandbox):
             id: Sandbox identifier
         """
         super().__init__(id)
+        self._path_mappings: tuple[PathMapping, ...] = ()
+
+    def set_path_mappings(self, path_mappings: list[PathMapping]) -> None:
+        self._path_mappings = tuple(sorted(path_mappings, key=lambda item: len(item.host_path), reverse=True))
+
+    def _ensure_writable_path(self, path: str) -> None:
+        normalized = os.path.normcase(os.path.abspath(path))
+        for mapping in self._path_mappings:
+            host_root = os.path.normcase(os.path.abspath(mapping.host_path))
+            if normalized == host_root or normalized.startswith(f"{host_root}{os.sep}"):
+                if mapping.read_only:
+                    raise PermissionError(f"Cannot write to read-only path: {path}")
+                return
 
     @staticmethod
     def _get_shell() -> str:
@@ -57,6 +79,7 @@ class LocalSandbox(Sandbox):
             return f.read()
 
     def write_file(self, path: str, content: str, append: bool = False) -> None:
+        self._ensure_writable_path(path)
         dir_path = os.path.dirname(path)
         if dir_path:
             os.makedirs(dir_path, exist_ok=True)
@@ -65,8 +88,15 @@ class LocalSandbox(Sandbox):
             f.write(content)
 
     def update_file(self, path: str, content: bytes) -> None:
+        self._ensure_writable_path(path)
         dir_path = os.path.dirname(path)
         if dir_path:
             os.makedirs(dir_path, exist_ok=True)
         with open(path, "wb") as f:
             f.write(content)
+
+    def glob(self, path: str, pattern: str) -> list[str]:
+        return glob_search(path, pattern)
+
+    def grep(self, path: str, query: str) -> list[GrepMatch]:
+        return grep_search(path, query)
