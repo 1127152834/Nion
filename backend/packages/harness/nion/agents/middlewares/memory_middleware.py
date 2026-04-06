@@ -22,10 +22,22 @@ _CORRECTION_PATTERNS = (
     re.compile(r"不对"),
     re.compile(r"你理解错了"),
     re.compile(r"你理解有误"),
+    re.compile(r"理解错了"),
+    re.compile(r"理解有误"),
     re.compile(r"重试"),
     re.compile(r"重新来"),
     re.compile(r"换一种"),
     re.compile(r"改用"),
+)
+
+_REINFORCEMENT_PATTERNS = (
+    re.compile(r"\b(?:yes|yep|yeah|correct|exactly|that's right|that is right)\b", re.IGNORECASE),
+    re.compile(r"\b(?:you got it|you are right|that is correct)\b", re.IGNORECASE),
+    re.compile(r"没错"),
+    re.compile(r"对[，,。.!？? ]"),
+    re.compile(r"就是这样"),
+    re.compile(r"是这样的"),
+    re.compile(r"这个(?:结论|偏好|理解|方向)是对的"),
 )
 
 
@@ -131,6 +143,21 @@ def detect_correction(messages: list[Any]) -> bool:
     return False
 
 
+def detect_reinforcement(messages: list[Any]) -> bool:
+    """Detect explicit user affirmation that reinforces an existing understanding."""
+
+    recent_user_msgs = [msg for msg in messages[-6:] if getattr(msg, "type", None) == "human"]
+
+    for msg in recent_user_msgs:
+        content = _extract_message_text(msg).strip()
+        if not content:
+            continue
+        if any(pattern.search(content) for pattern in _REINFORCEMENT_PATTERNS):
+            return True
+
+    return False
+
+
 class MemoryMiddleware(AgentMiddleware[MemoryMiddlewareState]):
     """Middleware that queues conversation for memory update after agent execution.
 
@@ -170,7 +197,10 @@ class MemoryMiddleware(AgentMiddleware[MemoryMiddlewareState]):
         # Get thread ID from runtime context first, then configurable fallback.
         thread_id = runtime.context.get("thread_id") if runtime.context else None
         if thread_id is None:
-            config_data = get_config()
+            try:
+                config_data = get_config()
+            except RuntimeError:
+                config_data = {}
             thread_id = config_data.get("configurable", {}).get("thread_id")
         if not thread_id:
             logger.debug("No thread_id in context/configurable, skipping memory update")
@@ -194,12 +224,14 @@ class MemoryMiddleware(AgentMiddleware[MemoryMiddlewareState]):
             return None
 
         correction_detected = detect_correction(filtered_messages)
+        reinforcement_detected = False if correction_detected else detect_reinforcement(filtered_messages)
         queue = get_memory_queue()
         queue.add(
             thread_id=thread_id,
             messages=filtered_messages,
             agent_name=self._agent_name,
             correction_detected=correction_detected,
+            reinforcement_detected=reinforcement_detected,
         )
 
         return None

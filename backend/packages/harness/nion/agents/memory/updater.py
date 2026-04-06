@@ -303,7 +303,29 @@ def _fact_content_key(content: Any) -> str | None:
     stripped = content.strip()
     if not stripped:
         return None
-    return stripped
+    return stripped.casefold()
+
+
+def _build_memory_signal_guidance(
+    *,
+    correction_detected: bool = False,
+    reinforcement_detected: bool = False,
+) -> str:
+    if correction_detected:
+        return (
+            "\n\nSignal Guidance:\n"
+            "- Correction signal detected.\n"
+            "- Treat this conversation as correcting prior understanding.\n"
+            "- Prefer removing contradicted facts and updating summaries to match the correction.\n"
+        )
+    if reinforcement_detected:
+        return (
+            "\n\nSignal Guidance:\n"
+            "- Reinforcement signal detected.\n"
+            "- The user confirmed or explicitly affirmed an existing understanding.\n"
+            "- Prefer preserving aligned facts and strengthening confidence only when the conversation clearly supports it.\n"
+        )
+    return ""
 
 
 def _is_relationship_control_fact(content: Any) -> bool:
@@ -342,13 +364,22 @@ class MemoryUpdater:
         )
         return create_chat_model(name=model_name, thinking_enabled=False)
 
-    def update_memory(self, messages: list[Any], thread_id: str | None = None, agent_name: str | None = None) -> bool:
+    def update_memory(
+        self,
+        messages: list[Any],
+        thread_id: str | None = None,
+        agent_name: str | None = None,
+        correction_detected: bool = False,
+        reinforcement_detected: bool = False,
+    ) -> bool:
         """Update memory based on conversation messages.
 
         Args:
             messages: List of conversation messages.
             thread_id: Optional thread ID for tracking source.
             agent_name: If provided, updates per-agent memory. If None, updates global memory.
+            correction_detected: Whether recent user turns explicitly corrected the assistant.
+            reinforcement_detected: Whether recent user turns explicitly reinforced existing understanding.
 
         Returns:
             True if update was successful, False otherwise.
@@ -362,7 +393,11 @@ class MemoryUpdater:
 
         try:
             # Get current memory
-            current_memory = self._get_memory_storage().load(agent_name)
+            memory_storage = self._get_memory_storage()
+            if hasattr(memory_storage, "load"):
+                current_memory = memory_storage.load(agent_name)
+            else:
+                current_memory = get_memory_data(agent_name)
 
             # Format conversation for prompt
             conversation_text = format_conversation_for_update(messages)
@@ -374,6 +409,10 @@ class MemoryUpdater:
             prompt = MEMORY_UPDATE_PROMPT.format(
                 current_memory=json.dumps(current_memory, indent=2),
                 conversation=conversation_text,
+            )
+            prompt += _build_memory_signal_guidance(
+                correction_detected=correction_detected,
+                reinforcement_detected=reinforcement_detected and not correction_detected,
             )
 
             # Call LLM
@@ -400,7 +439,7 @@ class MemoryUpdater:
             updated_memory = _strip_upload_mentions_from_memory(updated_memory)
 
             # Save
-            return self._get_memory_storage().save(updated_memory, agent_name)
+            return memory_storage.save(updated_memory, agent_name)
 
         except json.JSONDecodeError as e:
             logger.warning("Failed to parse LLM response for memory update: %s", e)

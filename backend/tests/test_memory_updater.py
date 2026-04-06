@@ -1,5 +1,11 @@
 from unittest.mock import MagicMock, patch
 
+from langchain_core.messages import AIMessage, HumanMessage
+
+from nion.agents.middlewares.memory_middleware import (
+    MemoryMiddleware,
+    detect_reinforcement,
+)
 from nion.agents.memory.prompt import MEMORY_UPDATE_PROMPT, format_conversation_for_update
 from nion.agents.memory.queue import ConversationContext, MemoryUpdateQueue
 from nion.agents.memory.updater import (
@@ -106,6 +112,35 @@ def test_apply_updates_skips_same_batch_duplicates_and_keeps_source_metadata() -
     ]
     assert all(fact["id"].startswith("fact_") for fact in result["facts"])
     assert all(fact["source"] == "thread-42" for fact in result["facts"])
+
+
+def test_apply_updates_treats_fact_duplicates_as_case_insensitive() -> None:
+    updater = MemoryUpdater()
+    current_memory = _make_memory(
+        facts=[
+            {
+                "id": "fact_existing",
+                "content": "User likes Python",
+                "category": "preference",
+                "confidence": 0.9,
+                "createdAt": "2026-03-18T00:00:00Z",
+                "source": "thread-a",
+            }
+        ]
+    )
+    update_data = {
+        "newFacts": [
+            {"content": "user likes python", "category": "preference", "confidence": 0.95},
+        ],
+    }
+
+    with patch(
+        "nion.agents.memory.updater.get_memory_config",
+        return_value=_memory_config(max_facts=100, fact_confidence_threshold=0.7),
+    ):
+        result = updater._apply_updates(current_memory, update_data, thread_id="thread-b")
+
+    assert [fact["content"] for fact in result["facts"]] == ["User likes Python"]
 
 
 def test_apply_updates_preserves_threshold_and_max_facts_trimming() -> None:
@@ -256,6 +291,16 @@ def test_memory_queue_merges_correction_signal() -> None:
     pending = queue._queue[0]
     assert isinstance(pending, ConversationContext)
     assert pending.correction_detected is True
+
+
+def test_memory_queue_merges_reinforcement_signal() -> None:
+    queue = MemoryUpdateQueue(updater_factory=lambda: MagicMock())
+    queue.add("thread-1", ["a"], reinforcement_detected=False)
+    queue.add("thread-1", ["b"], reinforcement_detected=True)
+
+    pending = queue._queue[0]
+    assert isinstance(pending, ConversationContext)
+    assert pending.reinforcement_detected is True
 
 
 def test_apply_updates_filters_relationship_control_state_from_facts() -> None:
@@ -425,3 +470,107 @@ class TestUpdateMemoryStructuredResponse:
             result = updater.update_memory([msg, ai_msg])
 
         assert result is True
+
+    def test_reinforcement_signal_adds_prompt_guidance(self):
+        updater = MemoryUpdater()
+        valid_json = '{"user": {}, "history": {}, "newFacts": [], "factsToRemove": []}'
+        model = self._make_mock_model(valid_json)
+
+        with (
+            patch.object(updater, "_get_model", return_value=model),
+            patch("nion.agents.memory.updater.get_memory_config", return_value=_memory_config(enabled=True)),
+            patch.object(
+                updater,
+                "_get_memory_storage",
+                return_value=MagicMock(load=MagicMock(return_value=_make_memory()), save=MagicMock(return_value=True)),
+            ),
+        ):
+            result = updater.update_memory(
+                [HumanMessage(content="没错，就是这个偏好"), AIMessage(content="收到")],
+                reinforcement_detected=True,
+            )
+
+        assert result is True
+        prompt = model.invoke.call_args.args[0]
+        assert "Reinforcement signal detected" in prompt
+        assert "confirmed or explicitly affirmed" in prompt
+
+    def test_correction_signal_overrides_reinforcement_guidance(self):
+        updater = MemoryUpdater()
+        valid_json = '{"user": {}, "history": {}, "newFacts": [], "factsToRemove": []}'
+        model = self._make_mock_model(valid_json)
+
+        with (
+            patch.object(updater, "_get_model", return_value=model),
+            patch("nion.agents.memory.updater.get_memory_config", return_value=_memory_config(enabled=True)),
+            patch.object(
+                updater,
+                "_get_memory_storage",
+                return_value=MagicMock(load=MagicMock(return_value=_make_memory()), save=MagicMock(return_value=True)),
+            ),
+        ):
+            result = updater.update_memory(
+                [HumanMessage(content="你前面理解错了，不过这个偏好是对的"), AIMessage(content="收到")],
+                correction_detected=True,
+                reinforcement_detected=True,
+            )
+
+        assert result is True
+        prompt = model.invoke.call_args.args[0]
+        assert "Correction signal detected" in prompt
+        assert "Reinforcement signal detected" not in prompt
+
+
+def test_detect_reinforcement_matches_explicit_user_affirmation() -> None:
+    messages = [
+        HumanMessage(content="对，就是这样，这个结论是对的"),
+        AIMessage(content="收到"),
+    ]
+
+    assert detect_reinforcement(messages) is True
+
+
+def test_memory_middleware_queues_reinforcement_signal() -> None:
+    middleware = MemoryMiddleware(agent_name="lead")
+    queue = MagicMock()
+    state = {
+        "messages": [
+            HumanMessage(content="没错，就是这样"),
+            AIMessage(content="收到"),
+        ]
+    }
+    runtime = MagicMock()
+    runtime.context = {"thread_id": "thread-1"}
+
+    with (
+        patch("nion.agents.middlewares.memory_middleware.get_memory_config", return_value=_memory_config(enabled=True)),
+        patch("nion.agents.middlewares.memory_middleware.get_memory_queue", return_value=queue),
+    ):
+        middleware.after_agent(state, runtime)
+
+    queue.add.assert_called_once()
+    assert queue.add.call_args.kwargs["correction_detected"] is False
+    assert queue.add.call_args.kwargs["reinforcement_detected"] is True
+
+
+def test_memory_middleware_prefers_correction_over_reinforcement() -> None:
+    middleware = MemoryMiddleware(agent_name="lead")
+    queue = MagicMock()
+    state = {
+        "messages": [
+            HumanMessage(content="对，但你前面理解错了，重新按这个来"),
+            AIMessage(content="收到"),
+        ]
+    }
+    runtime = MagicMock()
+    runtime.context = {"thread_id": "thread-1"}
+
+    with (
+        patch("nion.agents.middlewares.memory_middleware.get_memory_config", return_value=_memory_config(enabled=True)),
+        patch("nion.agents.middlewares.memory_middleware.get_memory_queue", return_value=queue),
+    ):
+        middleware.after_agent(state, runtime)
+
+    queue.add.assert_called_once()
+    assert queue.add.call_args.kwargs["correction_detected"] is True
+    assert queue.add.call_args.kwargs["reinforcement_detected"] is False
