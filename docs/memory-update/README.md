@@ -49,6 +49,14 @@
   - 收敛后的完整 Soul System 架构：对象、artifact、runtime、成长闭环、治理与接线方式。
 - `13-soul-data-contracts.md`
   - Soul System 实施前置规格第 1 篇，冻结 soul 相关对象、artifact、metadata、状态合同。
+- `14-soul-runtime-compilation.md`
+  - Soul System 实施前置规格第 2 篇，冻结 soul 如何编译成主智能体 runtime text 并进入热路径。
+- `15-soul-growth-and-reflection-rules.md`
+  - Soul System 实施前置规格第 3 篇，冻结 soul 如何从现有 Memory OS 自我成长体系中成长出来。
+- `16-soul-governance-matrix.md`
+  - Soul System 实施前置规格第 4 篇，冻结 soul 各对象的 `AUTO / SUGGEST / CONFIRM / FORBID` 矩阵。
+- `17-soul-product-interaction-model.md`
+  - Soul System 实施前置规格第 5 篇，冻结用户看到什么、能控制什么、如何理解 soul growth。
 - `sources.md`
   - 本轮调研用到的内部材料与外部公开来源。
 
@@ -89,4 +97,8 @@ Nion 现在已经不是“完全没有记忆”的状态，但它仍然更像一
 5. 再读 [11-soul-memory-os-integration.md](/Users/zhangtiancheng/Documents/项目/agent/nion/.worktrees/codex-memory-os-m0-contract-foundation/docs/memory-update/11-soul-memory-os-integration.md)
 6. 再读 [12-nion-complete-soul-system-architecture.md](/Users/zhangtiancheng/Documents/项目/agent/nion/.worktrees/codex-memory-os-m0-contract-foundation/docs/memory-update/12-nion-complete-soul-system-architecture.md)
 7. 再读 [13-soul-data-contracts.md](/Users/zhangtiancheng/Documents/项目/agent/nion/.worktrees/codex-memory-os-m0-contract-foundation/docs/memory-update/13-soul-data-contracts.md)
-8. 然后从 [specification-package-plan.md](/Users/zhangtiancheng/Documents/项目/agent/nion/docs/memory-update/specification-package-plan.md) 开始顺着 `00 -> 09` 阅读
+8. 再读 [14-soul-runtime-compilation.md](/Users/zhangtiancheng/Documents/项目/agent/nion/.worktrees/codex-memory-os-m0-contract-foundation/docs/memory-update/14-soul-runtime-compilation.md)
+9. 再读 [15-soul-growth-and-reflection-rules.md](/Users/zhangtiancheng/Documents/项目/agent/nion/.worktrees/codex-memory-os-m0-contract-foundation/docs/memory-update/15-soul-growth-and-reflection-rules.md)
+10. 再读 [16-soul-governance-matrix.md](/Users/zhangtiancheng/Documents/项目/agent/nion/.worktrees/codex-memory-os-m0-contract-foundation/docs/memory-update/16-soul-governance-matrix.md)
+11. 再读 [17-soul-product-interaction-model.md](/Users/zhangtiancheng/Documents/项目/agent/nion/.worktrees/codex-memory-os-m0-contract-foundation/docs/memory-update/17-soul-product-interaction-model.md)
+12. 然后从 [specification-package-plan.md](/Users/zhangtiancheng/Documents/项目/agent/nion/docs/memory-update/specification-package-plan.md) 开始顺着 `00 -> 09` 阅读
