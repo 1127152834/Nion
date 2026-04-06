@@ -47,8 +47,9 @@
 1. Soul 是 Memory OS 中最保守的域之一，治理严格程度高于 `agent_self`，接近或高于 `relationship`。
 2. `soul_journal` 可以高自治，但 `core_soul` 与 `active_overlay` 必须更严格。
 3. `soul_proposal` 默认允许自动生成，但默认不允许自动生效。
-4. 用户拥有对 soul growth 的反馈权、接受权、拒绝权，但不拥有对 core soul 的直接正文编辑权。
-5. drift 风险一旦升高，系统必须优先保护 identity continuity，而不是继续追求成长速度。
+4. `identity_narrative` 允许自动形成 draft，但不应绕过高影响人格变化的治理路径。
+5. 用户拥有对 soul growth 的反馈权、接受权、拒绝权，但不拥有对 core soul 的直接正文编辑权。
+6. drift 风险一旦升高，系统必须优先保护 identity continuity，而不是继续追求成长速度。
 
 ---
 
@@ -96,7 +97,7 @@ Soul 相关动作统一使用下面四级：
 |---|---|---|---|---|---|
 | `core_soul` | `FORBID` | `FORBID` | `FORBID` | `CONFIRM` | `FORBID` |
 | `relationship_soul` | `SUGGEST` | `SUGGEST` | `CONFIRM` | `SUGGEST` | `FORBID` |
-| `identity_narrative` | `AUTO` | `SUGGEST` | `AUTO` | `SUGGEST` | `FORBID` |
+| `identity_narrative` | `AUTO` | `SUGGEST` | `SUGGEST` | `SUGGEST` | `FORBID` |
 | `soul_memory` | `SUGGEST` | `SUGGEST` | `AUTO` | `SUGGEST` | `FORBID` |
 | `soul_journal` | `AUTO` | `FORBID` | `AUTO` | `AUTO` | `FORBID` |
 | `soul_proposal` | `AUTO` | `AUTO` | `FORBID` | `AUTO` | `FORBID` |
@@ -184,11 +185,17 @@ Soul 相关动作统一使用下面四级：
 
 ### 激活
 
-- `AUTO`
+- `SUGGEST`
 
 条件：
 
 - 更新只是当前叙事刷新，不改变 core values 与关系基线
+- 且未与 `relationship_soul`、`active_overlay` 冲突
+
+原因：
+
+- narrative 会进入用户可见“当前的我”层
+- 不应成为绕过 proposal / overlay 治理的快速通道
 
 ---
 
@@ -311,6 +318,7 @@ Soul 相关动作统一使用下面四级：
 
 - 只是运行时可观测产物
 - 不应成为治理瓶颈
+- 不应进入用户可见稳定人格面
 
 ---
 

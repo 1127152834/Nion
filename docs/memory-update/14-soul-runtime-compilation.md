@@ -54,6 +54,7 @@
 4. `soul_memories` 允许进入 runtime，但只能以少量高权重摘要进入。
 5. `soul_journal` 不直接进入 runtime，只作为 narrative / proposal / soul memory 的证据层。
 6. legacy `SOUL.md` 只作为 fallback，不再是默认主路径。
+7. 完整 Soul System 启用后，soul 的注入必须走唯一编译路径，不允许和通用 `memory_os_context` 的 soul section 并存。
 
 ---
 
@@ -380,6 +381,18 @@ runtime compiled text 虽然最终注入 prompt，但其源对象必须可追踪
 ### 原因
 
 Soul 是独立身份层，不应混在一般 memory_os_context 里。
+
+## 12.3 对现有 `04-memory-os-runtime-flows.md` 的修正规则
+
+本篇回写以下 runtime contract：
+
+1. `04` 中 context assembly 对 soul 的普通读取视为兼容期写法。
+2. 完整 soul runtime 启用后：
+   - soul 不再作为通用 `memory_os_context` 的普通 section 拼接
+   - soul 改由独立 `SoulContextAssembler` 注入
+3. 在兼容期内，也必须保证：
+   - 不能同时注入 raw soul context 和 compiled soul runtime
+   - 任意一轮对话只能有一条 soul 注入路径生效
 
 ---
 

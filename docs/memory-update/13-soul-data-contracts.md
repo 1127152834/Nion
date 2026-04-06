@@ -54,9 +54,11 @@
 1. Soul System 不新增平行于 Memory OS 的底层数据体系，统一复用 Memory OS 的 metadata + artifact 模型。
 2. Soul 的 canonical source 必须是 artifact，而不是单纯数据库字段。
 3. Soul 不是单一对象，而是由多个对象组成的身份系统。
-4. `core_soul`、`relationship_soul`、`identity_narrative`、`active_overlay` 都必须能映射到统一 `MemoryRecord` 与 `MemoryArtifact`。
-5. `soul_journal` 与现有 `agent_self diary` 允许共存，但语义不同、artifact kind 不同。
-6. legacy `SOUL.md` 继续存在兼容意义，但不再是长期目标下的唯一 canonical runtime source。
+4. `core_soul`、`identity_narrative`、`active_overlay` 都必须能映射到统一 `MemoryRecord` 与 `MemoryArtifact`。
+5. `relationship_soul` 允许存在，但它是由 `relationship` 证据派生出来的 soul runtime layer，不是新的 relationship truth source。
+6. `soul_journal` 与现有 `agent_self diary` 允许共存，但语义不同、artifact kind 不同。
+7. `SoulRuntimeSnapshot` 不作为长期业务 truth，只作为 observability / debug artifact。
+8. legacy `SOUL.md` 继续存在兼容意义，但不再是长期目标下的唯一 canonical runtime source。
 
 ---
 
@@ -71,11 +73,11 @@ Soul System 核心对象冻结为：
 5. `SoulJournalEntry`
 6. `SoulProposalRecord`
 7. `SoulOverlayArtifact`
-8. `SoulRuntimeSnapshot`
+8. `SoulRuntimeSnapshot`（可选 observability object）
 
 说明：
 
-- `SoulRuntimeSnapshot` 是编译产物索引对象，不是新的业务域。
+- `SoulRuntimeSnapshot` 是编译产物索引对象，不是新的业务真相源。
 - 其余 7 个对象都必须有明确 artifact / metadata 归属。
 
 ---
@@ -89,13 +91,13 @@ Soul System 核心对象冻结为：
 | Soul 对象 | Memory OS domain | 说明 |
 |---|---|---|
 | `SoulCoreArtifact` | `soul` | 主智能体长期稳定人格基底 |
-| `RelationshipSoulArtifact` | `soul` | 面向当前用户的关系人格整合层 |
+| `RelationshipSoulArtifact` | `soul` | 基于 `relationship` 证据派生出的关系人格层，不是新的事实层 |
 | `IdentityNarrativeArtifact` | `agent_self` | 自我叙事与成长阶段理解 |
 | `SoulMemoryRecord` | `soul` | 高权重身份记忆 |
 | `SoulJournalEntry` | `agent_self` | 灵魂层反思日志 |
 | `SoulProposalRecord` | `soul` | 尚未生效的人格变化提案 |
 | `SoulOverlayArtifact` | `soul` | 已批准生效的 adaptive layer |
-| `SoulRuntimeSnapshot` | `soul` | 运行时编译索引，可选持久化 |
+| `SoulRuntimeSnapshot` | `soul` | 运行时编译索引，仅用于 observability/debug，可选持久化 |
 
 ## 5.2 为什么 `IdentityNarrativeArtifact` 放在 `agent_self`
 
@@ -250,13 +252,15 @@ memory-os/artifacts/agent-self/
 
 ## 8.1 定义
 
-`RelationshipSoulArtifact` 是主智能体面对当前用户时生效的关系人格层。
+`RelationshipSoulArtifact` 是主智能体面对当前用户时生效的关系人格派生层。
 
 它整合：
 
 - relationship evidence
 - soul 里的关系姿态
 - 当前长期关系理解
+
+它不是新的 relationship canonical truth source。
 
 ## 8.2 Canonical MemoryRecord
 
@@ -314,6 +318,7 @@ memory-os/artifacts/agent-self/
 1. 每个 `user:xxx` 只允许有一个 `active` relationship soul。
 2. 它比 `core_soul` 更容易更新，但仍然必须有 repeated evidence。
 3. 它必须显式指向其 relationship provenance。
+4. 它不能直接回写或替代 `relationship.active` 记录。
 
 ---
 
@@ -658,7 +663,7 @@ memory-os/artifacts/agent-self/
 
 `SoulRuntimeSnapshot` 是 soul 编译后的运行时索引对象。
 
-它不是新的 domain，而是可选持久化的运行时产物索引。
+它不是新的 domain，也不是新的长期业务对象，而是可选持久化的运行时 observability artifact。
 
 ## 14.2 Canonical MemoryRecord
 
@@ -704,7 +709,8 @@ memory-os/artifacts/agent-self/
 
 1. `SoulRuntimeSnapshot` 默认可选持久化。
 2. 它不作为长期 truth，只作为 runtime observability 和 debug artifact。
-3. 它的生命周期应短于 canonical soul artifacts。
+3. 它不得被任何业务逻辑再次读取并用于推导新的 soul truth。
+4. 它的生命周期应短于 canonical soul artifacts。
 
 ---
 

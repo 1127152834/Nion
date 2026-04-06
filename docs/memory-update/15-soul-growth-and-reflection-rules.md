@@ -57,6 +57,7 @@
 3. `operational diary` 记录事件与需求，`soul journal` 记录身份与关系反思，两者必须分层。
 4. 单轮对话、单次 diary、单次情绪波动都不能直接改写 soul。
 5. soul growth 的输出不只包括人格变化，还包括 `learning / procedure / automation` 三类外化能力。
+6. `repeated evidence`、`长期稳定`、`关键事件` 必须转成最低可执行阈值，避免实现时各自解释。
 
 ---
 
@@ -90,6 +91,26 @@ Soul growth 的目标不是“让 agent 更像人说话”。
 
 这些信号都已经经过某种形式的整理或长期积累，
 比原始聊天更适合驱动 soul growth。
+
+## 5.3 最低可执行阈值
+
+本篇冻结以下最低阈值：
+
+1. `repeated evidence`
+   - 至少 3 次独立 evidence refs
+   - 且分布在至少 2 个不同日历日
+2. `长期稳定`
+   - 至少跨越 7 天观察窗口
+3. `关键事件级证据`
+   - 可绕过 3 次 evidence 要求
+   - 但必须同时满足：
+     - 事件严重影响关系姿态或服务边界
+     - 有明确 provenance
+     - 进入 `SUGGEST/CONFIRM` 路径，不能自动生效
+4. proposal 生成冷却窗口
+   - 同一 `proposal_kind + target_object` 24 小时内最多生成 1 个新 proposal
+5. relationship soul 振荡保护
+   - 同一对象 7 天内不允许出现超过 2 次方向相反的 stance proposal
 
 ## 5.2 Secondary Signals
 
@@ -260,6 +281,7 @@ flowchart TD
 1. narrative 必须和当前 core soul 一致
 2. narrative 可以比 core 更动态
 3. narrative 不得反向改写 core 的根原则
+4. narrative refresh 形成后默认先进入 `draft/staged`，不直接视为面向用户稳定版本
 
 ---
 

@@ -48,13 +48,13 @@
 - `12-nion-complete-soul-system-architecture.md`
   - 收敛后的完整 Soul System 架构：对象、artifact、runtime、成长闭环、治理与接线方式。
 - `13-soul-data-contracts.md`
-  - Soul System 实施前置规格第 1 篇，冻结 soul 相关对象、artifact、metadata、状态合同。
+  - Soul System 实施前置规格第 1 篇，冻结 soul 相关对象、artifact、metadata、状态合同，并明确派生层与 observability 边界。
 - `14-soul-runtime-compilation.md`
-  - Soul System 实施前置规格第 2 篇，冻结 soul 如何编译成主智能体 runtime text 并进入热路径。
+  - Soul System 实施前置规格第 2 篇，冻结 soul 如何编译成主智能体 runtime text 并进入热路径，同时明确替换现有双轨注入。
 - `15-soul-growth-and-reflection-rules.md`
-  - Soul System 实施前置规格第 3 篇，冻结 soul 如何从现有 Memory OS 自我成长体系中成长出来。
+  - Soul System 实施前置规格第 3 篇，冻结 soul 如何从现有 Memory OS 自我成长体系中成长出来，并补最小可执行阈值。
 - `16-soul-governance-matrix.md`
-  - Soul System 实施前置规格第 4 篇，冻结 soul 各对象的 `AUTO / SUGGEST / CONFIRM / FORBID` 矩阵。
+  - Soul System 实施前置规格第 4 篇，冻结 soul 各对象的 `AUTO / SUGGEST / CONFIRM / FORBID` 矩阵，并收紧 narrative 治理绕行风险。
 - `17-soul-product-interaction-model.md`
   - Soul System 实施前置规格第 5 篇，冻结用户看到什么、能控制什么、如何理解 soul growth。
 - `sources.md`
