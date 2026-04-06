@@ -22,7 +22,7 @@ void test("prompt input keeps original File attachments instead of converting bl
   );
 
   assert.doesNotMatch(source, /convertBlobUrlToDataUrl/);
-  assert.match(source, /file,\s*url: URL\.createObjectURL\(file\)/);
+  assert.match(source, /createPromptInputFileParts/);
 });
 
 void test("prompt input clears text and attachments only after submit succeeds", async () => {

@@ -36,6 +36,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import {
+  createPromptInputFileParts,
+  type PromptInputAttachmentItem,
+  type PromptInputFileError,
+  validatePromptInputFiles,
+} from "@/core/uploads";
 import type { ChatStatus, FileUIPart } from "ai";
 import {
   ArrowUpIcon,
@@ -81,7 +87,7 @@ export type PromptInputFilePart = FileUIPart & {
 // ============================================================================
 
 export type AttachmentsContext = {
-  files: (PromptInputFilePart & { id: string })[];
+  files: PromptInputAttachmentItem[];
   add: (files: File[] | FileList) => void;
   remove: (id: string) => void;
   clear: () => void;
@@ -156,9 +162,9 @@ export function PromptInputProvider({
   const clearInput = useCallback(() => setTextInput(""), []);
 
   // ----- attachments state (global when wrapped)
-  const [attachmentFiles, setAttachmentFiles] = useState<
-    (PromptInputFilePart & { id: string })[]
-  >([]);
+  const [attachmentFiles, setAttachmentFiles] = useState<PromptInputAttachmentItem[]>(
+    [],
+  );
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const openRef = useRef<() => void>(() => {});
 
@@ -170,14 +176,9 @@ export function PromptInputProvider({
 
     setAttachmentFiles((prev) =>
       prev.concat(
-        incoming.map((file) => ({
-          id: nanoid(),
-          type: "file" as const,
-          file,
-          url: URL.createObjectURL(file),
-          mediaType: file.type,
-          filename: file.name,
-        })),
+        createPromptInputFileParts(incoming, {
+          createId: () => nanoid(),
+        }),
       ),
     );
   }, []);
@@ -271,10 +272,9 @@ export function PromptInputProvider({
 const LocalAttachmentsContext = createContext<AttachmentsContext | null>(null);
 
 export const usePromptInputAttachments = () => {
-  // Dual-mode: prefer provider if present, otherwise use local
-  const provider = useOptionalProviderAttachments();
   const local = useContext(LocalAttachmentsContext);
-  const context = provider ?? local;
+  const provider = useOptionalProviderAttachments();
+  const context = local ?? provider;
   if (!context) {
     throw new Error(
       "usePromptInputAttachments must be used within a PromptInput or PromptInputProvider",
@@ -284,7 +284,7 @@ export const usePromptInputAttachments = () => {
 };
 
 export type PromptInputAttachmentProps = HTMLAttributes<HTMLDivElement> & {
-  data: PromptInputFilePart & { id: string };
+  data: PromptInputAttachmentItem;
   className?: string;
 };
 
@@ -470,7 +470,7 @@ export type PromptInputProps = Omit<
   maxFiles?: number;
   maxFileSize?: number; // bytes
   onError?: (err: {
-    code: "max_files" | "max_file_size" | "accept";
+    code: PromptInputFileError["code"];
     message: string;
   }) => void;
   onSubmit: (
@@ -502,7 +502,7 @@ export const PromptInput = ({
   const formRef = useRef<HTMLFormElement | null>(null);
 
   // ----- Local attachments (only used when no provider)
-  const [items, setItems] = useState<(PromptInputFilePart & { id: string })[]>([]);
+  const [items, setItems] = useState<PromptInputAttachmentItem[]>([]);
   const files = usingProvider ? controller.attachments.files : items;
 
   // Keep a ref to files for cleanup on unmount (avoids stale closure)
@@ -513,78 +513,65 @@ export const PromptInput = ({
     inputRef.current?.click();
   }, []);
 
-  const matchesAccept = useCallback(
-    (f: File) => {
-      if (!accept || accept.trim() === "") {
-        return true;
-      }
-
-      const patterns = accept
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean);
-
-      return patterns.some((pattern) => {
-        if (pattern.endsWith("/*")) {
-          const prefix = pattern.slice(0, -1); // e.g: image/* -> image/
-          return f.type.startsWith(prefix);
-        }
-        return f.type === pattern;
-      });
-    },
-    [accept],
-  );
-
-  const addLocal = useCallback(
+  const addFiles = useCallback(
     (fileList: File[] | FileList) => {
       const incoming = Array.from(fileList);
-      const accepted = incoming.filter((f) => matchesAccept(f));
-      if (incoming.length && accepted.length === 0) {
-        onError?.({
-          code: "accept",
-          message: "No files match the accepted types.",
-        });
-        return;
+      const { accepted, errors } = validatePromptInputFiles(incoming, {
+        accept,
+        maxFileSize,
+      });
+
+      for (const error of errors) {
+        onError?.(error);
       }
-      const withinSize = (f: File) =>
-        maxFileSize ? f.size <= maxFileSize : true;
-      const sized = accepted.filter(withinSize);
-      if (accepted.length > 0 && sized.length === 0) {
-        onError?.({
-          code: "max_file_size",
-          message: "All files exceed the maximum size.",
-        });
+
+      if (accepted.length === 0) {
         return;
       }
 
-      setItems((prev) => {
+      const appendAcceptedFiles = (
+        currentFilesLength: number,
+        append: (nextFiles: File[]) => void,
+      ) => {
         const capacity =
           typeof maxFiles === "number"
-            ? Math.max(0, maxFiles - prev.length)
+            ? Math.max(0, maxFiles - currentFilesLength)
             : undefined;
         const capped =
-          typeof capacity === "number" ? sized.slice(0, capacity) : sized;
-        if (typeof capacity === "number" && sized.length > capacity) {
+          typeof capacity === "number" ? accepted.slice(0, capacity) : accepted;
+
+        if (typeof capacity === "number" && accepted.length > capacity) {
           onError?.({
             code: "max_files",
             message: "Too many files. Some were not added.",
           });
         }
-        const next: (PromptInputFilePart & { id: string })[] = [];
-        for (const file of capped) {
-          next.push({
-            id: nanoid(),
-            type: "file",
-            file,
-            url: URL.createObjectURL(file),
-            mediaType: file.type,
-            filename: file.name,
-          });
+
+        if (capped.length > 0) {
+          append(capped);
         }
+      };
+
+      if (usingProvider) {
+        appendAcceptedFiles(files.length, (nextFiles) => {
+          controller.attachments.add(nextFiles);
+        });
+        return;
+      }
+
+      setItems((prev) => {
+        const next: PromptInputAttachmentItem[] = [];
+        appendAcceptedFiles(prev.length, (nextFiles) => {
+          next.push(
+            ...createPromptInputFileParts(nextFiles, {
+              createId: () => nanoid(),
+            }),
+          );
+        });
         return prev.concat(next);
       });
     },
-    [matchesAccept, maxFiles, maxFileSize, onError],
+    [accept, controller, files.length, maxFiles, maxFileSize, onError, usingProvider],
   );
 
   const removeLocal = useCallback(
@@ -612,7 +599,7 @@ export const PromptInput = ({
     [],
   );
 
-  const add = usingProvider ? controller.attachments.add : addLocal;
+  const add = addFiles;
   const remove = usingProvider ? controller.attachments.remove : removeLocal;
   const clear = usingProvider ? controller.attachments.clear : clearLocal;
   const openFileDialog = usingProvider
@@ -780,9 +767,7 @@ export const PromptInput = ({
     </>
   );
 
-  return usingProvider ? (
-    inner
-  ) : (
+  return (
     <LocalAttachmentsContext.Provider value={ctx}>
       {inner}
     </LocalAttachmentsContext.Provider>

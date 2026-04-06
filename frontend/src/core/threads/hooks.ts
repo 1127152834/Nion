@@ -10,7 +10,7 @@ import { useI18n } from "../i18n/hooks";
 import type { FileInMessage } from "../messages/utils";
 import { useUpdateSubtask } from "../tasks/context";
 import type { UploadedFileInfo } from "../uploads";
-import { uploadFiles } from "../uploads";
+import { getFilesForUpload, uploadFiles } from "../uploads";
 
 import { removeThreadFromSearchCache } from "./cache";
 import { getThreadRequestErrorCopy, getThreadRequestErrorMessage } from "./error-copy";
@@ -537,10 +537,8 @@ export function useThreadStream({
         if (message.files && message.files.length > 0) {
           setIsUploading(true);
           try {
-            const files = message.files
-              .map((filePart) => filePart.file ?? null)
-              .filter((file): file is File => file !== null);
-            const failedConversions = message.files.length - files.length;
+            const { files, missingCount: failedConversions } =
+              getFilesForUpload(message.files);
 
             if (failedConversions > 0) {
               throw new Error(
