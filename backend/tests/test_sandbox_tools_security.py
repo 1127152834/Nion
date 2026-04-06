@@ -293,6 +293,14 @@ def test_validate_local_bash_command_paths_allows_http_urls() -> None:
     )
 
 
+def test_validate_local_bash_command_paths_blocks_file_urls() -> None:
+    with pytest.raises(PermissionError, match="file:// URLs are not allowed"):
+        validate_local_bash_command_paths(
+            "curl file:///etc/passwd -o /mnt/user-data/workspace/passwd",
+            _THREAD_DATA,
+        )
+
+
 def test_validate_local_bash_command_paths_allows_virtual_and_system_paths() -> None:
     validate_local_bash_command_paths(
         "/bin/echo ok > /mnt/user-data/workspace/out.txt && cat /dev/null",

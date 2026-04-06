@@ -16,9 +16,10 @@ from nion.sandbox.sandbox import Sandbox
 from nion.sandbox.sandbox_provider import get_sandbox_provider
 from nion.sandbox.security import LOCAL_HOST_BASH_DISABLED_MESSAGE, is_host_bash_allowed
 
-_ABSOLUTE_PATH_PATTERN = re.compile(r"(?<![:/\w])/(?:[^\s\"'`;&|<>()]+)")
+_ABSOLUTE_PATH_PATTERN = re.compile(r"(?<![:\w])/(?:[^\s\"'`;&|<>()]+)")
 _COMMAND_TOKEN_PATTERN = re.compile(r"""[^\s"'`;|&<>]+|"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'""")
 _NON_PATH_TOKEN_CHARS_PATTERN = re.compile(r"[^A-Za-z0-9._/-]+")
+_URL_PATTERN = re.compile(r"\b(?P<scheme>[A-Za-z][A-Za-z0-9+.-]*)://(?P<target>[^\s\"'`;&|<>()]+)")
 _LOCAL_BASH_SYSTEM_PATH_PREFIXES = (
     "/bin/",
     "/usr/bin/",
@@ -534,8 +535,25 @@ def validate_local_bash_command_paths(command: str, thread_data: ThreadDataState
     _validate_relative_bash_tokens(command)
 
     unsafe_paths: list[str] = []
+    allowed_url_ranges: list[tuple[int, int]] = []
 
-    for absolute_path in _ABSOLUTE_PATH_PATTERN.findall(command):
+    for match in _URL_PATTERN.finditer(command):
+        scheme = match.group("scheme").lower()
+        if scheme in {"http", "https"}:
+            target_start, target_end = match.span("target")
+            allowed_url_ranges.append((target_start - 1, target_end))
+            continue
+        if scheme == "file":
+            raise PermissionError("file:// URLs are not allowed in local sandbox commands")
+
+    def is_within_allowed_url_target(start: int, end: int) -> bool:
+        return any(start >= allowed_start and end <= allowed_end for allowed_start, allowed_end in allowed_url_ranges)
+
+    for match in _ABSOLUTE_PATH_PATTERN.finditer(command):
+        absolute_path = match.group(0)
+        if is_within_allowed_url_target(*match.span()):
+            continue
+
         if absolute_path == VIRTUAL_PATH_PREFIX or absolute_path.startswith(f"{VIRTUAL_PATH_PREFIX}/"):
             _reject_path_traversal(absolute_path)
             continue
