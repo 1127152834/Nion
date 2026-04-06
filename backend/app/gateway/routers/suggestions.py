@@ -113,10 +113,6 @@ def _build_suggestions_prompt(conversation: str, n: int) -> list[SystemMessage |
     ]
 
 
-def _serialize_prompt_messages(prompt: list[SystemMessage | HumanMessage]) -> str:
-    return "\n\n".join(str(message.content) for message in prompt if str(message.content).strip())
-
-
 def _resolve_suggestions_model_name() -> str:
     configured_model_name = (get_suggestions_config().model_name or "").strip()
     if configured_model_name:
@@ -129,7 +125,7 @@ async def _invoke_suggestions_model(model: object, prompt: list[SystemMessage | 
     if ainvoke is not None and inspect.iscoroutinefunction(ainvoke):
         return await ainvoke(prompt)
     invoke = getattr(model, "invoke")
-    return invoke(_serialize_prompt_messages(prompt))
+    return invoke(prompt)
 
 
 @router.post(

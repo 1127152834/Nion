@@ -201,3 +201,39 @@ def test_generate_suggestions_uses_async_message_prompt(monkeypatch):
     assert "Conversation:" in prompt[1].content
     assert "User: 你好" in prompt[1].content
     assert "Assistant: 我可以帮你检查代码" in prompt[1].content
+
+
+def test_generate_suggestions_sync_invoke_receives_message_prompt(monkeypatch):
+    req = suggestions.SuggestionsRequest(
+        messages=[
+            suggestions.SuggestionMessage(role="user", content="Hi"),
+            suggestions.SuggestionMessage(role="assistant", content="Hello"),
+        ],
+        n=2,
+    )
+    captured: dict[str, object] = {}
+
+    class _FakeResponse:
+        content = '["Q1", "Q2"]'
+
+    class _SyncOnlyChatModel:
+        def invoke(self, prompt):
+            captured["prompt"] = prompt
+            return _FakeResponse()
+
+    monkeypatch.setattr(
+        suggestions,
+        "resolve_model_name_with_fallback",
+        lambda configured_model_name=None: "default-model",
+    )
+    monkeypatch.setattr(suggestions, "create_chat_model", lambda **kwargs: _SyncOnlyChatModel())
+
+    result = asyncio.run(suggestions.generate_suggestions("t1", req))
+
+    assert result.suggestions == ["Q1", "Q2"]
+    prompt = captured["prompt"]
+    assert isinstance(prompt, list)
+    assert len(prompt) == 2
+    assert isinstance(prompt[0], SystemMessage)
+    assert isinstance(prompt[1], HumanMessage)
+    assert not isinstance(prompt, str)
