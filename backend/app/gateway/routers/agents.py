@@ -124,13 +124,13 @@ def _is_catalog_visible(agent_cfg: AgentConfig) -> bool:
     "/agents",
     response_model=AgentsListResponse,
     summary="List Agent Catalog",
-    description="List built-in and custom agents available in the unified catalog.",
+    description="List built-in and custom agents available in the unified catalog, including their SOUL content.",
 )
 async def list_agents() -> AgentsListResponse:
     """List all catalog agents.
 
     Returns:
-        List of all built-in and custom agents with their metadata (without soul content).
+        List of all built-in and custom agents with their metadata and soul content.
     """
     try:
         agents = list_agent_catalog()

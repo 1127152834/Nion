@@ -115,9 +115,7 @@ def _build_suggestions_prompt(conversation: str, n: int) -> list[SystemMessage |
 
 def _resolve_suggestions_model_name() -> str:
     configured_model_name = (get_suggestions_config().model_name or "").strip()
-    if configured_model_name:
-        return configured_model_name
-    return resolve_model_name_with_fallback(None)
+    return resolve_model_name_with_fallback(configured_model_name or None)
 
 
 async def _invoke_suggestions_model(model: object, prompt: list[SystemMessage | HumanMessage]) -> object:
