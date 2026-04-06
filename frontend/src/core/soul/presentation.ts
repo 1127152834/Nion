@@ -30,13 +30,23 @@ export function describeSoulSummary(input: {
   };
 }
 
-export function describeSoulGrowthEvents(items: MemoryGrowthItem[]) {
+export function describeSoulGrowthEvents(
+  items: MemoryGrowthItem[],
+  uiState?: {
+    lastAcceptedProposalId: string | null;
+    lastRejectedProposalId: string | null;
+  },
+) {
   return items.map((item) => ({
     id: item.memory_id,
     label:
-      item.subtype === "adaptive_overlay" && item.status === "archived"
+      item.memory_id === uiState?.lastAcceptedProposalId
+        ? "刚刚生效"
+        : item.memory_id === uiState?.lastRejectedProposalId
+          ? "已拒绝"
+          : item.subtype === "adaptive_overlay" && item.status === "archived"
         ? "已回退"
-        : item.subtype === "proposal"
+        : item.subtype === "proposal" && item.status === "candidate"
           ? "提案生成"
           : "刚刚生效",
     summary: item.summary,

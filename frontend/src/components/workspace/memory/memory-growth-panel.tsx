@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -108,6 +109,8 @@ export function MemoryGrowthPanel() {
   const freeze = useFreezeMemoryGrowthItem();
   const resume = useResumeMemoryGrowthItem();
   const reject = useRejectMemoryGrowthItem();
+  const [lastAcceptedProposalId, setLastAcceptedProposalId] = useState<string | null>(null);
+  const [lastRejectedProposalId, setLastRejectedProposalId] = useState<string | null>(null);
 
   async function handleAccept(memoryId: string) {
     try {
@@ -204,8 +207,16 @@ export function MemoryGrowthPanel() {
           onReject={(memoryId) => void handleReject(memoryId)}
         />
       </div>
-      <SoulGrowthTimeline />
-      <SoulProposalList />
+      <SoulGrowthTimeline
+        lastAcceptedProposalId={lastAcceptedProposalId}
+        lastRejectedProposalId={lastRejectedProposalId}
+      />
+      <SoulProposalList
+        onProposalEvent={({ lastAcceptedProposalId, lastRejectedProposalId }) => {
+          setLastAcceptedProposalId(lastAcceptedProposalId);
+          setLastRejectedProposalId(lastRejectedProposalId);
+        }}
+      />
     </section>
   );
 }

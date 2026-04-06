@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -10,14 +11,27 @@ import {
   useSoulProposals,
 } from "@/core/soul/hooks";
 
-export function SoulProposalList() {
+export function SoulProposalList(props: {
+  onProposalEvent?: (event: {
+    lastAcceptedProposalId: string | null;
+    lastRejectedProposalId: string | null;
+  }) => void;
+}) {
   const { proposals } = useSoulProposals();
   const accept = useAcceptSoulProposal();
   const reject = useRejectSoulProposal();
+  const [lastAcceptedProposalId, setLastAcceptedProposalId] = useState<string | null>(null);
+  const [lastRejectedProposalId, setLastRejectedProposalId] = useState<string | null>(null);
 
   async function handleAccept(memoryId: string) {
     try {
       await accept.mutateAsync(memoryId);
+      setLastAcceptedProposalId(memoryId);
+      setLastRejectedProposalId(null);
+      props.onProposalEvent?.({
+        lastAcceptedProposalId: memoryId,
+        lastRejectedProposalId: null,
+      });
       toast.success("已接受灵魂提案");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "接受失败");
@@ -27,6 +41,12 @@ export function SoulProposalList() {
   async function handleReject(memoryId: string) {
     try {
       await reject.mutateAsync(memoryId);
+      setLastRejectedProposalId(memoryId);
+      setLastAcceptedProposalId(null);
+      props.onProposalEvent?.({
+        lastAcceptedProposalId: null,
+        lastRejectedProposalId: memoryId,
+      });
       toast.success("已拒绝灵魂提案");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "拒绝失败");
@@ -45,6 +65,12 @@ export function SoulProposalList() {
           proposals.map((proposal) => (
             <article key={proposal.memory_id} className="rounded-lg border p-4">
               <div className="font-medium">{proposal.title ?? "未命名提案"}</div>
+              {proposal.memory_id === lastAcceptedProposalId ? (
+                <p className="mt-2 text-xs text-muted-foreground">刚刚生效</p>
+              ) : null}
+              {proposal.memory_id === lastRejectedProposalId ? (
+                <p className="mt-2 text-xs text-muted-foreground">已拒绝</p>
+              ) : null}
               <p className="mt-2 text-muted-foreground">为什么产生：{proposal.summary}</p>
               <p className="mt-2 text-muted-foreground">会改变什么：影响后续陪伴和服务表达方式。</p>
               <div className="mt-3 flex gap-2">

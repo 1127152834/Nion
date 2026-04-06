@@ -65,8 +65,11 @@ void test("describes growth events including accepted and rolled back soul chang
       summary: "已回退到上一版稳定人格层。",
       title: "overlay",
     },
-  ]);
+  ], {
+    lastAcceptedProposalId: "soul_prop_1",
+    lastRejectedProposalId: null,
+  });
 
-  assert.match(events[0]?.label ?? "", /刚刚生效|提案生成/);
+  assert.match(events[0]?.label ?? "", /刚刚生效/);
   assert.match(events[1]?.label ?? "", /已回退/);
 });

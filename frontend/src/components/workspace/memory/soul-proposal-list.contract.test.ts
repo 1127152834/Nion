@@ -12,4 +12,6 @@ void test("soul proposal list exposes explainable accept and reject controls", a
   assert.match(source, /会改变什么/);
   assert.match(source, /接受/);
   assert.match(source, /拒绝/);
+  assert.match(source, /刚刚生效|已拒绝/);
+  assert.match(source, /useState/);
 });
