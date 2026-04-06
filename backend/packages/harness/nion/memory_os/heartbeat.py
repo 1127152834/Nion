@@ -6,6 +6,7 @@ from .candidates import MemoryOSCandidateQueue
 from .consolidation import MemoryOSConsolidationEngine
 from .diary import MemoryOSDiaryWriter
 from .repository import MemoryOSRepository
+from .soul_reflection import reflect_soul_growth
 
 
 class MemoryOSHeartbeat:
@@ -24,8 +25,17 @@ class MemoryOSHeartbeat:
             summary="Memory OS micro cycle completed.",
             repeated_needs=[candidate.summary for candidate in pending],
         )
+        soul_result = reflect_soul_growth(
+            repository=self._repository,
+            base_dir=self._repository._db_path.parent.parent,
+            repeated_needs=[candidate.summary for candidate in pending],
+            evidence_days=2 if len(pending) >= 3 else 1,
+            created_at="2026-04-06T00:00:00Z",
+        )
         return {
             "candidates_consumed": len(pending),
             "records_created": result["records_created"],
             "diary_written": True,
+            "soul_journal_written": True,
+            "soul_proposal_created": bool(soul_result["proposal_created"]),
         }
