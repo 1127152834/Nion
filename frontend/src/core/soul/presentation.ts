@@ -10,6 +10,8 @@ export function describeSoulSummary(input: {
       input.currentSoul?.summary ??
       input.coreSoul?.summary ??
       "当前还没有形成稳定的灵魂摘要。",
+    baselineLabel: "当前长期基线",
+    relationshipLabel: "当前关系姿态",
     relationLabel: "relationship-oriented identity",
     identityLabel: "identity narrative",
   };

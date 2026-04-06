@@ -11,4 +11,6 @@ void test("soul summary card explains current soul and relation-oriented identit
   assert.match(source, /Current Soul|当前的我/);
   assert.match(source, /relationship/i);
   assert.match(source, /identity/i);
+  assert.match(source, /当前关系姿态/);
+  assert.match(source, /当前长期基线/);
 });
