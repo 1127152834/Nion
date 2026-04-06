@@ -9,6 +9,7 @@ export function SoulSummaryCard() {
   const description = describeSoulSummary({
     currentSoul: soulSummary?.current_soul ?? null,
     coreSoul: soulSummary?.core_soul ?? null,
+    summary: soulSummary?.summary ?? null,
   });
 
   return (
@@ -29,7 +30,7 @@ export function SoulSummaryCard() {
           narrative 的汇总结果。
         </p>
         <p className="text-xs text-muted-foreground">
-          当前关系姿态会结合长期 relationship evidence 和当前的我一起展示。
+          当前关系姿态：{description.relationshipSummary}
         </p>
         <p className="text-xs text-muted-foreground">
           当前长期基线不会因为一次聊天就被重写。

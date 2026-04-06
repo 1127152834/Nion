@@ -140,6 +140,7 @@ def test_memory_growth_router_exposes_soul_summary_and_proposal_controls(monkeyp
         rollback = client.post("/api/memory/growth/soul/overlay/rollback")
 
     assert summary.status_code == 200
+    assert "summary" in summary.json()
     assert proposals.status_code == 200
     assert proposals.json()["proposals"][0]["memory_id"] == proposal["memory_id"]
     assert accept.status_code == 200

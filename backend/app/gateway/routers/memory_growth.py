@@ -50,23 +50,34 @@ async def list_user_model_items():
 @router.get("/soul")
 async def get_soul_summary():
     repo = _repo()
+    current_soul = next(
+        (
+            item
+            for item in repo.list_memory_records(domain="soul")
+            if item["memory_id"] == "soul_overlay_active_main"
+        ),
+        None,
+    )
+    core_soul = next(
+        (
+            item
+            for item in repo.list_memory_records(domain="soul")
+            if item["memory_id"] == "soul_core_main"
+        ),
+        None,
+    )
     return {
-        "current_soul": next(
-            (
-                item
-                for item in repo.list_memory_records(domain="soul")
-                if item["memory_id"] == "soul_overlay_active_main"
+        "current_soul": current_soul,
+        "core_soul": core_soul,
+        "summary": {
+            "baseline": core_soul["summary"] if core_soul else None,
+            "relationship": (
+                "面对当前用户时保持低刺激、少施压、结论先行。"
+                if current_soul
+                else None
             ),
-            None,
-        ),
-        "core_soul": next(
-            (
-                item
-                for item in repo.list_memory_records(domain="soul")
-                if item["memory_id"] == "soul_core_main"
-            ),
-            None,
-        ),
+            "current": current_soul["summary"] if current_soul else None,
+        },
     }
 
 

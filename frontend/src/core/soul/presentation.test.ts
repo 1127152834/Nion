@@ -23,10 +23,16 @@ void test("describes soul summary with current soul, relation stance, and baseli
       summary: "长期稳定、结论先行。",
       title: "core",
     },
+    summary: {
+      baseline: "长期稳定、结论先行。",
+      relationship: "面对当前用户时保持低刺激、少施压。",
+      current: "最近减少鼓励式措辞。",
+    },
   });
 
   assert.equal(summary.title, "当前的我");
   assert.match(summary.summary, /减少鼓励式措辞/);
   assert.match(summary.baselineLabel, /当前长期基线/);
   assert.match(summary.relationshipLabel, /当前关系姿态/);
+  assert.match(summary.relationshipSummary, /低刺激、少施压/);
 });
