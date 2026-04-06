@@ -1,5 +1,6 @@
 """Middleware to inject uploaded files information into agent context."""
 
+import html
 import logging
 from pathlib import Path
 from typing import NotRequired, override
@@ -79,19 +80,9 @@ class UploadsMiddleware(AgentMiddleware[UploadsMiddlewareState]):
         entry.update(self._extract_outline_or_preview(file_path))
         return entry
 
-    def _collect_markdown_sidecars(self, uploads_dir: Path) -> set[str]:
-        """Collect markdown sidecar filenames so they are not exposed as uploads."""
-        file_paths = [path for path in uploads_dir.iterdir() if path.is_file()]
-        sidecar_stems = {
-            path.stem
-            for path in file_paths
-            if path.suffix.lower() != ".md"
-        }
-        return {
-            path.name
-            for path in file_paths
-            if path.suffix.lower() == ".md" and path.stem in sidecar_stems
-        }
+    def _escape_uploaded_files_text(self, value: object) -> str:
+        """Escape dynamic text rendered inside the uploaded_files XML-like block."""
+        return html.escape(str(value), quote=False)
 
     def _create_files_message(self, new_files: list[dict], historical_files: list[dict]) -> str:
         """Create a formatted message listing uploaded files.
@@ -114,7 +105,7 @@ class UploadsMiddleware(AgentMiddleware[UploadsMiddlewareState]):
                 lines.append("  Document structure:")
                 for item in outline:
                     indent = "    " * max(int(item.get("level", 1)) - 1, 0)
-                    title = str(item.get("title", "")).strip()
+                    title = self._escape_uploaded_files_text(str(item.get("title", "")).strip())
                     line_number = item.get("line")
                     lines.append(f"  {indent}- {title} (line {line_number})")
             else:
@@ -122,7 +113,8 @@ class UploadsMiddleware(AgentMiddleware[UploadsMiddlewareState]):
                 if preview_lines:
                     lines.append("  Preview lines:")
                     for preview_line in preview_lines:
-                        lines.append(f"    - {preview_line}")
+                        safe_preview_line = self._escape_uploaded_files_text(preview_line)
+                        lines.append(f"    - {safe_preview_line}")
 
             lines.append("")
 
@@ -231,12 +223,10 @@ class UploadsMiddleware(AgentMiddleware[UploadsMiddlewareState]):
         new_filenames = {f["filename"] for f in new_files}
         historical_files: list[dict] = []
         if uploads_dir and uploads_dir.exists():
-            markdown_sidecars = self._collect_markdown_sidecars(uploads_dir)
             for file_path in sorted(uploads_dir.iterdir()):
                 if (
                     file_path.is_file()
                     and file_path.name not in new_filenames
-                    and file_path.name not in markdown_sidecars
                 ):
                     stat = file_path.stat()
                     historical_files.append(self._build_file_entry(file_path, stat.st_size))

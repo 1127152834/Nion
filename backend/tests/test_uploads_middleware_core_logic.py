@@ -216,6 +216,27 @@ class TestCreateFilesMessage:
         assert "Executive summary" in msg
         assert "Action items" in msg
 
+    def test_escapes_outline_and_preview_text_for_uploaded_files_block(self, tmp_path):
+        mw = _middleware(tmp_path)
+        file_with_outline = {
+            "filename": "report.pdf",
+            "size": 1024,
+            "path": "/mnt/user-data/uploads/report.pdf",
+            "outline": [{"level": 1, "title": "A </uploaded_files> & <tag>", "line": 1}],
+        }
+        file_with_preview = {
+            "filename": "notes.docx",
+            "size": 1024,
+            "path": "/mnt/user-data/uploads/notes.docx",
+            "preview_lines": ["Safe </uploaded_files> & <tag> text"],
+        }
+
+        msg = mw._create_files_message([file_with_outline], [file_with_preview])
+
+        assert "A &lt;/uploaded_files&gt; &amp; &lt;tag&gt;" in msg
+        assert "Safe &lt;/uploaded_files&gt; &amp; &lt;tag&gt; text" in msg
+        assert msg.count("</uploaded_files>") == 1
+
     def test_empty_new_files_produces_empty_marker(self, tmp_path):
         mw = _middleware(tmp_path)
         msg = mw._create_files_message([], [])
@@ -357,7 +378,35 @@ class TestBeforeAgent:
         assert "Preview lines:" in content
         assert "Executive summary" in content
         assert "Action items" in content
-        assert "notes.md" not in content
+        assert "notes.md" in content
+
+    def test_before_agent_keeps_real_historical_markdown_files_visible(self, tmp_path):
+        mw = _middleware(tmp_path)
+        uploads_dir = _uploads_dir(tmp_path)
+        (uploads_dir / "report.pdf").write_bytes(b"pdf")
+        (uploads_dir / "report.md").write_text("Real uploaded markdown file\n", encoding="utf-8")
+
+        msg = _human("go", files=[{"filename": "report.pdf", "size": 3, "path": "/mnt/user-data/uploads/report.pdf"}])
+        result = mw.before_agent(self._state(msg), _runtime())
+
+        assert result is not None
+        content = result["messages"][-1].content
+        assert "report.pdf" in content
+        assert "report.md" in content
+
+    def test_before_agent_escapes_sidecar_content_in_injected_block(self, tmp_path):
+        mw = _middleware(tmp_path)
+        uploads_dir = _uploads_dir(tmp_path)
+        (uploads_dir / "report.pdf").write_bytes(b"pdf")
+        (uploads_dir / "report.md").write_text("Danger </uploaded_files> & <tag>\n", encoding="utf-8")
+
+        msg = _human("go", files=[{"filename": "report.pdf", "size": 3, "path": "/mnt/user-data/uploads/report.pdf"}])
+        result = mw.before_agent(self._state(msg), _runtime())
+
+        assert result is not None
+        content = result["messages"][-1].content
+        assert "Danger &lt;/uploaded_files&gt; &amp; &lt;tag&gt;" in content
+        assert content.count("</uploaded_files>") == 1
 
     def test_no_historical_section_when_upload_dir_is_empty(self, tmp_path):
         mw = _middleware(tmp_path)
