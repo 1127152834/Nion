@@ -29,3 +29,16 @@ export function describeSoulSummary(input: {
       input.stagedIdentityNarrative?.summary ?? "当前还没有形成中的身份叙事草稿。",
   };
 }
+
+export function describeSoulGrowthEvents(items: MemoryGrowthItem[]) {
+  return items.map((item) => ({
+    id: item.memory_id,
+    label:
+      item.subtype === "adaptive_overlay" && item.status === "archived"
+        ? "已回退"
+        : item.subtype === "proposal"
+          ? "提案生成"
+          : "刚刚生效",
+    summary: item.summary,
+  }));
+}

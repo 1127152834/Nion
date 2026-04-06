@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-const { describeSoulSummary } = await import(
+const { describeSoulSummary, describeSoulGrowthEvents } = await import(
   new URL("./presentation.ts", import.meta.url).href
 );
 
@@ -45,4 +45,28 @@ void test("describes soul summary with current soul, relation stance, and baseli
   assert.match(summary.relationshipSummary, /低刺激、少施压/);
   assert.match(summary.stagedLabel, /我正在变成什么样/);
   assert.match(summary.stagedSummary, /正在变得更稳/);
+});
+
+void test("describes growth events including accepted and rolled back soul changes", () => {
+  const events = describeSoulGrowthEvents([
+    {
+      memory_id: "soul_prop_1",
+      domain: "soul",
+      subtype: "proposal",
+      status: "candidate",
+      summary: "减少鼓励式措辞。",
+      title: "减少鼓励式措辞",
+    },
+    {
+      memory_id: "soul_overlay_active_main",
+      domain: "soul",
+      subtype: "adaptive_overlay",
+      status: "archived",
+      summary: "已回退到上一版稳定人格层。",
+      title: "overlay",
+    },
+  ]);
+
+  assert.match(events[0]?.label ?? "", /刚刚生效|提案生成/);
+  assert.match(events[1]?.label ?? "", /已回退/);
 });
