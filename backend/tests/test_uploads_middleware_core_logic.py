@@ -187,6 +187,34 @@ class TestCreateFilesMessage:
         mw = _middleware(tmp_path)
         msg = mw._create_files_message([self._new_file()], [])
         assert "read_file" in msg
+        assert "file-first" in msg.lower()
+
+    def test_includes_outline_and_preview_sections_when_present(self, tmp_path):
+        mw = _middleware(tmp_path)
+        file_with_structure = {
+            "filename": "report.pdf",
+            "size": 1024,
+            "path": "/mnt/user-data/uploads/report.pdf",
+            "outline": [
+                {"level": 1, "title": "Overview", "line": 1},
+                {"level": 2, "title": "Findings", "line": 8},
+            ],
+        }
+        file_with_preview = {
+            "filename": "notes.docx",
+            "size": 2048,
+            "path": "/mnt/user-data/uploads/notes.docx",
+            "preview_lines": ["Executive summary", "Action items"],
+        }
+
+        msg = mw._create_files_message([file_with_structure], [file_with_preview])
+
+        assert "Document structure:" in msg
+        assert "Overview" in msg
+        assert "Findings" in msg
+        assert "Preview lines:" in msg
+        assert "Executive summary" in msg
+        assert "Action items" in msg
 
     def test_empty_new_files_produces_empty_marker(self, tmp_path):
         mw = _middleware(tmp_path)
@@ -307,6 +335,29 @@ class TestBeforeAgent:
         assert "new.txt" in content
         assert "previous messages" in content
         assert "old.txt" in content
+
+    def test_before_agent_adds_outline_for_new_files_and_preview_for_historical_files(self, tmp_path):
+        mw = _middleware(tmp_path)
+        uploads_dir = _uploads_dir(tmp_path)
+        (uploads_dir / "report.pdf").write_bytes(b"pdf")
+        (uploads_dir / "report.md").write_text("# Overview\n\n## Findings\n", encoding="utf-8")
+        (uploads_dir / "notes.docx").write_bytes(b"docx")
+        (uploads_dir / "notes.md").write_text("Executive summary\n\nAction items\nThird line\n", encoding="utf-8")
+
+        msg = _human("go", files=[{"filename": "report.pdf", "size": 3, "path": "/mnt/user-data/uploads/report.pdf"}])
+        result = mw.before_agent(self._state(msg), _runtime())
+
+        assert result is not None
+        content = result["messages"][-1].content
+        assert "report.pdf" in content
+        assert "Document structure:" in content
+        assert "Overview" in content
+        assert "Findings" in content
+        assert "notes.docx" in content
+        assert "Preview lines:" in content
+        assert "Executive summary" in content
+        assert "Action items" in content
+        assert "notes.md" not in content
 
     def test_no_historical_section_when_upload_dir_is_empty(self, tmp_path):
         mw = _middleware(tmp_path)

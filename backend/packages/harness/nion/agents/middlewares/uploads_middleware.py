@@ -10,8 +10,10 @@ from langchain_core.messages import HumanMessage
 from langgraph.runtime import Runtime
 
 from nion.config.paths import Paths, get_paths
+from nion.utils.file_conversion import extract_outline
 
 logger = logging.getLogger(__name__)
+_PREVIEW_LINE_LIMIT = 3
 
 
 class UploadsMiddlewareState(AgentState):
@@ -39,6 +41,58 @@ class UploadsMiddleware(AgentMiddleware[UploadsMiddlewareState]):
         super().__init__()
         self._paths = Paths(base_dir) if base_dir else get_paths()
 
+    def _extract_outline_or_preview(self, file_path: Path) -> dict[str, list]:
+        """Read outline metadata from a same-name markdown sidecar when available."""
+        md_path = file_path.with_suffix(".md")
+        if not md_path.is_file():
+            return {}
+
+        try:
+            outline = extract_outline(md_path)
+        except Exception:
+            logger.warning("Failed to extract outline from markdown sidecar for %s", file_path.name, exc_info=True)
+            outline = []
+
+        if outline:
+            return {"outline": outline}
+
+        try:
+            preview_lines = [
+                line.strip()
+                for line in md_path.read_text(encoding="utf-8").splitlines()
+                if line.strip()
+            ][: _PREVIEW_LINE_LIMIT]
+        except Exception:
+            logger.warning("Failed to read preview lines from markdown sidecar for %s", file_path.name, exc_info=True)
+            return {}
+
+        return {"preview_lines": preview_lines} if preview_lines else {}
+
+    def _build_file_entry(self, file_path: Path, size: int) -> dict:
+        """Build file metadata for prompt injection."""
+        entry = {
+            "filename": file_path.name,
+            "size": size,
+            "path": f"/mnt/user-data/uploads/{file_path.name}",
+            "extension": file_path.suffix,
+        }
+        entry.update(self._extract_outline_or_preview(file_path))
+        return entry
+
+    def _collect_markdown_sidecars(self, uploads_dir: Path) -> set[str]:
+        """Collect markdown sidecar filenames so they are not exposed as uploads."""
+        file_paths = [path for path in uploads_dir.iterdir() if path.is_file()]
+        sidecar_stems = {
+            path.stem
+            for path in file_paths
+            if path.suffix.lower() != ".md"
+        }
+        return {
+            path.name
+            for path in file_paths
+            if path.suffix.lower() == ".md" and path.stem in sidecar_stems
+        }
+
     def _create_files_message(self, new_files: list[dict], historical_files: list[dict]) -> str:
         """Create a formatted message listing uploaded files.
 
@@ -49,17 +103,36 @@ class UploadsMiddleware(AgentMiddleware[UploadsMiddlewareState]):
         Returns:
             Formatted string inside <uploaded_files> tags.
         """
+        def append_file_details(file: dict) -> None:
+            size_kb = file["size"] / 1024
+            size_str = f"{size_kb:.1f} KB" if size_kb < 1024 else f"{size_kb / 1024:.1f} MB"
+            lines.append(f"- {file['filename']} ({size_str})")
+            lines.append(f"  Path: {file['path']}")
+
+            outline = file.get("outline") or []
+            if outline:
+                lines.append("  Document structure:")
+                for item in outline:
+                    indent = "    " * max(int(item.get("level", 1)) - 1, 0)
+                    title = str(item.get("title", "")).strip()
+                    line_number = item.get("line")
+                    lines.append(f"  {indent}- {title} (line {line_number})")
+            else:
+                preview_lines = file.get("preview_lines") or []
+                if preview_lines:
+                    lines.append("  Preview lines:")
+                    for preview_line in preview_lines:
+                        lines.append(f"    - {preview_line}")
+
+            lines.append("")
+
         lines = ["<uploaded_files>"]
 
         lines.append("The following files were uploaded in this message:")
         lines.append("")
         if new_files:
             for file in new_files:
-                size_kb = file["size"] / 1024
-                size_str = f"{size_kb:.1f} KB" if size_kb < 1024 else f"{size_kb / 1024:.1f} MB"
-                lines.append(f"- {file['filename']} ({size_str})")
-                lines.append(f"  Path: {file['path']}")
-                lines.append("")
+                append_file_details(file)
         else:
             lines.append("(empty)")
 
@@ -67,13 +140,9 @@ class UploadsMiddleware(AgentMiddleware[UploadsMiddlewareState]):
             lines.append("The following files were uploaded in previous messages and are still available:")
             lines.append("")
             for file in historical_files:
-                size_kb = file["size"] / 1024
-                size_str = f"{size_kb:.1f} KB" if size_kb < 1024 else f"{size_kb / 1024:.1f} MB"
-                lines.append(f"- {file['filename']} ({size_str})")
-                lines.append(f"  Path: {file['path']}")
-                lines.append("")
+                append_file_details(file)
 
-        lines.append("You can read these files using the `read_file` tool with the paths shown above.")
+        lines.append("Use a file-first workflow: inspect the structure or preview above, then use `read_file` on the exact path you need.")
         lines.append("</uploaded_files>")
 
         return "\n".join(lines)
@@ -104,14 +173,20 @@ class UploadsMiddleware(AgentMiddleware[UploadsMiddlewareState]):
             filename = f.get("filename") or ""
             if not filename or Path(filename).name != filename:
                 continue
-            if uploads_dir is not None and not (uploads_dir / filename).is_file():
+            physical_path = uploads_dir / filename if uploads_dir is not None else None
+            if uploads_dir is not None and not physical_path.is_file():
                 continue
+            if physical_path is not None:
+                files.append(self._build_file_entry(physical_path, int(f.get("size") or 0)))
+                continue
+
+            virtual_path = Path(filename)
             files.append(
                 {
                     "filename": filename,
                     "size": int(f.get("size") or 0),
                     "path": f"/mnt/user-data/uploads/{filename}",
-                    "extension": Path(filename).suffix,
+                    "extension": virtual_path.suffix,
                 }
             )
         return files if files else None
@@ -156,17 +231,15 @@ class UploadsMiddleware(AgentMiddleware[UploadsMiddlewareState]):
         new_filenames = {f["filename"] for f in new_files}
         historical_files: list[dict] = []
         if uploads_dir and uploads_dir.exists():
+            markdown_sidecars = self._collect_markdown_sidecars(uploads_dir)
             for file_path in sorted(uploads_dir.iterdir()):
-                if file_path.is_file() and file_path.name not in new_filenames:
+                if (
+                    file_path.is_file()
+                    and file_path.name not in new_filenames
+                    and file_path.name not in markdown_sidecars
+                ):
                     stat = file_path.stat()
-                    historical_files.append(
-                        {
-                            "filename": file_path.name,
-                            "size": stat.st_size,
-                            "path": f"/mnt/user-data/uploads/{file_path.name}",
-                            "extension": file_path.suffix,
-                        }
-                    )
+                    historical_files.append(self._build_file_entry(file_path, stat.st_size))
 
         if not new_files and not historical_files:
             return None
