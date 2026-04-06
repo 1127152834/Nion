@@ -2,6 +2,7 @@ from fastapi.testclient import TestClient
 
 from app.gateway.app import create_app
 from nion.memory_os.repository import MemoryOSRepository
+from nion.memory_os.soul import create_soul_proposal
 
 
 def test_memory_growth_router_lists_learning_and_soul_items(monkeypatch, tmp_path):
@@ -121,3 +122,25 @@ def test_memory_growth_router_supports_real_user_model_controls(monkeypatch, tmp
     assert reject.status_code == 200
     assert correct.status_code == 200
     assert correct.json()["item"]["summary"] == "负责财务 BP 与汇报"
+
+
+def test_memory_growth_router_exposes_soul_summary_and_proposal_controls(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    repo = MemoryOSRepository(tmp_path / "memory-os" / "index.sqlite3")
+    proposal = create_soul_proposal(
+        repo,
+        title="减少鼓励式措辞",
+        summary="长期证据显示用户偏好低刺激支持。",
+    )
+
+    with TestClient(create_app()) as client:
+        summary = client.get("/api/memory/growth/soul")
+        proposals = client.get("/api/memory/growth/soul/proposals")
+        accept = client.post(f"/api/memory/growth/soul/proposals/{proposal['memory_id']}/accept")
+        rollback = client.post("/api/memory/growth/soul/overlay/rollback")
+
+    assert summary.status_code == 200
+    assert proposals.status_code == 200
+    assert proposals.json()["proposals"][0]["memory_id"] == proposal["memory_id"]
+    assert accept.status_code == 200
+    assert rollback.status_code == 200

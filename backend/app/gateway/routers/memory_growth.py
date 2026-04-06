@@ -7,6 +7,11 @@ from nion.config.paths import get_paths
 from nion.memory_os.governance import GOVERNANCE_ACTION_FREEZE, GOVERNANCE_ACTION_REJECT
 from nion.memory_os.learning import create_learning_topic
 from nion.memory_os.repository import MemoryOSRepository
+from nion.memory_os.soul_governance import (
+    accept_soul_proposal,
+    reject_soul_proposal,
+    rollback_soul_overlay,
+)
 
 router = APIRouter(prefix="/api/memory/growth", tags=["memory-growth"])
 
@@ -42,6 +47,41 @@ async def list_user_model_items():
     }
 
 
+@router.get("/soul")
+async def get_soul_summary():
+    repo = _repo()
+    return {
+        "current_soul": next(
+            (
+                item
+                for item in repo.list_memory_records(domain="soul")
+                if item["memory_id"] == "soul_overlay_active_main"
+            ),
+            None,
+        ),
+        "core_soul": next(
+            (
+                item
+                for item in repo.list_memory_records(domain="soul")
+                if item["memory_id"] == "soul_core_main"
+            ),
+            None,
+        ),
+    }
+
+
+@router.get("/soul/proposals")
+async def list_soul_proposals():
+    repo = _repo()
+    return {
+        "proposals": [
+            item
+            for item in repo.list_memory_records(domain="soul")
+            if item["subtype"] == "proposal"
+        ],
+    }
+
+
 @router.post("/learning")
 async def create_learning(request: LearningCreateRequest):
     item = create_learning_topic(_repo(), title=request.title, summary=request.summary)
@@ -74,6 +114,21 @@ async def accept_growth_item(memory_id: str):
     repo = _repo()
     repo.update_memory_status(memory_id, "active")
     return {"memory_id": memory_id, "action": "accept"}
+
+
+@router.post("/soul/proposals/{memory_id}/accept")
+async def accept_soul_item(memory_id: str):
+    return accept_soul_proposal(_repo(), memory_id, created_at="2026-04-06T00:00:00Z")
+
+
+@router.post("/soul/proposals/{memory_id}/reject")
+async def reject_soul_item(memory_id: str):
+    return reject_soul_proposal(_repo(), memory_id)
+
+
+@router.post("/soul/overlay/rollback")
+async def rollback_soul():
+    return rollback_soul_overlay(_repo())
 
 
 @router.post("/user-model/{memory_id}/freeze")
