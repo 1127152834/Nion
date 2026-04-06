@@ -77,6 +77,18 @@ def _get_memory_context(agent_name: str | None = None) -> str:
 
 
 def get_agent_soul(agent_name: str | None) -> str:
+    try:
+        from nion.config.paths import get_paths
+        from nion.memory_os.repository import MemoryOSRepository
+        from nion.memory_os.soul_runtime import compile_soul_runtime
+
+        repo = MemoryOSRepository(get_paths().memory_os_index_db_file)
+        runtime_soul = compile_soul_runtime(repo)
+        if runtime_soul:
+            return runtime_soul
+    except Exception as exc:
+        print(f"Failed to load soul runtime: {exc}")
+
     builtin_agent = get_builtin_agent(agent_name)
     if builtin_agent is not None and builtin_agent.soul:
         return f"<soul>\n{builtin_agent.soul}\n</soul>\n"

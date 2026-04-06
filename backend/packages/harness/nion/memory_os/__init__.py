@@ -28,6 +28,7 @@ from .learning import create_learning_topic
 from .projections import build_automation_projection
 from .procedures import create_procedure_draft
 from .soul_artifacts import MemoryOSSoulArtifactStore, import_legacy_soul_file
+from .soul_runtime import compile_soul_runtime
 from .soul import create_soul_proposal
 
 __all__ = [
@@ -61,5 +62,6 @@ __all__ = [
     "create_procedure_draft",
     "MemoryOSSoulArtifactStore",
     "import_legacy_soul_file",
+    "compile_soul_runtime",
     "create_soul_proposal",
 ]

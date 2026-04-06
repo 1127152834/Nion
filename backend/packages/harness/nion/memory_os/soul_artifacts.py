@@ -24,7 +24,7 @@ class MemoryOSSoulArtifactStore:
             "target_id": "agent:main",
             "status": "active",
             "title": "主智能体核心人格基底",
-            "summary": "定义主智能体长期稳定的人格、价值观、关系伦理与服务边界。",
+            "summary": _extract_summary(body),
             "confidence": 1.0,
             "created_at": created_at,
             "updated_at": created_at,
@@ -49,7 +49,7 @@ class MemoryOSSoulArtifactStore:
             "target_id": "agent:main",
             "status": "active",
             "title": "主智能体当前身份叙事",
-            "summary": "描述主智能体如何理解自己、用户关系和当前成长方向。",
+            "summary": _extract_summary(body),
             "confidence": 0.88,
             "created_at": created_at,
             "updated_at": created_at,
@@ -74,7 +74,7 @@ class MemoryOSSoulArtifactStore:
             "target_id": "agent:main",
             "status": "active",
             "title": "当前生效的 adaptive soul overlay",
-            "summary": "定义近期已批准生效的表达、关系姿态和服务风格调整。",
+            "summary": _extract_summary(body),
             "confidence": 0.9,
             "created_at": created_at,
             "updated_at": created_at,
@@ -112,3 +112,12 @@ def import_legacy_soul_file(
     content = path.read_text(encoding="utf-8")
     store = MemoryOSSoulArtifactStore(repository=repository, base_dir=path.parent)
     return store.write_core_soul(body=content, created_at=created_at)
+
+
+def _extract_summary(body: str) -> str:
+    for line in body.splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        return stripped
+    return ""
