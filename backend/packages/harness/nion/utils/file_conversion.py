@@ -28,6 +28,15 @@ _MARKDOWN_HEADING_RE = re.compile(r"^(#{1,6})\s+(.+?)\s*$")
 _SPLIT_BOLD_HEADING_RE = re.compile(r"^\*\*((?:\d+\.)*\d+)\*\*\s+\*\*(.+?)\*\*\s*$")
 
 
+def _pymupdf_output_too_sparse(markdown_text: str) -> bool:
+    stripped = markdown_text.strip()
+    if len(stripped) < 8:
+        return True
+
+    content_tokens = re.findall(r"\w+", stripped, flags=re.UNICODE)
+    return len(content_tokens) < 3
+
+
 def _convert_with_markitdown(file_path: Path) -> str:
     from markitdown import MarkItDown
 
@@ -45,7 +54,14 @@ def _convert_pdf_with_pymupdf4llm(file_path: Path) -> str:
 def _convert_document_to_markdown_text(file_path: Path) -> str:
     if file_path.suffix.lower() == ".pdf":
         try:
-            return _convert_pdf_with_pymupdf4llm(file_path)
+            markdown_text = _convert_pdf_with_pymupdf4llm(file_path)
+            if _pymupdf_output_too_sparse(markdown_text):
+                logger.warning(
+                    "PyMuPDF4LLM conversion for %s produced sparse markdown, falling back to MarkItDown",
+                    file_path.name,
+                )
+            else:
+                return markdown_text
         except Exception:
             logger.warning(
                 "PyMuPDF4LLM conversion failed for %s, falling back to MarkItDown",

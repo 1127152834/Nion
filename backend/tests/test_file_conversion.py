@@ -49,6 +49,21 @@ def test_pdf_conversion_falls_back_to_markitdown_when_pymupdf4llm_fails(
     assert md_path.read_text(encoding="utf-8") == "fallback markdown"
 
 
+def test_pdf_conversion_falls_back_to_markitdown_when_pymupdf4llm_output_is_sparse(
+    monkeypatch, tmp_path: Path
+) -> None:
+    source = tmp_path / "report.pdf"
+    source.write_bytes(b"%PDF-1.7")
+
+    monkeypatch.setattr(file_conversion, "_convert_pdf_with_pymupdf4llm", lambda _path: "x")
+    monkeypatch.setattr(file_conversion, "_convert_with_markitdown", lambda _path: "dense fallback markdown")
+
+    md_path = asyncio.run(file_conversion.convert_file_to_markdown(source))
+
+    assert md_path == source.with_suffix(".md")
+    assert md_path.read_text(encoding="utf-8") == "dense fallback markdown"
+
+
 def test_large_file_conversion_runs_in_thread(monkeypatch, tmp_path: Path) -> None:
     source = tmp_path / "large.docx"
     source.write_bytes(b"0" * (file_conversion.DEFAULT_THREAD_OFFLOAD_THRESHOLD_BYTES + 1))
