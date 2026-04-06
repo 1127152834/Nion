@@ -14,6 +14,7 @@ import {
 
 import { MemoryGrowthPanel } from "./memory-growth-panel";
 import { MemorySummaryCards } from "./memory-summary-cards";
+import { SoulSummaryCard } from "./soul-summary-card";
 
 export function MemoryHomePage() {
   const { t } = useI18n();
@@ -64,6 +65,7 @@ export function MemoryHomePage() {
           </div>
         </div>
         <MemorySummaryCards memory={memory} />
+        <SoulSummaryCard />
       </header>
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">

@@ -151,6 +151,14 @@ export function AutomationJobDetailPage({
               {job.provenance_learning_id ?? "无"}
             </div>
           </div>
+          <div className="space-y-1">
+            <div className="font-medium">来源灵魂</div>
+            <div className="text-muted-foreground">
+              {job.owner_type === "agent"
+                ? "soul-driven automation，来源于长期成长、学习主题或关系变化。"
+                : "无"}
+            </div>
+          </div>
         </CardContent>
       </Card>
 

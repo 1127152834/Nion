@@ -16,4 +16,5 @@ void test("automation job detail page explains agent-owned automation constraint
   assert.match(source, /来源记忆/);
   assert.match(source, /来源学习主题/);
   assert.match(source, /编辑权限/);
+  assert.match(source, /来源灵魂|soul/i);
 });

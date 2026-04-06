@@ -20,4 +20,6 @@ void test("memory growth panel exposes status-aware growth governance controls",
   assert.match(source, /已生效/);
   assert.match(source, /已冻结/);
   assert.match(source, /已拒绝/);
+  assert.match(source, /SoulProposalList/);
+  assert.match(source, /SoulGrowthTimeline/);
 });

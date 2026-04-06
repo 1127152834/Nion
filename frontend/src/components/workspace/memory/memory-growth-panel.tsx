@@ -18,6 +18,9 @@ import {
 } from "@/core/memory-growth/presentation";
 import type { MemoryGrowthItem } from "@/core/memory-growth/types";
 
+import { SoulGrowthTimeline } from "./soul-growth-timeline";
+import { SoulProposalList } from "./soul-proposal-list";
+
 function Section(props: {
   title: string;
   items: MemoryGrowthItem[];
@@ -201,6 +204,8 @@ export function MemoryGrowthPanel() {
           onReject={(memoryId) => void handleReject(memoryId)}
         />
       </div>
+      <SoulGrowthTimeline />
+      <SoulProposalList />
     </section>
   );
 }
