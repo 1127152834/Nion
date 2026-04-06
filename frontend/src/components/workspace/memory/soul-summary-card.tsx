@@ -9,6 +9,7 @@ export function SoulSummaryCard() {
   const description = describeSoulSummary({
     currentSoul: soulSummary?.current_soul ?? null,
     coreSoul: soulSummary?.core_soul ?? null,
+    stagedIdentityNarrative: soulSummary?.staged_identity_narrative ?? null,
     summary: soulSummary?.summary ?? null,
   });
 
@@ -34,6 +35,9 @@ export function SoulSummaryCard() {
         </p>
         <p className="text-xs text-muted-foreground">
           当前长期基线不会因为一次聊天就被重写。
+        </p>
+        <p className="text-xs text-muted-foreground">
+          我正在变成什么样：{description.stagedSummary}
         </p>
       </CardContent>
     </Card>

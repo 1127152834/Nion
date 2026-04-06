@@ -28,6 +28,14 @@ void test("describes soul summary with current soul, relation stance, and baseli
       relationship: "面对当前用户时保持低刺激、少施压。",
       current: "最近减少鼓励式措辞。",
     },
+    stagedIdentityNarrative: {
+      memory_id: "agent_self_narrative_staged_main",
+      domain: "agent_self",
+      subtype: "identity_narrative",
+      status: "candidate",
+      summary: "我是一个正在变得更稳的助手。",
+      title: "staged",
+    },
   });
 
   assert.equal(summary.title, "当前的我");
@@ -35,4 +43,6 @@ void test("describes soul summary with current soul, relation stance, and baseli
   assert.match(summary.baselineLabel, /当前长期基线/);
   assert.match(summary.relationshipLabel, /当前关系姿态/);
   assert.match(summary.relationshipSummary, /低刺激、少施压/);
+  assert.match(summary.stagedLabel, /我正在变成什么样/);
+  assert.match(summary.stagedSummary, /正在变得更稳/);
 });
