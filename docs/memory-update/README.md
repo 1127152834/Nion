@@ -41,6 +41,12 @@
   - 冻结预算、背压、drift、日志与降级策略。
 - `09-memory-os-implementation-plan.md`
   - 基于规格包生成的正式实施方案。
+- `10-soul-system-research.md`
+  - 外部 companion / stateful agent / SOUL.md 路线调研，说明完整灵魂系统应由哪些层组成。
+- `11-soul-memory-os-integration.md`
+  - 说明 soul system 应如何和现有 Memory OS 自我成长体系一体化，而不是平行存在。
+- `12-nion-complete-soul-system-architecture.md`
+  - 收敛后的完整 Soul System 架构：对象、artifact、runtime、成长闭环、治理与接线方式。
 - `sources.md`
   - 本轮调研用到的内部材料与外部公开来源。
 
@@ -77,4 +83,7 @@ Nion 现在已经不是“完全没有记忆”的状态，但它仍然更像一
 1. 先读 [current-memory-system-audit.md](/Users/zhangtiancheng/Documents/项目/agent/nion/docs/memory-update/current-memory-system-audit.md)
 2. 再读 [mature-memory-systems-matrix.md](/Users/zhangtiancheng/Documents/项目/agent/nion/docs/memory-update/mature-memory-systems-matrix.md)
 3. 再读 [nion-memory-os-final-architecture.md](/Users/zhangtiancheng/Documents/项目/agent/nion/docs/memory-update/nion-memory-os-final-architecture.md)
-4. 然后从 [specification-package-plan.md](/Users/zhangtiancheng/Documents/项目/agent/nion/docs/memory-update/specification-package-plan.md) 开始顺着 `00 -> 09` 阅读
+4. 再读 [10-soul-system-research.md](/Users/zhangtiancheng/Documents/项目/agent/nion/.worktrees/codex-memory-os-m0-contract-foundation/docs/memory-update/10-soul-system-research.md)
+5. 再读 [11-soul-memory-os-integration.md](/Users/zhangtiancheng/Documents/项目/agent/nion/.worktrees/codex-memory-os-m0-contract-foundation/docs/memory-update/11-soul-memory-os-integration.md)
+6. 再读 [12-nion-complete-soul-system-architecture.md](/Users/zhangtiancheng/Documents/项目/agent/nion/.worktrees/codex-memory-os-m0-contract-foundation/docs/memory-update/12-nion-complete-soul-system-architecture.md)
+7. 然后从 [specification-package-plan.md](/Users/zhangtiancheng/Documents/项目/agent/nion/docs/memory-update/specification-package-plan.md) 开始顺着 `00 -> 09` 阅读
