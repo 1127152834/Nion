@@ -97,8 +97,10 @@ class UploadsMiddleware(AgentMiddleware[UploadsMiddlewareState]):
         def append_file_details(file: dict) -> None:
             size_kb = file["size"] / 1024
             size_str = f"{size_kb:.1f} KB" if size_kb < 1024 else f"{size_kb / 1024:.1f} MB"
-            lines.append(f"- {file['filename']} ({size_str})")
-            lines.append(f"  Path: {file['path']}")
+            safe_filename = self._escape_uploaded_files_text(file["filename"])
+            safe_path = self._escape_uploaded_files_text(file["path"])
+            lines.append(f"- {safe_filename} ({size_str})")
+            lines.append(f"  Path: {safe_path}")
 
             outline = file.get("outline") or []
             if outline:
