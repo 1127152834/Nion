@@ -17,7 +17,8 @@ from nion.sandbox.sandbox_provider import get_sandbox_provider
 from nion.sandbox.security import LOCAL_HOST_BASH_DISABLED_MESSAGE, is_host_bash_allowed
 
 _ABSOLUTE_PATH_PATTERN = re.compile(r"(?<![:\w])/(?:[^\s\"'`;&|<>()]+)")
-_RELATIVE_PARENT_SEGMENT_PATTERN = re.compile(r"(?<![\w/\\.-])\.\.(?:[/\\]|(?![\w.-]))")
+_COMMAND_TOKEN_PATTERN = re.compile(r"""[^\s"'`;|&<>]+|"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'""")
+_NON_PATH_TOKEN_CHARS_PATTERN = re.compile(r"[^A-Za-z0-9._/-]+")
 _LOCAL_BASH_SYSTEM_PATH_PREFIXES = (
     "/bin/",
     "/usr/bin/",
@@ -484,6 +485,25 @@ def _mask_local_path(path: str, runtime: ToolRuntime[ContextT, ThreadState] | No
     return mask_local_paths_in_output(path, get_thread_data(runtime))
 
 
+def _command_tokens(command: str) -> list[str]:
+    try:
+        return shlex.split(command, posix=True)
+    except ValueError:
+        return [token.strip("'\"") for token in _COMMAND_TOKEN_PATTERN.findall(command)]
+
+
+def _contains_relative_parent_segment(token: str) -> bool:
+    normalized = token.replace("\\", "/")
+    canonical = _NON_PATH_TOKEN_CHARS_PATTERN.sub("/", normalized)
+    return any(segment == ".." for segment in canonical.split("/"))
+
+
+def _validate_relative_bash_tokens(command: str) -> None:
+    for token in _command_tokens(command):
+        if _contains_relative_parent_segment(token):
+            raise PermissionError("Unsafe relative path traversal in command is not allowed")
+
+
 def validate_local_bash_command_paths(command: str, thread_data: ThreadDataState | None) -> None:
     """Validate absolute paths in local-sandbox bash commands.
 
@@ -495,8 +515,7 @@ def validate_local_bash_command_paths(command: str, thread_data: ThreadDataState
     if thread_data is None:
         raise SandboxRuntimeError("Thread data not available for local sandbox")
 
-    if _RELATIVE_PARENT_SEGMENT_PATTERN.search(command):
-        raise PermissionError("Unsafe relative path traversal in command is not allowed")
+    _validate_relative_bash_tokens(command)
 
     unsafe_paths: list[str] = []
 

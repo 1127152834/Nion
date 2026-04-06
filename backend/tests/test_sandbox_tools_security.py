@@ -305,6 +305,39 @@ def test_validate_local_bash_command_paths_blocks_python_relative_path_escape() 
         )
 
 
+def test_validate_local_bash_command_paths_blocks_prefixed_relative_escape_to_acp_workspace() -> None:
+    with pytest.raises(PermissionError, match="relative path traversal"):
+        validate_local_bash_command_paths(
+            "cat foo/../../acp-workspace/secret.txt",
+            _THREAD_DATA,
+        )
+
+
+def test_validate_local_bash_command_paths_blocks_prefixed_relative_escape_to_skills() -> None:
+    with patch("nion.sandbox.tools._get_skills_container_path", return_value="/mnt/skills"):
+        with pytest.raises(PermissionError, match="relative path traversal"):
+            validate_local_bash_command_paths(
+                "cat foo/../../mnt/skills/x.txt",
+                _THREAD_DATA,
+            )
+
+
+def test_validate_local_bash_command_paths_blocks_quoted_relative_escape() -> None:
+    with pytest.raises(PermissionError, match="relative path traversal"):
+        validate_local_bash_command_paths(
+            'cat "foo/../../acp-workspace/secret.txt"',
+            _THREAD_DATA,
+        )
+
+
+def test_validate_local_bash_command_paths_blocks_python_prefixed_relative_escape() -> None:
+    with pytest.raises(PermissionError, match="relative path traversal"):
+        validate_local_bash_command_paths(
+            'python -c "from pathlib import Path; Path(\'foo/../../acp-workspace/pyc.txt\').write_text(\'x\')"',
+            _THREAD_DATA,
+        )
+
+
 # ---------- Skills path tests ----------
 
 
