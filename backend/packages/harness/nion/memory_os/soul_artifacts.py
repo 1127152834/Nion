@@ -36,10 +36,20 @@ class MemoryOSSoulArtifactStore:
         }
         return self._write_artifact(path=path, body=body, record=record)
 
-    def write_identity_narrative(self, *, body: str, created_at: str) -> dict[str, object]:
-        path = self._artifacts_dir / "agent-self" / "narrative" / "identity_narrative.md"
+    def write_identity_narrative(
+        self,
+        *,
+        body: str,
+        created_at: str,
+        staged: bool = False,
+    ) -> dict[str, object]:
+        path = (
+            self._artifacts_dir / "agent-self" / "narrative" / "staged_identity_narrative.md"
+            if staged
+            else self._artifacts_dir / "agent-self" / "narrative" / "identity_narrative.md"
+        )
         record = {
-            "memory_id": "agent_self_narrative_main",
+            "memory_id": "agent_self_narrative_staged_main" if staged else "agent_self_narrative_main",
             "domain": "agent_self",
             "subtype": "identity_narrative",
             "owner_type": "agent",
@@ -47,13 +57,17 @@ class MemoryOSSoulArtifactStore:
             "memory_type": "semantic",
             "subject_id": "agent:main",
             "target_id": "agent:main",
-            "status": "active",
-            "title": "主智能体当前身份叙事",
+            "status": "candidate" if staged else "active",
+            "title": "主智能体 staged 身份叙事" if staged else "主智能体当前身份叙事",
             "summary": _extract_summary(body),
             "confidence": 0.88,
             "created_at": created_at,
             "updated_at": created_at,
-            "artifact_uri": "nion://memory-os/artifacts/agent-self/narrative/identity_narrative.md",
+            "artifact_uri": (
+                "nion://memory-os/artifacts/agent-self/narrative/staged_identity_narrative.md"
+                if staged
+                else "nion://memory-os/artifacts/agent-self/narrative/identity_narrative.md"
+            ),
             "provenance": {
                 "source_type": "reflection",
                 "generated_by": "soul_artifact_writer",

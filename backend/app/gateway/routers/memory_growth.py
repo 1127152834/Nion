@@ -67,9 +67,18 @@ async def get_soul_summary():
         ),
         None,
     )
+    staged_identity_narrative = next(
+        (
+            item
+            for item in repo.list_memory_records(domain="agent_self")
+            if item["memory_id"] == "agent_self_narrative_staged_main"
+        ),
+        None,
+    )
     return {
         "current_soul": current_soul,
         "core_soul": core_soul,
+        "staged_identity_narrative": staged_identity_narrative,
         "summary": {
             "baseline": core_soul["summary"] if core_soul else None,
             "relationship": build_relationship_soul_summary(repo),

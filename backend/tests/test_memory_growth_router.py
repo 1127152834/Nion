@@ -149,6 +149,24 @@ def test_memory_growth_router_exposes_soul_summary_and_proposal_controls(monkeyp
             "provenance": {"source_type": "test"},
         }
     )
+    repo.save_memory_record(
+        {
+            "memory_id": "agent_self_narrative_staged_main",
+            "domain": "agent_self",
+            "subtype": "identity_narrative",
+            "owner_type": "agent",
+            "scope": "agent",
+            "memory_type": "semantic",
+            "subject_id": "agent:main",
+            "status": "candidate",
+            "summary": "我是一个正在变得更稳的助手。",
+            "confidence": 0.88,
+            "created_at": "2026-04-07T00:00:00Z",
+            "updated_at": "2026-04-07T00:00:00Z",
+            "artifact_uri": "nion://memory-os/artifacts/agent-self/narrative/staged_identity_narrative.md",
+            "provenance": {"source_type": "test"},
+        }
+    )
 
     with TestClient(create_app()) as client:
         summary = client.get("/api/memory/growth/soul")
@@ -159,6 +177,7 @@ def test_memory_growth_router_exposes_soul_summary_and_proposal_controls(monkeyp
     assert summary.status_code == 200
     assert "summary" in summary.json()
     assert "低打扰" in summary.json()["summary"]["relationship"]
+    assert summary.json()["staged_identity_narrative"]["memory_id"] == "agent_self_narrative_staged_main"
     assert proposals.status_code == 200
     assert proposals.json()["proposals"][0]["memory_id"] == proposal["memory_id"]
     assert accept.status_code == 200
