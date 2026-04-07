@@ -4,6 +4,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from nion.config.paths import get_paths
+from nion.memory_os.clock import utcnow_z
 from nion.memory_os.governance import GOVERNANCE_ACTION_FREEZE, GOVERNANCE_ACTION_REJECT
 from nion.memory_os.learning import create_learning_topic
 from nion.memory_os.relationship_soul import build_relationship_soul_summary
@@ -44,8 +45,10 @@ async def get_memory_growth():
 @router.get("/user-model")
 async def list_user_model_items():
     repo = _repo()
+    items = repo.list_memory_records(domain="user_model")
     return {
-        "items": repo.list_memory_records(domain="user_model"),
+        "items": items,
+        "source_mode": "memory_os" if items else "legacy_fallback",
     }
 
 
@@ -141,7 +144,7 @@ async def accept_growth_item(memory_id: str):
 
 @router.post("/soul/proposals/{memory_id}/accept")
 async def accept_soul_item(memory_id: str):
-    return accept_soul_proposal(_repo(), memory_id, created_at="2026-04-06T00:00:00Z")
+    return accept_soul_proposal(_repo(), memory_id, created_at=utcnow_z())
 
 
 @router.post("/soul/proposals/{memory_id}/reject")
@@ -204,6 +207,6 @@ async def correct_user_model_item(memory_id: str, request: UserModelCorrectReque
         raise HTTPException(status_code=404, detail=f"Memory item {memory_id} not found")
     corrected = dict(record)
     corrected["summary"] = request.summary.strip() or corrected["summary"]
-    corrected["updated_at"] = "2026-04-05T00:00:00Z"
+    corrected["updated_at"] = utcnow_z()
     repo.save_memory_record(corrected)
     return {"item": corrected, "action": "correct"}

@@ -27,6 +27,43 @@ def test_memory_growth_router_lists_user_model_items(monkeypatch, tmp_path):
     assert "items" in body
 
 
+def test_memory_growth_router_reports_source_mode(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    with TestClient(create_app()) as client:
+        fallback = client.get("/api/memory/growth/user-model")
+
+    assert fallback.status_code == 200
+    assert fallback.json()["source_mode"] == "legacy_fallback"
+    assert "items" in fallback.json()
+
+    repo = MemoryOSRepository(tmp_path / "memory-os" / "index.sqlite3")
+    repo.save_memory_record(
+        {
+            "memory_id": "user_mem_source_mode",
+            "domain": "user_model",
+            "subtype": "workContext",
+            "owner_type": "agent",
+            "scope": "user",
+            "memory_type": "semantic",
+            "subject_id": "user:default",
+            "status": "active",
+            "summary": "负责财务汇报",
+            "confidence": 0.8,
+            "created_at": "2026-04-05T00:00:00Z",
+            "updated_at": "2026-04-05T00:00:00Z",
+            "provenance": {"source_type": "test"},
+        }
+    )
+
+    with TestClient(create_app()) as client:
+        memory_os = client.get("/api/memory/growth/user-model")
+
+    assert memory_os.status_code == 200
+    body = memory_os.json()
+    assert body["source_mode"] == "memory_os"
+    assert body["items"][0]["memory_id"] == "user_mem_source_mode"
+
+
 def test_memory_growth_router_supports_freeze_and_reject(monkeypatch, tmp_path):
     monkeypatch.setenv("NION_HOME", str(tmp_path))
     with TestClient(create_app()) as client:
