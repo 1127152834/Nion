@@ -100,6 +100,7 @@ but this branch also contains incremental `nion.memory_os.*` runtime pieces:
 - `/api/memory/growth` governance surface
 - `agent-owned automation` ownership controls
 - soul artifact/runtime/governance/event stream bridge
+- capability catalog / capability bridge actions / skill runtime governance
 
 When extending memory in this branch:
 - prefer `nion.memory_os.*` instead of expanding legacy `memory.json`
@@ -116,6 +117,13 @@ When extending memory in this branch:
   - Keep `retention.py` as the archive/purge lifecycle owner; prompt context should keep reading only active records.
   - Keep `automation_bridge.py` as the Memory OS boundary for agent-owned / soul-driven automation provenance events.
   - Frontend memory/soul contract tests should be runnable through `pnpm test:contracts -- <test files...>`.
+- Capability governance expectations:
+  - `get_capability_catalog` is the first discovery surface when the agent or user needs to know what built-in capability lanes exist.
+  - `get_capability_actions` is the second discovery surface for explicit bridge / activation actions.
+  - Notebook is not memory; notebook content only becomes memory through an explicit bridge action.
+  - Skill is a workflow package; when a requested skill matches, prefer `use_skill` before generic tools.
+  - MCP is not the default first choice when notebook / memory / skill / CLI already match the task.
+  - `context=fork` on active skills may affect delegated execution and subagent runtime configuration.
 
 Soul event stream contract in this branch:
 

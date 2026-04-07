@@ -28,6 +28,7 @@
 - Memory OS 增量能力：当前分支已在 legacy `/api/memory` 之外引入 `Memory OS` 增量路径，用于承载 memory growth、user model 控制、prompt/continuity bridge、heartbeat/self-maintenance skeleton，以及 `agent-owned automation` ownership 治理；主链仍保留 legacy fallback，不做硬切
 - Soul System 增量能力：主智能体现在已有 canonical soul artifact、compiled soul runtime、soul governance、recent soul events，以及由 soul growth 外化的 automation provenance；`legacy SOUL.md` 与 legacy memory 仍保留 fallback，不做硬切
 - Memory / Soul 完整版本收口能力：当前分支已补 canonical clock、soul runtime freshness、growth orchestrator、retention archive/purge、agent-owned automation bridge，以及前端 `test:contracts` 合同测试入口
+- 能力治理主线：当前分支已补 capability catalog / capability actions / skill runtime / explicit notebook-memory bridge provenance / capability autopilot prompt guidance；默认策略改为“用户只说目标，agent 优先自动发现并调用 notebook / memory / skill / MCP / CLI 能力”
 - token telemetry：聊天主流与子智能体流式执行会按 chunk 逐步标记 token source，避免跨 Python `Context` 恢复流时触发 telemetry 清理异常
 
 ---
@@ -241,6 +242,10 @@ NION_STATIC_EXPORT=1 pnpm --dir frontend build
   - prompt context assembly 只读取 `active` 记录，归档与清理记录不会继续进入热路径上下文
 - 前端合同测试
   - `frontend/package.json` 已提供 `pnpm test:contracts -- <test files...>` 入口，用于运行 memory/soul 相关 `node:test` 合同测试
+- 能力治理 runtime
+  - 后端已提供 `get_capability_catalog`、`get_capability_actions`、`execute_capability_action`
+  - agent prompt 已获得压缩版 capability guidance，并默认采用 capability autopilot 策略
+  - `bridge:notebook-to-memory` 仍然是显式桥接，不会把 Notebook 自动变成 Memory
 
 ---
 
