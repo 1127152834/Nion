@@ -518,6 +518,19 @@ export const zhCN: Translations = {
     saveArtifact: "保存工作产物",
     saveArtifactDescription: "将当前工作产物复制到 Notebook。默认进入收件箱，你也可以改到指定目录。",
     saveArtifactSuccess: "{title} 已保存到笔记",
+    extractToMemory: "提炼为记忆",
+    extractToMemoryTitle: "提炼为记忆",
+    extractToMemoryDescription:
+      "这是一次显式提炼操作，不会自动写入记忆。你可以补充提示词，引导 AI 如何把当前笔记整理成适合长期保留的记忆事实。",
+    extractToMemoryInstructionLabel: "提炼提示词",
+    extractToMemoryInstructionPlaceholder:
+      "例如：将这篇财务规范中的稳定条目提炼成可长期复用的记忆事实",
+    extractToMemoryDefaultHint:
+      "留空时会使用默认提示词：从这篇笔记中提炼适合长期保留的稳定记忆内容。",
+    extractToMemorySubmit: "开始提炼",
+    extractToMemorySubmitting: "提炼中...",
+    extractToMemorySuccess: "已从《{title}》提炼记忆",
+    extractToMemoryError: "提炼记忆失败",
     trashTitle: "笔记垃圾箱",
     trashDescription: "查看并恢复被删除的笔记，永久清理留到后续流程处理。",
     trashEmpty: "目前没有已删除笔记。",
