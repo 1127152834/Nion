@@ -215,8 +215,10 @@ export function WeixinBridgeSection() {
       />
 
       <StatusBanner variant="warning" className="text-sm">
-        <Warning size={16} className="mt-0.5 mr-2 shrink-0" />
-        <span>{t("weixin.riskWarning")}</span>
+        <div className="flex items-start gap-2">
+          <Warning className="mt-0.5 size-4 shrink-0" />
+          <span className="min-w-0">{t("weixin.riskWarning")}</span>
+        </div>
       </StatusBanner>
 
       <SettingsCard title={t("weixin.accounts")} description={t("weixin.accountsDesc")}>
