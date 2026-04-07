@@ -1509,8 +1509,16 @@ class TestScenarioMemoryWorkflow:
         assert len(refreshed["facts"]) == 2
 
         with (
-            patch("nion.config.memory_config.get_memory_config", return_value=config),
-            patch("nion.agents.memory.updater.get_memory_data", return_value=updated_data),
+            patch("nion.memory_os.compat.get_memory_os_config", return_value={
+                "enabled": True,
+                "storage_path": ".nion/memory-os/index.sqlite3",
+                "debounce_seconds": 30,
+                "max_facts": 100,
+                "fact_confidence_threshold": 0.7,
+                "injection_enabled": True,
+                "max_injection_tokens": 2000,
+            }),
+            patch("nion.memory_os.compat.build_legacy_memory_view", return_value=updated_data),
         ):
             status = client.get_memory_status()
         assert status["config"]["enabled"] is True
@@ -1875,7 +1883,15 @@ class TestGatewayConformance:
         mem_cfg.injection_enabled = True
         mem_cfg.max_injection_tokens = 2000
 
-        with patch("nion.config.memory_config.get_memory_config", return_value=mem_cfg):
+        with patch("nion.memory_os.compat.get_memory_os_config", return_value={
+            "enabled": True,
+            "storage_path": ".nion/memory-os/index.sqlite3",
+            "debounce_seconds": 30,
+            "max_facts": 100,
+            "fact_confidence_threshold": 0.7,
+            "injection_enabled": True,
+            "max_injection_tokens": 2000,
+        }):
             result = client.get_memory_config()
 
         parsed = MemoryConfigResponse(**result)
@@ -1918,10 +1934,13 @@ class TestGatewayConformance:
                 "injection_enabled": True,
                 "max_injection_tokens": 2000,
             }),
-            patch("nion.memory_os.compat.build_legacy_memory_view", return_value=memory_data),
+            patch("nion.memory_os.compat.build_legacy_memory_view", return_value={
+                **memory_data,
+                "version": "2.0",
+            }),
         ):
             result = client.get_memory_status()
 
         parsed = MemoryStatusResponse(**result)
         assert parsed.config.enabled is True
-        assert parsed.data.version == "1.0"
+        assert parsed.data.version == "2.0"
