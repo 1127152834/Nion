@@ -1,6 +1,9 @@
 from unittest.mock import patch
 
 from nion.agents.lead_agent.agent import _build_middlewares
+from nion.memory_os.compat import finalize_legacy_cutover
+from nion.memory_os.repository import MemoryOSRepository
+from nion.memory_os.soul_runtime import compile_soul_runtime
 from nion.tools.builtins.control_plane_tools import get_capability_catalog_tool
 
 
@@ -22,3 +25,18 @@ def test_capability_catalog_reports_memory_os_descriptor(monkeypatch, tmp_path):
 
     assert "memory-os/index.sqlite3" in payload
     assert "FileMemoryStorage" not in payload
+
+
+def test_finalize_legacy_cutover_seeds_default_core_soul_when_missing(
+    monkeypatch,
+    tmp_path,
+):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+
+    result = finalize_legacy_cutover()
+    repo = MemoryOSRepository(tmp_path / "memory-os" / "index.sqlite3")
+    runtime = compile_soul_runtime(repo)
+
+    assert result["soul_records_imported"] == 1
+    assert "soul_runtime" in runtime
+    assert "长期陪伴" in runtime

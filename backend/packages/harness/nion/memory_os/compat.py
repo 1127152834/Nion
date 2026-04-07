@@ -8,6 +8,7 @@ from nion.config.paths import get_paths
 from .clock import utcnow_z
 from .import_legacy import import_legacy_memory_payload
 from .repository import MemoryOSRepository
+from .soul_artifacts import MemoryOSSoulArtifactStore
 from .soul_artifacts import import_legacy_soul_file
 
 
@@ -209,12 +210,25 @@ def finalize_legacy_cutover(repository: MemoryOSRepository | None = None) -> dic
         for row in repo.list_memory_records()
     )
     legacy_soul_path = get_paths().base_dir / "SOUL.md"
-    if not has_soul_runtime and legacy_soul_path.exists():
-        import_legacy_soul_file(
-            repository=repo,
-            soul_path=legacy_soul_path,
-            created_at=utcnow_z(),
-        )
+    if not has_soul_runtime:
+        if legacy_soul_path.exists():
+            import_legacy_soul_file(
+                repository=repo,
+                soul_path=legacy_soul_path,
+                created_at=utcnow_z(),
+            )
+        else:
+            MemoryOSSoulArtifactStore(
+                repository=repo,
+                base_dir=get_paths().base_dir,
+            ).write_core_soul(
+                body=(
+                    "# Core Soul\n\n"
+                    "## Identity\n"
+                    "长期陪伴、克制稳定、结论先行、以用户长期价值为先。\n"
+                ),
+                created_at=utcnow_z(),
+            )
         imported_soul = 1
 
     return {
