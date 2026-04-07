@@ -116,6 +116,8 @@ def create_memory_fact(
     content: str,
     category: str = "context",
     confidence: float = 0.5,
+    source: str = "manual",
+    provenance: dict[str, Any] | None = None,
     agent_name: str | None = None,
     memory_storage: MemoryStorage | None = None,
 ) -> dict[str, Any]:
@@ -138,7 +140,8 @@ def create_memory_fact(
             "category": normalized_category,
             "confidence": validated_confidence,
             "createdAt": now,
-            "source": "manual",
+            "source": source,
+            **({"provenance": provenance} if isinstance(provenance, dict) else {}),
         }
     )
     updated_memory["facts"] = facts

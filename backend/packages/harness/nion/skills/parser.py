@@ -29,8 +29,6 @@ def parse_skill_file(skill_file: Path, category: str, relative_path: Path | None
         if not front_matter_match:
             return None
 
-        front_matter = front_matter_match.group(1)
-
         valid, _message, metadata = parse_and_validate_skill_frontmatter_text(content)
         if not valid or metadata is None:
             return None
@@ -45,6 +43,23 @@ def parse_skill_file(skill_file: Path, category: str, relative_path: Path | None
             return None
 
         license_text = metadata.get("license")
+        allowed_tools = metadata.get("allowed-tools")
+        skill_metadata = metadata.get("metadata")
+        compatibility = metadata.get("compatibility")
+        version = metadata.get("version")
+        author = metadata.get("author")
+        model = metadata.get("model")
+        effort = metadata.get("effort")
+        user_invocable = metadata.get("user-invocable")
+        hooks = metadata.get("hooks")
+        context_mode = metadata.get("context")
+
+        normalized_allowed_tools: list[str] | None = None
+        if isinstance(allowed_tools, list):
+            normalized_allowed_tools = [item.strip() for item in allowed_tools if isinstance(item, str) and item.strip()] or None
+        normalized_hooks: list[str] | None = None
+        if isinstance(hooks, list):
+            normalized_hooks = [item.strip() for item in hooks if isinstance(item, str) and item.strip()] or None
 
         return Skill(
             name=name.strip(),
@@ -55,6 +70,16 @@ def parse_skill_file(skill_file: Path, category: str, relative_path: Path | None
             relative_path=relative_path or Path(skill_file.parent.name),
             category=category,
             enabled=True,  # Default to enabled, actual state comes from config file
+            allowed_tools=normalized_allowed_tools,
+            metadata=skill_metadata if isinstance(skill_metadata, dict) else None,
+            compatibility=compatibility if isinstance(compatibility, dict) else None,
+            version=version if isinstance(version, str) else None,
+            author=author if isinstance(author, str) else None,
+            model=model if isinstance(model, str) else None,
+            effort=effort if isinstance(effort, str) else None,
+            user_invocable=user_invocable if isinstance(user_invocable, bool) else None,
+            hooks=normalized_hooks,
+            context_mode=context_mode if isinstance(context_mode, str) else None,
         )
 
     except Exception as e:

@@ -13,7 +13,13 @@ from nion.config.extensions_config import (
     get_extensions_config,
     reload_extensions_config,
 )
+from nion.capability_bridge_actions import build_capability_bridge_actions, execute_capability_bridge_action
+from nion.capability_objects import build_capability_objects
+from nion.config.agents_config import list_agent_catalog
+from nion.config.memory_config import get_memory_config
+from nion.notebook.service import NotebookService
 from nion.skills import load_skills
+from nion.system_capability_catalog import build_system_capability_catalog
 from nion.telemetry.store import TelemetryStore
 
 
@@ -92,6 +98,98 @@ def get_runtime_status_tool() -> str:
         JSON string containing daemon status and current runtime summary.
     """
     return json.dumps(_runtime_summary(), ensure_ascii=False, indent=2)
+
+
+def _enabled_mcp_capability_entries() -> list[dict[str, Any]]:
+    try:
+        extensions_config = get_extensions_config()
+    except Exception:
+        return []
+
+    entries: list[dict[str, Any]] = []
+    for server_name, server in extensions_config.get_enabled_mcp_servers().items():
+        description = server.description.strip() if isinstance(server.description, str) else ""
+        if not description:
+            continue
+        entries.append(
+            {
+                "name": server_name,
+                "description": description,
+                "type": server.type,
+                "enabled": server.enabled,
+            }
+        )
+    return entries
+
+
+@tool("get_capability_catalog", parse_docstring=True)
+def get_capability_catalog_tool() -> str:
+    """Get the current runtime system capability catalog."""
+    skills = load_skills(enabled_only=True)
+    agents = list_agent_catalog()
+    memory_config = get_memory_config()
+    notebook = NotebookService()
+    note_summaries = notebook.list_note_summaries()
+    inbox_items = notebook.list_inbox_items()
+    payload = build_system_capability_catalog(
+        cli_tools_enabled=True,
+        skill_count=len(skills),
+        mcp_servers=_enabled_mcp_capability_entries(),
+        agent_count=len(agents),
+        memory_descriptor={
+            "enabled": memory_config.enabled,
+            "storage_class": memory_config.storage_class,
+            "storage_path": memory_config.storage_path,
+            "injection_enabled": memory_config.injection_enabled,
+            "max_facts": memory_config.max_facts,
+        },
+        notebook_descriptor={
+            "root_directory": str(notebook._paths.notebook_root_dir),
+            "note_count": len(note_summaries),
+            "inbox_count": len(inbox_items),
+            "assistant_available": True,
+        },
+        agent_descriptors=[
+            {
+                "id": agent.id,
+                "name": agent.name,
+                "kind": agent.kind,
+                "entrypoint": agent.entrypoint,
+                "tool_policy": agent.tool_policy,
+                "visibility": agent.visibility,
+            }
+            for agent in agents
+        ],
+        skill_descriptors=[
+            {
+                "name": skill.name,
+                "category": skill.category,
+                "user_invocable": getattr(skill, "user_invocable", False),
+                "hooks": getattr(skill, "hooks", []) or [],
+                "model": getattr(skill, "model", None),
+                "effort": getattr(skill, "effort", None),
+            }
+            for skill in skills
+        ],
+    )
+    return json.dumps(payload, ensure_ascii=False, indent=2)
+
+
+@tool("get_capability_actions", parse_docstring=True)
+def get_capability_actions_tool() -> str:
+    """Get the current capability bridge actions catalog."""
+    return json.dumps({"actions": build_capability_bridge_actions()}, ensure_ascii=False, indent=2)
+
+
+@tool("execute_capability_action", parse_docstring=True)
+def execute_capability_action_tool(action_id: str, payload: dict[str, Any]) -> str:
+    """Execute one capability bridge action.
+
+    Args:
+        action_id: Bridge action identifier.
+        payload: Action payload.
+    """
+    return json.dumps(execute_capability_bridge_action(action_id, payload), ensure_ascii=False, indent=2)
 
 
 @tool("diagnose_incident", parse_docstring=True)

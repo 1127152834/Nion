@@ -14,6 +14,7 @@ from langgraph.prebuilt.tool_node import ToolCallRequest
 from langgraph.types import Command
 
 from nion.guardrails.provider import GuardrailDecision, GuardrailProvider, GuardrailReason, GuardrailRequest
+from nion.hooks import HookEvent, dispatch_tool_call_in_runtime_hook
 from nion.thread_permissions import (
     consume_thread_pending_allow,
     create_thread_permission_request,
@@ -175,6 +176,22 @@ class GuardrailMiddleware(AgentMiddleware[AgentState]):
         if len(summary) > 300:
             summary = summary[:300] + "..."
 
+        hook_event = dispatch_tool_call_in_runtime_hook(
+            request,
+            event=HookEvent.PERMISSION_REQUEST,
+            payload={
+                "tool_name": tool_name,
+                "tool_call_id": tool_call_id,
+                "tool_input": tool_input,
+                "reason_code": decision.reasons[0].code if decision.reasons else "oap.approval_required",
+            },
+            handler=lambda _payload: {
+                "continue_execution": False,
+                "stop_reason": "permission_request_pending",
+                "permission_behavior": "ask",
+            },
+        )
+
         tool_message = ToolMessage(
             content=(
                 "🔐 需要确认后才能继续。\n\n"
@@ -203,10 +220,7 @@ class GuardrailMiddleware(AgentMiddleware[AgentState]):
                     tool_name=tool_name,
                     tool_call_id=tool_call_id,
                 ),
-                "hook_event": {
-                    "event": "permission_request",
-                    "mode": "in_runtime",
-                },
+                "hook_event": hook_event,
             },
         )
         return Command(update={"messages": [tool_message]}, goto=END)
@@ -216,6 +230,21 @@ class GuardrailMiddleware(AgentMiddleware[AgentState]):
         tool_call_id = str(request.tool_call.get("id", "missing_id"))
         reason_text = decision.reasons[0].message if decision.reasons else "blocked by guardrail policy"
         reason_code = decision.reasons[0].code if decision.reasons else "oap.denied"
+        hook_event = dispatch_tool_call_in_runtime_hook(
+            request,
+            event=HookEvent.PERMISSION_DENIED,
+            payload={
+                "tool_name": tool_name,
+                "tool_call_id": tool_call_id,
+                "reason_code": reason_code,
+                "reason_message": reason_text,
+            },
+            handler=lambda _payload: {
+                "continue_execution": False,
+                "stop_reason": "guardrail_denied",
+                "permission_behavior": "deny",
+            },
+        )
         return ToolMessage(
             content=f"Guardrail denied: tool '{tool_name}' was blocked ({reason_code}). Reason: {reason_text}. Choose an alternative approach.",
             tool_call_id=tool_call_id,
@@ -228,10 +257,7 @@ class GuardrailMiddleware(AgentMiddleware[AgentState]):
                     tool_name=tool_name,
                     tool_call_id=tool_call_id,
                 ),
-                "hook_event": {
-                    "event": "permission_denied",
-                    "mode": "in_runtime",
-                },
+                "hook_event": hook_event,
             },
         )
 
