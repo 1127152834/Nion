@@ -22,8 +22,8 @@ from nion.client import NionClient
 from nion.config.app_config import get_app_config
 from nion.config.automation_config import get_automation_config
 from nion.config.paths import Paths, get_paths, resolve_path
+from nion.memory_os.automation_bridge import record_agent_owned_job_created
 from nion.memory_os.repository import MemoryOSRepository
-from nion.memory_os.projections import record_soul_automation_created
 from nion.threads.repository import ThreadRepository
 
 
@@ -111,7 +111,7 @@ class AutomationService:
 
         job = self._repository.save_job(draft)
         if job.owner_type == "agent" and (job.provenance_memory_id or job.provenance_learning_id):
-            record_soul_automation_created(
+            record_agent_owned_job_created(
                 repository=self._memory_repository(),
                 job=job,
                 created_at=job.created_at,
