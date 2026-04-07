@@ -59,6 +59,8 @@
   - Soul System 实施前置规格第 5 篇，冻结用户看到什么、能控制什么、如何理解 soul growth。
 - `18-soul-system-implementation-plan.md`
   - 基于 `13-17` 规格收敛出的详细实施方案，定义阶段、模块边界、测试矩阵与回滚点。
+- `19-complete-memory-soul-system-hardening-plan.md`
+  - 面向“不要 MVP、要完整可用版”的最终收口计划，专门处理 canonical cutover、去补丁化、retention/cleanup、automation bridge 和桌面端验收。
 - `sources.md`
   - 本轮调研用到的内部材料与外部公开来源。
 
@@ -104,4 +106,5 @@ Nion 现在已经不是“完全没有记忆”的状态，但它仍然更像一
 10. 再读 [16-soul-governance-matrix.md](/Users/zhangtiancheng/Documents/项目/agent/nion/.worktrees/codex-memory-os-m0-contract-foundation/docs/memory-update/16-soul-governance-matrix.md)
 11. 再读 [17-soul-product-interaction-model.md](/Users/zhangtiancheng/Documents/项目/agent/nion/.worktrees/codex-memory-os-m0-contract-foundation/docs/memory-update/17-soul-product-interaction-model.md)
 12. 再读 [18-soul-system-implementation-plan.md](/Users/zhangtiancheng/Documents/项目/agent/nion/.worktrees/codex-memory-os-m0-contract-foundation/docs/memory-update/18-soul-system-implementation-plan.md)
-13. 然后从 [specification-package-plan.md](/Users/zhangtiancheng/Documents/项目/agent/nion/docs/memory-update/specification-package-plan.md) 开始顺着 `00 -> 09` 阅读
+13. 再读 [19-complete-memory-soul-system-hardening-plan.md](/Users/zhangtiancheng/Documents/项目/agent/nion/.worktrees/codex-memory-os-m0-contract-foundation/docs/memory-update/19-complete-memory-soul-system-hardening-plan.md)
+14. 然后从 [specification-package-plan.md](/Users/zhangtiancheng/Documents/项目/agent/nion/docs/memory-update/specification-package-plan.md) 开始顺着 `00 -> 09` 阅读
