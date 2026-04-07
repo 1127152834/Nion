@@ -1,6 +1,8 @@
 from fastapi.testclient import TestClient
 
 from app.gateway.app import create_app
+from app.gateway.routers import memory_growth
+from nion.memory_os import repository as memory_repository
 from nion.memory_os.repository import MemoryOSRepository
 from nion.memory_os.soul import create_soul_proposal
 
@@ -145,10 +147,16 @@ def test_memory_growth_router_supports_real_user_model_controls(monkeypatch, tmp
         }
     )
 
+    fixed_status_now = "2026-04-08T09:10:11Z"
+    fixed_correct_now = "2026-04-08T09:10:12Z"
+    monkeypatch.setattr(memory_repository, "utcnow_z", lambda: fixed_status_now, raising=False)
+    monkeypatch.setattr(memory_growth, "utcnow_z", lambda: fixed_correct_now)
+
     with TestClient(create_app()) as client:
         freeze = client.post("/api/memory/growth/user-model/user_mem_1/freeze")
         forget = client.post("/api/memory/growth/user-model/user_mem_1/forget")
         reject = client.post("/api/memory/growth/user-model/user_mem_1/reject")
+        records_after_reject = repo.list_memory_records(domain="user_model")
         correct = client.post(
             "/api/memory/growth/user-model/user_mem_1/correct",
             json={"summary": "负责财务 BP 与汇报"},
@@ -159,6 +167,10 @@ def test_memory_growth_router_supports_real_user_model_controls(monkeypatch, tmp
     assert reject.status_code == 200
     assert correct.status_code == 200
     assert correct.json()["item"]["summary"] == "负责财务 BP 与汇报"
+    assert records_after_reject[0]["updated_at"] == fixed_status_now
+
+    records = repo.list_memory_records(domain="user_model")
+    assert records[0]["updated_at"] == fixed_correct_now
 
 
 def test_memory_growth_router_exposes_soul_summary_and_proposal_controls(monkeypatch, tmp_path):
@@ -222,6 +234,49 @@ def test_memory_growth_router_exposes_soul_summary_and_proposal_controls(monkeyp
     assert events.status_code == 200
     assert rollback.status_code == 200
     assert "events" in events.json()
+
+
+def test_memory_growth_router_uses_canonical_clock_for_soul_governance_events(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    fixed_now = "2026-04-08T01:02:03Z"
+    monkeypatch.setattr(memory_growth, "utcnow_z", lambda: fixed_now)
+    repo = MemoryOSRepository(tmp_path / "memory-os" / "index.sqlite3")
+    proposal = create_soul_proposal(
+        repo,
+        title="减少鼓励式措辞",
+        summary="长期证据显示用户偏好低刺激支持。",
+    )
+    repo.save_memory_record(
+        {
+            "memory_id": "soul_overlay_active_main",
+            "domain": "soul",
+            "subtype": "adaptive_overlay",
+            "owner_type": "agent",
+            "scope": "agent",
+            "memory_type": "semantic",
+            "subject_id": "agent:main",
+            "status": "active",
+            "summary": "当前 overlay",
+            "confidence": 0.9,
+            "created_at": "2026-04-07T00:00:00Z",
+            "updated_at": "2026-04-07T00:00:00Z",
+            "artifact_uri": "nion://memory-os/artifacts/soul/overlays/active_overlay.md",
+            "provenance": {"source_type": "test"},
+        }
+    )
+
+    with TestClient(create_app()) as client:
+        reject = client.post(f"/api/memory/growth/soul/proposals/{proposal['memory_id']}/reject")
+        rollback = client.post("/api/memory/growth/soul/overlay/rollback")
+        events = client.get("/api/memory/growth/soul/events")
+
+    assert reject.status_code == 200
+    assert rollback.status_code == 200
+    assert events.status_code == 200
+
+    event_times = {event["event_type"]: event["created_at"] for event in events.json()["events"]}
+    assert event_times["proposal_rejected"] == fixed_now
+    assert event_times["overlay_rollback"] == fixed_now
 
 
 def test_memory_growth_router_exposes_rich_recent_soul_events(monkeypatch, tmp_path):

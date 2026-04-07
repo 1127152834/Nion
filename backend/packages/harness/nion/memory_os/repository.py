@@ -4,6 +4,7 @@ import json
 import sqlite3
 from pathlib import Path
 
+from .clock import utcnow_z
 from .models import AccessLogEntry, CandidateRecord, ConsolidationEvent, SoulEventRecord
 
 
@@ -304,10 +305,10 @@ class MemoryOSRepository:
             conn.execute(
                 """
                 UPDATE memory_records
-                SET status = ?, updated_at = datetime('now')
+                SET status = ?, updated_at = ?
                 WHERE memory_id = ?
                 """,
-                (status, memory_id),
+                (status, utcnow_z(), memory_id),
             )
 
     def save_candidate_record(self, candidate: CandidateRecord) -> CandidateRecord:
