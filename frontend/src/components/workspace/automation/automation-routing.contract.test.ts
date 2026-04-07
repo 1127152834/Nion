@@ -35,10 +35,12 @@ void test("home page routes to reminder and task modules instead of single-conso
   assert.match(homeSource, /pathOfAutomationReminders/);
   assert.match(homeSource, /pathOfAutomationTasks/);
   assert.match(homeSource, /flex items-center justify-between border-b px-6 py-4/);
-  assert.match(homeSource, /Button asChild variant="outline"/);
+  assert.match(homeSource, /Button asChild/);
+  assert.match(homeSource, /新建定时任务/);
   assert.match(homeSource, /Modules/);
-  assert.match(homeSource, /space-y-3/);
-  assert.match(homeSource, /rounded-3xl border-border\/70/);
+  assert.match(homeSource, /space-y-4/);
+  assert.match(homeSource, /rounded-\[2rem\]/);
+  assert.match(homeSource, /text-\[1\.7rem\]/);
 });
 
 void test("list pages use modal creation flows and detail navigation", async () => {
