@@ -144,17 +144,17 @@ async def accept_growth_item(memory_id: str):
 
 @router.post("/soul/proposals/{memory_id}/accept")
 async def accept_soul_item(memory_id: str):
-    return accept_soul_proposal(_repo(), memory_id, created_at=utcnow_z())
+    return accept_soul_proposal(_repo(), memory_id)
 
 
 @router.post("/soul/proposals/{memory_id}/reject")
 async def reject_soul_item(memory_id: str):
-    return reject_soul_proposal(_repo(), memory_id, created_at=utcnow_z())
+    return reject_soul_proposal(_repo(), memory_id)
 
 
 @router.post("/soul/overlay/rollback")
 async def rollback_soul():
-    return rollback_soul_overlay(_repo(), created_at=utcnow_z())
+    return rollback_soul_overlay(_repo())
 
 
 @router.post("/user-model/{memory_id}/freeze")

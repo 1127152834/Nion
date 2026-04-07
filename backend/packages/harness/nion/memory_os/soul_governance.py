@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from .clock import utcnow_z
 from .repository import MemoryOSRepository
 from .soul_artifacts import MemoryOSSoulArtifactStore
 from .soul_events import record_soul_event
@@ -9,8 +10,9 @@ def accept_soul_proposal(
     repository: MemoryOSRepository,
     memory_id: str,
     *,
-    created_at: str,
+    created_at: str | None = None,
 ) -> dict[str, object]:
+    created_at = created_at or utcnow_z()
     proposal = _find_record(repository, domain="soul", memory_id=memory_id)
     repository.update_memory_status(memory_id, "archived")
     overlay = {
@@ -52,8 +54,9 @@ def reject_soul_proposal(
     repository: MemoryOSRepository,
     memory_id: str,
     *,
-    created_at: str = "2026-04-07T00:00:00Z",
+    created_at: str | None = None,
 ) -> dict[str, object]:
+    created_at = created_at or utcnow_z()
     proposal = _find_record(repository, domain="soul", memory_id=memory_id)
     repository.update_memory_status(memory_id, "invalidated")
     record_soul_event(
@@ -70,8 +73,9 @@ def reject_soul_proposal(
 def rollback_soul_overlay(
     repository: MemoryOSRepository,
     *,
-    created_at: str = "2026-04-07T00:00:00Z",
+    created_at: str | None = None,
 ) -> dict[str, object]:
+    created_at = created_at or utcnow_z()
     overlay = _find_record(repository, domain="soul", memory_id="soul_overlay_active_main")
     repository.update_memory_status(str(overlay["memory_id"]), "archived")
     record_soul_event(

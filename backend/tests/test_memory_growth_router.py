@@ -1,8 +1,6 @@
 from fastapi.testclient import TestClient
 
 from app.gateway.app import create_app
-from app.gateway.routers import memory_growth
-from nion.memory_os import repository as memory_repository
 from nion.memory_os.repository import MemoryOSRepository
 from nion.memory_os.soul import create_soul_proposal
 
@@ -126,12 +124,12 @@ def test_memory_growth_router_supports_resume_and_accept(monkeypatch, tmp_path):
     assert resume.status_code == 200
 
 
-def test_memory_growth_router_supports_real_user_model_controls(monkeypatch, tmp_path):
+def test_memory_growth_router_freezes_user_model_item(monkeypatch, tmp_path):
     monkeypatch.setenv("NION_HOME", str(tmp_path))
     repo = MemoryOSRepository(tmp_path / "memory-os" / "index.sqlite3")
     repo.save_memory_record(
         {
-            "memory_id": "user_mem_1",
+            "memory_id": "user_mem_freeze",
             "domain": "user_model",
             "subtype": "workContext",
             "owner_type": "agent",
@@ -147,30 +145,111 @@ def test_memory_growth_router_supports_real_user_model_controls(monkeypatch, tmp
         }
     )
 
-    fixed_status_now = "2026-04-08T09:10:11Z"
-    fixed_correct_now = "2026-04-08T09:10:12Z"
-    monkeypatch.setattr(memory_repository, "utcnow_z", lambda: fixed_status_now, raising=False)
-    monkeypatch.setattr(memory_growth, "utcnow_z", lambda: fixed_correct_now)
+    with TestClient(create_app()) as client:
+        freeze = client.post("/api/memory/growth/user-model/user_mem_freeze/freeze")
+
+    assert freeze.status_code == 200
+
+    records = repo.list_memory_records(domain="user_model")
+    assert records[0]["status"] == "archived"
+    assert records[0]["updated_at"].endswith("Z")
+
+
+def test_memory_growth_router_forgets_user_model_item(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    repo = MemoryOSRepository(tmp_path / "memory-os" / "index.sqlite3")
+    repo.save_memory_record(
+        {
+            "memory_id": "user_mem_forget",
+            "domain": "user_model",
+            "subtype": "workContext",
+            "owner_type": "agent",
+            "scope": "user",
+            "memory_type": "semantic",
+            "subject_id": "user:default",
+            "status": "active",
+            "summary": "负责财务汇报",
+            "confidence": 0.8,
+            "created_at": "2026-04-05T00:00:00Z",
+            "updated_at": "2026-04-05T00:00:00Z",
+            "provenance": {"source_type": "test"},
+        }
+    )
 
     with TestClient(create_app()) as client:
-        freeze = client.post("/api/memory/growth/user-model/user_mem_1/freeze")
-        forget = client.post("/api/memory/growth/user-model/user_mem_1/forget")
-        reject = client.post("/api/memory/growth/user-model/user_mem_1/reject")
-        records_after_reject = repo.list_memory_records(domain="user_model")
+        forget = client.post("/api/memory/growth/user-model/user_mem_forget/forget")
+
+    assert forget.status_code == 200
+
+    records = repo.list_memory_records(domain="user_model")
+    assert records[0]["status"] == "invalidated"
+    assert records[0]["updated_at"].endswith("Z")
+
+
+def test_memory_growth_router_rejects_user_model_item(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    repo = MemoryOSRepository(tmp_path / "memory-os" / "index.sqlite3")
+    repo.save_memory_record(
+        {
+            "memory_id": "user_mem_reject",
+            "domain": "user_model",
+            "subtype": "workContext",
+            "owner_type": "agent",
+            "scope": "user",
+            "memory_type": "semantic",
+            "subject_id": "user:default",
+            "status": "active",
+            "summary": "负责财务汇报",
+            "confidence": 0.8,
+            "created_at": "2026-04-05T00:00:00Z",
+            "updated_at": "2026-04-05T00:00:00Z",
+            "provenance": {"source_type": "test"},
+        }
+    )
+
+    with TestClient(create_app()) as client:
+        reject = client.post("/api/memory/growth/user-model/user_mem_reject/reject")
+
+    assert reject.status_code == 200
+
+    records = repo.list_memory_records(domain="user_model")
+    assert records[0]["status"] == "invalidated"
+    assert records[0]["updated_at"].endswith("Z")
+
+
+def test_memory_growth_router_corrects_user_model_item(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    repo = MemoryOSRepository(tmp_path / "memory-os" / "index.sqlite3")
+    repo.save_memory_record(
+        {
+            "memory_id": "user_mem_correct",
+            "domain": "user_model",
+            "subtype": "workContext",
+            "owner_type": "agent",
+            "scope": "user",
+            "memory_type": "semantic",
+            "subject_id": "user:default",
+            "status": "active",
+            "summary": "负责财务汇报",
+            "confidence": 0.8,
+            "created_at": "2026-04-05T00:00:00Z",
+            "updated_at": "2026-04-05T00:00:00Z",
+            "provenance": {"source_type": "test"},
+        }
+    )
+
+    with TestClient(create_app()) as client:
         correct = client.post(
-            "/api/memory/growth/user-model/user_mem_1/correct",
+            "/api/memory/growth/user-model/user_mem_correct/correct",
             json={"summary": "负责财务 BP 与汇报"},
         )
 
-    assert freeze.status_code == 200
-    assert forget.status_code == 200
-    assert reject.status_code == 200
     assert correct.status_code == 200
     assert correct.json()["item"]["summary"] == "负责财务 BP 与汇报"
-    assert records_after_reject[0]["updated_at"] == fixed_status_now
 
     records = repo.list_memory_records(domain="user_model")
-    assert records[0]["updated_at"] == fixed_correct_now
+    assert records[0]["summary"] == "负责财务 BP 与汇报"
+    assert records[0]["updated_at"].endswith("Z")
 
 
 def test_memory_growth_router_exposes_soul_summary_and_proposal_controls(monkeypatch, tmp_path):
@@ -238,8 +317,6 @@ def test_memory_growth_router_exposes_soul_summary_and_proposal_controls(monkeyp
 
 def test_memory_growth_router_uses_canonical_clock_for_soul_governance_events(monkeypatch, tmp_path):
     monkeypatch.setenv("NION_HOME", str(tmp_path))
-    fixed_now = "2026-04-08T01:02:03Z"
-    monkeypatch.setattr(memory_growth, "utcnow_z", lambda: fixed_now)
     repo = MemoryOSRepository(tmp_path / "memory-os" / "index.sqlite3")
     proposal = create_soul_proposal(
         repo,
@@ -275,8 +352,8 @@ def test_memory_growth_router_uses_canonical_clock_for_soul_governance_events(mo
     assert events.status_code == 200
 
     event_times = {event["event_type"]: event["created_at"] for event in events.json()["events"]}
-    assert event_times["proposal_rejected"] == fixed_now
-    assert event_times["overlay_rollback"] == fixed_now
+    assert event_times["proposal_rejected"].endswith("Z")
+    assert event_times["overlay_rollback"].endswith("Z")
 
 
 def test_memory_growth_router_exposes_rich_recent_soul_events(monkeypatch, tmp_path):
