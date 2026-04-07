@@ -1,6 +1,8 @@
 from . import (
     artifacts,
     automation,
+    capability_actions,
+    capabilities,
     cli,
     config,
     desktop_system,
@@ -21,6 +23,8 @@ from . import (
 __all__ = [
     "artifacts",
     "automation",
+    "capability_actions",
+    "capabilities",
     "cli",
     "config",
     "desktop_system",

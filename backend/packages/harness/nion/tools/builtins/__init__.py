@@ -11,6 +11,9 @@ from .control_plane_tools import (
     approve_channel_pair_request_tool,
     diagnose_incident_tool,
     dismiss_incident_tool,
+    execute_capability_action_tool,
+    get_capability_actions_tool,
+    get_capability_catalog_tool,
     get_channel_diagnostics_tool,
     get_channels_status_tool,
     get_config_summary_tool,
@@ -35,11 +38,13 @@ from .control_plane_tools import (
 )
 from .present_file_tool import present_file_tool
 from .setup_agent_tool import setup_agent
+from .skill_tool import use_skill_tool
 from .task_tool import task_tool
 from .view_image_tool import view_image_tool
 
 __all__ = [
     "setup_agent",
+    "use_skill_tool",
     "present_file_tool",
     "ask_clarification_tool",
     "cli_tools_list_tool",
@@ -55,6 +60,9 @@ __all__ = [
     "list_incidents_tool",
     "get_incident_tool",
     "dismiss_incident_tool",
+    "get_capability_catalog_tool",
+    "get_capability_actions_tool",
+    "execute_capability_action_tool",
     "get_channels_status_tool",
     "get_channel_diagnostics_tool",
     "list_channel_pair_requests_tool",

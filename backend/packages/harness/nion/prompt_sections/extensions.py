@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from nion.config.extensions_config import ExtensionsConfig
 from nion.prompt_runtime import PromptBuildContext, PromptSection
 from nion.skills import load_skills
 
@@ -43,12 +44,13 @@ def get_skills_prompt_section(available_skills: set[str] | None = None) -> str:
     return f"""<skill_system>
 You have access to skills that provide optimized workflows for specific tasks. Each skill contains best practices, frameworks, and references to additional resources.
 
-**Progressive Loading Pattern:**
-1. When a user query matches a skill's use case, immediately call `read_file` on the skill's main file using the path attribute provided in the skill tag below
-2. Read and understand the skill's workflow and instructions
-3. The skill file contains references to external resources under the same folder
-4. Load referenced resources only when needed during execution
+**Skill Execution Pattern:**
+1. When a user query matches a skill's use case, immediately call `use_skill` with the matching skill name
+2. You must not just mention the skill or skip directly to other tools
+3. After `use_skill`, treat the returned skill content as the active workflow package for this turn
+4. Load referenced resources from the same folder only when needed during execution
 5. Follow the skill's instructions precisely
+6. If the skill returns `allowed_tools`, treat them as the preferred tool lane for that workflow
 
 **Skills are located at:** {container_base_path}
 
@@ -74,6 +76,65 @@ def get_deferred_tools_prompt_section() -> str:
 
     names = "\n".join(entry.name for entry in registry.entries)
     return f"<available-deferred-tools>\n{names}\n</available-deferred-tools>"
+
+
+def get_mcp_instruction_entries() -> list[dict[str, str]]:
+    try:
+        extensions_config = ExtensionsConfig.from_file()
+    except Exception:
+        return []
+
+    entries: list[dict[str, str]] = []
+    for server_name, server in extensions_config.get_enabled_mcp_servers().items():
+        description = server.description.strip() if isinstance(server.description, str) else ""
+        if not description:
+            continue
+        entries.append({"name": server_name, "description": description})
+    return entries
+
+
+def get_mcp_instructions_prompt_section() -> str:
+    entries = get_mcp_instruction_entries()
+    if not entries:
+        return ""
+
+    lines = ["<mcp-instructions>"]
+    lines.append("Enabled MCP servers can influence how you should behave, not just which tools exist.")
+    for entry in entries:
+        lines.append(f"- {entry['name']}: {entry['description']}")
+    lines.append("Prefer MCP tools when the task matches the server's described capability and the user selected or implied that workflow.")
+    lines.append("</mcp-instructions>")
+    return "\n".join(lines)
+
+
+def get_system_capability_catalog_section(*, cli_tools_enabled: bool) -> str:
+    capabilities: list[str] = []
+    if cli_tools_enabled:
+        capabilities.append("- CLI tool management: install, register, remove, inspect, and update local CLI tools.")
+
+    mcp_entries = get_mcp_instruction_entries()
+    if mcp_entries:
+        capabilities.append("- MCP servers: behavior-aware tool surfaces from configured external runtimes.")
+
+    if not capabilities:
+        return ""
+
+    lines = ["<system-capability-catalog>"]
+    lines.append("Current system capability catalog:")
+    lines.extend(capabilities)
+    lines.append("Discovery workflow: if the user asks what capabilities, resources, notebooks, memory, skills, agents, or MCP surfaces exist, call `get_capability_catalog` first.")
+    lines.append("If the user then needs to know which bridge or activation actions are available between those capabilities, call `get_capability_actions` next.")
+    lines.append("Compressed capability guidance:")
+    lines.append("- Notebook is not memory.")
+    lines.append("- Skill is a workflow package.")
+    lines.append("- MCP is not the default first choice.")
+    lines.append("- Memory is for stable long-term facts, not scratch notes.")
+    lines.append("Capability autopilot:")
+    lines.append("- When the user states a goal, first auto-discover the relevant system capability instead of asking them to choose internal modules.")
+    lines.append("- Prefer automatic use of notebook, memory, skills, MCP, and CLI lanes when they clearly help accomplish the goal.")
+    lines.append("- Only ask for clarification when required information is genuinely missing.")
+    lines.append("</system-capability-catalog>")
+    return "\n".join(lines)
 
 
 def build_acp_section() -> str:
@@ -123,18 +184,17 @@ def build_user_selected_extensions_section(
         return ""
 
     lines = ["<user-selected-extensions>"]
-    lines.append(
-        "The user explicitly selected these extensions for this turn. Treat them as user intent, not incidental mentions."
-    )
+    lines.append("The user explicitly required the following capabilities for this turn. Treat them as binding user intent, not incidental mentions.")
     if normalized_skills:
         lines.append(f"Requested skills: {', '.join(normalized_skills)}.")
+        lines.append("If the task matches one of these requested skills, you must call `use_skill` before doing the work.")
     if normalized_mcp_tools:
         lines.append(f"Selected MCP tools: {', '.join(normalized_mcp_tools)}.")
+        lines.append("When the task touches these workflows, prefer those exact MCP tools before broader fallback options.")
     if normalized_cli_tools:
         lines.append(f"Selected CLI tools: {', '.join(normalized_cli_tools)}.")
-    lines.append(
-        "When relevant, prefer using these selected skills/tools first and explain your work as if responding to that explicit user choice."
-    )
+        lines.append("When the task touches these workflows, prefer those exact CLI tools before other shells or generic alternatives.")
+    lines.append("Explain your actions as responses to this explicit user choice, not as incidental discovery.")
     lines.append("</user-selected-extensions>")
 
     return "\n".join(lines)
@@ -179,6 +239,19 @@ class ExtensionPromptSectionProvider:
                 )
             )
 
+        mcp_instructions = get_mcp_instructions_prompt_section()
+        if mcp_instructions:
+            sections.append(
+                PromptSection(
+                    key="dynamic.mcp_instructions",
+                    title=None,
+                    content=mcp_instructions,
+                    scope="session_dynamic",
+                    layer="extension",
+                    order=50,
+                )
+            )
+
         if self.cli_tools_enabled:
             sections.append(
                 PromptSection(
@@ -188,6 +261,21 @@ class ExtensionPromptSectionProvider:
                     scope="session_dynamic",
                     layer="extension",
                     order=60,
+                )
+            )
+
+        capability_catalog = get_system_capability_catalog_section(
+            cli_tools_enabled=self.cli_tools_enabled,
+        )
+        if capability_catalog:
+            sections.append(
+                PromptSection(
+                    key="dynamic.system_capability_catalog",
+                    title=None,
+                    content=capability_catalog,
+                    scope="session_dynamic",
+                    layer="extension",
+                    order=55,
                 )
             )
 
