@@ -26,6 +26,7 @@ class NotebookAsset(BaseModel):
     created_at: str
     updated_at: str
     file_size: int | None = None
+    provenance: dict[str, str] | None = None
     tags: list[str] = Field(default_factory=list)
 
 
