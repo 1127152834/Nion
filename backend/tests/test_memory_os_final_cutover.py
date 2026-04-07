@@ -40,6 +40,11 @@ def test_finalize_legacy_cutover_seeds_default_core_soul_when_missing(
     assert result["soul_records_imported"] == 1
     assert "soul_runtime" in runtime
     assert "长期陪伴" in runtime
+    record = next(
+        row for row in repo.list_memory_records(domain="soul")
+        if row["memory_id"] == "soul_core_main"
+    )
+    assert record["provenance"]["initialized"] is False
 
 
 def test_finalize_legacy_cutover_reactivates_core_soul_when_historically_invalidated(

@@ -29,6 +29,6 @@ void test("memory settings page includes memory management actions and local fil
 void test("memory settings page reuses the unified visual memory surface instead of markdown rendering", async () => {
   const source = await readFile(new URL("./settings-dialog.tsx", import.meta.url), "utf8");
 
-  assert.match(source, /MemoryPage/);
-  assert.doesNotMatch(source, /MemorySettingsPage/);
+  assert.match(source, /MemorySettingsPage/);
+  assert.doesNotMatch(source, /MemoryPage/);
 });

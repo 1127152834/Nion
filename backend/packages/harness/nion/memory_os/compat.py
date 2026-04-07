@@ -231,6 +231,17 @@ def finalize_legacy_cutover(repository: MemoryOSRepository | None = None) -> dic
                 ),
                 created_at=utcnow_z(),
             )
+            record = next(
+                row
+                for row in repo.list_memory_records(domain="soul")
+                if row["memory_id"] == "soul_core_main"
+            )
+            repaired = dict(record)
+            repaired["provenance"] = {
+                **dict(repaired.get("provenance", {})),
+                "initialized": False,
+            }
+            repo.save_memory_record(repaired)
         imported_soul = 1
     else:
         for row in repo.list_memory_records(domain="soul"):

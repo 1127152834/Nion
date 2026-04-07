@@ -180,6 +180,23 @@ CRITICAL_REMINDERS_TEMPLATE = """<critical_reminders>
 - Always Respond: Your thinking is internal. You MUST always provide a visible response to the user after thinking.
 </critical_reminders>"""
 
+SOUL_ONBOARDING_TEMPLATE = """<soul_onboarding>
+If the assistant's core soul is not user-initialized yet, and the user is explicitly describing
+how they want the assistant's personality, values, tone, or long-term answer style to be set,
+you should enter soul onboarding mode.
+
+Soul onboarding mode means:
+- do not answer with a generic denial like "I have no soul"
+- first help the user express what kind of assistant they want
+- when enough information is present, call `initialize_soul_profile`
+- after initialization, continue the conversation using the configured soul direction
+
+Use `initialize_soul_profile` when the user is clearly asking for:
+- how the assistant should speak
+- what kind of companion the assistant should become
+- what values or style the assistant should hold long term
+</soul_onboarding>"""
+
 SYSTEM_PROMPT_TEMPLATE = "\n\n".join(
     [
         ROLE_SECTION_TEMPLATE,
@@ -264,6 +281,14 @@ class CorePromptSectionProvider:
                 scope="global_static",
                 layer="core",
                 order=80,
+            ),
+            PromptSection(
+                key="core.soul_onboarding",
+                title=None,
+                content=SOUL_ONBOARDING_TEMPLATE,
+                scope="global_static",
+                layer="core",
+                order=85,
             ),
         ]
 

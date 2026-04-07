@@ -38,12 +38,14 @@ from .control_plane_tools import (
 )
 from .present_file_tool import present_file_tool
 from .setup_agent_tool import setup_agent
+from .soul_onboarding_tool import initialize_soul_profile
 from .skill_tool import use_skill_tool
 from .task_tool import task_tool
 from .view_image_tool import view_image_tool
 
 __all__ = [
     "setup_agent",
+    "initialize_soul_profile",
     "use_skill_tool",
     "present_file_tool",
     "ask_clarification_tool",

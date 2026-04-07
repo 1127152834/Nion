@@ -24,3 +24,14 @@ cd frontend && \
 pnpm typecheck && \
 pnpm test:contracts -- src/core/soul/test-runner.contract.test.ts src/core/soul/presentation.test.ts src/components/workspace/memory/soul-growth-timeline.contract.test.ts src/components/workspace/memory/memory-home-page.contract.test.ts src/components/workspace/memory/memory-user-page.contract.test.ts src/components/workspace/memory/memory-growth-panel.contract.test.ts
 ```
+
+## 行为验收
+
+- 行为级验收题库见：
+  - [behavioral-acceptance-questions.md](/Users/zhangtiancheng/Documents/项目/agent/nion/docs/test/10-memory-soul/behavioral-acceptance-questions.md)
+
+- 这一组问题专门用来判断：
+  - soul 是否真的进入运行时
+  - user model 是否真的能回忆
+  - 回答风格偏好是否真的影响后续回答
+  - soul 初始化引导模式是否真的工作

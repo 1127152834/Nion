@@ -85,3 +85,7 @@ flowchart LR
   - `/workspace/memory/growth` 必须展示状态语义，并按 domain/status 收敛动作集合
   - `/workspace/memory/growth` 的 `Recent Growth` 必须优先读取后端 `recent soul events`，覆盖 `identity narrative staged/promoted`、`relationship soul refreshed`、`soul journal written`、`soul automation created`
   - `/workspace/automation/*` 必须区分 `用户创建` 与 `Agent 创建`，详情页必须解释来源与编辑限制
+- 当前行为验收补充：
+  - Memory / Soul 模块除了接口和页面冒烟，还必须跑一轮“行为验收题库”
+  - 行为题库路径：
+    - `docs/test/10-memory-soul/behavioral-acceptance-questions.md`
