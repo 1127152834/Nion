@@ -170,6 +170,8 @@ def delete_memory_os_fact(fact_id: str) -> dict[str, Any]:
 def clear_memory_os_memory() -> dict[str, Any]:
     repo = get_memory_os_repository()
     for row in repo.list_memory_records(status="active"):
+        if row["domain"] == "soul":
+            continue
         repo.update_memory_status(str(row["memory_id"]), "invalidated", updated_at=utcnow_z())
     return build_legacy_memory_view(repo)
 
@@ -230,6 +232,14 @@ def finalize_legacy_cutover(repository: MemoryOSRepository | None = None) -> dic
                 created_at=utcnow_z(),
             )
         imported_soul = 1
+    else:
+        for row in repo.list_memory_records(domain="soul"):
+            if row["memory_id"] == "soul_core_main" and row["status"] != "active":
+                repaired = dict(row)
+                repaired["status"] = "active"
+                repaired["updated_at"] = utcnow_z()
+                repo.save_memory_record(repaired)
+                break
 
     return {
         "memory_records_imported": imported_memory,

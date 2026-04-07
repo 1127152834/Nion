@@ -38,7 +38,11 @@ async def get_memory_growth():
     return {
         "learning": repo.list_memory_records(domain="learning"),
         "procedures": repo.list_memory_records(domain="procedure"),
-        "soul_proposals": repo.list_memory_records(domain="soul"),
+        "soul_proposals": [
+            item
+            for item in repo.list_memory_records(domain="soul")
+            if item["subtype"] == "proposal"
+        ],
     }
 
 

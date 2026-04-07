@@ -7,6 +7,25 @@ from nion.memory_os.soul import create_soul_proposal
 
 def test_memory_growth_router_lists_learning_and_soul_items(monkeypatch, tmp_path):
     monkeypatch.setenv("NION_HOME", str(tmp_path))
+    repo = MemoryOSRepository(tmp_path / "memory-os" / "index.sqlite3")
+    repo.save_memory_record(
+        {
+            "memory_id": "soul_core_main",
+            "domain": "soul",
+            "subtype": "core",
+            "owner_type": "system",
+            "scope": "agent",
+            "memory_type": "semantic",
+            "subject_id": "agent:main",
+            "status": "active",
+            "summary": "长期陪伴、克制稳定、结论先行、以用户长期价值为先。",
+            "confidence": 1.0,
+            "created_at": "2026-04-08T00:00:00Z",
+            "updated_at": "2026-04-08T00:00:00Z",
+            "artifact_uri": "nion://memory-os/artifacts/soul/core/core_soul.md",
+            "provenance": {"source_type": "test"},
+        }
+    )
     with TestClient(create_app()) as client:
         response = client.get("/api/memory/growth")
 
@@ -15,6 +34,7 @@ def test_memory_growth_router_lists_learning_and_soul_items(monkeypatch, tmp_pat
     assert "learning" in body
     assert "procedures" in body
     assert "soul_proposals" in body
+    assert body["soul_proposals"] == []
 
 
 def test_memory_growth_router_lists_user_model_items(monkeypatch, tmp_path):

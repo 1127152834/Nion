@@ -40,3 +40,37 @@ def test_finalize_legacy_cutover_seeds_default_core_soul_when_missing(
     assert result["soul_records_imported"] == 1
     assert "soul_runtime" in runtime
     assert "长期陪伴" in runtime
+
+
+def test_finalize_legacy_cutover_reactivates_core_soul_when_historically_invalidated(
+    monkeypatch,
+    tmp_path,
+):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    repo = MemoryOSRepository(tmp_path / "memory-os" / "index.sqlite3")
+    repo.save_memory_record(
+        {
+            "memory_id": "soul_core_main",
+            "domain": "soul",
+            "subtype": "core",
+            "owner_type": "system",
+            "scope": "agent",
+            "memory_type": "semantic",
+            "subject_id": "agent:main",
+            "status": "invalidated",
+            "summary": "长期陪伴、克制稳定、结论先行、以用户长期价值为先。",
+            "confidence": 1.0,
+            "created_at": "2026-04-07T00:00:00Z",
+            "updated_at": "2026-04-07T00:00:00Z",
+            "artifact_uri": "nion://memory-os/artifacts/soul/core/core_soul.md",
+            "provenance": {"source_type": "test"},
+        }
+    )
+
+    finalize_legacy_cutover(repo)
+    record = next(
+        row for row in repo.list_memory_records(domain="soul")
+        if row["memory_id"] == "soul_core_main"
+    )
+
+    assert record["status"] == "active"
