@@ -26,7 +26,7 @@ const modules = [
 
 export function AutomationHomePage() {
   return (
-    <section className="flex min-h-[calc(100vh-12rem)] flex-col justify-center space-y-8">
+    <section className="flex min-h-[calc(100vh-12rem)] flex-col justify-center gap-6">
       <header className="space-y-2">
         <h1 className="text-2xl font-semibold tracking-tight">自动化</h1>
         <p className="text-muted-foreground max-w-2xl text-sm">
@@ -39,19 +39,19 @@ export function AutomationHomePage() {
           const Icon = module.icon;
           return (
             <Link key={module.href} href={module.href}>
-              <Card className="transition-colors hover:border-primary/40 hover:bg-primary/5">
-                <CardHeader className="flex min-h-56 flex-col items-center justify-center space-y-6 text-center">
-                  <div className="space-y-4">
+              <Card className="group relative rounded-3xl transition-colors hover:border-primary/40 hover:bg-primary/5">
+                <CardHeader className="flex min-h-52 flex-col items-center justify-center px-10 text-center">
+                  <div className="space-y-3">
                     <div className="bg-primary/10 text-primary mx-auto inline-flex size-12 items-center justify-center rounded-2xl">
                       <Icon className="size-5" />
                     </div>
-                    <CardTitle>{module.title}</CardTitle>
-                    <CardContent className="text-muted-foreground p-0 text-sm">
+                    <CardTitle className="text-2xl">{module.title}</CardTitle>
+                    <CardContent className="text-muted-foreground p-0 text-base">
                       {module.description}
                     </CardContent>
                   </div>
-                  <ChevronRightIcon className="text-muted-foreground size-5" />
                 </CardHeader>
+                <ChevronRightIcon className="text-muted-foreground absolute top-1/2 right-8 size-5 -translate-y-1/2 transition-transform group-hover:translate-x-1 group-hover:-translate-y-1/2" />
               </Card>
             </Link>
           );

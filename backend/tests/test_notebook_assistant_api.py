@@ -304,3 +304,50 @@ def test_notebook_assistant_runtime_reads_note_body_without_persisting_it(
         session_id="session-1",
     )[0]
     assert "note_body" not in stored.values.model_dump()
+
+
+def test_notebook_assistant_runtime_passes_notebook_chat_agent_name(
+    monkeypatch,
+    tmp_path,
+):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+
+    service = NotebookService(base_dir=tmp_path)
+    note = service.create_note(directory="", title="搜索阿斯顿", body="我叫张天成，哈哈哈你是谁啊阿斯顿")
+
+    captured: dict[str, object] = {}
+
+    def fake_stream(
+        self,
+        message,
+        *,
+        thread_id=None,
+        human_message_payload=None,
+        **kwargs,
+    ):
+        del self, message, thread_id, human_message_payload
+        captured["kwargs"] = kwargs
+        yield from ()
+
+    monkeypatch.setattr("nion.client.NionClient.stream", fake_stream)
+
+    thread_service = ThreadService()
+    list(
+        thread_service.stream(
+            "thread-1",
+            type("Req", (), {
+                "messages": [{"type": "human", "content": "文章中写了啥"}],
+                "context": {
+                    "agent_name": "notebook-chat",
+                    "notebook_note_id": note.note_id,
+                    "notebook_note_title": note.title,
+                    "notebook_session_id": "session-1",
+                },
+                "config": {},
+                "assistant_id": None,
+            })(),
+        )
+    )
+
+    assert captured["kwargs"]["agent_name"] == "notebook-chat"

@@ -1,5 +1,4 @@
 import {
-  AtSignIcon,
   FileIcon,
   FolderIcon,
   Loader2Icon,

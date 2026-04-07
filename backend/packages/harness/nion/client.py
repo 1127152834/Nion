@@ -245,8 +245,10 @@ class NionClient:
 
     def _get_runnable_config(self, thread_id: str, **overrides) -> RunnableConfig:
         """Build a RunnableConfig for agent invocation."""
+        effective_agent_name = overrides.get("agent_name", self._agent_name)
         configurable = {
             "thread_id": thread_id,
+            "agent_name": effective_agent_name,
             "model_name": overrides.get("model_name", self._model_name),
             "thinking_enabled": overrides.get("thinking_enabled", self._thinking_enabled),
             "is_plan_mode": overrides.get("plan_mode", self._plan_mode),
@@ -267,6 +269,7 @@ class NionClient:
         """Create (or recreate) the agent when config-dependent params change."""
         cfg = config.get("configurable", {})
         key = (
+            cfg.get("agent_name"),
             cfg.get("model_name"),
             cfg.get("thinking_enabled"),
             cfg.get("is_plan_mode"),
@@ -282,6 +285,7 @@ class NionClient:
         if self._agent is not None and self._agent_config_key == key:
             return
 
+        effective_agent_name = cfg.get("agent_name") or self._agent_name
         thinking_enabled = cfg.get("thinking_enabled", True)
         model_name = cfg.get("model_name")
         subagent_enabled = cfg.get("subagent_enabled", False)
@@ -301,7 +305,7 @@ class NionClient:
                 cli_tools_enabled=cli_tools_enabled,
                 surface=surface,
             ),
-            "middleware": _build_middlewares(config, model_name=model_name, agent_name=self._agent_name),
+            "middleware": _build_middlewares(config, model_name=model_name, agent_name=effective_agent_name),
             "system_prompt": apply_prompt_template(
                 subagent_enabled=subagent_enabled,
                 cli_tools_enabled=cli_tools_enabled,
@@ -310,7 +314,7 @@ class NionClient:
                 selected_cli_tools=selected_cli_tools,
                 notebook_context=notebook_context,
                 max_concurrent_subagents=max_concurrent_subagents,
-                agent_name=self._agent_name,
+                agent_name=effective_agent_name,
             ),
             "state_schema": ThreadState,
         }
@@ -327,9 +331,9 @@ class NionClient:
         _record_agent_event(
             event_type="agent_created",
             thread_id=str(cfg.get("thread_id") or "unknown"),
-            message=f"Created embedded agent '{self._agent_name or 'lead_agent'}'",
+            message=f"Created embedded agent '{effective_agent_name or 'lead_agent'}'",
             details={
-                "agent_name": self._agent_name or "lead_agent",
+                "agent_name": effective_agent_name or "lead_agent",
                 "model_name": model_name,
                 "thinking_enabled": thinking_enabled,
                 "subagent_enabled": subagent_enabled,
@@ -340,7 +344,7 @@ class NionClient:
                 "surface": surface,
             },
         )
-        logger.info("Agent created: agent_name=%s, model=%s, thinking=%s", self._agent_name, model_name, thinking_enabled)
+        logger.info("Agent created: agent_name=%s, model=%s, thinking=%s", effective_agent_name, model_name, thinking_enabled)
 
     @staticmethod
     def _get_tools(
@@ -481,7 +485,7 @@ class NionClient:
             thread_id=thread_id,
             message=f"Selected model for embedded agent thread '{thread_id}'",
             details={
-                "agent_name": self._agent_name or "lead_agent",
+                "agent_name": configurable.get("agent_name") or self._agent_name or "lead_agent",
                 "model_name": configurable.get("model_name"),
                 "thinking_enabled": configurable.get("thinking_enabled"),
                 "subagent_enabled": configurable.get("subagent_enabled"),
@@ -494,7 +498,7 @@ class NionClient:
             thread_id=thread_id,
             message=f"Started embedded agent run for thread '{thread_id}'",
             details={
-                "agent_name": self._agent_name or "lead_agent",
+                "agent_name": configurable.get("agent_name") or self._agent_name or "lead_agent",
                 "model_name": config.get("configurable", {}).get("model_name"),
             },
         )
@@ -512,8 +516,9 @@ class NionClient:
             "messages": [HumanMessage(**human_message_kwargs)]
         }
         context = {"thread_id": thread_id}
-        if self._agent_name:
-            context["agent_name"] = self._agent_name
+        effective_agent_name = configurable.get("agent_name") or self._agent_name
+        if effective_agent_name:
+            context["agent_name"] = effective_agent_name
         if "execution_mode" in kwargs:
             context["execution_mode"] = kwargs.get("execution_mode")
         if "host_workdir" in kwargs:

@@ -222,6 +222,24 @@ def _custom_events(events):
 
 
 class TestStream:
+    def test_stream_uses_request_agent_name_for_embedded_agent_identity(self, client):
+        ai = AIMessage(content="Hello!", id="ai-1")
+        chunks = [
+            {"messages": [HumanMessage(content="hi", id="h-1")]},
+            {"messages": [HumanMessage(content="hi", id="h-1"), ai]},
+        ]
+        config = client._get_runnable_config(
+            "t1",
+            agent_name="notebook-chat",
+            notebook_context={"note_id": "note-1", "note_body": "hello"},
+        )
+
+        assert config["configurable"]["agent_name"] == "notebook-chat"
+        assert config["configurable"]["notebook_context"] == {
+            "note_id": "note-1",
+            "note_body": "hello",
+        }
+
     def test_basic_message(self, client):
         """stream() emits messages-tuple + values + end for a simple AI reply."""
         ai = AIMessage(content="Hello!", id="ai-1")

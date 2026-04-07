@@ -34,6 +34,10 @@ void test("home page routes to reminder and task modules instead of single-conso
   assert.doesNotMatch(pageSource, /AutomationConsole/);
   assert.match(homeSource, /pathOfAutomationReminders/);
   assert.match(homeSource, /pathOfAutomationTasks/);
+  assert.match(homeSource, /flex min-h-\[calc\(100vh-12rem\)\] flex-col justify-center/);
+  assert.match(homeSource, /grid max-w-3xl gap-4/);
+  assert.match(homeSource, /items-center justify-center px-10 text-center/);
+  assert.match(homeSource, /group relative rounded-3xl/);
 });
 
 void test("list pages use modal creation flows and detail navigation", async () => {
