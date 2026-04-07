@@ -26,15 +26,7 @@ from nion.client import NionClient
 @pytest.fixture
 def mock_app_config():
     """Provide a minimal AppConfig mock."""
-    model = MagicMock()
-    model.name = "test-model"
-    model.model = "test-model"
-    model.supports_thinking = False
-    model.supports_reasoning_effort = False
-    model.model_dump.return_value = {"name": "test-model", "use": "langchain_openai:ChatOpenAI"}
-
     config = MagicMock()
-    config.models = [model]
     return config
 
 
@@ -96,7 +88,19 @@ class TestClientInit:
 
 class TestConfigQueries:
     def test_list_models(self, client):
-        result = client.list_models()
+        runtime_model = MagicMock()
+        runtime_model.runtime_name = "test-model"
+        runtime_model.model.model_id = "gpt-test"
+        runtime_model.model.display_name = "Test Model"
+        runtime_model.runtime_model_config.description = "A test model"
+        runtime_model.runtime_model_config.supports_thinking = False
+        runtime_model.runtime_model_config.supports_reasoning_effort = False
+        runtime_model.runtime_model_config.supports_vision = False
+
+        with patch("nion.client.get_model_registry_service") as mock_service:
+            mock_service.return_value.list_runtime_models.return_value = [runtime_model]
+            result = client.list_models()
+
         assert "models" in result
         assert len(result["models"]) == 1
         assert result["models"][0]["name"] == "test-model"
@@ -107,6 +111,7 @@ class TestConfigQueries:
 
     def test_list_skills(self, client):
         skill = MagicMock()
+        skill.skill_path = "web-search"
         skill.name = "web-search"
         skill.description = "Search the web"
         skill.license = "MIT"
@@ -120,6 +125,7 @@ class TestConfigQueries:
         assert "skills" in result
         assert len(result["skills"]) == 1
         assert result["skills"][0] == {
+            "id": "public:web-search",
             "name": "web-search",
             "description": "Search the web",
             "license": "MIT",
@@ -568,9 +574,20 @@ class TestEnsureAgent:
         """_ensure_agent does not recreate if config key unchanged."""
         mock_agent = MagicMock()
         client._agent = mock_agent
-        client._agent_config_key = (None, True, False, False, False, "workspace")
-
         config = client._get_runnable_config("t1")
+        client._agent_config_key = (
+            None,
+            None,
+            True,
+            False,
+            False,
+            False,
+            (),
+            (),
+            (),
+            "workspace",
+            "{}",
+        )
         client._ensure_agent(config)
 
         # Should still be the same mock — no recreation
@@ -1085,7 +1102,7 @@ class TestScenarioMultiTurnConversation:
 
         # Verify expected event types
         types = set(e.type for e in events)
-        assert types == {"messages-tuple", "values", "end"}
+        assert types == {"messages-tuple", "values", "end", "tool-activity"}
         assert events[-1].type == "end"
 
         # Verify tool_call data
@@ -1725,37 +1742,42 @@ class TestGatewayConformance:
     """
 
     def test_list_models(self, mock_app_config):
-        model = MagicMock()
-        model.name = "test-model"
-        model.model = "gpt-test"
-        model.display_name = "Test Model"
-        model.description = "A test model"
-        model.supports_thinking = False
-        mock_app_config.models = [model]
-
         with patch("nion.client.get_app_config", return_value=mock_app_config):
             client = NionClient()
 
-        result = client.list_models()
+        runtime_model = MagicMock()
+        runtime_model.runtime_name = "test-model"
+        runtime_model.model.model_id = "gpt-test"
+        runtime_model.model.display_name = "Test Model"
+        runtime_model.runtime_model_config.description = "A test model"
+        runtime_model.runtime_model_config.supports_thinking = False
+        runtime_model.runtime_model_config.supports_reasoning_effort = False
+        runtime_model.runtime_model_config.supports_vision = False
+        with patch("nion.client.get_model_registry_service") as mock_service:
+            mock_service.return_value.list_runtime_models.return_value = [runtime_model]
+            result = client.list_models()
+
         parsed = ModelsListResponse(**result)
         assert len(parsed.models) == 1
         assert parsed.models[0].name == "test-model"
         assert parsed.models[0].model == "gpt-test"
 
     def test_get_model(self, mock_app_config):
-        model = MagicMock()
-        model.name = "test-model"
-        model.model = "gpt-test"
-        model.display_name = "Test Model"
-        model.description = "A test model"
-        model.supports_thinking = True
-        mock_app_config.models = [model]
-        mock_app_config.get_model_config.return_value = model
-
         with patch("nion.client.get_app_config", return_value=mock_app_config):
             client = NionClient()
 
-        result = client.get_model("test-model")
+        runtime_model = MagicMock()
+        runtime_model.runtime_name = "test-model"
+        runtime_model.model.model_id = "gpt-test"
+        runtime_model.model.display_name = "Test Model"
+        runtime_model.runtime_model_config.description = "A test model"
+        runtime_model.runtime_model_config.supports_thinking = True
+        runtime_model.runtime_model_config.supports_reasoning_effort = False
+        runtime_model.runtime_model_config.supports_vision = False
+        with patch("nion.client.get_model_registry_service") as mock_service:
+            mock_service.return_value.resolve_model.return_value = runtime_model
+            result = client.get_model("test-model")
+
         assert result is not None
         parsed = ModelResponse(**result)
         assert parsed.name == "test-model"
@@ -1763,6 +1785,7 @@ class TestGatewayConformance:
 
     def test_list_skills(self, client):
         skill = MagicMock()
+        skill.skill_path = "web-search"
         skill.name = "web-search"
         skill.description = "Search the web"
         skill.license = "MIT"
@@ -1778,6 +1801,7 @@ class TestGatewayConformance:
 
     def test_get_skill(self, client):
         skill = MagicMock()
+        skill.skill_path = "web-search"
         skill.name = "web-search"
         skill.description = "Search the web"
         skill.license = "MIT"

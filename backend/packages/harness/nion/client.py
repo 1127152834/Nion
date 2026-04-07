@@ -802,6 +802,7 @@ class NionClient:
         return {
             "skills": [
                 {
+                    "id": f"{s.category}:{s.skill_path.replace('/', '::')}",
                     "name": s.name,
                     "description": s.description,
                     "license": s.license,
@@ -986,6 +987,7 @@ class NionClient:
         if skill is None:
             return None
         return {
+            "id": f"{skill.category}:{skill.skill_path.replace('/', '::')}",
             "name": skill.name,
             "description": skill.description,
             "license": skill.license,
