@@ -19,10 +19,14 @@ def test_growth_orchestrator_projects_learning_procedure_and_automation(tmp_path
     learning_records = repo.list_memory_records(domain="learning")
     procedure_records = repo.list_memory_records(domain="procedure")
     soul_events = repo.list_soul_events()
+    event_types = {event.event_type for event in soul_events}
+    automation_event = next(event for event in soul_events if event.event_type == "soul_automation_created")
 
     assert report["learning_created"] is True
     assert report["procedure_created"] is True
     assert report["automation_projected"] is True
     assert len(learning_records) == 1
     assert len(procedure_records) == 1
-    assert any(event.event_type == "soul_journal_written" for event in soul_events)
+    assert "soul_journal_written" in event_types
+    assert "soul_automation_created" in event_types
+    assert automation_event.metadata["provenance_learning_id"] == learning_records[0]["memory_id"]

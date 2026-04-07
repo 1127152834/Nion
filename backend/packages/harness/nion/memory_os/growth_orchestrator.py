@@ -31,7 +31,7 @@ def run_growth_orchestrator(
     procedure_created = False
     automation_projected = False
 
-    if _should_project_growth_outputs(repeated_needs, evidence_days):
+    if _should_project_growth_outputs(soul):
         summary = repeated_needs[0]
         learning = create_learning_topic(
             repository,
@@ -75,9 +75,5 @@ def run_growth_orchestrator(
     }
 
 
-def _should_project_growth_outputs(repeated_needs: list[str], evidence_days: int) -> bool:
-    if evidence_days < 2:
-        return False
-    if len(repeated_needs) < 3:
-        return False
-    return len(set(repeated_needs)) == 1
+def _should_project_growth_outputs(soul_result: dict[str, object]) -> bool:
+    return bool(soul_result.get("proposal_created"))
