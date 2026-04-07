@@ -50,6 +50,7 @@ type SelectionTag = {
   key: string;
   icon: typeof SparklesIcon;
   label: string;
+  type: "skill" | "mcp" | "cli" | "context";
 };
 
 export function MessageListItem({
@@ -198,21 +199,25 @@ function MessageContent_({
       key: `context:${context.value}`,
       icon: context.kind === "directory" ? FolderIcon : FileIcon,
       label: context.value,
+      type: "context" as const,
     }));
     const skillTags = shortcutSelections.skills.map((skill) => ({
       key: `skill:${skill}`,
       icon: SparklesIcon,
       label: skill,
+      type: "skill" as const,
     }));
     const mcpTags = shortcutSelections.mcpTools.map((tool) => ({
       key: `mcp:${tool}`,
       icon: WrenchIcon,
       label: tool,
+      type: "mcp" as const,
     }));
     const cliTags = shortcutSelections.cliTools.map((tool) => ({
       key: `cli:${tool}`,
       icon: SquareTerminalIcon,
       label: tool,
+      type: "cli" as const,
     }));
 
     return [...skillTags, ...mcpTags, ...cliTags, ...contextTags];
@@ -227,7 +232,14 @@ function MessageContent_({
             <Badge
               key={tag.key}
               variant="secondary"
-              className="max-w-44 gap-1 rounded-full px-2.5 py-1 text-[11px]"
+              data-selection-type={tag.type}
+              className={cn(
+                "max-w-44 gap-1 rounded-full px-2.5 py-1 text-[11px]",
+                tag.type === "skill" && "bg-[#eef6ff] text-[#1859b8]",
+                tag.type === "mcp" && "bg-[#eefbf3] text-[#197a43]",
+                tag.type === "cli" && "bg-[#fff5e8] text-[#a35a00]",
+                tag.type === "context" && "bg-[#f3f4f6] text-[#4b5563]",
+              )}
             >
               <Icon className="size-3 shrink-0" />
               <span className="truncate">{tag.label}</span>
