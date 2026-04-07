@@ -18,8 +18,7 @@ void test("memory user page focuses on user context content only", async () => {
   assert.match(source, /申请遗忘/);
   assert.match(source, /拒绝/);
   assert.match(source, /真实记录/);
-  assert.match(source, /legacy 映射/);
-  assert.match(source, /disabled=\{!card\.isActionable\}/);
+  assert.doesNotMatch(source, /legacy 映射/);
   assert.doesNotMatch(source, /MemoryConsolePanel/);
   assert.doesNotMatch(source, /markdown\.recentMonths/);
 });

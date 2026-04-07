@@ -127,6 +127,8 @@ class MemoryOSRepository:
             self._ensure_column(conn, "soul_events", "actor", "TEXT")
             self._ensure_column(conn, "soul_events", "source", "TEXT")
             self._ensure_column(conn, "soul_events", "metadata_json", "TEXT NOT NULL DEFAULT '{}'")
+            self._ensure_column(conn, "memory_records", "artifact_uri", "TEXT")
+            self._ensure_column(conn, "memory_records", "provenance_json", "TEXT NOT NULL DEFAULT '{}'")
 
     @staticmethod
     def _ensure_column(

@@ -746,7 +746,7 @@ export const zhCN: Translations = {
         customMode: "自定义存储",
         customClassLabel: "自定义存储类",
         customClassPlaceholder:
-          "nion.agents.memory.storage.FileMemoryStorage",
+          "memory_os",
       },
       recall: {
         title: "记忆检索",

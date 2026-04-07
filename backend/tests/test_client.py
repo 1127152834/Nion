@@ -26,15 +26,7 @@ from nion.client import NionClient
 @pytest.fixture
 def mock_app_config():
     """Provide a minimal AppConfig mock."""
-    model = MagicMock()
-    model.name = "test-model"
-    model.model = "test-model"
-    model.supports_thinking = False
-    model.supports_reasoning_effort = False
-    model.model_dump.return_value = {"name": "test-model", "use": "langchain_openai:ChatOpenAI"}
-
     config = MagicMock()
-    config.models = [model]
     return config
 
 
@@ -96,7 +88,19 @@ class TestClientInit:
 
 class TestConfigQueries:
     def test_list_models(self, client):
-        result = client.list_models()
+        runtime_model = MagicMock()
+        runtime_model.runtime_name = "test-model"
+        runtime_model.model.model_id = "gpt-test"
+        runtime_model.model.display_name = "Test Model"
+        runtime_model.runtime_model_config.description = "A test model"
+        runtime_model.runtime_model_config.supports_thinking = False
+        runtime_model.runtime_model_config.supports_reasoning_effort = False
+        runtime_model.runtime_model_config.supports_vision = False
+
+        with patch("nion.client.get_model_registry_service") as mock_service:
+            mock_service.return_value.list_runtime_models.return_value = [runtime_model]
+            result = client.list_models()
+
         assert "models" in result
         assert len(result["models"]) == 1
         assert result["models"][0]["name"] == "test-model"
@@ -107,6 +111,7 @@ class TestConfigQueries:
 
     def test_list_skills(self, client):
         skill = MagicMock()
+        skill.skill_path = "web-search"
         skill.name = "web-search"
         skill.description = "Search the web"
         skill.license = "MIT"
@@ -120,6 +125,7 @@ class TestConfigQueries:
         assert "skills" in result
         assert len(result["skills"]) == 1
         assert result["skills"][0] == {
+            "id": "public:web-search",
             "name": "web-search",
             "description": "Search the web",
             "license": "MIT",
@@ -134,14 +140,14 @@ class TestConfigQueries:
 
     def test_get_memory(self, client):
         memory = {"version": "1.0", "facts": []}
-        with patch("nion.agents.memory.updater.get_memory_data", return_value=memory) as mock_get:
+        with patch("nion.memory_os.compat.build_legacy_memory_view", return_value=memory) as mock_get:
             result = client.get_memory()
             mock_get.assert_called_once()
         assert result == memory
 
     def test_clear_memory(self, client):
         memory = {"version": "1.0", "facts": []}
-        with patch("nion.agents.memory.updater.clear_memory_data", return_value=memory) as mock_clear:
+        with patch("nion.memory_os.compat.clear_memory_os_memory", return_value=memory) as mock_clear:
             result = client.clear_memory()
             mock_clear.assert_called_once()
         assert result == memory
@@ -149,7 +155,7 @@ class TestConfigQueries:
     def test_delete_memory_fact(self, client):
         memory = {"version": "1.0", "facts": [{"id": "fact_keep"}]}
         with patch(
-            "nion.agents.memory.updater.delete_memory_fact",
+            "nion.memory_os.compat.delete_memory_os_fact",
             return_value=memory,
         ) as mock_delete:
             result = client.delete_memory_fact("fact_delete")
@@ -158,28 +164,28 @@ class TestConfigQueries:
 
     def test_export_memory(self, client):
         memory = {"version": "1.0", "facts": []}
-        with patch("nion.agents.memory.updater.get_memory_data", return_value=memory) as mock_get:
+        with patch("nion.memory_os.compat.build_legacy_memory_view", return_value=memory) as mock_get:
             result = client.export_memory()
             mock_get.assert_called_once()
         assert result == memory
 
     def test_import_memory(self, client):
         memory = {"version": "1.0", "facts": []}
-        with patch("nion.agents.memory.updater.import_memory_data", return_value=memory) as mock_import:
+        with patch("nion.memory_os.compat.import_legacy_memory_into_memory_os", return_value=memory) as mock_import:
             result = client.import_memory(memory)
             mock_import.assert_called_once_with(memory)
         assert result == memory
 
     def test_create_memory_fact(self, client):
         memory = {"version": "1.0", "facts": [{"id": "fact_new"}]}
-        with patch("nion.agents.memory.updater.create_memory_fact", return_value=memory) as mock_create:
+        with patch("nion.memory_os.compat.create_memory_os_fact", return_value=memory) as mock_create:
             result = client.create_memory_fact("hello", category="context", confidence=0.8)
             mock_create.assert_called_once_with(content="hello", category="context", confidence=0.8)
         assert result == memory
 
     def test_update_memory_fact(self, client):
         memory = {"version": "1.0", "facts": [{"id": "fact_edit"}]}
-        with patch("nion.agents.memory.updater.update_memory_fact", return_value=memory) as mock_update:
+        with patch("nion.memory_os.compat.update_memory_os_fact", return_value=memory) as mock_update:
             result = client.update_memory_fact("fact_edit", content="updated")
             mock_update.assert_called_once_with(
                 fact_id="fact_edit",
@@ -568,9 +574,20 @@ class TestEnsureAgent:
         """_ensure_agent does not recreate if config key unchanged."""
         mock_agent = MagicMock()
         client._agent = mock_agent
-        client._agent_config_key = (None, True, False, False, False, "workspace")
-
         config = client._get_runnable_config("t1")
+        client._agent_config_key = (
+            None,
+            None,
+            True,
+            False,
+            False,
+            False,
+            (),
+            (),
+            (),
+            "workspace",
+            "{}",
+        )
         client._ensure_agent(config)
 
         # Should still be the same mock — no recreation
@@ -780,7 +797,7 @@ class TestSkillsManagement:
 class TestMemoryManagement:
     def test_reload_memory(self, client):
         data = {"version": "1.0", "facts": []}
-        with patch("nion.agents.memory.updater.reload_memory_data", return_value=data):
+        with patch("nion.memory_os.compat.build_legacy_memory_view", return_value=data):
             result = client.reload_memory()
         assert result == data
 
@@ -794,7 +811,15 @@ class TestMemoryManagement:
         config.injection_enabled = True
         config.max_injection_tokens = 2000
 
-        with patch("nion.config.memory_config.get_memory_config", return_value=config):
+        with patch("nion.memory_os.compat.get_memory_os_config", return_value={
+            "enabled": True,
+            "storage_path": ".nion/memory-os/index.sqlite3",
+            "debounce_seconds": 30,
+            "max_facts": 100,
+            "fact_confidence_threshold": 0.7,
+            "injection_enabled": True,
+            "max_injection_tokens": 2000,
+        }):
             result = client.get_memory_config()
 
         assert result["enabled"] is True
@@ -1077,7 +1102,7 @@ class TestScenarioMultiTurnConversation:
 
         # Verify expected event types
         types = set(e.type for e in events)
-        assert types == {"messages-tuple", "values", "end"}
+        assert types == {"messages-tuple", "values", "end", "tool-activity"}
         assert events[-1].type == "end"
 
         # Verify tool_call data
@@ -1492,17 +1517,25 @@ class TestScenarioMemoryWorkflow:
         config.injection_enabled = True
         config.max_injection_tokens = 2000
 
-        with patch("nion.agents.memory.updater.get_memory_data", return_value=initial_data):
+        with patch("nion.memory_os.compat.build_legacy_memory_view", return_value=initial_data):
             mem = client.get_memory()
         assert len(mem["facts"]) == 1
 
-        with patch("nion.agents.memory.updater.reload_memory_data", return_value=updated_data):
+        with patch("nion.memory_os.compat.build_legacy_memory_view", return_value=updated_data):
             refreshed = client.reload_memory()
         assert len(refreshed["facts"]) == 2
 
         with (
-            patch("nion.config.memory_config.get_memory_config", return_value=config),
-            patch("nion.agents.memory.updater.get_memory_data", return_value=updated_data),
+            patch("nion.memory_os.compat.get_memory_os_config", return_value={
+                "enabled": True,
+                "storage_path": ".nion/memory-os/index.sqlite3",
+                "debounce_seconds": 30,
+                "max_facts": 100,
+                "fact_confidence_threshold": 0.7,
+                "injection_enabled": True,
+                "max_injection_tokens": 2000,
+            }),
+            patch("nion.memory_os.compat.build_legacy_memory_view", return_value=updated_data),
         ):
             status = client.get_memory_status()
         assert status["config"]["enabled"] is True
@@ -1709,37 +1742,42 @@ class TestGatewayConformance:
     """
 
     def test_list_models(self, mock_app_config):
-        model = MagicMock()
-        model.name = "test-model"
-        model.model = "gpt-test"
-        model.display_name = "Test Model"
-        model.description = "A test model"
-        model.supports_thinking = False
-        mock_app_config.models = [model]
-
         with patch("nion.client.get_app_config", return_value=mock_app_config):
             client = NionClient()
 
-        result = client.list_models()
+        runtime_model = MagicMock()
+        runtime_model.runtime_name = "test-model"
+        runtime_model.model.model_id = "gpt-test"
+        runtime_model.model.display_name = "Test Model"
+        runtime_model.runtime_model_config.description = "A test model"
+        runtime_model.runtime_model_config.supports_thinking = False
+        runtime_model.runtime_model_config.supports_reasoning_effort = False
+        runtime_model.runtime_model_config.supports_vision = False
+        with patch("nion.client.get_model_registry_service") as mock_service:
+            mock_service.return_value.list_runtime_models.return_value = [runtime_model]
+            result = client.list_models()
+
         parsed = ModelsListResponse(**result)
         assert len(parsed.models) == 1
         assert parsed.models[0].name == "test-model"
         assert parsed.models[0].model == "gpt-test"
 
     def test_get_model(self, mock_app_config):
-        model = MagicMock()
-        model.name = "test-model"
-        model.model = "gpt-test"
-        model.display_name = "Test Model"
-        model.description = "A test model"
-        model.supports_thinking = True
-        mock_app_config.models = [model]
-        mock_app_config.get_model_config.return_value = model
-
         with patch("nion.client.get_app_config", return_value=mock_app_config):
             client = NionClient()
 
-        result = client.get_model("test-model")
+        runtime_model = MagicMock()
+        runtime_model.runtime_name = "test-model"
+        runtime_model.model.model_id = "gpt-test"
+        runtime_model.model.display_name = "Test Model"
+        runtime_model.runtime_model_config.description = "A test model"
+        runtime_model.runtime_model_config.supports_thinking = True
+        runtime_model.runtime_model_config.supports_reasoning_effort = False
+        runtime_model.runtime_model_config.supports_vision = False
+        with patch("nion.client.get_model_registry_service") as mock_service:
+            mock_service.return_value.resolve_model.return_value = runtime_model
+            result = client.get_model("test-model")
+
         assert result is not None
         parsed = ModelResponse(**result)
         assert parsed.name == "test-model"
@@ -1747,6 +1785,7 @@ class TestGatewayConformance:
 
     def test_list_skills(self, client):
         skill = MagicMock()
+        skill.skill_path = "web-search"
         skill.name = "web-search"
         skill.description = "Search the web"
         skill.license = "MIT"
@@ -1762,6 +1801,7 @@ class TestGatewayConformance:
 
     def test_get_skill(self, client):
         skill = MagicMock()
+        skill.skill_path = "web-search"
         skill.name = "web-search"
         skill.description = "Search the web"
         skill.license = "MIT"
@@ -1867,7 +1907,15 @@ class TestGatewayConformance:
         mem_cfg.injection_enabled = True
         mem_cfg.max_injection_tokens = 2000
 
-        with patch("nion.config.memory_config.get_memory_config", return_value=mem_cfg):
+        with patch("nion.memory_os.compat.get_memory_os_config", return_value={
+            "enabled": True,
+            "storage_path": ".nion/memory-os/index.sqlite3",
+            "debounce_seconds": 30,
+            "max_facts": 100,
+            "fact_confidence_threshold": 0.7,
+            "injection_enabled": True,
+            "max_injection_tokens": 2000,
+        }):
             result = client.get_memory_config()
 
         parsed = MemoryConfigResponse(**result)
@@ -1901,11 +1949,22 @@ class TestGatewayConformance:
         }
 
         with (
-            patch("nion.config.memory_config.get_memory_config", return_value=mem_cfg),
-            patch("nion.agents.memory.updater.get_memory_data", return_value=memory_data),
+            patch("nion.memory_os.compat.get_memory_os_config", return_value={
+                "enabled": True,
+                "storage_path": ".nion/memory-os/index.sqlite3",
+                "debounce_seconds": 30,
+                "max_facts": 100,
+                "fact_confidence_threshold": 0.7,
+                "injection_enabled": True,
+                "max_injection_tokens": 2000,
+            }),
+            patch("nion.memory_os.compat.build_legacy_memory_view", return_value={
+                **memory_data,
+                "version": "2.0",
+            }),
         ):
             result = client.get_memory_status()
 
         parsed = MemoryStatusResponse(**result)
         assert parsed.config.enabled is True
-        assert parsed.data.version == "1.0"
+        assert parsed.data.version == "2.0"

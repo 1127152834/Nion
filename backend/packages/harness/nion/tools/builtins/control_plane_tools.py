@@ -15,7 +15,7 @@ from nion.config.extensions_config import (
 )
 from nion.capability_bridge_actions import build_capability_bridge_actions, execute_capability_bridge_action
 from nion.config.agents_config import list_agent_catalog
-from nion.config.memory_config import get_memory_config
+from nion.memory_os.compat import get_memory_os_config
 from nion.notebook.service import NotebookService
 from nion.skills import load_skills
 from nion.system_capability_catalog import build_system_capability_catalog
@@ -126,7 +126,6 @@ def get_capability_catalog_tool() -> str:
     """Get the current runtime system capability catalog."""
     skills = load_skills(enabled_only=True)
     agents = list_agent_catalog()
-    memory_config = get_memory_config()
     notebook = NotebookService()
     note_summaries = notebook.list_note_summaries()
     inbox_items = notebook.list_inbox_items()
@@ -136,11 +135,8 @@ def get_capability_catalog_tool() -> str:
         mcp_servers=_enabled_mcp_capability_entries(),
         agent_count=len(agents),
         memory_descriptor={
-            "enabled": memory_config.enabled,
-            "storage_class": memory_config.storage_class,
-            "storage_path": memory_config.storage_path,
-            "injection_enabled": memory_config.injection_enabled,
-            "max_facts": memory_config.max_facts,
+            "runtime_backend": "memory_os",
+            **get_memory_os_config(),
         },
         notebook_descriptor={
             "root_directory": str(notebook._paths.notebook_root_dir),

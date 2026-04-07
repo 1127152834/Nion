@@ -33,7 +33,7 @@ def test_memory_growth_router_reports_source_mode(monkeypatch, tmp_path):
         fallback = client.get("/api/memory/growth/user-model")
 
     assert fallback.status_code == 200
-    assert fallback.json()["source_mode"] == "legacy_fallback"
+    assert fallback.json()["source_mode"] == "memory_os"
     assert "items" in fallback.json()
 
     repo = MemoryOSRepository(tmp_path / "memory-os" / "index.sqlite3")

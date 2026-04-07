@@ -802,6 +802,7 @@ class NionClient:
         return {
             "skills": [
                 {
+                    "id": f"{s.category}:{s.skill_path.replace('/', '::')}",
                     "name": s.name,
                     "description": s.description,
                     "license": s.license,
@@ -815,7 +816,7 @@ class NionClient:
     def get_system_capability_catalog(self) -> dict:
         from nion.config.agents_config import list_agent_catalog
         from nion.config.extensions_config import ExtensionsConfig
-        from nion.config.memory_config import get_memory_config
+        from nion.memory_os.compat import get_memory_os_config
         from nion.notebook.service import NotebookService
         from nion.skills.loader import load_skills
 
@@ -836,7 +837,6 @@ class NionClient:
 
         skills = load_skills(enabled_only=True)
         agents = list_agent_catalog()
-        memory_config = get_memory_config()
         notebook = NotebookService()
         note_summaries = notebook.list_note_summaries()
         inbox_items = notebook.list_inbox_items()
@@ -847,11 +847,8 @@ class NionClient:
             mcp_servers=mcp_servers,
             agent_count=len(agents),
             memory_descriptor={
-                "enabled": memory_config.enabled,
-                "storage_class": memory_config.storage_class,
-                "storage_path": memory_config.storage_path,
-                "injection_enabled": memory_config.injection_enabled,
-                "max_facts": memory_config.max_facts,
+                "runtime_backend": "memory_os",
+                **get_memory_os_config(),
             },
             notebook_descriptor={
                 "root_directory": str(notebook._paths.notebook_root_dir),
@@ -895,9 +892,9 @@ class NionClient:
         Returns:
             Memory data dict (see src/agents/memory/updater.py for structure).
         """
-        from nion.agents.memory.updater import get_memory_data
+        from nion.memory_os.compat import build_legacy_memory_view
 
-        return get_memory_data()
+        return build_legacy_memory_view()
 
     def get_model(self, name: str) -> dict | None:
         """Get a specific runtime model configuration by name.
@@ -990,6 +987,7 @@ class NionClient:
         if skill is None:
             return None
         return {
+            "id": f"{skill.category}:{skill.skill_path.replace('/', '::')}",
             "name": skill.name,
             "description": skill.description,
             "license": skill.license,
@@ -1120,42 +1118,39 @@ class NionClient:
         Returns:
             The reloaded memory data dict.
         """
-        from nion.agents.memory.updater import reload_memory_data
+        from nion.memory_os.compat import build_legacy_memory_view
 
-        return reload_memory_data()
+        return build_legacy_memory_view()
 
     def clear_memory(self) -> dict:
         """Clear persisted memory data and return the empty payload."""
-        from nion.agents.memory.updater import clear_memory_data
+        from nion.memory_os.compat import clear_memory_os_memory
 
-        return clear_memory_data()
+        return clear_memory_os_memory()
 
     def export_memory(self) -> dict:
         """Export current memory data for backup or transfer."""
+        from nion.memory_os.compat import build_legacy_memory_view
 
-        from nion.agents.memory.updater import get_memory_data
-
-        return get_memory_data()
+        return build_legacy_memory_view()
 
     def import_memory(self, memory_data: dict) -> dict:
         """Import and persist full memory data."""
+        from nion.memory_os.compat import import_legacy_memory_into_memory_os
 
-        from nion.agents.memory.updater import import_memory_data
-
-        return import_memory_data(memory_data)
+        return import_legacy_memory_into_memory_os(memory_data)
 
     def create_memory_fact(self, content: str, category: str = "context", confidence: float = 0.5) -> dict:
         """Create a single fact manually."""
+        from nion.memory_os.compat import create_memory_os_fact
 
-        from nion.agents.memory.updater import create_memory_fact
-
-        return create_memory_fact(content=content, category=category, confidence=confidence)
+        return create_memory_os_fact(content=content, category=category, confidence=confidence)
 
     def delete_memory_fact(self, fact_id: str) -> dict:
         """Delete a single persisted memory fact and return updated memory."""
-        from nion.agents.memory.updater import delete_memory_fact
+        from nion.memory_os.compat import delete_memory_os_fact
 
-        return delete_memory_fact(fact_id)
+        return delete_memory_os_fact(fact_id)
 
     def update_memory_fact(
         self,
@@ -1166,9 +1161,9 @@ class NionClient:
     ) -> dict:
         """Update a single fact manually, preserving omitted fields."""
 
-        from nion.agents.memory.updater import update_memory_fact
+        from nion.memory_os.compat import update_memory_os_fact
 
-        return update_memory_fact(
+        return update_memory_os_fact(
             fact_id=fact_id,
             content=content,
             category=category,
@@ -1181,18 +1176,9 @@ class NionClient:
         Returns:
             Memory config dict.
         """
-        from nion.config.memory_config import get_memory_config
+        from nion.memory_os.compat import get_memory_os_config
 
-        config = get_memory_config()
-        return {
-            "enabled": config.enabled,
-            "storage_path": config.storage_path,
-            "debounce_seconds": config.debounce_seconds,
-            "max_facts": config.max_facts,
-            "fact_confidence_threshold": config.fact_confidence_threshold,
-            "injection_enabled": config.injection_enabled,
-            "max_injection_tokens": config.max_injection_tokens,
-        }
+        return get_memory_os_config()
 
     def get_memory_status(self) -> dict:
         """Get memory status: config + current data.

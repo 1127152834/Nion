@@ -11,6 +11,7 @@ from app.daemon.routers import channels, clients, control, diagnostics, incident
 from app.daemon.service import LocalDaemonService
 from app.runtime.app_factory import create_runtime_app
 from nion.config.paths import get_paths
+from nion.memory_os.compat import finalize_legacy_cutover
 from nion.telemetry.store import TelemetryStore
 
 logger = logging.getLogger(__name__)
@@ -24,6 +25,7 @@ except ModuleNotFoundError:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    finalize_legacy_cutover()
     service = LocalDaemonService.from_app_config()
     app.state.daemon_service = service
     service.attach_telemetry_store(TelemetryStore(get_paths().telemetry_db_file))

@@ -8,7 +8,7 @@ void test("memory settings storage helpers preserve file and custom modes", asyn
     "utf8",
   );
 
-  assert.match(source, /FILE_MEMORY_STORAGE_CLASS/);
+  assert.match(source, /MEMORY_OS_RUNTIME_BACKEND/);
   assert.match(source, /inferMemoryStorageMode/);
   assert.match(source, /resolveMemoryStorageModeSelection/);
   assert.match(source, /nextModeOverride/);

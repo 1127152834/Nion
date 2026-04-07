@@ -91,8 +91,7 @@ Model registry rule:
 - The model factory must ignore obviously invalid request caps where `max_tokens >= context_window`.
 - Custom provider connection health is signature-based: a saved success only remains valid while the normalized `protocol/base_url/api_key_masked` signature is unchanged. Any provider credential/base URL/protocol mutation must reset `provider_test_status` to `untested`.
 
-Memory currently still keeps the legacy `memory.json` path through `nion.agents.memory.*` as a compatibility fallback,
-and the repository also contains incremental `nion.memory_os.*` runtime pieces:
+Memory now uses `nion.memory_os.*` as the runtime memory backbone, and the repository contains these Memory OS pieces:
 - metadata/artifact substrate
 - prompt memory bridge
 - continuity bridge
@@ -103,11 +102,10 @@ and the repository also contains incremental `nion.memory_os.*` runtime pieces:
 - capability catalog / capability bridge actions / skill runtime governance
 
 When extending memory in this repository:
-- prefer `nion.memory_os.*` instead of expanding legacy `memory.json`
-- keep legacy fallback behavior working unless an explicit cutover plan removes it
+- do not reintroduce runtime dependence on `memory.json` or legacy `nion.agents.memory.*`
 - do not reintroduce the old provider-based memory / AutoDream product shell
 - current product surface expectation:
-  - `/workspace/memory/user` must clearly distinguish real `user_model` records from read-only legacy fallback mappings
+  - `/workspace/memory/user` must be backed by real `user_model` records only
   - `/workspace/memory/growth` must expose state-aware governance semantics instead of a flat action row
   - `/workspace/memory/growth` recent growth should prefer backend `recent soul events` instead of frontend-local inferred state
   - `/workspace/automation/*` must distinguish `user-owned` vs `agent-owned`, and explain provenance/mutability in product language

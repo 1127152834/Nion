@@ -1,6 +1,6 @@
 import logging
 
-from nion.config.agents_config import get_builtin_agent, load_agent_soul
+from nion.config.agents_config import get_builtin_agent
 from nion.prompt_runtime import (
     AgentPromptProfile,
     PromptBuildContext,
@@ -36,6 +36,7 @@ def _build_subagent_section(max_concurrent: int) -> str:
 
 
 def _get_memory_context(agent_name: str | None = None) -> str:
+    del agent_name
     try:
         from nion.memory_os.context_assembler import MemoryOSContextAssembler
         from nion.memory_os.repository import MemoryOSRepository
@@ -49,34 +50,11 @@ def _get_memory_context(agent_name: str | None = None) -> str:
     except Exception as exc:
         print(f"Failed to load memory os context: {exc}")
 
-    try:
-        from nion.agents.memory import format_memory_for_injection
-        from nion.agents.memory.updater import get_memory_data
-        from nion.config.memory_config import get_memory_config
-
-        config = get_memory_config()
-        if not config.enabled or not config.injection_enabled:
-            return ""
-
-        memory_data = get_memory_data(agent_name=agent_name)
-        memory_content = format_memory_for_injection(
-            memory_data,
-            max_tokens=config.max_injection_tokens,
-        )
-
-        if not memory_content.strip():
-            return ""
-
-        return f"""<memory>
-{memory_content}
-</memory>
-"""
-    except Exception as exc:
-        print(f"Failed to load memory context: {exc}")
-        return ""
+    return ""
 
 
 def get_agent_soul(agent_name: str | None) -> str:
+    del agent_name
     try:
         from nion.config.paths import get_paths
         from nion.memory_os.repository import MemoryOSRepository
@@ -89,13 +67,6 @@ def get_agent_soul(agent_name: str | None) -> str:
     except Exception as exc:
         print(f"Failed to load soul runtime: {exc}")
 
-    builtin_agent = get_builtin_agent(agent_name)
-    if builtin_agent is not None and builtin_agent.soul:
-        return f"<soul>\n{builtin_agent.soul}\n</soul>\n"
-
-    soul = load_agent_soul(agent_name)
-    if soul:
-        return f"<soul>\n{soul}\n</soul>\n"
     return ""
 
 

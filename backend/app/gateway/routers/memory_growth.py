@@ -48,7 +48,7 @@ async def list_user_model_items():
     items = repo.list_memory_records(domain="user_model")
     return {
         "items": items,
-        "source_mode": "memory_os" if items else "legacy_fallback",
+        "source_mode": "memory_os",
     }
 
 

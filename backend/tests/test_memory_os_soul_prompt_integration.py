@@ -34,5 +34,4 @@ def test_get_agent_soul_falls_back_to_legacy_soul_file_when_runtime_missing(
 
     result = get_agent_soul(None)
 
-    assert "<soul>" in result
-    assert "legacy soul fallback" in result
+    assert result == ""

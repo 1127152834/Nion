@@ -1,18 +1,17 @@
-"""Memory API router for retrieving and managing global memory data."""
+"""Memory OS-backed API router for memory compatibility surfaces."""
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from nion.agents.memory.updater import (
-    clear_memory_data,
-    create_memory_fact,
-    delete_memory_fact,
-    get_memory_data,
-    import_memory_data,
-    reload_memory_data,
-    update_memory_fact,
+from nion.memory_os.compat import (
+    build_legacy_memory_view,
+    clear_memory_os_memory,
+    create_memory_os_fact,
+    delete_memory_os_fact,
+    get_memory_os_config,
+    import_legacy_memory_into_memory_os,
+    update_memory_os_fact,
 )
-from nion.config.memory_config import get_memory_config
 
 router = APIRouter(prefix="/api", tags=["memory"])
 
@@ -145,8 +144,7 @@ async def get_memory() -> MemoryResponse:
         }
         ```
     """
-    memory_data = get_memory_data()
-    return MemoryResponse(**memory_data)
+    return MemoryResponse(**build_legacy_memory_view())
 
 
 @router.post(
@@ -164,8 +162,7 @@ async def reload_memory() -> MemoryResponse:
     Returns:
         The reloaded memory data.
     """
-    memory_data = reload_memory_data()
-    return MemoryResponse(**memory_data)
+    return MemoryResponse(**build_legacy_memory_view())
 
 
 @router.delete(
@@ -178,7 +175,7 @@ async def clear_memory() -> MemoryResponse:
     """Clear all persisted memory data."""
 
     try:
-        memory_data = clear_memory_data()
+        memory_data = clear_memory_os_memory()
     except OSError as exc:
         raise HTTPException(status_code=500, detail="Failed to clear memory data.") from exc
 
@@ -194,7 +191,7 @@ async def clear_memory() -> MemoryResponse:
 async def create_memory_fact_endpoint(request: FactCreateRequest) -> MemoryResponse:
     """Create a single fact manually."""
     try:
-        memory_data = create_memory_fact(
+        memory_data = create_memory_os_fact(
             content=request.content,
             category=request.category,
             confidence=request.confidence,
@@ -217,7 +214,7 @@ async def delete_memory_fact_endpoint(fact_id: str) -> MemoryResponse:
     """Delete a single fact from memory by fact id."""
 
     try:
-        memory_data = delete_memory_fact(fact_id)
+        memory_data = delete_memory_os_fact(fact_id)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=f"Memory fact '{fact_id}' not found.") from exc
     except OSError as exc:
@@ -235,7 +232,7 @@ async def delete_memory_fact_endpoint(fact_id: str) -> MemoryResponse:
 async def update_memory_fact_endpoint(fact_id: str, request: FactPatchRequest) -> MemoryResponse:
     """Partially update a single fact manually."""
     try:
-        memory_data = update_memory_fact(
+        memory_data = update_memory_os_fact(
             fact_id=fact_id,
             content=request.content,
             category=request.category,
@@ -259,8 +256,7 @@ async def update_memory_fact_endpoint(fact_id: str, request: FactPatchRequest) -
 )
 async def export_memory() -> MemoryResponse:
     """Export the current memory data."""
-    memory_data = get_memory_data()
-    return MemoryResponse(**memory_data)
+    return MemoryResponse(**build_legacy_memory_view())
 
 
 @router.post(
@@ -272,7 +268,7 @@ async def export_memory() -> MemoryResponse:
 async def import_memory(request: MemoryResponse) -> MemoryResponse:
     """Import and persist a memory payload."""
     try:
-        memory_data = import_memory_data(request.model_dump())
+        memory_data = import_legacy_memory_into_memory_os(request.model_dump())
     except OSError as exc:
         raise HTTPException(status_code=500, detail="Failed to import memory data.") from exc
 
@@ -304,15 +300,9 @@ async def get_memory_config_endpoint() -> MemoryConfigResponse:
         }
         ```
     """
-    config = get_memory_config()
+    config = get_memory_os_config()
     return MemoryConfigResponse(
-        enabled=config.enabled,
-        storage_path=config.storage_path,
-        debounce_seconds=config.debounce_seconds,
-        max_facts=config.max_facts,
-        fact_confidence_threshold=config.fact_confidence_threshold,
-        injection_enabled=config.injection_enabled,
-        max_injection_tokens=config.max_injection_tokens,
+        **config,
     )
 
 
@@ -328,18 +318,10 @@ async def get_memory_status() -> MemoryStatusResponse:
     Returns:
         Combined memory configuration and current data.
     """
-    config = get_memory_config()
-    memory_data = get_memory_data()
+    config = get_memory_os_config()
+    memory_data = build_legacy_memory_view()
 
     return MemoryStatusResponse(
-        config=MemoryConfigResponse(
-            enabled=config.enabled,
-            storage_path=config.storage_path,
-            debounce_seconds=config.debounce_seconds,
-            max_facts=config.max_facts,
-            fact_confidence_threshold=config.fact_confidence_threshold,
-            injection_enabled=config.injection_enabled,
-            max_injection_tokens=config.max_injection_tokens,
-        ),
+        config=MemoryConfigResponse(**config),
         data=MemoryResponse(**memory_data),
     )
