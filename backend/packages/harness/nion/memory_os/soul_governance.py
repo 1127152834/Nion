@@ -14,7 +14,7 @@ def accept_soul_proposal(
 ) -> dict[str, object]:
     created_at = created_at or utcnow_z()
     proposal = _find_record(repository, domain="soul", memory_id=memory_id)
-    repository.update_memory_status(memory_id, "archived")
+    repository.update_memory_status(memory_id, "archived", updated_at=created_at)
     overlay = {
         "memory_id": "soul_overlay_active_main",
         "domain": "soul",
@@ -58,7 +58,7 @@ def reject_soul_proposal(
 ) -> dict[str, object]:
     created_at = created_at or utcnow_z()
     proposal = _find_record(repository, domain="soul", memory_id=memory_id)
-    repository.update_memory_status(memory_id, "invalidated")
+    repository.update_memory_status(memory_id, "invalidated", updated_at=created_at)
     record_soul_event(
         repository,
         event_type="proposal_rejected",
@@ -77,7 +77,7 @@ def rollback_soul_overlay(
 ) -> dict[str, object]:
     created_at = created_at or utcnow_z()
     overlay = _find_record(repository, domain="soul", memory_id="soul_overlay_active_main")
-    repository.update_memory_status(str(overlay["memory_id"]), "archived")
+    repository.update_memory_status(str(overlay["memory_id"]), "archived", updated_at=created_at)
     record_soul_event(
         repository,
         event_type="overlay_rollback",
@@ -100,7 +100,7 @@ def promote_identity_narrative(
     created_at: str,
 ) -> dict[str, object]:
     staged = _find_record(repository, domain="agent_self", memory_id=staged_memory_id)
-    repository.update_memory_status(staged_memory_id, "archived")
+    repository.update_memory_status(staged_memory_id, "archived", updated_at=created_at)
     promoted = MemoryOSSoulArtifactStore(
         repository=repository,
         base_dir=repository._db_path.parent.parent,

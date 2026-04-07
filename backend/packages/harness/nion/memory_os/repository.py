@@ -300,7 +300,13 @@ class MemoryOSRepository:
             results.append(payload)
         return results
 
-    def update_memory_status(self, memory_id: str, status: str) -> None:
+    def update_memory_status(
+        self,
+        memory_id: str,
+        status: str,
+        *,
+        updated_at: str | None = None,
+    ) -> None:
         with self._connect() as conn:
             conn.execute(
                 """
@@ -308,7 +314,7 @@ class MemoryOSRepository:
                 SET status = ?, updated_at = ?
                 WHERE memory_id = ?
                 """,
-                (status, utcnow_z(), memory_id),
+                (status, updated_at or utcnow_z(), memory_id),
             )
 
     def save_candidate_record(self, candidate: CandidateRecord) -> CandidateRecord:

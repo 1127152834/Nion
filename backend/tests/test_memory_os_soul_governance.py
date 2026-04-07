@@ -35,6 +35,7 @@ def test_accept_soul_proposal_promotes_overlay_without_activating_proposal(tmp_p
 
 def test_accept_soul_proposal_uses_canonical_clock_by_default(monkeypatch, tmp_path: Path):
     from nion.memory_os import soul_governance
+    from nion.memory_os import repository as memory_repository
 
     repo = MemoryOSRepository(tmp_path / "memory-os" / "index.sqlite3")
     proposal = create_soul_proposal(
@@ -44,15 +45,20 @@ def test_accept_soul_proposal_uses_canonical_clock_by_default(monkeypatch, tmp_p
     )
     fixed_now = "2026-04-08T05:06:07Z"
     monkeypatch.setattr(soul_governance, "utcnow_z", lambda: fixed_now)
+    monkeypatch.setattr(memory_repository, "utcnow_z", lambda: "2099-01-01T00:00:00Z", raising=False)
 
     result = soul_governance.accept_soul_proposal(repo, proposal["memory_id"])
 
+    proposal_record = next(
+        row for row in repo.list_memory_records(domain="soul") if row["memory_id"] == proposal["memory_id"]
+    )
     overlay = next(
         row for row in repo.list_memory_records(domain="soul") if row["memory_id"] == "soul_overlay_active_main"
     )
     event = repo.list_soul_events()[0]
 
     assert result["overlay"]["created_at"] == fixed_now
+    assert proposal_record["updated_at"] == fixed_now
     assert overlay["updated_at"] == fixed_now
     assert event.created_at == fixed_now
 
@@ -78,6 +84,7 @@ def test_reject_soul_proposal_invalidates_candidate(tmp_path: Path):
 
 def test_reject_soul_proposal_uses_canonical_clock_by_default(monkeypatch, tmp_path: Path):
     from nion.memory_os import soul_governance
+    from nion.memory_os import repository as memory_repository
 
     repo = MemoryOSRepository(tmp_path / "memory-os" / "index.sqlite3")
     proposal = create_soul_proposal(
@@ -87,6 +94,7 @@ def test_reject_soul_proposal_uses_canonical_clock_by_default(monkeypatch, tmp_p
     )
     fixed_now = "2026-04-08T05:06:08Z"
     monkeypatch.setattr(soul_governance, "utcnow_z", lambda: fixed_now)
+    monkeypatch.setattr(memory_repository, "utcnow_z", lambda: "2099-01-01T00:00:00Z", raising=False)
 
     soul_governance.reject_soul_proposal(repo, proposal["memory_id"])
 
@@ -96,6 +104,7 @@ def test_reject_soul_proposal_uses_canonical_clock_by_default(monkeypatch, tmp_p
     event = repo.list_soul_events()[0]
 
     assert proposal_record["status"] == "invalidated"
+    assert proposal_record["updated_at"] == fixed_now
     assert event.created_at == fixed_now
 
 
@@ -121,6 +130,7 @@ def test_rollback_soul_overlay_archives_active_overlay(tmp_path: Path):
 
 def test_rollback_soul_overlay_uses_canonical_clock_by_default(monkeypatch, tmp_path: Path):
     from nion.memory_os import soul_governance
+    from nion.memory_os import repository as memory_repository
 
     repo = MemoryOSRepository(tmp_path / "memory-os" / "index.sqlite3")
     proposal = create_soul_proposal(
@@ -131,6 +141,7 @@ def test_rollback_soul_overlay_uses_canonical_clock_by_default(monkeypatch, tmp_
     soul_governance.accept_soul_proposal(repo, proposal["memory_id"], created_at="2026-04-06T00:00:00Z")
     fixed_now = "2026-04-08T05:06:09Z"
     monkeypatch.setattr(soul_governance, "utcnow_z", lambda: fixed_now)
+    monkeypatch.setattr(memory_repository, "utcnow_z", lambda: "2099-01-01T00:00:00Z", raising=False)
 
     soul_governance.rollback_soul_overlay(repo)
 
@@ -140,6 +151,7 @@ def test_rollback_soul_overlay_uses_canonical_clock_by_default(monkeypatch, tmp_
     event = repo.list_soul_events()[0]
 
     assert overlay["status"] == "archived"
+    assert overlay["updated_at"] == fixed_now
     assert event.created_at == fixed_now
 
 
