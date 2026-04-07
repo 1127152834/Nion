@@ -5,16 +5,17 @@ MODE="${1:-builder}"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DESKTOP_DIR="$ROOT/desktop"
 BUILDER_CONFIG="$DESKTOP_DIR/electron-builder.yml"
+PNPM_BIN="$ROOT/scripts/pnpm.sh"
 
 bash "$ROOT/scripts/build-python-helper.sh"
 
 cd "$DESKTOP_DIR"
-pnpm build
+"$PNPM_BIN" build
 
 case "$MODE" in
   builder)
     if [[ -n "${NION_UPDATE_BASE_URL:-}" ]]; then
-      pnpm exec electron-builder --config "$BUILDER_CONFIG"
+      "$PNPM_BIN" exec electron-builder --config "$BUILDER_CONFIG"
     else
       TEMP_CONFIG="$(mktemp "$DESKTOP_DIR/electron-builder.local.XXXXXX.yml")"
       trap 'rm -f "$TEMP_CONFIG"' EXIT
@@ -23,11 +24,11 @@ case "$MODE" in
         skip && /^    url:/ { skip = 0; next }
         { print }
       ' "$BUILDER_CONFIG" > "$TEMP_CONFIG"
-      pnpm exec electron-builder --config "$TEMP_CONFIG"
+      "$PNPM_BIN" exec electron-builder --config "$TEMP_CONFIG"
     fi
     ;;
   forge)
-    pnpm exec electron-forge make --config forge.config.ts
+    "$PNPM_BIN" exec electron-forge make --config forge.config.ts
     ;;
   *)
     echo "Unknown desktop packaging mode: $MODE" >&2

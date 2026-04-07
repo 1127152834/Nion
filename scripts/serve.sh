@@ -8,6 +8,7 @@ set -e
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
+PNPM_BIN="$REPO_ROOT/scripts/pnpm.sh"
 
 # ── Argument parsing ─────────────────────────────────────────────────────────
 
@@ -21,9 +22,9 @@ for arg in "$@"; do
 done
 
 if $DEV_MODE; then
-    FRONTEND_CMD="pnpm run dev"
+    FRONTEND_CMD="$PNPM_BIN run dev"
 else
-    FRONTEND_CMD="env BETTER_AUTH_SECRET=$(python3 -c 'import secrets; print(secrets.token_hex(16))') pnpm run preview"
+    FRONTEND_CMD="env BETTER_AUTH_SECRET=$(python3 -c 'import secrets; print(secrets.token_hex(16))') $PNPM_BIN run preview"
 fi
 
 # ── Stop existing services ────────────────────────────────────────────────────

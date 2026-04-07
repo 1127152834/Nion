@@ -123,7 +123,7 @@ Program 03D-B 已把 desktop bridge incident workflow 补上：
 ### 1) 准备环境
 
 - Node.js 22+
-- pnpm
+- pnpm（或启用 Corepack，由仓库自动解析 `pnpm@10.26.2`）
 - uv
 - nginx
 

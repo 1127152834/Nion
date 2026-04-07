@@ -3,6 +3,7 @@
 .PHONY: help config config-upgrade check check-branding install dev web-dev dev-daemon start web-start stop up down clean docker-init docker-start docker-stop docker-logs docker-logs-frontend docker-logs-gateway desktop-install build-desktop desktop-build desktop-start desktop-dev package-desktop package-desktop-builder package-desktop-forge
 
 PYTHON ?= python
+PNPM := ./scripts/pnpm.sh
 
 help:
 	@echo "Nion Development Commands:"
@@ -57,9 +58,9 @@ install:
 	@echo "Installing backend dependencies..."
 	@cd backend && uv sync
 	@echo "Installing frontend dependencies..."
-	@cd frontend && pnpm install
+	@cd frontend && ../scripts/pnpm.sh install
 	@echo "Installing desktop dependencies..."
-	@pnpm --dir desktop install
+	@$(PNPM) --dir desktop install
 	@echo "✓ All dependencies installed"
 	@echo ""
 	@echo "=========================================="
@@ -182,16 +183,16 @@ down:
 	@./scripts/deploy.sh down
 
 desktop-install:
-	@pnpm --dir desktop install
+	@$(PNPM) --dir desktop install
 
 build-desktop:
 	@bash ./scripts/build-python-helper.sh
-	@pnpm --dir desktop build
+	@$(PNPM) --dir desktop build
 
 desktop-build: build-desktop
 
 desktop-start:
-	@cd desktop && pnpm exec electron dist/main/index.js
+	@cd desktop && ../scripts/pnpm.sh exec electron dist/main/index.js
 
 desktop-dev:
 	@mkdir -p logs

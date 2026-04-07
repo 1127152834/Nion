@@ -68,9 +68,18 @@ def main() -> int:
         else:
             print("  ✗ Unable to determine pnpm version")
             failed = True
+    elif shutil.which("corepack"):
+        pnpm_version = run_command(["corepack", "pnpm", "-v"])
+        if pnpm_version:
+            print(f"  ✓ pnpm {pnpm_version} (via corepack)")
+        else:
+            print("  ✗ corepack is available, but 'corepack pnpm' could not run")
+            print("    Try: corepack enable")
+            failed = True
     else:
         print("  ✗ pnpm not found")
         print("    Install: npm install -g pnpm")
+        print("    Or enable Corepack: corepack enable")
         print("    Or visit: https://pnpm.io/installation")
         failed = True
 
