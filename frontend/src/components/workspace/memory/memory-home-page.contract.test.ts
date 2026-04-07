@@ -9,6 +9,8 @@ void test("memory home page is overview-only and does not embed the old workbenc
   );
 
   assert.match(source, /MemorySummaryCards/);
+  assert.match(source, /MemoryGrowthPanel/);
+  assert.match(source, /SoulSummaryCard/);
   assert.doesNotMatch(source, /MemoryConsolePanel/);
   assert.doesNotMatch(source, /MemoryDetailInspector/);
   assert.doesNotMatch(source, /factDialogOpen/);

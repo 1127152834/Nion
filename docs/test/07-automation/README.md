@@ -19,6 +19,7 @@
   - reminder 与 scheduled task 共用一个创建器。
   - scheduled task 沿用主聊天输入能力，当前先支持 `@笔记`。
   - `run now` 和 `GET /api/automation/runs` 都要关注 `isolated_thread_id`，这是结果区线程预览的关键字段。
+  - agent-owned automation 的创建链路已支持 `owner_type / mutability / provenance_memory_id / provenance_learning_id` 透传；带 soul provenance 的 agent-owned job 会写入 `recent soul events`。
 - 关键代码位置：
   - 前端页面：`frontend/src/app/workspace/automation/page.tsx`
   - 前端组件：`frontend/src/components/workspace/automation/automation-page.tsx`、`automation-console.tsx`、`automation-creator.tsx`、`automation-list-panel.tsx`、`automation-results-panel.tsx`、`automation-run-preview.tsx`、`automation-overview-cards.tsx`
@@ -44,6 +45,7 @@
   - overview cards 是 `status + runs + jobs` 的聚合展示，不是单独数据源。
   - `run now` 返回的是 `AutomationRun`，pause/resume 返回的是 `AutomationJob`。
   - reminder 的结果区是列表视图；scheduled task 的结果区是 `runs + thread preview` 双栏视图。
+  - 当前版本新增了 `owner_type / mutability / provenance_*` 语义：`agent-owned` 任务必须在列表、卡片、详情页明确可见，并限制普通编辑链路。
 
 ## 3. 核心业务链路
 1. 用户进入 `/workspace/automation`，前端并发调用：
@@ -66,6 +68,7 @@
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | 列出 jobs | `/api/automation/jobs` | GET | 获取任务列表 | AutomationPage | service 可用 | 无 | `jobs[]` | 返回当前任务列表 | 无 | 重复 GET 一致 | jobs 字段完整 |
 | 创建 job | `/api/automation/jobs` | POST | 创建 reminder/scheduled task | automation creator | payload 合法 | `name prompt job_kind schedule_* delivery_mode skills` | `job` | 两种 job 都可创建 | 无 | 连续创建相同任务 | 201，字段完整透传 |
+| 创建 agent-owned job | `/api/automation/jobs` | POST | 创建由 agent/soul growth 外化出的任务 | Memory OS / automation bridge | payload 合法且 owner 为 agent | `owner_type mutability provenance_memory_id provenance_learning_id policy_flags` | `job` + soul event | 创建成功并保留 provenance | 无 | 重复创建 | job 字段透传，`/api/memory/growth/soul/events` 可看到 `soul_automation_created` |
 | 获取 job | `/api/automation/jobs/{job_id}` | GET | 获取单 job | 页面/外部 | job 存在 | path job_id | `job` | 正常返回 | 404 | 重复 GET 一致 | job id 与 path 一致 |
 | pause job | `/api/automation/jobs/{job_id}/pause` | POST | 暂停任务 | job section | job 存在 | path job_id | `job` | state -> paused | 404 | 快速连点 | 调用 service.pause_job |
 | resume job | `/api/automation/jobs/{job_id}/resume` | POST | 恢复任务 | job section | paused job | path job_id | `job` | state -> scheduled | 404 | 快速连点 | 恢复后 `enabled/state` 正确 |
@@ -87,15 +90,22 @@
   - 内容为空时禁止提交。
   - scheduled task 文案体现当前支持 `@笔记`。
 - 列表区验证：
+  - 列表按 `用户创建` 与 `Agent 创建` 分组，避免把 ownership 只藏在小 badge 里。
   - reminder / scheduled task 各自空态文案正确。
   - job card 展示 state badge、next run、schedule、summary、last result。
   - pause / resume / run now / remove 操作状态正确。
+  - agent-owned job 仍可见，但其编辑限制需要在详情页被解释清楚。
 - 结果区验证：
   - 未选中 job 时展示引导空态。
   - 选中 reminder 时，只展示运行列表。
   - 选中 scheduled task 时，展示左侧 runs、右侧 thread preview。
   - selected run 变化时，thread preview 跟随切换。
   - run 没有关联 `isolated_thread_id` 时，右侧展示“仅保留结果摘要”类空态。
+- 详情页验证：
+  - 必须展示 `编辑权限`
+  - 必须展示 `来源记忆`
+  - 必须展示 `来源学习主题`
+  - agent-owned job 必须解释为什么不能直接编辑
 - overview cards 验证：
   - scheduler / active / runs / attention 四张卡片可见。
   - `status` 变化后 cards 刷新。

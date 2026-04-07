@@ -18,6 +18,7 @@ import {
   type NotebookSelection,
   useCreateNotebookDirectory,
   useCreateNotebookNote,
+  useExtractNotebookMemory,
   useCancelNotebookRewrite,
   useDeleteNotebookDirectory,
   useDeleteNotebookNote,
@@ -50,6 +51,7 @@ import { NotebookEditorPane } from "./notebook-editor-pane";
 import { NotebookFolderDialog } from "./notebook-folder-dialog";
 import { NotebookFolderPicker } from "./notebook-folder-picker";
 import { NotebookInboxPanel } from "./notebook-inbox-panel";
+import { NotebookMemoryExtractDialog } from "./notebook-memory-extract-dialog";
 import { NotebookQuickCaptureDialog } from "./notebook-quick-capture-dialog";
 import { NotebookSidebar } from "./notebook-sidebar";
 import { notebookThemeStyle } from "./notebook-theme";
@@ -108,6 +110,8 @@ export function NotebookPage() {
   const [quickCaptureValue, setQuickCaptureValue] = useState("");
   const [renameOpen, setRenameOpen] = useState(false);
   const [moveOpen, setMoveOpen] = useState(false);
+  const [extractMemoryOpen, setExtractMemoryOpen] = useState(false);
+  const [extractMemoryInstruction, setExtractMemoryInstruction] = useState("");
   const [moveDirectory, setMoveDirectory] = useState("");
   const [inboxMoveDirectory, setInboxMoveDirectory] = useState("inbox");
   const [draftSession, setDraftSession] = useState<DraftSession | null>(null);
@@ -147,6 +151,7 @@ export function NotebookPage() {
   const moveAnyNote = useMoveNotebookNoteAction();
   const moveNote = useMoveNotebookNote(selectedNoteId ?? "");
   const deleteNote = useDeleteNotebookNote(selectedNoteId ?? "");
+  const extractToMemory = useExtractNotebookMemory();
   const confirmNotebookRewrite = useConfirmNotebookRewrite(selectedNoteId ?? "");
   const cancelNotebookRewrite = useCancelNotebookRewrite(selectedNoteId ?? "");
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -346,6 +351,33 @@ export function NotebookPage() {
       toast.success(copy.saved);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  function openExtractToMemoryDialog() {
+    setExtractMemoryInstruction("");
+    setExtractMemoryOpen(true);
+  }
+
+  async function handleExtractMemorySubmit() {
+    if (!selectedNoteId) {
+      return;
+    }
+    try {
+      const result = await extractToMemory.mutateAsync({
+        noteId: selectedNoteId,
+        instruction: extractMemoryInstruction.trim() || undefined,
+      });
+      setExtractMemoryOpen(false);
+      setExtractMemoryInstruction("");
+      toast.success(
+        copy.extractToMemorySuccess.replace(
+          "{title}",
+          result.note_title || draftTitle || copy.untitledDraftTitle,
+        ),
+      );
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : copy.extractToMemoryError);
     }
   }
 
@@ -726,6 +758,7 @@ export function NotebookPage() {
                     saving: copy.saving,
                     selectNote: copy.selectNote,
                     draftMetaLabel: copy.draftMetaLabel,
+                    extractToMemory: copy.extractToMemory,
                     untitledDraftTitle: copy.untitledDraftTitle,
                     unsaved: copy.unsaved,
                   }}
@@ -744,6 +777,7 @@ export function NotebookPage() {
                   onDraftBodyChange={setDraftBody}
                   onDraftTitleChange={setDraftTitle}
                   onOpenDelete={() => setDeleteOpen(true)}
+                  onOpenExtractToMemory={openExtractToMemoryDialog}
                   onOpenHistory={() => setContextTab("history")}
                   onOpenRename={() => setRenameOpen(true)}
                   onOpenMove={() => setMoveOpen(true)}
@@ -829,6 +863,30 @@ export function NotebookPage() {
         onOpenChange={setQuickCaptureOpen}
         onSubmit={handleQuickCapture}
         onValueChange={setQuickCaptureValue}
+      />
+
+      <NotebookMemoryExtractDialog
+        copy={{
+          cancel: t.common.cancel,
+          defaultHint: copy.extractToMemoryDefaultHint,
+          description: copy.extractToMemoryDescription,
+          instructionLabel: copy.extractToMemoryInstructionLabel,
+          instructionPlaceholder: copy.extractToMemoryInstructionPlaceholder,
+          submit: copy.extractToMemorySubmit,
+          submitting: copy.extractToMemorySubmitting,
+          title: copy.extractToMemoryTitle,
+        }}
+        instruction={extractMemoryInstruction}
+        open={extractMemoryOpen}
+        pending={extractToMemory.isPending}
+        onInstructionChange={setExtractMemoryInstruction}
+        onOpenChange={(open) => {
+          setExtractMemoryOpen(open);
+          if (!open) {
+            setExtractMemoryInstruction("");
+          }
+        }}
+        onSubmit={() => void handleExtractMemorySubmit()}
       />
 
       <NotebookDialogShell

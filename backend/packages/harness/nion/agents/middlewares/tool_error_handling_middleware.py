@@ -11,6 +11,8 @@ from langgraph.errors import GraphBubbleUp
 from langgraph.prebuilt.tool_node import ToolCallRequest
 from langgraph.types import Command
 
+from nion.hooks import HookEvent, dispatch_tool_call_in_runtime_hook
+from nion.skills.runtime import merge_skill_hook_side_effects
 from nion.tools.runtime_models import ToolExecutionStage
 from nion.tools.runtime_pipeline import build_tool_runtime_contract_summary
 
@@ -43,6 +45,22 @@ class ToolErrorHandlingMiddleware(AgentMiddleware[AgentState]):
             tool_name=tool_name,
             tool_call_id=tool_call_id,
         )
+        additional_kwargs["hook_event"] = dispatch_tool_call_in_runtime_hook(
+            request,
+            event=HookEvent.POST_TOOL_USE,
+            payload={
+                "tool_name": tool_name,
+                "tool_call_id": tool_call_id,
+            },
+            handler=lambda _payload: {
+                "continue_execution": True,
+            },
+        )
+        additional_kwargs["hook_event"] = merge_skill_hook_side_effects(
+            additional_kwargs["hook_event"],
+            (getattr(request, "state", {}) or {}).get("active_skill"),
+            "post_tool_use",
+        )
         result.additional_kwargs = additional_kwargs
         return result
 
@@ -54,6 +72,24 @@ class ToolErrorHandlingMiddleware(AgentMiddleware[AgentState]):
             detail = detail[:497] + "..."
 
         content = f"Error: Tool '{tool_name}' failed with {exc.__class__.__name__}: {detail}. Continue with available context, or choose an alternative tool."
+        hook_event = dispatch_tool_call_in_runtime_hook(
+            request,
+            event=HookEvent.POST_TOOL_USE_FAILURE,
+            payload={
+                "tool_name": tool_name,
+                "tool_call_id": tool_call_id,
+                "error_type": exc.__class__.__name__,
+                "error_detail": detail,
+            },
+            handler=lambda _payload: {
+                "continue_execution": True,
+            },
+        )
+        hook_event = merge_skill_hook_side_effects(
+            hook_event,
+            (getattr(request, "state", {}) or {}).get("active_skill"),
+            "post_tool_use_failure",
+        )
         return ToolMessage(
             content=content,
             tool_call_id=tool_call_id,
@@ -66,10 +102,7 @@ class ToolErrorHandlingMiddleware(AgentMiddleware[AgentState]):
                     tool_name=tool_name,
                     tool_call_id=tool_call_id,
                 ),
-                "hook_event": {
-                    "event": "post_tool_use_failure",
-                    "mode": "in_runtime",
-                },
+                "hook_event": hook_event,
             },
         )
 
@@ -129,6 +162,10 @@ def _build_runtime_middlewares(
         from nion.agents.middlewares.dangling_tool_call_middleware import DanglingToolCallMiddleware
 
         middlewares.append(DanglingToolCallMiddleware())
+
+    from nion.agents.middlewares.skill_runtime_middleware import SkillRuntimeMiddleware
+
+    middlewares.append(SkillRuntimeMiddleware())
 
     # Guardrail middleware (if configured)
     from nion.config.guardrails_config import get_guardrails_config

@@ -10,6 +10,8 @@ from langgraph.graph import END
 from langgraph.prebuilt.tool_node import ToolCallRequest
 from langgraph.types import Command
 
+from nion.hooks import HookEvent, dispatch_tool_call_in_runtime_hook
+
 
 class ClarificationMiddlewareState(AgentState):
     """Compatible with the `ThreadState` schema."""
@@ -118,10 +120,19 @@ class ClarificationMiddleware(AgentMiddleware[ClarificationMiddlewareState]):
             name="ask_clarification",
             additional_kwargs={
                 "clarification": args,
-                "hook_event": {
-                    "event": "user_prompt_submit",
-                    "mode": "in_runtime",
-                },
+                "hook_event": dispatch_tool_call_in_runtime_hook(
+                    request,
+                    event=HookEvent.USER_PROMPT_SUBMIT,
+                    payload={
+                        "tool_name": "ask_clarification",
+                        "tool_call_id": tool_call_id,
+                        "clarification": args,
+                    },
+                    handler=lambda _payload: {
+                        "continue_execution": False,
+                        "stop_reason": "clarification_requested",
+                    },
+                ),
             },
         )
 

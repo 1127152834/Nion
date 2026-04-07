@@ -16,6 +16,7 @@ import asyncio
 import sys
 from contextvars import copy_context
 from datetime import datetime
+from types import ModuleType
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -24,8 +25,6 @@ import pytest
 _MOCKED_MODULE_NAMES = [
     "nion.agents",
     "nion.agents.thread_state",
-    "nion.agents.middlewares",
-    "nion.agents.middlewares.thread_data_middleware",
     "nion.sandbox",
     "nion.sandbox.middleware",
     "nion.models",
@@ -50,6 +49,18 @@ def _setup_executor_classes():
     # Set up mocks
     for name in _MOCKED_MODULE_NAMES:
         sys.modules[name] = MagicMock()
+
+    middlewares_pkg = ModuleType("nion.agents.middlewares")
+    middlewares_pkg.__path__ = []  # type: ignore[attr-defined]
+    sys.modules["nion.agents.middlewares"] = middlewares_pkg
+    sys.modules["nion.agents.middlewares.thread_data_middleware"] = ModuleType(
+        "nion.agents.middlewares.thread_data_middleware"
+    )
+    sys.modules["nion.agents.middlewares.thread_data_middleware"].ThreadDataMiddleware = MagicMock
+    sys.modules["nion.agents.middlewares.skill_runtime_middleware"] = ModuleType(
+        "nion.agents.middlewares.skill_runtime_middleware"
+    )
+    sys.modules["nion.agents.middlewares.skill_runtime_middleware"].SkillRuntimeMiddleware = MagicMock
 
     # Import real classes inside fixture
     from langchain_core.messages import AIMessage, HumanMessage
@@ -390,6 +401,49 @@ class TestAsyncExecutionPath:
         # Should fallback to string representation of last message
         assert result.status == SubagentStatus.COMPLETED
         assert "Task" in result.result
+
+    @pytest.mark.anyio
+    async def test_aexecute_applies_fork_skill_runtime_to_model_and_prompt(self, classes, base_config, msg):
+        SubagentExecutor = classes["SubagentExecutor"]
+
+        captured: dict[str, object] = {}
+
+        def fake_create_chat_model(name, thinking_enabled=False, **kwargs):
+            captured["model"] = {"name": name, "thinking_enabled": thinking_enabled, **kwargs}
+            return captured["model"]
+
+        def fake_create_agent(**kwargs):
+            captured["agent_kwargs"] = kwargs
+            return type("Agent", (), {"astream": lambda *args, **kwargs: async_iterator([])})()
+
+        import nion.subagents.executor as executor_module
+
+        original_model = executor_module.create_chat_model
+        original_agent = executor_module.create_agent
+        executor_module.create_chat_model = fake_create_chat_model
+        executor_module.create_agent = fake_create_agent
+        try:
+            executor = SubagentExecutor(
+                config=base_config,
+                tools=[],
+                parent_model="base-model",
+                active_skill={
+                    "name": "planner",
+                    "context": "fork",
+                    "model": "gpt-5.2",
+                    "effort": "high",
+                    "activation_content": "follow planner steps",
+                },
+            )
+
+            executor._create_agent()
+        finally:
+            executor_module.create_chat_model = original_model
+            executor_module.create_agent = original_agent
+
+        assert captured["model"]["name"] == "gpt-5.2"
+        assert captured["model"]["reasoning_effort"] == "high"
+        assert "follow planner steps" in captured["agent_kwargs"]["system_prompt"]
 
 
 # -----------------------------------------------------------------------------

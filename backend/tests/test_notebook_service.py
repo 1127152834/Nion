@@ -100,6 +100,24 @@ def test_archive_workspace_asset_creates_notebook_copy(tmp_path):
     assert Path(asset.absolute_path).read_text(encoding="utf-8") == "<h1>Report</h1>"
 
 
+def test_archived_asset_preserves_provenance_in_metadata_round_trip(tmp_path):
+    service = NotebookService(base_dir=tmp_path)
+    source = tmp_path / "threads" / "thread-1" / "user-data" / "outputs" / "report.html"
+    source.parent.mkdir(parents=True, exist_ok=True)
+    source.write_text("<h1>Report</h1>", encoding="utf-8")
+
+    asset = service.archive_asset(source_path=str(source), directory="")
+
+    listed_asset = next(item for item in service.list_assets() if item.asset_id == asset.asset_id)
+    read_asset = service.read_asset(asset.asset_id)
+
+    assert listed_asset.provenance == {
+        "source_kind": "workspace_artifact",
+        "source_path": str(source),
+    }
+    assert read_asset.provenance == listed_asset.provenance
+
+
 def test_list_inbox_items_includes_archived_assets(tmp_path):
     service = NotebookService(base_dir=tmp_path)
     source = tmp_path / "workspace" / "snapshot.html"

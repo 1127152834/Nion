@@ -25,6 +25,14 @@ export type AutomationJobDescription = {
   lastResultSummary: string | null;
 };
 
+export type AutomationOwnershipDescription = {
+  ownerLabel: string;
+  mutabilityLabel: string;
+  reason: string;
+  provenanceMemoryId: string | null;
+  provenanceLearningId: string | null;
+};
+
 export type AutomationRunPreview = {
   runId: string;
   jobId: string;
@@ -52,6 +60,13 @@ export function splitJobsByKind(jobs: AutomationJob[]) {
   return {
     reminders: jobs.filter((job) => job.job_kind === "reminder"),
     tasks: jobs.filter((job) => job.job_kind === "scheduled_task"),
+  };
+}
+
+export function splitJobsByOwner(jobs: AutomationJob[]) {
+  return {
+    userOwned: jobs.filter((job) => job.owner_type === "user"),
+    agentOwned: jobs.filter((job) => job.owner_type === "agent"),
   };
 }
 
@@ -105,6 +120,46 @@ export function describeAutomationJob(job: AutomationJob): AutomationJobDescript
     scheduleLabel: formatScheduleLabel(job),
     nextRunAt: readString(job.next_run_at) ?? null,
     lastResultSummary: readString(job.last_result_summary) ?? null,
+  };
+}
+
+export function describeAutomationOwnership(
+  job: Pick<
+    AutomationJob,
+    "owner_type" | "mutability" | "provenance_memory_id" | "provenance_learning_id"
+  >,
+): AutomationOwnershipDescription {
+  const provenanceMemoryId = readString(job.provenance_memory_id) ?? null;
+  const provenanceLearningId = readString(job.provenance_learning_id) ?? null;
+
+  if (job.owner_type === "agent") {
+    const parts: string[] = [];
+    if (provenanceLearningId) {
+      parts.push(`来源学习主题 ${provenanceLearningId}`);
+    }
+    if (provenanceMemoryId) {
+      parts.push(`来源记忆 ${provenanceMemoryId}`);
+    }
+
+    return {
+      ownerLabel: "Agent 创建",
+      mutabilityLabel:
+        job.mutability === "pause_only" ? "仅允许暂停或恢复" : "允许直接编辑",
+      reason:
+        parts.length > 0
+          ? `这是一个由 Agent 主动生成的自动化任务，${parts.join("，")}，用于把反复出现的需求转成持续动作。`
+          : "这是一个由 Agent 主动生成的自动化任务，用于把反复出现的需求转成持续动作。",
+      provenanceMemoryId,
+      provenanceLearningId,
+    };
+  }
+
+  return {
+    ownerLabel: "用户创建",
+    mutabilityLabel: "允许直接编辑",
+    reason: "这是你手动创建的自动化任务，可以直接修改计划、提示词和调度方式。",
+    provenanceMemoryId,
+    provenanceLearningId,
   };
 }
 

@@ -10,6 +10,7 @@
 - 模块 07：Automation 定时任务与提醒
 - 模块 08：Custom Agents 自定义智能体
 - 模块 09：Bridge / Desktop Client 差异链路
+- 模块 10：Memory / Soul 完整版本收口
 
 ## 模块总览
 
@@ -26,6 +27,7 @@
 | 模块 07 Automation | 创建 reminder/scheduled task、查看状态/历史、暂停恢复立即执行 | `/workspace/automation` | `/api/automation/jobs*`、`/api/automation/runs`、`/api/automation/status` | `frontend/src/core/automation/*`、`frontend/src/components/workspace/automation/*`、`backend/app/gateway/routers/automation.py`、`backend/packages/harness/nion/automation/*` | 中高 | P1 |
 | 模块 08 Custom Agents | 管理自定义 agent 列表、查看详情、bootstrap 创建、删除、进入 agent 专属线程 | `/workspace/agents`、`/workspace/agents/new` | `/api/agents*`、lead agent bootstrap + `setup_agent` tool | `frontend/src/app/workspace/agents/new/page.tsx`、`frontend/src/core/agents/*`、`backend/app/gateway/routers/agents.py`、`backend/packages/harness/nion/tools/builtins/setup_agent_tool.py` | 中高 | P1 |
 | 模块 09 Bridge / Desktop | 桌面端桥接渠道、IPC 能力、daemon diagnostics/incidents、桌面专属 terminal 与路由差异 | `/workspace/bridge`、桌面 renderer 路由、terminal drawer | `/api/desktop/*`、`/api/daemon/*`、bridge 通过 `/api/threads/*` 调线程 | `desktop/src/preload/index.ts`、`desktop/src/main/bridge/*`、`frontend/src/components/workspace/bridge/*`、`backend/app/daemon/routers/*`、`backend/app/gateway/routers/desktop_system.py` | 高 | P1 |
+| 模块 10 Memory / Soul | Memory OS、user_model、soul runtime、growth、retention、agent-owned automation bridge 的完整版本收口 | `/workspace/memory`、`/workspace/memory/user`、`/workspace/memory/growth`、`/workspace/automation/*` | `/api/memory/growth/*`、`/api/automation/*`、lead prompt runtime | `backend/packages/harness/nion/memory_os/*`、`backend/packages/harness/nion/automation/*`、`frontend/src/components/workspace/memory/*`、`frontend/src/core/soul/*` | 高 | P0 |
 
 ### B. 模块划分依据
 - 按用户任务划分，而不是按目录：聊天、授权、CLI 管理、设置、Notebook、Automation、Agent 管理、Bridge 都是用户可以单独感知的业务闭环。
@@ -47,11 +49,11 @@
   - `docs/test/07-automation/README.md`
   - `docs/test/08-custom-agents/README.md`
   - `docs/test/09-bridge-desktop/README.md`
-  - `docs/test/10-projects/README.md`
+  - `docs/test/10-memory-soul/README.md`
 - 建议先执行高风险模块：模块 01、02、03、04、05。
 - 第二优先级：模块 06、07、09。
 - 第三优先级：模块 08。
-- 新增高优先级模块：模块 10 Projects。
+- 新增高优先级模块：模块 10 Memory / Soul。
 
 ### 模块关系图
 ```mermaid
@@ -77,4 +79,9 @@ flowchart LR
 - 后端已覆盖 threads、permission、guardrail、cli tools、runtime profile、files、config、automation、notebook、agents、desktop/daemon 多数路由与 service。
 - 前端以 contract test / node test 为主，重点覆盖 permission request、cli tools routes、notebook 组件 contract、legacy memory product-surface contract、desktop thread client、settings 分区逻辑。
 - 缺口主要在真实 UI 交互与跨模块 E2E；本批文档的价值就是把这些缺口转成可执行任务。
-- 当前必做 IA 冒烟：`/workspace/notebook`、`/workspace/memory` 的独立导航与心智分离验证。
+- 当前必做 IA 冒烟：`/workspace/notebook`、`/workspace/memory`、`/workspace/memory/growth` 的独立导航与心智分离验证；`/workspace/memory/user` 还要验证对真实 user model record 的控制动作入口（修正 / 冻结 / 遗忘请求 / 拒绝）。
+- 当前必做产品解释面冒烟：
+  - `/workspace/memory/user` 必须区分 `真实记录` 与 `legacy 映射`，fallback 卡片不可给假控制
+  - `/workspace/memory/growth` 必须展示状态语义，并按 domain/status 收敛动作集合
+  - `/workspace/memory/growth` 的 `Recent Growth` 必须优先读取后端 `recent soul events`，覆盖 `identity narrative staged/promoted`、`relationship soul refreshed`、`soul journal written`、`soul automation created`
+  - `/workspace/automation/*` 必须区分 `用户创建` 与 `Agent 创建`，详情页必须解释来源与编辑限制

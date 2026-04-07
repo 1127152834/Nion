@@ -558,6 +558,16 @@ export interface Translations {
     saveArtifact: string;
     saveArtifactDescription: string;
     saveArtifactSuccess: string;
+    extractToMemory: string;
+    extractToMemoryTitle: string;
+    extractToMemoryDescription: string;
+    extractToMemoryInstructionLabel: string;
+    extractToMemoryInstructionPlaceholder: string;
+    extractToMemoryDefaultHint: string;
+    extractToMemorySubmit: string;
+    extractToMemorySubmitting: string;
+    extractToMemorySuccess: string;
+    extractToMemoryError: string;
     trashTitle: string;
     trashDescription: string;
     trashEmpty: string;

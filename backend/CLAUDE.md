@@ -79,6 +79,7 @@ FastAPI application on port 8001 with health check at `GET /health`.
 | **Models** (`/api/models`) | runtime model catalog |
 | **MCP** (`/api/mcp`) | MCP config surfaces |
 | **Memory** (`/api/memory`) | memory data and config |
+| **Memory Growth** (`/api/memory/growth`) | growth / user-model governance actions |
 | **Notebook** (`/api/notebook`) | notebook CRUD / history / restore / inbox / import / asset archive |
 | **Uploads** (`/api/threads/{id}/uploads`) | uploads list / delete |
 | **Artifacts** (`/api/threads/{id}/artifacts`) | serve artifacts |
@@ -90,9 +91,54 @@ Model registry rule:
 - The model factory must ignore obviously invalid request caps where `max_tokens >= context_window`.
 - Custom provider connection health is signature-based: a saved success only remains valid while the normalized `protocol/base_url/api_key_masked` signature is unchanged. Any provider credential/base URL/protocol mutation must reset `provider_test_status` to `untested`.
 
-Memory currently uses the legacy `memory.json` path through `nion.agents.memory.*`.
-Do not reintroduce provider-based memory, AutoDream, self-maintenance, heartbeat,
-compaction, or rebuild behavior unless the user explicitly starts a new design cycle.
+Memory currently still keeps the legacy `memory.json` path through `nion.agents.memory.*` as a compatibility fallback,
+and the repository also contains incremental `nion.memory_os.*` runtime pieces:
+- metadata/artifact substrate
+- prompt memory bridge
+- continuity bridge
+- heartbeat/self-maintenance skeleton
+- `/api/memory/growth` governance surface
+- `agent-owned automation` ownership controls
+- soul artifact/runtime/governance/event stream bridge
+- capability catalog / capability bridge actions / skill runtime governance
+
+When extending memory in this repository:
+- prefer `nion.memory_os.*` instead of expanding legacy `memory.json`
+- keep legacy fallback behavior working unless an explicit cutover plan removes it
+- do not reintroduce the old provider-based memory / AutoDream product shell
+- current product surface expectation:
+  - `/workspace/memory/user` must clearly distinguish real `user_model` records from read-only legacy fallback mappings
+  - `/workspace/memory/growth` must expose state-aware governance semantics instead of a flat action row
+  - `/workspace/memory/growth` recent growth should prefer backend `recent soul events` instead of frontend-local inferred state
+  - `/workspace/automation/*` must distinguish `user-owned` vs `agent-owned`, and explain provenance/mutability in product language
+- Memory/Soul hardening expectations:
+  - Use `nion.memory_os.clock.utcnow_z()` for Memory OS time values.
+  - Keep `growth_orchestrator.py` as the coordination layer for soul reflection, learning, procedure, and automation projections.
+  - Keep `retention.py` as the archive/purge lifecycle owner; prompt context should keep reading only active records.
+  - Keep `automation_bridge.py` as the Memory OS boundary for agent-owned / soul-driven automation provenance events.
+  - Frontend memory/soul contract tests should be runnable through `pnpm test:contracts -- <test files...>`.
+- Capability governance expectations:
+  - `get_capability_catalog` is the first discovery surface when the agent or user needs to know what built-in capability lanes exist.
+  - `get_capability_actions` is the second discovery surface for explicit bridge / activation actions.
+  - Notebook is not memory; notebook content only becomes memory through an explicit bridge action.
+  - Skill is a workflow package; when a requested skill matches, prefer `use_skill` before generic tools.
+  - MCP is not the default first choice when notebook / memory / skill / CLI already match the task.
+  - `context=fork` on active skills may affect delegated execution and subagent runtime configuration.
+
+Soul event stream contract in this repository:
+
+- `/api/memory/growth/soul/events` is the product-facing recent soul event feed.
+- Event types currently include:
+  - `identity_narrative_staged`
+  - `identity_narrative_promoted`
+  - `relationship_soul_refreshed`
+  - `soul_journal_written`
+  - `soul_automation_created`
+  - `proposal_accepted`
+  - `proposal_rejected`
+  - `overlay_rollback`
+- Event records may include `related_memory_id`, `actor`, `source`, and `metadata`; prefer extending this stream instead of adding more frontend-only inferred timeline state.
+- `relationship_soul` remains a derived soul layer, not a new relationship truth source.
 
 Thread title handling:
 

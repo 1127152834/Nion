@@ -38,6 +38,13 @@ export interface AutomationJob {
   last_run_at?: string | null;
   last_status?: string | null;
   last_result_summary?: string | null;
+  owner_type: "user" | "agent";
+  owner_id: string;
+  mutability: "editable" | "pause_only";
+  provenance_memory_id?: string | null;
+  provenance_learning_id?: string | null;
+  visible_in_ui: boolean;
+  policy_flags: Record<string, unknown>;
   created_at: string;
   updated_at: string;
 }
@@ -83,4 +90,11 @@ export interface AutomationJobCreateInput {
   implicit_mentions?: AutomationImplicitMention[];
   session_policy?: Record<string, unknown>;
   toolset_profile?: string;
+  owner_type?: "user" | "agent";
+  owner_id?: string;
+  mutability?: "editable" | "pause_only";
+  provenance_memory_id?: string | null;
+  provenance_learning_id?: string | null;
+  visible_in_ui?: boolean;
+  policy_flags?: Record<string, unknown>;
 }

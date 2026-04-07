@@ -37,12 +37,14 @@ from langchain_core.runnables import RunnableConfig
 from nion.agents.lead_agent.agent import _build_middlewares
 from nion.agents.lead_agent.prompt import apply_prompt_template
 from nion.agents.thread_state import ThreadState
+from nion.capability_bridge_actions import build_capability_bridge_actions, execute_capability_bridge_action
 from nion.config.agents_config import AGENT_NAME_PATTERN
 from nion.config.app_config import get_app_config
 from nion.config.extensions_config import ExtensionsConfig, SkillStateConfig, get_extensions_config, reload_extensions_config
 from nion.config.paths import get_paths
 from nion.model_management.service import get_model_registry_service
 from nion.models import create_chat_model
+from nion.system_capability_catalog import build_system_capability_catalog
 from nion.telemetry.logger import make_event
 from nion.telemetry.store import TelemetryStore
 from nion.telemetry.token_source import iter_with_token_source
@@ -809,6 +811,83 @@ class NionClient:
                 for s in load_skills(enabled_only=enabled_only)
             ]
         }
+
+    def get_system_capability_catalog(self) -> dict:
+        from nion.config.agents_config import list_agent_catalog
+        from nion.config.extensions_config import ExtensionsConfig
+        from nion.config.memory_config import get_memory_config
+        from nion.notebook.service import NotebookService
+        from nion.skills.loader import load_skills
+
+        try:
+            extensions_config = ExtensionsConfig.from_file()
+            mcp_servers = [
+                {
+                    "name": name,
+                    "description": server.description.strip(),
+                    "type": server.type,
+                    "enabled": server.enabled,
+                }
+                for name, server in extensions_config.get_enabled_mcp_servers().items()
+                if isinstance(server.description, str) and server.description.strip()
+            ]
+        except Exception:
+            mcp_servers = []
+
+        skills = load_skills(enabled_only=True)
+        agents = list_agent_catalog()
+        memory_config = get_memory_config()
+        notebook = NotebookService()
+        note_summaries = notebook.list_note_summaries()
+        inbox_items = notebook.list_inbox_items()
+
+        return build_system_capability_catalog(
+            cli_tools_enabled=True,
+            skill_count=len(skills),
+            mcp_servers=mcp_servers,
+            agent_count=len(agents),
+            memory_descriptor={
+                "enabled": memory_config.enabled,
+                "storage_class": memory_config.storage_class,
+                "storage_path": memory_config.storage_path,
+                "injection_enabled": memory_config.injection_enabled,
+                "max_facts": memory_config.max_facts,
+            },
+            notebook_descriptor={
+                "root_directory": str(notebook._paths.notebook_root_dir),
+                "note_count": len(note_summaries),
+                "inbox_count": len(inbox_items),
+                "assistant_available": True,
+            },
+            agent_descriptors=[
+                {
+                    "id": agent.id,
+                    "name": agent.name,
+                    "kind": agent.kind,
+                    "entrypoint": agent.entrypoint,
+                    "tool_policy": agent.tool_policy,
+                    "visibility": agent.visibility,
+                }
+                for agent in agents
+            ],
+            skill_descriptors=[
+                {
+                    "name": skill.name,
+                    "category": skill.category,
+                    "user_invocable": getattr(skill, "user_invocable", False),
+                    "hooks": getattr(skill, "hooks", []) or [],
+                    "model": getattr(skill, "model", None),
+                    "effort": getattr(skill, "effort", None),
+                }
+                for skill in skills
+            ],
+        )
+
+    def get_capability_actions(self) -> dict:
+        return {"actions": build_capability_bridge_actions()}
+
+    def execute_capability_action(self, action_id: str, payload: dict) -> dict:
+        return execute_capability_bridge_action(action_id, payload)
 
     def get_memory(self) -> dict:
         """Get current memory data.

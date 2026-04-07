@@ -47,6 +47,7 @@ export interface NotebookAsset {
   created_at: string;
   updated_at: string;
   file_size?: number | null;
+  provenance?: Record<string, string> | null;
   tags: string[];
 }
 
@@ -123,6 +124,11 @@ export interface NotebookArchiveAssetInput {
   thread_id: string;
   artifact_path: string;
   directory: string;
+}
+
+export interface NotebookExtractMemoryInput {
+  noteId: string;
+  instruction?: string;
 }
 
 export interface NotebookDirectoryCreateInput {

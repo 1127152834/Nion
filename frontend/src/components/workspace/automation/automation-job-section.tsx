@@ -85,6 +85,9 @@ export function AutomationJobSection({
                       <Badge variant="secondary">
                         {copy.stateLabels[job.state] ?? job.state}
                       </Badge>
+                      {job.owner_type === "agent" ? (
+                        <Badge variant="outline">Agent</Badge>
+                      ) : null}
                     </ItemTitle>
                     <ItemDescription>
                       {job.next_run_at
@@ -120,14 +123,16 @@ export function AutomationJobSection({
                       <ZapIcon className="size-4" />
                       {copy.runNow}
                     </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => void onRemove(job.id)}
-                    >
-                      <Trash2Icon className="size-4" />
-                      {copy.remove}
-                    </Button>
+                    {job.owner_type === "agent" && job.mutability === "pause_only" ? null : (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => void onRemove(job.id)}
+                      >
+                        <Trash2Icon className="size-4" />
+                        {copy.remove}
+                      </Button>
+                    )}
                   </ItemActions>
                 </ItemHeader>
                 <div className="text-muted-foreground grid gap-3 pt-3 text-xs md:grid-cols-3">

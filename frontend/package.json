@@ -13,6 +13,7 @@
     "lint:fix": "eslint . --ext .ts,.tsx --fix",
     "preview": "next build && next start",
     "start": "next start",
+    "test:contracts": "node --test",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

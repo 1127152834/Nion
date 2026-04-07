@@ -25,6 +25,7 @@ def _make_runtime(
     *,
     execution_mode: str | None = None,
     host_workdir: str | None = None,
+    active_skill: dict | None = None,
 ) -> SimpleNamespace:
     # Minimal ToolRuntime-like object; task_tool only reads these three attributes.
     context = {"thread_id": "thread-1"}
@@ -42,6 +43,7 @@ def _make_runtime(
                 "uploads_path": "/tmp/uploads",
                 "outputs_path": "/tmp/outputs",
             },
+            **({"active_skill": active_skill} if active_skill else {}),
         },
         context=context,
         config={"metadata": {"model_name": "ark-model", "trace_id": "trace-1"}},
@@ -192,6 +194,47 @@ def test_task_tool_passes_host_runtime_profile_to_subagent_executor(monkeypatch)
     assert output == "Task Succeeded. Result: done"
     assert captured["executor_kwargs"]["execution_mode"] == "host"
     assert captured["executor_kwargs"]["host_workdir"] == "/tmp/nion-host"
+
+
+def test_task_tool_passes_fork_active_skill_to_subagent_executor(monkeypatch):
+    config = _make_subagent_config()
+    captured = {}
+    active_skill = {
+        "name": "planner",
+        "context": "fork",
+        "activation_content": "follow planner steps",
+    }
+
+    class DummyExecutor:
+        def __init__(self, **kwargs):
+            captured["executor_kwargs"] = kwargs
+
+        def execute_async(self, prompt, task_id=None):
+            return task_id or "generated-task-id"
+
+    monkeypatch.setattr(task_tool_module, "SubagentStatus", FakeSubagentStatus)
+    monkeypatch.setattr(task_tool_module, "SubagentExecutor", DummyExecutor)
+    monkeypatch.setattr(task_tool_module, "get_subagent_config", lambda _: config)
+    monkeypatch.setattr(task_tool_module, "get_skills_prompt_section", lambda: "")
+    monkeypatch.setattr(
+        task_tool_module,
+        "get_background_task_result",
+        lambda _: _make_result(FakeSubagentStatus.COMPLETED, result="done"),
+    )
+    monkeypatch.setattr(task_tool_module, "get_stream_writer", lambda: (lambda _event: None))
+    monkeypatch.setattr(task_tool_module.time, "sleep", lambda _: None)
+    monkeypatch.setattr("nion.tools.get_available_tools", lambda **kwargs: [])
+
+    output = task_tool_module.task_tool.func(
+        runtime=_make_runtime(active_skill=active_skill),
+        description="运行子任务",
+        prompt="collect diagnostics",
+        subagent_type="general-purpose",
+        tool_call_id="tc-skill",
+    )
+
+    assert output == "Task Succeeded. Result: done"
+    assert captured["executor_kwargs"]["active_skill"] == active_skill
 
 
 def test_task_tool_returns_failed_message(monkeypatch):

@@ -5,6 +5,7 @@ import test from "node:test";
 import {
   pathOfMemory,
   pathOfMemoryFacts,
+  pathOfMemoryGrowth,
   pathOfMemoryHistory,
   pathOfMemorySearch,
   pathOfMemorySearchResults,
@@ -21,6 +22,7 @@ void test("memory routes expose dedicated pages for split surfaces", () => {
   assert.equal(pathOfMemoryUser(), "/workspace/memory/user");
   assert.equal(pathOfMemoryHistory(), "/workspace/memory/history");
   assert.equal(pathOfMemoryFacts(), "/workspace/memory/facts");
+  assert.equal(pathOfMemoryGrowth(), "/workspace/memory/growth");
 });
 
 void test("memory route components exist for each split surface", async () => {
@@ -48,6 +50,10 @@ void test("memory route components exist for each split surface", async () => {
     new URL("../../../app/workspace/memory/facts/page.tsx", import.meta.url),
     "utf8",
   );
+  const growthPageSource = await readFile(
+    new URL("../../../app/workspace/memory/growth/page.tsx", import.meta.url),
+    "utf8",
+  );
 
   assert.match(routePageSource, /MemoryHomePage/);
   assert.match(searchPageSource, /MemorySearchPage/);
@@ -55,4 +61,15 @@ void test("memory route components exist for each split surface", async () => {
   assert.match(userPageSource, /MemoryUserPage/);
   assert.match(historyPageSource, /MemoryHistoryPage/);
   assert.match(factsPageSource, /MemoryFactsPage/);
+  assert.match(growthPageSource, /MemoryGrowthPage/);
+});
+
+void test("desktop renderer also wires the memory growth route", async () => {
+  const rendererSource = await readFile(
+    new URL("../../../../../desktop/src/renderer/renderer-app.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(rendererSource, /WorkspaceMemoryGrowthPage/);
+  assert.match(rendererSource, /path="\/workspace\/memory\/growth"/);
 });

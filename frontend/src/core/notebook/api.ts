@@ -5,6 +5,7 @@ import type {
   NotebookAssistPreview,
   NotebookAssistPreviewInput,
   NotebookArchiveAssetInput,
+  NotebookExtractMemoryInput,
   NotebookAsset,
   NotebookCreateInput,
   NotebookDirectoryCreateInput,
@@ -168,6 +169,38 @@ export async function archiveNotebookAsset(
   }
   const json = await readJson<{ asset: NotebookAsset }>(response);
   return json.asset;
+}
+
+export async function extractNotebookNoteToMemory(
+  input: NotebookExtractMemoryInput,
+): Promise<{
+  ok: boolean;
+  bridge_action: string;
+  note_id: string;
+  note_title: string;
+  instruction: string;
+  memory: Record<string, unknown>;
+}> {
+  const response = await fetch(`${getBackendBaseURL()}/api/capabilities/actions/execute`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      action_id: "bridge:notebook-to-memory",
+      payload: {
+        note_id: input.noteId,
+        ...(input.instruction ? { instruction: input.instruction } : {}),
+      },
+    }),
+  });
+  if (!response.ok) {
+    throw new Error(
+      resolveErrorMessage(
+        await response.text(),
+        `Failed to extract notebook note to memory (${response.status})`,
+      ),
+    );
+  }
+  return readJson(response);
 }
 
 export async function createNotebookDirectory(

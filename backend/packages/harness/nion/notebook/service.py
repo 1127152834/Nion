@@ -113,10 +113,14 @@ class NotebookService:
                     created_at TEXT NOT NULL,
                     updated_at TEXT NOT NULL,
                     file_size INTEGER,
+                    provenance_json TEXT,
                     tags_json TEXT NOT NULL DEFAULT '[]'
                 );
                 """
             )
+            columns = {row["name"] for row in conn.execute("PRAGMA table_info(notebook_assets)").fetchall()}
+            if "provenance_json" not in columns:
+                conn.execute("ALTER TABLE notebook_assets ADD COLUMN provenance_json TEXT")
 
     def _read_pinned_state(self, note_id: str) -> bool:
         with self._connect_metadata() as conn:
@@ -223,6 +227,7 @@ class NotebookService:
             created_at=str(payload["created_at"]),
             updated_at=str(payload["updated_at"]),
             file_size=int(payload["file_size"]) if payload.get("file_size") is not None else None,
+            provenance=json.loads(str(payload["provenance_json"])) if payload.get("provenance_json") else None,
             tags=self._deserialize_tags(str(payload.get("tags_json") or "[]")),
         )
 
@@ -232,8 +237,8 @@ class NotebookService:
                 """
                 INSERT INTO notebook_assets(
                     asset_id, title, relative_path, source_kind, mime_type,
-                    created_at, updated_at, file_size, tags_json
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    created_at, updated_at, file_size, provenance_json, tags_json
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(asset_id) DO UPDATE SET
                     title = excluded.title,
                     relative_path = excluded.relative_path,
@@ -242,6 +247,7 @@ class NotebookService:
                     created_at = excluded.created_at,
                     updated_at = excluded.updated_at,
                     file_size = excluded.file_size,
+                    provenance_json = excluded.provenance_json,
                     tags_json = excluded.tags_json
                 """,
                 (
@@ -253,6 +259,7 @@ class NotebookService:
                     asset.created_at,
                     asset.updated_at,
                     asset.file_size,
+                    json.dumps(asset.provenance, ensure_ascii=False) if asset.provenance else None,
                     self._serialize_tags(asset.tags),
                 ),
             )
@@ -552,6 +559,10 @@ class NotebookService:
             created_at=now,
             updated_at=now,
             file_size=stats.st_size,
+            provenance={
+                "source_kind": "workspace_artifact",
+                "source_path": str(source),
+            },
             tags=[],
         )
         self._upsert_asset(asset)
@@ -562,7 +573,7 @@ class NotebookService:
             rows = conn.execute(
                 """
                 SELECT asset_id, title, relative_path, source_kind, mime_type,
-                       created_at, updated_at, file_size, tags_json
+                       created_at, updated_at, file_size, provenance_json, tags_json
                 FROM notebook_assets
                 ORDER BY updated_at DESC, created_at DESC
                 """
@@ -579,7 +590,7 @@ class NotebookService:
             row = conn.execute(
                 """
                 SELECT asset_id, title, relative_path, source_kind, mime_type,
-                       created_at, updated_at, file_size, tags_json
+                       created_at, updated_at, file_size, provenance_json, tags_json
                 FROM notebook_assets
                 WHERE asset_id = ?
                 """,
@@ -610,6 +621,7 @@ class NotebookService:
             created_at=current.created_at,
             updated_at=_now_iso(),
             file_size=current.file_size,
+            provenance=current.provenance,
             tags=current.tags,
         )
         self._upsert_asset(moved)

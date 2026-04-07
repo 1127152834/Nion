@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import {
   applyNotebookAssist,
   archiveNotebookAsset,
+  extractNotebookNoteToMemory,
   cancelNotebookRewrite,
   createNotebookDirectory,
   createNotebookNote,
@@ -37,6 +38,7 @@ import type {
   NotebookAssistApplyInput,
   NotebookAssistPreviewInput,
   NotebookArchiveAssetInput,
+  NotebookExtractMemoryInput,
   NotebookCreateInput,
   NotebookDirectoryCreateInput,
   NotebookDirectoryDeleteInput,
@@ -173,6 +175,17 @@ export function useArchiveNotebookAsset() {
         queryClient.invalidateQueries({ queryKey: ["notebook", "inbox"] }),
         queryClient.invalidateQueries({ queryKey: ["notebook", "tree"] }),
       ]);
+    },
+  });
+}
+
+export function useExtractNotebookMemory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: NotebookExtractMemoryInput) =>
+      extractNotebookNoteToMemory(input),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["memory"] });
     },
   });
 }

@@ -451,6 +451,7 @@ class SubagentExecutor:
         execution_mode: str | None = None,
         host_workdir: str | None = None,
         trace_id: str | None = None,
+        active_skill: dict[str, Any] | None = None,
     ):
         """Initialize the executor.
 
@@ -472,6 +473,7 @@ class SubagentExecutor:
         self.surface = surface
         self.execution_mode = execution_mode
         self.host_workdir = host_workdir
+        self.active_skill = active_skill
         # Generate trace_id if not provided (for top-level calls)
         self.trace_id = trace_id or str(uuid.uuid4())[:8]
 
@@ -493,18 +495,34 @@ class SubagentExecutor:
     def _create_agent(self):
         """Create the agent instance."""
         model_name = _get_model_name(self.config, self.parent_model)
-        model = create_chat_model(name=model_name, thinking_enabled=False)
+        model_kwargs: dict[str, Any] = {}
+        active_skill = self.active_skill if isinstance(self.active_skill, dict) else None
+        is_fork_skill = active_skill is not None and active_skill.get("context") == "fork"
+        if is_fork_skill:
+            skill_model = active_skill.get("model")
+            if isinstance(skill_model, str) and skill_model.strip():
+                model_name = skill_model.strip()
+            skill_effort = active_skill.get("effort")
+            if isinstance(skill_effort, str) and skill_effort.strip():
+                model_kwargs["reasoning_effort"] = skill_effort.strip()
+        model = create_chat_model(name=model_name, thinking_enabled=False, **model_kwargs)
 
         from nion.agents.middlewares.tool_error_handling_middleware import build_subagent_runtime_middlewares
 
         # Reuse shared middleware composition with lead agent.
         middlewares = build_subagent_runtime_middlewares(surface=self.surface, lazy_init=True)
 
+        system_prompt = self.config.system_prompt
+        if is_fork_skill:
+            activation_content = active_skill.get("activation_content")
+            if isinstance(activation_content, str) and activation_content.strip():
+                system_prompt = f"{system_prompt}\n\n<forked_skill_activation>\n{activation_content.strip()}\n</forked_skill_activation>"
+
         return create_agent(
             model=model,
             tools=self.tools,
             middleware=middlewares,
-            system_prompt=self.config.system_prompt,
+            system_prompt=system_prompt,
             state_schema=ThreadState,
         )
 
@@ -526,6 +544,8 @@ class SubagentExecutor:
             state["sandbox"] = self.sandbox_state
         if self.thread_data is not None:
             state["thread_data"] = self.thread_data
+        if self.active_skill is not None:
+            state["active_skill"] = self.active_skill
 
         return state
 

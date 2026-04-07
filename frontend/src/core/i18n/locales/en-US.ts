@@ -541,6 +541,19 @@ export const enUS: Translations = {
     saveArtifactDescription:
       "Copy the current work artifact into Notebook. It goes to Inbox by default, or you can choose a folder.",
     saveArtifactSuccess: "{title} was saved to Notebook",
+    extractToMemory: "Extract to memory",
+    extractToMemoryTitle: "Extract to memory",
+    extractToMemoryDescription:
+      "This is an explicit extraction step. It does not auto-write into memory. You can add a prompt to guide how the current note should be distilled into durable memory facts.",
+    extractToMemoryInstructionLabel: "Extraction prompt",
+    extractToMemoryInstructionPlaceholder:
+      "For example: extract the stable rules from this finance note into long-term memory facts",
+    extractToMemoryDefaultHint:
+      "If left blank, the default prompt is used: distill stable long-term memory content from this note.",
+    extractToMemorySubmit: "Start extraction",
+    extractToMemorySubmitting: "Extracting...",
+    extractToMemorySuccess: "Extracted memory from {title}",
+    extractToMemoryError: "Failed to extract memory",
     trashTitle: "Notebook trash",
     trashDescription:
       "Recover deleted notes before they are permanently purged in a later workflow.",

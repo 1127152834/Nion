@@ -58,8 +58,12 @@ export function pathOfMemoryFacts() {
   return "/workspace/memory/facts";
 }
 
+export function pathOfMemoryGrowth() {
+  return "/workspace/memory/growth";
+}
+
 export function pathOfMemorySection(
-  section: "home" | "search" | "searchResults" | "user" | "history" | "facts",
+  section: "home" | "search" | "searchResults" | "user" | "history" | "facts" | "growth",
 ) {
   switch (section) {
     case "home":
@@ -74,6 +78,8 @@ export function pathOfMemorySection(
       return pathOfMemoryHistory();
     case "facts":
       return pathOfMemoryFacts();
+    case "growth":
+      return pathOfMemoryGrowth();
   }
 }
 

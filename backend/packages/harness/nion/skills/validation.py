@@ -9,7 +9,21 @@ from pathlib import Path
 import yaml
 
 # Allowed properties in SKILL.md frontmatter
-ALLOWED_FRONTMATTER_PROPERTIES = {"name", "description", "license", "allowed-tools", "metadata", "compatibility", "version", "author"}
+ALLOWED_FRONTMATTER_PROPERTIES = {
+    "name",
+    "description",
+    "license",
+    "allowed-tools",
+    "metadata",
+    "compatibility",
+    "version",
+    "author",
+    "model",
+    "effort",
+    "user-invocable",
+    "hooks",
+    "context",
+}
 
 
 def parse_and_validate_skill_frontmatter_text(

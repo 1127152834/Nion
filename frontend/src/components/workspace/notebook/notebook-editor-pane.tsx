@@ -31,6 +31,7 @@ type NotebookEditorPaneCopy = {
   delete: string;
   draftMetaLabel: string;
   edit: string;
+  extractToMemory: string;
   history: string;
   move: string;
   noSelectionCta: string;
@@ -65,6 +66,7 @@ type NotebookEditorPaneProps = {
   onDraftBodyChange: (value: string) => void;
   onDraftTitleChange: (value: string) => void;
   onOpenDelete: () => void;
+  onOpenExtractToMemory: () => void;
   onOpenHistory: () => void;
   onOpenRename: () => void;
   onOpenMove: () => void;
@@ -91,6 +93,7 @@ export function NotebookEditorPane({
   onDraftBodyChange,
   onDraftTitleChange,
   onOpenDelete,
+  onOpenExtractToMemory,
   onOpenHistory,
   onOpenRename,
   onOpenMove,
@@ -211,6 +214,9 @@ export function NotebookEditorPane({
                         </DropdownMenuItem>
                         <DropdownMenuItem onSelect={onOpenMove}>
                           {copy.move}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onSelect={onOpenExtractToMemory}>
+                          {copy.extractToMemory}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>

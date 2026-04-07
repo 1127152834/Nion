@@ -48,8 +48,11 @@ class FakeAutomationService:
         self.runs = [_run("run-1", "job-1")]
         self.calls = []
 
-    def list_jobs(self):
-        return list(self.jobs.values())
+    def list_jobs(self, owner_type: str | None = None):
+        jobs = list(self.jobs.values())
+        if owner_type is None:
+            return jobs
+        return [job for job in jobs if job.owner_type == owner_type]
 
     def create_job(self, payload):
         self.calls.append(("create", payload))
@@ -67,6 +70,14 @@ class FakeAutomationService:
 
     def get_job(self, job_id: str):
         return self.jobs[job_id]
+
+    def update_job(self, job_id: str, payload):
+        job = self.jobs[job_id]
+        if job.owner_type == "agent" and job.mutability == "pause_only":
+            raise PermissionError("Agent-owned automation jobs cannot be edited directly.")
+        for key, value in payload.items():
+            setattr(job, key, value)
+        return job
 
     def pause_job(self, job_id: str):
         self.calls.append(("pause", job_id))
@@ -149,6 +160,36 @@ def test_create_automation_job():
     assert service.calls[0][0] == "create"
 
 
+def test_create_automation_job_accepts_agent_owned_provenance_fields():
+    service = FakeAutomationService()
+    with _client(service) as client:
+        response = client.post(
+            "/api/automation/jobs",
+            json={
+                "name": "Soul-driven monthly review",
+                "prompt": "在月底高压期提供低刺激复盘提醒",
+                "job_kind": "scheduled_task",
+                "schedule_kind": "interval",
+                "schedule_value": "900",
+                "delivery_mode": "local",
+                "delivery_targets": [],
+                "owner_type": "agent",
+                "owner_id": "agent:main",
+                "mutability": "pause_only",
+                "provenance_memory_id": "soul_rel_user_default",
+                "provenance_learning_id": "learning_01",
+                "policy_flags": {"source": "soul"},
+            },
+        )
+
+    assert response.status_code == 201
+    payload = service.calls[0][1]
+    assert payload["owner_type"] == "agent"
+    assert payload["mutability"] == "pause_only"
+    assert payload["provenance_memory_id"] == "soul_rel_user_default"
+    assert payload["provenance_learning_id"] == "learning_01"
+
+
 def test_create_automation_job_keeps_low_level_schedule_contract():
     service = FakeAutomationService()
     with _client(service) as client:
@@ -223,6 +264,63 @@ def test_list_runs_and_status():
     assert runs_response.json()["runs"][0]["isolated_thread_id"] == "thread-automation-preview"
     assert status_response.status_code == 200
     assert status_response.json()["scheduler_running"] is True
+
+
+def test_list_jobs_supports_owner_type_filter():
+    service = FakeAutomationService()
+    service.jobs["job-agent"] = AutomationJob(
+        id="job-agent",
+        name="Agent refresh",
+        prompt="review memory",
+        job_kind="scheduled_task",
+        schedule_kind="interval",
+        schedule_value="900",
+        schedule_preset="interval",
+        schedule_timezone="UTC",
+        schedule_metadata={},
+        delivery_mode="local",
+        delivery_targets=[],
+        owner_type="agent",
+        owner_id="agent:main",
+        mutability="pause_only",
+        created_at="2026-03-24T00:00:00Z",
+        updated_at="2026-03-24T00:00:00Z",
+    )
+    with _client(service) as client:
+        response = client.get("/api/automation/jobs?owner_type=agent")
+
+    assert response.status_code == 200
+    assert len(response.json()["jobs"]) == 1
+    assert response.json()["jobs"][0]["owner_type"] == "agent"
+
+
+def test_agent_owned_job_rejects_general_patch():
+    service = FakeAutomationService()
+    service.jobs["job-agent"] = AutomationJob(
+        id="job-agent",
+        name="Agent refresh",
+        prompt="review memory",
+        job_kind="scheduled_task",
+        schedule_kind="interval",
+        schedule_value="900",
+        schedule_preset="interval",
+        schedule_timezone="UTC",
+        schedule_metadata={},
+        delivery_mode="local",
+        delivery_targets=[],
+        owner_type="agent",
+        owner_id="agent:main",
+        mutability="pause_only",
+        created_at="2026-03-24T00:00:00Z",
+        updated_at="2026-03-24T00:00:00Z",
+    )
+    with _client(service) as client:
+        response = client.patch(
+            "/api/automation/jobs/job-agent",
+            json={"prompt": "changed by user"},
+        )
+
+    assert response.status_code == 403
 
 
 def test_status_response_uses_product_facing_metrics():

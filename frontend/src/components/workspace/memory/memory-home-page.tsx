@@ -6,12 +6,15 @@ import { useI18n } from "@/core/i18n/hooks";
 import { useMemory } from "@/core/memory/hooks";
 import {
   pathOfMemoryFacts,
+  pathOfMemoryGrowth,
   pathOfMemoryHistory,
   pathOfMemorySearch,
   pathOfMemoryUser,
 } from "@/core/navigation/desktop-routes";
 
+import { MemoryGrowthPanel } from "./memory-growth-panel";
 import { MemorySummaryCards } from "./memory-summary-cards";
+import { SoulSummaryCard } from "./soul-summary-card";
 
 export function MemoryHomePage() {
   const { t } = useI18n();
@@ -38,6 +41,11 @@ export function MemoryHomePage() {
       title: t.settings.memory.markdown.facts,
       description: "查看、编辑、导入、导出事实库，并从这里进入清理流程。",
     },
+    {
+      href: pathOfMemoryGrowth(),
+      title: "Agent Growth",
+      description: "查看学习主题、方法草案和灵魂提案的独立详情页。",
+    },
   ];
 
   return (
@@ -57,9 +65,10 @@ export function MemoryHomePage() {
           </div>
         </div>
         <MemorySummaryCards memory={memory} />
+        <SoulSummaryCard />
       </header>
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         {entries.map((entry) => (
           <Link
             key={entry.href}
@@ -75,6 +84,8 @@ export function MemoryHomePage() {
           </Link>
         ))}
       </section>
+
+      <MemoryGrowthPanel />
     </main>
   );
 }
