@@ -64,6 +64,23 @@ def test_soul_artifact_store_records_staged_identity_narrative_event(tmp_path: P
     assert events[0].memory_id == "agent_self_narrative_staged_main"
 
 
+def test_soul_artifact_store_writes_relationship_soul_artifact(tmp_path: Path):
+    from nion.memory_os.soul_artifacts import MemoryOSSoulArtifactStore
+
+    repo = MemoryOSRepository(tmp_path / "memory-os" / "index.sqlite3")
+    store = MemoryOSSoulArtifactStore(repository=repo, base_dir=tmp_path)
+
+    artifact = store.write_relationship_soul(
+        body="# Relationship Soul\n\n## Current Stance\n保持低刺激、少施压、结论先行。\n",
+        created_at="2026-04-08T00:00:00Z",
+        source_relationship_ids=["rel_01", "rel_02"],
+    )
+
+    assert artifact["memory_record"]["memory_id"] == "soul_rel_user_default"
+    assert artifact["memory_record"]["artifact_uri"].endswith("relationship_soul.md")
+    assert Path(artifact["artifact_path"]).read_text(encoding="utf-8").startswith("# Relationship Soul")
+
+
 def test_import_legacy_soul_file_creates_core_soul_record(tmp_path: Path):
     from nion.memory_os.soul_artifacts import import_legacy_soul_file
 

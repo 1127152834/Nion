@@ -101,19 +101,21 @@ def promote_identity_narrative(
 ) -> dict[str, object]:
     staged = _find_record(repository, domain="agent_self", memory_id=staged_memory_id)
     repository.update_memory_status(staged_memory_id, "archived", updated_at=created_at)
-    promoted = MemoryOSSoulArtifactStore(
+    promoted_artifact = MemoryOSSoulArtifactStore(
         repository=repository,
         base_dir=repository._db_path.parent.parent,
     ).write_identity_narrative(
         body=_load_artifact_body(repository, staged),
         created_at=created_at,
         staged=False,
-    )["memory_record"]
-    provenance = dict(promoted.get("provenance", {}))
-    provenance["source_type"] = "governance_promotion"
-    provenance["generated_by"] = "promote_identity_narrative"
-    provenance["source_memory_id"] = staged_memory_id
-    promoted["provenance"] = provenance
+    )
+    promoted = promoted_artifact["memory_record"]
+    promoted["provenance"] = {
+        **dict(promoted.get("provenance", {})),
+        "source_type": "governance_promotion",
+        "generated_by": "promote_identity_narrative",
+        "source_memory_id": staged_memory_id,
+    }
     repository.save_memory_record(promoted)
     record_soul_event(
         repository,

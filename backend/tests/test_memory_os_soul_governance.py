@@ -183,3 +183,30 @@ def test_promote_identity_narrative_replaces_staged_record_and_emits_event(tmp_p
     assert staged["status"] == "archived"
     assert events[0].event_type == "identity_narrative_promoted"
     assert events[0].related_memory_id == "agent_self_narrative_staged_main"
+
+
+def test_promote_identity_narrative_writes_stable_artifact_path(tmp_path: Path):
+    from nion.memory_os.soul_artifacts import MemoryOSSoulArtifactStore
+    from nion.memory_os.soul_governance import promote_identity_narrative
+
+    repo = MemoryOSRepository(tmp_path / "memory-os" / "index.sqlite3")
+    store = MemoryOSSoulArtifactStore(repository=repo, base_dir=tmp_path)
+    staged = store.write_identity_narrative(
+        body="# Identity Narrative\n\n## Who I Am\n我是已经稳定下来的叙事版本。\n",
+        created_at="2026-04-07T00:00:00Z",
+        staged=True,
+    )
+
+    result = promote_identity_narrative(
+        repo,
+        staged_memory_id="agent_self_narrative_staged_main",
+        created_at="2026-04-07T00:10:00Z",
+    )
+
+    active_path = tmp_path / "memory-os" / "artifacts" / "agent-self" / "narrative" / "identity_narrative.md"
+    staged_path = tmp_path / "memory-os" / "artifacts" / "agent-self" / "narrative" / "staged_identity_narrative.md"
+
+    assert staged["memory_record"]["artifact_uri"].endswith("staged_identity_narrative.md")
+    assert result["memory_record"]["artifact_uri"].endswith("identity_narrative.md")
+    assert result["memory_record"]["provenance"]["source_memory_id"] == "agent_self_narrative_staged_main"
+    assert active_path.read_text(encoding="utf-8") == staged_path.read_text(encoding="utf-8")
