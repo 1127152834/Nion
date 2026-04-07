@@ -10,6 +10,7 @@
 - 模块 07：Automation 定时任务与提醒
 - 模块 08：Custom Agents 自定义智能体
 - 模块 09：Bridge / Desktop Client 差异链路
+- 模块 10：Memory / Soul 完整版本收口
 
 ## 模块总览
 
@@ -26,6 +27,7 @@
 | 模块 07 Automation | 创建 reminder/scheduled task、查看状态/历史、暂停恢复立即执行 | `/workspace/automation` | `/api/automation/jobs*`、`/api/automation/runs`、`/api/automation/status` | `frontend/src/core/automation/*`、`frontend/src/components/workspace/automation/*`、`backend/app/gateway/routers/automation.py`、`backend/packages/harness/nion/automation/*` | 中高 | P1 |
 | 模块 08 Custom Agents | 管理自定义 agent 列表、查看详情、bootstrap 创建、删除、进入 agent 专属线程 | `/workspace/agents`、`/workspace/agents/new` | `/api/agents*`、lead agent bootstrap + `setup_agent` tool | `frontend/src/app/workspace/agents/new/page.tsx`、`frontend/src/core/agents/*`、`backend/app/gateway/routers/agents.py`、`backend/packages/harness/nion/tools/builtins/setup_agent_tool.py` | 中高 | P1 |
 | 模块 09 Bridge / Desktop | 桌面端桥接渠道、IPC 能力、daemon diagnostics/incidents、桌面专属 terminal 与路由差异 | `/workspace/bridge`、桌面 renderer 路由、terminal drawer | `/api/desktop/*`、`/api/daemon/*`、bridge 通过 `/api/threads/*` 调线程 | `desktop/src/preload/index.ts`、`desktop/src/main/bridge/*`、`frontend/src/components/workspace/bridge/*`、`backend/app/daemon/routers/*`、`backend/app/gateway/routers/desktop_system.py` | 高 | P1 |
+| 模块 10 Memory / Soul | Memory OS、user_model、soul runtime、growth、retention、agent-owned automation bridge 的完整版本收口 | `/workspace/memory`、`/workspace/memory/user`、`/workspace/memory/growth`、`/workspace/automation/*` | `/api/memory/growth/*`、`/api/automation/*`、lead prompt runtime | `backend/packages/harness/nion/memory_os/*`、`backend/packages/harness/nion/automation/*`、`frontend/src/components/workspace/memory/*`、`frontend/src/core/soul/*` | 高 | P0 |
 
 ### B. 模块划分依据
 - 按用户任务划分，而不是按目录：聊天、授权、CLI 管理、设置、Notebook、Automation、Agent 管理、Bridge 都是用户可以单独感知的业务闭环。
@@ -47,11 +49,11 @@
   - `docs/test/07-automation/README.md`
   - `docs/test/08-custom-agents/README.md`
   - `docs/test/09-bridge-desktop/README.md`
-  - `docs/test/10-projects/README.md`
+  - `docs/test/10-memory-soul/README.md`
 - 建议先执行高风险模块：模块 01、02、03、04、05。
 - 第二优先级：模块 06、07、09。
 - 第三优先级：模块 08。
-- 新增高优先级模块：模块 10 Projects。
+- 新增高优先级模块：模块 10 Memory / Soul。
 
 ### 模块关系图
 ```mermaid

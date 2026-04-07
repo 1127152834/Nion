@@ -11,6 +11,8 @@
 3. `identity_narrative` 与 `relationship_soul` 都有正式 artifact 路径与稳定状态。
 4. `agent-owned automation` 的来源、限制、暂停/恢复链路全部可见可测。
 5. legacy fallback 仅在 canonical source 缺失时生效。
+6. retention lifecycle 能把长期不用的 active 记录归档，并把长期归档记录清理为 `purged`。
+7. 前端 memory/soul 合同测试能通过 `pnpm test:contracts -- <test files...>` 运行。
 
 ## 最小回归集合
 
@@ -19,5 +21,6 @@ cd /Users/zhangtiancheng/Documents/项目/agent/nion/.worktrees/codex-memory-os-
 uv run pytest tests/test_memory_os_*.py tests/test_memory_growth_router.py tests/test_automation_router.py -q
 
 cd /Users/zhangtiancheng/Documents/项目/agent/nion/.worktrees/codex-memory-os-m0-contract-foundation/frontend && \
-pnpm typecheck
+pnpm typecheck && \
+pnpm test:contracts -- src/core/soul/test-runner.contract.test.ts src/core/soul/presentation.test.ts src/components/workspace/memory/soul-growth-timeline.contract.test.ts src/components/workspace/memory/memory-home-page.contract.test.ts src/components/workspace/memory/memory-user-page.contract.test.ts src/components/workspace/memory/memory-growth-panel.contract.test.ts
 ```

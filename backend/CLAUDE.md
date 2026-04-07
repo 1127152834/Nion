@@ -110,6 +110,12 @@ When extending memory in this branch:
   - `/workspace/memory/growth` must expose state-aware governance semantics instead of a flat action row
   - `/workspace/memory/growth` recent growth should prefer backend `recent soul events` instead of frontend-local inferred state
   - `/workspace/automation/*` must distinguish `user-owned` vs `agent-owned`, and explain provenance/mutability in product language
+- Memory/Soul hardening expectations:
+  - Use `nion.memory_os.clock.utcnow_z()` for Memory OS time values.
+  - Keep `growth_orchestrator.py` as the coordination layer for soul reflection, learning, procedure, and automation projections.
+  - Keep `retention.py` as the archive/purge lifecycle owner; prompt context should keep reading only active records.
+  - Keep `automation_bridge.py` as the Memory OS boundary for agent-owned / soul-driven automation provenance events.
+  - Frontend memory/soul contract tests should be runnable through `pnpm test:contracts -- <test files...>`.
 
 Soul event stream contract in this branch:
 
