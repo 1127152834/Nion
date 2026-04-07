@@ -22,6 +22,8 @@ from nion.client import NionClient
 from nion.config.app_config import get_app_config
 from nion.config.automation_config import get_automation_config
 from nion.config.paths import Paths, get_paths, resolve_path
+from nion.memory_os.repository import MemoryOSRepository
+from nion.memory_os.projections import record_soul_automation_created
 from nion.threads.repository import ThreadRepository
 
 
@@ -93,6 +95,13 @@ class AutomationService:
             session_policy=build_automation_session_policy(payload.get("session_policy")),
             toolset_profile=str(payload.get("toolset_profile") or get_automation_config().default_toolset_profile),
             next_run_at=payload.get("next_run_at"),
+            owner_type=str(payload.get("owner_type") or "user"),
+            owner_id=str(payload.get("owner_id") or "user:default"),
+            mutability=str(payload.get("mutability") or "editable"),
+            provenance_memory_id=_maybe_str(payload.get("provenance_memory_id")),
+            provenance_learning_id=_maybe_str(payload.get("provenance_learning_id")),
+            visible_in_ui=bool(payload.get("visible_in_ui", True)),
+            policy_flags=self._coerce_mapping(payload.get("policy_flags")),
             created_at=format_automation_datetime(now),
             updated_at=format_automation_datetime(now),
         )
@@ -100,7 +109,14 @@ class AutomationService:
         if draft.next_run_at is None and enabled and draft.trigger_kind == "schedule":
             draft.next_run_at = compute_next_run_at(draft, now=now)
 
-        return self._repository.save_job(draft)
+        job = self._repository.save_job(draft)
+        if job.owner_type == "agent" and (job.provenance_memory_id or job.provenance_learning_id):
+            record_soul_automation_created(
+                repository=self._memory_repository(),
+                job=job,
+                created_at=job.created_at,
+            )
+        return job
 
     def get_job(self, job_id: str) -> AutomationJob:
         job = self._repository.get_job(job_id)
@@ -202,9 +218,16 @@ class AutomationService:
 
     @staticmethod
     def _coerce_schedule_metadata(raw_metadata: Any) -> dict[str, Any]:
+        return AutomationService._coerce_mapping(raw_metadata)
+
+    @staticmethod
+    def _coerce_mapping(raw_metadata: Any) -> dict[str, Any]:
         if isinstance(raw_metadata, Mapping):
             return dict(raw_metadata)
         return {}
+
+    def _memory_repository(self):
+        return MemoryOSRepository(self._paths.memory_os_index_db_file)
 
 class LocalThreadStateClient:
     def __init__(self, repository: ThreadRepository | None = None):

@@ -73,3 +73,31 @@ void test("describes growth events including accepted and rolled back soul chang
   assert.match(events[0]?.label ?? "", /刚刚生效/);
   assert.match(events[1]?.label ?? "", /已回退/);
 });
+
+void test("describes richer recent soul events with explanation details", () => {
+  const events = describeSoulGrowthEvents([
+    {
+      event_type: "identity_narrative_promoted",
+      memory_id: "agent_self_narrative_main",
+      related_memory_id: "agent_self_narrative_staged_main",
+      summary: "主智能体当前身份叙事已经更新。",
+      metadata: {
+        artifact_uri: "nion://memory-os/artifacts/agent-self/narrative/identity_narrative.md",
+      },
+    },
+    {
+      event_type: "soul_automation_created",
+      memory_id: "job_01",
+      related_memory_id: "soul_rel_user_default",
+      summary: "智能体把稳定服务方式外化成自动化。",
+      metadata: {
+        provenance_learning_id: "learning_01",
+      },
+    },
+  ]);
+
+  assert.match(events[0]?.label ?? "", /身份叙事晋升/);
+  assert.match(events[0]?.detail ?? "", /staged_main|当前叙事/);
+  assert.match(events[1]?.label ?? "", /成长动作外化/);
+  assert.match(events[1]?.detail ?? "", /来源记忆/);
+});

@@ -70,3 +70,33 @@ def test_rollback_soul_overlay_archives_active_overlay(tmp_path: Path):
 
     assert result["action"] == "rollback"
     assert overlay["status"] == "archived"
+
+
+def test_promote_identity_narrative_replaces_staged_record_and_emits_event(tmp_path: Path):
+    from nion.memory_os.soul_artifacts import MemoryOSSoulArtifactStore
+    from nion.memory_os.soul_governance import promote_identity_narrative
+
+    repo = MemoryOSRepository(tmp_path / "memory-os" / "index.sqlite3")
+    store = MemoryOSSoulArtifactStore(repository=repo, base_dir=tmp_path)
+    store.write_identity_narrative(
+        body="# Identity Narrative\n\n## Who I Am\n我是一个正在变得更稳的助手。\n",
+        created_at="2026-04-07T00:00:00Z",
+        staged=True,
+    )
+
+    result = promote_identity_narrative(
+        repo,
+        staged_memory_id="agent_self_narrative_staged_main",
+        created_at="2026-04-07T00:10:00Z",
+    )
+
+    records = repo.list_memory_records(domain="agent_self")
+    active = next(row for row in records if row["memory_id"] == "agent_self_narrative_main")
+    staged = next(row for row in records if row["memory_id"] == "agent_self_narrative_staged_main")
+    events = repo.list_soul_events()
+
+    assert result["memory_record"]["memory_id"] == "agent_self_narrative_main"
+    assert active["status"] == "active"
+    assert staged["status"] == "archived"
+    assert events[0].event_type == "identity_narrative_promoted"
+    assert events[0].related_memory_id == "agent_self_narrative_staged_main"

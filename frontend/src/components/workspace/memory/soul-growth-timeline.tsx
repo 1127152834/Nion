@@ -27,7 +27,7 @@ export function SoulGrowthTimeline(props: {
           最近为什么发生了变化：这里只保留可解释的成长结果，不直接暴露底层原始材料。
         </p>
         <p className="text-xs text-muted-foreground">
-          事件会以“提案生成 / 刚刚生效 / 已回退”这类状态向用户说明成长过程。
+          事件会以“叙事草稿生成 / 关系姿态刷新 / 成长动作外化 / 刚刚生效 / 已回退”这类状态向用户说明成长过程。
         </p>
         <p className="text-xs text-muted-foreground">
           最近本地联动状态会结合 lastAcceptedProposalId / lastRejectedProposalId 实时更新。
@@ -36,6 +36,7 @@ export function SoulGrowthTimeline(props: {
           <div key={event.id} className="rounded border px-3 py-2 text-muted-foreground">
             <div className="font-medium text-foreground/80">{event.label}</div>
             <div>{event.summary}</div>
+            {event.detail ? <div className="text-xs text-muted-foreground">{event.detail}</div> : null}
           </div>
         ))}
       </CardContent>

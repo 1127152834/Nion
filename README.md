@@ -26,6 +26,7 @@
 - 嵌入式会话契约：`NionClient` 与 scheduler workflow 也支持 `session_mode` / `memory_read` / `memory_write`，与 Web 聊天入口保持一致；带 checkpointer 的多轮线程会继承已持久化的记忆会话策略，不会因后续缺省调用而误恢复长期记忆注入/写回
 - 结构化长期记忆：当前仍以 `/api/memory` 为主入口，记忆设置页支持存储 provider 选择、当前记忆本地筛选、整库清空和单条事实删除，且这些配置均通过设置中心持久化，不回流 `config.yaml`
 - Memory OS 增量能力：当前分支已在 legacy `/api/memory` 之外引入 `Memory OS` 增量路径，用于承载 memory growth、user model 控制、prompt/continuity bridge、heartbeat/self-maintenance skeleton，以及 `agent-owned automation` ownership 治理；主链仍保留 legacy fallback，不做硬切
+- Soul System 增量能力：主智能体现在已有 canonical soul artifact、compiled soul runtime、soul governance、recent soul events，以及由 soul growth 外化的 automation provenance；`legacy SOUL.md` 与 legacy memory 仍保留 fallback，不做硬切
 - token telemetry：聊天主流与子智能体流式执行会按 chunk 逐步标记 token source，避免跨 Python `Context` 恢复流时触发 telemetry 清理异常
 
 ---
@@ -223,6 +224,7 @@ NION_STATIC_EXPORT=1 pnpm --dir frontend build
   - 展示学习主题、方法草案、灵魂提案
   - 当前展示 `候选中 / 已生效 / 已冻结 / 已拒绝` 状态语义
   - learning / procedure / soul 会按各自治理语义开放 `接受 / 冻结 / 恢复 / 拒绝`
+  - `Recent Growth` 已改为读取后端一等 `recent soul events`，当前覆盖 `identity narrative staged/promoted`、`relationship soul refreshed`、`soul journal written`、`soul automation created`、proposal accept/reject、overlay rollback
 - `/workspace/memory/user`
   - 已开始优先读取真实 `user_model` records
   - legacy memory 仍可只读 fallback，并明确标识为 `legacy 映射`
@@ -232,6 +234,7 @@ NION_STATIC_EXPORT=1 pnpm --dir frontend build
   - 列表页会分开呈现 `用户创建` 与 `Agent 创建`
   - `agent-owned` 任务可见、可 pause/resume，但不能走普通编辑链路
   - 详情页会解释 `编辑权限 / 来源记忆 / 来源学习主题`
+  - 后端创建链路已支持 `owner_type / mutability / provenance_memory_id / provenance_learning_id`，便于把 soul-driven automation 正式上升为一等数据
 
 ---
 

@@ -90,4 +90,11 @@ export interface AutomationJobCreateInput {
   implicit_mentions?: AutomationImplicitMention[];
   session_policy?: Record<string, unknown>;
   toolset_profile?: string;
+  owner_type?: "user" | "agent";
+  owner_id?: string;
+  mutability?: "editable" | "pause_only";
+  provenance_memory_id?: string | null;
+  provenance_learning_id?: string | null;
+  visible_in_ui?: boolean;
+  policy_flags?: Record<string, unknown>;
 }

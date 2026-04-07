@@ -113,11 +113,34 @@ class MemoryOSRepository:
                     event_id TEXT PRIMARY KEY,
                     event_type TEXT NOT NULL,
                     memory_id TEXT NOT NULL,
+                    related_memory_id TEXT,
                     summary TEXT NOT NULL,
-                    created_at TEXT NOT NULL
+                    created_at TEXT NOT NULL,
+                    actor TEXT,
+                    source TEXT,
+                    metadata_json TEXT NOT NULL DEFAULT '{}'
                 );
                 """
             )
+            self._ensure_column(conn, "soul_events", "related_memory_id", "TEXT")
+            self._ensure_column(conn, "soul_events", "actor", "TEXT")
+            self._ensure_column(conn, "soul_events", "source", "TEXT")
+            self._ensure_column(conn, "soul_events", "metadata_json", "TEXT NOT NULL DEFAULT '{}'")
+
+    @staticmethod
+    def _ensure_column(
+        conn: sqlite3.Connection,
+        table_name: str,
+        column_name: str,
+        column_definition: str,
+    ) -> None:
+        rows = conn.execute(f"PRAGMA table_info({table_name})").fetchall()
+        existing_columns = {str(row["name"]) for row in rows}
+        if column_name in existing_columns:
+            return
+        conn.execute(
+            f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_definition}"
+        )
 
     def healthcheck(self) -> dict[str, object]:
         with self._connect() as conn:
@@ -400,7 +423,8 @@ class MemoryOSRepository:
             )
         return event
 
-    def save_soul_event(self, event: SoulEventRecord) -> SoulEventRecord:
+    def save_soul_event(self, event: SoulEventRecord | dict[str, object]) -> SoulEventRecord:
+        record = event if isinstance(event, SoulEventRecord) else SoulEventRecord.model_validate(event)
         with self._connect() as conn:
             conn.execute(
                 """
@@ -408,33 +432,59 @@ class MemoryOSRepository:
                     event_id,
                     event_type,
                     memory_id,
+                    related_memory_id,
                     summary,
-                    created_at
+                    created_at,
+                    actor,
+                    source,
+                    metadata_json
                 )
-                VALUES (?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(event_id) DO UPDATE SET
                     event_type = excluded.event_type,
                     memory_id = excluded.memory_id,
+                    related_memory_id = excluded.related_memory_id,
                     summary = excluded.summary,
-                    created_at = excluded.created_at
+                    created_at = excluded.created_at,
+                    actor = excluded.actor,
+                    source = excluded.source,
+                    metadata_json = excluded.metadata_json
                 """,
                 (
-                    event.event_id,
-                    event.event_type,
-                    event.memory_id,
-                    event.summary,
-                    event.created_at,
+                    record.event_id,
+                    record.event_type,
+                    record.memory_id,
+                    record.related_memory_id,
+                    record.summary,
+                    record.created_at,
+                    record.actor,
+                    record.source,
+                    json.dumps(record.metadata, ensure_ascii=False),
                 ),
             )
-        return event
+        return record
 
     def list_soul_events(self) -> list[SoulEventRecord]:
         with self._connect() as conn:
             rows = conn.execute(
                 """
-                SELECT event_id, event_type, memory_id, summary, created_at
+                SELECT
+                    event_id,
+                    event_type,
+                    memory_id,
+                    related_memory_id,
+                    summary,
+                    created_at,
+                    actor,
+                    source,
+                    metadata_json
                 FROM soul_events
                 ORDER BY created_at DESC, event_id DESC
                 """
             ).fetchall()
-        return [SoulEventRecord.model_validate(dict(row)) for row in rows]
+        records: list[SoulEventRecord] = []
+        for row in rows:
+            payload = dict(row)
+            payload["metadata"] = json.loads(str(payload.pop("metadata_json") or "{}"))
+            records.append(SoulEventRecord.model_validate(payload))
+        return records

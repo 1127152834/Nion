@@ -16,9 +16,15 @@ export interface SoulProposalResponse {
 }
 
 export interface SoulEvent {
+  event_id?: string;
   event_type: string;
   memory_id: string;
+  related_memory_id?: string | null;
   summary: string;
+  created_at?: string;
+  actor?: string | null;
+  source?: string | null;
+  metadata?: Record<string, unknown>;
 }
 
 export interface SoulEventsResponse {

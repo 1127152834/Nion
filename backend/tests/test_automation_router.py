@@ -160,6 +160,36 @@ def test_create_automation_job():
     assert service.calls[0][0] == "create"
 
 
+def test_create_automation_job_accepts_agent_owned_provenance_fields():
+    service = FakeAutomationService()
+    with _client(service) as client:
+        response = client.post(
+            "/api/automation/jobs",
+            json={
+                "name": "Soul-driven monthly review",
+                "prompt": "在月底高压期提供低刺激复盘提醒",
+                "job_kind": "scheduled_task",
+                "schedule_kind": "interval",
+                "schedule_value": "900",
+                "delivery_mode": "local",
+                "delivery_targets": [],
+                "owner_type": "agent",
+                "owner_id": "agent:main",
+                "mutability": "pause_only",
+                "provenance_memory_id": "soul_rel_user_default",
+                "provenance_learning_id": "learning_01",
+                "policy_flags": {"source": "soul"},
+            },
+        )
+
+    assert response.status_code == 201
+    payload = service.calls[0][1]
+    assert payload["owner_type"] == "agent"
+    assert payload["mutability"] == "pause_only"
+    assert payload["provenance_memory_id"] == "soul_rel_user_default"
+    assert payload["provenance_learning_id"] == "learning_01"
+
+
 def test_create_automation_job_keeps_low_level_schedule_contract():
     service = FakeAutomationService()
     with _client(service) as client:

@@ -45,6 +45,25 @@ def test_soul_artifact_store_writes_identity_narrative_and_overlay(tmp_path: Pat
     assert "soul_overlay_active_main" in ids
 
 
+def test_soul_artifact_store_records_staged_identity_narrative_event(tmp_path: Path):
+    from nion.memory_os.soul_artifacts import MemoryOSSoulArtifactStore
+
+    repo = MemoryOSRepository(tmp_path / "memory-os" / "index.sqlite3")
+    store = MemoryOSSoulArtifactStore(repository=repo, base_dir=tmp_path)
+
+    narrative = store.write_identity_narrative(
+        body="# Identity Narrative\n\n## Who I Am\n我是一个正在变得更稳的助手。\n",
+        created_at="2026-04-07T00:00:00Z",
+        staged=True,
+    )
+
+    events = repo.list_soul_events()
+
+    assert narrative["memory_record"]["memory_id"] == "agent_self_narrative_staged_main"
+    assert events[0].event_type == "identity_narrative_staged"
+    assert events[0].memory_id == "agent_self_narrative_staged_main"
+
+
 def test_import_legacy_soul_file_creates_core_soul_record(tmp_path: Path):
     from nion.memory_os.soul_artifacts import import_legacy_soul_file
 

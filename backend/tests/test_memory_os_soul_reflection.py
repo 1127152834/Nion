@@ -26,6 +26,8 @@ def test_soul_reflection_creates_journal_and_proposal_for_repeated_needs(tmp_pat
     assert result["journal_path"].endswith("memory-os/artifacts/agent-self/soul-journal/2026/04/06/reflection_2026-04-06.md")
     assert proposal["status"] == "candidate"
     assert "低刺激支持" in proposal["summary"]
+    events = repo.list_soul_events()
+    assert any(event.event_type == "soul_journal_written" for event in events)
 
 
 def test_soul_reflection_does_not_create_proposal_without_threshold(tmp_path: Path):

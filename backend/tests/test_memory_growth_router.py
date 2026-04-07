@@ -184,3 +184,31 @@ def test_memory_growth_router_exposes_soul_summary_and_proposal_controls(monkeyp
     assert accept.status_code == 200
     assert events.status_code == 200
     assert rollback.status_code == 200
+    assert "events" in events.json()
+
+
+def test_memory_growth_router_exposes_rich_recent_soul_events(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    repo = MemoryOSRepository(tmp_path / "memory-os" / "index.sqlite3")
+    repo.save_soul_event(
+        {
+            "event_id": "soul_evt_01",
+            "event_type": "identity_narrative_staged",
+            "memory_id": "agent_self_narrative_staged_main",
+            "related_memory_id": None,
+            "summary": "主智能体形成了新的身份叙事草稿。",
+            "created_at": "2026-04-07T00:00:00Z",
+            "actor": "agent:main",
+            "source": "soul_artifact_writer",
+            "metadata": {"artifact_uri": "nion://memory-os/artifacts/agent-self/narrative/staged_identity_narrative.md"},
+        }
+    )
+
+    with TestClient(create_app()) as client:
+        events = client.get("/api/memory/growth/soul/events")
+
+    assert events.status_code == 200
+    body = events.json()
+    assert body["events"][0]["event_type"] == "identity_narrative_staged"
+    assert body["events"][0]["actor"] == "agent:main"
+    assert body["events"][0]["metadata"]["artifact_uri"].endswith("staged_identity_narrative.md")

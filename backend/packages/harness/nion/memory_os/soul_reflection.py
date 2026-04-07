@@ -17,6 +17,7 @@ def reflect_soul_growth(
 ) -> dict[str, object]:
     journal_path = write_soul_journal(
         base_dir=base_dir,
+        repository=repository,
         repeated_needs=repeated_needs,
         created_at=created_at,
     )

@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-import uuid
-
 from .repository import MemoryOSRepository
-from .soul_events import SoulEventRecord
+from .soul_artifacts import MemoryOSSoulArtifactStore
+from .soul_events import record_soul_event
 
 
 def accept_soul_proposal(
@@ -37,14 +36,14 @@ def accept_soul_proposal(
         },
     }
     repository.save_memory_record(overlay)
-    repository.save_soul_event(
-        SoulEventRecord(
-            event_id=f"soul_evt_{uuid.uuid4().hex[:10]}",
-            event_type="proposal_accepted",
-            memory_id=memory_id,
-            summary=str(proposal["summary"]),
-            created_at=created_at,
-        )
+    record_soul_event(
+        repository,
+        event_type="proposal_accepted",
+        memory_id=memory_id,
+        summary=str(proposal["summary"]),
+        created_at=created_at,
+        related_memory_id="soul_overlay_active_main",
+        source="soul_governance",
     )
     return {"memory_id": memory_id, "action": "accept", "overlay": overlay}
 
@@ -57,14 +56,13 @@ def reject_soul_proposal(
 ) -> dict[str, object]:
     proposal = _find_record(repository, domain="soul", memory_id=memory_id)
     repository.update_memory_status(memory_id, "invalidated")
-    repository.save_soul_event(
-        SoulEventRecord(
-            event_id=f"soul_evt_{uuid.uuid4().hex[:10]}",
-            event_type="proposal_rejected",
-            memory_id=memory_id,
-            summary=str(proposal["summary"]),
-            created_at=created_at,
-        )
+    record_soul_event(
+        repository,
+        event_type="proposal_rejected",
+        memory_id=memory_id,
+        summary=str(proposal["summary"]),
+        created_at=created_at,
+        source="soul_governance",
     )
     return {"memory_id": memory_id, "action": "reject"}
 
@@ -76,20 +74,57 @@ def rollback_soul_overlay(
 ) -> dict[str, object]:
     overlay = _find_record(repository, domain="soul", memory_id="soul_overlay_active_main")
     repository.update_memory_status(str(overlay["memory_id"]), "archived")
-    repository.save_soul_event(
-        SoulEventRecord(
-            event_id=f"soul_evt_{uuid.uuid4().hex[:10]}",
-            event_type="overlay_rollback",
-            memory_id=str(overlay["memory_id"]),
-            summary=str(overlay["summary"]),
-            created_at=created_at,
-        )
+    record_soul_event(
+        repository,
+        event_type="overlay_rollback",
+        memory_id=str(overlay["memory_id"]),
+        summary=str(overlay["summary"]),
+        created_at=created_at,
+        source="soul_governance",
     )
     return {"memory_id": overlay["memory_id"], "action": "rollback"}
 
 
 def list_soul_events(repository: MemoryOSRepository) -> list[dict[str, object]]:
     return [event.model_dump() for event in repository.list_soul_events()]
+
+
+def promote_identity_narrative(
+    repository: MemoryOSRepository,
+    *,
+    staged_memory_id: str,
+    created_at: str,
+) -> dict[str, object]:
+    staged = _find_record(repository, domain="agent_self", memory_id=staged_memory_id)
+    repository.update_memory_status(staged_memory_id, "archived")
+    promoted = MemoryOSSoulArtifactStore(
+        repository=repository,
+        base_dir=repository._db_path.parent.parent,
+    ).write_identity_narrative(
+        body=_load_artifact_body(repository, staged),
+        created_at=created_at,
+        staged=False,
+    )["memory_record"]
+    provenance = dict(promoted.get("provenance", {}))
+    provenance["source_type"] = "governance_promotion"
+    provenance["generated_by"] = "promote_identity_narrative"
+    provenance["source_memory_id"] = staged_memory_id
+    promoted["provenance"] = provenance
+    repository.save_memory_record(promoted)
+    record_soul_event(
+        repository,
+        event_type="identity_narrative_promoted",
+        memory_id="agent_self_narrative_main",
+        related_memory_id=staged_memory_id,
+        summary=str(promoted["summary"]),
+        created_at=created_at,
+        source="soul_governance",
+        metadata={
+            "artifact_uri": promoted["artifact_uri"],
+            "promoted_from": staged_memory_id,
+        },
+    )
+    return {"memory_id": "agent_self_narrative_main", "action": "promote", "memory_record": promoted}
 
 
 def _find_record(
@@ -105,3 +140,19 @@ def _find_record(
     if record is None:
         raise KeyError(memory_id)
     return record
+
+
+def _load_artifact_body(repository: MemoryOSRepository, record: dict[str, object]) -> str:
+    artifact_uri = str(record.get("artifact_uri") or "")
+    if artifact_uri.endswith("staged_identity_narrative.md"):
+        path = (
+            repository._db_path.parent.parent
+            / "memory-os"
+            / "artifacts"
+            / "agent-self"
+            / "narrative"
+            / "staged_identity_narrative.md"
+        )
+        if path.exists():
+            return path.read_text(encoding="utf-8")
+    return f"# Identity Narrative\n\n## Who I Am\n{record['summary']}\n"

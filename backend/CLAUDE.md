@@ -99,6 +99,7 @@ but this branch also contains incremental `nion.memory_os.*` runtime pieces:
 - heartbeat/self-maintenance skeleton
 - `/api/memory/growth` governance surface
 - `agent-owned automation` ownership controls
+- soul artifact/runtime/governance/event stream bridge
 
 When extending memory in this branch:
 - prefer `nion.memory_os.*` instead of expanding legacy `memory.json`
@@ -107,7 +108,23 @@ When extending memory in this branch:
 - current product surface expectation:
   - `/workspace/memory/user` must clearly distinguish real `user_model` records from read-only legacy fallback mappings
   - `/workspace/memory/growth` must expose state-aware governance semantics instead of a flat action row
+  - `/workspace/memory/growth` recent growth should prefer backend `recent soul events` instead of frontend-local inferred state
   - `/workspace/automation/*` must distinguish `user-owned` vs `agent-owned`, and explain provenance/mutability in product language
+
+Soul event stream contract in this branch:
+
+- `/api/memory/growth/soul/events` is the product-facing recent soul event feed.
+- Event types currently include:
+  - `identity_narrative_staged`
+  - `identity_narrative_promoted`
+  - `relationship_soul_refreshed`
+  - `soul_journal_written`
+  - `soul_automation_created`
+  - `proposal_accepted`
+  - `proposal_rejected`
+  - `overlay_rollback`
+- Event records may include `related_memory_id`, `actor`, `source`, and `metadata`; prefer extending this stream instead of adding more frontend-only inferred timeline state.
+- `relationship_soul` remains a derived soul layer, not a new relationship truth source.
 
 Thread title handling:
 

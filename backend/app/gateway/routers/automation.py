@@ -37,6 +37,13 @@ class AutomationJobCreateRequest(BaseModel):
     skills: list[str] = Field(default_factory=list)
     session_policy: dict = Field(default_factory=dict)
     toolset_profile: str | None = None
+    owner_type: str = "user"
+    owner_id: str = "user:default"
+    mutability: str = "editable"
+    provenance_memory_id: str | None = None
+    provenance_learning_id: str | None = None
+    visible_in_ui: bool = True
+    policy_flags: dict = Field(default_factory=dict)
 
 
 class AutomationJobResponse(BaseModel):

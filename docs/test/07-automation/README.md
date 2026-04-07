@@ -19,6 +19,7 @@
   - reminder 与 scheduled task 共用一个创建器。
   - scheduled task 沿用主聊天输入能力，当前先支持 `@笔记`。
   - `run now` 和 `GET /api/automation/runs` 都要关注 `isolated_thread_id`，这是结果区线程预览的关键字段。
+  - agent-owned automation 的创建链路已支持 `owner_type / mutability / provenance_memory_id / provenance_learning_id` 透传；带 soul provenance 的 agent-owned job 会写入 `recent soul events`。
 - 关键代码位置：
   - 前端页面：`frontend/src/app/workspace/automation/page.tsx`
   - 前端组件：`frontend/src/components/workspace/automation/automation-page.tsx`、`automation-console.tsx`、`automation-creator.tsx`、`automation-list-panel.tsx`、`automation-results-panel.tsx`、`automation-run-preview.tsx`、`automation-overview-cards.tsx`
@@ -67,6 +68,7 @@
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | 列出 jobs | `/api/automation/jobs` | GET | 获取任务列表 | AutomationPage | service 可用 | 无 | `jobs[]` | 返回当前任务列表 | 无 | 重复 GET 一致 | jobs 字段完整 |
 | 创建 job | `/api/automation/jobs` | POST | 创建 reminder/scheduled task | automation creator | payload 合法 | `name prompt job_kind schedule_* delivery_mode skills` | `job` | 两种 job 都可创建 | 无 | 连续创建相同任务 | 201，字段完整透传 |
+| 创建 agent-owned job | `/api/automation/jobs` | POST | 创建由 agent/soul growth 外化出的任务 | Memory OS / automation bridge | payload 合法且 owner 为 agent | `owner_type mutability provenance_memory_id provenance_learning_id policy_flags` | `job` + soul event | 创建成功并保留 provenance | 无 | 重复创建 | job 字段透传，`/api/memory/growth/soul/events` 可看到 `soul_automation_created` |
 | 获取 job | `/api/automation/jobs/{job_id}` | GET | 获取单 job | 页面/外部 | job 存在 | path job_id | `job` | 正常返回 | 404 | 重复 GET 一致 | job id 与 path 一致 |
 | pause job | `/api/automation/jobs/{job_id}/pause` | POST | 暂停任务 | job section | job 存在 | path job_id | `job` | state -> paused | 404 | 快速连点 | 调用 service.pause_job |
 | resume job | `/api/automation/jobs/{job_id}/resume` | POST | 恢复任务 | job section | paused job | path job_id | `job` | state -> scheduled | 404 | 快速连点 | 恢复后 `enabled/state` 正确 |

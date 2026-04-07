@@ -150,5 +150,9 @@ class SoulEventRecord(BaseModel):
     event_id: str
     event_type: str
     memory_id: str
+    related_memory_id: str | None = None
     summary: str
     created_at: str
+    actor: str | None = None
+    source: str | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)

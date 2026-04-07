@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from .repository import MemoryOSRepository
+from .soul_events import record_soul_event
 
 
 class MemoryOSSoulArtifactStore:
@@ -73,7 +74,21 @@ class MemoryOSSoulArtifactStore:
                 "generated_by": "soul_artifact_writer",
             },
         }
-        return self._write_artifact(path=path, body=body, record=record)
+        written = self._write_artifact(path=path, body=body, record=record)
+        if staged:
+            record_soul_event(
+                self._repository,
+                event_type="identity_narrative_staged",
+                memory_id=str(record["memory_id"]),
+                summary=f"主智能体形成了新的身份叙事草稿：{record['summary']}",
+                created_at=created_at,
+                source="soul_artifact_writer",
+                metadata={
+                    "artifact_uri": record["artifact_uri"],
+                    "status": record["status"],
+                },
+            )
+        return written
 
     def write_active_overlay(self, *, body: str, created_at: str) -> dict[str, object]:
         path = self._artifacts_dir / "soul" / "overlays" / "active_overlay.md"
@@ -96,6 +111,39 @@ class MemoryOSSoulArtifactStore:
             "provenance": {
                 "source_type": "governance_acceptance",
                 "generated_by": "soul_artifact_writer",
+            },
+        }
+        return self._write_artifact(path=path, body=body, record=record)
+
+    def write_relationship_soul(
+        self,
+        *,
+        body: str,
+        created_at: str,
+        target_id: str = "user:default",
+        source_relationship_ids: list[str] | None = None,
+    ) -> dict[str, object]:
+        path = self._artifacts_dir / "soul" / "relationship" / "relationship_soul.md"
+        record = {
+            "memory_id": "soul_rel_user_default",
+            "domain": "soul",
+            "subtype": "relationship_soul",
+            "owner_type": "agent",
+            "scope": "user",
+            "memory_type": "semantic",
+            "subject_id": "agent:main",
+            "target_id": target_id,
+            "status": "active",
+            "title": "当前用户关系人格层",
+            "summary": _extract_summary(body),
+            "confidence": 0.9,
+            "created_at": created_at,
+            "updated_at": created_at,
+            "artifact_uri": "nion://memory-os/artifacts/soul/relationship/relationship_soul.md",
+            "provenance": {
+                "source_type": "relationship_derivation",
+                "generated_by": "relationship_soul_writer",
+                "source_relationship_ids": source_relationship_ids or [],
             },
         }
         return self._write_artifact(path=path, body=body, record=record)
