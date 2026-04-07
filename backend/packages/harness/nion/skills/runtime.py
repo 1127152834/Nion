@@ -27,3 +27,35 @@ def matches_skill_hook(active_skill: dict[str, Any] | None, event_name: str) -> 
     if skill is None:
         return False
     return event_name in skill["hooks"]
+
+
+def build_skill_hook_side_effects(active_skill: dict[str, Any] | None, event_name: str) -> dict[str, Any] | None:
+    skill = normalize_active_skill(active_skill)
+    if skill is None or not matches_skill_hook(skill, event_name):
+        return None
+    return {
+        "skill_name": skill["name"],
+        "skill_hooks": skill["hooks"],
+        "skill_context": skill["context"],
+    }
+
+
+def merge_skill_hook_side_effects(
+    hook_event: dict[str, Any],
+    active_skill: dict[str, Any] | None,
+    event_name: str,
+) -> dict[str, Any]:
+    side_effects = build_skill_hook_side_effects(active_skill, event_name)
+    if side_effects is None:
+        return hook_event
+
+    merged = dict(hook_event)
+    existing_side_effects = merged.get("side_effects")
+    if isinstance(existing_side_effects, dict):
+        merged["side_effects"] = {
+            **existing_side_effects,
+            **side_effects,
+        }
+    else:
+        merged["side_effects"] = side_effects
+    return merged

@@ -383,6 +383,7 @@ def task_tool(
     execution_mode = None
     host_workdir = None
     trace_id = None
+    active_skill = None
 
     if runtime is not None:
         sandbox_state = runtime.state.get("sandbox")
@@ -399,6 +400,9 @@ def task_tool(
 
         # Get or generate trace_id for distributed tracing
         trace_id = metadata.get("trace_id") or str(uuid.uuid4())[:8]
+        candidate_active_skill = runtime.state.get("active_skill")
+        if isinstance(candidate_active_skill, dict) and candidate_active_skill.get("context") == "fork":
+            active_skill = candidate_active_skill
 
     if trace_id is None:
         trace_id = str(uuid.uuid4())[:8]
@@ -435,6 +439,7 @@ def task_tool(
         execution_mode=execution_mode,
         host_workdir=host_workdir,
         trace_id=trace_id,
+        active_skill=active_skill if isinstance(active_skill, dict) else None,
     )
 
     # Start background execution (always async to prevent blocking)
