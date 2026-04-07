@@ -46,8 +46,8 @@ Program 03D-A extends that surface to incident workflow:
 
 Current memory state:
 
-- Nion currently uses the legacy `memory.json` long-term memory path
-- `/api/memory` is the only supported memory surface
+- Nion now uses Memory OS as the long-term memory runtime backbone
+- `/api/memory` is a compatibility-shaped Memory OS surface, not a legacy `memory.json` backend
 - `Notebook` remains a separate knowledge-base / second-brain domain
 - provider-based memory, AutoDream, self-maintenance, heartbeat-driven memory maintenance, compaction, and rebuild are not part of the current runtime
 
@@ -203,8 +203,8 @@ The legacy IM channel runtime has been removed from this branch. A new desktop-f
 
 Memory note:
 
-- the current runtime stores long-term memory in `memory.json`
-- memory updates continue to flow through `nion.agents.memory.*`
+- the current runtime stores long-term memory in `memory-os/index.sqlite3`
+- memory updates flow through `nion.memory_os.*`
 - notebook content is not treated as memory by default
 
 ---

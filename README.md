@@ -24,9 +24,9 @@
 - 临时会话保护：`temporary_chat` 默认允许读取长期记忆但禁止写回，避免污染长期记忆文件
 - 聊天追问建议模型可在“模型设置”页单独指定；未设置时默认跟随当前聊天模型
 - 嵌入式会话契约：`NionClient` 与 scheduler workflow 也支持 `session_mode` / `memory_read` / `memory_write`，与 Web 聊天入口保持一致；带 checkpointer 的多轮线程会继承已持久化的记忆会话策略，不会因后续缺省调用而误恢复长期记忆注入/写回
-- 结构化长期记忆：当前仍以 `/api/memory` 为主入口，记忆设置页支持存储 provider 选择、当前记忆本地筛选、整库清空和单条事实删除，且这些配置均通过设置中心持久化，不回流 `config.yaml`
-- Memory OS 增量能力：当前代码库已在 legacy `/api/memory` 之外引入 `Memory OS` 增量路径，用于承载 memory growth、user model 控制、prompt/continuity bridge、heartbeat/self-maintenance skeleton，以及 `agent-owned automation` ownership 治理；主链仍保留 legacy fallback，不做硬切
-- Soul System 增量能力：主智能体现在已有 canonical soul artifact、compiled soul runtime、soul governance、recent soul events，以及由 soul growth 外化的 automation provenance；`legacy SOUL.md` 与 legacy memory 仍保留 fallback，不做硬切
+- 结构化长期记忆：`/api/memory` 已切到 Memory OS 兼容视图，运行时不再以 `memory.json` 作为长期记忆后端
+- Memory OS：当前代码库已将 user model、prompt/continuity context、growth governance、retention、agent-owned automation ownership 全部纳入统一 Memory OS 主链
+- Soul System：主智能体使用 canonical soul artifact 与 compiled soul runtime，运行时不再依赖 `SOUL.md` fallback
 - Memory / Soul 完整版本收口能力：当前代码库已补 canonical clock、soul runtime freshness、growth orchestrator、retention archive/purge、agent-owned automation bridge，以及前端 `test:contracts` 合同测试入口
 - 能力治理主线：当前代码库已补 capability catalog / capability actions / skill runtime / explicit notebook-memory bridge provenance / capability autopilot prompt guidance；默认策略改为“用户只说目标，agent 优先自动发现并调用 notebook / memory / skill / MCP / CLI 能力”
 - token telemetry：聊天主流与子智能体流式执行会按 chunk 逐步标记 token source，避免跨 Python `Context` 恢复流时触发 telemetry 清理异常
@@ -229,7 +229,7 @@ NION_STATIC_EXPORT=1 pnpm --dir frontend build
   - `Recent Growth` 已改为读取后端一等 `recent soul events`，当前覆盖 `identity narrative staged/promoted`、`relationship soul refreshed`、`soul journal written`、`soul automation created`、proposal accept/reject、overlay rollback
 - `/workspace/memory/user`
   - 已开始优先读取真实 `user_model` records
-  - legacy memory 仍可只读 fallback，并明确标识为 `legacy 映射`
+  - 所有用户画像卡片都绑定真实 `user_model` records
   - 只有真实 `user_model` record 才开放 `修正 / 冻结 / 申请遗忘 / 拒绝`
 - `/workspace/automation/*`
   - 已开始区分 `user-owned` 与 `agent-owned` automation

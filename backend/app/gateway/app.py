@@ -7,6 +7,7 @@ from fastapi import FastAPI
 from app.gateway.config import get_gateway_config
 from app.runtime.app_factory import create_runtime_app
 from nion.config.app_config import get_app_config
+from nion.memory_os.compat import finalize_legacy_cutover
 
 # Configure logging
 logging.basicConfig(
@@ -31,6 +32,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         logger.exception(error_msg)
         raise RuntimeError(error_msg) from e
     config = get_gateway_config()
+    finalize_legacy_cutover()
     logger.info(f"Starting API Gateway on {config.host}:{config.port}")
 
     # NOTE: MCP tools initialization is NOT done here because:

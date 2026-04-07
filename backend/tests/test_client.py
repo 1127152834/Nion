@@ -134,14 +134,14 @@ class TestConfigQueries:
 
     def test_get_memory(self, client):
         memory = {"version": "1.0", "facts": []}
-        with patch("nion.agents.memory.updater.get_memory_data", return_value=memory) as mock_get:
+        with patch("nion.memory_os.compat.build_legacy_memory_view", return_value=memory) as mock_get:
             result = client.get_memory()
             mock_get.assert_called_once()
         assert result == memory
 
     def test_clear_memory(self, client):
         memory = {"version": "1.0", "facts": []}
-        with patch("nion.agents.memory.updater.clear_memory_data", return_value=memory) as mock_clear:
+        with patch("nion.memory_os.compat.clear_memory_os_memory", return_value=memory) as mock_clear:
             result = client.clear_memory()
             mock_clear.assert_called_once()
         assert result == memory
@@ -149,7 +149,7 @@ class TestConfigQueries:
     def test_delete_memory_fact(self, client):
         memory = {"version": "1.0", "facts": [{"id": "fact_keep"}]}
         with patch(
-            "nion.agents.memory.updater.delete_memory_fact",
+            "nion.memory_os.compat.delete_memory_os_fact",
             return_value=memory,
         ) as mock_delete:
             result = client.delete_memory_fact("fact_delete")
@@ -158,28 +158,28 @@ class TestConfigQueries:
 
     def test_export_memory(self, client):
         memory = {"version": "1.0", "facts": []}
-        with patch("nion.agents.memory.updater.get_memory_data", return_value=memory) as mock_get:
+        with patch("nion.memory_os.compat.build_legacy_memory_view", return_value=memory) as mock_get:
             result = client.export_memory()
             mock_get.assert_called_once()
         assert result == memory
 
     def test_import_memory(self, client):
         memory = {"version": "1.0", "facts": []}
-        with patch("nion.agents.memory.updater.import_memory_data", return_value=memory) as mock_import:
+        with patch("nion.memory_os.compat.import_legacy_memory_into_memory_os", return_value=memory) as mock_import:
             result = client.import_memory(memory)
             mock_import.assert_called_once_with(memory)
         assert result == memory
 
     def test_create_memory_fact(self, client):
         memory = {"version": "1.0", "facts": [{"id": "fact_new"}]}
-        with patch("nion.agents.memory.updater.create_memory_fact", return_value=memory) as mock_create:
+        with patch("nion.memory_os.compat.create_memory_os_fact", return_value=memory) as mock_create:
             result = client.create_memory_fact("hello", category="context", confidence=0.8)
             mock_create.assert_called_once_with(content="hello", category="context", confidence=0.8)
         assert result == memory
 
     def test_update_memory_fact(self, client):
         memory = {"version": "1.0", "facts": [{"id": "fact_edit"}]}
-        with patch("nion.agents.memory.updater.update_memory_fact", return_value=memory) as mock_update:
+        with patch("nion.memory_os.compat.update_memory_os_fact", return_value=memory) as mock_update:
             result = client.update_memory_fact("fact_edit", content="updated")
             mock_update.assert_called_once_with(
                 fact_id="fact_edit",
@@ -780,7 +780,7 @@ class TestSkillsManagement:
 class TestMemoryManagement:
     def test_reload_memory(self, client):
         data = {"version": "1.0", "facts": []}
-        with patch("nion.agents.memory.updater.reload_memory_data", return_value=data):
+        with patch("nion.memory_os.compat.build_legacy_memory_view", return_value=data):
             result = client.reload_memory()
         assert result == data
 
@@ -794,7 +794,15 @@ class TestMemoryManagement:
         config.injection_enabled = True
         config.max_injection_tokens = 2000
 
-        with patch("nion.config.memory_config.get_memory_config", return_value=config):
+        with patch("nion.memory_os.compat.get_memory_os_config", return_value={
+            "enabled": True,
+            "storage_path": ".nion/memory-os/index.sqlite3",
+            "debounce_seconds": 30,
+            "max_facts": 100,
+            "fact_confidence_threshold": 0.7,
+            "injection_enabled": True,
+            "max_injection_tokens": 2000,
+        }):
             result = client.get_memory_config()
 
         assert result["enabled"] is True
@@ -1492,11 +1500,11 @@ class TestScenarioMemoryWorkflow:
         config.injection_enabled = True
         config.max_injection_tokens = 2000
 
-        with patch("nion.agents.memory.updater.get_memory_data", return_value=initial_data):
+        with patch("nion.memory_os.compat.build_legacy_memory_view", return_value=initial_data):
             mem = client.get_memory()
         assert len(mem["facts"]) == 1
 
-        with patch("nion.agents.memory.updater.reload_memory_data", return_value=updated_data):
+        with patch("nion.memory_os.compat.build_legacy_memory_view", return_value=updated_data):
             refreshed = client.reload_memory()
         assert len(refreshed["facts"]) == 2
 
@@ -1901,8 +1909,16 @@ class TestGatewayConformance:
         }
 
         with (
-            patch("nion.config.memory_config.get_memory_config", return_value=mem_cfg),
-            patch("nion.agents.memory.updater.get_memory_data", return_value=memory_data),
+            patch("nion.memory_os.compat.get_memory_os_config", return_value={
+                "enabled": True,
+                "storage_path": ".nion/memory-os/index.sqlite3",
+                "debounce_seconds": 30,
+                "max_facts": 100,
+                "fact_confidence_threshold": 0.7,
+                "injection_enabled": True,
+                "max_injection_tokens": 2000,
+            }),
+            patch("nion.memory_os.compat.build_legacy_memory_view", return_value=memory_data),
         ):
             result = client.get_memory_status()
 

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from nion.agents.memory.updater import create_memory_fact
+from nion.memory_os.compat import create_memory_os_fact
 from nion.notebook.history import NotebookHistoryService
 from nion.notebook.service import NotebookService
 
@@ -44,7 +44,7 @@ def build_capability_bridge_actions() -> list[dict]:
 
 def _extract_memory_from_notebook_note(*, note_id: str, instruction: str) -> dict:
     note = NotebookService().read_note(note_id)
-    memory = create_memory_fact(
+    memory = create_memory_os_fact(
         content=f"{instruction}\n\n标题: {note.title}\n内容: {note.body}",
         category="context",
         confidence=0.5,

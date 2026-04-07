@@ -777,7 +777,7 @@ export const enUS: Translations = {
         customMode: "Custom storage",
         customClassLabel: "Custom storage class",
         customClassPlaceholder:
-          "nion.agents.memory.storage.FileMemoryStorage",
+          "memory_os",
       },
       recall: {
         title: "Memory Search",

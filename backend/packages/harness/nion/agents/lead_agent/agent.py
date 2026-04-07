@@ -8,7 +8,6 @@ from nion.agents.lead_agent.prompt import apply_prompt_template
 from nion.agents.middlewares.clarification_middleware import ClarificationMiddleware
 from nion.agents.middlewares.continuity_middleware import ContinuityMiddleware
 from nion.agents.middlewares.loop_detection_middleware import LoopDetectionMiddleware
-from nion.agents.middlewares.memory_middleware import MemoryMiddleware
 from nion.agents.middlewares.recall_capture_middleware import RecallCaptureMiddleware
 from nion.agents.middlewares.subagent_limit_middleware import SubagentLimitMiddleware
 from nion.agents.middlewares.todo_middleware import TodoMiddleware
@@ -218,7 +217,6 @@ def _build_middlewares(
     if todo_list_middleware is not None:
         middlewares.append(todo_list_middleware)
 
-    middlewares.append(MemoryMiddleware(agent_name=agent_name))
     middlewares.append(RecallCaptureMiddleware(agent_name=agent_name or "lead_agent"))
     middlewares.append(ContinuityMiddleware())
     app_config = get_app_config()

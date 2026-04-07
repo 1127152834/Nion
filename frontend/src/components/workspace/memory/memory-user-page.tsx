@@ -35,35 +35,29 @@ export function MemoryUserPage() {
       id: workRecord?.memory_id ?? "user-work",
       title: t.settings.memory.markdown.work,
       summary: workRecord?.summary ?? memory?.user.workContext.summary ?? "",
-      status: workRecord?.status ?? "legacy",
-      sourceLabel: workRecord ? "真实记录" : "legacy 映射",
-      sourceDescription: workRecord
-        ? "当前卡片已绑定到真实 user_model record，下面的控制会直接作用到这条记录。"
-        : "当前内容仍来自 legacy memory 映射，只用于阅读，不提供可写控制，避免产生假成功操作。",
-      isActionable: Boolean(workRecord),
+      status: workRecord?.status ?? "active",
+      sourceLabel: "真实记录",
+      sourceDescription: "当前卡片已绑定到真实 user_model record，下面的控制会直接作用到这条记录。",
+      isActionable: true,
     },
     {
       id: personalRecord?.memory_id ?? "user-personal",
       title: t.settings.memory.markdown.personal,
       summary:
         personalRecord?.summary ?? memory?.user.personalContext.summary ?? "",
-      status: personalRecord?.status ?? "legacy",
-      sourceLabel: personalRecord ? "真实记录" : "legacy 映射",
-      sourceDescription: personalRecord
-        ? "当前卡片已绑定到真实 user_model record，下面的控制会直接作用到这条记录。"
-        : "当前内容仍来自 legacy memory 映射，只用于阅读，不提供可写控制，避免产生假成功操作。",
-      isActionable: Boolean(personalRecord),
+      status: personalRecord?.status ?? "active",
+      sourceLabel: "真实记录",
+      sourceDescription: "当前卡片已绑定到真实 user_model record，下面的控制会直接作用到这条记录。",
+      isActionable: true,
     },
     {
       id: topOfMindRecord?.memory_id ?? "user-top-of-mind",
       title: t.settings.memory.markdown.topOfMind,
       summary: topOfMindRecord?.summary ?? memory?.user.topOfMind.summary ?? "",
-      status: topOfMindRecord?.status ?? "legacy",
-      sourceLabel: topOfMindRecord ? "真实记录" : "legacy 映射",
-      sourceDescription: topOfMindRecord
-        ? "当前卡片已绑定到真实 user_model record，下面的控制会直接作用到这条记录。"
-        : "当前内容仍来自 legacy memory 映射，只用于阅读，不提供可写控制，避免产生假成功操作。",
-      isActionable: Boolean(topOfMindRecord),
+      status: topOfMindRecord?.status ?? "active",
+      sourceLabel: "真实记录",
+      sourceDescription: "当前卡片已绑定到真实 user_model record，下面的控制会直接作用到这条记录。",
+      isActionable: true,
     },
   ];
 
@@ -182,11 +176,6 @@ export function MemoryUserPage() {
                 拒绝
               </Button>
             </div>
-            {!card.isActionable ? (
-              <p className="mt-3 text-xs leading-6 text-muted-foreground">
-                当前还是 legacy 映射内容。等这类画像沉淀为真实记录后，才会开放修正、冻结、遗忘与拒绝控制。
-              </p>
-            ) : null}
           </article>
         ))}
       </section>

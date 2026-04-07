@@ -1,12 +1,11 @@
-export const FILE_MEMORY_STORAGE_CLASS =
-  "nion.agents.memory.storage.FileMemoryStorage";
+export const MEMORY_OS_RUNTIME_BACKEND = "memory_os";
 
 export type MemoryStorageMode = "file" | "custom";
 
 export function inferMemoryStorageMode(
   storageClass: string,
 ): MemoryStorageMode {
-  return storageClass === FILE_MEMORY_STORAGE_CLASS ? "file" : "custom";
+  return storageClass === MEMORY_OS_RUNTIME_BACKEND ? "file" : "custom";
 }
 
 export function resolveMemoryStorageModeSelection(
@@ -20,14 +19,14 @@ export function resolveMemoryStorageModeSelection(
 } {
   if (nextMode === "file") {
     return {
-      nextStoredClass: FILE_MEMORY_STORAGE_CLASS,
+      nextStoredClass: MEMORY_OS_RUNTIME_BACKEND,
       nextModeOverride: null,
       nextCustomDraft: "",
     };
   }
 
   const nextCustomDraft =
-    customDraft || (storedClass === FILE_MEMORY_STORAGE_CLASS ? storedClass : storedClass);
+    customDraft || (storedClass === MEMORY_OS_RUNTIME_BACKEND ? storedClass : storedClass);
 
   return {
     nextStoredClass: storedClass,
