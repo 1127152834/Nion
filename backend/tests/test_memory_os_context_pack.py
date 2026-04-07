@@ -48,6 +48,50 @@ def test_context_assembler_reads_active_user_model_records(tmp_path: Path):
     assert "用户偏好结论先行" in pack.to_prompt_block()
 
 
+def test_context_assembler_skips_archived_and_purged_records(tmp_path: Path):
+    repo = MemoryOSRepository(tmp_path / "memory-os" / "index.sqlite3")
+    repo.save_memory_record(
+        {
+            "memory_id": "mem_archived",
+            "domain": "user_model",
+            "subtype": "communication_preference",
+            "owner_type": "agent",
+            "scope": "user",
+            "memory_type": "semantic",
+            "subject_id": "user:default",
+            "status": "archived",
+            "summary": "这是已归档记录。",
+            "confidence": 0.9,
+            "created_at": "2026-04-04T00:00:00Z",
+            "updated_at": "2026-04-04T00:00:00Z",
+            "provenance": {"source_type": "test"},
+        }
+    )
+    repo.save_memory_record(
+        {
+            "memory_id": "mem_purged",
+            "domain": "user_model",
+            "subtype": "communication_preference",
+            "owner_type": "agent",
+            "scope": "user",
+            "memory_type": "semantic",
+            "subject_id": "user:default",
+            "status": "purged",
+            "summary": "这是已清理记录。",
+            "confidence": 0.9,
+            "created_at": "2026-04-04T00:00:00Z",
+            "updated_at": "2026-04-04T00:00:00Z",
+            "provenance": {"source_type": "test"},
+        }
+    )
+    assembler = MemoryOSContextAssembler(repo)
+
+    pack = assembler.build_prompt_memory_pack()
+
+    assert "这是已归档记录" not in pack.to_prompt_block()
+    assert "这是已清理记录" not in pack.to_prompt_block()
+
+
 def test_context_assembler_does_not_mix_soul_into_general_memory_pack(tmp_path: Path):
     repo = MemoryOSRepository(tmp_path / "memory-os" / "index.sqlite3")
     repo.save_memory_record(
