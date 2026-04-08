@@ -46,6 +46,21 @@ export function MemoryHomePage() {
       title: "Agent Growth",
       description: "查看学习主题、方法草案和灵魂提案的独立详情页。",
     },
+    {
+      href: "/workspace/memory/ledger",
+      title: "Memory ledger",
+      description: "查看记忆节点与当前 revision，核对只读账本快照。",
+    },
+    {
+      href: "/workspace/memory/evidence",
+      title: "Memory evidence",
+      description: "查看证据索引、来源类型与分页结果，不在首页内嵌明细。",
+    },
+    {
+      href: "/workspace/memory/runtime-trace",
+      title: "Runtime trace",
+      description: "查看 runtime trace 事件流，按线程或事件类型进入独立页面筛查。",
+    },
   ];
 
   return (
@@ -68,7 +83,7 @@ export function MemoryHomePage() {
         <SoulSummaryCard />
       </header>
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {entries.map((entry) => (
           <Link
             key={entry.href}
