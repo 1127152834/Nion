@@ -147,6 +147,14 @@ class ThreadService:
                 notebook_context=notebook_context,
                 execution_mode=context.get("execution_mode"),
                 host_workdir=context.get("host_workdir"),
+                session_mode=context.get("session_mode"),
+                memory_read=bool(context.get("memory_read", True)),
+                memory_write=bool(
+                    context.get(
+                        "memory_write",
+                        context.get("session_mode") != "temporary_chat",
+                    )
+                ),
                 project_id=context.get("project_id"),
                 project_phase=context.get("project_phase"),
                 primary_plan_id=context.get("primary_plan_id"),

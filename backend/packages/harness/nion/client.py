@@ -42,6 +42,7 @@ from nion.config.agents_config import AGENT_NAME_PATTERN
 from nion.config.app_config import get_app_config
 from nion.config.extensions_config import ExtensionsConfig, SkillStateConfig, get_extensions_config, reload_extensions_config
 from nion.config.paths import get_paths
+from nion.memory.evidence_capture.service import capture_turn_evidence
 from nion.model_management.service import get_model_registry_service
 from nion.models import create_chat_model
 from nion.system_capability_catalog import build_system_capability_catalog
@@ -261,6 +262,9 @@ class NionClient:
             "selected_cli_tools": overrides.get("selected_cli_tools", []),
             "surface": overrides.get("surface", "workspace"),
             "notebook_context": overrides.get("notebook_context"),
+            "session_mode": overrides.get("session_mode"),
+            "memory_read": overrides.get("memory_read", True),
+            "memory_write": overrides.get("memory_write"),
         }
         return RunnableConfig(
             configurable=configurable,
@@ -282,6 +286,9 @@ class NionClient:
             tuple(cfg.get("selected_cli_tools") or []),
             cfg.get("surface"),
             json.dumps(cfg.get("notebook_context") or {}, sort_keys=True, ensure_ascii=False),
+            cfg.get("session_mode"),
+            cfg.get("memory_read", True),
+            cfg.get("memory_write"),
         )
 
         if self._agent is not None and self._agent_config_key == key:
@@ -532,6 +539,7 @@ class NionClient:
         current_tool_batch: list[dict[str, Any]] = []
         tool_activity_timeline: list[dict[str, Any]] = []
         tool_activity_messages: list[dict[str, Any]] = []
+        latest_serialized_messages: list[dict[str, Any]] = []
 
         def flush_tool_batch() -> list[StreamEvent]:
             nonlocal current_tool_batch, tool_activity_timeline
@@ -715,7 +723,21 @@ class NionClient:
                         "latest_tool_activity": tool_activity_timeline[-1] if tool_activity_timeline else None,
                     },
                 )
+                latest_serialized_messages = [self._serialize_message(m) for m in messages]
 
+            capture_turn_evidence(
+                thread_id=thread_id,
+                turn_id=f"turn:{uuid.uuid4().hex}",
+                messages=latest_serialized_messages,
+                session_mode=configurable.get("session_mode"),
+                memory_read=bool(configurable.get("memory_read", True)),
+                memory_write=bool(
+                    configurable.get(
+                        "memory_write",
+                        configurable.get("session_mode") != "temporary_chat",
+                    )
+                ),
+            )
             _record_agent_event(
                 event_type="agent_run_completed",
                 thread_id=thread_id,
