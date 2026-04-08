@@ -88,6 +88,40 @@ def test_executor_runs_job_in_isolated_session_and_delivers_result():
     assert result.delivery_results[0]["status"] == "delivered"
 
 
+def test_executor_delivers_reminder_as_plain_text_without_invoking_runner():
+    job = _job("job-reminder")
+    job.job_kind = "reminder"
+    job.name = "Drink water"
+    job.prompt = "提醒我喝水"
+    captured = {"runner_called": False}
+
+    class DummyRunner:
+        def run(self, *, prompt, thread_id, context, config):
+            del prompt, thread_id, context, config
+            captured["runner_called"] = True
+            return AutomationExecutionOutput(
+                response_text="该喝水啦！",
+                artifacts=[],
+            )
+
+    class DummyDelivery:
+        def deliver(self, job, execution_output):
+            captured["delivery_text"] = execution_output.response_text
+            captured["delivery_thread_id"] = execution_output.isolated_thread_id
+            return [{"mode": "local", "status": "recorded"}]
+
+    executor = AutomationExecutor(runtime_runner=DummyRunner(), delivery_service=DummyDelivery())
+
+    result = executor.execute_job(job, run_id="run-reminder")
+
+    assert captured["runner_called"] is False
+    assert captured["delivery_text"] == "提醒我喝水"
+    assert captured["delivery_thread_id"] is None
+    assert result.result_summary == "提醒我喝水"
+    assert result.isolated_thread_id is None
+    assert result.status == "succeeded"
+
+
 def test_executor_marks_run_failed_when_delivery_is_unavailable():
     job = _job("job-1")
 

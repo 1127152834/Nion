@@ -121,24 +121,12 @@ class AutomationExecutor:
         trigger_event_payload: dict[str, Any] | None = None,
     ) -> AutomationRun:
         started_at = _utcnow()
-        isolated_thread_id = str(uuid4())
-
-        runtime_config = build_automation_runtime_config(
+        execution_output = self._build_execution_output(
             job,
             run_id=run_id,
-            isolated_thread_id=isolated_thread_id,
             trigger_event_name=trigger_event_name,
             trigger_event_payload=trigger_event_payload,
         )
-
-        execution_output = self._runtime_runner.run(
-            prompt=job.prompt,
-            thread_id=runtime_config["thread_id"],
-            context=runtime_config["context"],
-            config=runtime_config["config"],
-        )
-        if execution_output.isolated_thread_id is None:
-            execution_output.isolated_thread_id = isolated_thread_id
 
         delivery_results = self._delivery_service.deliver(job, execution_output)
         finished_at = _utcnow()
@@ -155,6 +143,42 @@ class AutomationExecutor:
             delivery_results=delivery_results,
             isolated_thread_id=execution_output.isolated_thread_id,
         )
+
+    def _build_execution_output(
+        self,
+        job: AutomationJob,
+        *,
+        run_id: str,
+        trigger_event_name: str | None = None,
+        trigger_event_payload: dict[str, Any] | None = None,
+    ) -> AutomationExecutionOutput:
+        if job.job_kind == "reminder":
+            return AutomationExecutionOutput(
+                response_text=job.prompt,
+                artifacts=[],
+                isolated_thread_id=None,
+            )
+
+        isolated_thread_id = str(uuid4())
+        runtime_config = build_automation_runtime_config(
+            job,
+            run_id=run_id,
+            isolated_thread_id=isolated_thread_id,
+            trigger_event_name=trigger_event_name,
+            trigger_event_payload=trigger_event_payload,
+        )
+
+        execution_output = self._runtime_runner.run(
+            prompt=job.prompt,
+            thread_id=runtime_config["thread_id"],
+            context=runtime_config["context"],
+            config=runtime_config["config"],
+        )
+        if execution_output.isolated_thread_id is None:
+            execution_output.isolated_thread_id = isolated_thread_id
+        return execution_output
+
+
 def _utcnow() -> str:
     return datetime.now(UTC).replace(microsecond=0).strftime("%Y-%m-%dT%H:%M:%SZ")
 
