@@ -173,6 +173,26 @@ class Paths:
         return self.memory_os_dir / "artifacts"
 
     @property
+    def memory_os_evidence_dir(self) -> Path:
+        """Root directory for Memory OS evidence payloads."""
+        return self.memory_os_dir / "evidence"
+
+    @property
+    def memory_os_indexes_dir(self) -> Path:
+        """Root directory for Memory OS secondary indexes."""
+        return self.memory_os_dir / "indexes"
+
+    @property
+    def memory_os_fts_dir(self) -> Path:
+        """Root directory for Memory OS full-text search state."""
+        return self.memory_os_dir / "fts"
+
+    @property
+    def memory_os_vector_dir(self) -> Path:
+        """Root directory for Memory OS vector index state."""
+        return self.memory_os_dir / "vector"
+
+    @property
     def automation_hooks_dir(self) -> Path:
         """Root directory for event-task package folders."""
         return self.automation_dir / "hooks"

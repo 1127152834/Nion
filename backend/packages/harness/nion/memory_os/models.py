@@ -45,6 +45,59 @@ class MemoryRecord(BaseModel):
     superseded_by: str | None = None
 
 
+class MemoryNode(BaseModel):
+    memory_id: str
+    canonical_key: str
+    owner_type: MemoryOwnerType
+    scope: MemoryScope
+    node_type: str
+    status: MemoryStatus
+    summary: str
+    created_at: str
+    updated_at: str
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class MemoryRevision(BaseModel):
+    revision_id: str
+    memory_id: str
+    revision_number: int
+    summary: str
+    evidence_ref: str | None = None
+    created_at: str
+    payload: dict[str, Any] = Field(default_factory=dict)
+
+
+class MemoryDecision(BaseModel):
+    decision_id: str
+    memory_id: str
+    revision_id: str | None = None
+    decision_type: str
+    rationale: str
+    created_at: str
+    decided_by: str | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class MemoryLinkRecord(BaseModel):
+    link_id: str
+    source_memory_id: str
+    target_memory_id: str
+    relation: str
+    created_at: str
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class UserOverrideRecord(BaseModel):
+    override_id: str
+    memory_id: str
+    field_name: str
+    value: dict[str, Any] = Field(default_factory=dict)
+    reason: str | None = None
+    created_at: str
+    updated_at: str
+
+
 class CandidateRecord(BaseModel):
     candidate_id: str
     proposed_domain: MemoryDomain

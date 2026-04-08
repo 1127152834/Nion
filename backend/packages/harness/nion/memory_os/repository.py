@@ -40,6 +40,65 @@ class MemoryOSRepository:
                     provenance_json TEXT NOT NULL
                 );
 
+                CREATE TABLE IF NOT EXISTS memory_nodes (
+                    memory_id TEXT PRIMARY KEY,
+                    canonical_key TEXT NOT NULL,
+                    owner_type TEXT NOT NULL,
+                    scope TEXT NOT NULL,
+                    node_type TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    summary TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    metadata_json TEXT NOT NULL DEFAULT '{}'
+                );
+
+                CREATE TABLE IF NOT EXISTS memory_revisions (
+                    revision_id TEXT PRIMARY KEY,
+                    memory_id TEXT NOT NULL,
+                    revision_number INTEGER NOT NULL,
+                    summary TEXT NOT NULL,
+                    evidence_ref TEXT,
+                    created_at TEXT NOT NULL,
+                    payload_json TEXT NOT NULL DEFAULT '{}',
+                    FOREIGN KEY(memory_id) REFERENCES memory_nodes(memory_id)
+                );
+
+                CREATE TABLE IF NOT EXISTS memory_decisions (
+                    decision_id TEXT PRIMARY KEY,
+                    memory_id TEXT NOT NULL,
+                    revision_id TEXT,
+                    decision_type TEXT NOT NULL,
+                    rationale TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    decided_by TEXT,
+                    metadata_json TEXT NOT NULL DEFAULT '{}',
+                    FOREIGN KEY(memory_id) REFERENCES memory_nodes(memory_id),
+                    FOREIGN KEY(revision_id) REFERENCES memory_revisions(revision_id)
+                );
+
+                CREATE TABLE IF NOT EXISTS memory_links (
+                    link_id TEXT PRIMARY KEY,
+                    source_memory_id TEXT NOT NULL,
+                    target_memory_id TEXT NOT NULL,
+                    relation TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    metadata_json TEXT NOT NULL DEFAULT '{}',
+                    FOREIGN KEY(source_memory_id) REFERENCES memory_nodes(memory_id),
+                    FOREIGN KEY(target_memory_id) REFERENCES memory_nodes(memory_id)
+                );
+
+                CREATE TABLE IF NOT EXISTS user_overrides (
+                    override_id TEXT PRIMARY KEY,
+                    memory_id TEXT NOT NULL,
+                    field_name TEXT NOT NULL,
+                    value_json TEXT NOT NULL DEFAULT '{}',
+                    reason TEXT,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    FOREIGN KEY(memory_id) REFERENCES memory_nodes(memory_id)
+                );
+
                 CREATE TABLE IF NOT EXISTS candidate_records (
                     candidate_id TEXT PRIMARY KEY,
                     proposed_domain TEXT NOT NULL,
