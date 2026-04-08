@@ -118,7 +118,37 @@ Nion 当前的 Memory / Soul 体系已经具备一批可见表面：
 - FTS / 向量 / taxonomy 索引都可重建
 - prompt hot layer 是运行时装配产物，不是长期真相
 
-### 6. 先可见，再可强
+### 6. Session Policy 必须是一等公民
+
+Nion 当前已经存在稳定运行时契约：
+
+- `session_mode`
+- `memory_read`
+- `memory_write`
+
+新系统必须把这组约束视为**架构层硬门**，而不是实现细节。后续所有 evidence capture、proposal、judge、Memory OS write 都必须先经过 session policy gate。
+
+具体规则：
+
+- `memory_write = true`
+  - 允许 durable Evidence Vault write
+  - 允许 proposal / judge / durable Memory OS write
+- `memory_write = false`
+  - 允许 session-local trace
+  - 允许 ephemeral evidence，仅用于本轮运行
+  - 禁止 durable Evidence Vault write
+  - 禁止 Memory OS write
+- `temporary_chat` 或其他 read-only session
+  - 允许长期记忆读取
+  - 允许本轮 runtime trace
+  - 禁止 durable memory pollution
+- embedded / scheduler / inherited runtime
+  - 必须继承调用方传入的 `session_mode / memory_read / memory_write`
+  - 不得自行放宽 durable write 权限
+
+自动写入的真实含义应是：**所有会话都走统一写入流水线，但 durable 落盘由 session policy 决定。**
+
+### 7. 先可见，再可强
 
 在全面切换自动写入和深度召回前，必须先建立：
 
@@ -217,6 +247,9 @@ Layer C: Runtime Assembly
 - `artifact_uri`
 - `sensitivity`
 - `retention_class`
+- `durability_scope`
+  - `session_ephemeral`
+  - `durable_user_memory`
 - `checksum`
 - `metadata`
 
@@ -292,6 +325,11 @@ Evidence 的索引层，只负责找，不负责定义“什么是真的”。
 - `last_used_at`
 - `salience_score`
 - `confidence_score`
+- `traceability_state`
+  - `full`
+  - `legacy_unverified`
+  - `redacted`
+  - `degraded`
 - `user_override`
 - `forget_policy`
 - `read_policy`
@@ -415,6 +453,18 @@ MemoryNode 的一次版本，不允许原地覆盖。
 - 工具执行精炼摘要
 - 关键文件变更摘要
 - 关键外部搜索结论摘要
+
+但 capture 不得无条件 durable 落盘，必须先经过 **Session Memory Policy Gate**：
+
+- 当 `memory_write = true` 时：
+  - 允许写 durable `EvidenceDocument`
+  - 允许后续 proposal / judge / durable Memory OS write
+- 当 `memory_write = false` 时：
+  - 只允许写 session-local trace 与 ephemeral evidence
+  - 不允许写 durable Evidence Vault
+  - 不允许写 Memory OS
+
+这条规则是为了保留当前 `temporary_chat`、scheduler、embedded client 等路径已存在的会话隔离保证。
 
 ### 1.2 Extract
 
@@ -767,13 +817,23 @@ Memory Workspace 必须升级为治理控制台，而不是展示页。
 
 ## 1. 物理存储布局
 
-建议布局：
+本设计的物理布局应当**对齐现有 `Paths` 合约**，不再引入第三套脱离 `base_dir` 的 memory root。
 
-- `~/.nion-data/memory/index.sqlite3`
-- `~/.nion-data/memory/evidence/`
-- `~/.nion-data/memory/vector/`
-- `~/.nion-data/memory/indexes/`
-- `~/.nion-data/memory/artifacts/`
+Canonical root：
+
+- `get_paths().memory_os_dir`
+- 当前实现下即 `{base_dir}/memory-os`
+
+在这个 root 下扩展子目录：
+
+- `{memory_os_dir}/index.sqlite3`
+- `{memory_os_dir}/evidence/`
+- `{memory_os_dir}/indexes/fts/`
+- `{memory_os_dir}/indexes/vector/`
+- `{memory_os_dir}/artifacts/`
+
+Desktop 场景下，`base_dir` 本身可能已落在 `~/.nion-data/...` 下；Web / test / embedded 场景则继续由 `Paths` 统一裁定。  
+这里表达的是**逻辑布局**，不是要求额外创建一套平行于当前 `memory-os/` 的全新根路径。
 
 ## 2. 向量层
 
@@ -854,6 +914,26 @@ fingerprint 变化时：
 - `detach evidence`
 - `purge evidence`
 - `archive`
+
+其中 `purge evidence` 不能等于“什么都不留的物理消失”。  
+为了同时满足用户清除原始证据与系统最小审计能力，purge 后仍必须保留 **Evidence Tombstone**：
+
+- `evidence_id`
+- `source_type`
+- `created_at`
+- `deleted_at`
+- `deleted_by`
+- `checksum/digest`
+- `redaction_reason`
+- `affected_memory_ids`
+
+purge 后的系统行为：
+
+- evidence 原文内容被移除
+- 下游 MemoryNode / MemoryRevision 的 `traceability_state` 必须转为 `redacted` 或 `degraded`
+- Judge 不再把这类记忆视为 `full traceability`
+
+因此，系统的承诺应是：**purge 之后保留最小证明壳，而不是继续假装拥有完整可追溯链。**
 
 ### 3.4 自动归档
 
@@ -939,12 +1019,43 @@ fingerprint 变化时：
 - `/api/memory/settings`
 - `/api/memory/admin`
 
+### 4.1 现有产品契约兼容窗口
+
+新增 API 不能直接替换当前产品面，必须把现有客户端硬编码依赖纳入显式迁移表。
+
+当前必须继续稳定维护的契约包括：
+
+- `/api/memory`
+- `/api/memory/facts/*`
+- `/api/memory/export`
+- `/api/memory/growth`
+- `/api/memory/growth/user-model`
+- `/api/memory/growth/soul`
+- `/api/memory/growth/soul/proposals`
+- `/api/memory/growth/soul/events`
+
+迁移规则：
+
+- **M0-M4**
+  - 旧路由继续作为前端主入口
+  - 新 `ledger / evidence / soul / runtime-trace / settings / admin` 路由并行建设
+- **M5-M7**
+  - 旧路由改由 v2 canonical store + compatibility adapter 驱动
+  - payload 与前端行为保持稳定
+- **M8-M9**
+  - 新 UI 面板逐步切到新路由
+  - `/api/memory` 与 `/api/memory/growth/soul*` 继续作为兼容 facade 保留
+- **M10**
+  - 只允许退役旧内部实现
+  - 不允许在缺少 adapter 的情况下直接删除产品契约
+
 ## 5. Runtime 插点
 
 ### 写入插点
 
 主智能体 turn 完成后：
 
+- evaluate session policy gate
 - capture evidence
 - generate proposals
 - run Memory Judge
@@ -996,6 +1107,16 @@ fingerprint 变化时：
 - `MemoryNode / MemoryRevision / MemoryDecision / MemoryLink / UserOverride`
 - 旧数据 backfill
 - legacy adapter
+
+补充要求：
+
+- backfill 不允许伪造 evidence
+- 对现有只有 summary / 稀疏 provenance 的 legacy 记录，必须显式落为：
+  - `traceability_state = legacy_unverified`
+  - `import_source = legacy_memory_os_record`
+- 只有在后续 evidence re-anchor 成功后，才允许升级为 `traceability_state = full`
+
+M2 的目标不是“让所有旧记录看起来像原生 v2 记录”，而是**如实导入并暴露证据缺口**。
 
 ### M3：新 Extractor + Proposal + Judge 进入影子裁决
 
@@ -1068,7 +1189,8 @@ fingerprint 变化时：
 
 ### 1. 数据正确性
 
-- 任意一条长期记忆都能追到 `evidence -> proposal -> judge -> revision`
+- 任意一条 **v2 原生长期记忆** 都能追到 `evidence -> proposal -> judge -> revision`
+- 任意一条 backfill 导入记忆都必须显式标注 `traceability_state`，不得伪装成 full traceability
 - 任意一条 soul 变化都能追到 `memory -> soul signal -> soul decision -> active layer`
 - 用户删除、冻结、改写均对运行时产生正确影响
 
