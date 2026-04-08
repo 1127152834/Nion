@@ -49,12 +49,12 @@ export function MemoryHomePage() {
     {
       href: "/workspace/memory/ledger",
       title: "Memory ledger",
-      description: "查看记忆节点与当前 revision，核对只读账本快照。",
+      description: "查看 canonical nodes 与 current revisions，进入 freeze/delete/rewrite/evidence 治理入口。",
     },
     {
       href: "/workspace/memory/evidence",
       title: "Memory evidence",
-      description: "查看证据索引、来源类型与分页结果，不在首页内嵌明细。",
+      description: "查看 evidence 列表、最小过滤条件与预览面板，不在首页内嵌明细。",
     },
     {
       href: "/workspace/memory/runtime-trace",

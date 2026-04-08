@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -113,6 +114,14 @@ export function MemoryUserPage() {
             <h1 className="mt-2 text-[1.85rem] font-semibold tracking-tight">
               {t.settings.memory.markdown.userContext}
             </h1>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/workspace/memory/ledger">查看 ledger</Link>
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/workspace/memory/evidence">查看 evidence</Link>
+            </Button>
           </div>
         </div>
       </header>
