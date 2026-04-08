@@ -54,7 +54,7 @@ def build_rebuild_plan(
         return VectorStoreRebuildPlan(
             requires_rebuild=False,
             reason="fingerprint_match",
-            authoritative_snapshot=current,
+            authoritative_snapshot=target.provider,
             store_snapshot=current,
         )
     return VectorStoreRebuildPlan(

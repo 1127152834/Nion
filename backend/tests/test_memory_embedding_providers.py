@@ -147,12 +147,50 @@ def test_build_rebuild_plan_marks_store_for_rebuild_without_making_it_truth_sour
 
     assert same_plan.requires_rebuild is False
     assert same_plan.reason == "fingerprint_match"
-    assert same_plan.authoritative_snapshot is current
+    assert same_plan.authoritative_snapshot is target_same.provider
+    assert same_plan.store_snapshot is current
 
     assert changed_plan.requires_rebuild is True
     assert changed_plan.reason == "fingerprint_changed"
     assert changed_plan.authoritative_snapshot is target_changed.provider
     assert changed_plan.store_snapshot is current
+
+
+def test_build_rebuild_plan_keeps_provider_authoritative_even_when_store_matches() -> None:
+    current = VectorIndexSnapshot(
+        provider_id="remote-default",
+        provider_kind="remote_managed",
+        fingerprint=EmbeddingModelFingerprint(
+            provider_key="remote_managed:remote-default",
+            model_key="text-embedding-3-large",
+            dimensions=3072,
+            distance_metric="cosine",
+            revision="2026-04-09",
+        ),
+        metadata={"cache_revision": "store-copy"},
+    )
+    target = VectorStoreIndexMetadata(
+        provider=VectorIndexSnapshot(
+            provider_id="remote-default",
+            provider_kind="remote_managed",
+            fingerprint=EmbeddingModelFingerprint(
+                provider_key="remote_managed:remote-default",
+                model_key="text-embedding-3-large",
+                dimensions=3072,
+                distance_metric="cosine",
+                revision="2026-04-09",
+            ),
+            metadata={"cache_revision": "provider-authority"},
+        ),
+        record_count=128,
+    )
+
+    plan = build_rebuild_plan(current=current, target=target)
+
+    assert plan.requires_rebuild is False
+    assert plan.authoritative_snapshot is target.provider
+    assert plan.store_snapshot is current
+    assert plan.authoritative_snapshot.metadata["cache_revision"] == "provider-authority"
 
 
 def test_vector_store_query_models_capture_rebuild_aware_inputs() -> None:
