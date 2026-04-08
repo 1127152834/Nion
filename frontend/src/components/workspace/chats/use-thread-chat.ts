@@ -26,7 +26,19 @@ export function useThreadChat() {
     if (currentThread === "new" || pathname.endsWith("/new")) {
       setIsNewThread(true);
       setThreadId(uuid());
-    } else if (currentThread) {
+      return;
+    }
+
+    // Guard: after history.replaceState updates the URL from /chats/new to
+    // /chats/{UUID}, Next.js useParams may still return the stale "new" value
+    // because replaceState does not trigger router updates. Avoid propagating
+    // this invalid thread ID to downstream hooks, which would point history
+    // and state loading back at the placeholder route.
+    if (threadIdFromPath === "new") {
+      return;
+    }
+
+    if (currentThread) {
       setIsNewThread(false);
       setThreadId(currentThread);
     }
