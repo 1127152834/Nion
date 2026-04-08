@@ -43,7 +43,11 @@ def _get_memory_context(agent_name: str | None = None) -> str:
         from nion.config.paths import get_paths
 
         repo = MemoryOSRepository(get_paths().memory_os_index_db_file)
-        pack = MemoryOSContextAssembler(repo).build_prompt_memory_pack()
+        pack = MemoryOSContextAssembler(repo).build_runtime_memory_pack(
+            query="prompt bootstrap",
+            thread_id="prompt-bootstrap",
+            memory_read=True,
+        )
         block = pack.to_prompt_block()
         if block:
             return block

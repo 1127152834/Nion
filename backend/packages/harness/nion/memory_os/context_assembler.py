@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+from nion.memory.runtime_engine.service import (
+    build_runtime_memory_context,
+    runtime_memory_to_context_pack,
+)
+
 from .context_pack import MemoryContextPack, MemoryContextPackItem
 from .repository import MemoryOSRepository
 
@@ -44,3 +49,18 @@ class MemoryOSContextAssembler:
                 )
             )
         return MemoryContextPack(items=items)
+
+    def build_runtime_memory_pack(
+        self,
+        *,
+        query: str,
+        thread_id: str,
+        memory_read: bool = True,
+    ) -> MemoryContextPack:
+        result = build_runtime_memory_context(
+            repository=self._repository,
+            query=query,
+            thread_id=thread_id,
+            memory_read=memory_read,
+        )
+        return runtime_memory_to_context_pack(result)
