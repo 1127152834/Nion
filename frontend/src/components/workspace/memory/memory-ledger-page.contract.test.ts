@@ -38,6 +38,30 @@ void test("memory ledger page renders canonical nodes, revision details, and gov
   assert.doesNotMatch(source, /Soul Console/i);
 });
 
+void test("memory ledger core exposes typed read-only fetch wrapper and query hook", async () => {
+  const apiSource = await readSource("../../../core/memory-ledger/api.ts");
+  const hooksSource = await readSource("../../../core/memory-ledger/hooks.ts");
+  const typesSource = await readSource("../../../core/memory-ledger/types.ts");
+
+  assert.match(typesSource, /export interface MemoryLedgerNode/);
+  assert.match(typesSource, /export interface MemoryLedgerRevision/);
+  assert.match(typesSource, /export interface MemoryLedgerResponse/);
+  assert.match(typesSource, /nodes: MemoryLedgerNode\[\]/);
+  assert.match(typesSource, /current_revisions: MemoryLedgerRevision\[\]/);
+
+  assert.match(apiSource, /getBackendBaseURL/);
+  assert.match(apiSource, /export async function loadMemoryLedger/);
+  assert.match(apiSource, /\/api\/memory\/ledger/);
+  assert.match(apiSource, /Promise<MemoryLedgerResponse>/);
+  assert.doesNotMatch(apiSource, /method:\s*["']POST["']|method:\s*["']PATCH["']|method:\s*["']DELETE["']/);
+
+  assert.match(hooksSource, /useQuery/);
+  assert.match(hooksSource, /queryKey:\s*\["memory-ledger"\]/);
+  assert.match(hooksSource, /queryFn:\s*\(\)\s*=>\s*loadMemoryLedger\(\)/);
+  assert.match(hooksSource, /export function useMemoryLedger/);
+  assert.doesNotMatch(hooksSource, /useMutation/);
+});
+
 void test("memory user page exposes governance shortcuts to ledger and evidence without dropping user actions", async () => {
   const source = await readSource("./memory-user-page.tsx");
 
@@ -45,4 +69,10 @@ void test("memory user page exposes governance shortcuts to ledger and evidence 
   assert.match(source, /\/workspace\/memory\/evidence/);
   assert.match(source, /冻结/);
   assert.match(source, /申请遗忘/);
+  assert.match(source, /sourceLabel:\s*isActionable\s*\?\s*"真实记录"\s*:\s*"未绑定"/);
+  assert.match(source, /sourceDescription:\s*isActionable\s*\?/);
+  assert.match(source, /id:\s*record\?\.memory_id\s*\?\?\s*null/);
+  assert.match(source, /const isActionable = Boolean\(record\?\.memory_id\)/);
+  assert.match(source, /disabled=\{!card\.isActionable\}/);
+  assert.doesNotMatch(source, /"user-work"|"user-personal"|"user-top-of-mind"/);
 });

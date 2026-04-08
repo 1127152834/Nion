@@ -31,38 +31,42 @@ export function MemoryUserPage() {
   const personalRecord = items.find((item) => item.subtype === "personalContext");
   const topOfMindRecord = items.find((item) => item.subtype === "topOfMind");
 
-  const cards = [
+  const cardInputs = [
     {
-      id: workRecord?.memory_id ?? "user-work",
+      record: workRecord,
       title: t.settings.memory.markdown.work,
-      summary: workRecord?.summary ?? memory?.user.workContext.summary ?? "",
-      status: workRecord?.status ?? "active",
-      sourceLabel: "真实记录",
-      sourceDescription: "当前卡片已绑定到真实 user_model record，下面的控制会直接作用到这条记录。",
-      isActionable: true,
+      fallbackSummary: memory?.user.workContext.summary ?? "",
     },
     {
-      id: personalRecord?.memory_id ?? "user-personal",
+      record: personalRecord,
       title: t.settings.memory.markdown.personal,
-      summary:
-        personalRecord?.summary ?? memory?.user.personalContext.summary ?? "",
-      status: personalRecord?.status ?? "active",
-      sourceLabel: "真实记录",
-      sourceDescription: "当前卡片已绑定到真实 user_model record，下面的控制会直接作用到这条记录。",
-      isActionable: true,
+      fallbackSummary: memory?.user.personalContext.summary ?? "",
     },
     {
-      id: topOfMindRecord?.memory_id ?? "user-top-of-mind",
+      record: topOfMindRecord,
       title: t.settings.memory.markdown.topOfMind,
-      summary: topOfMindRecord?.summary ?? memory?.user.topOfMind.summary ?? "",
-      status: topOfMindRecord?.status ?? "active",
-      sourceLabel: "真实记录",
-      sourceDescription: "当前卡片已绑定到真实 user_model record，下面的控制会直接作用到这条记录。",
-      isActionable: true,
+      fallbackSummary: memory?.user.topOfMind.summary ?? "",
     },
   ];
 
-  async function handleFreeze(memoryId: string) {
+  const cards = cardInputs.map(({ record, title, fallbackSummary }) => {
+    const isActionable = Boolean(record?.memory_id);
+
+    return {
+      id: record?.memory_id ?? null,
+      title,
+      summary: record?.summary ?? fallbackSummary,
+      status: record?.status ?? "active",
+      sourceLabel: isActionable ? "真实记录" : "未绑定",
+      sourceDescription: isActionable
+        ? "当前卡片已绑定到真实 user_model record，下面的控制会直接作用到这条记录。"
+        : "当前卡片仅展示汇总记忆，尚未绑定真实 user_model record，因此只能只读查看。",
+      isActionable,
+    };
+  });
+
+  async function handleFreeze(memoryId: string | null) {
+    if (!memoryId) return;
     try {
       await freezeUserModel.mutateAsync(memoryId);
       toast.success("已冻结该用户画像项");
@@ -71,7 +75,8 @@ export function MemoryUserPage() {
     }
   }
 
-  async function handleForget(memoryId: string) {
+  async function handleForget(memoryId: string | null) {
+    if (!memoryId) return;
     try {
       await forgetUserModel.mutateAsync(memoryId);
       toast.success("已提交遗忘请求");
@@ -80,7 +85,8 @@ export function MemoryUserPage() {
     }
   }
 
-  async function handleReject(memoryId: string) {
+  async function handleReject(memoryId: string | null) {
+    if (!memoryId) return;
     try {
       await rejectUserModel.mutateAsync(memoryId);
       toast.success("已拒绝该用户画像项");
@@ -89,7 +95,8 @@ export function MemoryUserPage() {
     }
   }
 
-  async function handleCorrect(memoryId: string, currentSummary: string) {
+  async function handleCorrect(memoryId: string | null, currentSummary: string) {
+    if (!memoryId) return;
     const nextSummary = window.prompt("请输入新的画像描述", currentSummary);
     if (!nextSummary || nextSummary.trim() === currentSummary.trim()) {
       return;
