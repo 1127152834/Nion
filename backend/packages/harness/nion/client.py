@@ -462,6 +462,17 @@ class NionClient:
                 return list(reversed(latest_exchange))
         return []
 
+    @staticmethod
+    def _message_dedup_key(serialized_message: dict[str, Any]) -> str:
+        message_id = serialized_message.get("id")
+        if isinstance(message_id, str) and message_id:
+            return f"id:{message_id}"
+        return "sig:" + json.dumps(
+            serialized_message,
+            sort_keys=True,
+            ensure_ascii=False,
+        )
+
     # ------------------------------------------------------------------
     # Public API — conversation
     # ------------------------------------------------------------------
@@ -557,6 +568,7 @@ class NionClient:
         new_turn_messages: list[dict[str, Any]] = []
         initial_turn_candidate_messages: list[dict[str, Any]] = []
         values_chunk_count = 0
+        seen_message_keys: set[str] = set()
 
         def flush_tool_batch() -> list[StreamEvent]:
             nonlocal current_tool_batch, tool_activity_timeline
@@ -633,19 +645,26 @@ class NionClient:
 
                 if values_chunk_count == 1:
                     for msg in messages:
+                        if not isinstance(msg, HumanMessage | AIMessage):
+                            continue
+                        serialized_message = self._serialize_message(msg)
+                        dedup_key = self._message_dedup_key(serialized_message)
+                        seen_message_keys.add(dedup_key)
                         msg_id = getattr(msg, "id", None)
                         if msg_id:
                             seen_signatures[msg_id] = json.dumps(
-                                self._serialize_message(msg),
+                                serialized_message,
                                 sort_keys=True,
                                 ensure_ascii=False,
                             )
 
                 for msg in messages:
+                    serialized_message = self._serialize_message(msg)
+                    dedup_key = self._message_dedup_key(serialized_message)
                     msg_id = getattr(msg, "id", None)
                     if msg_id:
                         signature = json.dumps(
-                            self._serialize_message(msg),
+                            serialized_message,
                             sort_keys=True,
                             ensure_ascii=False,
                         )
@@ -654,9 +673,11 @@ class NionClient:
                         if values_chunk_count == 1:
                             continue
                         seen_signatures[msg_id] = signature
+                    elif dedup_key in seen_message_keys:
+                        continue
 
                     if isinstance(msg, AIMessage):
-                        serialized_message = self._serialize_message(msg)
+                        seen_message_keys.add(dedup_key)
                         ai_message_count += 1
                         usage = getattr(msg, "usage_metadata", None)
                         if usage:
@@ -696,7 +717,7 @@ class NionClient:
                                 }
                             yield StreamEvent(type="messages-tuple", data=event_data)
                     elif isinstance(msg, HumanMessage):
-                        serialized_message = self._serialize_message(msg)
+                        seen_message_keys.add(dedup_key)
                         if serialized_message.get("content"):
                             new_turn_messages.append(serialized_message)
 
@@ -770,11 +791,13 @@ class NionClient:
                 and initial_turn_candidate_messages[0].get("type") == "human"
                 and all(message.get("type") != "human" for message in new_turn_messages)
             ):
-                known_ids = {message.get("id") for message in new_turn_messages}
+                known_keys = {
+                    self._message_dedup_key(message) for message in new_turn_messages
+                }
                 prefixed_messages = [
                     message
                     for message in initial_turn_candidate_messages
-                    if message.get("id") not in known_ids
+                    if self._message_dedup_key(message) not in known_keys
                 ]
                 new_turn_messages = [*prefixed_messages, *new_turn_messages]
             capture_turn_evidence(

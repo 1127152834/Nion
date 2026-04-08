@@ -203,3 +203,48 @@ def test_client_stream_captures_only_new_human_and_ai_messages():
         {"type": "human", "content": "本轮新用户消息", "id": "human-new"},
         {"type": "ai", "content": "本轮新助手消息", "id": "ai-new"},
     ]
+
+
+def test_client_stream_deduplicates_history_without_message_ids():
+    client = NionClient()
+    historical_human = HumanMessage(content="历史用户消息")
+    historical_ai = AIMessage(content="历史助手消息")
+    current_human = HumanMessage(content="本轮新用户消息")
+    current_ai = AIMessage(content="本轮新助手消息")
+    agent = MagicMock()
+    agent.stream.return_value = iter(
+        [
+            {
+                "messages": [historical_human, historical_ai, current_human],
+                "title": "T",
+                "artifacts": [],
+            },
+            {
+                "messages": [historical_human, historical_ai, current_human, current_ai],
+                "title": "T",
+                "artifacts": [],
+            },
+        ]
+    )
+
+    with (
+        patch.object(client, "_ensure_agent"),
+        patch.object(client, "_agent", agent),
+        patch("nion.client.capture_turn_evidence") as capture_mock,
+    ):
+        capture_mock.return_value = []
+        list(
+            client.stream(
+                "本轮新用户消息",
+                thread_id="thread-1",
+                session_mode="workspace",
+                memory_read=True,
+                memory_write=True,
+            )
+        )
+
+    kwargs = capture_mock.call_args.kwargs
+    assert kwargs["messages"] == [
+        {"type": "human", "content": "本轮新用户消息", "id": None},
+        {"type": "ai", "content": "本轮新助手消息", "id": None},
+    ]
