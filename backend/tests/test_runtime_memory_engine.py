@@ -198,3 +198,55 @@ def test_build_runtime_memory_context_returns_gated_empty_result_when_memory_rea
         thread_id="thread-1",
         gating_reason="memory_read_disabled",
     )
+
+
+def test_build_runtime_memory_context_does_not_fallback_to_latest_on_unmatched_chinese_query(
+    tmp_path: Path,
+):
+    from nion.memory.runtime_engine.service import build_runtime_memory_context
+
+    repo = MemoryOSRepository(tmp_path / "memory-os" / "index.sqlite3")
+    repo.save_memory_record(
+        {
+            "memory_id": "hot_02",
+            "domain": "user_model",
+            "subtype": "communication_preference",
+            "owner_type": "agent",
+            "scope": "user",
+            "memory_type": "semantic",
+            "subject_id": "user:default",
+            "status": "active",
+            "summary": "用户偏好结论先行。",
+            "confidence": 0.9,
+            "created_at": "2026-04-05T00:00:00Z",
+            "updated_at": "2026-04-05T00:00:00Z",
+            "provenance": {"source_type": "test"},
+        }
+    )
+    repo.save_memory_record(
+        {
+            "memory_id": "proc_02",
+            "domain": "procedure",
+            "subtype": "reporting",
+            "owner_type": "agent",
+            "scope": "user",
+            "memory_type": "procedural",
+            "subject_id": "user:default",
+            "status": "active",
+            "summary": "财务汇报默认使用三段式。",
+            "confidence": 0.95,
+            "created_at": "2026-04-05T00:00:00Z",
+            "updated_at": "2026-04-05T00:00:00Z",
+            "provenance": {"source_type": "test"},
+        }
+    )
+
+    result = build_runtime_memory_context(
+        repository=repo,
+        query="和宠物绝育有关的安排",
+        thread_id="thread-1",
+        memory_read=True,
+    )
+
+    assert result.sections.hot_memories == []
+    assert result.sections.relevant_procedures == []

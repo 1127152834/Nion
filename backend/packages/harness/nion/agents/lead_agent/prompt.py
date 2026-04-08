@@ -35,8 +35,15 @@ def _build_subagent_section(max_concurrent: int) -> str:
     )
 
 
-def _get_memory_context(agent_name: str | None = None) -> str:
+def _get_memory_context(
+    agent_name: str | None = None,
+    *,
+    thread_id: str | None = None,
+    memory_read: bool = True,
+) -> str:
     del agent_name
+    if not memory_read:
+        return ""
     try:
         from nion.memory_os.context_assembler import MemoryOSContextAssembler
         from nion.memory_os.repository import MemoryOSRepository
@@ -44,9 +51,9 @@ def _get_memory_context(agent_name: str | None = None) -> str:
 
         repo = MemoryOSRepository(get_paths().memory_os_index_db_file)
         pack = MemoryOSContextAssembler(repo).build_runtime_memory_pack(
-            query="prompt bootstrap",
-            thread_id="prompt-bootstrap",
-            memory_read=True,
+            query="",
+            thread_id=thread_id or "prompt-bootstrap",
+            memory_read=memory_read,
         )
         block = pack.to_prompt_block()
         if block:
@@ -203,8 +210,14 @@ def apply_prompt_template(
     notebook_context: dict[str, object] | None = None,
     agent_name: str | None = None,
     available_skills: set[str] | None = None,
+    thread_id: str | None = None,
+    memory_read: bool = True,
 ) -> str:
-    memory_context = _get_memory_context(agent_name)
+    memory_context = _get_memory_context(
+        agent_name,
+        thread_id=thread_id,
+        memory_read=memory_read,
+    )
     context = PromptBuildContext(
         agent_name=agent_name,
         agent_kind=_resolve_agent_kind(

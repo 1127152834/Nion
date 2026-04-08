@@ -677,6 +677,7 @@ class MemoryOSRepository:
         *,
         domain: str | None = None,
         status: str | None = None,
+        subject_id: str | None = None,
     ) -> list[dict[str, object]]:
         query = """
             SELECT
@@ -704,6 +705,9 @@ class MemoryOSRepository:
         if status is not None:
             where.append("status = ?")
             params.append(status)
+        if subject_id is not None:
+            where.append("subject_id = ?")
+            params.append(subject_id)
         if where:
             query += " WHERE " + " AND ".join(where)
         query += " ORDER BY updated_at DESC, memory_id DESC"

@@ -324,6 +324,11 @@ class NionClient:
                 notebook_context=notebook_context,
                 max_concurrent_subagents=max_concurrent_subagents,
                 agent_name=effective_agent_name,
+                thread_id=str(cfg.get("thread_id") or ""),
+                memory_read=resolve_optional_bool(
+                    cfg.get("memory_read"),
+                    default=True,
+                ),
             ),
             "state_schema": ThreadState,
         }

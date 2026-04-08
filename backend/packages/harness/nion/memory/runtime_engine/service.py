@@ -100,6 +100,7 @@ def _collect_hot_memories(
         repository.list_memory_records(domain="user_model", status="active"),
         query=plan.query,
         limit=limit,
+        allow_fallback=plan.intent in {"continuity", "background"},
     )
 
 
@@ -113,6 +114,7 @@ def _collect_relevant_procedures(
         repository.list_memory_records(domain="procedure", status="active"),
         query=plan.query,
         limit=limit,
+        allow_fallback=plan.intent in {"continuity", "background"},
     )
 
 
@@ -122,10 +124,18 @@ def _collect_scoped_recall(
     thread_id: str,
     plan: RuntimeMemorySearchPlan,
 ) -> list[str]:
-    rows = repository.list_memory_records(domain="episode", status="active")
-    scoped_rows = [row for row in rows if str(row.get("subject_id")) == thread_id]
+    scoped_rows = repository.list_memory_records(
+        domain="episode",
+        status="active",
+        subject_id=thread_id,
+    )
     limit = 3 if plan.depth == "deep" else 1
-    return _collect_matching_summaries(scoped_rows, query=plan.query, limit=limit)
+    return _collect_matching_summaries(
+        scoped_rows,
+        query=plan.query,
+        limit=limit,
+        allow_fallback=plan.intent in {"continuity", "background"},
+    )
 
 
 def _collect_verbatim_evidence(
@@ -134,9 +144,17 @@ def _collect_verbatim_evidence(
     thread_id: str,
     plan: RuntimeMemorySearchPlan,
 ) -> list[str]:
-    rows = repository.list_memory_records(domain="evidence", status="active")
-    scoped_rows = [row for row in rows if str(row.get("subject_id")) == thread_id]
-    return _collect_matching_summaries(scoped_rows, query=plan.query, limit=2)
+    scoped_rows = repository.list_memory_records(
+        domain="evidence",
+        status="active",
+        subject_id=thread_id,
+    )
+    return _collect_matching_summaries(
+        scoped_rows,
+        query=plan.query,
+        limit=2,
+        allow_fallback=plan.intent in {"continuity", "background"},
+    )
 
 
 def _collect_matching_summaries(
@@ -144,23 +162,27 @@ def _collect_matching_summaries(
     *,
     query: str,
     limit: int,
+    allow_fallback: bool,
 ) -> list[str]:
+    normalized_query = query.strip().lower()
     tokens = [token for token in query.lower().split() if token]
     matches: list[str] = []
-    fallbacks: list[str] = []
+    all_summaries: list[str] = []
 
     for row in rows:
         summary = str(row["summary"]).strip()
         if not summary:
             continue
+        all_summaries.append(summary)
         haystack = summary.lower()
-        if _matches_query(haystack, tokens=tokens, query=query.lower()):
+        if _matches_query(haystack, tokens=tokens, query=normalized_query):
             matches.append(summary)
-        else:
-            fallbacks.append(summary)
 
-    selected = matches or fallbacks
-    return selected[:limit]
+    if matches:
+        return matches[:limit]
+    if not normalized_query or allow_fallback:
+        return all_summaries[:limit]
+    return []
 
 
 def _matches_query(haystack: str, *, tokens: list[str], query: str) -> bool:

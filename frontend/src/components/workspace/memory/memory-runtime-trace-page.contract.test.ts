@@ -9,6 +9,7 @@ async function readSource(path: string) {
 void test("memory runtime trace page renders filters, event list, and details panel", async () => {
   const pageSource = await readSource("./memory-runtime-trace-page.tsx");
   const homeSource = await readSource("./memory-home-page.tsx");
+  const routeSource = await readSource("../../../../../desktop/src/renderer/renderer-app.tsx");
 
   assert.match(pageSource, /useMemoryRuntimeTrace/);
   assert.match(pageSource, /thread_id/);
@@ -22,4 +23,5 @@ void test("memory runtime trace page renders filters, event list, and details pa
 
   assert.match(homeSource, /\/workspace\/memory\/runtime-trace/);
   assert.match(homeSource, /Runtime trace/);
+  assert.match(routeSource, /path="\/workspace\/memory\/runtime-trace"/);
 });

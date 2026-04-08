@@ -336,6 +336,8 @@ def make_lead_agent(config: RunnableConfig):
                 cli_tools_enabled=cli_tools_enabled,
                 max_concurrent_subagents=max_concurrent_subagents,
                 available_skills=set(["bootstrap"]),
+                thread_id=str(config.get("configurable", {}).get("thread_id") or ""),
+                memory_read=bool(config.get("configurable", {}).get("memory_read", True)),
             ),
             state_schema=ThreadState,
         )
@@ -359,6 +361,8 @@ def make_lead_agent(config: RunnableConfig):
             cli_tools_enabled=cli_tools_enabled,
             max_concurrent_subagents=max_concurrent_subagents,
             agent_name=agent_name,
+            thread_id=str(config.get("configurable", {}).get("thread_id") or ""),
+            memory_read=bool(config.get("configurable", {}).get("memory_read", True)),
         ),
         state_schema=ThreadState,
     )
