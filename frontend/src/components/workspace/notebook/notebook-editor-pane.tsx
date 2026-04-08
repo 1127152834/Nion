@@ -102,6 +102,7 @@ export function NotebookEditorPane({
   onSelectionChange,
 }: NotebookEditorPaneProps) {
   const [previewMode, setPreviewMode] = useState(false);
+  const showEditorHeader = Boolean(note) || isDraft;
 
   useEffect(() => {
     if (previewMode) {
@@ -121,112 +122,101 @@ export function NotebookEditorPane({
 
   return (
     <div className="relative flex h-full min-w-0 flex-col overflow-hidden bg-[var(--notebook-panel)]">
-      <header className="z-10 flex shrink-0 flex-col gap-4 border-b border-[var(--notebook-border)] bg-[var(--notebook-panel)] px-5 py-4 xl:px-6">
-        {!note && !isDraft ? (
-          <div className="space-y-1">
-            <h2 className="text-[18px] font-semibold text-[var(--notebook-ink)]">
-              {copy.noSelectionTitle}
-            </h2>
-            <p className="text-sm text-[var(--notebook-soft-text)]">
-              {copy.noSelectionDescription}
-            </p>
-          </div>
-        ) : (
-          <>
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-              <div className="min-w-0 flex-1">
-                <div className="mb-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[var(--notebook-soft-text)]">
-                  <Folder className="size-3" />
-                  <span>{isDraft ? draftSourceLabel : note?.relative_path}</span>
-                </div>
-                <Input
-                  value={draftTitle}
-                  onChange={(event) => onDraftTitleChange(event.target.value)}
-                  placeholder={copy.noteTitlePlaceholder}
-                  className="h-auto border-0 bg-transparent px-0 text-2xl font-semibold leading-tight tracking-tight text-[var(--notebook-ink)] shadow-none focus-visible:ring-0 md:text-[2rem]"
-                />
+      {showEditorHeader ? (
+        <header className="z-10 flex shrink-0 flex-col gap-4 border-b border-[var(--notebook-border)] bg-[var(--notebook-panel)] px-5 py-4 xl:px-6">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+            <div className="min-w-0 flex-1">
+              <div className="mb-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[var(--notebook-soft-text)]">
+                <Folder className="size-3" />
+                <span>{isDraft ? draftSourceLabel : note?.relative_path}</span>
               </div>
+              <Input
+                value={draftTitle}
+                onChange={(event) => onDraftTitleChange(event.target.value)}
+                placeholder={copy.noteTitlePlaceholder}
+                className="h-auto border-0 bg-transparent px-0 text-2xl font-semibold leading-tight tracking-tight text-[var(--notebook-ink)] shadow-none focus-visible:ring-0 md:text-[2rem]"
+              />
+            </div>
 
-              <div className="flex shrink-0 items-center gap-3 self-start lg:pt-1">
-                <div className="text-xs text-[var(--notebook-soft-text)]">
-                  {isDraft ? (
-                    <span>{copy.unsaved}</span>
-                  ) : saveState === "saved" ? (
-                    <span className="flex items-center text-[var(--notebook-success)]">
-                      <CheckCircle2 className="mr-1 size-4" />
-                      {copy.saved}
-                    </span>
-                  ) : saveState === "saving" ? (
-                    <span>{copy.saving}</span>
-                  ) : (
-                    <span>{copy.unsaved}</span>
-                  )}
-                </div>
+            <div className="flex shrink-0 items-center gap-3 self-start lg:pt-1">
+              <div className="text-xs text-[var(--notebook-soft-text)]">
                 {isDraft ? (
-                  <Button
-                    className="bg-[var(--notebook-brand)] text-[var(--notebook-panel)] hover:opacity-90"
-                    onClick={onSaveDraft}
-                  >
-                    {copy.saveDraft}
-                  </Button>
+                  <span>{copy.unsaved}</span>
+                ) : saveState === "saved" ? (
+                  <span className="flex items-center text-[var(--notebook-success)]">
+                    <CheckCircle2 className="mr-1 size-4" />
+                    {copy.saved}
+                  </span>
+                ) : saveState === "saving" ? (
+                  <span>{copy.saving}</span>
                 ) : (
-                  <div className="flex items-center gap-1 border-l border-[var(--notebook-border)] pl-4">
-                    <button
-                      type="button"
-                      onClick={() => setPreviewMode((current) => !current)}
-                      className={`rounded-md p-1.5 transition-colors ${previewMode ? "bg-[var(--notebook-active)] text-[var(--notebook-ink)]" : "text-[var(--notebook-soft-text)] hover:bg-[var(--notebook-muted)] hover:text-[var(--notebook-ink)]"}`}
-                      title={previewMode ? copy.edit : copy.preview}
-                    >
-                      {previewMode ? <Edit3 className="size-4" /> : <Eye className="size-4" />}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={onOpenHistory}
-                      className="rounded-md p-1.5 text-[var(--notebook-soft-text)] transition-colors hover:bg-[var(--notebook-muted)] hover:text-[var(--notebook-ink)]"
-                      title={copy.history}
-                    >
-                      <History className="size-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={onOpenDelete}
-                      className="rounded-md p-1.5 text-[var(--notebook-soft-text)] transition-colors hover:bg-[var(--notebook-danger-surface)] hover:text-[var(--notebook-danger)]"
-                      title={copy.delete}
-                    >
-                      <Trash2 className="size-4" />
-                    </button>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <button
-                          type="button"
-                          className="rounded-md p-1.5 text-[var(--notebook-soft-text)] transition-colors hover:bg-[var(--notebook-muted)] hover:text-[var(--notebook-ink)]"
-                          title="更多操作"
-                        >
-                          <MoreHorizontal className="size-4" />
-                        </button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent
-                        align="end"
-                        className="min-w-36 rounded-xl border-[var(--notebook-border)] bg-[var(--notebook-panel)] text-[var(--notebook-ink)]"
-                      >
-                        <DropdownMenuItem onSelect={onOpenRename}>
-                          {copy.rename}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onSelect={onOpenMove}>
-                          {copy.move}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onSelect={onOpenExtractToMemory}>
-                          {copy.extractToMemory}
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
+                  <span>{copy.unsaved}</span>
                 )}
               </div>
+              {isDraft ? (
+                <Button
+                  className="bg-[var(--notebook-brand)] text-[var(--notebook-panel)] hover:opacity-90"
+                  onClick={onSaveDraft}
+                >
+                  {copy.saveDraft}
+                </Button>
+              ) : (
+                <div className="flex items-center gap-1 border-l border-[var(--notebook-border)] pl-4">
+                  <button
+                    type="button"
+                    onClick={() => setPreviewMode((current) => !current)}
+                    className={`rounded-md p-1.5 transition-colors ${previewMode ? "bg-[var(--notebook-active)] text-[var(--notebook-ink)]" : "text-[var(--notebook-soft-text)] hover:bg-[var(--notebook-muted)] hover:text-[var(--notebook-ink)]"}`}
+                    title={previewMode ? copy.edit : copy.preview}
+                  >
+                    {previewMode ? <Edit3 className="size-4" /> : <Eye className="size-4" />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onOpenHistory}
+                    className="rounded-md p-1.5 text-[var(--notebook-soft-text)] transition-colors hover:bg-[var(--notebook-muted)] hover:text-[var(--notebook-ink)]"
+                    title={copy.history}
+                  >
+                    <History className="size-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onOpenDelete}
+                    className="rounded-md p-1.5 text-[var(--notebook-soft-text)] transition-colors hover:bg-[var(--notebook-danger-surface)] hover:text-[var(--notebook-danger)]"
+                    title={copy.delete}
+                  >
+                    <Trash2 className="size-4" />
+                  </button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        type="button"
+                        className="rounded-md p-1.5 text-[var(--notebook-soft-text)] transition-colors hover:bg-[var(--notebook-muted)] hover:text-[var(--notebook-ink)]"
+                        title="更多操作"
+                      >
+                        <MoreHorizontal className="size-4" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent
+                      align="end"
+                      className="min-w-36 rounded-xl border-[var(--notebook-border)] bg-[var(--notebook-panel)] text-[var(--notebook-ink)]"
+                    >
+                      <DropdownMenuItem onSelect={onOpenRename}>
+                        {copy.rename}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onSelect={onOpenMove}>
+                        {copy.move}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onSelect={onOpenExtractToMemory}>
+                        {copy.extractToMemory}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              )}
             </div>
-          </>
-        )}
-      </header>
+          </div>
+        </header>
+      ) : null}
 
       <div className="relative flex-1 overflow-y-auto px-8 py-6 xl:px-10 xl:py-7">
         {!note && !isDraft || isLoading ? (

@@ -26,6 +26,9 @@ void test("NotebookEditorPane matches the reference writing-pane structure", asy
   assert.match(source, /selectionStart/);
   assert.match(source, /previewMode/);
   assert.match(source, /min-h-\[500px\]/);
+  assert.match(source, /const showEditorHeader = .*isDraft/);
+  assert.match(source, /showEditorHeader \? \(/);
+  assert.doesNotMatch(source, /!note && !isDraft \? \(\s*<div className="space-y-1">/);
   assert.doesNotMatch(source, /lastEditedPrefix/);
   assert.doesNotMatch(source, /formatLastEdited/);
   assert.doesNotMatch(source, /Clock/);
