@@ -5,13 +5,31 @@ from pathlib import Path
 from urllib.parse import quote
 
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse, Response
+from fastapi.responses import FileResponse, PlainTextResponse, Response
 
 from app.gateway.path_utils import resolve_thread_virtual_path
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api", tags=["artifacts"])
+
+ACTIVE_CONTENT_MIME_TYPES = {
+    "text/html",
+    "application/xhtml+xml",
+    "image/svg+xml",
+}
+
+
+def _build_content_disposition(disposition_type: str, filename: str) -> str:
+    """Build an RFC 5987 encoded Content-Disposition header value."""
+    return f"{disposition_type}; filename*=UTF-8''{quote(filename)}"
+
+
+def _build_attachment_headers(filename: str, extra_headers: dict[str, str] | None = None) -> dict[str, str]:
+    headers = {"Content-Disposition": _build_content_disposition("attachment", filename)}
+    if extra_headers:
+        headers.update(extra_headers)
+    return headers
 
 
 def is_text_file_by_content(path: Path, sample_size: int = 8192) -> bool:
@@ -139,15 +157,14 @@ async def get_artifact(thread_id: str, path: str, request: Request) -> Response:
 
     mime_type, _ = mimetypes.guess_type(actual_path)
 
-    # Encode filename for Content-Disposition header (RFC 5987)
-    encoded_filename = quote(actual_path.name)
-
     # if `download` query parameter is true, return the file as a download
     if request.query_params.get("download"):
-        return FileResponse(path=actual_path, filename=actual_path.name, media_type=mime_type, headers={"Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}"})
+        return FileResponse(path=actual_path, filename=actual_path.name, media_type=mime_type, headers=_build_attachment_headers(actual_path.name))
 
-    if mime_type and mime_type == "text/html":
-        return HTMLResponse(content=actual_path.read_text(encoding="utf-8"))
+    # Force attachment download for active content to avoid executing generated
+    # HTML/XHTML/SVG on the application origin.
+    if mime_type in ACTIVE_CONTENT_MIME_TYPES:
+        return FileResponse(path=actual_path, filename=actual_path.name, media_type=mime_type, headers=_build_attachment_headers(actual_path.name))
 
     if mime_type and mime_type.startswith("text/"):
         return PlainTextResponse(content=actual_path.read_text(encoding="utf-8"), media_type=mime_type)
@@ -155,4 +172,8 @@ async def get_artifact(thread_id: str, path: str, request: Request) -> Response:
     if is_text_file_by_content(actual_path):
         return PlainTextResponse(content=actual_path.read_text(encoding="utf-8"), media_type=mime_type)
 
-    return Response(content=actual_path.read_bytes(), media_type=mime_type, headers={"Content-Disposition": f"inline; filename*=UTF-8''{encoded_filename}"})
+    return Response(
+        content=actual_path.read_bytes(),
+        media_type=mime_type,
+        headers={"Content-Disposition": _build_content_disposition("inline", actual_path.name)},
+    )
