@@ -158,7 +158,6 @@ def _create_revision(
     summary: str | None = None,
     extra_payload: dict[str, object] | None = None,
 ) -> MemoryRevision:
-    revision_number = repository.next_revision_number(memory_id)
     payload = {
         "proposal_id": proposal.proposal_id,
         "candidate_payload": proposal.candidate_payload,
@@ -166,16 +165,12 @@ def _create_revision(
     }
     if extra_payload:
         payload.update(extra_payload)
-    return repository.save_memory_revision(
-        MemoryRevision(
-            revision_id=f"{memory_id}:rev:{revision_number}",
-            memory_id=memory_id,
-            revision_number=revision_number,
-            summary=summary or proposal.candidate_claim,
-            evidence_ref=proposal.supporting_evidence_ids[0] if proposal.supporting_evidence_ids else None,
-            created_at=created_at,
-            payload=payload,
-        )
+    return repository.append_memory_revision(
+        memory_id=memory_id,
+        summary=summary or proposal.candidate_claim,
+        evidence_ref=proposal.supporting_evidence_ids[0] if proposal.supporting_evidence_ids else None,
+        created_at=created_at,
+        payload=payload,
     )
 
 

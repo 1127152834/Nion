@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import sqlite3
 from pathlib import Path
+
+import pytest
 
 from nion.memory.extraction.models import MemoryProposal
 from nion.memory.governance.service import apply_memory_governance_decision
@@ -278,3 +281,83 @@ def test_governance_service_defers_direct_mutation_when_memory_is_locked(tmp_pat
     assert node.summary == "用户偏好短段落。"
     assert decisions[0].decision_type == "defer"
     assert [revision.revision_number for revision in revisions] == [1]
+
+
+def test_repository_rejects_duplicate_canonical_key_for_different_memory_id(tmp_path: Path) -> None:
+    repo = MemoryOSRepository(tmp_path / "memory-os" / "index.sqlite3")
+    _bootstrap_existing_memory(
+        repo,
+        memory_id="mem-style-v1",
+        canonical_key="user:writing_style",
+        summary="用户偏好结论先行。",
+    )
+
+    with pytest.raises(sqlite3.IntegrityError):
+        repo.save_memory_node(
+            {
+                "memory_id": "mem-style-v2",
+                "canonical_key": "user:writing_style",
+                "owner_type": "user",
+                "scope": "user",
+                "node_type": "preference",
+                "status": "active",
+                "summary": "重复 canonical key 的另一条节点。",
+                "created_at": "2026-04-09T07:00:00Z",
+                "updated_at": "2026-04-09T07:00:00Z",
+                "metadata": {},
+            }
+        )
+
+    node = repo.get_memory_node_by_canonical_key("user:writing_style")
+
+    assert node is not None
+    assert node.memory_id == "mem-style-v1"
+    assert node.summary == "用户偏好结论先行。"
+
+
+def test_repository_appends_revisions_atomically_without_overwriting_history(tmp_path: Path) -> None:
+    repo = MemoryOSRepository(tmp_path / "memory-os" / "index.sqlite3")
+    _bootstrap_existing_memory(
+        repo,
+        memory_id="mem-outline",
+        canonical_key="user:outline",
+        summary="用户偏好先列提纲。",
+    )
+
+    second_revision = repo.append_memory_revision(
+        memory_id="mem-outline",
+        summary="用户偏好先列提纲，再写正文。",
+        evidence_ref="evidence://outline-2",
+        created_at="2026-04-09T08:00:00Z",
+        payload={"proposal_id": "prop-outline-2"},
+    )
+    third_revision = repo.append_memory_revision(
+        memory_id="mem-outline",
+        summary="用户偏好先列提纲，再写正文，最后补风险。",
+        evidence_ref="evidence://outline-3",
+        created_at="2026-04-09T09:00:00Z",
+        payload={"proposal_id": "prop-outline-3"},
+    )
+
+    with pytest.raises(sqlite3.IntegrityError):
+        repo.save_memory_revision(
+            {
+                "revision_id": third_revision.revision_id,
+                "memory_id": "mem-outline",
+                "revision_number": third_revision.revision_number,
+                "summary": "尝试覆盖已有 revision。",
+                "evidence_ref": "evidence://duplicate",
+                "created_at": "2026-04-09T09:30:00Z",
+                "payload": {"proposal_id": "prop-outline-duplicate"},
+            }
+        )
+
+    revisions = repo.list_memory_revisions(memory_id="mem-outline")
+
+    assert second_revision.revision_number == 2
+    assert third_revision.revision_number == 3
+    assert [(revision.revision_number, revision.summary) for revision in revisions] == [
+        (3, "用户偏好先列提纲，再写正文，最后补风险。"),
+        (2, "用户偏好先列提纲，再写正文。"),
+        (1, "用户偏好先列提纲。"),
+    ]

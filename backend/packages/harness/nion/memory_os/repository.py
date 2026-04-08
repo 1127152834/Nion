@@ -52,7 +52,7 @@ class MemoryOSRepository:
 
                 CREATE TABLE IF NOT EXISTS memory_nodes (
                     memory_id TEXT PRIMARY KEY,
-                    canonical_key TEXT NOT NULL,
+                    canonical_key TEXT NOT NULL UNIQUE,
                     owner_type TEXT NOT NULL,
                     scope TEXT NOT NULL,
                     node_type TEXT NOT NULL,
@@ -71,6 +71,7 @@ class MemoryOSRepository:
                     evidence_ref TEXT,
                     created_at TEXT NOT NULL,
                     payload_json TEXT NOT NULL DEFAULT '{}',
+                    UNIQUE(memory_id, revision_number),
                     FOREIGN KEY(memory_id) REFERENCES memory_nodes(memory_id)
                 );
 
@@ -198,6 +199,18 @@ class MemoryOSRepository:
             self._ensure_column(conn, "soul_events", "metadata_json", "TEXT NOT NULL DEFAULT '{}'")
             self._ensure_column(conn, "memory_records", "artifact_uri", "TEXT")
             self._ensure_column(conn, "memory_records", "provenance_json", "TEXT NOT NULL DEFAULT '{}'")
+            self._ensure_unique_index(
+                conn,
+                "memory_nodes",
+                "idx_memory_nodes_canonical_key_unique",
+                "canonical_key",
+            )
+            self._ensure_unique_index(
+                conn,
+                "memory_revisions",
+                "idx_memory_revisions_memory_id_revision_number_unique",
+                "memory_id, revision_number",
+            )
 
     @staticmethod
     def _ensure_column(
@@ -212,6 +225,21 @@ class MemoryOSRepository:
             return
         conn.execute(
             f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_definition}"
+        )
+
+    @staticmethod
+    def _ensure_unique_index(
+        conn: sqlite3.Connection,
+        table_name: str,
+        index_name: str,
+        columns_sql: str,
+    ) -> None:
+        rows = conn.execute(f"PRAGMA index_list({table_name})").fetchall()
+        existing_indexes = {str(row["name"]) for row in rows}
+        if index_name in existing_indexes:
+            return
+        conn.execute(
+            f"CREATE UNIQUE INDEX IF NOT EXISTS {index_name} ON {table_name} ({columns_sql})"
         )
 
     def healthcheck(self) -> dict[str, object]:
@@ -344,7 +372,6 @@ class MemoryOSRepository:
                 )
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(memory_id) DO UPDATE SET
-                    canonical_key = excluded.canonical_key,
                     owner_type = excluded.owner_type,
                     scope = excluded.scope,
                     node_type = excluded.node_type,
@@ -430,13 +457,6 @@ class MemoryOSRepository:
                     payload_json
                 )
                 VALUES (?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT(revision_id) DO UPDATE SET
-                    memory_id = excluded.memory_id,
-                    revision_number = excluded.revision_number,
-                    summary = excluded.summary,
-                    evidence_ref = excluded.evidence_ref,
-                    created_at = excluded.created_at,
-                    payload_json = excluded.payload_json
                 """,
                 (
                     record.revision_id,
@@ -449,6 +469,59 @@ class MemoryOSRepository:
                 ),
             )
         return record
+
+    def append_memory_revision(
+        self,
+        *,
+        memory_id: str,
+        summary: str,
+        evidence_ref: str | None,
+        created_at: str,
+        payload: dict[str, object] | None = None,
+    ) -> MemoryRevision:
+        with self._connect() as conn:
+            current_revision_number = conn.execute(
+                """
+                SELECT COALESCE(MAX(revision_number), 0) AS current_revision_number
+                FROM memory_revisions
+                WHERE memory_id = ?
+                """,
+                (memory_id,),
+            ).fetchone()
+            revision_number = 1 if current_revision_number is None else int(current_revision_number["current_revision_number"]) + 1
+            revision = MemoryRevision(
+                revision_id=f"{memory_id}:rev:{revision_number}",
+                memory_id=memory_id,
+                revision_number=revision_number,
+                summary=summary,
+                evidence_ref=evidence_ref,
+                created_at=created_at,
+                payload=dict(payload or {}),
+            )
+            conn.execute(
+                """
+                INSERT INTO memory_revisions (
+                    revision_id,
+                    memory_id,
+                    revision_number,
+                    summary,
+                    evidence_ref,
+                    created_at,
+                    payload_json
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    revision.revision_id,
+                    revision.memory_id,
+                    revision.revision_number,
+                    revision.summary,
+                    revision.evidence_ref,
+                    revision.created_at,
+                    json.dumps(revision.payload, ensure_ascii=False),
+                ),
+            )
+        return revision
 
     def list_memory_revisions(self, *, memory_id: str) -> list[MemoryRevision]:
         with self._connect() as conn:
@@ -474,19 +547,6 @@ class MemoryOSRepository:
             payload["payload"] = json.loads(str(payload.pop("payload_json") or "{}"))
             records.append(MemoryRevision.model_validate(payload))
         return records
-
-    def next_revision_number(self, memory_id: str) -> int:
-        with self._connect() as conn:
-            row = conn.execute(
-                """
-                SELECT COALESCE(MAX(revision_number), 0) AS current_revision_number
-                FROM memory_revisions
-                WHERE memory_id = ?
-                """,
-                (memory_id,),
-            ).fetchone()
-        current = 0 if row is None else int(row["current_revision_number"])
-        return current + 1
 
     def save_memory_decision(self, payload: MemoryDecision | dict[str, object]) -> MemoryDecision:
         record = payload if isinstance(payload, MemoryDecision) else MemoryDecision.model_validate(payload)
