@@ -1175,6 +1175,21 @@ Checkpoint 2026-04-08：
 
 M2 的目标不是“让所有旧记录看起来像原生 v2 记录”，而是**如实导入并暴露证据缺口**。
 
+Checkpoint 2026-04-09：
+
+- canonical judge exists：M2 已具备 canonical proposal extraction、judge、revision、decision 主链路，canonical judge 不再只是影子判定器
+- compatibility adapters back existing growth/soul routes：现有 `/api/memory/growth*` 与 soul 相关 mutation 路由继续保留外部契约，但底层由 v2 canonical compatibility adapter 承接
+- user overrides are real canonical actions：`rewrite / freeze / delete` 不再只是 legacy 入口上的附加逻辑，而是写入 canonical `UserOverride` 与 revision/decision 治理链的真实动作
+- `learning` remains first-class：`learning` 继续作为独立 canonical domain 存在，并维持对 growth 治理与后续 projection 的上游身份
+- ledger/evidence governance UI exists：Memory Ledger 与 Evidence Explorer 已作为真实治理 UI 存在，用户可查看 canonical nodes、revision 细节、evidence chain 与治理入口
+- verification evidence：2026-04-09 已先后通过后端 memory governance 相关 pytest（63 passed）与前端 memory ledger/evidence/home contract tests（9 passed），随后才更新本 checkpoint
+
+说明：
+
+- 下述 M3 / M4 / M5 是该设计文档早期对 Milestone B 内部能力的拆分草案
+- 截至 2026-04-09，其中 canonical judge、governance UI、以及 v2-backed compatibility adapter 已随当前 M2 checkpoint 一并落地
+- 因此后续小节保留其能力分解价值，但不应再被解读为“这些能力尚未存在”
+
 ### M3：新 Extractor + Proposal + Judge 进入影子裁决
 
 目标：

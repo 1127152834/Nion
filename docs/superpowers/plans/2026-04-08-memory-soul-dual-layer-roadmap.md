@@ -69,6 +69,15 @@ Do **not** compress multiple milestones into one coding burst.
 - `learning` remains first-class through canonical governance
 - current growth and soul mutation routes still function through adapters
 
+**Checkpoint 2026-04-09:**
+
+- canonical judge exists: proposal extraction, canonical judge pipeline, revisions, decisions, and primary canonical write path are in place
+- compatibility adapters back existing growth/soul routes: current `/api/memory/growth*` and soul mutation contracts continue to run through v2-backed compatibility facades
+- user overrides are real canonical actions: rewrite/freeze/delete governance is recorded as canonical `UserOverride`-driven actions on nodes and revisions, not side-channel patches
+- `learning` remains first-class: canonical governance keeps `learning` as its own domain instead of collapsing it into `procedure`
+- ledger/evidence governance UI exists: Memory Ledger and Evidence Explorer are shipped as real operator surfaces, not placeholder navigation
+- verification evidence: backend memory governance test suite and frontend memory governance contract suite both passed on 2026-04-09 before this checkpoint was recorded
+
 ### Milestone C: Runtime Memory Engine, Search Fusion, And Local Vector Layer
 
 **Plan:** `/Users/zhangtiancheng/Documents/项目/agent/nion/docs/superpowers/plans/2026-04-08-memory-soul-dual-layer-m3-runtime-recall-vector-plan.md`
