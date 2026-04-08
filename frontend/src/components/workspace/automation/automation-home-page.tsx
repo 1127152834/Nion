@@ -31,7 +31,7 @@ export function AutomationHomePage() {
     <section className="flex size-full flex-col">
       <WorkspacePageHeader
         title="自动化"
-        description="将提醒事项和定时任务拆开管理。先进入具体模块，再查看列表、详情和创建入口。"
+        description="统一管理提醒事项与定时任务，让常用动作按设定自动发生。"
       />
 
       <div className="flex flex-1 overflow-y-auto">
