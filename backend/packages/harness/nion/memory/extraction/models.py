@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, confloat
 
 MEMORY_CHANGE_TYPES = (
     "new",
@@ -22,6 +22,7 @@ SOUL_LAYERS = (
 MemoryChangeType = Literal["new", "reinforce", "revise", "contradict", "expire"]
 MemoryStability = Literal["ephemeral", "volatile", "stable", "core"]
 SoulLayer = Literal["constitution", "identity_narrative", "relationship_stance", "adaptive_overlay"]
+Score = confloat(ge=0.0, le=1.0, allow_inf_nan=False)
 
 
 class MemoryProposal(BaseModel):
@@ -32,8 +33,8 @@ class MemoryProposal(BaseModel):
     candidate_payload: dict[str, Any] = Field(default_factory=dict)
     supporting_evidence_ids: list[str] = Field(default_factory=list)
     estimated_stability: MemoryStability
-    estimated_salience: float
-    estimated_confidence: float
+    estimated_salience: Score
+    estimated_confidence: Score
     change_type: MemoryChangeType
     judge_hints: list[str] = Field(default_factory=list)
 
@@ -43,6 +44,6 @@ class SoulSignal(BaseModel):
     source_memory_ids: list[str] = Field(default_factory=list)
     suggested_layer: SoulLayer
     summary: str
-    confidence: float
+    confidence: Score
     evidence_ids: list[str] = Field(default_factory=list)
     metadata: dict[str, Any] = Field(default_factory=dict)

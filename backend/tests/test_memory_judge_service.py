@@ -80,6 +80,42 @@ def test_memory_judge_decision_can_mark_reinforcement():
     assert decision.target_memory_id == "mem_1"
 
 
+@pytest.mark.parametrize("field_name", ["estimated_salience", "estimated_confidence"])
+@pytest.mark.parametrize("invalid_value", [-0.01, 1.01, float("nan"), float("inf"), -float("inf")])
+def test_memory_proposal_rejects_invalid_score_values(field_name: str, invalid_value: float):
+    payload = {
+        "proposal_id": "prop_bad_score",
+        "proposed_domain": "user_model",
+        "proposed_kind": "preference",
+        "candidate_claim": "bad score",
+        "candidate_payload": {},
+        "supporting_evidence_ids": ["ev_1"],
+        "estimated_stability": "stable",
+        "estimated_salience": 0.5,
+        "estimated_confidence": 0.5,
+        "change_type": "new",
+        "judge_hints": [],
+    }
+    payload[field_name] = invalid_value
+
+    with pytest.raises(ValidationError):
+        MemoryProposal(**payload)
+
+
+@pytest.mark.parametrize("invalid_value", [-0.01, 1.01, float("nan"), float("inf"), -float("inf")])
+def test_soul_signal_rejects_invalid_confidence(invalid_value: float):
+    with pytest.raises(ValidationError):
+        SoulSignal(
+            signal_id="sig_bad_confidence",
+            source_memory_ids=["mem_1"],
+            suggested_layer="adaptive_overlay",
+            summary="bad confidence",
+            confidence=invalid_value,
+            evidence_ids=["ev_1"],
+            metadata={},
+        )
+
+
 def test_memory_proposal_rejects_unknown_change_type():
     with pytest.raises(ValidationError):
         MemoryProposal(
@@ -94,6 +130,19 @@ def test_memory_proposal_rejects_unknown_change_type():
             estimated_confidence=0.5,
             change_type="replace",
             judge_hints=[],
+        )
+
+
+def test_soul_signal_rejects_unknown_suggested_layer():
+    with pytest.raises(ValidationError):
+        SoulSignal(
+            signal_id="sig_bad_layer",
+            source_memory_ids=["mem_1"],
+            suggested_layer="persona",
+            summary="bad layer",
+            confidence=0.5,
+            evidence_ids=["ev_1"],
+            metadata={},
         )
 
 
