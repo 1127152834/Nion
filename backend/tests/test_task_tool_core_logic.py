@@ -17,6 +17,7 @@ class FakeSubagentStatus(Enum):
     RUNNING = "running"
     COMPLETED = "completed"
     FAILED = "failed"
+    CANCELLED = "cancelled"
     TIMED_OUT = "timed_out"
 
 
@@ -459,6 +460,46 @@ def test_cleanup_called_on_timed_out(monkeypatch):
 
     assert output == "Task timed out. Error: timeout"
     assert cleanup_calls == ["tc-cleanup-timedout"]
+
+
+def test_cleanup_called_on_cancelled(monkeypatch):
+    config = _make_subagent_config()
+    events = []
+    cleanup_calls = []
+
+    monkeypatch.setattr(task_tool_module, "SubagentStatus", FakeSubagentStatus)
+    monkeypatch.setattr(
+        task_tool_module,
+        "SubagentExecutor",
+        type("DummyExecutor", (), {"__init__": lambda self, **kwargs: None, "execute_async": lambda self, prompt, task_id=None: task_id}),
+    )
+    monkeypatch.setattr(task_tool_module, "get_subagent_config", lambda _: config)
+    monkeypatch.setattr(task_tool_module, "get_skills_prompt_section", lambda: "")
+    monkeypatch.setattr(
+        task_tool_module,
+        "get_background_task_result",
+        lambda _: _make_result(FakeSubagentStatus.CANCELLED, error="Cancelled by user"),
+    )
+    monkeypatch.setattr(task_tool_module, "get_stream_writer", lambda: events.append)
+    monkeypatch.setattr(task_tool_module.time, "sleep", lambda _: None)
+    monkeypatch.setattr("nion.tools.get_available_tools", lambda **kwargs: [])
+    monkeypatch.setattr(
+        task_tool_module,
+        "cleanup_background_task",
+        lambda task_id: cleanup_calls.append(task_id),
+    )
+
+    output = task_tool_module.task_tool.func(
+        runtime=_make_runtime(),
+        description="执行任务",
+        prompt="cancel task",
+        subagent_type="general-purpose",
+        tool_call_id="tc-cleanup-cancelled",
+    )
+
+    assert output == "Task cancelled by user."
+    assert events[-1]["type"] == "task_cancelled"
+    assert cleanup_calls == ["tc-cleanup-cancelled"]
 
 
 def test_cleanup_not_called_on_polling_safety_timeout(monkeypatch):

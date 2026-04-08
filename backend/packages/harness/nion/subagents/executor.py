@@ -35,6 +35,7 @@ class SubagentStatus(Enum):
     RUNNING = "running"
     COMPLETED = "completed"
     FAILED = "failed"
+    CANCELLED = "cancelled"
     TIMED_OUT = "timed_out"
 
 
@@ -78,6 +79,9 @@ _scheduler_pool = ThreadPoolExecutor(max_workers=3, thread_name_prefix="subagent
 # Thread pool for actual subagent execution (with timeout support)
 # Larger pool to avoid blocking when scheduler submits execution tasks
 _execution_pool = ThreadPoolExecutor(max_workers=3, thread_name_prefix="subagent-exec-")
+
+# Dedicated pool for sync execute() calls made from an already-running event loop.
+_isolated_loop_pool = ThreadPoolExecutor(max_workers=3, thread_name_prefix="subagent-isolated-")
 
 
 def _telemetry_store() -> TelemetryStore:
@@ -753,7 +757,13 @@ class SubagentExecutor:
         # an async context where an event loop already exists). Subagent execution
         # errors are handled within _aexecute() and returned as FAILED status.
         try:
-            return asyncio.run(self._aexecute(task, result_holder))
+            try:
+                asyncio.get_running_loop()
+            except RuntimeError:
+                return asyncio.run(self._aexecute(task, result_holder))
+
+            future = _isolated_loop_pool.submit(asyncio.run, self._aexecute(task, result_holder))
+            return future.result()
         except Exception as e:
             logger.exception(f"[trace={self.trace_id}] Subagent {self.config.name} execution failed")
             # Create a result with error if we don't have one
@@ -914,6 +924,7 @@ def cleanup_background_task(task_id: str) -> None:
         is_terminal_status = result.status in {
             SubagentStatus.COMPLETED,
             SubagentStatus.FAILED,
+            SubagentStatus.CANCELLED,
             SubagentStatus.TIMED_OUT,
         }
         if is_terminal_status or result.completed_at is not None:

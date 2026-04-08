@@ -573,6 +573,27 @@ class TestSyncExecutionPath:
         assert result.task_id == "predefined-id"
         assert result.status == SubagentStatus.COMPLETED
 
+    @pytest.mark.anyio
+    async def test_execute_from_running_event_loop_uses_isolated_thread(self, classes, base_config, mock_agent, msg):
+        SubagentExecutor = classes["SubagentExecutor"]
+        SubagentStatus = classes["SubagentStatus"]
+
+        final_message = msg.ai("Loop-safe result", "msg-1")
+        final_state = {"messages": [msg.human("Task"), final_message]}
+        mock_agent.astream = lambda *args, **kwargs: async_iterator([final_state])
+
+        executor = SubagentExecutor(
+            config=base_config,
+            tools=[],
+            thread_id="test-thread",
+        )
+
+        with patch.object(executor, "_create_agent", return_value=mock_agent):
+            result = executor.execute("Task")
+
+        assert result.status == SubagentStatus.COMPLETED
+        assert result.result == "Loop-safe result"
+
 
 # -----------------------------------------------------------------------------
 # Async Tool Support Tests (MCP Tools)

@@ -562,6 +562,21 @@ def task_tool(
             logger.warning(f"[trace={trace_id}] Task {task_id} timed out: {result.error}")
             cleanup_background_task(task_id)
             return f"Task timed out. Error: {result.error}"
+        elif result.status == SubagentStatus.CANCELLED:
+            _record_task_failure(
+                task_id=task_id,
+                thread_id=thread_id,
+                description=description,
+                subagent_type=subagent_type,
+                trace_id=trace_id,
+                error=result.error or "Cancelled by user",
+                poll_count=poll_count,
+                ai_message_count=current_message_count,
+            )
+            writer({"type": "task_cancelled", "task_id": task_id, "error": result.error})
+            logger.info(f"[trace={trace_id}] Task {task_id} cancelled: {result.error}")
+            cleanup_background_task(task_id)
+            return "Task cancelled by user."
 
         # Still running, wait before next poll
         time.sleep(5)  # Poll every 5 seconds
