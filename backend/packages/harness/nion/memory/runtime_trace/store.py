@@ -4,6 +4,8 @@ import json
 import sqlite3
 from pathlib import Path
 
+from pydantic import ValidationError
+
 from nion.memory.runtime_trace.models import RuntimeTraceEvent
 
 
@@ -148,16 +150,21 @@ class RuntimeTraceStore:
             return []
 
         events: list[RuntimeTraceEvent] = []
-        for line in self._trace_path.read_text(encoding="utf-8").splitlines():
-            if not line.strip():
-                continue
-            payload = json.loads(line)
-            event = RuntimeTraceEvent.model_validate(payload)
-            if thread_id is not None and event.thread_id != thread_id:
-                continue
-            if event_type is not None and event.event_type != event_type:
-                continue
-            events.append(event)
+        with self._trace_path.open("r", encoding="utf-8") as handle:
+            for raw_line in handle:
+                line = raw_line.strip()
+                if not line:
+                    continue
+                try:
+                    payload = json.loads(line)
+                    event = RuntimeTraceEvent.model_validate(payload)
+                except (json.JSONDecodeError, ValidationError):
+                    continue
+                if thread_id is not None and event.thread_id != thread_id:
+                    continue
+                if event_type is not None and event.event_type != event_type:
+                    continue
+                events.append(event)
 
         events.sort(key=lambda event: (event.created_at, event.event_id), reverse=True)
         return events[:limit]

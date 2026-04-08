@@ -3,6 +3,7 @@ import sqlite3
 from fastapi.testclient import TestClient
 
 from app.gateway.app import create_app
+from app.runtime.app_factory import create_runtime_app
 from nion.config.paths import get_paths, reset_paths
 from nion.memory_os.repository import MemoryOSRepository
 
@@ -133,3 +134,18 @@ def test_memory_ledger_is_read_only(monkeypatch, tmp_path):
         response = client.post("/api/memory/ledger", json={})
 
     assert response.status_code == 405
+
+
+def test_memory_read_only_surfaces_are_available_in_desktop_runtime_app() -> None:
+    app = create_runtime_app(
+        mode="desktop",
+        title="test",
+        description="test",
+        version="0.0.0",
+    )
+
+    routes = {route.path for route in app.routes}
+
+    assert "/api/memory/ledger" in routes
+    assert "/api/memory/evidence" in routes
+    assert "/api/memory/runtime-trace" in routes
