@@ -5,7 +5,16 @@ import sqlite3
 from pathlib import Path
 
 from .clock import utcnow_z
-from .models import AccessLogEntry, CandidateRecord, ConsolidationEvent, SoulEventRecord
+from .models import (
+    AccessLogEntry,
+    CandidateRecord,
+    ConsolidationEvent,
+    MemoryDecision,
+    MemoryNode,
+    MemoryRevision,
+    SoulEventRecord,
+    UserOverrideRecord,
+)
 
 
 class MemoryOSRepository:
@@ -316,6 +325,293 @@ class MemoryOSRepository:
                 ),
             )
 
+    def save_memory_node(self, payload: MemoryNode | dict[str, object]) -> MemoryNode:
+        record = payload if isinstance(payload, MemoryNode) else MemoryNode.model_validate(payload)
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO memory_nodes (
+                    memory_id,
+                    canonical_key,
+                    owner_type,
+                    scope,
+                    node_type,
+                    status,
+                    summary,
+                    created_at,
+                    updated_at,
+                    metadata_json
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(memory_id) DO UPDATE SET
+                    canonical_key = excluded.canonical_key,
+                    owner_type = excluded.owner_type,
+                    scope = excluded.scope,
+                    node_type = excluded.node_type,
+                    status = excluded.status,
+                    summary = excluded.summary,
+                    created_at = excluded.created_at,
+                    updated_at = excluded.updated_at,
+                    metadata_json = excluded.metadata_json
+                """,
+                (
+                    record.memory_id,
+                    record.canonical_key,
+                    record.owner_type,
+                    record.scope,
+                    record.node_type,
+                    record.status,
+                    record.summary,
+                    record.created_at,
+                    record.updated_at,
+                    json.dumps(record.metadata, ensure_ascii=False),
+                ),
+            )
+        return record
+
+    def get_memory_node(self, memory_id: str) -> MemoryNode | None:
+        with self._connect() as conn:
+            row = conn.execute(
+                """
+                SELECT
+                    memory_id,
+                    canonical_key,
+                    owner_type,
+                    scope,
+                    node_type,
+                    status,
+                    summary,
+                    created_at,
+                    updated_at,
+                    metadata_json
+                FROM memory_nodes
+                WHERE memory_id = ?
+                """,
+                (memory_id,),
+            ).fetchone()
+        return self._load_memory_node(row)
+
+    def get_memory_node_by_canonical_key(self, canonical_key: str) -> MemoryNode | None:
+        with self._connect() as conn:
+            row = conn.execute(
+                """
+                SELECT
+                    memory_id,
+                    canonical_key,
+                    owner_type,
+                    scope,
+                    node_type,
+                    status,
+                    summary,
+                    created_at,
+                    updated_at,
+                    metadata_json
+                FROM memory_nodes
+                WHERE canonical_key = ?
+                ORDER BY updated_at DESC, memory_id DESC
+                LIMIT 1
+                """,
+                (canonical_key,),
+            ).fetchone()
+        return self._load_memory_node(row)
+
+    def save_memory_revision(self, payload: MemoryRevision | dict[str, object]) -> MemoryRevision:
+        record = payload if isinstance(payload, MemoryRevision) else MemoryRevision.model_validate(payload)
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO memory_revisions (
+                    revision_id,
+                    memory_id,
+                    revision_number,
+                    summary,
+                    evidence_ref,
+                    created_at,
+                    payload_json
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(revision_id) DO UPDATE SET
+                    memory_id = excluded.memory_id,
+                    revision_number = excluded.revision_number,
+                    summary = excluded.summary,
+                    evidence_ref = excluded.evidence_ref,
+                    created_at = excluded.created_at,
+                    payload_json = excluded.payload_json
+                """,
+                (
+                    record.revision_id,
+                    record.memory_id,
+                    record.revision_number,
+                    record.summary,
+                    record.evidence_ref,
+                    record.created_at,
+                    json.dumps(record.payload, ensure_ascii=False),
+                ),
+            )
+        return record
+
+    def list_memory_revisions(self, *, memory_id: str) -> list[MemoryRevision]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT
+                    revision_id,
+                    memory_id,
+                    revision_number,
+                    summary,
+                    evidence_ref,
+                    created_at,
+                    payload_json
+                FROM memory_revisions
+                WHERE memory_id = ?
+                ORDER BY revision_number DESC, created_at DESC, revision_id DESC
+                """,
+                (memory_id,),
+            ).fetchall()
+        records: list[MemoryRevision] = []
+        for row in rows:
+            payload = dict(row)
+            payload["payload"] = json.loads(str(payload.pop("payload_json") or "{}"))
+            records.append(MemoryRevision.model_validate(payload))
+        return records
+
+    def next_revision_number(self, memory_id: str) -> int:
+        with self._connect() as conn:
+            row = conn.execute(
+                """
+                SELECT COALESCE(MAX(revision_number), 0) AS current_revision_number
+                FROM memory_revisions
+                WHERE memory_id = ?
+                """,
+                (memory_id,),
+            ).fetchone()
+        current = 0 if row is None else int(row["current_revision_number"])
+        return current + 1
+
+    def save_memory_decision(self, payload: MemoryDecision | dict[str, object]) -> MemoryDecision:
+        record = payload if isinstance(payload, MemoryDecision) else MemoryDecision.model_validate(payload)
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO memory_decisions (
+                    decision_id,
+                    memory_id,
+                    revision_id,
+                    decision_type,
+                    rationale,
+                    created_at,
+                    decided_by,
+                    metadata_json
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(decision_id) DO UPDATE SET
+                    memory_id = excluded.memory_id,
+                    revision_id = excluded.revision_id,
+                    decision_type = excluded.decision_type,
+                    rationale = excluded.rationale,
+                    created_at = excluded.created_at,
+                    decided_by = excluded.decided_by,
+                    metadata_json = excluded.metadata_json
+                """,
+                (
+                    record.decision_id,
+                    record.memory_id,
+                    record.revision_id,
+                    record.decision_type,
+                    record.rationale,
+                    record.created_at,
+                    record.decided_by,
+                    json.dumps(record.metadata, ensure_ascii=False),
+                ),
+            )
+        return record
+
+    def list_memory_decisions(self, *, memory_id: str) -> list[MemoryDecision]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT
+                    decision_id,
+                    memory_id,
+                    revision_id,
+                    decision_type,
+                    rationale,
+                    created_at,
+                    decided_by,
+                    metadata_json
+                FROM memory_decisions
+                WHERE memory_id = ?
+                ORDER BY created_at DESC, decision_id DESC
+                """,
+                (memory_id,),
+            ).fetchall()
+        records: list[MemoryDecision] = []
+        for row in rows:
+            payload = dict(row)
+            payload["metadata"] = json.loads(str(payload.pop("metadata_json") or "{}"))
+            records.append(MemoryDecision.model_validate(payload))
+        return records
+
+    def save_user_override(self, payload: UserOverrideRecord | dict[str, object]) -> UserOverrideRecord:
+        record = payload if isinstance(payload, UserOverrideRecord) else UserOverrideRecord.model_validate(payload)
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO user_overrides (
+                    override_id,
+                    memory_id,
+                    field_name,
+                    value_json,
+                    reason,
+                    created_at,
+                    updated_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(override_id) DO UPDATE SET
+                    memory_id = excluded.memory_id,
+                    field_name = excluded.field_name,
+                    value_json = excluded.value_json,
+                    reason = excluded.reason,
+                    created_at = excluded.created_at,
+                    updated_at = excluded.updated_at
+                """,
+                (
+                    record.override_id,
+                    record.memory_id,
+                    record.field_name,
+                    json.dumps(record.value, ensure_ascii=False),
+                    record.reason,
+                    record.created_at,
+                    record.updated_at,
+                ),
+            )
+        return record
+
+    def list_user_overrides(self, *, memory_id: str) -> list[UserOverrideRecord]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT
+                    override_id,
+                    memory_id,
+                    field_name,
+                    value_json,
+                    reason,
+                    created_at,
+                    updated_at
+                FROM user_overrides
+                WHERE memory_id = ?
+                ORDER BY updated_at DESC, override_id DESC
+                """,
+                (memory_id,),
+            ).fetchall()
+        records: list[UserOverrideRecord] = []
+        for row in rows:
+            payload = dict(row)
+            payload["value"] = json.loads(str(payload.pop("value_json") or "{}"))
+            records.append(UserOverrideRecord.model_validate(payload))
+        return records
+
     def list_memory_records(
         self,
         *,
@@ -557,3 +853,11 @@ class MemoryOSRepository:
             payload["metadata"] = json.loads(str(payload.pop("metadata_json") or "{}"))
             records.append(SoulEventRecord.model_validate(payload))
         return records
+
+    @staticmethod
+    def _load_memory_node(row: sqlite3.Row | None) -> MemoryNode | None:
+        if row is None:
+            return None
+        payload = dict(row)
+        payload["metadata"] = json.loads(str(payload.pop("metadata_json") or "{}"))
+        return MemoryNode.model_validate(payload)
