@@ -10,6 +10,14 @@ from nion.memory.evidence_vault.store import EvidenceVaultStore
 from nion.memory.session_policy import resolve_memory_session_policy
 
 
+def resolve_optional_bool(value: object, *, default: bool) -> bool:
+    if isinstance(value, bool):
+        return value
+    if value is None:
+        return default
+    return default
+
+
 def capture_turn_evidence(
     *,
     thread_id: str,

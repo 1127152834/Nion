@@ -8,6 +8,7 @@ from typing import Any
 
 from nion.client import NionClient, StreamEvent
 from nion.config.agents_config import AGENT_NAME_PATTERN
+from nion.memory.evidence_capture.service import resolve_optional_bool
 from nion.notebook.service import NotebookNotFoundError, NotebookService
 
 from .models import (
@@ -148,12 +149,13 @@ class ThreadService:
                 execution_mode=context.get("execution_mode"),
                 host_workdir=context.get("host_workdir"),
                 session_mode=context.get("session_mode"),
-                memory_read=bool(context.get("memory_read", True)),
-                memory_write=bool(
-                    context.get(
-                        "memory_write",
-                        context.get("session_mode") != "temporary_chat",
-                    )
+                memory_read=resolve_optional_bool(
+                    context.get("memory_read"),
+                    default=True,
+                ),
+                memory_write=resolve_optional_bool(
+                    context.get("memory_write"),
+                    default=context.get("session_mode") != "temporary_chat",
                 ),
                 project_id=context.get("project_id"),
                 project_phase=context.get("project_phase"),

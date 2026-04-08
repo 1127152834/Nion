@@ -87,6 +87,35 @@ def test_thread_service_stream_passes_session_policy_to_client():
     assert kwargs["memory_write"] is False
 
 
+def test_thread_service_stream_ignores_string_truthiness_for_session_policy():
+    client = MagicMock()
+    client.stream.return_value = iter(
+        [SimpleNamespace(type="values", data={"title": "T", "messages": [], "artifacts": []})]
+    )
+    repository = MagicMock()
+    repository.get_thread.return_value = None
+    repository.upsert_thread.return_value = SimpleNamespace(
+        values=SimpleNamespace(model_dump=lambda: {})
+    )
+    service = ThreadService(repository=repository, client=client)
+
+    request = ThreadStreamRequest(
+        messages=[{"type": "human", "content": [{"type": "text", "text": "hi"}]}],
+        context={
+            "session_mode": "temporary_chat",
+            "memory_read": "false",
+            "memory_write": "0",
+        },
+        config={},
+    )
+
+    list(service.stream("thread-1", request))
+
+    kwargs = client.stream.call_args.kwargs
+    assert kwargs["memory_read"] is True
+    assert kwargs["memory_write"] is False
+
+
 def test_client_stream_calls_capture_service_with_session_policy():
     client = NionClient()
     agent = MagicMock()
@@ -128,4 +157,49 @@ def test_client_stream_calls_capture_service_with_session_policy():
     assert kwargs["messages"] == [
         {"type": "human", "content": "用户提到最近焦虑。", "id": "human-1"},
         {"type": "ai", "content": "建议先把今晚的任务减到一件。", "id": "ai-1"},
+    ]
+
+
+def test_client_stream_captures_only_new_human_and_ai_messages():
+    client = NionClient()
+    historical_human = HumanMessage(content="历史用户消息", id="human-old")
+    historical_ai = AIMessage(content="历史助手消息", id="ai-old")
+    current_human = HumanMessage(content="本轮新用户消息", id="human-new")
+    current_ai = AIMessage(content="本轮新助手消息", id="ai-new")
+    agent = MagicMock()
+    agent.stream.return_value = iter(
+        [
+            {
+                "messages": [historical_human, historical_ai, current_human],
+                "title": "T",
+                "artifacts": [],
+            },
+            {
+                "messages": [historical_human, historical_ai, current_human, current_ai],
+                "title": "T",
+                "artifacts": [],
+            },
+        ]
+    )
+
+    with (
+        patch.object(client, "_ensure_agent"),
+        patch.object(client, "_agent", agent),
+        patch("nion.client.capture_turn_evidence") as capture_mock,
+    ):
+        capture_mock.return_value = []
+        list(
+            client.stream(
+                "本轮新用户消息",
+                thread_id="thread-1",
+                session_mode="workspace",
+                memory_read=True,
+                memory_write=True,
+            )
+        )
+
+    kwargs = capture_mock.call_args.kwargs
+    assert kwargs["messages"] == [
+        {"type": "human", "content": "本轮新用户消息", "id": "human-new"},
+        {"type": "ai", "content": "本轮新助手消息", "id": "ai-new"},
     ]
