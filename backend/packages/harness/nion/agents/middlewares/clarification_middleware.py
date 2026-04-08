@@ -1,5 +1,6 @@
 """Middleware for intercepting clarification requests and presenting them to the user."""
 
+import json
 from collections.abc import Callable
 from typing import override
 
@@ -58,6 +59,19 @@ class ClarificationMiddleware(AgentMiddleware[ClarificationMiddlewareState]):
         clarification_type = args.get("clarification_type", "missing_info")
         context = args.get("context")
         options = args.get("options", [])
+
+        # Some models serialize array parameters as JSON strings instead of
+        # native lists. Normalize so rendering always iterates a list.
+        if isinstance(options, str):
+            try:
+                options = json.loads(options)
+            except (json.JSONDecodeError, TypeError):
+                options = [options]
+
+        if options is None:
+            options = []
+        elif not isinstance(options, list):
+            options = [options]
 
         # Type-specific icons
         type_icons = {

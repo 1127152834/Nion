@@ -49,6 +49,15 @@ class TestHashToolCalls:
         assert isinstance(h, str)
         assert len(h) > 0
 
+    def test_read_file_nearby_ranges_share_same_hash(self):
+        a = _hash_tool_calls(
+            [{"name": "read_file", "args": {"path": "/tmp/a.txt", "start_line": 1, "end_line": 80}}]
+        )
+        b = _hash_tool_calls(
+            [{"name": "read_file", "args": {"path": "/tmp/a.txt", "start_line": 50, "end_line": 120}}]
+        )
+        assert a == b
+
 
 class TestLoopDetection:
     def test_no_tool_calls_returns_none(self):
