@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from nion.memory.soul.service import write_canonical_soul_layer
 from .repository import MemoryOSRepository
 from .soul_events import record_soul_event
 
@@ -14,6 +15,7 @@ class MemoryOSSoulArtifactStore:
 
     def write_core_soul(self, *, body: str, created_at: str) -> dict[str, object]:
         path = self._artifacts_dir / "soul" / "core" / "core_soul.md"
+        summary = _extract_summary(body)
         record = {
             "memory_id": "soul_core_main",
             "domain": "soul",
@@ -25,7 +27,7 @@ class MemoryOSSoulArtifactStore:
             "target_id": "agent:main",
             "status": "active",
             "title": "主智能体核心人格基底",
-            "summary": _extract_summary(body),
+            "summary": summary,
             "confidence": 1.0,
             "created_at": created_at,
             "updated_at": created_at,
@@ -35,6 +37,13 @@ class MemoryOSSoulArtifactStore:
                 "generated_by": "soul_artifact_writer",
             },
         }
+        write_canonical_soul_layer(
+            self._repository,
+            layer="core",
+            summary=summary,
+            created_at=created_at,
+            payload={"artifact_uri": record["artifact_uri"], "source_type": "artifact_write"},
+        )
         return self._write_artifact(path=path, body=body, record=record)
 
     def write_identity_narrative(
@@ -49,6 +58,7 @@ class MemoryOSSoulArtifactStore:
             if staged
             else self._artifacts_dir / "agent-self" / "narrative" / "identity_narrative.md"
         )
+        summary = _extract_summary(body)
         record = {
             "memory_id": "agent_self_narrative_staged_main" if staged else "agent_self_narrative_main",
             "domain": "agent_self",
@@ -60,7 +70,7 @@ class MemoryOSSoulArtifactStore:
             "target_id": "agent:main",
             "status": "candidate" if staged else "active",
             "title": "主智能体 staged 身份叙事" if staged else "主智能体当前身份叙事",
-            "summary": _extract_summary(body),
+            "summary": summary,
             "confidence": 0.88,
             "created_at": created_at,
             "updated_at": created_at,
@@ -74,6 +84,14 @@ class MemoryOSSoulArtifactStore:
                 "generated_by": "soul_artifact_writer",
             },
         }
+        if not staged:
+            write_canonical_soul_layer(
+                self._repository,
+                layer="identity_narrative",
+                summary=summary,
+                created_at=created_at,
+                payload={"artifact_uri": record["artifact_uri"], "source_type": "artifact_write"},
+            )
         written = self._write_artifact(path=path, body=body, record=record)
         if staged:
             record_soul_event(
@@ -92,6 +110,7 @@ class MemoryOSSoulArtifactStore:
 
     def write_active_overlay(self, *, body: str, created_at: str) -> dict[str, object]:
         path = self._artifacts_dir / "soul" / "overlays" / "active_overlay.md"
+        summary = _extract_summary(body)
         record = {
             "memory_id": "soul_overlay_active_main",
             "domain": "soul",
@@ -103,7 +122,7 @@ class MemoryOSSoulArtifactStore:
             "target_id": "agent:main",
             "status": "active",
             "title": "当前生效的 adaptive soul overlay",
-            "summary": _extract_summary(body),
+            "summary": summary,
             "confidence": 0.9,
             "created_at": created_at,
             "updated_at": created_at,
@@ -113,6 +132,13 @@ class MemoryOSSoulArtifactStore:
                 "generated_by": "soul_artifact_writer",
             },
         }
+        write_canonical_soul_layer(
+            self._repository,
+            layer="adaptive_overlay",
+            summary=summary,
+            created_at=created_at,
+            payload={"artifact_uri": record["artifact_uri"], "source_type": "artifact_write"},
+        )
         return self._write_artifact(path=path, body=body, record=record)
 
     def write_relationship_soul(
@@ -124,6 +150,7 @@ class MemoryOSSoulArtifactStore:
         source_relationship_ids: list[str] | None = None,
     ) -> dict[str, object]:
         path = self._artifacts_dir / "soul" / "relationship" / "relationship_soul.md"
+        summary = _extract_summary(body)
         record = {
             "memory_id": "soul_rel_user_default",
             "domain": "soul",
@@ -135,7 +162,7 @@ class MemoryOSSoulArtifactStore:
             "target_id": target_id,
             "status": "active",
             "title": "当前用户关系人格层",
-            "summary": _extract_summary(body),
+            "summary": summary,
             "confidence": 0.9,
             "created_at": created_at,
             "updated_at": created_at,
@@ -146,6 +173,17 @@ class MemoryOSSoulArtifactStore:
                 "source_relationship_ids": source_relationship_ids or [],
             },
         }
+        write_canonical_soul_layer(
+            self._repository,
+            layer="relationship_stance",
+            summary=summary,
+            created_at=created_at,
+            payload={
+                "artifact_uri": record["artifact_uri"],
+                "source_type": "relationship_derivation",
+                "source_relationship_ids": source_relationship_ids or [],
+            },
+        )
         return self._write_artifact(path=path, body=body, record=record)
 
     def _write_artifact(

@@ -1,15 +1,21 @@
 from __future__ import annotations
 
+from nion.memory.soul.service import (
+    derive_relationship_stance_snapshot,
+    write_canonical_relationship_memory,
+    write_canonical_soul_layer,
+)
 from .repository import MemoryOSRepository
 from .soul_artifacts import MemoryOSSoulArtifactStore
 from .soul_events import record_soul_event
 
 
 def build_relationship_soul_summary(repository: MemoryOSRepository) -> str | None:
-    records = repository.list_memory_records(domain="relationship", status="active")
-    if not records:
-        return None
-    return "；".join(str(record["summary"]) for record in records[:2])
+    snapshot = derive_relationship_stance_snapshot(
+        repository,
+        now_z="9999-12-31T00:00:00Z",
+    )
+    return None if snapshot is None else snapshot.summary
 
 
 def refresh_relationship_soul(
@@ -17,10 +23,24 @@ def refresh_relationship_soul(
     *,
     created_at: str,
 ) -> dict[str, object]:
-    records = repository.list_memory_records(domain="relationship", status="active")
-    summary = build_relationship_soul_summary(repository)
-    if not summary:
+    snapshot = derive_relationship_stance_snapshot(repository, now_z=created_at)
+    if snapshot is None:
         raise ValueError("No active relationship records available for soul refresh")
+    summary = snapshot.summary
+    source_relationship_ids = list(snapshot.payload.get("source_relationship_ids", []))
+    write_canonical_relationship_memory(
+        repository,
+        summary=summary,
+        created_at=created_at,
+        source_relationship_ids=source_relationship_ids,
+    )
+    write_canonical_soul_layer(
+        repository,
+        layer="relationship_stance",
+        summary=summary,
+        created_at=created_at,
+        payload={"source_relationship_ids": source_relationship_ids},
+    )
 
     body = "\n".join(
         [
@@ -30,7 +50,6 @@ def refresh_relationship_soul(
             summary,
         ]
     )
-    source_relationship_ids = [str(item["memory_id"]) for item in records[:2]]
     artifact = MemoryOSSoulArtifactStore(
         repository=repository,
         base_dir=repository._db_path.parent.parent,

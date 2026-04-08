@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from nion.memory.soul.service import archive_canonical_soul_layer, write_canonical_soul_layer
 from .clock import utcnow_z
 from .repository import MemoryOSRepository
 from .soul_artifacts import MemoryOSSoulArtifactStore
@@ -48,6 +49,17 @@ def accept_soul_proposal(
         },
     }
     repository.save_memory_record(overlay)
+    write_canonical_soul_layer(
+        repository,
+        layer="adaptive_overlay",
+        summary=str(proposal["summary"]),
+        created_at=created_at,
+        payload={
+            "source_memory_id": memory_id,
+            "artifact_uri": overlay["artifact_uri"],
+            "governance_action": "accept",
+        },
+    )
     record_soul_event(
         repository,
         event_type="proposal_accepted",
@@ -56,6 +68,10 @@ def accept_soul_proposal(
         created_at=created_at,
         related_memory_id="soul_overlay_active_main",
         source="soul_governance",
+        metadata={
+            "canonical_memory_id": "soul_overlay_active_main",
+            "governance_action": "accept",
+        },
     )
     return {"memory_id": memory_id, "action": "accept", "overlay": overlay}
 
@@ -90,6 +106,12 @@ def rollback_soul_overlay(
     if overlay["status"] != "active":
         return {"memory_id": overlay["memory_id"], "action": "rollback"}
     repository.update_memory_status(str(overlay["memory_id"]), "archived", updated_at=created_at)
+    archive_canonical_soul_layer(
+        repository,
+        layer="adaptive_overlay",
+        updated_at=created_at,
+        metadata={"governance_action": "rollback"},
+    )
     record_soul_event(
         repository,
         event_type="overlay_rollback",
@@ -97,6 +119,10 @@ def rollback_soul_overlay(
         summary=str(overlay["summary"]),
         created_at=created_at,
         source="soul_governance",
+        metadata={
+            "canonical_memory_id": str(overlay["memory_id"]),
+            "governance_action": "rollback",
+        },
     )
     return {"memory_id": overlay["memory_id"], "action": "rollback"}
 
@@ -129,6 +155,17 @@ def promote_identity_narrative(
         "source_memory_id": staged_memory_id,
     }
     repository.save_memory_record(promoted)
+    write_canonical_soul_layer(
+        repository,
+        layer="identity_narrative",
+        summary=str(promoted["summary"]),
+        created_at=created_at,
+        payload={
+            "source_memory_id": staged_memory_id,
+            "artifact_uri": promoted["artifact_uri"],
+            "governance_action": "promote",
+        },
+    )
     record_soul_event(
         repository,
         event_type="identity_narrative_promoted",
@@ -140,6 +177,7 @@ def promote_identity_narrative(
         metadata={
             "artifact_uri": promoted["artifact_uri"],
             "promoted_from": staged_memory_id,
+            "canonical_memory_id": "agent_self_narrative_main",
         },
     )
     return {"memory_id": "agent_self_narrative_main", "action": "promote", "memory_record": promoted}
