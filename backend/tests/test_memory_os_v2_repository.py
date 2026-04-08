@@ -20,8 +20,8 @@ def test_paths_exposes_memory_os_v2_directories(tmp_path: Path) -> None:
 
     assert paths.memory_os_evidence_dir == tmp_path / "memory-os" / "evidence"
     assert paths.memory_os_indexes_dir == tmp_path / "memory-os" / "indexes"
-    assert paths.memory_os_fts_dir == tmp_path / "memory-os" / "fts"
-    assert paths.memory_os_vector_dir == tmp_path / "memory-os" / "vector"
+    assert paths.memory_os_fts_dir == tmp_path / "memory-os" / "indexes" / "fts"
+    assert paths.memory_os_vector_dir == tmp_path / "memory-os" / "indexes" / "vector"
 
 
 def test_repository_initializes_v2_canonical_tables_without_breaking_legacy_tables(

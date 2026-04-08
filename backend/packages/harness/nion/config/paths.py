@@ -185,12 +185,12 @@ class Paths:
     @property
     def memory_os_fts_dir(self) -> Path:
         """Root directory for Memory OS full-text search state."""
-        return self.memory_os_dir / "fts"
+        return self.memory_os_indexes_dir / "fts"
 
     @property
     def memory_os_vector_dir(self) -> Path:
         """Root directory for Memory OS vector index state."""
-        return self.memory_os_dir / "vector"
+        return self.memory_os_indexes_dir / "vector"
 
     @property
     def automation_hooks_dir(self) -> Path:
