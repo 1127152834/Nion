@@ -13,7 +13,7 @@ export function useSoulSummary() {
     queryKey: ["soul", "summary"],
     queryFn: () => loadSoulSummary(),
   });
-  return { soulSummary: data ?? null, isLoading, error };
+  return { soulSummary: data ?? null, isLoading, error, hasSoulSurface: Boolean(data) };
 }
 
 export function useSoulProposals() {
@@ -21,7 +21,12 @@ export function useSoulProposals() {
     queryKey: ["soul", "proposals"],
     queryFn: () => loadSoulProposals(),
   });
-  return { proposals: data?.proposals ?? [], isLoading, error };
+  return {
+    proposals: data?.proposals ?? [],
+    isLoading,
+    error,
+    hasProposalSurface: (data?.proposals?.length ?? 0) > 0,
+  };
 }
 
 export function useSoulEvents() {
@@ -29,7 +34,12 @@ export function useSoulEvents() {
     queryKey: ["soul", "events"],
     queryFn: () => loadSoulEvents(),
   });
-  return { events: data?.events ?? [], isLoading, error };
+  return {
+    events: data?.events ?? [],
+    isLoading,
+    error,
+    hasEventSurface: (data?.events?.length ?? 0) > 0,
+  };
 }
 
 export function useAcceptSoulProposal() {

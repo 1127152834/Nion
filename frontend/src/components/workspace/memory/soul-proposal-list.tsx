@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,8 @@ import {
   useRejectSoulProposal,
   useSoulProposals,
 } from "@/core/soul/hooks";
+
+const SOUL_CONSOLE_HREF = "/workspace/memory/growth?soul=console";
 
 export function SoulProposalList(props: {
   onProposalEvent?: (event: {
@@ -59,6 +62,11 @@ export function SoulProposalList(props: {
         <CardTitle>灵魂提案</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4 text-sm">
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" size="sm" variant="outline" asChild>
+            <Link href={SOUL_CONSOLE_HREF}>在 Soul Console 查看分层状态</Link>
+          </Button>
+        </div>
         {proposals.length === 0 ? (
           <p className="text-muted-foreground">当前还没有灵魂提案。</p>
         ) : (

@@ -47,6 +47,12 @@ export function MemoryHomePage() {
       description: "查看学习主题、方法草案和灵魂提案的独立详情页。",
     },
     {
+      href: "/workspace/memory/growth?soul=console",
+      title: "Soul Console",
+      description:
+        "查看 constitution、identity narrative、relationship stance、adaptive overlay 四层 surface 与当前 revision。",
+    },
+    {
       href: "/workspace/memory/ledger",
       title: "Memory ledger",
       description: "查看 canonical nodes 与 current revisions，进入 freeze/delete/rewrite/evidence 治理入口。",
