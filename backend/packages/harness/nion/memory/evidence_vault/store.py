@@ -251,50 +251,54 @@ class EvidenceVaultStore:
         )
 
         artifact_uri = row["artifact_uri"]
-        with self._connect() as connection:
-            delete_chunks(connection, evidence_id)
-            connection.execute(
-                "DELETE FROM evidence_chunks WHERE evidence_id = ?",
-                (evidence_id,),
-            )
-            connection.execute(
-                "UPDATE evidence_documents SET purged_at = ? WHERE evidence_id = ?",
-                (deleted_at, evidence_id),
-            )
-            connection.execute(
-                """
-                INSERT OR REPLACE INTO evidence_tombstones(
-                    evidence_id,
-                    deleted_at,
-                    deleted_by,
-                    checksum
-                )
-                VALUES (?, ?, ?, ?)
-                """,
-                (
-                    tombstone.evidence_id,
-                    tombstone.deleted_at,
-                    tombstone.deleted_by,
-                    tombstone.checksum,
-                ),
-            )
-
+        quarantine_path: Path | None = None
         if artifact_uri:
             artifact_path = Path(artifact_uri)
+            if artifact_path.exists():
+                quarantine_path = artifact_path.with_name(
+                    f"{artifact_path.name}.{uuid.uuid4().hex}.quarantine"
+                )
+                os.replace(artifact_path, quarantine_path)
+
+        try:
+            with self._connect() as connection:
+                delete_chunks(connection, evidence_id)
+                connection.execute(
+                    "DELETE FROM evidence_chunks WHERE evidence_id = ?",
+                    (evidence_id,),
+                )
+                connection.execute(
+                    "UPDATE evidence_documents SET purged_at = ? WHERE evidence_id = ?",
+                    (deleted_at, evidence_id),
+                )
+                connection.execute(
+                    """
+                    INSERT OR REPLACE INTO evidence_tombstones(
+                        evidence_id,
+                        deleted_at,
+                        deleted_by,
+                        checksum
+                    )
+                    VALUES (?, ?, ?, ?)
+                    """,
+                    (
+                        tombstone.evidence_id,
+                        tombstone.deleted_at,
+                        tombstone.deleted_by,
+                        tombstone.checksum,
+                    ),
+                )
+        except Exception:
+            if quarantine_path is not None and quarantine_path.exists():
+                os.replace(quarantine_path, artifact_path)
+            raise
+
+        if quarantine_path is not None and quarantine_path.exists():
             try:
-                if artifact_path.exists():
-                    artifact_path.unlink()
+                quarantine_path.unlink()
             except OSError:
-                with self._connect() as connection:
-                    connection.execute(
-                        "DELETE FROM evidence_tombstones WHERE evidence_id = ?",
-                        (evidence_id,),
-                    )
-                    connection.execute(
-                        "UPDATE evidence_documents SET purged_at = NULL WHERE evidence_id = ?",
-                        (evidence_id,),
-                    )
-                raise
+                # Best-effort cleanup only; DB state is already durably purged.
+                pass
 
         return tombstone
 

@@ -151,6 +151,129 @@ def test_store_keeps_tombstone_after_purge(tmp_path: Path):
     assert store.search("fallback") == []
 
 
+def test_purge_keeps_db_state_when_quarantine_cleanup_fails(tmp_path: Path):
+    store = EvidenceVaultStore(tmp_path / "memory-os")
+    result = store.write_document(
+        source_type="human_message",
+        thread_id="thread-1",
+        turn_id="turn-1",
+        actor="user",
+        content_raw="artifact delete failure should not half delete",
+        durability_scope="durable_user_memory",
+    )
+    original_unlink = Path.unlink
+
+    def _failing_unlink(self, missing_ok=False):
+        if self.suffix == ".quarantine":
+            raise OSError("unlink boom")
+        return original_unlink(self, missing_ok=missing_ok)
+
+    Path.unlink = _failing_unlink  # type: ignore[method-assign]
+    try:
+        tombstone = store.purge_document(result.document.evidence_id, deleted_by="user")
+    finally:
+        Path.unlink = original_unlink  # type: ignore[method-assign]
+
+    assert tombstone.evidence_id == result.document.evidence_id
+    assert not result.document_path.exists()
+    quarantine_files = list(result.document_path.parent.glob("*.quarantine"))
+    assert len(quarantine_files) == 1
+
+    with sqlite3.connect(store.db_path) as connection:
+        doc_row = connection.execute(
+            "SELECT purged_at FROM evidence_documents WHERE evidence_id = ?",
+            (result.document.evidence_id,),
+        ).fetchone()
+        chunk_count = connection.execute(
+            "SELECT COUNT(*) FROM evidence_chunks WHERE evidence_id = ?",
+            (result.document.evidence_id,),
+        ).fetchone()[0]
+        tombstone_count = connection.execute(
+            "SELECT COUNT(*) FROM evidence_tombstones WHERE evidence_id = ?",
+            (result.document.evidence_id,),
+        ).fetchone()[0]
+
+    assert doc_row[0]
+    assert chunk_count == 0
+    assert tombstone_count == 1
+    assert store.search("half delete") == []
+
+
+def test_purge_restores_artifact_when_db_purge_fails(tmp_path: Path):
+    store = EvidenceVaultStore(tmp_path / "memory-os")
+    result = store.write_document(
+        source_type="human_message",
+        thread_id="thread-1",
+        turn_id="turn-1",
+        actor="user",
+        content_raw="db purge failure should keep chunks searchable",
+        durability_scope="durable_user_memory",
+    )
+    original_connect = store._connect
+
+    class _FailingConnection:
+        def __init__(self, connection: sqlite3.Connection) -> None:
+            self._connection = connection
+
+        def execute(self, sql: str, parameters=()):
+            if "UPDATE evidence_documents SET purged_at" in sql:
+                raise sqlite3.OperationalError("purge boom")
+            return self._connection.execute(sql, parameters)
+
+        def executemany(self, sql: str, seq_of_parameters):
+            return self._connection.executemany(sql, seq_of_parameters)
+
+        def executescript(self, script: str):
+            return self._connection.executescript(script)
+
+        def __getattr__(self, name: str):
+            return getattr(self._connection, name)
+
+        def __enter__(self):
+            self._connection.__enter__()
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return self._connection.__exit__(exc_type, exc, tb)
+
+    store._connect = lambda: _FailingConnection(original_connect())  # type: ignore[method-assign]
+    try:
+        with pytest.raises(sqlite3.OperationalError, match="purge boom"):
+            store.purge_document(result.document.evidence_id, deleted_by="user")
+    finally:
+        store._connect = original_connect  # type: ignore[method-assign]
+
+    assert result.document_path.exists()
+
+    with sqlite3.connect(store.db_path) as connection:
+        doc_row = connection.execute(
+            "SELECT purged_at FROM evidence_documents WHERE evidence_id = ?",
+            (result.document.evidence_id,),
+        ).fetchone()
+        chunk_count = connection.execute(
+            "SELECT COUNT(*) FROM evidence_chunks WHERE evidence_id = ?",
+            (result.document.evidence_id,),
+        ).fetchone()[0]
+        fts_count = connection.execute(
+            """
+            SELECT COUNT(*)
+            FROM evidence_chunks_fts
+            WHERE evidence_id = ?
+            """,
+            (result.document.evidence_id,),
+        ).fetchone()[0]
+        tombstone_count = connection.execute(
+            "SELECT COUNT(*) FROM evidence_tombstones WHERE evidence_id = ?",
+            (result.document.evidence_id,),
+        ).fetchone()[0]
+
+    assert doc_row == (None,)
+    assert chunk_count == 1
+    assert fts_count == 1
+    assert tombstone_count == 0
+    assert [hit.evidence_id for hit in store.search("searchable")] == [result.document.evidence_id]
+
+
 def test_search_rejects_non_positive_limit(tmp_path: Path):
     store = EvidenceVaultStore(tmp_path / "memory-os")
 
