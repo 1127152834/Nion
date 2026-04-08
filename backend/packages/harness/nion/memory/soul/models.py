@@ -1,14 +1,21 @@
 from __future__ import annotations
 
+from enum import StrEnum
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field, confloat
 
+class SoulLayerEnum(StrEnum):
+    CONSTITUTION = "constitution"
+    IDENTITY_NARRATIVE = "identity_narrative"
+    RELATIONSHIP_STANCE = "relationship_stance"
+    ADAPTIVE_OVERLAY = "adaptive_overlay"
+
 SOUL_LAYERS = (
-    "constitution",
-    "identity_narrative",
-    "relationship_stance",
-    "adaptive_overlay",
+    SoulLayerEnum.CONSTITUTION.value,
+    SoulLayerEnum.IDENTITY_NARRATIVE.value,
+    SoulLayerEnum.RELATIONSHIP_STANCE.value,
+    SoulLayerEnum.ADAPTIVE_OVERLAY.value,
 )
 SOUL_JUDGE_ACTIONS = (
     "accept_overlay",
@@ -20,10 +27,10 @@ SOUL_JUDGE_ACTIONS = (
 )
 
 SoulLayer = Literal[
-    "constitution",
-    "identity_narrative",
-    "relationship_stance",
-    "adaptive_overlay",
+    SoulLayerEnum.CONSTITUTION.value,
+    SoulLayerEnum.IDENTITY_NARRATIVE.value,
+    SoulLayerEnum.RELATIONSHIP_STANCE.value,
+    SoulLayerEnum.ADAPTIVE_OVERLAY.value,
 ]
 SoulJudgeAction = Literal[
     "accept_overlay",

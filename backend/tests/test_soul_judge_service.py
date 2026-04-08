@@ -7,6 +7,7 @@ from nion.memory.soul.judge import judge_soul_signal
 from nion.memory.soul.models import (
     SOUL_JUDGE_ACTIONS,
     SOUL_LAYERS,
+    SoulLayerEnum,
     SoulJudgeDecision,
     SoulSignal,
 )
@@ -27,6 +28,10 @@ def test_soul_contract_literals_are_stable():
         "reject",
         "expire_existing_overlay",
     )
+    assert SoulLayerEnum.CONSTITUTION.value == "constitution"
+    assert SoulLayerEnum.IDENTITY_NARRATIVE.value == "identity_narrative"
+    assert SoulLayerEnum.RELATIONSHIP_STANCE.value == "relationship_stance"
+    assert SoulLayerEnum.ADAPTIVE_OVERLAY.value == "adaptive_overlay"
 
 
 def test_soul_signal_accepts_structured_metadata():
