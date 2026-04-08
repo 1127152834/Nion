@@ -17,11 +17,12 @@ class MemorySessionPolicy:
 
 def resolve_memory_session_policy(context: Mapping[str, Any] | None) -> MemorySessionPolicy:
     session = dict(context or {})
+    session_mode = session.get("session_mode")
     memory_read = bool(session.get("memory_read", True))
-    memory_write = bool(session.get("memory_write", True))
+    memory_write = bool(session.get("memory_write", session_mode != "temporary_chat"))
 
     return MemorySessionPolicy(
-        session_mode=session.get("session_mode"),
+        session_mode=session_mode,
         memory_read=memory_read,
         memory_write=memory_write,
         allow_memory_read=memory_read,

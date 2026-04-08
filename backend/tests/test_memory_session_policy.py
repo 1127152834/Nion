@@ -27,3 +27,16 @@ def test_memory_read_false_blocks_long_term_reads():
 
     assert policy.memory_read is False
     assert policy.allow_memory_read is False
+
+
+def test_temporary_chat_defaults_memory_write_to_false():
+    policy = resolve_memory_session_policy(
+        {
+            "session_mode": "temporary_chat",
+            "memory_read": True,
+        }
+    )
+
+    assert policy.memory_write is False
+    assert policy.allow_durable_evidence is False
+    assert policy.allow_memory_write is False
