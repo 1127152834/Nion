@@ -311,6 +311,13 @@ class TestRegistryListSubagents:
         assert by_name["general-purpose"].timeout_seconds == 1800
         assert by_name["bash"].timeout_seconds == 60
 
+    def test_bash_subagent_is_hidden_when_host_bash_is_not_allowed(self, monkeypatch):
+        from nion.subagents import registry as registry_module
+
+        monkeypatch.setattr(registry_module, "is_host_bash_allowed", lambda: False, raising=False)
+        names = {cfg.name for cfg in registry_module.list_subagents()}
+        assert "bash" not in names
+
 
 # ---------------------------------------------------------------------------
 # Polling timeout calculation (logic extracted from task_tool)

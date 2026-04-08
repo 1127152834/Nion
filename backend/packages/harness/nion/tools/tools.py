@@ -6,6 +6,7 @@ from nion.config import get_app_config
 from nion.config.acp_config import get_acp_agents
 from nion.model_management.service import get_model_registry_service
 from nion.reflection import resolve_variable
+from nion.sandbox.security import is_host_bash_allowed
 from nion.tools.builtins import (
     approve_channel_pair_request_tool,
     ask_clarification_tool,
@@ -99,6 +100,16 @@ SUBAGENT_TOOLS = [
 ]
 
 
+def _is_host_bash_tool(tool: object) -> bool:
+    group = getattr(tool, "group", None)
+    use = getattr(tool, "use", None)
+    if group == "bash":
+        return True
+    if use == "nion.sandbox.tools:bash_tool":
+        return True
+    return False
+
+
 def get_available_tools(
     groups: list[str] | None = None,
     include_mcp: bool = True,
@@ -108,11 +119,11 @@ def get_available_tools(
     surface: str = "workspace",
 ) -> list[BaseTool]:
     config = get_app_config()
-    loaded_tools = [
-        resolve_variable(tool.use, BaseTool)
-        for tool in config.tools
-        if groups is None or tool.group in groups
-    ]
+    tool_configs = [tool for tool in config.tools if groups is None or tool.group in groups]
+    if not is_host_bash_allowed(config):
+        tool_configs = [tool for tool in tool_configs if not _is_host_bash_tool(tool)]
+
+    loaded_tools = [resolve_variable(tool.use, BaseTool) for tool in tool_configs]
     configured_catalog = build_configured_tool_catalog(config)
     loaded_tools = _apply_surface_policy(config, surface, loaded_tools, configured_catalog)
 

@@ -22,8 +22,9 @@ def get_subagent_config(name: str) -> SubagentConfig | None:
     config = BUILTIN_SUBAGENTS.get(name)
     if config is None:
         return None
+    if name == "bash" and not is_host_bash_allowed():
+        return None
 
-    # Apply timeout override from the Config Center (lazy import to avoid circular deps)
     from nion.config.subagents_config import get_subagents_app_config
 
     app_config = get_subagents_app_config()
@@ -36,33 +37,15 @@ def get_subagent_config(name: str) -> SubagentConfig | None:
 
 
 def list_subagents() -> list[SubagentConfig]:
-    """List all available subagent configurations (with Config Center overrides applied).
-
-    Returns:
-        List of all registered SubagentConfig instances.
-    """
-    return [get_subagent_config(name) for name in BUILTIN_SUBAGENTS]
+    """List all available subagent configurations (with Config Center overrides applied)."""
+    return [config for name in BUILTIN_SUBAGENTS if (config := get_subagent_config(name)) is not None]
 
 
 def get_subagent_names() -> list[str]:
-    """Get all available subagent names.
-
-    Returns:
-        List of subagent names.
-    """
-    return list(BUILTIN_SUBAGENTS.keys())
+    """Get all available subagent names."""
+    return [config.name for config in list_subagents()]
 
 
 def get_available_subagent_names() -> list[str]:
-    """Get subagent names that should be exposed to the active runtime."""
-
-    names = list(BUILTIN_SUBAGENTS.keys())
-    try:
-        host_bash_allowed = is_host_bash_allowed()
-    except Exception:
-        logger.debug("Could not determine host bash availability; exposing all built-in subagents")
-        return names
-
-    if not host_bash_allowed:
-        names = [name for name in names if name != "bash"]
-    return names
+    """Compatibility wrapper for callers that only need visible names."""
+    return get_subagent_names()

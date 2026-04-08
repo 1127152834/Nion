@@ -51,6 +51,52 @@ def test_cli_builtin_tools_are_exposed_with_cli_flag() -> None:
     assert "codepilot_cli_tools_update" in names
 
 
+def test_host_bash_tool_is_hidden_when_local_host_bash_is_not_allowed(monkeypatch) -> None:
+    from nion.tools import tools as tools_module
+
+    class _Tool:
+        name = "bash"
+
+    fake_config = type(
+        "_Config",
+        (),
+        {
+            "tools": [type("_ToolConfig", (), {"group": "bash", "use": "nion.sandbox.tools:bash_tool"})],
+            "surface_policy": type(
+                "_Policy",
+                (),
+                {
+                    "get_rule": staticmethod(
+                        lambda _surface: type(
+                            "_Rule",
+                            (),
+                            {
+                                "allowed_groups": [],
+                                "denied_groups": [],
+                                "allowed_tools": [],
+                                "denied_tools": [],
+                            },
+                        )()
+                    )
+                },
+            )(),
+            "tool_search": type("_ToolSearch", (), {"enabled": False})(),
+        },
+    )()
+
+    fake_registry = type("_Registry", (), {"get_default_model": staticmethod(lambda: (_ for _ in ()).throw(ValueError("no default model")))})()
+
+    monkeypatch.setattr(tools_module, "get_app_config", lambda: fake_config)
+    monkeypatch.setattr(tools_module, "resolve_variable", lambda _use, _base: _Tool())
+    monkeypatch.setattr(tools_module, "build_configured_tool_catalog", lambda _config: {"bash": type("_Entry", (), {"policy_managed": True, "group": "bash"})()})
+    monkeypatch.setattr(tools_module, "get_model_registry_service", lambda app_config_provider=None: fake_registry)
+    monkeypatch.setattr(tools_module, "is_host_bash_allowed", lambda config=None: False)
+
+    names = {tool.name for tool in tools_module.get_available_tools(include_mcp=False, subagent_enabled=False)}
+
+    assert "bash" not in names
+
+
 def test_cli_capability_prompt_only_injected_when_enabled() -> None:
     prompt_without_cli = apply_prompt_template(cli_tools_enabled=False)
     prompt_with_cli = apply_prompt_template(cli_tools_enabled=True)
