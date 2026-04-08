@@ -148,6 +148,23 @@ Nion 当前已经存在稳定运行时契约：
 
 自动写入的真实含义应是：**所有会话都走统一写入流水线，但 durable 落盘由 session policy 决定。**
 
+读取侧也必须服从同一组 runtime contract：
+
+- `memory_read = true`
+  - 允许 Runtime Memory Engine 读取长期 Memory OS
+  - 允许读取 durable Evidence Vault
+  - 允许执行 L0-L3 分层召回
+- `memory_read = false`
+  - 禁止读取长期 Memory OS
+  - 禁止读取 durable Evidence Vault
+  - 只允许使用本轮 session-local context、当前线程即时上下文和显式用户输入
+
+因此，`memory_read` 与 `memory_write` 是相互独立的两个硬门：
+
+- 可以 `read=true, write=false`
+- 也可以 `read=false, write=false`
+- 不允许在 spec 中默认把读取视为永远开放
+
 ### 7. 先可见，再可强
 
 在全面切换自动写入和深度召回前，必须先建立：
@@ -294,6 +311,7 @@ Evidence 的索引层，只负责找，不负责定义“什么是真的”。
 - `domain`
   - `user_model`
   - `relationship`
+  - `learning`
   - `procedure`
   - `soul`
   - `automation_projection`
@@ -386,6 +404,23 @@ MemoryNode 的一次版本，不允许原地覆盖。
 - `rewrite`
 - `restore`
 - `downgrade_to_short_term`
+
+### 2.6 LearningTopic
+
+`learning` 在新 canonical 设计中继续保留为一等域，不并入 `procedure`。
+
+它的职责应收敛为：
+
+- 长期学习主题
+- 长周期观察议题
+- procedure 的上游输入之一
+- soul reflection 的慢变量输入之一
+
+迁移规则：
+
+- 现有 `/api/memory/growth` 中的 `learning` 记录继续保留
+- M2 backfill 时，现有 learning records 必须映射到 `MemoryNode.domain = learning`
+- M9 之后，再稳定 `learning -> procedure / automation / soul reflection` 的投影关系
 
 ## 3. Soul Engine
 
@@ -1029,10 +1064,21 @@ purge 后的系统行为：
 - `/api/memory/facts/*`
 - `/api/memory/export`
 - `/api/memory/growth`
+- `/api/memory/growth/{memory_id}/freeze`
+- `/api/memory/growth/{memory_id}/reject`
+- `/api/memory/growth/{memory_id}/resume`
+- `/api/memory/growth/{memory_id}/accept`
 - `/api/memory/growth/user-model`
+- `/api/memory/growth/user-model/{memory_id}/freeze`
+- `/api/memory/growth/user-model/{memory_id}/forget`
+- `/api/memory/growth/user-model/{memory_id}/reject`
+- `/api/memory/growth/user-model/{memory_id}/correct`
 - `/api/memory/growth/soul`
 - `/api/memory/growth/soul/proposals`
+- `/api/memory/growth/soul/proposals/{memory_id}/accept`
+- `/api/memory/growth/soul/proposals/{memory_id}/reject`
 - `/api/memory/growth/soul/events`
+- `/api/memory/growth/soul/overlay/rollback`
 
 迁移规则：
 
@@ -1042,9 +1088,11 @@ purge 后的系统行为：
 - **M5-M7**
   - 旧路由改由 v2 canonical store + compatibility adapter 驱动
   - payload 与前端行为保持稳定
+  - mutation endpoints 也必须继续保持稳定语义，不允许先切读后切写导致治理动作失效
 - **M8-M9**
   - 新 UI 面板逐步切到新路由
   - `/api/memory` 与 `/api/memory/growth/soul*` 继续作为兼容 facade 保留
+  - `/api/memory/growth/*` 的 mutation facade 继续保留，直到前端所有治理动作迁移完成
 - **M10**
   - 只允许退役旧内部实现
   - 不允许在缺少 adapter 的情况下直接删除产品契约
@@ -1066,6 +1114,7 @@ purge 后的系统行为：
 
 主智能体 model 调用前：
 
+- evaluate `memory_read` gate
 - run Runtime Memory Engine
 - assemble sections
 - inject traceable memory blocks
