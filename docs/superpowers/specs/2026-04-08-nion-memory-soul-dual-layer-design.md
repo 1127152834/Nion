@@ -1149,6 +1149,14 @@ purge 后的系统行为：
 - FTS 索引
 - 不接管主行为
 
+Checkpoint 2026-04-08：
+
+- canonical v2 tables landed：`MemoryNode / MemoryRevision / MemoryDecision / MemoryLink / UserOverride` 基础表结构已落地
+- Evidence Vault exists：durable / ephemeral evidence 存储能力已存在
+- session durability gates enforced：read-only / temporary session 不允许 durable evidence 或 Memory OS 写入
+- ledger/evidence/runtime-trace read surfaces exist：已提供 ledger、evidence、runtime trace 的只读治理表面
+- no primary read/write cutover yet：`/api/memory` 与 `/api/memory/growth*` 仍保持既有主读写路径，新 v2 能力尚未接管主读或主写
+
 ### M2：Canonical Memory v2 数据模型落地
 
 目标：

@@ -44,6 +44,14 @@ Do **not** compress multiple milestones into one coding burst.
 - temporary/read-only sessions do not durable-write evidence or memory
 - runtime trace and evidence explorer have stable backend surfaces
 
+**Checkpoint 2026-04-08:**
+
+- canonical v2 tables landed
+- Evidence Vault exists
+- session durability gates are enforced
+- ledger/evidence/runtime-trace read surfaces exist
+- no primary read/write cutover yet
+
 ### Milestone B: Judge, Canonical Governance, And User-Control Surfaces
 
 **Plan:** `/Users/zhangtiancheng/Documents/项目/agent/nion/docs/superpowers/plans/2026-04-08-memory-soul-dual-layer-m2-judge-governance-plan.md`
