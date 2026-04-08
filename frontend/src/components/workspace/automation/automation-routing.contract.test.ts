@@ -35,11 +35,9 @@ void test("home page routes to reminder and task modules instead of single-conso
   assert.match(homeSource, /pathOfAutomationReminders/);
   assert.match(homeSource, /pathOfAutomationTasks/);
   assert.match(homeSource, /flex items-center justify-between border-b px-6 py-4/);
-  assert.match(homeSource, /Button asChild/);
-  assert.match(homeSource, /新建定时任务/);
   assert.match(homeSource, /Modules/);
-  assert.match(homeSource, /space-y-4/);
-  assert.match(homeSource, /rounded-\[2rem\]/);
+  assert.match(homeSource, /rounded-\[2\.25rem\]/);
+  assert.match(homeSource, /divide-border\/60 divide-y/);
   assert.match(homeSource, /text-\[1\.7rem\]/);
 });
 
