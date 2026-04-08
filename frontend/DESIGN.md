@@ -275,6 +275,22 @@ Nion works best when the layout clearly separates navigation, execution, and con
 - Alternate dense technical zones with larger areas of calm whitespace
 - Let brand moments happen at section entry or action peak, not everywhere
 
+### Workspace Module Directories
+
+- When a workspace surface is only routing the user into 2-4 high-frequency modules, treat it as a directory, not a dashboard
+- Prefer a centered composition with vertically stacked entry rows when the option count is low
+- Directory entries should feel precise and premium: compact icon, strong title, short description, one clear directional affordance
+- Do not use oversized empty cards, fake showcase containers, or decorative section labels like "Modules" unless the screen genuinely needs them
+- Do not add helper copy that merely explains obvious navigation choices; if the page already communicates the choice through structure, remove the sentence
+- Premium feeling on these pages should come from spacing, rhythm, border contrast, and restraint rather than from gradients or large hero treatments
+
+### Header Consistency
+
+- Workspace top page headers should reuse the same structural pattern across sibling modules instead of creating lookalike one-off implementations
+- Keep header hierarchy simple: title, one short supporting line when needed, and a right-aligned action area
+- If two pages belong to the same workspace family, their header spacing, divider treatment, and action alignment should match exactly
+- Prefer real structural consistency over approximate visual similarity
+
 ## 6. Depth & Elevation
 
 Depth in Nion should feel material, not decorative.
@@ -307,6 +323,7 @@ Depth in Nion should feel material, not decorative.
 - Let accent colors explain system meaning
 - Keep interactive surfaces tactile and slightly softened
 - Preserve calm reading conditions in notebook and settings flows
+- Keep module entry screens sparse, centered, and decisive when the information architecture is simple
 
 ### Don't
 
@@ -318,6 +335,7 @@ Depth in Nion should feel material, not decorative.
 - Do not overuse blur, shimmer, or glow on idle interfaces
 - Do not style every panel as a special card
 - Do not default to purple-blue "AI startup" gradients
+- Do not keep explanatory filler copy on navigation pages once the layout itself is already self-explanatory
 
 ## 8. Responsive Behavior
 

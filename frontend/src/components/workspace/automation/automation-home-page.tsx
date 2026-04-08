@@ -36,13 +36,7 @@ export function AutomationHomePage() {
 
       <div className="flex flex-1 overflow-y-auto">
         <div className="flex w-full items-center justify-center px-6 py-10">
-          <div className="flex w-full max-w-2xl flex-col items-center gap-4 text-center">
-            <div className="space-y-2">
-              <p className="text-muted-foreground text-sm">
-                只保留两个真正高频的入口，减少切换成本。
-              </p>
-            </div>
-
+          <div className="flex w-full max-w-2xl flex-col items-center text-center">
             <div className="flex w-full flex-col gap-3">
               {modules.map((module) => {
                 const Icon = module.icon;
