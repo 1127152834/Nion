@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from nion.memory.embedding.custom_compatible import (
     CustomCompatibleEmbeddingProviderMetadata,
 )
@@ -214,3 +216,27 @@ def test_vector_store_query_models_capture_rebuild_aware_inputs() -> None:
     assert query.filters == {"domain": "user_model"}
     assert record.payload["summary"] == "负责财务 BP"
     assert hit.score == 0.88
+
+
+def test_embedding_model_fingerprint_rejects_non_json_metadata() -> None:
+    with pytest.raises(Exception):
+        EmbeddingModelFingerprint(
+            provider_key="managed/local",
+            model_key="bge-small",
+            dimensions=384,
+            metadata={"bad": {1, 2, 3}},
+        )
+
+
+def test_vector_index_snapshot_requires_consistent_provider_identity() -> None:
+    with pytest.raises(Exception, match="provider_key"):
+        VectorIndexSnapshot(
+            provider_id="remote-default",
+            provider_kind="remote_managed",
+            fingerprint=EmbeddingModelFingerprint(
+                provider_key="local_managed:remote-default",
+                model_key="text-embedding-3-large",
+                dimensions=3072,
+                distance_metric="cosine",
+            ),
+        )

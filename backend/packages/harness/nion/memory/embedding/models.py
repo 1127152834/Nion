@@ -4,7 +4,7 @@ import hashlib
 import json
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class EmbeddingModelFingerprint(BaseModel):
@@ -15,6 +15,11 @@ class EmbeddingModelFingerprint(BaseModel):
     revision: str | None = None
     display_name: str | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def validate_metadata_is_json_serializable(self) -> "EmbeddingModelFingerprint":
+        self._normalize(self.metadata)
+        return self
 
     def identity_payload(self) -> dict[str, Any]:
         return {
@@ -44,7 +49,11 @@ class EmbeddingModelFingerprint(BaseModel):
             return [cls._normalize(item) for item in value]
         if isinstance(value, tuple):
             return [cls._normalize(item) for item in value]
-        return value
+        if value is None or isinstance(value, (str, int, float, bool)):
+            return value
+        raise TypeError(
+            "Embedding fingerprint metadata must be JSON-serializable"
+        )
 
 
 class VectorIndexSnapshot(BaseModel):
@@ -52,3 +61,12 @@ class VectorIndexSnapshot(BaseModel):
     provider_kind: str
     fingerprint: EmbeddingModelFingerprint
     metadata: dict[str, Any] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def validate_provider_identity(self) -> "VectorIndexSnapshot":
+        expected_provider_key = f"{self.provider_kind}:{self.provider_id}"
+        if self.fingerprint.provider_key != expected_provider_key:
+            raise ValueError(
+                "fingerprint.provider_key must match provider_kind/provider_id"
+            )
+        return self
