@@ -35,6 +35,8 @@ import {
   pathOfAutomationTaskDetail,
 } from "@/core/navigation/desktop-routes";
 
+import { WorkspacePageHeader } from "../workspace-page-header";
+
 import { AutomationPageAlert } from "./automation-page-alert";
 import { AutomationReminderDialog } from "./automation-reminder-dialog";
 import { AutomationTaskDialog } from "./automation-task-dialog";
@@ -72,65 +74,65 @@ export function AutomationJobListPage({ kind }: AutomationJobListPageProps) {
     [filteredJobs],
   );
   const firstError = jobsError ?? runsError ?? createJob.error;
+  const action =
+    kind === "reminder" ? (
+      <AutomationReminderDialog
+        triggerLabel={pageCopy.addLabel}
+        isPending={createJob.isPending}
+        onCreate={(input) => createJob.mutateAsync(input)}
+      />
+    ) : (
+      <AutomationTaskDialog
+        triggerLabel={pageCopy.addLabel}
+        isPending={createJob.isPending}
+        onCreate={(input) => createJob.mutateAsync(input)}
+      />
+    );
 
   return (
-    <section className="space-y-6">
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="space-y-2">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            {pageCopy.title}
-          </h1>
-          <p className="text-muted-foreground max-w-2xl text-sm">
-            {pageCopy.description}
-          </p>
+    <section className="flex size-full flex-col">
+      <WorkspacePageHeader
+        title={pageCopy.title}
+        description={pageCopy.description}
+        action={action}
+      />
+
+      <div className="flex-1 overflow-y-auto">
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 py-6">
+          <AutomationPageAlert error={firstError} />
+
+          <Card>
+            <CardHeader>
+              <CardTitle>{pageCopy.title}列表</CardTitle>
+              <CardDescription>
+                点击任一条目进入详情页，查看任务信息和执行记录。
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {filteredJobs.length === 0 ? (
+                <div className="text-muted-foreground rounded-xl border border-dashed p-5 text-sm">
+                  {pageCopy.empty}
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  <JobGroup
+                    title="用户创建"
+                    jobs={groupedJobs.userOwned}
+                    kind={kind}
+                    runs={runs}
+                  />
+                  <JobGroup
+                    title="Agent 创建"
+                    jobs={groupedJobs.agentOwned}
+                    kind={kind}
+                    runs={runs}
+                  />
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
-        {kind === "reminder" ? (
-          <AutomationReminderDialog
-            triggerLabel={pageCopy.addLabel}
-            isPending={createJob.isPending}
-            onCreate={(input) => createJob.mutateAsync(input)}
-          />
-        ) : (
-          <AutomationTaskDialog
-            triggerLabel={pageCopy.addLabel}
-            isPending={createJob.isPending}
-            onCreate={(input) => createJob.mutateAsync(input)}
-          />
-        )}
-      </header>
-
-      <AutomationPageAlert error={firstError} />
-
-      <Card>
-        <CardHeader>
-          <CardTitle>{pageCopy.title}列表</CardTitle>
-          <CardDescription>
-            点击任一条目进入详情页，查看任务信息和执行记录。
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {filteredJobs.length === 0 ? (
-            <div className="text-muted-foreground rounded-xl border border-dashed p-5 text-sm">
-              {pageCopy.empty}
-            </div>
-          ) : (
-            <div className="space-y-6">
-              <JobGroup
-                title="用户创建"
-                jobs={groupedJobs.userOwned}
-                kind={kind}
-                runs={runs}
-              />
-              <JobGroup
-                title="Agent 创建"
-                jobs={groupedJobs.agentOwned}
-                kind={kind}
-                runs={runs}
-              />
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      </div>
     </section>
   );
 }

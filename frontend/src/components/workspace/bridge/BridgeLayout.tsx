@@ -5,6 +5,8 @@ import { useCallback, useState, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+import { WorkspacePageHeader } from "../workspace-page-header";
+
 import {
   ChatsCircle,
   ChatTeardrop,
@@ -64,40 +66,42 @@ export function BridgeLayout() {
   }, []);
 
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-lg border">
-      <div className="border-b border-border/50 px-6 pb-4 pt-4">
-        <h1 className="text-xl font-semibold">{t("bridge.title")}</h1>
-        <p className="text-sm text-muted-foreground">
-          {t("bridge.description")}
-        </p>
-      </div>
+    <div className="flex size-full flex-col overflow-hidden">
+      <WorkspacePageHeader
+        title={t("bridge.title")}
+        description={t("bridge.description")}
+      />
 
-      <div className="flex min-h-0 flex-1">
-        <nav className="flex w-52 shrink-0 flex-col gap-1 border-r border-border/50 p-3">
-          {sidebarItems.map((item) => (
-            <Button
-              key={item.id}
-              variant="ghost"
-              onClick={() => handleSectionChange(item.id)}
-              className={cn(
-                "w-full justify-start gap-3 px-3 py-2 text-left text-sm font-medium",
-                activeSection === item.id
-                  ? "bg-accent text-accent-foreground"
-                  : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
-              )}
-            >
-              <item.icon className="size-4 shrink-0" />
-              {t(item.labelKey)}
-            </Button>
-          ))}
-        </nav>
+      <div className="flex-1 overflow-y-auto">
+        <div className="mx-auto flex h-full w-full max-w-6xl flex-col px-6 py-6">
+          <div className="flex min-h-0 flex-1 overflow-hidden rounded-2xl border border-border/60 bg-background">
+            <nav className="flex w-52 shrink-0 flex-col gap-1 border-r border-border/50 p-3">
+              {sidebarItems.map((item) => (
+                <Button
+                  key={item.id}
+                  variant="ghost"
+                  onClick={() => handleSectionChange(item.id)}
+                  className={cn(
+                    "w-full justify-start gap-3 px-3 py-2 text-left text-sm font-medium",
+                    activeSection === item.id
+                      ? "bg-accent text-accent-foreground"
+                      : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+                  )}
+                >
+                  <item.icon className="size-4 shrink-0" />
+                  {t(item.labelKey)}
+                </Button>
+              ))}
+            </nav>
 
-        <div className="flex-1 overflow-auto p-6">
-          {activeSection === "telegram" && <TelegramBridgeSection />}
-          {activeSection === "feishu" && <FeishuBridgeSection />}
-          {activeSection === "discord" && <DiscordBridgeSection />}
-          {activeSection === "qq" && <QqBridgeSection />}
-          {activeSection === "weixin" && <WeixinBridgeSection />}
+            <div className="flex-1 overflow-auto p-6">
+              {activeSection === "telegram" && <TelegramBridgeSection />}
+              {activeSection === "feishu" && <FeishuBridgeSection />}
+              {activeSection === "discord" && <DiscordBridgeSection />}
+              {activeSection === "qq" && <QqBridgeSection />}
+              {activeSection === "weixin" && <WeixinBridgeSection />}
+            </div>
+          </div>
         </div>
       </div>
     </div>

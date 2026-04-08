@@ -1,13 +1,15 @@
 "use client";
 
-import { BellRingIcon, ChevronRightIcon, Clock3Icon } from "lucide-react";
+import { ArrowUpRightIcon, BellRingIcon, Clock3Icon } from "lucide-react";
 import Link from "next/link";
 
-import { Card, CardContent } from "@/components/ui/card";
 import {
   pathOfAutomationReminders,
   pathOfAutomationTasks,
 } from "@/core/navigation/desktop-routes";
+import { cn } from "@/lib/utils";
+
+import { WorkspacePageHeader } from "../workspace-page-header";
 
 const modules = [
   {
@@ -27,41 +29,44 @@ const modules = [
 export function AutomationHomePage() {
   return (
     <section className="flex size-full flex-col">
-      <div className="flex items-center justify-between border-b px-6 py-4">
-        <div>
-          <h1 className="text-xl font-semibold">自动化</h1>
-          <p className="text-muted-foreground mt-0.5 text-sm">
-            这里不再承载单页工作台。先进入具体模块，再查看列表、详情和创建入口。
-          </p>
-        </div>
-      </div>
+      <WorkspacePageHeader
+        title="自动化"
+        description="将提醒事项和定时任务拆开管理。先进入具体模块，再查看列表、详情和创建入口。"
+      />
 
-      <div className="flex flex-1 overflow-y-auto px-6 py-10">
-        <div className="mx-auto flex w-full max-w-5xl flex-col gap-8">
-          <div className="border-border/70 overflow-hidden rounded-[2.25rem] border bg-[linear-gradient(180deg,rgba(255,255,255,0.8),rgba(246,242,235,0.92))] shadow-[0_24px_60px_rgba(73,53,27,0.08)]">
-            <div className="border-border/60 text-muted-foreground border-b px-8 py-5 text-xs font-medium uppercase tracking-[0.26em]">
-              Modules
+      <div className="flex flex-1 overflow-y-auto">
+        <div className="flex w-full items-center justify-center px-6 py-10">
+          <div className="flex w-full max-w-2xl flex-col items-center gap-4 text-center">
+            <div className="space-y-2">
+              <p className="text-muted-foreground text-sm">
+                只保留两个真正高频的入口，减少切换成本。
+              </p>
             </div>
 
-            <div className="divide-border/60 divide-y">
+            <div className="flex w-full flex-col gap-3">
               {modules.map((module) => {
                 const Icon = module.icon;
                 return (
                   <Link key={module.href} href={module.href}>
-                    <div className="group flex items-center justify-between gap-6 px-8 py-8 transition-colors hover:bg-black/[0.02]">
-                      <div className="flex min-w-0 items-center gap-5">
-                        <div className="bg-primary/10 text-primary inline-flex size-14 shrink-0 items-center justify-center rounded-[1.4rem] shadow-[inset_0_1px_0_rgba(255,255,255,0.72)]">
-                          <Icon className="size-6" />
+                    <div
+                      className={cn(
+                        "group flex items-center justify-between rounded-2xl border border-border/70 bg-background px-5 py-5 text-left transition-all",
+                        "shadow-[0_12px_40px_rgba(15,23,42,0.04)] hover:-translate-y-0.5 hover:border-foreground/20 hover:shadow-[0_18px_48px_rgba(15,23,42,0.08)]",
+                      )}
+                    >
+                      <div className="flex min-w-0 items-center gap-4">
+                        <div className="bg-primary/10 text-primary inline-flex size-11 shrink-0 items-center justify-center rounded-2xl">
+                          <Icon className="size-5" />
                         </div>
                         <div className="min-w-0">
-                          <div className="text-[1.9rem] font-semibold tracking-tight">{module.title}</div>
-                          <div className="text-muted-foreground mt-1.5 text-[15px] leading-7">
+                          <div className="text-base font-semibold tracking-tight">{module.title}</div>
+                          <div className="text-muted-foreground mt-1 text-sm leading-6">
                             {module.description}
                           </div>
                         </div>
                       </div>
-                      <div className="bg-background/90 text-muted-foreground inline-flex size-12 shrink-0 items-center justify-center rounded-full border border-border/60 transition-transform group-hover:translate-x-1">
-                        <ChevronRightIcon className="size-5" />
+                      <div className="text-muted-foreground inline-flex size-10 shrink-0 items-center justify-center rounded-full border border-border/70 transition-transform group-hover:translate-x-0.5">
+                        <ArrowUpRightIcon className="size-4" />
                       </div>
                     </div>
                   </Link>

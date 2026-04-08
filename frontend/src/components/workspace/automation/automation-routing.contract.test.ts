@@ -34,11 +34,11 @@ void test("home page routes to reminder and task modules instead of single-conso
   assert.doesNotMatch(pageSource, /AutomationConsole/);
   assert.match(homeSource, /pathOfAutomationReminders/);
   assert.match(homeSource, /pathOfAutomationTasks/);
-  assert.match(homeSource, /flex items-center justify-between border-b px-6 py-4/);
-  assert.match(homeSource, /Modules/);
-  assert.match(homeSource, /rounded-\[2\.25rem\]/);
-  assert.match(homeSource, /divide-border\/60 divide-y/);
-  assert.match(homeSource, /text-\[1\.7rem\]/);
+  assert.match(homeSource, /WorkspacePageHeader/);
+  assert.match(homeSource, /items-center justify-center/);
+  assert.match(homeSource, /max-w-2xl/);
+  assert.doesNotMatch(homeSource, /Modules/);
+  assert.doesNotMatch(homeSource, /rounded-\[2\.25rem\]/);
 });
 
 void test("list pages use modal creation flows and detail navigation", async () => {
