@@ -273,6 +273,61 @@ def test_growth_user_model_actions_continue_working_via_canonical_store(
     assert revisions[0].summary == "用户偏好先给结论，再补背景"
 
 
+def test_memory_route_preserves_canonical_zero_confidence_boundary_value(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    repo = MemoryOSRepository(tmp_path / "memory-os" / "index.sqlite3")
+    _save_node(
+        repo,
+        memory_id="mem:user:zero-confidence",
+        canonical_key="user_model:fact:zero-confidence",
+        summary="这是一条零置信度事实",
+        node_type="user_model_fact",
+        metadata={
+            "domain": "user_model",
+            "subtype": "preference",
+            "category": "preference",
+            "kind": "fact",
+            "confidence": 0.0,
+            "source": "thread:test-zero",
+            "created_at": "2026-04-09T12:00:00Z",
+        },
+        updated_at="2026-04-09T12:30:00Z",
+    )
+    _save_revision(
+        repo,
+        memory_id="mem:user:zero-confidence",
+        revision_number=1,
+        summary="这是一条零置信度事实",
+        created_at="2026-04-09T12:00:00Z",
+        payload={
+            "domain": "user_model",
+            "subtype": "preference",
+            "category": "preference",
+            "kind": "fact",
+            "confidence": 0.0,
+            "source": "thread:test-zero",
+        },
+    )
+
+    with TestClient(create_app()) as client:
+        response = client.get("/api/memory")
+
+    assert response.status_code == 200
+    assert response.json()["facts"] == [
+        {
+            "id": "mem:user:zero-confidence",
+            "content": "这是一条零置信度事实",
+            "category": "preference",
+            "confidence": 0.0,
+            "createdAt": "2026-04-09T12:00:00Z",
+            "source": "thread:test-zero",
+        }
+    ]
+
+
 def test_soul_routes_still_project_records_and_events_with_canonical_learning_present(
     monkeypatch,
     tmp_path: Path,

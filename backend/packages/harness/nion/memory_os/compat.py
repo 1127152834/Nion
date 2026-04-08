@@ -590,7 +590,7 @@ def _list_canonical_projection_items(repository: MemoryOSRepository) -> list[dic
                 "status": str(row["status"]),
                 "title": metadata.get("title") or revision_payload.get("title"),
                 "summary": str(revision.get("summary") or row["summary"]),
-                "confidence": float(metadata.get("confidence") or revision_payload.get("confidence") or 0.8),
+                "confidence": float(_first_non_null(metadata.get("confidence"), revision_payload.get("confidence"), 0.8)),
                 "source": str(metadata.get("source") or revision_payload.get("source") or "memory_os"),
                 "category": str(metadata.get("category") or revision_payload.get("category") or subtype),
                 "created_at": str(metadata.get("created_at") or revision.get("created_at") or row["created_at"]),
@@ -639,6 +639,13 @@ def _domain_from_canonical_key(canonical_key: str) -> str | None:
     if ":" not in canonical_key:
         return None
     return canonical_key.split(":", 1)[0]
+
+
+def _first_non_null(*values: object) -> object:
+    for value in values:
+        if value is not None:
+            return value
+    return None
 
 
 def _merge_growth_items(
