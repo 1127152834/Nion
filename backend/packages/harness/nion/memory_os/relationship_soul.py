@@ -3,8 +3,8 @@ from __future__ import annotations
 from nion.memory.soul.service import (
     derive_relationship_stance_snapshot,
     write_canonical_relationship_memory,
-    write_canonical_soul_layer,
 )
+from .clock import utcnow_z
 from .repository import MemoryOSRepository
 from .soul_artifacts import MemoryOSSoulArtifactStore
 from .soul_events import record_soul_event
@@ -13,7 +13,7 @@ from .soul_events import record_soul_event
 def build_relationship_soul_summary(repository: MemoryOSRepository) -> str | None:
     snapshot = derive_relationship_stance_snapshot(
         repository,
-        now_z="9999-12-31T00:00:00Z",
+        now_z=utcnow_z(),
     )
     return None if snapshot is None else snapshot.summary
 
@@ -33,13 +33,6 @@ def refresh_relationship_soul(
         summary=summary,
         created_at=created_at,
         source_relationship_ids=source_relationship_ids,
-    )
-    write_canonical_soul_layer(
-        repository,
-        layer="relationship_stance",
-        summary=summary,
-        created_at=created_at,
-        payload={"source_relationship_ids": source_relationship_ids},
     )
 
     body = "\n".join(

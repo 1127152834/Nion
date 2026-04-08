@@ -255,6 +255,39 @@ def test_soul_runtime_prefers_canonical_layers_and_derived_relationship_stance(m
     assert "用户偏好低刺激、少施压、结论先行" in runtime
 
 
+def test_build_relationship_soul_summary_respects_real_freshness_window(monkeypatch, tmp_path: Path):
+    from nion.memory_os import relationship_soul
+
+    repo = MemoryOSRepository(tmp_path / "memory-os" / "index.sqlite3")
+    monkeypatch.setattr(relationship_soul, "utcnow_z", lambda: "2026-04-08T00:00:00Z", raising=False)
+
+    repo.save_memory_node(
+        {
+            "memory_id": "soul_rel_user_default",
+            "canonical_key": "soul:layer:relationship_stance:user:default",
+            "owner_type": "agent",
+            "scope": "user",
+            "node_type": "soul_layer",
+            "status": "active",
+            "summary": "这是一个已经过期的 relationship stance。",
+            "created_at": "2026-01-01T00:00:00Z",
+            "updated_at": "2026-01-01T00:00:00Z",
+            "metadata": {"layer": "relationship_stance"},
+        }
+    )
+    repo.append_memory_revision(
+        memory_id="soul_rel_user_default",
+        summary="这是一个已经过期的 relationship stance。",
+        evidence_ref=None,
+        created_at="2026-01-01T00:00:00Z",
+        payload={"layer": "relationship_stance"},
+    )
+
+    summary = relationship_soul.build_relationship_soul_summary(repo)
+
+    assert summary is None
+
+
 def test_soul_runtime_skips_expired_overlay_but_keeps_fresh_narrative(monkeypatch, tmp_path: Path):
     from nion.memory_os import soul_runtime
 

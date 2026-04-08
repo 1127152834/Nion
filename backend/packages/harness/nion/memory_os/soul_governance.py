@@ -146,6 +146,10 @@ def promote_identity_narrative(
         body=_load_artifact_body(repository, staged),
         created_at=created_at,
         staged=False,
+        canonical_payload={
+            "source_memory_id": staged_memory_id,
+            "governance_action": "promote",
+        },
     )
     promoted = promoted_artifact["memory_record"]
     promoted["provenance"] = {
@@ -155,17 +159,6 @@ def promote_identity_narrative(
         "source_memory_id": staged_memory_id,
     }
     repository.save_memory_record(promoted)
-    write_canonical_soul_layer(
-        repository,
-        layer="identity_narrative",
-        summary=str(promoted["summary"]),
-        created_at=created_at,
-        payload={
-            "source_memory_id": staged_memory_id,
-            "artifact_uri": promoted["artifact_uri"],
-            "governance_action": "promote",
-        },
-    )
     record_soul_event(
         repository,
         event_type="identity_narrative_promoted",

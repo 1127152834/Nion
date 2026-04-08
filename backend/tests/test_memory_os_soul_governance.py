@@ -93,6 +93,7 @@ def test_accept_soul_proposal_writes_canonical_overlay_revision_and_compatible_e
     assert event.event_type == "proposal_accepted"
     assert event.related_memory_id == "soul_overlay_active_main"
     assert event.metadata["canonical_memory_id"] == "soul_overlay_active_main"
+    assert len(revisions) == 1
 
 
 def test_reject_soul_proposal_invalidates_candidate(tmp_path: Path):
@@ -292,6 +293,7 @@ def test_promote_identity_narrative_writes_canonical_revision_and_compatible_eve
     assert node is not None
     assert node.canonical_key == "soul:layer:identity_narrative:agent:main"
     assert node.summary == "我是已经稳定下来的叙事版本。"
+    assert len(revisions) == 1
     assert revisions[0].payload["layer"] == "identity_narrative"
     assert revisions[0].payload["source_memory_id"] == "agent_self_narrative_staged_main"
     assert event.event_type == "identity_narrative_promoted"

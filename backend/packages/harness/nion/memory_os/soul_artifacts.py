@@ -52,6 +52,7 @@ class MemoryOSSoulArtifactStore:
         body: str,
         created_at: str,
         staged: bool = False,
+        canonical_payload: dict[str, object] | None = None,
     ) -> dict[str, object]:
         path = (
             self._artifacts_dir / "agent-self" / "narrative" / "staged_identity_narrative.md"
@@ -90,7 +91,11 @@ class MemoryOSSoulArtifactStore:
                 layer="identity_narrative",
                 summary=summary,
                 created_at=created_at,
-                payload={"artifact_uri": record["artifact_uri"], "source_type": "artifact_write"},
+                payload={
+                    "artifact_uri": record["artifact_uri"],
+                    "source_type": "artifact_write",
+                    **dict(canonical_payload or {}),
+                },
             )
         written = self._write_artifact(path=path, body=body, record=record)
         if staged:
