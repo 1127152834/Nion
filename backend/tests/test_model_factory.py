@@ -299,6 +299,34 @@ def test_thinking_disabled_no_when_thinking_enabled_does_nothing(monkeypatch):
 
     assert "extra_body" not in captured
     assert "thinking" not in captured
+
+
+def test_thinking_disabled_vllm_chat_template_kwargs_disable_reasoning(monkeypatch):
+    wte = {"extra_body": {"chat_template_kwargs": {"thinking": True}}}
+    cfg = _make_app_config(
+        [
+            _make_model(
+                "vllm-qwen",
+                use="nion.models.vllm_provider:VllmChatModel",
+                supports_thinking=True,
+                when_thinking_enabled=wte,
+            )
+        ]
+    )
+    _patch_factory(monkeypatch, cfg)
+
+    captured: dict = {}
+
+    class CapturingModel(FakeChatModel):
+        def __init__(self, **kwargs):
+            captured.update(kwargs)
+            BaseChatModel.__init__(self, **kwargs)
+
+    monkeypatch.setattr(factory_module, "resolve_class", lambda path, base: CapturingModel)
+
+    factory_module.create_chat_model(name="vllm-qwen", thinking_enabled=False)
+
+    assert captured.get("extra_body") == {"chat_template_kwargs": {"enable_thinking": False}}
     # reasoning_effort not forced (supports_reasoning_effort defaults to False → cleared)
     assert captured.get("reasoning_effort") is None
 

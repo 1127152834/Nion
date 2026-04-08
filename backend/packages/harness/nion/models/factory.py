@@ -18,6 +18,25 @@ RUNTIME_METADATA_FIELDS = {
 }
 
 
+def _deep_merge_dicts(base: dict | None, override: dict) -> dict:
+    merged = dict(base or {})
+    for key, value in override.items():
+        if isinstance(value, dict) and isinstance(merged.get(key), dict):
+            merged[key] = _deep_merge_dicts(merged[key], value)
+        else:
+            merged[key] = value
+    return merged
+
+
+def _vllm_disable_chat_template_kwargs(chat_template_kwargs: dict) -> dict:
+    disable_kwargs: dict[str, bool] = {}
+    if "thinking" in chat_template_kwargs:
+        disable_kwargs["enable_thinking"] = False
+    if "enable_thinking" in chat_template_kwargs:
+        disable_kwargs["enable_thinking"] = False
+    return disable_kwargs
+
+
 def get_app_config():
     return ensure_latest_app_config(process_name="langgraph")
 
@@ -147,6 +166,17 @@ def create_chat_model(name: str | None = None, thinking_enabled: bool = False, *
             # OpenAI-compatible gateway: thinking is nested under extra_body
             kwargs.update({"extra_body": {"thinking": {"type": "disabled"}}})
             kwargs.update({"reasoning_effort": "minimal"})
+        elif disable_chat_template_kwargs := _vllm_disable_chat_template_kwargs(
+            effective_wte.get("extra_body", {}).get("chat_template_kwargs") or {}
+        ):
+            kwargs.update(
+                {
+                    "extra_body": _deep_merge_dicts(
+                        kwargs.get("extra_body"),
+                        {"chat_template_kwargs": disable_chat_template_kwargs},
+                    )
+                }
+            )
         elif effective_wte.get("thinking", {}).get("type"):
             # Native langchain_anthropic: thinking is a direct constructor parameter
             kwargs.update({"thinking": {"type": "disabled"}})
