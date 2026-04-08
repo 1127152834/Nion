@@ -15,6 +15,16 @@ def accept_soul_proposal(
     created_at = created_at or utcnow_z()
     proposal = _find_record(repository, domain="soul", memory_id=memory_id)
     repository.update_memory_status(memory_id, "archived", updated_at=created_at)
+    existing_overlay = next(
+        (
+            row
+            for row in repository.list_memory_records(domain="soul")
+            if row["memory_id"] == "soul_overlay_active_main" and row["status"] == "active"
+        ),
+        None,
+    )
+    if existing_overlay is not None:
+        repository.update_memory_status("soul_overlay_active_main", "archived", updated_at=created_at)
     overlay = {
         "memory_id": "soul_overlay_active_main",
         "domain": "soul",
@@ -77,6 +87,8 @@ def rollback_soul_overlay(
 ) -> dict[str, object]:
     created_at = created_at or utcnow_z()
     overlay = _find_record(repository, domain="soul", memory_id="soul_overlay_active_main")
+    if overlay["status"] != "active":
+        return {"memory_id": overlay["memory_id"], "action": "rollback"}
     repository.update_memory_status(str(overlay["memory_id"]), "archived", updated_at=created_at)
     record_soul_event(
         repository,

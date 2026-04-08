@@ -4,7 +4,12 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from nion.config.paths import get_paths
-from nion.memory_os.clock import utcnow_z
+from nion.memory_os.compat import (
+    correct_legacy_user_model_item,
+    list_legacy_growth_view,
+    list_legacy_user_model_items,
+    update_legacy_growth_item_status,
+)
 from nion.memory_os.governance import GOVERNANCE_ACTION_FREEZE, GOVERNANCE_ACTION_REJECT
 from nion.memory_os.learning import create_learning_topic
 from nion.memory_os.relationship_soul import build_relationship_soul_summary
@@ -34,24 +39,13 @@ def _repo() -> MemoryOSRepository:
 
 @router.get("")
 async def get_memory_growth():
-    repo = _repo()
-    return {
-        "learning": repo.list_memory_records(domain="learning"),
-        "procedures": repo.list_memory_records(domain="procedure"),
-        "soul_proposals": [
-            item
-            for item in repo.list_memory_records(domain="soul")
-            if item["subtype"] == "proposal"
-        ],
-    }
+    return list_legacy_growth_view(_repo())
 
 
 @router.get("/user-model")
 async def list_user_model_items():
-    repo = _repo()
-    items = repo.list_memory_records(domain="user_model")
     return {
-        "items": items,
+        "items": list_legacy_user_model_items(_repo()),
         "source_mode": "memory_os",
     }
 
@@ -120,29 +114,37 @@ async def create_learning(request: LearningCreateRequest):
 
 @router.post("/{memory_id}/freeze")
 async def freeze_growth_item(memory_id: str):
-    repo = _repo()
-    repo.update_memory_status(memory_id, "archived")
+    try:
+        update_legacy_growth_item_status(memory_id=memory_id, status="archived", repository=_repo())
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=f"Memory item {memory_id} not found") from exc
     return {"memory_id": memory_id, "action": GOVERNANCE_ACTION_FREEZE}
 
 
 @router.post("/{memory_id}/reject")
 async def reject_growth_item(memory_id: str):
-    repo = _repo()
-    repo.update_memory_status(memory_id, "invalidated")
+    try:
+        update_legacy_growth_item_status(memory_id=memory_id, status="invalidated", repository=_repo())
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=f"Memory item {memory_id} not found") from exc
     return {"memory_id": memory_id, "action": GOVERNANCE_ACTION_REJECT}
 
 
 @router.post("/{memory_id}/resume")
 async def resume_growth_item(memory_id: str):
-    repo = _repo()
-    repo.update_memory_status(memory_id, "active")
+    try:
+        update_legacy_growth_item_status(memory_id=memory_id, status="active", repository=_repo())
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=f"Memory item {memory_id} not found") from exc
     return {"memory_id": memory_id, "action": "resume"}
 
 
 @router.post("/{memory_id}/accept")
 async def accept_growth_item(memory_id: str):
-    repo = _repo()
-    repo.update_memory_status(memory_id, "active")
+    try:
+        update_legacy_growth_item_status(memory_id=memory_id, status="active", repository=_repo())
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=f"Memory item {memory_id} not found") from exc
     return {"memory_id": memory_id, "action": "accept"}
 
 
@@ -163,54 +165,64 @@ async def rollback_soul():
 
 @router.post("/user-model/{memory_id}/freeze")
 async def freeze_user_model_item(memory_id: str):
-    repo = _repo()
-    record = next(
-        (item for item in repo.list_memory_records(domain="user_model") if item["memory_id"] == memory_id),
-        None,
-    )
-    if record is None:
+    try:
+        update_legacy_growth_item_status(
+            memory_id=memory_id,
+            status="archived",
+            expected_domain="user_model",
+            repository=_repo(),
+        )
+    except KeyError as exc:
         raise HTTPException(status_code=404, detail=f"Memory item {memory_id} not found")
-    repo.update_memory_status(memory_id, "archived")
+    except Exception as exc:  # pragma: no cover - defensive boundary
+        raise HTTPException(status_code=500, detail="Failed to freeze memory item") from exc
     return {"memory_id": memory_id, "action": GOVERNANCE_ACTION_FREEZE}
 
 
 @router.post("/user-model/{memory_id}/forget")
 async def forget_user_model_item(memory_id: str):
-    repo = _repo()
-    record = next(
-        (item for item in repo.list_memory_records(domain="user_model") if item["memory_id"] == memory_id),
-        None,
-    )
-    if record is None:
+    try:
+        update_legacy_growth_item_status(
+            memory_id=memory_id,
+            status="invalidated",
+            expected_domain="user_model",
+            repository=_repo(),
+        )
+    except KeyError as exc:
         raise HTTPException(status_code=404, detail=f"Memory item {memory_id} not found")
-    repo.update_memory_status(memory_id, "invalidated")
+    except Exception as exc:  # pragma: no cover - defensive boundary
+        raise HTTPException(status_code=500, detail="Failed to forget memory item") from exc
     return {"memory_id": memory_id, "action": "forget_request"}
 
 
 @router.post("/user-model/{memory_id}/reject")
 async def reject_user_model_item(memory_id: str):
-    repo = _repo()
-    record = next(
-        (item for item in repo.list_memory_records(domain="user_model") if item["memory_id"] == memory_id),
-        None,
-    )
-    if record is None:
+    try:
+        update_legacy_growth_item_status(
+            memory_id=memory_id,
+            status="invalidated",
+            expected_domain="user_model",
+            repository=_repo(),
+        )
+    except KeyError as exc:
         raise HTTPException(status_code=404, detail=f"Memory item {memory_id} not found")
-    repo.update_memory_status(memory_id, "invalidated")
+    except Exception as exc:  # pragma: no cover - defensive boundary
+        raise HTTPException(status_code=500, detail="Failed to reject memory item") from exc
     return {"memory_id": memory_id, "action": GOVERNANCE_ACTION_REJECT}
 
 
 @router.post("/user-model/{memory_id}/correct")
 async def correct_user_model_item(memory_id: str, request: UserModelCorrectRequest):
-    repo = _repo()
-    record = next(
-        (item for item in repo.list_memory_records(domain="user_model") if item["memory_id"] == memory_id),
-        None,
-    )
-    if record is None:
-        raise HTTPException(status_code=404, detail=f"Memory item {memory_id} not found")
-    corrected = dict(record)
-    corrected["summary"] = request.summary.strip() or corrected["summary"]
-    corrected["updated_at"] = utcnow_z()
-    repo.save_memory_record(corrected)
-    return {"item": corrected, "action": "correct"}
+    try:
+        item = correct_legacy_user_model_item(
+            memory_id=memory_id,
+            summary=request.summary,
+            repository=_repo(),
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Memory item summary cannot be empty") from exc
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=f"Memory item {memory_id} not found") from exc
+    except Exception as exc:  # pragma: no cover - defensive boundary
+        raise HTTPException(status_code=500, detail="Failed to correct memory item") from exc
+    return {"item": item, "action": "correct"}
