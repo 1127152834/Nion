@@ -96,6 +96,16 @@ Do **not** compress multiple milestones into one coding burst.
 - local default embedding setup is usable for non-technical users
 - runtime trace explains why memories/evidence were used
 
+**Checkpoint 2026-04-09:**
+
+- Runtime Memory Engine 已接入主读路径，`memory_read` gating 贯穿 continuity middleware、lead prompt 装配与 runtime context
+- search fusion 已覆盖 taxonomy / FTS / link / vector 输入并稳定排序
+- embedded vector provider abstraction 与 fingerprint / rebuild contract 已落地，且 provider 仍是 authoritative source
+- `/api/memory/settings`、embedding settings panel、runtime trace page 已接入当前产品面
+- M3 验证已通过：
+  - backend: `28 passed`
+  - frontend contracts: `3 passed`
+
 ### Milestone D: Soul Engine, Projection Chain, And Legacy Retirement
 
 **Plan:** `/Users/zhangtiancheng/Documents/项目/agent/nion/docs/superpowers/plans/2026-04-08-memory-soul-dual-layer-m4-soul-projection-retirement-plan.md`

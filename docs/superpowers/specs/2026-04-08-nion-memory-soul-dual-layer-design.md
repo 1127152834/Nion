@@ -1121,6 +1121,29 @@ purge 后的系统行为：
 
 ## 迁移路线与里程碑
 
+**已完成 checkpoint**
+
+截至 `2026-04-09`，本设计里的前两级运行时主线已经落地到当前 worktree：
+
+- M1 已完成：
+  - canonical v2 base tables 落地
+  - Evidence Vault 落地
+  - session durability gates 生效
+  - ledger / evidence / runtime-trace 只读后端表面存在
+  - 尚未切主读写
+- M2 已完成：
+  - canonical judge 存在
+  - compatibility adapters 已回托现有 `/api/memory` 与 `/api/memory/growth*`
+  - user overrides 是真实 canonical actions
+  - `learning` 继续保持一等域
+  - ledger / evidence 治理 UI 已存在
+- M3 已完成：
+  - Runtime Memory Engine 已成为当前主读路径
+  - `memory_read` gating 已进入 continuity middleware 与 lead prompt 装配
+  - taxonomy / FTS / link / vector 的 search fusion 契约已落地
+  - embedded vector provider abstraction、fingerprint、rebuild-aware API 已落地
+  - `/api/memory/settings`、embedding settings panel、runtime trace page 已存在
+
 ## 迁移铁律
 
 - 任一阶段最多只切一件大事：主写入或主读取，不能同时切
