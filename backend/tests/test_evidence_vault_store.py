@@ -161,6 +161,21 @@ def test_search_rejects_non_positive_limit(tmp_path: Path):
         store.search("anything", limit=-1)
 
 
+def test_search_blank_or_symbol_only_query_returns_empty(tmp_path: Path):
+    store = EvidenceVaultStore(tmp_path / "memory-os")
+    store.write_document(
+        source_type="human_message",
+        thread_id="thread-1",
+        turn_id="turn-1",
+        actor="user",
+        content_raw="已有内容，不应该被空查询命中。",
+        durability_scope="durable_user_memory",
+    )
+
+    assert store.search("   ") == []
+    assert store.search("!!! ???") == []
+
+
 def test_store_enables_foreign_key_constraints(tmp_path: Path):
     store = EvidenceVaultStore(tmp_path / "memory-os")
 

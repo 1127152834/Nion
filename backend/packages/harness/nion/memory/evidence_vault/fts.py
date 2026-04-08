@@ -52,6 +52,9 @@ def delete_chunks(connection: sqlite3.Connection, evidence_id: str) -> None:
 
 def search_chunks(connection: sqlite3.Connection, query: str, limit: int) -> list[EvidenceSearchHit]:
     normalized_query = normalize_fts_query(query)
+    fallback_query = query.replace("%", "").replace("_", "").strip()
+    if not normalized_query and not fallback_query:
+        return []
     rows: list[sqlite3.Row] = []
     if normalized_query:
         try:
@@ -76,7 +79,9 @@ def search_chunks(connection: sqlite3.Connection, query: str, limit: int) -> lis
         except sqlite3.OperationalError:
             rows = []
     if not rows:
-        like_query = f"%{query.replace('%', '').replace('_', '').strip()}%"
+        if not fallback_query:
+            return []
+        like_query = f"%{fallback_query}%"
         rows = connection.execute(
             """
             SELECT

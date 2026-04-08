@@ -251,11 +251,6 @@ class EvidenceVaultStore:
         )
 
         artifact_uri = row["artifact_uri"]
-        if artifact_uri:
-            artifact_path = Path(artifact_uri)
-            if artifact_path.exists():
-                artifact_path.unlink()
-
         with self._connect() as connection:
             delete_chunks(connection, evidence_id)
             connection.execute(
@@ -283,6 +278,23 @@ class EvidenceVaultStore:
                     tombstone.checksum,
                 ),
             )
+
+        if artifact_uri:
+            artifact_path = Path(artifact_uri)
+            try:
+                if artifact_path.exists():
+                    artifact_path.unlink()
+            except OSError:
+                with self._connect() as connection:
+                    connection.execute(
+                        "DELETE FROM evidence_tombstones WHERE evidence_id = ?",
+                        (evidence_id,),
+                    )
+                    connection.execute(
+                        "UPDATE evidence_documents SET purged_at = NULL WHERE evidence_id = ?",
+                        (evidence_id,),
+                    )
+                raise
 
         return tombstone
 
