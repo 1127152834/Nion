@@ -59,7 +59,7 @@ export function MemoryHomePage() {
     {
       href: "/workspace/memory/runtime-trace",
       title: "Runtime trace",
-      description: "查看 runtime trace 事件流，按线程或事件类型进入独立页面筛查。",
+      description: "查看 runtime trace 事件流，按 thread_id 或 event_type 进入独立页面筛查。",
     },
   ];
 

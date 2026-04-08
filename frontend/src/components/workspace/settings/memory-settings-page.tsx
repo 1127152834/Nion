@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useI18n } from "@/core/i18n/hooks";
 import { pathOfMemory, pathOfMemoryGrowth } from "@/core/navigation/desktop-routes";
 
+import { MemoryEmbeddingPanel } from "./memory-embedding-panel";
 import { SettingsSection } from "./settings-section";
 
 export function MemorySettingsPage() {
@@ -56,6 +57,8 @@ export function MemorySettingsPage() {
             </div>
           </div>
         </section>
+
+        <MemoryEmbeddingPanel />
 
         <div className="flex flex-wrap gap-3">
           <Button asChild variant="outline">
