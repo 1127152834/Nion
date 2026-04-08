@@ -3,7 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
-
 EvidenceDurabilityScope = Literal["session_ephemeral", "durable_user_memory"]
 
 

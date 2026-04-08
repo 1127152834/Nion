@@ -3,6 +3,8 @@ from __future__ import annotations
 import sqlite3
 from pathlib import Path
 
+import pytest
+
 from nion.memory.evidence_vault.store import EvidenceVaultStore
 
 
@@ -147,3 +149,98 @@ def test_store_keeps_tombstone_after_purge(tmp_path: Path):
     )
 
     assert store.search("fallback") == []
+
+
+def test_search_rejects_non_positive_limit(tmp_path: Path):
+    store = EvidenceVaultStore(tmp_path / "memory-os")
+
+    with pytest.raises(ValueError, match="limit must be positive"):
+        store.search("anything", limit=0)
+
+    with pytest.raises(ValueError, match="limit must be positive"):
+        store.search("anything", limit=-1)
+
+
+def test_store_enables_foreign_key_constraints(tmp_path: Path):
+    store = EvidenceVaultStore(tmp_path / "memory-os")
+
+    with pytest.raises(sqlite3.IntegrityError):
+        with store._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO evidence_chunks(
+                    chunk_id,
+                    evidence_id,
+                    chunk_index,
+                    chunk_text,
+                    chunk_summary,
+                    tokens,
+                    time_anchor,
+                    topic_tags_json,
+                    wing,
+                    room,
+                    importance_score,
+                    embedding_ref
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    "orphan:0",
+                    "missing-evidence",
+                    0,
+                    "orphan chunk",
+                    "",
+                    0,
+                    None,
+                    "[]",
+                    None,
+                    None,
+                    0.0,
+                    None,
+                ),
+            )
+
+
+def test_store_cleans_up_temp_file_when_db_write_fails(tmp_path: Path):
+    store = EvidenceVaultStore(tmp_path / "memory-os")
+    original_connect = store._connect
+
+    class _FailingConnection:
+        def __init__(self, connection: sqlite3.Connection) -> None:
+            self._connection = connection
+            self._failed = False
+
+        def execute(self, sql: str, parameters=()):
+            if "INSERT INTO evidence_documents" in sql and not self._failed:
+                self._failed = True
+                raise sqlite3.OperationalError("boom")
+            return self._connection.execute(sql, parameters)
+
+        def executescript(self, script: str):
+            return self._connection.executescript(script)
+
+        def __getattr__(self, name: str):
+            return getattr(self._connection, name)
+
+        def __enter__(self):
+            self._connection.__enter__()
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return self._connection.__exit__(exc_type, exc, tb)
+
+    store._connect = lambda: _FailingConnection(original_connect())  # type: ignore[method-assign]
+    evidence_dir = tmp_path / "memory-os" / "evidence"
+
+    with pytest.raises(sqlite3.OperationalError, match="boom"):
+        store.write_document(
+            source_type="human_message",
+            thread_id="thread-1",
+            turn_id="turn-1",
+            actor="user",
+            content_raw="db fail should not leave final file",
+            durability_scope="durable_user_memory",
+        )
+
+    assert list(evidence_dir.glob("*.json")) == []
+    assert list(evidence_dir.glob("*.tmp")) == []

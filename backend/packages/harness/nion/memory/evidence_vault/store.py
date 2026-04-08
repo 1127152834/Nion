@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import sqlite3
 import uuid
 from datetime import UTC, datetime
@@ -33,6 +34,7 @@ class EvidenceVaultStore:
     def _connect(self) -> sqlite3.Connection:
         connection = sqlite3.connect(self._db_path)
         connection.row_factory = sqlite3.Row
+        connection.execute("PRAGMA foreign_keys = ON;")
         connection.execute("PRAGMA journal_mode=WAL;")
         connection.execute("PRAGMA busy_timeout = 5000;")
         return connection
@@ -100,7 +102,9 @@ class EvidenceVaultStore:
         content_normalized = _normalize_content(content_raw)
         checksum = hashlib.sha256(content_raw.encode("utf-8")).hexdigest()
         document_path = self._evidence_dir / f"{evidence_id}.json"
+        temp_document_path = self._evidence_dir / f"{evidence_id}.json.tmp"
         artifact_uri = None
+        temp_file_written = False
 
         document = EvidenceDocument(
             evidence_id=evidence_id,
@@ -128,87 +132,96 @@ class EvidenceVaultStore:
                 "content_normalized": content_normalized,
                 "checksum": checksum,
             }
-            document_path.write_text(
+            temp_document_path.write_text(
                 json.dumps(payload, ensure_ascii=False, indent=2),
                 encoding="utf-8",
             )
+            temp_file_written = True
             artifact_uri = str(document_path)
             document.artifact_uri = artifact_uri
 
         chunks = _chunk_document(evidence_id=evidence_id, text=content_normalized)
 
-        with self._connect() as connection:
-            connection.execute(
-                """
-                INSERT INTO evidence_documents(
-                    evidence_id,
-                    source_type,
-                    thread_id,
-                    turn_id,
-                    actor,
-                    created_at,
-                    content_normalized,
-                    artifact_uri,
-                    sensitivity,
-                    retention_class,
-                    durability_scope,
-                    checksum,
-                    metadata_json,
-                    purged_at
-                )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)
-                """,
-                (
-                    document.evidence_id,
-                    document.source_type,
-                    document.thread_id,
-                    document.turn_id,
-                    document.actor,
-                    document.created_at,
-                    document.content_normalized,
-                    document.artifact_uri,
-                    document.sensitivity,
-                    document.retention_class,
-                    document.durability_scope,
-                    document.checksum,
-                    json.dumps(document.metadata, ensure_ascii=False, sort_keys=True),
-                ),
-            )
-            for chunk in chunks:
+        try:
+            with self._connect() as connection:
                 connection.execute(
                     """
-                    INSERT INTO evidence_chunks(
-                        chunk_id,
+                    INSERT INTO evidence_documents(
                         evidence_id,
-                        chunk_index,
-                        chunk_text,
-                        chunk_summary,
-                        tokens,
-                        time_anchor,
-                        topic_tags_json,
-                        wing,
-                        room,
-                        importance_score,
-                        embedding_ref
+                        source_type,
+                        thread_id,
+                        turn_id,
+                        actor,
+                        created_at,
+                        content_normalized,
+                        artifact_uri,
+                        sensitivity,
+                        retention_class,
+                        durability_scope,
+                        checksum,
+                        metadata_json,
+                        purged_at
                     )
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)
                     """,
                     (
-                        chunk.chunk_id,
-                        chunk.evidence_id,
-                        chunk.chunk_index,
-                        chunk.chunk_text,
-                        chunk.chunk_summary,
-                        chunk.tokens,
-                        chunk.time_anchor,
-                        json.dumps(chunk.topic_tags, ensure_ascii=False),
-                        chunk.wing,
-                        chunk.room,
-                        chunk.importance_score,
-                        chunk.embedding_ref,
+                        document.evidence_id,
+                        document.source_type,
+                        document.thread_id,
+                        document.turn_id,
+                        document.actor,
+                        document.created_at,
+                        document.content_normalized,
+                        document.artifact_uri,
+                        document.sensitivity,
+                        document.retention_class,
+                        document.durability_scope,
+                        document.checksum,
+                        json.dumps(document.metadata, ensure_ascii=False, sort_keys=True),
                     ),
                 )
-            index_chunks(connection, chunks)
+                for chunk in chunks:
+                    connection.execute(
+                        """
+                        INSERT INTO evidence_chunks(
+                            chunk_id,
+                            evidence_id,
+                            chunk_index,
+                            chunk_text,
+                            chunk_summary,
+                            tokens,
+                            time_anchor,
+                            topic_tags_json,
+                            wing,
+                            room,
+                            importance_score,
+                            embedding_ref
+                        )
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            chunk.chunk_id,
+                            chunk.evidence_id,
+                            chunk.chunk_index,
+                            chunk.chunk_text,
+                            chunk.chunk_summary,
+                            chunk.tokens,
+                            chunk.time_anchor,
+                            json.dumps(chunk.topic_tags, ensure_ascii=False),
+                            chunk.wing,
+                            chunk.room,
+                            chunk.importance_score,
+                            chunk.embedding_ref,
+                        ),
+                    )
+                index_chunks(connection, chunks)
+        except Exception:
+            if temp_file_written and temp_document_path.exists():
+                temp_document_path.unlink()
+            raise
+
+        if temp_file_written:
+            os.replace(temp_document_path, document_path)
 
         return EvidenceWriteResult(
             document=document,
@@ -229,14 +242,21 @@ class EvidenceVaultStore:
             if row is None:
                 raise KeyError(f"Unknown evidence document: {evidence_id}")
 
-            deleted_at = _utc_now()
-            tombstone = EvidenceTombstone(
-                evidence_id=evidence_id,
-                deleted_at=deleted_at,
-                deleted_by=deleted_by,
-                checksum=row["checksum"],
-            )
+        deleted_at = _utc_now()
+        tombstone = EvidenceTombstone(
+            evidence_id=evidence_id,
+            deleted_at=deleted_at,
+            deleted_by=deleted_by,
+            checksum=row["checksum"],
+        )
 
+        artifact_uri = row["artifact_uri"]
+        if artifact_uri:
+            artifact_path = Path(artifact_uri)
+            if artifact_path.exists():
+                artifact_path.unlink()
+
+        with self._connect() as connection:
             delete_chunks(connection, evidence_id)
             connection.execute(
                 "DELETE FROM evidence_chunks WHERE evidence_id = ?",
@@ -264,15 +284,11 @@ class EvidenceVaultStore:
                 ),
             )
 
-        artifact_uri = row["artifact_uri"]
-        if artifact_uri:
-            artifact_path = Path(artifact_uri)
-            if artifact_path.exists():
-                artifact_path.unlink()
-
         return tombstone
 
     def search(self, query: str, limit: int = 5):
+        if limit <= 0:
+            raise ValueError("limit must be positive")
         with self._connect() as connection:
             return search_chunks(connection, query, limit)
 
