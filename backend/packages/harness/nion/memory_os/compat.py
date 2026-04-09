@@ -17,7 +17,7 @@ def get_memory_os_repository() -> MemoryOSRepository:
     return MemoryOSRepository(get_paths().memory_os_index_db_file)
 
 
-def build_legacy_memory_view(repository: MemoryOSRepository | None = None) -> dict[str, Any]:
+def build_canonical_memory_payload(repository: MemoryOSRepository | None = None) -> dict[str, Any]:
     repo = repository or get_memory_os_repository()
     records = repo.list_memory_records(status="active")
     canonical_items = _list_canonical_projection_items(repo)
@@ -25,12 +25,12 @@ def build_legacy_memory_view(repository: MemoryOSRepository | None = None) -> di
     record_contexts = {
         str(row["subtype"]): row
         for row in records
-        if row["domain"] == "user_model" and row["subtype"] in _CONTEXT_SUBTYPES
+        if row["domain"] in {"user_model", "history"} and row["subtype"] in _CONTEXT_SUBTYPES
     }
     canonical_contexts = {
         str(item["subtype"]): item
         for item in canonical_items
-        if item["domain"] == "user_model" and item["subtype"] in _CONTEXT_SUBTYPES
+        if item["domain"] in {"user_model", "history"} and item["subtype"] in _CONTEXT_SUBTYPES
     }
 
     work = canonical_contexts.get("workContext") or record_contexts.get("workContext")
@@ -40,34 +40,7 @@ def build_legacy_memory_view(repository: MemoryOSRepository | None = None) -> di
     earlier = canonical_contexts.get("earlierContext") or record_contexts.get("earlierContext")
     long_term = canonical_contexts.get("longTermBackground") or record_contexts.get("longTermBackground")
 
-    fact_map: dict[str, dict[str, Any]] = {}
-    for item in canonical_items:
-        if item["domain"] != "user_model" or item["status"] != "active" or item["subtype"] in _CONTEXT_SUBTYPES:
-            continue
-        fact_map[str(item["memory_id"])] = {
-            "id": str(item["memory_id"]),
-            "content": str(item["summary"]),
-            "category": str(item["category"]),
-            "confidence": float(item["confidence"]),
-            "createdAt": str(item["created_at"]),
-            "source": str(item["source"]),
-        }
-    for row in records:
-        if row["domain"] != "user_model":
-            continue
-        fact_map.setdefault(
-            str(row["memory_id"]),
-            {
-                "id": str(row["memory_id"]),
-                "content": str(row["summary"]),
-                "category": str(row["subtype"]),
-                "confidence": float(row["confidence"]),
-                "createdAt": str(row["created_at"]),
-                "source": str((row.get("provenance") or {}).get("source_ref") or "memory_os"),
-            },
-        )
-    facts = list(fact_map.values())
-
+    facts = _canonical_fact_items(records=records, canonical_items=canonical_items)
     last_updated = max(
         (
             str(item["updated_at"])
@@ -91,6 +64,26 @@ def build_legacy_memory_view(repository: MemoryOSRepository | None = None) -> di
         },
         "facts": facts,
     }
+
+
+def build_canonical_user_surface(repository: MemoryOSRepository | None = None) -> dict[str, dict[str, str]]:
+    return build_canonical_memory_payload(repository)["user"]
+
+
+def build_canonical_history_surface(repository: MemoryOSRepository | None = None) -> dict[str, dict[str, str]]:
+    return build_canonical_memory_payload(repository)["history"]
+
+
+def build_canonical_facts_surface(repository: MemoryOSRepository | None = None) -> dict[str, list[dict[str, Any]]]:
+    payload = build_canonical_memory_payload(repository)
+    return {
+        "lastUpdated": payload["lastUpdated"],
+        "facts": payload["facts"],
+    }
+
+
+def build_legacy_memory_view(repository: MemoryOSRepository | None = None) -> dict[str, Any]:
+    return build_canonical_memory_payload(repository)
 
 
 def import_legacy_memory_into_memory_os(payload: dict[str, Any]) -> dict[str, Any]:
@@ -686,6 +679,40 @@ def _merge_growth_items(
             },
         )
     return list(merged.values())
+
+
+def _canonical_fact_items(
+    *,
+    records: list[dict[str, Any]],
+    canonical_items: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    fact_map: dict[str, dict[str, Any]] = {}
+    for item in canonical_items:
+        if item["domain"] != "user_model" or item["status"] != "active" or item["subtype"] in _CONTEXT_SUBTYPES:
+            continue
+        fact_map[str(item["memory_id"])] = {
+            "id": str(item["memory_id"]),
+            "content": str(item["summary"]),
+            "category": str(item["category"]),
+            "confidence": float(item["confidence"]),
+            "createdAt": str(item["created_at"]),
+            "source": str(item["source"]),
+        }
+    for row in records:
+        if row["domain"] != "user_model" or row["subtype"] in _CONTEXT_SUBTYPES:
+            continue
+        fact_map.setdefault(
+            str(row["memory_id"]),
+            {
+                "id": str(row["memory_id"]),
+                "content": str(row["summary"]),
+                "category": str(row["subtype"]),
+                "confidence": float(row["confidence"]),
+                "createdAt": str(row["created_at"]),
+                "source": str((row.get("provenance") or {}).get("source_ref") or "memory_os"),
+            },
+        )
+    return list(fact_map.values())
 
 
 def _build_growth_item_from_memory_id(
