@@ -15,3 +15,14 @@ void test("soul page exposes stable settings instead of governance console metad
   assert.doesNotMatch(source, /rollback/i);
   assert.doesNotMatch(source, /冻结自动演化/);
 });
+
+void test("soul settings no longer depend on proposal-oriented companions", async () => {
+  const summaryCardSource = await readFile(
+    new URL("./soul-summary-card.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.doesNotMatch(summaryCardSource, /proposal/i);
+  assert.doesNotMatch(summaryCardSource, /accept/i);
+  assert.doesNotMatch(summaryCardSource, /reject/i);
+});

@@ -14,4 +14,5 @@ void test("soul summary card mirrors settings-facing soul summary instead of con
   assert.doesNotMatch(source, /identity narrative/i);
   assert.doesNotMatch(source, /proposal/i);
   assert.doesNotMatch(source, /growth/i);
+  assert.doesNotMatch(source, /我正在变成什么样/);
 });
