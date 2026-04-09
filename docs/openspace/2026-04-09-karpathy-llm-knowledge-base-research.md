@@ -107,6 +107,24 @@ Karpathy 这次引爆的不是一个“更强的 RAG”，而是一种更适合�
 
 做到这里，才算真正学到了“如何做自己的 LLM Wiki”，而不是只学会了“有哪些人在做”。
 
+## 代码级抽查后的确认
+
+我又往下抽查了几份关键源码，前面的判断现在可以说是“代码级确认过”，不是只根据 README 推出来的。
+
+`atomicmemory/llm-wiki-compiler` 的 `src/cli.ts` 直接把 `ingest`、`compile`、`query`、`watch`、`lint` 注册成一等命令；`src/commands/query.ts` 明确实现了两步式查询流程：先让模型根据 `wiki/index.md` 选择相关页面，再读取完整页面生成答案，并且支持把回答写回 `wiki/queries/`；`src/compiler/index.ts` 则把增量编译、依赖检测、冻结失败 extraction、链接解析、index 生成串成完整管线。也就是说，它不是“有几个命令名”，而是真的把 LLM Wiki 实现成了可执行编译器。
+
+`llm-wiki-kit` 的 `server.py` 进一步确认了 MCP 服务路线不是宣传词。它用 `FastMCP` 暴露出 `wiki_init`、`wiki_ingest`、`wiki_write_page`、`wiki_read_page`、`wiki_search`、`wiki_lint`、`wiki_status`、`wiki_log`、`wiki_graph` 这些工具；`cli.py` 则只保留 `serve` 和 `init` 两个入口，把真正的长期能力都推到服务层。这和 CLI 编译器的设计哲学明显不同，说明它的目标就是成为 agent 可调用的知识服务。
+
+`ussumant/llm-wiki-compiler` 虽然 hook 文件路径不稳定，但从 `plugin/commands/wiki-init.md` 和 `plugin/commands/wiki-compile.md` 已经能确认它的真实重点是“把 wiki 工作流嵌入代理生命周期”。`wiki-init` 不是静态初始化脚本，而是一步一步询问目录、输出路径、article structure、mode、stale detection；`wiki-compile` 明确要求读取 `.wiki-compiler.json`、读取 `schema.md`、再调用 `wiki-compiler` skill 做扫描、分类、编译、schema 更新和 index 更新。这证明它确实是插件工作流，而不是换皮 CLI。
+
+所以，当前最稳的结论可以进一步收紧成一句话：
+
+- `atomicmemory` 教你怎么做“知识编译器”
+- `ussumant` 教你怎么把“知识编译器”变成代理工作流
+- `llm-wiki-kit` 教你怎么把“知识编译器”变成 agent service
+
+这三者拼在一起，基本就构成了我们如果要在 `omx / nion` 落地 LLM Wiki 时最该抄的骨架。
+
 ## 交付物
 
 完整研究报告已输出到：
