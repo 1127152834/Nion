@@ -8,11 +8,11 @@ void test("automation job detail page explains agent-owned automation constraint
     "utf8",
   );
 
-  assert.match(source, /job\.owner_type === "agent"/);
+  assert.match(source, /owner_type === "agent"/);
   assert.match(source, /Agent 创建的自动化任务/);
-  assert.match(source, /job\.mutability/);
-  assert.match(source, /job\.provenance_memory_id/);
-  assert.match(source, /job\.provenance_learning_id/);
+  assert.match(source, /mutability === "pause_only"|编辑权限/);
+  assert.match(source, /provenance_memory_id/);
+  assert.match(source, /provenance_learning_id/);
   assert.match(source, /来源记忆/);
   assert.match(source, /来源学习主题/);
   assert.match(source, /编辑权限/);

@@ -54,14 +54,14 @@ export function AutomationJobDetailPage({
         <WorkspacePageHeader
           title={kind === "reminder" ? "提醒详情" : "任务详情"}
           description="查看任务信息、执行记录以及关联线程。"
-          action={(
+          action={
             <Link href={backHref} className="inline-flex">
               <Button variant="ghost" size="sm">
                 <ArrowLeftIcon className="size-4" />
                 {backLabel}
               </Button>
             </Link>
-          )}
+          }
         />
         <div className="mx-auto flex w-full max-w-6xl flex-1 px-6 py-6">
           <div className="text-muted-foreground w-full rounded-xl border border-dashed p-6 text-sm">
@@ -78,32 +78,37 @@ export function AutomationJobDetailPage({
         <WorkspacePageHeader
           title={kind === "reminder" ? "提醒详情" : "任务详情"}
           description="查看任务信息、执行记录以及关联线程。"
-          action={(
+          action={
             <Link href={backHref} className="inline-flex">
               <Button variant="ghost" size="sm">
                 <ArrowLeftIcon className="size-4" />
                 {backLabel}
               </Button>
             </Link>
-          )}
+          }
         />
         <div className="mx-auto flex w-full max-w-6xl flex-1 px-6 py-6">
-          <AutomationPageAlert error={firstError ?? new Error("未找到自动化任务")} />
+          <AutomationPageAlert
+            error={firstError ?? new Error("未找到自动化任务")}
+          />
         </div>
       </section>
     );
   }
 
-  const description = describeAutomationJob(job);
-  const ownership = describeAutomationOwnership(job);
+  const currentJob = job;
+  const description = describeAutomationJob(currentJob);
+  const ownership = describeAutomationOwnership(currentJob);
   const editPermissionLabel =
-    job.mutability === "pause_only" ? "仅允许暂停或恢复" : "允许直接编辑";
-  const jobRuns = runs.filter((run) => run.job_id === job.id);
+    currentJob.mutability === "pause_only"
+      ? "仅允许暂停或恢复"
+      : "允许直接编辑";
+  const jobRuns = runs.filter((run) => run.job_id === currentJob.id);
   const preferredRunId = pickDefaultAutomationRunId(jobRuns);
   const latestRun = jobRuns.find((run) => run.id === preferredRunId) ?? null;
 
   async function handleRemove() {
-    await removeJob.mutateAsync(job.id);
+    await removeJob.mutateAsync(currentJob.id);
     router.push(backHref);
   }
 
@@ -112,7 +117,7 @@ export function AutomationJobDetailPage({
       <WorkspacePageHeader
         title={description.title}
         description={description.summary}
-        action={(
+        action={
           <div className="flex items-center gap-2">
             <Button
               variant="ghost"
@@ -130,24 +135,28 @@ export function AutomationJobDetailPage({
               </Button>
             </Link>
           </div>
-        )}
+        }
       />
 
       <div className="flex-1 overflow-y-auto">
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 py-6">
           <div className="space-y-3">
             <div className="flex flex-wrap gap-2">
-              <Badge variant={job.owner_type === "agent" ? "outline" : "secondary"}>
+              <Badge
+                variant={
+                  currentJob.owner_type === "agent" ? "outline" : "secondary"
+                }
+              >
                 {ownership.ownerLabel}
               </Badge>
               <Badge variant="outline">编辑权限：{editPermissionLabel}</Badge>
             </div>
-            {job.owner_type === "agent" ? (
-              <p className="max-w-3xl text-sm text-muted-foreground">
+            {currentJob.owner_type === "agent" ? (
+              <p className="text-muted-foreground max-w-3xl text-sm">
                 这是一个 Agent 创建的自动化任务。
               </p>
             ) : null}
-            <p className="max-w-3xl text-sm text-muted-foreground">
+            <p className="text-muted-foreground max-w-3xl text-sm">
               {ownership.reason}
             </p>
           </div>
@@ -167,7 +176,9 @@ export function AutomationJobDetailPage({
               </div>
               <div className="space-y-1">
                 <div className="font-medium">调度</div>
-                <div className="text-muted-foreground">{description.scheduleLabel}</div>
+                <div className="text-muted-foreground">
+                  {description.scheduleLabel}
+                </div>
               </div>
               <div className="space-y-1">
                 <div className="font-medium">下次执行</div>
@@ -184,19 +195,19 @@ export function AutomationJobDetailPage({
               <div className="space-y-1">
                 <div className="font-medium">来源记忆</div>
                 <div className="text-muted-foreground">
-                  {job.provenance_memory_id ?? "无"}
+                  {currentJob.provenance_memory_id ?? "无"}
                 </div>
               </div>
               <div className="space-y-1">
                 <div className="font-medium">来源学习主题</div>
                 <div className="text-muted-foreground">
-                  {job.provenance_learning_id ?? "无"}
+                  {currentJob.provenance_learning_id ?? "无"}
                 </div>
               </div>
               <div className="space-y-1">
                 <div className="font-medium">来源灵魂</div>
                 <div className="text-muted-foreground">
-                  {job.owner_type === "agent"
+                  {currentJob.owner_type === "agent"
                     ? "soul-driven automation，来源于长期成长、学习主题或关系变化。"
                     : "无"}
                 </div>
@@ -204,7 +215,7 @@ export function AutomationJobDetailPage({
             </CardContent>
           </Card>
 
-          {job.job_kind === "scheduled_task" ? (
+          {currentJob.job_kind === "scheduled_task" ? (
             <div className="grid gap-4 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
               <AutomationHistorySection
                 runs={jobRuns}
@@ -216,8 +227,8 @@ export function AutomationJobDetailPage({
                 <AutomationRunPreview
                   run={{
                     runId: latestRun.id,
-                    jobId: job.id,
-                    jobName: job.name,
+                    jobId: currentJob.id,
+                    jobName: currentJob.name,
                     status: latestRun.status,
                     summary: latestRun.result_summary,
                     startedAt: latestRun.started_at,
