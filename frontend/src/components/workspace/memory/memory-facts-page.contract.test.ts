@@ -8,6 +8,7 @@ void test("memory facts page owns fact management plus import export and cleanup
     "utf8",
   );
 
+  assert.match(source, /useMemoryFactsSurface/);
   assert.match(source, /onCreateFact|handleCreateFact|addFact/);
   assert.match(source, /onEditFact|handleEditFact|editFact/);
   assert.match(source, /onDeleteFact|handleDeleteFact|deleteMemoryFact/);
@@ -15,5 +16,6 @@ void test("memory facts page owns fact management plus import export and cleanup
   assert.match(source, /useClearMemory|clearMemory/);
   assert.match(source, /MemoryClearFlow/);
   assert.match(source, /importAction|exportAction|manageCleanup/);
+  assert.doesNotMatch(source, /useMemory\(\)/);
   assert.doesNotMatch(source, /markdown\.work|markdown\.recentMonths/);
 });

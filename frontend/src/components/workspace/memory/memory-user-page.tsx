@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/core/i18n/hooks";
-import { useMemory } from "@/core/memory/hooks";
+import { useMemoryUserSurface } from "@/core/memory-canonical/hooks";
 import {
   useCorrectUserModelItem,
   useForgetUserModelItem,
@@ -20,7 +20,7 @@ import { MemoryBackLink } from "./memory-back-link";
 
 export function MemoryUserPage() {
   const { t } = useI18n();
-  const { memory } = useMemory();
+  const { user } = useMemoryUserSurface();
   const { items } = useUserModelItems();
   const correctUserModel = useCorrectUserModelItem();
   const freezeUserModel = useFreezeUserModelItem();
@@ -35,17 +35,17 @@ export function MemoryUserPage() {
     {
       record: workRecord,
       title: t.settings.memory.markdown.work,
-      fallbackSummary: memory?.user.workContext.summary ?? "",
+      fallbackSummary: user?.workContext.summary ?? "",
     },
     {
       record: personalRecord,
       title: t.settings.memory.markdown.personal,
-      fallbackSummary: memory?.user.personalContext.summary ?? "",
+      fallbackSummary: user?.personalContext.summary ?? "",
     },
     {
       record: topOfMindRecord,
       title: t.settings.memory.markdown.topOfMind,
-      fallbackSummary: memory?.user.topOfMind.summary ?? "",
+      fallbackSummary: user?.topOfMind.summary ?? "",
     },
   ];
 
