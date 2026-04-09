@@ -1,278 +1,197 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
-import { toast } from "sonner";
+import { useEffect, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { pathOfMemory, pathOfMemoryGrowth } from "@/core/navigation/desktop-routes";
-import {
-  useEditSoulLayer,
-  useFreezeSoulLayerAutoEvolution,
-  useRollbackSoulOverlay,
-  useSoulConsole,
-} from "@/core/soul-console/hooks";
-import { formatTimeAgo } from "@/core/utils/datetime";
+import { useSoulSettings } from "@/core/soul-console/hooks";
+import type { SoulSettingsDraft, SoulSettingsResponse } from "@/core/soul-console/types";
 
-import { MemoryBackLink } from "./memory-back-link";
+const SOUL_SETTINGS_FIELDS: Array<{
+  key: keyof SoulSettingsDraft;
+  title: string;
+  description: string;
+  placeholder: string;
+}> = [
+  {
+    key: "core_identity",
+    title: "核心人格",
+    description: "长期稳定的人格基底，决定助手在长期陪伴中的基本姿态。",
+    placeholder: "例如：长期陪伴、克制稳定、结论先行、以用户长期价值为先。",
+  },
+  {
+    key: "speech_style",
+    title: "说话方式",
+    description: "回答时的语气、节奏与表达习惯，只描述稳定偏好。",
+    placeholder: "例如：先给结论，再补上下文；少口号，少过度鼓励。",
+  },
+  {
+    key: "values_and_boundaries",
+    title: "价值观 / 边界",
+    description: "明确哪些原则必须长期坚持，哪些边界不能越过。",
+    placeholder: "例如：不代替用户做最终判断，不用情绪裹挟结论。",
+  },
+  {
+    key: "relationship_stance",
+    title: "关系基调",
+    description: "全局唯一的相处基调，用来约束长期陪伴关系。",
+    placeholder: "例如：低刺激、少施压、结论先行、稳定陪伴。",
+  },
+];
 
-const MEMORY_LEDGER_HREF = "/workspace/memory/ledger";
+function createDraft(settings: SoulSettingsResponse): SoulSettingsDraft {
+  return {
+    core_identity: settings.core_identity,
+    speech_style: settings.speech_style,
+    values_and_boundaries: settings.values_and_boundaries,
+    relationship_stance: settings.relationship_stance,
+  };
+}
 
 export function SoulConsolePage() {
-  const { soulConsole, isLoading, error } = useSoulConsole();
-  const editSoulLayer = useEditSoulLayer();
-  const rollbackOverlay = useRollbackSoulOverlay();
-  const freezeLayer = useFreezeSoulLayerAutoEvolution();
-  const [editingLayer, setEditingLayer] = useState<"relationship_stance" | "adaptive_overlay" | null>(null);
-  const [draftSummary, setDraftSummary] = useState("");
+  const { settings, isLoading, error } = useSoulSettings();
+  const [draft, setDraft] = useState<SoulSettingsDraft>(() => createDraft(settings));
 
-  function openEditDialog(layerId: "relationship_stance" | "adaptive_overlay", summary: string) {
-    setEditingLayer(layerId);
-    setDraftSummary(summary);
-  }
+  useEffect(() => {
+    setDraft(createDraft(settings));
+  }, [
+    settings.core_identity,
+    settings.speech_style,
+    settings.values_and_boundaries,
+    settings.relationship_stance,
+  ]);
 
-  async function handleSubmitEdit() {
-    if (!editingLayer) {
-      return;
-    }
-    try {
-      await editSoulLayer.mutateAsync({
-        layer: editingLayer,
-        summary: draftSummary.trim(),
-      });
-      toast.success("已更新 soul layer");
-      setEditingLayer(null);
-      setDraftSummary("");
-    } catch (mutationError) {
-      toast.error(mutationError instanceof Error ? mutationError.message : "更新 soul layer 失败");
-    }
-  }
-
-  async function handleRollbackOverlay() {
-    try {
-      await rollbackOverlay.mutateAsync();
-      toast.success("已回滚 overlay");
-    } catch (mutationError) {
-      toast.error(mutationError instanceof Error ? mutationError.message : "回滚 overlay 失败");
-    }
-  }
-
-  async function handleFreezeLayer(
-    layer:
-      | "constitution"
-      | "identity_narrative"
-      | "relationship_stance"
-      | "adaptive_overlay",
-  ) {
-    try {
-      await freezeLayer.mutateAsync({ layer });
-      toast.success("已冻结某层不再自动演化");
-    } catch (mutationError) {
-      toast.error(mutationError instanceof Error ? mutationError.message : "冻结自动演化失败");
-    }
-  }
+  const hasDraftChanges =
+    draft.core_identity !== settings.core_identity ||
+    draft.speech_style !== settings.speech_style ||
+    draft.values_and_boundaries !== settings.values_and_boundaries ||
+    draft.relationship_stance !== settings.relationship_stance;
 
   return (
     <main className="flex size-full min-h-0 flex-col gap-6 overflow-y-auto px-4 py-6 sm:px-6">
       <header className="border bg-background px-6 py-5">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="space-y-2">
-            <MemoryBackLink href={pathOfMemory()} label="返回记忆首页" />
             <p className="text-[11px] font-medium tracking-[0.16em] text-muted-foreground uppercase">
-              Soul Console
+              Settings
             </p>
             <h1 className="text-[1.85rem] font-semibold tracking-tight">
-              Soul Console
+              Soul
             </h1>
             <p className="max-w-3xl text-sm leading-7 text-muted-foreground">
-              在同一页里核对 constitution、identity narrative、relationship stance 与 adaptive overlay 四层 soul surfaces，并看到当前 revision、原因与时间。
+              这里只保留稳定层 Soul 设置：核心人格、说话方式、价值观 / 边界、关系基调，
+              以及当前是否存在临时表达模式。产品主路径不再暴露治理元数据。
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Button type="button" size="sm" variant="outline" asChild>
-              <Link href={pathOfMemoryGrowth()}>查看灵魂提案</Link>
-            </Button>
-            <Button type="button" size="sm" variant="outline" asChild>
-              <Link href={MEMORY_LEDGER_HREF}>打开 Ledger</Link>
-            </Button>
-          </div>
+          <Badge variant="secondary">Stable Settings</Badge>
         </div>
       </header>
 
       <Card>
-        <CardHeader>
-          <CardTitle>当前 revision</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-3 text-sm md:grid-cols-3">
-          <div>
-            <div className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
-              当前 revision
+        <CardHeader className="gap-3">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <CardTitle>当前状态</CardTitle>
+              <p className="mt-2 text-sm leading-7 text-muted-foreground">
+                稳定层只响应用户明确设置或聊天中的明确确认；自动变化只允许出现在临时表达模式。
+              </p>
             </div>
-            <div className="mt-2 text-sm text-foreground">
-              {soulConsole?.layers.find((item) => item.id === "adaptive_overlay")?.revisionLabel ??
-                "未绑定 revision"}
-            </div>
+            <Badge variant={settings.has_active_overlay ? "secondary" : "outline"}>
+              {settings.has_active_overlay ? "存在临时表达模式" : "无临时表达模式"}
+            </Badge>
           </div>
-          <div>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm">
+          <div className="rounded-lg border bg-muted/10 p-4">
             <div className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
-              原因
+              临时表达模式
             </div>
-            <p className="mt-2 text-muted-foreground">
-              {soulConsole?.currentRevisionReason ??
-                "当前 revision 的解释会在载入 soul console 后显示。"}
+            <p className="mt-2 whitespace-pre-wrap text-sm leading-7 text-muted-foreground">
+              {settings.has_active_overlay
+                ? settings.adaptive_overlay_summary ?? "当前存在临时表达模式。"
+                : "当前没有临时表达模式。"}
             </p>
           </div>
-          <div>
-            <div className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
-              时间
-            </div>
-            <div className="mt-2 text-muted-foreground">
-              {formatTimeAgo(soulConsole?.currentRevisionTime) || "暂无时间"}
-            </div>
-          </div>
-          <div className="md:col-span-3 text-xs text-muted-foreground">
-            这里支持编辑 relationship stance、编辑 adaptive overlay、回滚 recent overlay、冻结某层不再自动演化。
-          </div>
+          <p className="text-xs text-muted-foreground">
+            当前切片先把 Soul 页面从治理控制台语义切到设置语义；正式写入链路会在后续设置任务中接入。
+          </p>
         </CardContent>
       </Card>
 
       {isLoading ? (
         <section className="rounded-lg border bg-background px-5 py-4 text-sm text-muted-foreground">
-          正在加载 soul console...
+          正在加载 Soul 设置...
         </section>
       ) : null}
 
       {error ? (
         <section className="rounded-lg border border-destructive/40 bg-destructive/5 px-5 py-4 text-sm text-destructive">
-          {error instanceof Error ? error.message : "soul console 加载失败"}
+          {error instanceof Error ? error.message : "Soul 设置加载失败"}
         </section>
       ) : null}
 
       <section className="grid gap-4 lg:grid-cols-2">
-        {soulConsole?.layers.map((layer) => (
-          <Card key={layer.id}>
-            <CardHeader className="gap-3">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <CardTitle>{layer.label}</CardTitle>
-                  <p className="mt-2 text-sm leading-7 text-muted-foreground">
-                    {layer.summary}
-                  </p>
-                </div>
-                <Badge variant={layer.editable ? "secondary" : "outline"}>
-                  {layer.revisionLabel}
-                </Badge>
-              </div>
+        {SOUL_SETTINGS_FIELDS.map((field) => (
+          <Card key={field.key}>
+            <CardHeader>
+              <CardTitle>{field.title}</CardTitle>
+              <p className="text-sm leading-7 text-muted-foreground">
+                {field.description}
+              </p>
             </CardHeader>
             <CardContent className="space-y-4 text-sm">
-              <dl className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <dt className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                    当前 revision
-                  </dt>
-                  <dd className="mt-2 text-muted-foreground">{layer.revisionLabel}</dd>
+              <div className="rounded-lg border bg-muted/10 p-4">
+                <div className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                  当前设置
                 </div>
-                <div>
-                  <dt className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                    时间
-                  </dt>
-                  <dd className="mt-2 text-muted-foreground">
-                    {formatTimeAgo(layer.time) || "暂无时间"}
-                  </dd>
-                </div>
-                <div className="sm:col-span-2">
-                  <dt className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                    原因
-                  </dt>
-                  <dd className="mt-2 text-muted-foreground">{layer.reason}</dd>
-                </div>
-              </dl>
-
-              <div className="rounded-lg border bg-muted/10 p-3 text-xs text-muted-foreground">
-                <div>memory_id: {layer.memoryId ?? "未绑定"}</div>
-                <div>revision_id: {layer.revisionId ?? "未绑定"}</div>
-                <div>evidence_ref: {layer.evidenceRef ?? "未关联 evidence"}</div>
+                <p className="mt-2 whitespace-pre-wrap text-sm leading-7 text-muted-foreground">
+                  {settings[field.key]}
+                </p>
               </div>
 
-              {layer.editable ? (
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={() =>
-                      openEditDialog(
-                        layer.id as "relationship_stance" | "adaptive_overlay",
-                        layer.summary,
-                      )
-                    }
-                  >
-                    {layer.actionLabel}
-                  </Button>
-                  {layer.id === "adaptive_overlay" ? (
-                    <Button type="button" size="sm" variant="outline" onClick={() => void handleRollbackOverlay()}>
-                      回滚 recent overlay
-                    </Button>
-                  ) : null}
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={() =>
-                      void handleFreezeLayer(
-                        layer.id as
-                          | "constitution"
-                          | "identity_narrative"
-                          | "relationship_stance"
-                          | "adaptive_overlay",
-                      )
-                    }
-                  >
-                    {layer.isFrozen ? "已冻结自动演化" : "冻结某层不再自动演化"}
-                  </Button>
-                </div>
-              ) : null}
+              <div className="space-y-2">
+                <label className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                  {field.title}草稿
+                </label>
+                <Textarea
+                  value={draft[field.key]}
+                  onChange={(event) =>
+                    setDraft((current) => ({
+                      ...current,
+                      [field.key]: event.target.value,
+                    }))
+                  }
+                  placeholder={field.placeholder}
+                  className="min-h-32"
+                />
+              </div>
             </CardContent>
           </Card>
         ))}
       </section>
 
-      <Dialog open={editingLayer !== null} onOpenChange={(open) => !open && setEditingLayer(null)}>
-        <DialogContent className="sm:max-w-[560px]">
-          <DialogHeader>
-            <DialogTitle>
-              {editingLayer === "relationship_stance"
-                ? "编辑 relationship stance"
-                : "编辑 adaptive overlay"}
-            </DialogTitle>
-            <DialogDescription>
-              这里写入的是当前 canonical soul layer，而不是一次性临时提示词补丁。
-            </DialogDescription>
-          </DialogHeader>
-          <Textarea
-            value={draftSummary}
-            onChange={(event) => setDraftSummary(event.target.value)}
-            placeholder="输入新的 soul layer 描述"
-            className="min-h-32"
-          />
-          <DialogFooter className="gap-2 sm:justify-end">
-            <Button type="button" variant="outline" onClick={() => setEditingLayer(null)}>
-              取消
+      <Card>
+        <CardHeader>
+          <CardTitle>草稿应用</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm">
+          <p className="text-muted-foreground">
+            这一页已经按设置语义收口：用户看到的是稳定层字段与临时表达模式提示，不再看到治理动作。
+          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button type="button" disabled>
+              应用
             </Button>
-            <Button
-              type="button"
-              onClick={() => void handleSubmitEdit()}
-              disabled={!draftSummary.trim() || editSoulLayer.isPending}
-            >
-              保存
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <span className="text-xs text-muted-foreground">
+              {hasDraftChanges
+                ? "草稿已经变化；正式写入链路会在后续 Soul settings 任务中接入。"
+                : "当前草稿与已加载设置一致。"}
+            </span>
+          </div>
+        </CardContent>
+      </Card>
     </main>
   );
 }

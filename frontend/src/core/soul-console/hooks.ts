@@ -1,71 +1,26 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 
-import {
-  editSoulLayer,
-  freezeSoulLayerAutoEvolution,
-  loadSoulConsole,
-  rollbackSoulOverlay,
-} from "./api";
+import { loadSoulSettings } from "./api";
+import type { SoulSettingsResponse } from "./types";
 
-export function useSoulConsole() {
+const EMPTY_SOUL_SETTINGS: SoulSettingsResponse = {
+  core_identity: "目前还没有稳定的核心人格设置。",
+  speech_style: "目前还没有稳定的说话方式设置。",
+  values_and_boundaries: "目前还没有稳定的价值观与边界设置。",
+  relationship_stance: "目前还没有稳定的关系基调设置。",
+  has_active_overlay: false,
+  adaptive_overlay_summary: null,
+};
+
+export function useSoulSettings() {
   const query = useQuery({
-    queryKey: ["soul", "console"],
-    queryFn: () => loadSoulConsole(),
+    queryKey: ["soul-settings"],
+    queryFn: () => loadSoulSettings(),
   });
 
   return {
-    soulConsole: query.data ?? null,
+    settings: query.data ?? EMPTY_SOUL_SETTINGS,
     isLoading: query.isLoading,
     error: query.error,
   };
-}
-
-export function useEditSoulLayer() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({
-      layer,
-      summary,
-    }: {
-      layer: "relationship_stance" | "adaptive_overlay";
-      summary: string;
-    }) => editSoulLayer(layer, summary),
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["soul"] }),
-        queryClient.invalidateQueries({ queryKey: ["memory-growth"] }),
-      ]);
-    },
-  });
-}
-
-export function useRollbackSoulOverlay() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: () => rollbackSoulOverlay(),
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["soul"] }),
-        queryClient.invalidateQueries({ queryKey: ["memory-growth"] }),
-      ]);
-    },
-  });
-}
-
-export function useFreezeSoulLayerAutoEvolution() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({
-      layer,
-    }: {
-      layer:
-        | "constitution"
-        | "identity_narrative"
-        | "relationship_stance"
-        | "adaptive_overlay";
-    }) => freezeSoulLayerAutoEvolution(layer),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["soul"] });
-    },
-  });
 }
