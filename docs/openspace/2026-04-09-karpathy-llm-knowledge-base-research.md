@@ -38,6 +38,27 @@ Karpathy 这次引爆的不是一个“更强的 RAG”，而是一种更适合�
 - `lucasastorian/llmwiki` / `llmwiki.app`：产品化入口[7]
 - `yologdev/karpathy-llm-wiki`：自生长产品实验，把 founding prompt 变成持续增长系统[3]
 
+## 新鲜验证快照
+
+2026-04-09 这轮验证里，我额外固化了“这波扩散确实发生在几天内”的时间线证据，而不是只做抽象总结。
+
+| 项目 | 路线 | 创建时间 | 今日观测到的 stars |
+|---|---|---:|---:|
+| `atomicmemory/llm-wiki-compiler` | 编译器 | 2026-04-05 | 257 |
+| `ussumant/llm-wiki-compiler` | Claude Code 插件 | 2026-04-04 | 133 |
+| `nvk/llm-wiki` | Claude 插件 | 2026-04-04 | 145 |
+| `lucasastorian/llmwiki` | 产品化入口 | 2026-04-04 | 105 |
+| `yologdev/karpathy-llm-wiki` | 自生长产品实验 | 2026-04-06 | 31 |
+| `iamsashank09/llm-wiki-kit` | MCP / 多源 ingest | 2026-04-07 | 19 |
+
+同一天抓取到的 HN 时间线也支持这个判断：
+
+- `LLM Wiki – example of an "idea file"`：2026-04-04，294 points，93 comments
+- `Show HN: LLM Wiki – Open-Source Implementation of Karpathy's LLM Wiki`：2026-04-06
+- `Show HN: LLM Wiki Compiler Inspired by Karpathy`：2026-04-06
+
+这说明它不是“后来回头看好像有很多人做”，而是在 Karpathy 提出模式后 2 到 5 天内，GitHub 和 HN 就同时出现了实现与讨论的集中爆发。
+
 ## 交付物
 
 完整研究报告已输出到：
