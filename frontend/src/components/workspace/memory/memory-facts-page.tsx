@@ -18,9 +18,9 @@ import {
   useCreateMemoryFact,
   useDeleteMemoryFact,
   useImportMemory,
-  useMemory,
   useUpdateMemoryFact,
 } from "@/core/memory/hooks";
+import { useMemoryFactsSurface } from "@/core/memory-canonical/hooks";
 import { pathOfMemory } from "@/core/navigation/desktop-routes";
 import type {
   MemoryFact,
@@ -34,7 +34,7 @@ import { MemoryClearFlow } from "./memory-clear-flow";
 
 export function MemoryFactsPage() {
   const { t } = useI18n();
-  const { memory } = useMemory();
+  const { factsSurface } = useMemoryFactsSurface();
   const clearMemory = useClearMemory();
   const createMemoryFact = useCreateMemoryFact();
   const updateMemoryFact = useUpdateMemoryFact();
@@ -105,8 +105,8 @@ export function MemoryFactsPage() {
   }
 
   async function handleExportMemory() {
-    if (!memory) return;
-    const blob = new Blob([JSON.stringify(memory, null, 2)], {
+    if (!factsSurface) return;
+    const blob = new Blob([JSON.stringify(factsSurface, null, 2)], {
       type: "application/json",
     });
     const url = URL.createObjectURL(blob);
@@ -181,7 +181,7 @@ export function MemoryFactsPage() {
         </header>
 
         <section className="space-y-3">
-          {(memory?.facts ?? []).map((fact) => (
+          {(factsSurface?.facts ?? []).map((fact) => (
             <article
               key={fact.id}
               className="rounded-lg border bg-background p-5"
@@ -251,8 +251,8 @@ export function MemoryFactsPage() {
 
       <MemoryClearFlow
         open={clearFlowOpen}
-        factsCount={memory?.facts.length ?? 0}
-        lastUpdatedLabel={formatTimeAgo(memory?.lastUpdated)}
+        factsCount={factsSurface?.facts.length ?? 0}
+        lastUpdatedLabel={formatTimeAgo(factsSurface?.lastUpdated)}
         affectedSections={[t.settings.memory.markdown.facts]}
         pending={clearMemory.isPending}
         onOpenChange={setClearFlowOpen}

@@ -2,11 +2,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from nion.automation.models import AutomationJob
+from nion.memory.projections.service import project_learning_outputs
 
 from .learning import create_learning_topic
-from .procedures import create_procedure_draft
-from .projections import record_soul_automation_created
 from .repository import MemoryOSRepository
 from .soul_reflection import reflect_soul_growth
 
@@ -26,6 +24,7 @@ def run_growth_orchestrator(
         evidence_days=evidence_days,
         created_at=created_at,
     )
+    soul.setdefault("reflection_inputs", [])
 
     learning_created = False
     procedure_created = False
@@ -40,32 +39,14 @@ def run_growth_orchestrator(
         )
         learning_created = True
 
-        procedure = create_procedure_draft(
-            repository,
-            title="低刺激陪伴流程草案",
-            summary=f"把“{summary}”沉淀为可复用的服务流程草案。",
-        )
-        procedure_created = True
-
-        record_soul_automation_created(
+        projection = project_learning_outputs(
             repository=repository,
-            job=AutomationJob(
-                id="job_soul_growth_projection",
-                name="低刺激陪伴提醒",
-                prompt=f"在类似“{summary}”场景下提供低刺激、少施压的陪伴提醒。",
-                schedule_kind="interval",
-                schedule_value="1440",
-                created_at=created_at,
-                updated_at=created_at,
-                owner_type="agent",
-                owner_id="agent:main",
-                mutability="pause_only",
-                provenance_memory_id="soul_overlay_active_main" if soul["proposal_created"] else None,
-                provenance_learning_id=str(learning["memory_id"]),
-            ),
+            learning_memory_id=str(learning["memory_id"]),
             created_at=created_at,
         )
-        automation_projected = True
+        soul["reflection_inputs"].append(projection["soul_reflection_input"])
+        procedure_created = bool(projection["procedure"].get("memory_id"))
+        automation_projected = bool(projection["automation_projection"].get("job_id"))
 
     return {
         "soul": soul,

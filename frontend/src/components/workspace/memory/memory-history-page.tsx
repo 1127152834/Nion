@@ -1,27 +1,27 @@
 "use client";
 
 import { useI18n } from "@/core/i18n/hooks";
-import { useMemory } from "@/core/memory/hooks";
+import { useMemoryHistorySurface } from "@/core/memory-canonical/hooks";
 import { pathOfMemory } from "@/core/navigation/desktop-routes";
 
 import { MemoryBackLink } from "./memory-back-link";
 
 export function MemoryHistoryPage() {
   const { t } = useI18n();
-  const { memory } = useMemory();
+  const { history } = useMemoryHistorySurface();
 
   const cards = [
     {
       title: t.settings.memory.markdown.recentMonths,
-      summary: memory?.history.recentMonths.summary ?? "",
+      summary: history?.recentMonths.summary ?? "",
     },
     {
       title: t.settings.memory.markdown.earlierContext,
-      summary: memory?.history.earlierContext.summary ?? "",
+      summary: history?.earlierContext.summary ?? "",
     },
     {
       title: t.settings.memory.markdown.longTermBackground,
-      summary: memory?.history.longTermBackground.summary ?? "",
+      summary: history?.longTermBackground.summary ?? "",
     },
   ];
 

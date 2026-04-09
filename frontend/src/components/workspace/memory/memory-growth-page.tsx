@@ -18,7 +18,7 @@ export function MemoryGrowthPage() {
             Agent Growth
           </h1>
           <p className="max-w-3xl text-sm leading-7 text-muted-foreground">
-            这里集中展示当前记忆系统已经形成的学习主题、方法草案和灵魂提案。
+            这里集中展示当前记忆系统已经形成的学习主题、方法草案和灵魂提案，并提供 Soul Console 入口查看四层 soul surfaces。
           </p>
         </div>
       </header>

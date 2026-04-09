@@ -41,6 +41,11 @@ class MemoryUpdateQueue:
         self._timer: threading.Timer | None = None
         self._processing = False
         self._updater_factory = updater_factory
+        self.primary_path_enabled = False
+        self.retirement_notice = (
+            "Legacy memory queue remains as a compatibility layer only; "
+            "canonical long-term memory writes now flow through Memory OS."
+        )
 
     def add(
         self,

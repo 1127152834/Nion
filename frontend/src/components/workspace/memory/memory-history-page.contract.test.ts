@@ -8,10 +8,12 @@ void test("memory history page focuses on history content only", async () => {
     "utf8",
   );
 
+  assert.match(source, /useMemoryHistorySurface/);
   assert.match(
     source,
     /markdown\.recentMonths|markdown\.earlierContext|markdown\.longTermBackground/,
   );
+  assert.doesNotMatch(source, /useMemory\(\)/);
   assert.doesNotMatch(source, /MemoryConsolePanel/);
   assert.doesNotMatch(source, /markdown\.personal/);
 });

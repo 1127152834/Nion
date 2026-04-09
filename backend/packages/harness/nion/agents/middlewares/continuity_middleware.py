@@ -8,6 +8,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.runtime import Runtime
 
 from nion.config.paths import Paths, get_paths
+from nion.memory.session_policy import resolve_memory_session_policy
 from nion.memory_os.context_assembler import MemoryOSContextAssembler
 from nion.memory_os.repository import MemoryOSRepository
 from nion.recall.local_archive import LocalRecallArchive
@@ -24,6 +25,7 @@ class ContinuityMiddleware(AgentMiddleware[AgentState]):
         thread_id = runtime.context.get("thread_id") if runtime.context else None
         if not thread_id:
             return None
+        policy = resolve_memory_session_policy(runtime.context if runtime.context else None)
 
         latest_human = next(
             (
@@ -37,9 +39,15 @@ class ContinuityMiddleware(AgentMiddleware[AgentState]):
             return None
 
         latest_content = str(latest_human.content)
-        memory_pack = MemoryOSContextAssembler(self._memory_repo).build_continuity_memory_pack()
+        memory_block = ""
+        if policy.memory_read:
+            memory_pack = MemoryOSContextAssembler(self._memory_repo).build_runtime_memory_pack(
+                query=latest_content,
+                thread_id=thread_id,
+                memory_read=True,
+            )
+            memory_block = memory_pack.to_prompt_block()
         recall_results = self._search_candidates(thread_id, latest_content)
-        memory_block = memory_pack.to_prompt_block()
         if not recall_results and not memory_block:
             return None
 

@@ -7,6 +7,7 @@ import {
   pathOfMemory,
   pathOfMemoryFacts,
   pathOfMemoryHistory,
+  pathOfMemorySoul,
   pathOfMemorySearch,
   pathOfMemorySearchResults,
   pathOfMemoryUser,
@@ -39,6 +40,7 @@ void test("desktop routes keep notebook trash on its dedicated page", () => {
   assert.equal(pathOfMemoryUser(), "/workspace/memory/user");
   assert.equal(pathOfMemoryHistory(), "/workspace/memory/history");
   assert.equal(pathOfMemoryFacts(), "/workspace/memory/facts");
+  assert.equal(pathOfMemorySoul(), "/workspace/memory/soul");
   assert.equal(
     pathOfNotebookSeededCreate({
       title: "Roadmap",

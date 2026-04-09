@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from nion.memory.soul.service import archive_canonical_soul_layer, write_canonical_soul_layer
 from .clock import utcnow_z
 from .repository import MemoryOSRepository
 from .soul_artifacts import MemoryOSSoulArtifactStore
@@ -15,6 +16,16 @@ def accept_soul_proposal(
     created_at = created_at or utcnow_z()
     proposal = _find_record(repository, domain="soul", memory_id=memory_id)
     repository.update_memory_status(memory_id, "archived", updated_at=created_at)
+    existing_overlay = next(
+        (
+            row
+            for row in repository.list_memory_records(domain="soul")
+            if row["memory_id"] == "soul_overlay_active_main" and row["status"] == "active"
+        ),
+        None,
+    )
+    if existing_overlay is not None:
+        repository.update_memory_status("soul_overlay_active_main", "archived", updated_at=created_at)
     overlay = {
         "memory_id": "soul_overlay_active_main",
         "domain": "soul",
@@ -38,6 +49,17 @@ def accept_soul_proposal(
         },
     }
     repository.save_memory_record(overlay)
+    write_canonical_soul_layer(
+        repository,
+        layer="adaptive_overlay",
+        summary=str(proposal["summary"]),
+        created_at=created_at,
+        payload={
+            "source_memory_id": memory_id,
+            "artifact_uri": overlay["artifact_uri"],
+            "governance_action": "accept",
+        },
+    )
     record_soul_event(
         repository,
         event_type="proposal_accepted",
@@ -46,6 +68,10 @@ def accept_soul_proposal(
         created_at=created_at,
         related_memory_id="soul_overlay_active_main",
         source="soul_governance",
+        metadata={
+            "canonical_memory_id": "soul_overlay_active_main",
+            "governance_action": "accept",
+        },
     )
     return {"memory_id": memory_id, "action": "accept", "overlay": overlay}
 
@@ -77,7 +103,15 @@ def rollback_soul_overlay(
 ) -> dict[str, object]:
     created_at = created_at or utcnow_z()
     overlay = _find_record(repository, domain="soul", memory_id="soul_overlay_active_main")
+    if overlay["status"] != "active":
+        return {"memory_id": overlay["memory_id"], "action": "rollback"}
     repository.update_memory_status(str(overlay["memory_id"]), "archived", updated_at=created_at)
+    archive_canonical_soul_layer(
+        repository,
+        layer="adaptive_overlay",
+        updated_at=created_at,
+        metadata={"governance_action": "rollback"},
+    )
     record_soul_event(
         repository,
         event_type="overlay_rollback",
@@ -85,6 +119,10 @@ def rollback_soul_overlay(
         summary=str(overlay["summary"]),
         created_at=created_at,
         source="soul_governance",
+        metadata={
+            "canonical_memory_id": str(overlay["memory_id"]),
+            "governance_action": "rollback",
+        },
     )
     return {"memory_id": overlay["memory_id"], "action": "rollback"}
 
@@ -108,6 +146,10 @@ def promote_identity_narrative(
         body=_load_artifact_body(repository, staged),
         created_at=created_at,
         staged=False,
+        canonical_payload={
+            "source_memory_id": staged_memory_id,
+            "governance_action": "promote",
+        },
     )
     promoted = promoted_artifact["memory_record"]
     promoted["provenance"] = {
@@ -128,6 +170,7 @@ def promote_identity_narrative(
         metadata={
             "artifact_uri": promoted["artifact_uri"],
             "promoted_from": staged_memory_id,
+            "canonical_memory_id": "agent_self_narrative_main",
         },
     )
     return {"memory_id": "agent_self_narrative_main", "action": "promote", "memory_record": promoted}

@@ -401,3 +401,123 @@ def test_memory_growth_router_exposes_rich_recent_soul_events(monkeypatch, tmp_p
     assert body["events"][0]["event_type"] == "identity_narrative_staged"
     assert body["events"][0]["actor"] == "agent:main"
     assert body["events"][0]["metadata"]["artifact_uri"].endswith("staged_identity_narrative.md")
+
+
+def test_memory_soul_router_exposes_console_payload_and_governance_actions(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    repo = MemoryOSRepository(tmp_path / "memory-os" / "index.sqlite3")
+    repo.save_memory_record(
+        {
+            "memory_id": "soul_core_main",
+            "domain": "soul",
+            "subtype": "core",
+            "owner_type": "system",
+            "scope": "agent",
+            "memory_type": "semantic",
+            "subject_id": "agent:main",
+            "status": "active",
+            "summary": "长期陪伴、克制稳定、结论先行。",
+            "confidence": 1.0,
+            "created_at": "2026-04-08T00:00:00Z",
+            "updated_at": "2026-04-08T00:00:00Z",
+            "artifact_uri": "nion://memory-os/artifacts/soul/core/core_soul.md",
+            "provenance": {"source_type": "test"},
+        }
+    )
+    repo.save_memory_record(
+        {
+            "memory_id": "soul_rel_user_default",
+            "domain": "soul",
+            "subtype": "relationship_soul",
+            "owner_type": "agent",
+            "scope": "user",
+            "memory_type": "semantic",
+            "subject_id": "agent:main",
+            "status": "active",
+            "summary": "保持低刺激、少施压、结论先行。",
+            "confidence": 0.9,
+            "created_at": "2026-04-08T00:00:00Z",
+            "updated_at": "2026-04-08T00:00:00Z",
+            "artifact_uri": "nion://memory-os/artifacts/soul/relationship/relationship_soul.md",
+            "provenance": {"source_type": "test"},
+        }
+    )
+    repo.save_memory_record(
+        {
+            "memory_id": "soul_overlay_active_main",
+            "domain": "soul",
+            "subtype": "adaptive_overlay",
+            "owner_type": "agent",
+            "scope": "agent",
+            "memory_type": "semantic",
+            "subject_id": "agent:main",
+            "status": "active",
+            "summary": "近期减少鼓励式措辞。",
+            "confidence": 0.9,
+            "created_at": "2026-04-08T00:00:00Z",
+            "updated_at": "2026-04-08T00:00:00Z",
+            "artifact_uri": "nion://memory-os/artifacts/soul/overlays/active_overlay.md",
+            "provenance": {"source_type": "test"},
+        }
+    )
+    repo.save_memory_node(
+        {
+            "memory_id": "soul_rel_user_default",
+            "canonical_key": "soul:layer:relationship_stance:user:default",
+            "owner_type": "agent",
+            "scope": "user",
+            "node_type": "soul_layer",
+            "status": "active",
+            "summary": "保持低刺激、少施压、结论先行。",
+            "created_at": "2026-04-08T00:00:00Z",
+            "updated_at": "2026-04-08T00:00:00Z",
+            "metadata": {"layer": "relationship_stance"},
+        }
+    )
+    repo.append_memory_revision(
+        memory_id="soul_rel_user_default",
+        summary="保持低刺激、少施压、结论先行。",
+        evidence_ref=None,
+        created_at="2026-04-08T00:00:00Z",
+        payload={"layer": "relationship_stance"},
+    )
+    repo.save_memory_node(
+        {
+            "memory_id": "soul_overlay_active_main",
+            "canonical_key": "soul:layer:adaptive_overlay:agent:main",
+            "owner_type": "agent",
+            "scope": "agent",
+            "node_type": "soul_layer",
+            "status": "active",
+            "summary": "近期减少鼓励式措辞。",
+            "created_at": "2026-04-08T00:00:00Z",
+            "updated_at": "2026-04-08T00:00:00Z",
+            "metadata": {"layer": "adaptive_overlay"},
+        }
+    )
+    repo.append_memory_revision(
+        memory_id="soul_overlay_active_main",
+        summary="近期减少鼓励式措辞。",
+        evidence_ref=None,
+        created_at="2026-04-08T00:00:00Z",
+        payload={"layer": "adaptive_overlay"},
+    )
+
+    with TestClient(create_app()) as client:
+        console = client.get("/api/memory/soul")
+        edit = client.post(
+            "/api/memory/soul/relationship_stance/edit",
+            json={"summary": "继续保持低刺激，但允许在关键节点更主动提醒。"},
+        )
+        freeze = client.post("/api/memory/soul/relationship_stance/freeze-auto-evolution")
+        rollback = client.post("/api/memory/soul/adaptive_overlay/rollback")
+
+    assert console.status_code == 200
+    assert console.json()["layers"][0]["label"] == "Constitution"
+    assert any(layer["id"] == "relationship_stance" for layer in console.json()["layers"])
+    assert edit.status_code == 200
+    assert edit.json()["action"] == "edit"
+    assert freeze.status_code == 200
+    assert freeze.json()["action"] == "freeze_auto_evolution"
+    assert rollback.status_code == 200
+    assert rollback.json()["action"] == "rollback"

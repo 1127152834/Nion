@@ -63,6 +63,39 @@ def test_accept_soul_proposal_uses_canonical_clock_by_default(monkeypatch, tmp_p
     assert event.created_at == fixed_now
 
 
+def test_accept_soul_proposal_writes_canonical_overlay_revision_and_compatible_event(tmp_path: Path):
+    from nion.memory_os.soul_governance import accept_soul_proposal
+
+    repo = MemoryOSRepository(tmp_path / "memory-os" / "index.sqlite3")
+    proposal = create_soul_proposal(
+        repo,
+        title="减少鼓励式措辞",
+        summary="长期证据显示用户偏好低刺激支持。",
+    )
+
+    result = accept_soul_proposal(
+        repo,
+        proposal["memory_id"],
+        created_at="2026-04-08T00:00:00Z",
+    )
+
+    node = repo.get_memory_node("soul_overlay_active_main")
+    revisions = repo.list_memory_revisions(memory_id="soul_overlay_active_main")
+    event = repo.list_soul_events()[0]
+
+    assert result["overlay"]["memory_id"] == "soul_overlay_active_main"
+    assert node is not None
+    assert node.canonical_key == "soul:layer:adaptive_overlay:agent:main"
+    assert node.summary == "长期证据显示用户偏好低刺激支持。"
+    assert revisions[0].summary == "长期证据显示用户偏好低刺激支持。"
+    assert revisions[0].payload["layer"] == "adaptive_overlay"
+    assert revisions[0].payload["source_memory_id"] == proposal["memory_id"]
+    assert event.event_type == "proposal_accepted"
+    assert event.related_memory_id == "soul_overlay_active_main"
+    assert event.metadata["canonical_memory_id"] == "soul_overlay_active_main"
+    assert len(revisions) == 1
+
+
 def test_reject_soul_proposal_invalidates_candidate(tmp_path: Path):
     from nion.memory_os.soul_governance import reject_soul_proposal
 
@@ -155,6 +188,29 @@ def test_rollback_soul_overlay_uses_canonical_clock_by_default(monkeypatch, tmp_
     assert event.created_at == fixed_now
 
 
+def test_rollback_soul_overlay_expires_canonical_overlay_node(tmp_path: Path):
+    from nion.memory_os.soul_governance import accept_soul_proposal, rollback_soul_overlay
+
+    repo = MemoryOSRepository(tmp_path / "memory-os" / "index.sqlite3")
+    proposal = create_soul_proposal(
+        repo,
+        title="减少鼓励式措辞",
+        summary="长期证据显示用户偏好低刺激支持。",
+    )
+    accept_soul_proposal(repo, proposal["memory_id"], created_at="2026-04-06T00:00:00Z")
+
+    rollback_soul_overlay(repo, created_at="2026-04-08T00:00:00Z")
+
+    node = repo.get_memory_node("soul_overlay_active_main")
+    event = repo.list_soul_events()[0]
+
+    assert node is not None
+    assert node.status == "archived"
+    assert node.updated_at == "2026-04-08T00:00:00Z"
+    assert event.event_type == "overlay_rollback"
+    assert event.metadata["canonical_memory_id"] == "soul_overlay_active_main"
+
+
 def test_promote_identity_narrative_replaces_staged_record_and_emits_event(tmp_path: Path):
     from nion.memory_os.soul_artifacts import MemoryOSSoulArtifactStore
     from nion.memory_os.soul_governance import promote_identity_narrative
@@ -210,3 +266,36 @@ def test_promote_identity_narrative_writes_stable_artifact_path(tmp_path: Path):
     assert result["memory_record"]["artifact_uri"].endswith("identity_narrative.md")
     assert result["memory_record"]["provenance"]["source_memory_id"] == "agent_self_narrative_staged_main"
     assert active_path.read_text(encoding="utf-8") == staged_path.read_text(encoding="utf-8")
+
+
+def test_promote_identity_narrative_writes_canonical_revision_and_compatible_event(tmp_path: Path):
+    from nion.memory_os.soul_artifacts import MemoryOSSoulArtifactStore
+    from nion.memory_os.soul_governance import promote_identity_narrative
+
+    repo = MemoryOSRepository(tmp_path / "memory-os" / "index.sqlite3")
+    store = MemoryOSSoulArtifactStore(repository=repo, base_dir=tmp_path)
+    store.write_identity_narrative(
+        body="# Identity Narrative\n\n## Who I Am\n我是已经稳定下来的叙事版本。\n",
+        created_at="2026-04-07T00:00:00Z",
+        staged=True,
+    )
+
+    promote_identity_narrative(
+        repo,
+        staged_memory_id="agent_self_narrative_staged_main",
+        created_at="2026-04-07T00:10:00Z",
+    )
+
+    node = repo.get_memory_node("agent_self_narrative_main")
+    revisions = repo.list_memory_revisions(memory_id="agent_self_narrative_main")
+    event = repo.list_soul_events()[0]
+
+    assert node is not None
+    assert node.canonical_key == "soul:layer:identity_narrative:agent:main"
+    assert node.summary == "我是已经稳定下来的叙事版本。"
+    assert len(revisions) == 1
+    assert revisions[0].payload["layer"] == "identity_narrative"
+    assert revisions[0].payload["source_memory_id"] == "agent_self_narrative_staged_main"
+    assert event.event_type == "identity_narrative_promoted"
+    assert event.related_memory_id == "agent_self_narrative_staged_main"
+    assert event.metadata["canonical_memory_id"] == "agent_self_narrative_main"

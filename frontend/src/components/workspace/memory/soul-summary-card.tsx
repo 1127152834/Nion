@@ -1,8 +1,14 @@
 "use client";
 
+import Link from "next/link";
+
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { pathOfMemorySoul } from "@/core/navigation/desktop-routes";
 import { useSoulSummary } from "@/core/soul/hooks";
 import { describeSoulSummary } from "@/core/soul/presentation";
+
+const SOUL_CONSOLE_HREF = pathOfMemorySoul();
 
 export function SoulSummaryCard() {
   const { soulSummary } = useSoulSummary();
@@ -20,6 +26,11 @@ export function SoulSummaryCard() {
       </CardHeader>
       <CardContent className="space-y-3 text-sm">
         <p className="text-muted-foreground leading-7">{description.summary}</p>
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" size="sm" variant="outline" asChild>
+            <Link href={SOUL_CONSOLE_HREF}>打开 Soul Console</Link>
+          </Button>
+        </div>
         <div className="text-xs font-medium text-foreground/80">
           {description.baselineLabel}
         </div>

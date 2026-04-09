@@ -42,6 +42,7 @@ from nion.config.agents_config import AGENT_NAME_PATTERN
 from nion.config.app_config import get_app_config
 from nion.config.extensions_config import ExtensionsConfig, SkillStateConfig, get_extensions_config, reload_extensions_config
 from nion.config.paths import get_paths
+from nion.memory.evidence_capture.service import capture_turn_evidence, resolve_optional_bool
 from nion.model_management.service import get_model_registry_service
 from nion.models import create_chat_model
 from nion.system_capability_catalog import build_system_capability_catalog
@@ -261,6 +262,9 @@ class NionClient:
             "selected_cli_tools": overrides.get("selected_cli_tools", []),
             "surface": overrides.get("surface", "workspace"),
             "notebook_context": overrides.get("notebook_context"),
+            "session_mode": overrides.get("session_mode"),
+            "memory_read": overrides.get("memory_read", True),
+            "memory_write": overrides.get("memory_write"),
         }
         return RunnableConfig(
             configurable=configurable,
@@ -282,6 +286,9 @@ class NionClient:
             tuple(cfg.get("selected_cli_tools") or []),
             cfg.get("surface"),
             json.dumps(cfg.get("notebook_context") or {}, sort_keys=True, ensure_ascii=False),
+            cfg.get("session_mode"),
+            cfg.get("memory_read", True),
+            cfg.get("memory_write"),
         )
 
         if self._agent is not None and self._agent_config_key == key:
@@ -317,6 +324,11 @@ class NionClient:
                 notebook_context=notebook_context,
                 max_concurrent_subagents=max_concurrent_subagents,
                 agent_name=effective_agent_name,
+                thread_id=str(cfg.get("thread_id") or ""),
+                memory_read=resolve_optional_bool(
+                    cfg.get("memory_read"),
+                    default=True,
+                ),
             ),
             "state_schema": ThreadState,
         }
@@ -440,6 +452,32 @@ class NionClient:
             return "\n".join(pieces) if pieces else ""
         return str(content)
 
+    @staticmethod
+    def _collect_latest_human_ai_messages(messages: list[Any]) -> list[dict[str, Any]]:
+        latest_exchange: list[dict[str, Any]] = []
+        for msg in reversed(messages):
+            if not isinstance(msg, HumanMessage | AIMessage):
+                continue
+            serialized_message = NionClient._serialize_message(msg)
+            if serialized_message.get("type") == "ai" and serialized_message.get("content"):
+                latest_exchange.append(serialized_message)
+                continue
+            if serialized_message.get("type") == "human" and serialized_message.get("content"):
+                latest_exchange.append(serialized_message)
+                return list(reversed(latest_exchange))
+        return []
+
+    @staticmethod
+    def _message_dedup_key(serialized_message: dict[str, Any]) -> str:
+        message_id = serialized_message.get("id")
+        if isinstance(message_id, str) and message_id:
+            return f"id:{message_id}"
+        return "sig:" + json.dumps(
+            serialized_message,
+            sort_keys=True,
+            ensure_ascii=False,
+        )
+
     # ------------------------------------------------------------------
     # Public API — conversation
     # ------------------------------------------------------------------
@@ -532,6 +570,10 @@ class NionClient:
         current_tool_batch: list[dict[str, Any]] = []
         tool_activity_timeline: list[dict[str, Any]] = []
         tool_activity_messages: list[dict[str, Any]] = []
+        new_turn_messages: list[dict[str, Any]] = []
+        initial_turn_candidate_messages: list[dict[str, Any]] = []
+        values_chunk_count = 0
+        seen_message_keys: set[str] = set()
 
         def flush_tool_batch() -> list[StreamEvent]:
             nonlocal current_tool_batch, tool_activity_timeline
@@ -604,20 +646,43 @@ class NionClient:
                     continue
 
                 messages = chunk.get("messages", [])
+                values_chunk_count += 1
+
+                if values_chunk_count == 1:
+                    for msg in messages:
+                        if not isinstance(msg, HumanMessage | AIMessage):
+                            continue
+                        serialized_message = self._serialize_message(msg)
+                        dedup_key = self._message_dedup_key(serialized_message)
+                        seen_message_keys.add(dedup_key)
+                        msg_id = getattr(msg, "id", None)
+                        if msg_id:
+                            seen_signatures[msg_id] = json.dumps(
+                                serialized_message,
+                                sort_keys=True,
+                                ensure_ascii=False,
+                            )
 
                 for msg in messages:
+                    serialized_message = self._serialize_message(msg)
+                    dedup_key = self._message_dedup_key(serialized_message)
                     msg_id = getattr(msg, "id", None)
                     if msg_id:
                         signature = json.dumps(
-                            self._serialize_message(msg),
+                            serialized_message,
                             sort_keys=True,
                             ensure_ascii=False,
                         )
                         if seen_signatures.get(msg_id) == signature:
                             continue
+                        if values_chunk_count == 1:
+                            continue
                         seen_signatures[msg_id] = signature
+                    elif dedup_key in seen_message_keys:
+                        continue
 
                     if isinstance(msg, AIMessage):
+                        seen_message_keys.add(dedup_key)
                         ai_message_count += 1
                         usage = getattr(msg, "usage_metadata", None)
                         if usage:
@@ -641,6 +706,7 @@ class NionClient:
 
                         text = self._extract_text(msg.content)
                         if text:
+                            new_turn_messages.append(serialized_message)
                             if msg_id:
                                 cumulative_ai_content[msg_id] = text
                             event_data: dict[str, Any] = {
@@ -655,6 +721,10 @@ class NionClient:
                                     "total_tokens": usage.get("total_tokens", 0) or 0,
                                 }
                             yield StreamEvent(type="messages-tuple", data=event_data)
+                    elif isinstance(msg, HumanMessage):
+                        seen_message_keys.add(dedup_key)
+                        if serialized_message.get("content"):
+                            new_turn_messages.append(serialized_message)
 
                     elif isinstance(msg, ToolMessage):
                         additional_kwargs = getattr(msg, "additional_kwargs", None) or {}
@@ -716,6 +786,39 @@ class NionClient:
                     },
                 )
 
+                if values_chunk_count == 1 and not initial_turn_candidate_messages:
+                    initial_turn_candidate_messages = self._collect_latest_human_ai_messages(messages)
+
+            if not new_turn_messages:
+                new_turn_messages = initial_turn_candidate_messages
+            elif (
+                initial_turn_candidate_messages
+                and initial_turn_candidate_messages[0].get("type") == "human"
+                and all(message.get("type") != "human" for message in new_turn_messages)
+            ):
+                known_keys = {
+                    self._message_dedup_key(message) for message in new_turn_messages
+                }
+                prefixed_messages = [
+                    message
+                    for message in initial_turn_candidate_messages
+                    if self._message_dedup_key(message) not in known_keys
+                ]
+                new_turn_messages = [*prefixed_messages, *new_turn_messages]
+            capture_turn_evidence(
+                thread_id=thread_id,
+                turn_id=f"turn:{uuid.uuid4().hex}",
+                messages=new_turn_messages,
+                session_mode=configurable.get("session_mode"),
+                memory_read=resolve_optional_bool(
+                    configurable.get("memory_read"),
+                    default=True,
+                ),
+                memory_write=resolve_optional_bool(
+                    configurable.get("memory_write"),
+                    default=configurable.get("session_mode") != "temporary_chat",
+                ),
+            )
             _record_agent_event(
                 event_type="agent_run_completed",
                 thread_id=thread_id,
@@ -892,9 +995,9 @@ class NionClient:
         Returns:
             Memory data dict (see src/agents/memory/updater.py for structure).
         """
-        from nion.memory_os.compat import build_legacy_memory_view
+        from nion.memory_os.compat import build_canonical_memory_payload
 
-        return build_legacy_memory_view()
+        return build_canonical_memory_payload()
 
     def get_model(self, name: str) -> dict | None:
         """Get a specific runtime model configuration by name.
@@ -1118,9 +1221,9 @@ class NionClient:
         Returns:
             The reloaded memory data dict.
         """
-        from nion.memory_os.compat import build_legacy_memory_view
+        from nion.memory_os.compat import build_canonical_memory_payload
 
-        return build_legacy_memory_view()
+        return build_canonical_memory_payload()
 
     def clear_memory(self) -> dict:
         """Clear persisted memory data and return the empty payload."""

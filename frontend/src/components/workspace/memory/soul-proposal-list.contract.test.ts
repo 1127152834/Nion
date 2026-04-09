@@ -8,6 +8,9 @@ void test("soul proposal list exposes explainable accept and reject controls", a
     "utf8",
   );
 
+  assert.match(source, /useSoulProposalsV2/);
+  assert.match(source, /useAcceptSoulProposalV2/);
+  assert.match(source, /useRejectSoulProposalV2/);
   assert.match(source, /为什么产生/);
   assert.match(source, /会改变什么/);
   assert.match(source, /接受/);

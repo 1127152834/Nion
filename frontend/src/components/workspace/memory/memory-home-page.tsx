@@ -9,6 +9,7 @@ import {
   pathOfMemoryGrowth,
   pathOfMemoryHistory,
   pathOfMemorySearch,
+  pathOfMemorySoul,
   pathOfMemoryUser,
 } from "@/core/navigation/desktop-routes";
 
@@ -46,6 +47,27 @@ export function MemoryHomePage() {
       title: "Agent Growth",
       description: "查看学习主题、方法草案和灵魂提案的独立详情页。",
     },
+    {
+      href: pathOfMemorySoul(),
+      title: "Soul Console",
+      description:
+        "查看 constitution、identity narrative、relationship stance、adaptive overlay 四层 surface 与当前 revision。",
+    },
+    {
+      href: "/workspace/memory/ledger",
+      title: "Memory ledger",
+      description: "查看 canonical nodes 与 current revisions，进入 freeze/delete/rewrite/evidence 治理入口。",
+    },
+    {
+      href: "/workspace/memory/evidence",
+      title: "Memory evidence",
+      description: "查看 evidence 列表、最小过滤条件与预览面板，不在首页内嵌明细。",
+    },
+    {
+      href: "/workspace/memory/runtime-trace",
+      title: "Runtime trace",
+      description: "查看 runtime trace 事件流，按 thread_id 或 event_type 进入独立页面筛查。",
+    },
   ];
 
   return (
@@ -68,7 +90,7 @@ export function MemoryHomePage() {
         <SoulSummaryCard />
       </header>
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {entries.map((entry) => (
           <Link
             key={entry.href}

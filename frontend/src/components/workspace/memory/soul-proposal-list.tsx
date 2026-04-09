@@ -1,15 +1,19 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { pathOfMemorySoul } from "@/core/navigation/desktop-routes";
 import {
-  useAcceptSoulProposal,
-  useRejectSoulProposal,
-  useSoulProposals,
+  useAcceptSoulProposalV2,
+  useRejectSoulProposalV2,
+  useSoulProposalsV2,
 } from "@/core/soul/hooks";
+
+const SOUL_CONSOLE_HREF = pathOfMemorySoul();
 
 export function SoulProposalList(props: {
   onProposalEvent?: (event: {
@@ -17,9 +21,9 @@ export function SoulProposalList(props: {
     lastRejectedProposalId: string | null;
   }) => void;
 }) {
-  const { proposals } = useSoulProposals();
-  const accept = useAcceptSoulProposal();
-  const reject = useRejectSoulProposal();
+  const { proposals } = useSoulProposalsV2();
+  const accept = useAcceptSoulProposalV2();
+  const reject = useRejectSoulProposalV2();
   const [lastAcceptedProposalId, setLastAcceptedProposalId] = useState<string | null>(null);
   const [lastRejectedProposalId, setLastRejectedProposalId] = useState<string | null>(null);
 
@@ -59,6 +63,11 @@ export function SoulProposalList(props: {
         <CardTitle>灵魂提案</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4 text-sm">
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" size="sm" variant="outline" asChild>
+            <Link href={SOUL_CONSOLE_HREF}>在 Soul Console 查看分层状态</Link>
+          </Button>
+        </div>
         {proposals.length === 0 ? (
           <p className="text-muted-foreground">当前还没有灵魂提案。</p>
         ) : (

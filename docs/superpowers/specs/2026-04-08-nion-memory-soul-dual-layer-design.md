@@ -1121,6 +1121,40 @@ purge 后的系统行为：
 
 ## 迁移路线与里程碑
 
+**已完成 checkpoint**
+
+截至 `2026-04-09`，本设计里的前两级运行时主线已经落地到当前 worktree：
+
+- M1 已完成：
+  - canonical v2 base tables 落地
+  - Evidence Vault 落地
+  - session durability gates 生效
+  - ledger / evidence / runtime-trace 只读后端表面存在
+  - 尚未切主读写
+- M2 已完成：
+  - canonical judge 存在
+  - compatibility adapters 已回托现有 `/api/memory` 与 `/api/memory/growth*`
+  - user overrides 是真实 canonical actions
+  - `learning` 继续保持一等域
+  - ledger / evidence 治理 UI 已存在
+- M3 已完成：
+  - Runtime Memory Engine 已成为当前主读路径
+  - `memory_read` gating 已进入 continuity middleware 与 lead prompt 装配
+  - taxonomy / FTS / link / vector 的 search fusion 契约已落地
+  - embedded vector provider abstraction、fingerprint、rebuild-aware API 已落地
+  - `/api/memory/settings`、embedding settings panel、runtime trace page 已存在
+- M4 已完成：
+  - 四层 soul runtime / governance 已 canonical 化
+  - `learning -> procedure / automation / soul reflection` projection 已落地且保留 provenance
+  - Soul Console 已成为独立产品面 `/workspace/memory/soul`
+  - `/api/memory/soul` 已成为正式聚合与治理接口
+  - legacy queue / updater 已明确降级为 compatibility-only shim，不再冒充主写入链
+- Post-M4 canonical cutover 已完成：
+  - `/api/memory-canonical/user|history|facts` 已存在
+  - user / history / facts / growth / soul proposal 前端表面已切到 canonical-oriented hooks
+  - `NionClient.get_memory()` 与 `reload_memory()` 已优先使用 canonical payload helper
+  - `/api/memory` 与 `/api/memory/growth*` 继续保留为 compatibility facade，而不是架构真相源
+
 ## 迁移铁律
 
 - 任一阶段最多只切一件大事：主写入或主读取，不能同时切
@@ -1149,6 +1183,14 @@ purge 后的系统行为：
 - FTS 索引
 - 不接管主行为
 
+Checkpoint 2026-04-08：
+
+- canonical v2 tables landed：`MemoryNode / MemoryRevision / MemoryDecision / MemoryLink / UserOverride` 基础表结构已落地
+- Evidence Vault exists：durable / ephemeral evidence 存储能力已存在
+- session durability gates enforced：read-only / temporary session 不允许 durable evidence 或 Memory OS 写入
+- ledger/evidence/runtime-trace read surfaces exist：已提供 ledger、evidence、runtime trace 的只读治理表面
+- no primary read/write cutover yet：`/api/memory` 与 `/api/memory/growth*` 仍保持既有主读写路径，新 v2 能力尚未接管主读或主写
+
 ### M2：Canonical Memory v2 数据模型落地
 
 目标：
@@ -1166,6 +1208,21 @@ purge 后的系统行为：
 - 只有在后续 evidence re-anchor 成功后，才允许升级为 `traceability_state = full`
 
 M2 的目标不是“让所有旧记录看起来像原生 v2 记录”，而是**如实导入并暴露证据缺口**。
+
+Checkpoint 2026-04-09：
+
+- canonical judge exists：M2 已具备 canonical proposal extraction、judge、revision、decision 主链路，canonical judge 不再只是影子判定器
+- compatibility adapters back existing growth/soul routes：现有 `/api/memory/growth*` 与 soul 相关 mutation 路由继续保留外部契约，但底层由 v2 canonical compatibility adapter 承接
+- user overrides are real canonical actions：`rewrite / freeze / delete` 不再只是 legacy 入口上的附加逻辑，而是写入 canonical `UserOverride` 与 revision/decision 治理链的真实动作
+- `learning` remains first-class：`learning` 继续作为独立 canonical domain 存在，并维持对 growth 治理与后续 projection 的上游身份
+- ledger/evidence governance UI exists：Memory Ledger 与 Evidence Explorer 已作为真实治理 UI 存在，用户可查看 canonical nodes、revision 细节、evidence chain 与治理入口
+- verification evidence：2026-04-09 已先后通过后端 memory governance 相关 pytest（63 passed）与前端 memory ledger/evidence/home contract tests（9 passed），随后才更新本 checkpoint
+
+说明：
+
+- 下述 M3-M10 小节是本设计早期用于解释能力切换顺序的阶段化草案
+- 截至 2026-04-09，当前正式执行与验收单位已经收敛为 roadmap 中的四个 milestone：M1-M4
+- 其中旧文里的 M3-M10 能力，已经分别并入当前的 M2-M4 checkpoint 中，不应再被解读为“这些能力还未实现”
 
 ### M3：新 Extractor + Proposal + Judge 进入影子裁决
 
@@ -1233,6 +1290,14 @@ M2 的目标不是“让所有旧记录看起来像原生 v2 记录”，而是*
 - 退役旧 extractor / queue / summary 主线
 - 保留必要 compatibility adapter
 - 清理废旧 schema / prompt / 假语义页面
+
+Checkpoint 2026-04-09：
+
+- legacy `MemoryMiddleware` 继续退出 lead-agent primary path
+- legacy queue / updater 已显式标记为 compatibility-only，而非隐性主链候选
+- Soul Console 不再通过 `growth?soul=console` 借道，而是独立路由与独立 API
+- 现有 `/api/memory` 与 `/api/memory/growth*` 外部契约继续保留，不做破坏式删除
+- canonical memory cutover 已推进到产品面：新 canonical routes 驱动 user/history/facts 等读表面，旧 route 仅承担 compatibility 语义
 
 ## 验收指标
 

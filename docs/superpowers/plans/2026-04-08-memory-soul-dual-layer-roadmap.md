@@ -44,6 +44,14 @@ Do **not** compress multiple milestones into one coding burst.
 - temporary/read-only sessions do not durable-write evidence or memory
 - runtime trace and evidence explorer have stable backend surfaces
 
+**Checkpoint 2026-04-08:**
+
+- canonical v2 tables landed
+- Evidence Vault exists
+- session durability gates are enforced
+- ledger/evidence/runtime-trace read surfaces exist
+- no primary read/write cutover yet
+
 ### Milestone B: Judge, Canonical Governance, And User-Control Surfaces
 
 **Plan:** `/Users/zhangtiancheng/Documents/项目/agent/nion/docs/superpowers/plans/2026-04-08-memory-soul-dual-layer-m2-judge-governance-plan.md`
@@ -60,6 +68,15 @@ Do **not** compress multiple milestones into one coding burst.
 - user rewrite/freeze/delete flows operate on canonical nodes and revisions
 - `learning` remains first-class through canonical governance
 - current growth and soul mutation routes still function through adapters
+
+**Checkpoint 2026-04-09:**
+
+- canonical judge exists: proposal extraction, canonical judge pipeline, revisions, decisions, and primary canonical write path are in place
+- compatibility adapters back existing growth/soul routes: current `/api/memory/growth*` and soul mutation contracts continue to run through v2-backed compatibility facades
+- user overrides are real canonical actions: rewrite/freeze/delete governance is recorded as canonical `UserOverride`-driven actions on nodes and revisions, not side-channel patches
+- `learning` remains first-class: canonical governance keeps `learning` as its own domain instead of collapsing it into `procedure`
+- ledger/evidence governance UI exists: Memory Ledger and Evidence Explorer are shipped as real operator surfaces, not placeholder navigation
+- verification evidence: backend memory governance test suite and frontend memory governance contract suite both passed on 2026-04-09 before this checkpoint was recorded
 
 ### Milestone C: Runtime Memory Engine, Search Fusion, And Local Vector Layer
 
@@ -79,6 +96,16 @@ Do **not** compress multiple milestones into one coding burst.
 - local default embedding setup is usable for non-technical users
 - runtime trace explains why memories/evidence were used
 
+**Checkpoint 2026-04-09:**
+
+- Runtime Memory Engine 已接入主读路径，`memory_read` gating 贯穿 continuity middleware、lead prompt 装配与 runtime context
+- search fusion 已覆盖 taxonomy / FTS / link / vector 输入并稳定排序
+- embedded vector provider abstraction 与 fingerprint / rebuild contract 已落地，且 provider 仍是 authoritative source
+- `/api/memory/settings`、embedding settings panel、runtime trace page 已接入当前产品面
+- M3 验证已通过：
+  - backend: `28 passed`
+  - frontend contracts: `3 passed`
+
 ### Milestone D: Soul Engine, Projection Chain, And Legacy Retirement
 
 **Plan:** `/Users/zhangtiancheng/Documents/项目/agent/nion/docs/superpowers/plans/2026-04-08-memory-soul-dual-layer-m4-soul-projection-retirement-plan.md`
@@ -96,6 +123,24 @@ Do **not** compress multiple milestones into one coding burst.
 - relationship stance and adaptive overlay are governed, not patched summaries
 - procedure and automation projection are provenance-linked to canonical memory
 - legacy write/read internals are retired without breaking external routes
+
+**Checkpoint 2026-04-09:**
+
+- four-layer soul governance is live: canonical soul runtime, Soul Judge, relationship stance derivation, identity narrative promotion, and overlay rollback now run on canonical layers
+- Soul Console is a real surface: `/workspace/memory/soul` and `/api/memory/soul` exist as dedicated product and backend surfaces instead of piggybacking on a growth query-param detour
+- Soul Console governance is real: relationship stance edit, adaptive overlay edit, overlay rollback, and layer auto-evolution freeze all persist through canonical records, revisions, overrides, and soul events
+- `learning -> procedure / automation / soul reflection` projection chain is canonical: procedure and automation projections stay provenance-linked to canonical memory instead of legacy summaries
+- legacy memory internals are retired from the primary path: lead-agent middleware stays off `MemoryMiddleware`, while legacy queue/updater are now explicitly compatibility-only shims
+- compatibility routes remain stable: existing `/api/memory` and `/api/memory/growth*` contracts still operate during the cutover window
+- verification evidence: M4 backend verification passed on 2026-04-09 with `56 passed`; frontend memory/soul contract verification passed with `9 passed`
+
+**Post-M4 Checkpoint 2026-04-09:**
+
+- canonical memory router surfaces are live: `/api/memory-canonical/user|history|facts` now expose the actual canonical read model instead of forcing every consumer through the monolithic compatibility payload
+- memory product pages are cut over: user, history, facts, growth, and soul proposal surfaces now read through canonical-oriented frontend hooks rather than treating `/api/memory` and `/api/memory/growth*` as architectural truth
+- desktop client semantics are cleaner: `NionClient.get_memory()` and `reload_memory()` now prefer canonical memory payload builders instead of directly binding to the legacy facade helper
+- compatibility routes remain intentionally alive: `/api/memory` and `/api/memory/growth*` are still present, but they are now clearly a compatibility boundary rather than the core architecture
+- verification evidence: post-M4 backend canonical-cutover verification passed on 2026-04-09 with `21 passed`; frontend cutover contract verification plus typecheck passed with `7 passed` and `tsc --noEmit`
 
 ## Required Execution Order
 

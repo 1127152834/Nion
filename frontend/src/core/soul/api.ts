@@ -1,6 +1,10 @@
 import { getBackendBaseURL } from "../config/index.ts";
 
-import type { SoulEventsResponse, SoulProposalResponse, SoulSummaryResponse } from "./types";
+import type {
+  SoulEventsResponse,
+  SoulProposalResponse,
+  SoulSummaryResponse,
+} from "./types";
 
 export async function loadSoulSummary(): Promise<SoulSummaryResponse> {
   const response = await fetch(`${getBackendBaseURL()}/api/memory/growth/soul`);

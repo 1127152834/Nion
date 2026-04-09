@@ -6,25 +6,25 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  useAcceptMemoryGrowthItem,
-  useFreezeMemoryGrowthItem,
-  useMemoryGrowth,
-  useResumeMemoryGrowthItem,
-  useRejectMemoryGrowthItem,
-} from "@/core/memory-growth/hooks";
-import {
   describeMemoryGrowthDomain,
   describeMemoryGrowthStatus,
   listMemoryGrowthActions,
 } from "@/core/memory-growth/presentation";
-import type { MemoryGrowthItem } from "@/core/memory-growth/types";
+import type { MemoryGrowthItemV2 } from "@/core/memory-growth-v2/types";
+import {
+  useAcceptMemoryGrowthItemV2,
+  useFreezeMemoryGrowthItemV2,
+  useMemoryGrowthV2,
+  useRejectMemoryGrowthItemV2,
+  useResumeMemoryGrowthItemV2,
+} from "@/core/memory-growth-v2/hooks";
 
 import { SoulGrowthTimeline } from "./soul-growth-timeline";
 import { SoulProposalList } from "./soul-proposal-list";
 
 function Section(props: {
   title: string;
-  items: MemoryGrowthItem[];
+  items: MemoryGrowthItemV2[];
   empty: string;
   onAccept: (memoryId: string) => void;
   onFreeze: (memoryId: string) => void;
@@ -104,11 +104,11 @@ function Section(props: {
 }
 
 export function MemoryGrowthPanel() {
-  const { growth, isLoading, error } = useMemoryGrowth();
-  const accept = useAcceptMemoryGrowthItem();
-  const freeze = useFreezeMemoryGrowthItem();
-  const resume = useResumeMemoryGrowthItem();
-  const reject = useRejectMemoryGrowthItem();
+  const { growth, isLoading, error } = useMemoryGrowthV2();
+  const accept = useAcceptMemoryGrowthItemV2();
+  const freeze = useFreezeMemoryGrowthItemV2();
+  const resume = useResumeMemoryGrowthItemV2();
+  const reject = useRejectMemoryGrowthItemV2();
   const [lastAcceptedProposalId, setLastAcceptedProposalId] = useState<string | null>(null);
   const [lastRejectedProposalId, setLastRejectedProposalId] = useState<string | null>(null);
 

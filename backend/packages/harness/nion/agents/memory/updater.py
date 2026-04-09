@@ -355,6 +355,11 @@ class MemoryUpdater:
         """
         self._model_name = model_name
         self._memory_storage = memory_storage
+        self.primary_path_enabled = False
+        self.retirement_notice = (
+            "Legacy memory updater is compatibility-only; canonical Memory OS "
+            "capture/judge/governance owns the primary durable memory path."
+        )
 
     def _get_memory_storage(self) -> MemoryStorage:
         return _resolve_memory_storage(self._memory_storage)

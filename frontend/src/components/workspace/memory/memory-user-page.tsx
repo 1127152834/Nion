@@ -1,11 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/core/i18n/hooks";
-import { useMemory } from "@/core/memory/hooks";
+import { useMemoryUserSurface } from "@/core/memory-canonical/hooks";
 import {
   useCorrectUserModelItem,
   useForgetUserModelItem,
@@ -19,7 +20,7 @@ import { MemoryBackLink } from "./memory-back-link";
 
 export function MemoryUserPage() {
   const { t } = useI18n();
-  const { memory } = useMemory();
+  const { user } = useMemoryUserSurface();
   const { items } = useUserModelItems();
   const correctUserModel = useCorrectUserModelItem();
   const freezeUserModel = useFreezeUserModelItem();
@@ -30,38 +31,42 @@ export function MemoryUserPage() {
   const personalRecord = items.find((item) => item.subtype === "personalContext");
   const topOfMindRecord = items.find((item) => item.subtype === "topOfMind");
 
-  const cards = [
+  const cardInputs = [
     {
-      id: workRecord?.memory_id ?? "user-work",
+      record: workRecord,
       title: t.settings.memory.markdown.work,
-      summary: workRecord?.summary ?? memory?.user.workContext.summary ?? "",
-      status: workRecord?.status ?? "active",
-      sourceLabel: "真实记录",
-      sourceDescription: "当前卡片已绑定到真实 user_model record，下面的控制会直接作用到这条记录。",
-      isActionable: true,
+      fallbackSummary: user?.workContext.summary ?? "",
     },
     {
-      id: personalRecord?.memory_id ?? "user-personal",
+      record: personalRecord,
       title: t.settings.memory.markdown.personal,
-      summary:
-        personalRecord?.summary ?? memory?.user.personalContext.summary ?? "",
-      status: personalRecord?.status ?? "active",
-      sourceLabel: "真实记录",
-      sourceDescription: "当前卡片已绑定到真实 user_model record，下面的控制会直接作用到这条记录。",
-      isActionable: true,
+      fallbackSummary: user?.personalContext.summary ?? "",
     },
     {
-      id: topOfMindRecord?.memory_id ?? "user-top-of-mind",
+      record: topOfMindRecord,
       title: t.settings.memory.markdown.topOfMind,
-      summary: topOfMindRecord?.summary ?? memory?.user.topOfMind.summary ?? "",
-      status: topOfMindRecord?.status ?? "active",
-      sourceLabel: "真实记录",
-      sourceDescription: "当前卡片已绑定到真实 user_model record，下面的控制会直接作用到这条记录。",
-      isActionable: true,
+      fallbackSummary: user?.topOfMind.summary ?? "",
     },
   ];
 
-  async function handleFreeze(memoryId: string) {
+  const cards = cardInputs.map(({ record, title, fallbackSummary }) => {
+    const isActionable = Boolean(record?.memory_id);
+
+    return {
+      id: record?.memory_id ?? null,
+      title,
+      summary: record?.summary ?? fallbackSummary,
+      status: record?.status ?? "active",
+      sourceLabel: isActionable ? "真实记录" : "未绑定",
+      sourceDescription: isActionable
+        ? "当前卡片已绑定到真实 user_model record，下面的控制会直接作用到这条记录。"
+        : "当前卡片仅展示汇总记忆，尚未绑定真实 user_model record，因此只能只读查看。",
+      isActionable,
+    };
+  });
+
+  async function handleFreeze(memoryId: string | null) {
+    if (!memoryId) return;
     try {
       await freezeUserModel.mutateAsync(memoryId);
       toast.success("已冻结该用户画像项");
@@ -70,7 +75,8 @@ export function MemoryUserPage() {
     }
   }
 
-  async function handleForget(memoryId: string) {
+  async function handleForget(memoryId: string | null) {
+    if (!memoryId) return;
     try {
       await forgetUserModel.mutateAsync(memoryId);
       toast.success("已提交遗忘请求");
@@ -79,7 +85,8 @@ export function MemoryUserPage() {
     }
   }
 
-  async function handleReject(memoryId: string) {
+  async function handleReject(memoryId: string | null) {
+    if (!memoryId) return;
     try {
       await rejectUserModel.mutateAsync(memoryId);
       toast.success("已拒绝该用户画像项");
@@ -88,7 +95,8 @@ export function MemoryUserPage() {
     }
   }
 
-  async function handleCorrect(memoryId: string, currentSummary: string) {
+  async function handleCorrect(memoryId: string | null, currentSummary: string) {
+    if (!memoryId) return;
     const nextSummary = window.prompt("请输入新的画像描述", currentSummary);
     if (!nextSummary || nextSummary.trim() === currentSummary.trim()) {
       return;
@@ -113,6 +121,14 @@ export function MemoryUserPage() {
             <h1 className="mt-2 text-[1.85rem] font-semibold tracking-tight">
               {t.settings.memory.markdown.userContext}
             </h1>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/workspace/memory/ledger">查看 ledger</Link>
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/workspace/memory/evidence">查看 evidence</Link>
+            </Button>
           </div>
         </div>
       </header>
