@@ -6,23 +6,24 @@
 
 ## 核心验收点
 
-1. `/workspace/memory/user` 只对真实 `user_model` record 提供写操作。
-2. `/workspace/memory/growth` 的 `Recent Growth` 只读取后端 `recent soul events`。
+1. `/workspace/memory` 只展示分组后的用户画像、长期背景、事实记忆，不暴露治理控制面。
+2. `Settings > Soul` 只展示稳定层 Soul 设置，并允许通过草稿 + 应用写入。
 3. `identity_narrative` 与 `relationship_soul` 都有正式 artifact 路径与稳定状态。
 4. `agent-owned automation` 的来源、限制、暂停/恢复链路全部可见可测。
 5. legacy fallback 仅在 canonical source 缺失时生效。
 6. retention lifecycle 能把长期不用的 active 记录归档，并把长期归档记录清理为 `purged`。
 7. 前端 memory/soul 合同测试能通过 `pnpm test:contracts -- <test files...>` 运行。
+8. `/api/memory/growth/*` 必须返回 404，不得再作为产品公开接口存在。
 
 ## 最小回归集合
 
 ```bash
 cd backend && \
-uv run pytest tests/test_memory_os_*.py tests/test_memory_growth_router.py tests/test_automation_router.py -q
+uv run pytest tests/test_memory_os_*.py tests/test_memory_router.py tests/test_memory_soul_router.py tests/test_automation_router.py -q
 
 cd frontend && \
-pnpm typecheck && \
-pnpm test:contracts -- src/core/soul/test-runner.contract.test.ts src/core/soul/presentation.test.ts src/components/workspace/memory/soul-growth-timeline.contract.test.ts src/components/workspace/memory/memory-home-page.contract.test.ts src/components/workspace/memory/memory-user-page.contract.test.ts src/components/workspace/memory/memory-growth-panel.contract.test.ts
+pnpm test:contracts -- src/core/test-runner.contract.test.ts src/components/workspace/memory/memory-home-page.contract.test.ts src/components/workspace/memory/memory-user-page.contract.test.ts src/components/workspace/memory/soul-summary-card.contract.test.ts src/components/workspace/memory/memory-retired-client-layers.contract.test.ts src/components/workspace/settings/soul-settings-page.contract.test.ts && \
+node --test src/core/navigation/desktop-routes.test.ts
 ```
 
 ## 行为验收

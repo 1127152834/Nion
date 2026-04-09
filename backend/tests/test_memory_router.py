@@ -43,6 +43,7 @@ def test_gateway_docs_and_router_surface_match() -> None:
     routes = collect_gateway_routes()
 
     assert "/api/memory" in routes
+    assert "/api/memory/growth" not in routes
 
 
 def test_memory_route_returns_grouped_user_facing_payload(monkeypatch, tmp_path) -> None:

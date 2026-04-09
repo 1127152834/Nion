@@ -222,15 +222,14 @@ NION_STATIC_EXPORT=1 pnpm --dir frontend build
 
 当前 Memory Workspace 的增量产品面：
 
-- `/workspace/memory/growth`
-  - 展示学习主题、方法草案、灵魂提案
-  - 当前展示 `候选中 / 已生效 / 已冻结 / 已拒绝` 状态语义
-  - learning / procedure / soul 会按各自治理语义开放 `接受 / 冻结 / 恢复 / 拒绝`
-  - `Recent Growth` 已改为读取后端一等 `recent soul events`，当前覆盖 `identity narrative staged/promoted`、`relationship soul refreshed`、`soul journal written`、`soul automation created`、proposal accept/reject、overlay rollback
-- `/workspace/memory/user`
-  - 已开始优先读取真实 `user_model` records
-  - 所有用户画像卡片都绑定真实 `user_model` records
-  - 只有真实 `user_model` record 才开放 `修正 / 冻结 / 申请遗忘 / 拒绝`
+- `/workspace/memory`
+  - 只保留单一用户可见 Memory 页面
+  - 页面只展示分组后的用户画像、长期背景、事实记忆
+  - 记忆维护动作不再作为独立产品入口暴露；用户通过对话直接纠正，系统负责内部维护
+- `Settings > Soul`
+  - 只展示稳定层 Soul 设置：核心人格、说话方式、价值观 / 边界、关系基调
+  - 稳定层只能由用户显式设置或在对话中明确要求修改
+  - `adaptive_overlay` 仅作为弱可见的临时表达模式提示存在
 - `/workspace/automation/*`
   - 已开始区分 `user-owned` 与 `agent-owned` automation
   - 列表页会分开呈现 `用户创建` 与 `Agent 创建`

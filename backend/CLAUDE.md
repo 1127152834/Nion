@@ -79,7 +79,6 @@ FastAPI application on port 8001 with health check at `GET /health`.
 | **Models** (`/api/models`) | runtime model catalog |
 | **MCP** (`/api/mcp`) | MCP config surfaces |
 | **Memory** (`/api/memory`) | memory data and config |
-| **Memory Growth** (`/api/memory/growth`) | growth / user-model governance actions |
 | **Notebook** (`/api/notebook`) | notebook CRUD / history / restore / inbox / import / asset archive |
 | **Uploads** (`/api/threads/{id}/uploads`) | uploads list / delete |
 | **Artifacts** (`/api/threads/{id}/artifacts`) | serve artifacts |
@@ -96,7 +95,6 @@ Memory now uses `nion.memory_os.*` as the runtime memory backbone, and the repos
 - prompt memory bridge
 - continuity bridge
 - heartbeat/self-maintenance skeleton
-- `/api/memory/growth` governance surface
 - `agent-owned automation` ownership controls
 - soul artifact/runtime/governance/event stream bridge
 - capability catalog / capability bridge actions / skill runtime governance
@@ -105,9 +103,9 @@ When extending memory in this repository:
 - do not reintroduce runtime dependence on `memory.json` or legacy `nion.agents.memory.*`
 - do not reintroduce the old provider-based memory / AutoDream product shell
 - current product surface expectation:
-  - `/workspace/memory/user` must be backed by real `user_model` records only
-  - `/workspace/memory/growth` must expose state-aware governance semantics instead of a flat action row
-  - `/workspace/memory/growth` recent growth should prefer backend `recent soul events` instead of frontend-local inferred state
+  - `/workspace/memory` must stay as the single user-facing memory surface and only expose grouped user-facing memory content
+  - `/workspace/memory` must not expose governance, growth, ledger, evidence, runtime-trace, or soul-control routes
+  - `Settings > Soul` owns stable soul settings; product routes must not reintroduce soul proposal or growth controls
   - `/workspace/automation/*` must distinguish `user-owned` vs `agent-owned`, and explain provenance/mutability in product language
 - Memory/Soul hardening expectations:
   - Use `nion.memory_os.clock.utcnow_z()` for Memory OS time values.
@@ -123,19 +121,11 @@ When extending memory in this repository:
   - MCP is not the default first choice when notebook / memory / skill / CLI already match the task.
   - `context=fork` on active skills may affect delegated execution and subagent runtime configuration.
 
-Soul event stream contract in this repository:
+Soul product contract in this repository:
 
-- `/api/memory/growth/soul/events` is the product-facing recent soul event feed.
-- Event types currently include:
-  - `identity_narrative_staged`
-  - `identity_narrative_promoted`
-  - `relationship_soul_refreshed`
-  - `soul_journal_written`
-  - `soul_automation_created`
-  - `proposal_accepted`
-  - `proposal_rejected`
-  - `overlay_rollback`
-- Event records may include `related_memory_id`, `actor`, `source`, and `metadata`; prefer extending this stream instead of adding more frontend-only inferred timeline state.
+- `/api/memory/soul` returns the stable settings-shaped payload used by `Settings > Soul`.
+- `/api/memory/soul/apply` is the only product-facing write path for stable soul settings.
+- `adaptive_overlay` may still exist internally, but proposal / rollback / growth governance routes are not part of the product-facing API surface.
 - `relationship_soul` remains a derived soul layer, not a new relationship truth source.
 
 Thread title handling:
