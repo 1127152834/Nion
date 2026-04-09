@@ -13,3 +13,11 @@ export interface SoulSettingsDraft {
   values_and_boundaries: string;
   relationship_stance: string;
 }
+
+export interface SoulConsoleMutationResult {
+  action: string;
+  core_identity?: string;
+  speech_style?: string;
+  values_and_boundaries?: string;
+  relationship_stance?: string;
+}

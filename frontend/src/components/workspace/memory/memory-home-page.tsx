@@ -1,74 +1,87 @@
 "use client";
 
-import Link from "next/link";
-
-import { useI18n } from "@/core/i18n/hooks";
 import { useMemory } from "@/core/memory/hooks";
-import {
-  pathOfMemoryFacts,
-  pathOfMemoryGrowth,
-  pathOfMemoryHistory,
-  pathOfMemorySearch,
-  pathOfMemorySoul,
-  pathOfMemoryUser,
-} from "@/core/navigation/desktop-routes";
 
-import { MemoryGrowthPanel } from "./memory-growth-panel";
 import { MemorySummaryCards } from "./memory-summary-cards";
-import { SoulSummaryCard } from "./soul-summary-card";
+
+function MemoryGroup(props: {
+  title: string;
+  items: Array<{
+    id: string;
+    content: string;
+    source_label: string;
+    updated_at: string;
+    reason: string;
+    related_refs: string[];
+  }>;
+}) {
+  return (
+    <section className="rounded-lg border bg-background p-5">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-[1.05rem] font-semibold tracking-tight">{props.title}</h2>
+          <p className="mt-2 text-sm leading-7 text-muted-foreground">
+            这里只展示当前已经稳定留下来的内容。如果有错误，直接在对话里告诉我。
+          </p>
+        </div>
+        <div className="text-xs text-muted-foreground">{props.items.length} 条</div>
+      </div>
+
+      <div className="mt-4 space-y-3">
+        {props.items.length === 0 ? (
+          <div className="rounded-lg border border-dashed px-4 py-6 text-sm text-muted-foreground">
+            当前还没有内容。
+          </div>
+        ) : (
+          props.items.map((item) => (
+            <details
+              key={item.id}
+              className="rounded-lg border border-border/70 bg-muted/10 p-4"
+            >
+              <summary className="cursor-pointer list-none font-medium">
+                {item.content}
+              </summary>
+              <div className="mt-3 space-y-3 text-sm text-muted-foreground">
+                <div>
+                  <div className="text-xs font-medium uppercase tracking-[0.14em] text-foreground/80">
+                    来源
+                  </div>
+                  <div className="mt-1">{item.source_label}</div>
+                </div>
+                <div>
+                  <div className="text-xs font-medium uppercase tracking-[0.14em] text-foreground/80">
+                    更新时间
+                  </div>
+                  <div className="mt-1">{item.updated_at || "暂无时间"}</div>
+                </div>
+                <div>
+                  <div className="text-xs font-medium uppercase tracking-[0.14em] text-foreground/80">
+                    形成原因
+                  </div>
+                  <div className="mt-1">{item.reason || "暂无说明"}</div>
+                </div>
+                <div>
+                  <div className="text-xs font-medium uppercase tracking-[0.14em] text-foreground/80">
+                    相关线程 / 引用
+                  </div>
+                  <div className="mt-1 break-all">
+                    {item.related_refs.length > 0 ? item.related_refs.join(" / ") : "暂无引用"}
+                  </div>
+                </div>
+                <p className="text-xs">
+                  如果这条记错了，直接对我说：这条记错了，或别再记这个。
+                </p>
+              </div>
+            </details>
+          ))
+        )}
+      </div>
+    </section>
+  );
+}
 
 export function MemoryHomePage() {
-  const { t } = useI18n();
   const { memory } = useMemory();
-
-  const entries = [
-    {
-      href: pathOfMemorySearch(),
-      title: "检索控制台",
-      description: "像搜索引擎一样发起记忆检索，并进入独立结果页查看命中。",
-    },
-    {
-      href: pathOfMemoryUser(),
-      title: t.settings.memory.markdown.userContext,
-      description: "浏览工作、个人和近期关注三类用户上下文。",
-    },
-    {
-      href: pathOfMemoryHistory(),
-      title: t.settings.memory.markdown.historyBackground,
-      description: "浏览近几个月、更早上下文和长期背景。",
-    },
-    {
-      href: pathOfMemoryFacts(),
-      title: t.settings.memory.markdown.facts,
-      description: "查看、编辑、导入、导出事实库，并从这里进入清理流程。",
-    },
-    {
-      href: pathOfMemoryGrowth(),
-      title: "Agent Growth",
-      description: "查看学习主题、方法草案和灵魂提案的独立详情页。",
-    },
-    {
-      href: pathOfMemorySoul(),
-      title: "Soul Console",
-      description:
-        "查看 constitution、identity narrative、relationship stance、adaptive overlay 四层 surface 与当前 revision。",
-    },
-    {
-      href: "/workspace/memory/ledger",
-      title: "Memory ledger",
-      description: "查看 canonical nodes 与 current revisions，进入 freeze/delete/rewrite/evidence 治理入口。",
-    },
-    {
-      href: "/workspace/memory/evidence",
-      title: "Memory evidence",
-      description: "查看 evidence 列表、最小过滤条件与预览面板，不在首页内嵌明细。",
-    },
-    {
-      href: "/workspace/memory/runtime-trace",
-      title: "Runtime trace",
-      description: "查看 runtime trace 事件流，按 thread_id 或 event_type 进入独立页面筛查。",
-    },
-  ];
 
   return (
     <main className="flex size-full min-h-0 flex-col gap-6 overflow-y-auto px-4 py-6 sm:px-6">
@@ -76,38 +89,22 @@ export function MemoryHomePage() {
         <div className="border bg-background px-6 py-5">
           <div className="space-y-2">
             <p className="text-[11px] font-medium tracking-[0.16em] text-muted-foreground uppercase">
-              Memory workspace
+              Memory
             </p>
-            <h1 className="text-[2rem] font-semibold tracking-tight">
-              {t.workspaceSurfaces.memory.title}
-            </h1>
+            <h1 className="text-[2rem] font-semibold tracking-tight">当前记住了什么</h1>
             <p className="max-w-3xl text-sm leading-7 text-muted-foreground">
-              记忆首页只负责总览状态和分区入口，不再混入检索控制台与固定详情区。
+              这里只展示已经留下来的用户画像、长期背景和事实记忆，不再包含治理控制台入口。
             </p>
           </div>
         </div>
         <MemorySummaryCards memory={memory} />
-        <SoulSummaryCard />
       </header>
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {entries.map((entry) => (
-          <Link
-            key={entry.href}
-            href={entry.href}
-            className="rounded-lg border bg-background px-5 py-4 transition-colors hover:bg-muted/20"
-          >
-            <div className="text-[1.05rem] font-semibold tracking-tight">
-              {entry.title}
-            </div>
-            <p className="mt-3 text-sm leading-7 text-muted-foreground">
-              {entry.description}
-            </p>
-          </Link>
-        ))}
-      </section>
-
-      <MemoryGrowthPanel />
+      <div className="grid gap-4 xl:grid-cols-3">
+        <MemoryGroup title="用户画像" items={memory?.user_profile ?? []} />
+        <MemoryGroup title="长期背景" items={memory?.long_term_background ?? []} />
+        <MemoryGroup title="事实记忆" items={memory?.fact_memories ?? []} />
+      </div>
     </main>
   );
 }

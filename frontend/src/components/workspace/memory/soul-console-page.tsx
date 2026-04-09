@@ -6,8 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { useSoulSettings } from "@/core/soul-console/hooks";
+import { useApplySoulSettings, useSoulSettings } from "@/core/soul-console/hooks";
 import type { SoulSettingsDraft, SoulSettingsResponse } from "@/core/soul-console/types";
+import { toast } from "sonner";
 
 const SOUL_SETTINGS_FIELDS: Array<{
   key: keyof SoulSettingsDraft;
@@ -52,6 +53,7 @@ function createDraft(settings: SoulSettingsResponse): SoulSettingsDraft {
 
 export function SoulConsolePage() {
   const { settings, isLoading, error } = useSoulSettings();
+  const applySoulSettings = useApplySoulSettings();
   const [draft, setDraft] = useState<SoulSettingsDraft>(() => createDraft(settings));
 
   useEffect(() => {
@@ -181,12 +183,30 @@ export function SoulConsolePage() {
             这一页已经按设置语义收口：用户看到的是稳定层字段与临时表达模式提示，不再看到治理动作。
           </p>
           <div className="flex flex-wrap items-center gap-3">
-            <Button type="button" disabled>
+            <Button
+              type="button"
+              onClick={() =>
+                void applySoulSettings
+                  .mutateAsync({
+                    core_identity: draft.core_identity.trim(),
+                    speech_style: draft.speech_style.trim(),
+                    values_and_boundaries: draft.values_and_boundaries.trim(),
+                    relationship_stance: draft.relationship_stance.trim(),
+                  })
+                  .then(() => {
+                    toast.success("已应用 Soul 设置");
+                  })
+                  .catch((mutationError) => {
+                    toast.error(mutationError instanceof Error ? mutationError.message : "应用 Soul 设置失败");
+                  })
+              }
+              disabled={!hasDraftChanges || applySoulSettings.isPending}
+            >
               应用
             </Button>
             <span className="text-xs text-muted-foreground">
               {hasDraftChanges
-                ? "草稿已经变化；正式写入链路会在后续 Soul settings 任务中接入。"
+                ? "草稿已经变化；点击应用后会写入稳定层设置。"
                 : "当前草稿与已加载设置一致。"}
             </span>
           </div>

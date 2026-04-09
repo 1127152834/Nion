@@ -35,6 +35,7 @@ import { SandboxSettingsPage } from "@/components/workspace/settings/sandbox-set
 import { SearchSettingsPage } from "@/components/workspace/settings/search-settings-page";
 import { SessionPolicySettingsPage } from "@/components/workspace/settings/session-policy-settings-page";
 import { SkillSettingsPage } from "@/components/workspace/settings/skill-settings-page";
+import { SoulSettingsPage } from "@/components/workspace/settings/soul-settings-page";
 import { ToolSettingsPage } from "@/components/workspace/settings/tool-settings-page";
 import { useConfigCenter } from "@/core/config-center";
 import { useI18n } from "@/core/i18n/hooks";
@@ -122,6 +123,11 @@ export function SettingsDialog(props: SettingsDialogProps) {
           label: t.settings.sections.memory,
           icon: BrainIcon,
         },
+        soul: {
+          id: "soul",
+          label: "Soul",
+          icon: SparklesIcon,
+        },
         tools: {
           id: "tools",
           label: t.settings.sections.tools,
@@ -173,7 +179,7 @@ export function SettingsDialog(props: SettingsDialogProps) {
         {
           id: "knowledge",
           title: t.settings.navGroups.knowledge,
-          items: [items.memory],
+          items: [items.memory, items.soul],
         },
         {
           id: "capabilities",
@@ -201,6 +207,7 @@ export function SettingsDialog(props: SettingsDialogProps) {
       t.settings.sections.models,
       t.settings.sections.sessionPolicy,
       t.settings.sections.memory,
+      t.settings.sections.tools,
       t.settings.sections.tools,
       t.settings.sections.search,
       t.settings.sections.cliTools,
@@ -288,6 +295,7 @@ export function SettingsDialog(props: SettingsDialogProps) {
                   <SessionPolicySettingsPage />
                 )}
                 {activeSection === "memory" && <MemorySettingsPage />}
+                {activeSection === "soul" && <SoulSettingsPage />}
                 {activeSection === "daemon" && <DaemonSettingsPage />}
                 {activeSection === "tools" && <ToolSettingsPage />}
                 {activeSection === "search" && <SearchSettingsPage />}

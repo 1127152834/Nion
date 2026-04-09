@@ -505,6 +505,15 @@ def test_memory_soul_router_exposes_settings_payload_without_governance_actions(
 
     with TestClient(create_app()) as client:
         settings = client.get("/api/memory/soul")
+        apply = client.post(
+            "/api/memory/soul/apply",
+            json={
+                "core_identity": "长期陪伴、克制稳定、结论先行。",
+                "speech_style": "先给结论，再补上下文。",
+                "values_and_boundaries": "不代替用户做最终判断。",
+                "relationship_stance": "保持低刺激、少施压、结论先行。",
+            },
+        )
         freeze = client.post("/api/memory/soul/relationship_stance/freeze-auto-evolution")
         rollback = client.post("/api/memory/soul/adaptive_overlay/rollback")
 
@@ -519,5 +528,7 @@ def test_memory_soul_router_exposes_settings_payload_without_governance_actions(
     assert "layers" not in body
     assert "currentRevisionReason" not in body
 
+    assert apply.status_code == 200
+    assert apply.json()["action"] == "apply"
     assert freeze.status_code == 404
     assert rollback.status_code == 404

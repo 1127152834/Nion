@@ -5,13 +5,15 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/core/i18n/hooks";
-import { pathOfMemory, pathOfMemoryGrowth } from "@/core/navigation/desktop-routes";
+import { pathOfMemory } from "@/core/navigation/desktop-routes";
+import { useSettingsDialog } from "./settings-dialog-context";
 
 import { MemoryEmbeddingPanel } from "./memory-embedding-panel";
 import { SettingsSection } from "./settings-section";
 
 export function MemorySettingsPage() {
   const { t } = useI18n();
+  const { goToSection } = useSettingsDialog();
 
   return (
     <SettingsSection
@@ -64,8 +66,8 @@ export function MemorySettingsPage() {
           <Button asChild variant="outline">
             <Link href={pathOfMemory()}>打开记忆工作台</Link>
           </Button>
-          <Button asChild variant="outline">
-            <Link href={pathOfMemoryGrowth()}>查看成长治理</Link>
+          <Button type="button" variant="outline" onClick={() => goToSection("soul")}>
+            打开 Soul 设置
           </Button>
         </div>
       </div>

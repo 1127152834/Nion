@@ -1,6 +1,10 @@
 import { getBackendBaseURL } from "@/core/config";
 
-import type { SoulSettingsResponse } from "./types";
+import type {
+  SoulConsoleMutationResult,
+  SoulSettingsDraft,
+  SoulSettingsResponse,
+} from "./types";
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -32,4 +36,27 @@ export async function loadSoulSettings(): Promise<SoulSettingsResponse> {
   }
 
   return payload;
+}
+
+export async function applySoulSettings(
+  draft: SoulSettingsDraft,
+): Promise<SoulConsoleMutationResult> {
+  const response = await fetch(`${getBackendBaseURL()}/api/memory/soul/apply`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(draft),
+  });
+  const payload = (await response.json().catch(() => null)) as unknown;
+
+  if (!response.ok) {
+    throw new Error(`Failed to apply soul settings (${response.status})`);
+  }
+
+  if (!isObjectRecord(payload) || typeof payload.action !== "string") {
+    throw new Error("Invalid soul settings mutation payload returned from applySoulSettings");
+  }
+
+  return payload as SoulConsoleMutationResult;
 }
