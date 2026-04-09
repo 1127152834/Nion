@@ -296,6 +296,34 @@ Soul 只保留两个用户面：
 - `relationship_stance`：可从长期交互稳定推导，但不应直接暴露给普通用户手工治理。
 - `adaptive_overlay`：唯一允许短期波动的层，用于阶段性表达调整。
 
+### 灵魂系统的正确使用方式
+
+如果按产品与运行时分离来设计，灵魂系统应该这样工作：
+
+1. 首次使用时，用户只做一次最小初始化。
+2. 后续大多数时间，灵魂保持稳定，不需要频繁进入设置页。
+3. 聊天过程中如果用户明确说“以后请更冷静一点”“你说话别太鼓励式”，系统才把这类意图当成 soul 变更候选。
+4. 近期情境变化只允许进入 `adaptive_overlay`，例如某段时间用户处于高压期，需要更低刺激表达。
+5. 当某种交互风格跨越足够长时间、足够多轮会话、并且没有被用户否定，才允许从 `adaptive_overlay` 晋升到 `relationship_stance`。
+6. `identity_narrative` 只能来自长期稳定、自洽、且被系统多次验证过的自我叙事，不能由单个 repeated need 直接生成。
+7. `constitution` 不是 growth 的终点，更不是 memory 的自动产物；它应被视为初始化宪法，而不是可日常漂移的层。
+
+对应的用户面应该只有：
+
+- 当前灵魂摘要
+- 编辑稳定风格配置
+- 查看最近一次显著调整说明
+
+不应该要求用户理解：
+
+- proposal
+- governance action
+- revision
+- overlay rollback
+- auto evolution frozen
+
+这些都是系统维护细节，不是使用方法。
+
 ### growth 应该降级为内部机制，而不是用户产品面
 
 growth 仍可存在，但应转为：
@@ -354,6 +382,18 @@ growth 仍可存在，但应转为：
 - Evidence
 - Runtime trace
 - Soul events
+
+## 补充验证
+
+本轮为避免只靠静态阅读下判断，额外验证了 soul 相关链路：
+
+- `backend/.venv/bin/pytest backend/tests/test_soul_judge_service.py backend/tests/test_memory_os_soul_governance.py backend/tests/test_memory_os_relationship_soul.py backend/tests/test_memory_os_soul_events.py backend/tests/test_memory_os_soul_artifacts.py -q`
+- `pnpm --dir frontend test:contracts -- src/components/workspace/memory/soul-console-page.contract.test.ts src/components/workspace/memory/soul-growth-timeline.contract.test.ts src/components/workspace/memory/soul-proposal-list.contract.test.ts src/components/workspace/memory/soul-summary-card.contract.test.ts src/components/workspace/memory/memory-user-page.contract.test.ts src/components/workspace/memory/memory-growth-panel.contract.test.ts`
+
+这些补充验证说明两件事：
+
+1. 当前 soul console / growth / user page 的重产品面不是偶然页面，而是被合同测试显式锁住的现状。
+2. 当前 soul governance / relationship soul / artifact / event stream 确实形成了一套可运行链路，因此“耦合错误”是主链问题，不是边缘草稿。
 
 ## 这轮审查后的判断
 
