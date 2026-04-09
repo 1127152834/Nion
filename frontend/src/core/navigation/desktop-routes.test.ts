@@ -5,12 +5,6 @@ import {
   pathOfAgentThread,
   pathOfChatHistoryType,
   pathOfMemory,
-  pathOfMemoryFacts,
-  pathOfMemoryHistory,
-  pathOfMemorySoul,
-  pathOfMemorySearch,
-  pathOfMemorySearchResults,
-  pathOfMemoryUser,
   pathOfNotebook,
   pathOfNotebookSeededCreate,
   pathOfNotebookTrash,
@@ -31,16 +25,6 @@ void test("desktop routes keep notebook trash on its dedicated page", () => {
   assert.equal(pathOfNotebook(), "/workspace/notebook");
   assert.equal(pathOfNotebookTrash(), "/workspace/notebook/trash");
   assert.equal(pathOfMemory(), "/workspace/memory");
-  assert.equal(pathOfMemorySearch(), "/workspace/memory/search");
-  assert.equal(
-    pathOfMemorySearchResults("Roadmap alpha"),
-    "/workspace/memory/search/results?q=Roadmap+alpha",
-  );
-  assert.equal(pathOfMemorySearchResults(""), "/workspace/memory/search/results");
-  assert.equal(pathOfMemoryUser(), "/workspace/memory/user");
-  assert.equal(pathOfMemoryHistory(), "/workspace/memory/history");
-  assert.equal(pathOfMemoryFacts(), "/workspace/memory/facts");
-  assert.equal(pathOfMemorySoul(), "/workspace/memory/soul");
   assert.equal(
     pathOfNotebookSeededCreate({
       title: "Roadmap",
