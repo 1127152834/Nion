@@ -43,11 +43,11 @@ docs/*
 !docs/test/**
 !docs/reviews/
 !docs/reviews/**
-!docs/project/
-!docs/project/**
 !docs/superpowers/
 !docs/superpowers/specs/
 !docs/superpowers/specs/**
+!docs/project/
+!docs/project/**
 !docs/superpowers/plans/
 !docs/superpowers/plans/**
 logs/
