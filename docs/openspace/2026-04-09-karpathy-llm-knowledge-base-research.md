@@ -125,6 +125,108 @@ Karpathy 这次引爆的不是一个“更强的 RAG”，而是一种更适合�
 
 这三者拼在一起，基本就构成了我们如果要在 `omx / nion` 落地 LLM Wiki 时最该抄的骨架。
 
+## 面向 Nion 升级的现状判断
+
+把 `nion` 自己的 notebook / memory / openviking 再看一遍后，现在可以更具体地说：Nion 还没有 LLM Wiki，只是已经拥有做 LLM Wiki 的若干前置零件。
+
+现状大致是这样：
+
+- `NotebookService` 仍然是本地文件系统中的 note/asset 管理，加上一层 SQLite 元数据
+- notebook assistant 是围绕“当前选中的单条 note”启动 thread，然后做聊天、rewrite、history、metadata 等 note 级操作
+- `openviking/notebook_ingest.py` 会把 note 投影成 resource，再切 chunk 写进检索存储
+- `RuntimeNotebookRetriever` 只做 query -> chunk hits -> context pack 注入
+
+这说明当前 notebook 的主范式仍然是：
+
+`note files -> chunk retrieval -> assistant on selected note`
+
+而不是：
+
+`raw notes/assets -> compiled wiki layer -> query/save/lint/continuous synthesis`
+
+所以，如果目标是“把我们的 notebook 升级成 Karpathy 式知识库”，真正缺失的不是聊天框，也不是检索，而是一个**显式的编译中间层**。
+
+## 对 Nion 最关键的升级判断
+
+Nion 不应该把现有 notebook 直接改造成一个新的“memory bucket”，也不应该只是在现有检索上再堆几个 prompt。更合理的做法是：
+
+1. 保持 notebook 继续做 canonical source
+   note、asset、history、metadata 仍然留在本地 notebook 体系里
+2. 在 notebook 之上增加一个 `compiled knowledge layer`
+   这个层不替代原 note，而是消费 note/asset，生成 topic / concept / synthesis / index / log 这类派生产物
+3. 让 openviking 从“只存 chunks”升级为“同时能存 compiled resources 和 retrieval-ready chunks”
+4. 让 assistant 优先读 compiled pages，需要细节时再回退到原始 note
+
+换句话说，Notebook 在 Nion 里应该继续是**原始知识资产层**，而新的 LLM Wiki 层应该是**编译后的知识操作层**。这和前面 Memory OS 设计里强调的“canonical asset ownership 不等于 provider surface”是完全一致的。
+
+## 建议的 Nion Notebook -> LLM Wiki 分层
+
+如果按最小可落地方式升级，我建议把 Nion notebook 相关能力拆成五层：
+
+1. `Source Layer`
+   现有 notebook note、asset、history、frontmatter、directory tree
+2. `Projection Layer`
+   现有 openviking note projection 和 chunk ingest 继续保留，但要多一个“wiki projection”
+3. `Compiled Wiki Layer`
+   新增 `topics/`、`concepts/`、`synthesis/`、`index`、`log`
+4. `Retrieval Layer`
+   assistant 查询时先读 compiled pages，再按 coverage / provenance 回退 notebook chunks
+5. `Workflow Layer`
+   新增 ingest / compile / lint / save-answer 这些 notebook knowledge actions
+
+这里最重要的一点是：**compiled wiki layer 不应等同于 notebook tree 的另一个目录**。它应该是一个受治理的派生域，哪怕底层仍然落在本地文件系统中，也必须在产品语义上明确它是“agent-maintained compiled knowledge”，不是用户手写笔记文件夹。
+
+## 对现有 Nion 能力的复用判断
+
+真正值得复用的现有能力有这些：
+
+- `NotebookService`
+  继续做 note / asset / metadata / history 的 canonical owner
+- `openviking/notebook_ingest.py`
+  已经有 note -> resource -> chunks 的投影基础，可以扩展出 note -> wiki sources -> compiled pages 的第二条投影链
+- `RuntimeNotebookRetriever`
+  可以从“只搜 chunks”升级成“compiled pages 优先 + raw note chunks fallback”
+- notebook assistant session
+  可以继续存在，但角色要从“单 note assistant”升级成“knowledge workspace assistant”
+
+不应该直接沿用的部分也很明确：
+
+- 不能只靠当前 note-scoped assistant thread 来承载知识库能力
+- 不能把 chunk retrieval 当成 compiled knowledge 的替代
+- 不能把 Notebook UI 里现有的 history/info/ask 三栏结构误认为已经是知识库产品面
+
+## 面向 Nion 的最小升级范围
+
+如果只做第一阶段，我认为范围应该控制在下面四件事：
+
+1. `Notebook Wiki Schema`
+   为 notebook knowledge 定义固定 page types：`topic`、`concept`、`synthesis`、`index`、`log`
+2. `Compile Job`
+   从 notebook notes 中增量挑选 changed notes，生成/更新 compiled pages
+3. `Notebook Knowledge Retrieval`
+   notebook assistant 查询时优先读取 compiled pages，而不是直接从 raw note chunks 开始
+4. `Save Back`
+   把高价值回答存回 `synthesis` 或相关 topic page，而不是只留在 thread 历史里
+
+做到这四件事，Nion 的 notebook 才会第一次从“可检索笔记系统”跃迁成“会持续累积的知识库系统”。
+
+## 我现在对 Nion 升级方向的结论
+
+这轮学习之后，我对 `nion notebook` 的升级判断已经比较稳定了：
+
+- 不要把 Notebook 做成 Memory 的一个子卡片
+- 不要把 Retrieval 当成 Knowledge Base
+- 不要把单 note assistant 当成 wiki maintainer
+
+应该做的是：
+
+- 让 Notebook 保持原始资产层
+- 让 OpenViking 增加 compiled knowledge 投影
+- 让 Assistant 围绕 compiled knowledge 层工作
+- 让高价值综合结果持续写回知识层
+
+如果再往前走一步，下一份真正应该写的不是更多研究笔记，而是一份专门的 `Nion Notebook Knowledge Base Upgrade Design` 设计稿。
+
 ## 交付物
 
 完整研究报告已输出到：
