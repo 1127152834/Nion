@@ -47,6 +47,7 @@ void test("list pages use modal creation flows and detail navigation", async () 
   assert.match(source, /AutomationReminderDialog|AutomationTaskDialog/);
   assert.match(source, /pathOfAutomationReminderDetail|pathOfAutomationTaskDetail/);
   assert.match(source, /进入详情/);
+  assert.doesNotMatch(source, /PlusIcon className="size-4 rotate-45"/);
 });
 
 void test("detail page separates reminder history from task thread preview", async () => {
@@ -56,4 +57,6 @@ void test("detail page separates reminder history from task thread preview", asy
   assert.match(source, /AutomationHistorySection/);
   assert.match(source, /AutomationRunPreview/);
   assert.match(source, /打开完整线程/);
+  assert.match(source, /useRemoveAutomationJob/);
+  assert.match(source, /删除任务|删除提醒/);
 });

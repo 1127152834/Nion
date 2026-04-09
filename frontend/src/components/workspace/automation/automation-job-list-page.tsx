@@ -1,6 +1,6 @@
 "use client";
 
-import { PlusIcon } from "lucide-react";
+import { ArrowRightIcon } from "lucide-react";
 import Link from "next/link";
 import { useMemo } from "react";
 
@@ -179,7 +179,7 @@ function JobGroup({
                       <ItemDescription>{job.prompt}</ItemDescription>
                     </div>
                     <Button variant="ghost" size="sm">
-                      <PlusIcon className="size-4 rotate-45" />
+                      <ArrowRightIcon className="size-4" />
                       进入详情
                     </Button>
                   </ItemHeader>

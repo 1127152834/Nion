@@ -1,12 +1,17 @@
 "use client";
 
-import { ArrowLeftIcon } from "lucide-react";
+import { ArrowLeftIcon, Trash2Icon } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useAutomationJob, useAutomationRuns } from "@/core/automation/hooks";
+import {
+  useAutomationJob,
+  useAutomationRuns,
+  useRemoveAutomationJob,
+} from "@/core/automation/hooks";
 import {
   describeAutomationJob,
   describeAutomationOwnership,
@@ -33,8 +38,10 @@ export function AutomationJobDetailPage({
   kind,
   jobId,
 }: AutomationJobDetailPageProps) {
+  const router = useRouter();
   const { job, error: jobError } = useAutomationJob(jobId);
   const { runs, error: runsError } = useAutomationRuns();
+  const removeJob = useRemoveAutomationJob();
   const firstError = jobError ?? runsError;
 
   const backHref =
@@ -95,18 +102,34 @@ export function AutomationJobDetailPage({
   const preferredRunId = pickDefaultAutomationRunId(jobRuns);
   const latestRun = jobRuns.find((run) => run.id === preferredRunId) ?? null;
 
+  async function handleRemove() {
+    await removeJob.mutateAsync(job.id);
+    router.push(backHref);
+  }
+
   return (
     <section className="flex size-full flex-col">
       <WorkspacePageHeader
         title={description.title}
         description={description.summary}
         action={(
-          <Link href={backHref} className="inline-flex">
-            <Button variant="ghost" size="sm">
-              <ArrowLeftIcon className="size-4" />
-              {backLabel}
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => void handleRemove()}
+              disabled={removeJob.isPending}
+            >
+              <Trash2Icon className="size-4" />
+              {kind === "reminder" ? "删除提醒" : "删除任务"}
             </Button>
-          </Link>
+            <Link href={backHref} className="inline-flex">
+              <Button variant="ghost" size="sm">
+                <ArrowLeftIcon className="size-4" />
+                {backLabel}
+              </Button>
+            </Link>
+          </div>
         )}
       />
 
