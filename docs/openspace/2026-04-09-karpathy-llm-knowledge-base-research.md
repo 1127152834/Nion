@@ -73,6 +73,40 @@ Karpathy 这次引爆的不是一个“更强的 RAG”，而是一种更适合�
 
 这套顺序的理由很简单：先学骨架，再学嵌入代理，再学服务化，最后看叙事化扩展。反过来学，很容易被 showcase 吸走注意力。
 
+## 进一步学习后的实现拆解
+
+继续往下拆实现后，有三点已经比较明确。
+
+第一，`atomicmemory/llm-wiki-compiler` 代表的是最干净的“编译器分层”。它在 `src/commands/` 下明确拆出 `compile.ts`、`ingest.ts`、`lint.ts`、`query.ts`、`watch.ts`，而在 `src/compiler/` 下继续拆出 `hasher.ts`、`indexgen.ts`、`resolver.ts`、`obsidian.ts`、`orphan.ts`、`prompts.ts` 等模块。这说明它把系统看成一条稳定的构建链：命令面负责触发动作，编译核心负责增量判定、索引生成、链接解析和健康修复。
+
+第二，`ussumant/llm-wiki-compiler` 代表的是“代理插件分层”。它的 `plugin/` 目录里直接有 `commands/`、`hooks/`、`skills/`、`templates/`。这个切法说明它的核心不是独立程序，而是把知识库能力嵌进 Claude Code 生命周期里：命令触发具体动作，hooks 影响 SessionStart 行为，skills 负责工作流约束，templates 负责输出结构。也就是说，它更像“让代理自然使用 wiki”，而不是“用户显式操作 wiki”。
+
+第三，`llm-wiki-kit` 代表的是“服务层分层”。它在 `src/llm_wiki_kit/` 下同时保留 `cli.py` 和 `server.py`，说明作者把这个系统既当本地工具，也当 MCP 服务。结合 README 里的 `wiki_ingest`、`wiki_search`、`wiki_lint`、`wiki_status` 这些 tool 名字，可以看出它的抽象已经从“命令行编译器”转向“可被任意 agent 调用的知识服务”。
+
+## 对 omx / nion 更具体的迁移蓝图
+
+如果把上面三种实现方式综合起来，适合 `omx / nion` 的最小可迁移蓝图应该是四层：
+
+1. `storage layer`
+   `raw/`、`wiki/`、`index.md`、`log.md`、`schema.md`
+2. `compiler layer`
+   `ingest`、`compile`、`query-save`、`lint`、`watch` 这些动作的核心实现
+3. `agent integration layer`
+   SessionStart 提示、命令入口、技能约束、coverage / provenance 读取策略
+4. `service layer`
+   面向 MCP 或内部 agent 的工具接口，比如 `wiki_ingest`、`wiki_search`、`wiki_lint`、`wiki_status`
+
+这意味着对 `omx / nion` 最合理的起步，不是先做网页，也不是先做图谱，而是先把第 1 层和第 2 层做实，再决定第 3 层放在 skill / hook 还是 command，最后再把第 4 层暴露给 agent。
+
+更直接地说，下一阶段如果真要做原型，最小范围应该是：
+
+- 一个本地目录规范
+- 一个 `ingest + compile + lint + query-save` 的最小命令面
+- 一套 page frontmatter：`sources`、`coverage`、`updated_at`
+- 一个让代理优先读 `wiki/`、必要时回退 `raw/` 的读取策略
+
+做到这里，才算真正学到了“如何做自己的 LLM Wiki”，而不是只学会了“有哪些人在做”。
+
 ## 交付物
 
 完整研究报告已输出到：
