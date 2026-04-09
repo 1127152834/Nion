@@ -134,6 +134,14 @@ Do **not** compress multiple milestones into one coding burst.
 - compatibility routes remain stable: existing `/api/memory` and `/api/memory/growth*` contracts still operate during the cutover window
 - verification evidence: M4 backend verification passed on 2026-04-09 with `56 passed`; frontend memory/soul contract verification passed with `9 passed`
 
+**Post-M4 Checkpoint 2026-04-09:**
+
+- canonical memory router surfaces are live: `/api/memory-canonical/user|history|facts` now expose the actual canonical read model instead of forcing every consumer through the monolithic compatibility payload
+- memory product pages are cut over: user, history, facts, growth, and soul proposal surfaces now read through canonical-oriented frontend hooks rather than treating `/api/memory` and `/api/memory/growth*` as architectural truth
+- desktop client semantics are cleaner: `NionClient.get_memory()` and `reload_memory()` now prefer canonical memory payload builders instead of directly binding to the legacy facade helper
+- compatibility routes remain intentionally alive: `/api/memory` and `/api/memory/growth*` are still present, but they are now clearly a compatibility boundary rather than the core architecture
+- verification evidence: post-M4 backend canonical-cutover verification passed on 2026-04-09 with `21 passed`; frontend cutover contract verification plus typecheck passed with `7 passed` and `tsc --noEmit`
+
 ## Required Execution Order
 
 1. Milestone A

@@ -1149,6 +1149,11 @@ purge 后的系统行为：
   - Soul Console 已成为独立产品面 `/workspace/memory/soul`
   - `/api/memory/soul` 已成为正式聚合与治理接口
   - legacy queue / updater 已明确降级为 compatibility-only shim，不再冒充主写入链
+- Post-M4 canonical cutover 已完成：
+  - `/api/memory-canonical/user|history|facts` 已存在
+  - user / history / facts / growth / soul proposal 前端表面已切到 canonical-oriented hooks
+  - `NionClient.get_memory()` 与 `reload_memory()` 已优先使用 canonical payload helper
+  - `/api/memory` 与 `/api/memory/growth*` 继续保留为 compatibility facade，而不是架构真相源
 
 ## 迁移铁律
 
@@ -1292,6 +1297,7 @@ Checkpoint 2026-04-09：
 - legacy queue / updater 已显式标记为 compatibility-only，而非隐性主链候选
 - Soul Console 不再通过 `growth?soul=console` 借道，而是独立路由与独立 API
 - 现有 `/api/memory` 与 `/api/memory/growth*` 外部契约继续保留，不做破坏式删除
+- canonical memory cutover 已推进到产品面：新 canonical routes 驱动 user/history/facts 等读表面，旧 route 仅承担 compatibility 语义
 
 ## 验收指标
 
