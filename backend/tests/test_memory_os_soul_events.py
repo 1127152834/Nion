@@ -2,45 +2,33 @@ from pathlib import Path
 
 from nion.automation.models import AutomationJob
 from nion.memory_os.repository import MemoryOSRepository
-from nion.memory_os.soul import create_soul_proposal
 
 
-def test_soul_events_capture_accept_reject_and_rollback(tmp_path: Path):
-    from nion.memory_os.soul_governance import (
-        accept_soul_proposal,
-        list_soul_events,
-        reject_soul_proposal,
-        rollback_soul_overlay,
-    )
+def test_soul_events_capture_journal_and_overlay_refresh(tmp_path: Path):
+    from nion.memory_os.soul_reflection import reflect_soul_growth
 
     repo = MemoryOSRepository(tmp_path / "memory-os" / "index.sqlite3")
-    accepted = create_soul_proposal(
-        repo,
-        title="减少鼓励式措辞",
-        summary="长期证据显示用户偏好低刺激支持。",
-    )
-    rejected = create_soul_proposal(
-        repo,
-        title="增加主动提醒",
-        summary="长期证据显示用户需要更高主动性。",
+    result = reflect_soul_growth(
+        repository=repo,
+        base_dir=tmp_path,
+        repeated_needs=["月底高压期需要低刺激支持"] * 3,
+        evidence_days=2,
+        created_at="2026-04-07T00:00:00Z",
     )
 
-    accept_soul_proposal(repo, accepted["memory_id"], created_at="2026-04-07T00:00:00Z")
-    reject_soul_proposal(repo, rejected["memory_id"], created_at="2026-04-07T00:01:00Z")
-    rollback_soul_overlay(repo, created_at="2026-04-07T00:02:00Z")
+    events = [event.model_dump() for event in repo.list_soul_events()]
+    event_types = {event["event_type"] for event in events}
 
-    events = list_soul_events(repo)
-
-    assert events[0]["event_type"] == "overlay_rollback"
-    assert events[1]["event_type"] == "proposal_rejected"
-    assert events[2]["event_type"] == "proposal_accepted"
+    assert result["overlay_updated"] is True
+    assert "adaptive_overlay_refreshed" in event_types
+    assert "soul_journal_written" in event_types
 
 
 def test_soul_events_capture_narrative_relationship_journal_and_automation_outputs(tmp_path: Path):
     from nion.memory_os.projections import record_soul_automation_created
     from nion.memory_os.relationship_soul import refresh_relationship_soul
     from nion.memory_os.soul_artifacts import MemoryOSSoulArtifactStore
-    from nion.memory_os.soul_governance import list_soul_events, promote_identity_narrative
+    from nion.memory_os.soul_transitions import promote_identity_narrative
     from nion.memory_os.soul_journal import write_soul_journal
 
     repo = MemoryOSRepository(tmp_path / "memory-os" / "index.sqlite3")
@@ -101,7 +89,7 @@ def test_soul_events_capture_narrative_relationship_journal_and_automation_outpu
         created_at="2026-04-07T00:04:00Z",
     )
 
-    events = list_soul_events(repo)
+    events = [event.model_dump() for event in repo.list_soul_events()]
     event_types = [event["event_type"] for event in events]
     event_map = {event["event_type"]: event for event in events}
 

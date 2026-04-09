@@ -30,7 +30,7 @@ void test("retired soul and growth client layers are physically deleted", async 
 
 void test("active memory and soul surfaces no longer import retired client namespaces", async () => {
   const activeSources = await Promise.all([
-    readFile(new URL("./soul-summary-card.tsx", import.meta.url), "utf8"),
+    readFile(new URL("./memory-home-page.tsx", import.meta.url), "utf8"),
     readFile(
       new URL("../settings/soul-settings-page.tsx", import.meta.url),
       "utf8",

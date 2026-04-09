@@ -116,6 +116,15 @@ class MemoryOSSoulArtifactStore:
     def write_active_overlay(self, *, body: str, created_at: str) -> dict[str, object]:
         path = self._artifacts_dir / "soul" / "overlays" / "active_overlay.md"
         summary = _extract_summary(body)
+        existing = next(
+            (
+                row
+                for row in self._repository.list_memory_records(domain="soul")
+                if str(row["memory_id"]) == "soul_overlay_active_main"
+            ),
+            None,
+        )
+        created_value = str(existing.get("created_at") or created_at) if existing is not None else created_at
         record = {
             "memory_id": "soul_overlay_active_main",
             "domain": "soul",
@@ -129,11 +138,11 @@ class MemoryOSSoulArtifactStore:
             "title": "当前生效的 adaptive soul overlay",
             "summary": summary,
             "confidence": 0.9,
-            "created_at": created_at,
+            "created_at": created_value,
             "updated_at": created_at,
             "artifact_uri": "nion://memory-os/artifacts/soul/overlays/active_overlay.md",
             "provenance": {
-                "source_type": "governance_acceptance",
+                "source_type": "adaptive_overlay_runtime",
                 "generated_by": "soul_artifact_writer",
             },
         }
@@ -142,7 +151,10 @@ class MemoryOSSoulArtifactStore:
             layer="adaptive_overlay",
             summary=summary,
             created_at=created_at,
-            payload={"artifact_uri": record["artifact_uri"], "source_type": "artifact_write"},
+            payload={
+                "artifact_uri": record["artifact_uri"],
+                "source_type": "adaptive_overlay_runtime",
+            },
         )
         return self._write_artifact(path=path, body=body, record=record)
 

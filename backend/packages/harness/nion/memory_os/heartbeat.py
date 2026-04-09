@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from .candidates import MemoryOSCandidateQueue
+from .clock import utcnow_z
 from .consolidation import MemoryOSConsolidationEngine
 from .diary import MemoryOSDiaryWriter
 from .growth_orchestrator import run_growth_orchestrator
@@ -20,6 +21,7 @@ class MemoryOSHeartbeat:
     def run_micro_cycle(self) -> dict[str, object]:
         pending = self._queue.list_pending()
         result = self._consolidation.run_once()
+        now_z = utcnow_z()
         self._diary.write_entry(
             thread_id="heartbeat",
             summary="Memory OS micro cycle completed.",
@@ -28,7 +30,7 @@ class MemoryOSHeartbeat:
         growth_result = run_growth_orchestrator(
             repository=self._repository,
             base_dir=self._repository._db_path.parent.parent,
-            created_at="2026-04-06T00:00:00Z",
+            created_at=now_z,
             repeated_needs=[candidate.summary for candidate in pending],
             evidence_days=2 if len(pending) >= 3 else 1,
         )
@@ -37,5 +39,5 @@ class MemoryOSHeartbeat:
             "records_created": result["records_created"],
             "diary_written": True,
             "soul_journal_written": True,
-            "soul_proposal_created": bool(growth_result["soul"]["proposal_created"]),
+            "soul_overlay_updated": bool(growth_result["soul"]["overlay_updated"]),
         }

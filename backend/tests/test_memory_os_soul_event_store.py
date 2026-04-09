@@ -9,9 +9,9 @@ def test_repository_round_trips_soul_events(tmp_path: Path):
     repo = MemoryOSRepository(tmp_path / "memory-os" / "index.sqlite3")
     event = SoulEventRecord(
         event_id="soul_evt_01",
-        event_type="proposal_accepted",
-        memory_id="soul_prop_01",
-        summary="接受了减少鼓励式措辞的灵魂提案。",
+        event_type="adaptive_overlay_refreshed",
+        memory_id="soul_overlay_active_main",
+        summary="当前临时表达模式已更新。",
         created_at="2026-04-07T00:00:00Z",
     )
 
@@ -19,8 +19,8 @@ def test_repository_round_trips_soul_events(tmp_path: Path):
     rows = repo.list_soul_events()
 
     assert len(rows) == 1
-    assert rows[0].event_type == "proposal_accepted"
-    assert rows[0].memory_id == "soul_prop_01"
+    assert rows[0].event_type == "adaptive_overlay_refreshed"
+    assert rows[0].memory_id == "soul_overlay_active_main"
     assert rows[0].related_memory_id is None
     assert rows[0].metadata == {}
 
@@ -32,18 +32,18 @@ def test_repository_lists_latest_soul_events_first(tmp_path: Path):
     repo.save_soul_event(
         SoulEventRecord(
             event_id="soul_evt_01",
-            event_type="proposal_rejected",
-            memory_id="soul_prop_old",
-            summary="拒绝了旧提案。",
+            event_type="relationship_soul_refreshed",
+            memory_id="soul_rel_user_default",
+            summary="关系基调已刷新。",
             created_at="2026-04-06T00:00:00Z",
         )
     )
     repo.save_soul_event(
         SoulEventRecord(
             event_id="soul_evt_02",
-            event_type="overlay_rollback",
+            event_type="adaptive_overlay_refreshed",
             memory_id="soul_overlay_active_main",
-            summary="回退到了上一版稳定人格层。",
+            summary="当前临时表达模式已更新。",
             created_at="2026-04-07T00:00:00Z",
         )
     )

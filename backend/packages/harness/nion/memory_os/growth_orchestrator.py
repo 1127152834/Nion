@@ -57,4 +57,4 @@ def run_growth_orchestrator(
 
 
 def _should_project_growth_outputs(soul_result: dict[str, object]) -> bool:
-    return bool(soul_result.get("proposal_created"))
+    return bool(soul_result.get("overlay_updated"))

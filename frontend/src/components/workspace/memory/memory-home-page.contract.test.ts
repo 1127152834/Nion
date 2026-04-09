@@ -14,4 +14,5 @@ void test("memory home page only exposes user-facing memory content groups", asy
   assert.doesNotMatch(source, /Memory evidence/);
   assert.doesNotMatch(source, /Runtime trace/);
   assert.doesNotMatch(source, /检索控制台/);
+  assert.doesNotMatch(source, /SoulSummaryCard|Soul 设置摘要/);
 });

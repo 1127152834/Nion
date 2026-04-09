@@ -22,7 +22,7 @@ cd backend && \
 uv run pytest tests/test_memory_os_*.py tests/test_memory_router.py tests/test_memory_soul_router.py tests/test_automation_router.py -q
 
 cd frontend && \
-pnpm test:contracts -- src/core/test-runner.contract.test.ts src/components/workspace/memory/memory-home-page.contract.test.ts src/components/workspace/memory/memory-user-page.contract.test.ts src/components/workspace/memory/soul-summary-card.contract.test.ts src/components/workspace/memory/memory-retired-client-layers.contract.test.ts src/components/workspace/settings/soul-settings-page.contract.test.ts && \
+pnpm test:contracts -- src/core/test-runner.contract.test.ts src/components/workspace/memory/memory-home-page.contract.test.ts src/components/workspace/memory/memory-user-page.contract.test.ts src/components/workspace/memory/memory-retired-client-layers.contract.test.ts src/components/workspace/settings/soul-settings-page.contract.test.ts && \
 node --test src/core/navigation/desktop-routes.test.ts
 ```
 

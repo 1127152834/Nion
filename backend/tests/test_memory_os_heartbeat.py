@@ -35,7 +35,7 @@ def test_heartbeat_consumes_candidates_and_writes_diary(tmp_path: Path):
     assert report["diary_written"] is True
 
 
-def test_heartbeat_writes_soul_journal_and_only_proposes_on_threshold(tmp_path: Path):
+def test_heartbeat_writes_soul_journal_and_updates_overlay_on_threshold(tmp_path: Path):
     repo = MemoryOSRepository(tmp_path / "memory-os" / "index.sqlite3")
     queue = MemoryOSCandidateQueue(repo)
     for index in range(3):
@@ -63,5 +63,5 @@ def test_heartbeat_writes_soul_journal_and_only_proposes_on_threshold(tmp_path: 
     soul_records = repo.list_memory_records(domain="soul")
 
     assert report["soul_journal_written"] is True
-    assert report["soul_proposal_created"] is True
-    assert any(item["subtype"] == "proposal" for item in soul_records)
+    assert report["soul_overlay_updated"] is True
+    assert any(item["subtype"] == "adaptive_overlay" for item in soul_records)

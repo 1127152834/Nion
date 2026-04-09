@@ -29,18 +29,11 @@ from .projections import build_automation_projection
 from .procedures import create_procedure_draft
 from .relationship_soul import build_relationship_soul_summary, refresh_relationship_soul
 from .soul_artifacts import MemoryOSSoulArtifactStore, import_legacy_soul_file
-from .soul_governance import (
-    accept_soul_proposal,
-    promote_identity_narrative,
-    reject_soul_proposal,
-    rollback_soul_overlay,
-)
-from .soul_governance import list_soul_events
 from .soul_events import SoulEventRecord, record_soul_event
 from .soul_journal import write_soul_journal
 from .soul_reflection import reflect_soul_growth
 from .soul_runtime import compile_soul_runtime
-from .soul import create_soul_proposal
+from .soul_transitions import promote_identity_narrative
 
 __all__ = [
     "CandidateRecord",
@@ -75,15 +68,10 @@ __all__ = [
     "create_procedure_draft",
     "MemoryOSSoulArtifactStore",
     "import_legacy_soul_file",
-    "accept_soul_proposal",
     "promote_identity_narrative",
-    "reject_soul_proposal",
-    "rollback_soul_overlay",
-    "list_soul_events",
     "SoulEventRecord",
     "record_soul_event",
     "write_soul_journal",
     "reflect_soul_growth",
     "compile_soul_runtime",
-    "create_soul_proposal",
 ]
