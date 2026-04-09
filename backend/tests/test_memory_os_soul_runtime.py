@@ -4,11 +4,12 @@ from nion.memory_os.repository import MemoryOSRepository
 from nion.memory_os.soul_artifacts import MemoryOSSoulArtifactStore
 
 
-def test_soul_runtime_compiles_core_narrative_relationship_and_overlay(tmp_path: Path):
-    from nion.memory_os.soul_runtime import compile_soul_runtime
+def test_soul_runtime_compiles_core_narrative_relationship_and_overlay(monkeypatch, tmp_path: Path):
+    from nion.memory_os import soul_runtime
 
     repo = MemoryOSRepository(tmp_path / "memory-os" / "index.sqlite3")
     store = MemoryOSSoulArtifactStore(repository=repo, base_dir=tmp_path)
+    monkeypatch.setattr(soul_runtime, "utcnow_z", lambda: "2026-04-08T00:00:00Z", raising=False)
     store.write_core_soul(
         body="# Core Soul\n\n## Identity\n稳定、克制、长期主义。\n",
         created_at="2026-04-06T00:00:00Z",
@@ -40,7 +41,7 @@ def test_soul_runtime_compiles_core_narrative_relationship_and_overlay(tmp_path:
         }
     )
 
-    runtime = compile_soul_runtime(repo)
+    runtime = soul_runtime.compile_soul_runtime(repo)
 
     assert "<soul_runtime>" in runtime
     assert "稳定、克制、长期主义" in runtime

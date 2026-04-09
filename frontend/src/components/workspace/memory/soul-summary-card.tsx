@@ -4,10 +4,11 @@ import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { pathOfMemorySoul } from "@/core/navigation/desktop-routes";
 import { useSoulSummary } from "@/core/soul/hooks";
 import { describeSoulSummary } from "@/core/soul/presentation";
 
-const SOUL_CONSOLE_HREF = "/workspace/memory/growth?soul=console";
+const SOUL_CONSOLE_HREF = pathOfMemorySoul();
 
 export function SoulSummaryCard() {
   const { soulSummary } = useSoulSummary();

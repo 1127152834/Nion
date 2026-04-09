@@ -6,13 +6,14 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { pathOfMemorySoul } from "@/core/navigation/desktop-routes";
 import {
   useAcceptSoulProposal,
   useRejectSoulProposal,
   useSoulProposals,
 } from "@/core/soul/hooks";
 
-const SOUL_CONSOLE_HREF = "/workspace/memory/growth?soul=console";
+const SOUL_CONSOLE_HREF = pathOfMemorySoul();
 
 export function SoulProposalList(props: {
   onProposalEvent?: (event: {

@@ -62,8 +62,20 @@ export function pathOfMemoryGrowth() {
   return "/workspace/memory/growth";
 }
 
+export function pathOfMemorySoul() {
+  return "/workspace/memory/soul";
+}
+
 export function pathOfMemorySection(
-  section: "home" | "search" | "searchResults" | "user" | "history" | "facts" | "growth",
+  section:
+    | "home"
+    | "search"
+    | "searchResults"
+    | "user"
+    | "history"
+    | "facts"
+    | "growth"
+    | "soul",
 ) {
   switch (section) {
     case "home":
@@ -80,6 +92,8 @@ export function pathOfMemorySection(
       return pathOfMemoryFacts();
     case "growth":
       return pathOfMemoryGrowth();
+    case "soul":
+      return pathOfMemorySoul();
   }
 }
 

@@ -7,6 +7,7 @@ import {
   pathOfMemoryFacts,
   pathOfMemoryGrowth,
   pathOfMemoryHistory,
+  pathOfMemorySoul,
   pathOfMemorySearch,
   pathOfMemorySearchResults,
   pathOfMemoryUser,
@@ -23,6 +24,7 @@ void test("memory routes expose dedicated pages for split surfaces", () => {
   assert.equal(pathOfMemoryHistory(), "/workspace/memory/history");
   assert.equal(pathOfMemoryFacts(), "/workspace/memory/facts");
   assert.equal(pathOfMemoryGrowth(), "/workspace/memory/growth");
+  assert.equal(pathOfMemorySoul(), "/workspace/memory/soul");
 });
 
 void test("memory route components exist for each split surface", async () => {
@@ -54,6 +56,10 @@ void test("memory route components exist for each split surface", async () => {
     new URL("../../../app/workspace/memory/growth/page.tsx", import.meta.url),
     "utf8",
   );
+  const soulPageSource = await readFile(
+    new URL("../../../app/workspace/memory/soul/page.tsx", import.meta.url),
+    "utf8",
+  );
 
   assert.match(routePageSource, /MemoryHomePage/);
   assert.match(searchPageSource, /MemorySearchPage/);
@@ -62,9 +68,10 @@ void test("memory route components exist for each split surface", async () => {
   assert.match(historyPageSource, /MemoryHistoryPage/);
   assert.match(factsPageSource, /MemoryFactsPage/);
   assert.match(growthPageSource, /MemoryGrowthPage/);
+  assert.match(soulPageSource, /SoulConsolePage/);
 });
 
-void test("desktop renderer also wires the memory growth route", async () => {
+void test("desktop renderer also wires the memory growth and soul routes", async () => {
   const rendererSource = await readFile(
     new URL("../../../../../desktop/src/renderer/renderer-app.tsx", import.meta.url),
     "utf8",
@@ -72,4 +79,6 @@ void test("desktop renderer also wires the memory growth route", async () => {
 
   assert.match(rendererSource, /WorkspaceMemoryGrowthPage/);
   assert.match(rendererSource, /path="\/workspace\/memory\/growth"/);
+  assert.match(rendererSource, /WorkspaceMemorySoulPage/);
+  assert.match(rendererSource, /path="\/workspace\/memory\/soul"/);
 });

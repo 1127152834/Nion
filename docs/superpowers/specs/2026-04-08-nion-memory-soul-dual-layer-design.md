@@ -1143,6 +1143,12 @@ purge 后的系统行为：
   - taxonomy / FTS / link / vector 的 search fusion 契约已落地
   - embedded vector provider abstraction、fingerprint、rebuild-aware API 已落地
   - `/api/memory/settings`、embedding settings panel、runtime trace page 已存在
+- M4 已完成：
+  - 四层 soul runtime / governance 已 canonical 化
+  - `learning -> procedure / automation / soul reflection` projection 已落地且保留 provenance
+  - Soul Console 已成为独立产品面 `/workspace/memory/soul`
+  - `/api/memory/soul` 已成为正式聚合与治理接口
+  - legacy queue / updater 已明确降级为 compatibility-only shim，不再冒充主写入链
 
 ## 迁移铁律
 
@@ -1209,9 +1215,9 @@ Checkpoint 2026-04-09：
 
 说明：
 
-- 下述 M3 / M4 / M5 是该设计文档早期对 Milestone B 内部能力的拆分草案
-- 截至 2026-04-09，其中 canonical judge、governance UI、以及 v2-backed compatibility adapter 已随当前 M2 checkpoint 一并落地
-- 因此后续小节保留其能力分解价值，但不应再被解读为“这些能力尚未存在”
+- 下述 M3-M10 小节是本设计早期用于解释能力切换顺序的阶段化草案
+- 截至 2026-04-09，当前正式执行与验收单位已经收敛为 roadmap 中的四个 milestone：M1-M4
+- 其中旧文里的 M3-M10 能力，已经分别并入当前的 M2-M4 checkpoint 中，不应再被解读为“这些能力还未实现”
 
 ### M3：新 Extractor + Proposal + Judge 进入影子裁决
 
@@ -1279,6 +1285,13 @@ Checkpoint 2026-04-09：
 - 退役旧 extractor / queue / summary 主线
 - 保留必要 compatibility adapter
 - 清理废旧 schema / prompt / 假语义页面
+
+Checkpoint 2026-04-09：
+
+- legacy `MemoryMiddleware` 继续退出 lead-agent primary path
+- legacy queue / updater 已显式标记为 compatibility-only，而非隐性主链候选
+- Soul Console 不再通过 `growth?soul=console` 借道，而是独立路由与独立 API
+- 现有 `/api/memory` 与 `/api/memory/growth*` 外部契约继续保留，不做破坏式删除
 
 ## 验收指标
 

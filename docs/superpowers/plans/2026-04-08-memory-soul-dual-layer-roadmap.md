@@ -124,6 +124,16 @@ Do **not** compress multiple milestones into one coding burst.
 - procedure and automation projection are provenance-linked to canonical memory
 - legacy write/read internals are retired without breaking external routes
 
+**Checkpoint 2026-04-09:**
+
+- four-layer soul governance is live: canonical soul runtime, Soul Judge, relationship stance derivation, identity narrative promotion, and overlay rollback now run on canonical layers
+- Soul Console is a real surface: `/workspace/memory/soul` and `/api/memory/soul` exist as dedicated product and backend surfaces instead of piggybacking on a growth query-param detour
+- Soul Console governance is real: relationship stance edit, adaptive overlay edit, overlay rollback, and layer auto-evolution freeze all persist through canonical records, revisions, overrides, and soul events
+- `learning -> procedure / automation / soul reflection` projection chain is canonical: procedure and automation projections stay provenance-linked to canonical memory instead of legacy summaries
+- legacy memory internals are retired from the primary path: lead-agent middleware stays off `MemoryMiddleware`, while legacy queue/updater are now explicitly compatibility-only shims
+- compatibility routes remain stable: existing `/api/memory` and `/api/memory/growth*` contracts still operate during the cutover window
+- verification evidence: M4 backend verification passed on 2026-04-09 with `56 passed`; frontend memory/soul contract verification passed with `9 passed`
+
 ## Required Execution Order
 
 1. Milestone A

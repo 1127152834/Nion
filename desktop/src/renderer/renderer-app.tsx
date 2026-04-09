@@ -20,6 +20,7 @@ import WorkspaceMemoryHistoryPage from "@/app/workspace/memory/history/page";
 import WorkspaceMemoryRuntimeTracePage from "@/app/workspace/memory/runtime-trace/page";
 import WorkspaceMemorySearchPage from "@/app/workspace/memory/search/page";
 import WorkspaceMemorySearchResultsPage from "@/app/workspace/memory/search/results/page";
+import WorkspaceMemorySoulPage from "@/app/workspace/memory/soul/page";
 import WorkspaceMemoryUserPage from "@/app/workspace/memory/user/page";
 import NotebookPage from "@/app/workspace/notebook/page";
 import NotebookTrashPage from "@/app/workspace/notebook/trash/page";
@@ -191,6 +192,14 @@ export function DesktopRendererApp() {
                 element={
                   <WorkspaceRoute>
                     <WorkspaceMemoryGrowthPage />
+                  </WorkspaceRoute>
+                }
+              />
+              <Route
+                path="/workspace/memory/soul"
+                element={
+                  <WorkspaceRoute>
+                    <WorkspaceMemorySoulPage />
                   </WorkspaceRoute>
                 }
               />

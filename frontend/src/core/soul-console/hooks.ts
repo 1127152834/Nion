@@ -1,20 +1,71 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { useMemoryLedger } from "@/core/memory-ledger/hooks";
-
-import { loadSoulConsole } from "./api";
+import {
+  editSoulLayer,
+  freezeSoulLayerAutoEvolution,
+  loadSoulConsole,
+  rollbackSoulOverlay,
+} from "./api";
 
 export function useSoulConsole() {
-  const { ledger, isLoading: ledgerLoading, error: ledgerError } = useMemoryLedger();
   const query = useQuery({
-    queryKey: ["soul", "console", ledger.current_revisions.length],
-    queryFn: () => loadSoulConsole(ledger.current_revisions),
-    enabled: !ledgerLoading && !ledgerError,
+    queryKey: ["soul", "console"],
+    queryFn: () => loadSoulConsole(),
   });
 
   return {
     soulConsole: query.data ?? null,
-    isLoading: ledgerLoading || query.isLoading,
-    error: ledgerError ?? query.error,
+    isLoading: query.isLoading,
+    error: query.error,
   };
+}
+
+export function useEditSoulLayer() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      layer,
+      summary,
+    }: {
+      layer: "relationship_stance" | "adaptive_overlay";
+      summary: string;
+    }) => editSoulLayer(layer, summary),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["soul"] }),
+        queryClient.invalidateQueries({ queryKey: ["memory-growth"] }),
+      ]);
+    },
+  });
+}
+
+export function useRollbackSoulOverlay() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => rollbackSoulOverlay(),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["soul"] }),
+        queryClient.invalidateQueries({ queryKey: ["memory-growth"] }),
+      ]);
+    },
+  });
+}
+
+export function useFreezeSoulLayerAutoEvolution() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      layer,
+    }: {
+      layer:
+        | "constitution"
+        | "identity_narrative"
+        | "relationship_stance"
+        | "adaptive_overlay";
+    }) => freezeSoulLayerAutoEvolution(layer),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["soul"] });
+    },
+  });
 }

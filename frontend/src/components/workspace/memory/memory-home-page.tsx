@@ -9,6 +9,7 @@ import {
   pathOfMemoryGrowth,
   pathOfMemoryHistory,
   pathOfMemorySearch,
+  pathOfMemorySoul,
   pathOfMemoryUser,
 } from "@/core/navigation/desktop-routes";
 
@@ -47,7 +48,7 @@ export function MemoryHomePage() {
       description: "查看学习主题、方法草案和灵魂提案的独立详情页。",
     },
     {
-      href: "/workspace/memory/growth?soul=console",
+      href: pathOfMemorySoul(),
       title: "Soul Console",
       description:
         "查看 constitution、identity narrative、relationship stance、adaptive overlay 四层 surface 与当前 revision。",

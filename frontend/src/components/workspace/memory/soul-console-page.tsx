@@ -1,21 +1,80 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
+import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { pathOfMemory } from "@/core/navigation/desktop-routes";
-import { useSoulConsole } from "@/core/soul-console/hooks";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { pathOfMemory, pathOfMemoryGrowth } from "@/core/navigation/desktop-routes";
+import {
+  useEditSoulLayer,
+  useFreezeSoulLayerAutoEvolution,
+  useRollbackSoulOverlay,
+  useSoulConsole,
+} from "@/core/soul-console/hooks";
 import { formatTimeAgo } from "@/core/utils/datetime";
 
 import { MemoryBackLink } from "./memory-back-link";
 
 const MEMORY_LEDGER_HREF = "/workspace/memory/ledger";
-const MEMORY_GROWTH_HREF = "/workspace/memory/growth";
 
 export function SoulConsolePage() {
   const { soulConsole, isLoading, error } = useSoulConsole();
+  const editSoulLayer = useEditSoulLayer();
+  const rollbackOverlay = useRollbackSoulOverlay();
+  const freezeLayer = useFreezeSoulLayerAutoEvolution();
+  const [editingLayer, setEditingLayer] = useState<"relationship_stance" | "adaptive_overlay" | null>(null);
+  const [draftSummary, setDraftSummary] = useState("");
+
+  function openEditDialog(layerId: "relationship_stance" | "adaptive_overlay", summary: string) {
+    setEditingLayer(layerId);
+    setDraftSummary(summary);
+  }
+
+  async function handleSubmitEdit() {
+    if (!editingLayer) {
+      return;
+    }
+    try {
+      await editSoulLayer.mutateAsync({
+        layer: editingLayer,
+        summary: draftSummary.trim(),
+      });
+      toast.success("已更新 soul layer");
+      setEditingLayer(null);
+      setDraftSummary("");
+    } catch (mutationError) {
+      toast.error(mutationError instanceof Error ? mutationError.message : "更新 soul layer 失败");
+    }
+  }
+
+  async function handleRollbackOverlay() {
+    try {
+      await rollbackOverlay.mutateAsync();
+      toast.success("已回滚 overlay");
+    } catch (mutationError) {
+      toast.error(mutationError instanceof Error ? mutationError.message : "回滚 overlay 失败");
+    }
+  }
+
+  async function handleFreezeLayer(
+    layer:
+      | "constitution"
+      | "identity_narrative"
+      | "relationship_stance"
+      | "adaptive_overlay",
+  ) {
+    try {
+      await freezeLayer.mutateAsync({ layer });
+      toast.success("已冻结某层不再自动演化");
+    } catch (mutationError) {
+      toast.error(mutationError instanceof Error ? mutationError.message : "冻结自动演化失败");
+    }
+  }
 
   return (
     <main className="flex size-full min-h-0 flex-col gap-6 overflow-y-auto px-4 py-6 sm:px-6">
@@ -35,7 +94,7 @@ export function SoulConsolePage() {
           </div>
           <div className="flex flex-wrap gap-2">
             <Button type="button" size="sm" variant="outline" asChild>
-              <Link href={MEMORY_GROWTH_HREF}>查看灵魂提案</Link>
+              <Link href={pathOfMemoryGrowth()}>查看灵魂提案</Link>
             </Button>
             <Button type="button" size="sm" variant="outline" asChild>
               <Link href={MEMORY_LEDGER_HREF}>打开 Ledger</Link>
@@ -76,7 +135,7 @@ export function SoulConsolePage() {
             </div>
           </div>
           <div className="md:col-span-3 text-xs text-muted-foreground">
-            编辑入口已经预留：编辑 relationship stance、编辑 adaptive overlay。
+            这里支持编辑 relationship stance、编辑 adaptive overlay、回滚 recent overlay、冻结某层不再自动演化。
           </div>
         </CardContent>
       </Card>
@@ -141,8 +200,39 @@ export function SoulConsolePage() {
 
               {layer.editable ? (
                 <div className="flex flex-wrap gap-2">
-                  <Button type="button" size="sm" variant="outline" disabled>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() =>
+                      openEditDialog(
+                        layer.id as "relationship_stance" | "adaptive_overlay",
+                        layer.summary,
+                      )
+                    }
+                  >
                     {layer.actionLabel}
+                  </Button>
+                  {layer.id === "adaptive_overlay" ? (
+                    <Button type="button" size="sm" variant="outline" onClick={() => void handleRollbackOverlay()}>
+                      回滚 recent overlay
+                    </Button>
+                  ) : null}
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() =>
+                      void handleFreezeLayer(
+                        layer.id as
+                          | "constitution"
+                          | "identity_narrative"
+                          | "relationship_stance"
+                          | "adaptive_overlay",
+                      )
+                    }
+                  >
+                    {layer.isFrozen ? "已冻结自动演化" : "冻结某层不再自动演化"}
                   </Button>
                 </div>
               ) : null}
@@ -150,6 +240,39 @@ export function SoulConsolePage() {
           </Card>
         ))}
       </section>
+
+      <Dialog open={editingLayer !== null} onOpenChange={(open) => !open && setEditingLayer(null)}>
+        <DialogContent className="sm:max-w-[560px]">
+          <DialogHeader>
+            <DialogTitle>
+              {editingLayer === "relationship_stance"
+                ? "编辑 relationship stance"
+                : "编辑 adaptive overlay"}
+            </DialogTitle>
+            <DialogDescription>
+              这里写入的是当前 canonical soul layer，而不是一次性临时提示词补丁。
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            value={draftSummary}
+            onChange={(event) => setDraftSummary(event.target.value)}
+            placeholder="输入新的 soul layer 描述"
+            className="min-h-32"
+          />
+          <DialogFooter className="gap-2 sm:justify-end">
+            <Button type="button" variant="outline" onClick={() => setEditingLayer(null)}>
+              取消
+            </Button>
+            <Button
+              type="button"
+              onClick={() => void handleSubmitEdit()}
+              disabled={!draftSummary.trim() || editSoulLayer.isPending}
+            >
+              保存
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }
