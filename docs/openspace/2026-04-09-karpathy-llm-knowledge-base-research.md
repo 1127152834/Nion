@@ -259,6 +259,113 @@ Nion 不应该把现有 notebook 直接改造成一个新的“memory bucket”�
 
 只有做到这一步，Nion 才算从“带检索的 notebook”进化成“会持续累积的 notebook knowledge base”。
 
+## `nashsu/llm_wiki` 对 Nion Notebook 升级的直接启发
+
+如果目标不是“把别人的 app 搬进来”，而是学习它来优化 Nion 自己的笔记/知识模块，那我认为它最值得借鉴的有两块：
+
+1. Obsidian 兼容的 markdown 知识对象模型
+2. 知识图谱与图谱驱动检索
+
+### Obsidian 兼容 markdown：真正值得抄的是什么
+
+`nashsu/llm_wiki` 最有价值的，不是它的 Tauri 壳，而是它把知识库 project 初始化成一套非常清晰的本地目录骨架：
+
+- `raw/sources`
+- `raw/assets`
+- `wiki/entities`
+- `wiki/concepts`
+- `wiki/sources`
+- `wiki/queries`
+- `wiki/comparisons`
+- `wiki/synthesis`
+- `schema.md`
+- `purpose.md`
+- `wiki/index.md`
+- `wiki/log.md`
+- `.obsidian/app.json`
+- `.obsidian/appearance.json`
+- `.obsidian/core-plugins.json`
+
+这对 Nion 有四个直接启发：
+
+1. **page type 应该是一级对象**
+   不要让所有东西都只是“普通 note”，然后靠 tag 猜它是概念、来源还是综合页。`entity / concept / source / query / comparison / synthesis` 这种一级对象划分，对 agent 维护和检索都更友好。
+
+2. **`purpose.md` 应该存在**
+   现在 Nion 的 notebook 更像内容容器，没有一个显式的“这个知识库为什么存在、要回答哪些问题、当前 thesis 是什么”的方向文件。这个文件对长期知识库非常重要。
+
+3. **`index.md` 和 `log.md` 不该只是副产物**
+   它们应该是 agent 和用户都依赖的一等工件。Nion 现在更像 tree + file list，未来如果真要做 knowledge base，这两个文件应该成为默认入口。
+
+4. **Obsidian compatibility 应该是主动输出，不是被动兼容**
+   `nashsu/llm_wiki` 会直接生成 `.obsidian` 配置，这点很重要。Nion 如果未来强调本地 Markdown 知识库，也应该把“Obsidian 可直接打开且体验正确”当成产品能力，而不是文档说明。
+
+### 知识图谱：最该抄的是 relevance model，不是图长什么样
+
+`nashsu/llm_wiki` 的 README 里最有价值的图谱部分，其实不是 sigma.js 画布，而是它把图谱相关性定义成了一个模型，而不是单纯把 `[[wikilink]]` 画出来：
+
+- direct link
+- source overlap
+- Adamic-Adar
+- type affinity
+
+这对 Nion 的意义非常大，因为你们现在已经有：
+
+- note / asset
+- chunk retrieval
+- source_relative_path
+- runtime continuity injection
+
+如果把上面这几类信号建成 relevance model，图谱就不只是右侧一个可视化组件，而能反过来驱动 retrieval 和 context assembly。
+
+对 Nion 最值得吸收的点是：
+
+1. **source overlap**
+   这点和现有 notebook / asset / chunk 关系天然兼容，很适合先做
+
+2. **type affinity**
+   前提是 Nion 先把知识库 page type 明确化
+
+3. **graph-driven retrieval**
+   图谱不是展示层，而是 retrieval 排序层的一部分
+
+### 对 Nion 来说，该抄什么、不该抄什么
+
+**该抄的：**
+
+- 目录级 page type 设计
+- `schema.md + purpose.md + index.md + log.md`
+- `.obsidian` 配置输出
+- graph relevance model
+- 把知识库视为 vault / project 的对象意识
+
+**不该直接抄的：**
+
+- 它的独立 Tauri 应用壳
+- 它的 project open/create 主流程
+- 它以文件系统命令为中心的整体架构
+- 它完整的三栏产品界面
+
+原因很简单：Nion 已经有自己的 runtime、workspace、thread、assistant、continuity、artifact 体系，真正缺的是知识对象模型和图谱/检索策略，不是另一个桌面壳。
+
+### 我对 Nion 的具体建议
+
+如果你的目标是“优化我们的笔记模块，特别是兼容 Obsidian 的 md 模块，还有知识图谱”，那我认为下一步不应该表述成“删掉 Notebook，换成别人的项目”，而应该表述成：
+
+1. **Notebook Vault 重构**
+   把当前 notebook 从“任意 note 树”重构成“raw sources + compiled knowledge pages”的双层 vault
+
+2. **Obsidian Compatibility Layer**
+   主动输出 `.obsidian` 配置、attachment 路径、link 风格、隐藏目录策略
+
+3. **Knowledge Page Types**
+   为 Nion 新增 `entity / concept / source / query / comparison / synthesis / overview`
+
+4. **Graph + Retrieval Upgrade**
+   图谱不只是 view；图谱 relevance 要进入 assistant 的 context assembly
+
+换句话说，`nashsu/llm_wiki` 对 Nion 的真正价值，不是“替代 Notebook”，而是帮助我们把 Notebook 升级成 **Obsidian-compatible knowledge vault + graph-aware retrieval substrate**。
+
 ## 交付物
 
 完整研究报告已输出到：
