@@ -41,6 +41,8 @@ skills/custom/*
 docs/*
 !docs/test/
 !docs/test/**
+!docs/reviews/
+!docs/reviews/**
 !docs/project/
 !docs/project/**
 !docs/superpowers/
@@ -75,3 +77,4 @@ desktop/renderer-dist/
 backend/tmux-client-*.log
 backend/tmux-server-*.log
 docs/**/.DS_Store
+.omx/
