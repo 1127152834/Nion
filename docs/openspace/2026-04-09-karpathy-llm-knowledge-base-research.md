@@ -227,6 +227,38 @@ Nion 不应该把现有 notebook 直接改造成一个新的“memory bucket”�
 
 如果再往前走一步，下一份真正应该写的不是更多研究笔记，而是一份专门的 `Nion Notebook Knowledge Base Upgrade Design` 设计稿。
 
+## 接口级验证补充
+
+为了避免这个判断只停留在“看了几个 service 文件后的印象”，我又顺着 router、prompt、middleware、thread runtime 走了一圈，结果进一步收敛了结论。
+
+先看 `openviking` 的公开能力面。当前 router 只暴露了三类 notebook 接口：
+
+- `POST /api/openviking/notebook/reindex`
+- `GET /api/openviking/notebook/search`
+- `GET /api/openviking/notebook/context-preview`
+
+而对应测试 `test_openviking_router_can_reindex_and_search_notebook` 验证的也是“note -> reindex -> chunk search -> context preview markdown” 这条链。这里完全没有 compiled topic page、concept page、synthesis page、save-back、lint、index rebuild 之类能力。这再次证明当前 OpenViking 在 Nion 里是 notebook retrieval substrate，不是知识编译层。
+
+再看 notebook assistant 的边界。前端 `frontend/src/core/notebook-assistant/api.ts` 只有创建 / 恢复 note-scoped session 和 rewrite request 的封装，没有任何 knowledge-base 级动作。后端 prompt contract 更直接：`test_notebook_assistant_prompt_with_current_note_requires_note_grounded_answers` 明确要求“必须以当前笔记内容为依据”，overlay 里也把 assistant 定义成 `笔记助手`，并把 `<current_notebook_note>` 作为核心上下文块。这说明 notebook assistant 的产品定位现在就是“当前 note 的助手”，而不是“管理整个 notebook knowledge space 的 wiki maintainer”。
+
+最后看 continuity path。`ContinuityMiddleware` 会把 `MemoryOSContextAssembler` 产出的 memory block 和 `RuntimeNotebookRetriever` 产出的 notebook chunk hits 合并成 `<continuity_context>` 注入主 agent。也就是说，当前跨 note 能力的本质仍然是 retrieval-time context injection，而不是 compile-time knowledge maintenance。它能帮助 agent 找到相关 note 片段，但不会主动维护 topic synthesis、cross-reference、coverage、orphan detection、save-back 这些 LLM Wiki 的核心机制。
+
+这组接口级证据把前面的架构判断进一步钉死了：
+
+- 当前 Nion notebook 已经有 source layer
+- 已经有 retrieval layer
+- 已经有 note-scoped assistant layer
+- 但仍然缺少 compiled knowledge layer 和其对应的 workflow layer
+
+所以，面向 Nion 的真正升级动作不该是“再给 notebook assistant 多喂一点 chunk”，而应该是：
+
+1. 新增 notebook knowledge compile API
+2. 新增 compiled page storage / projection
+3. 新增 wiki-aware retrieval strategy
+4. 新增 query-save / lint / index rebuild 这类 workflow actions
+
+只有做到这一步，Nion 才算从“带检索的 notebook”进化成“会持续累积的 notebook knowledge base”。
+
 ## 交付物
 
 完整研究报告已输出到：
