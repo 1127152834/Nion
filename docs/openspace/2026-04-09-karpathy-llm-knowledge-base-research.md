@@ -366,6 +366,29 @@ Nion 不应该把现有 notebook 直接改造成一个新的“memory bucket”�
 
 换句话说，`nashsu/llm_wiki` 对 Nion 的真正价值，不是“替代 Notebook”，而是帮助我们把 Notebook 升级成 **Obsidian-compatible knowledge vault + graph-aware retrieval substrate**。
 
+### 新鲜源码级验证
+
+这轮我又把它的图谱和 Obsidian 兼容实现往下看了一层，结论比 README 级判断更硬。
+
+第一，图谱确实不是“把 wikilink 画出来”这么简单。`src/lib/graph-relevance.ts` 明确把相关性建模成 4 个信号的加权和：
+
+- direct link
+- source overlap
+- common neighbor（Adamic-Adar 变体）
+- type affinity
+
+而且它直接利用 frontmatter 里的 `sources[]` 字段来做 source overlap，这一点对 Nion 特别重要，因为我们现在本来就有 note / asset / source_relative_path / chunk projection 这些关系信号。`src/lib/wiki-graph.ts` 再把这个 relevance model 真正接到图谱边权上，而不是只拿它做文档说明。也就是说，这个项目在图谱上最值得抄的是“相关性模型和 retrieval thinking”，不是 sigma 画布本身。
+
+第二，Obsidian 兼容也不是停留在 README 口号。`project.rs` 在 project 初始化时直接写出：
+
+- `.obsidian/app.json`
+- `.obsidian/appearance.json`
+- `.obsidian/core-plugins.json`
+
+同时固定了 attachment 路径、隐藏目录策略、wikilink 相关配置。这种做法非常值得 Nion 学，因为它把“兼容 Obsidian”从被动兼容变成主动生成正确环境。
+
+第三，这也再次说明我们对它的取舍判断是对的：**该吸收的是 vault schema、frontmatter discipline、sources[]、图谱 relevance、Obsidian config 输出；不该吸收的是它的独立 app shell。**
+
 ## 交付物
 
 完整研究报告已输出到：
