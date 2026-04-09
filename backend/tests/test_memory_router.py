@@ -45,6 +45,18 @@ def test_gateway_docs_and_router_surface_match() -> None:
     assert "/api/memory" in routes
 
 
+def test_memory_route_returns_grouped_user_facing_payload(monkeypatch, tmp_path) -> None:
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    app = FastAPI()
+    app.include_router(memory.router)
+
+    with TestClient(app) as client:
+        response = client.get("/api/memory")
+
+    assert response.status_code == 200
+    assert response.json() == _sample_user_facing_memory()
+
+
 def test_clear_memory_route_returns_cleared_memory() -> None:
     app = FastAPI()
     app.include_router(memory.router)
@@ -196,10 +208,86 @@ def test_memory_router_reads_memory_os_projection_without_legacy_updater(
         {
             "id": "user_profile.work_context",
             "content": "负责财务 BP",
-            "source_label": "用户画像",
+            "source_label": "工作语境",
             "updated_at": "2026-04-07T00:00:00Z",
-            "reason": "稳定的工作角色与职责背景。",
+            "reason": "用户画像中的工作语境长期有效，适合作为稳定背景记忆展示。",
             "related_refs": [],
+        }
+    ]
+
+
+def test_memory_router_maps_fact_memories_to_user_facing_items(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    repo = MemoryOSRepository(tmp_path / "memory-os" / "index.sqlite3")
+    repo.save_memory_record(
+        {
+            "memory_id": "fact_preference_1",
+            "domain": "user_model",
+            "subtype": "preference",
+            "owner_type": "agent",
+            "scope": "user",
+            "memory_type": "semantic",
+            "subject_id": "user:default",
+            "status": "active",
+            "summary": "用户偏好先给结论，再补背景。",
+            "confidence": 0.91,
+            "created_at": "2026-04-07T09:00:00Z",
+            "updated_at": "2026-04-07T10:00:00Z",
+            "provenance": {"source_type": "thread", "source_ref": "thread:test"},
+        }
+    )
+    repo.save_memory_node(
+        {
+            "memory_id": "fact_preference_1",
+            "canonical_key": "user_model:fact:preference_1",
+            "owner_type": "agent",
+            "scope": "user",
+            "node_type": "user_model_fact",
+            "status": "active",
+            "summary": "用户偏好先给结论，再补背景。",
+            "created_at": "2026-04-07T09:00:00Z",
+            "updated_at": "2026-04-07T10:00:00Z",
+            "metadata": {
+                "domain": "user_model",
+                "subtype": "preference",
+                "category": "preference",
+                "kind": "fact",
+                "confidence": 0.91,
+                "source": "thread:test",
+                "created_at": "2026-04-07T09:00:00Z",
+            },
+        }
+    )
+    repo.append_memory_revision(
+        memory_id="fact_preference_1",
+        summary="用户偏好先给结论，再补背景。",
+        evidence_ref=None,
+        created_at="2026-04-07T09:00:00Z",
+        payload={
+            "domain": "user_model",
+            "subtype": "preference",
+            "category": "preference",
+            "kind": "fact",
+            "confidence": 0.91,
+            "source": "thread:test",
+        },
+    )
+
+    with TestClient(create_app()) as client:
+        response = client.get("/api/memory")
+
+    assert response.status_code == 200
+    assert response.json()["fact_memories"] == [
+        {
+            "id": "fact_preference_1",
+            "content": "用户偏好先给结论，再补背景。",
+            "source_label": "偏好事实",
+            "updated_at": "2026-04-07T09:00:00Z",
+            "reason": "来自长期对话沉淀的稳定事实记忆。",
+            "related_refs": ["thread:test"],
         }
     ]
 

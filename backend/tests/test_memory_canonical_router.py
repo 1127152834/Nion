@@ -55,6 +55,8 @@ def test_memory_canonical_router_exposes_user_surface(monkeypatch, tmp_path: Pat
         response = client.get("/api/memory-canonical/user")
 
     assert response.status_code == 200
+    assert "user_profile" not in response.json()
+    assert "fact_memories" not in response.json()
     assert response.json()["workContext"]["summary"] == "负责财务 BP"
 
 
@@ -75,6 +77,7 @@ def test_memory_canonical_router_exposes_history_surface(monkeypatch, tmp_path: 
         response = client.get("/api/memory-canonical/history")
 
     assert response.status_code == 200
+    assert "long_term_background" not in response.json()
     assert response.json()["recentMonths"]["summary"] == "最近一段时间主要在做记忆重构。"
 
 
@@ -122,6 +125,7 @@ def test_memory_canonical_router_exposes_facts_surface(monkeypatch, tmp_path: Pa
         response = client.get("/api/memory-canonical/facts")
 
     assert response.status_code == 200
+    assert "user_profile" not in response.json()
     assert response.json()["facts"] == [
         {
             "id": "mem:user:fact",
