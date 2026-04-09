@@ -351,7 +351,7 @@ class MemoryUpdater:
         Args:
             model_name: Optional model name to use. If None, uses config or default.
             memory_storage: Optional storage backend override for runtime-specific
-                memory domains such as OpenViking embedded memory-state.json.
+                memory domains.
         """
         self._model_name = model_name
         self._memory_storage = memory_storage

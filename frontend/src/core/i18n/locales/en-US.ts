@@ -759,8 +759,8 @@ export const enUS: Translations = {
           title: "Memory Provider",
           description:
             "Choose which storage mode keeps long-term memory data on disk.",
-          modeSummary: "OpenViking modes: embedded / remote",
-          activeModeLabel: "Active OpenViking mode",
+          modeSummary: "Current storage mode",
+          activeModeLabel: "Active mode",
         },
         console: {
           title: "Memory Console",
@@ -806,22 +806,6 @@ export const enUS: Translations = {
           "This is the memory Nion has currently organized and will keep updating over time.",
         threadLabel: "Thread",
         agentLabel: "Agent",
-      },
-      openviking: {
-        title: "Embedded OpenViking Notebook Resources",
-        description:
-          "Internal operator surface for rebuilding the notebook resource index and inspecting embedded OpenViking retrieval results.",
-        previewTitle: "Preview context",
-        reindexButton: "Reindex notebook",
-        reindexingButton: "Reindexing notebook...",
-        reindexResult: "Indexed {count} notes in this run",
-        searchPlaceholder: "Search notebook resources",
-        searchButton: "Search notebook resources",
-        idle: "Enter a keyword to search the embedded OpenViking notebook resource layer.",
-        empty: "No matching notebook resources found.",
-        loadFailed: "Notebook resource results are temporarily unavailable.",
-        headingLabel: "Heading path",
-        rangeLabel: "Character range",
       },
       markdown: {
         overview: "Overview",
@@ -1065,7 +1049,7 @@ export const enUS: Translations = {
       notRecordedYet: "Not recorded yet",
       futureHooks: "Future hooks",
       futureHookLabels: {
-        openvikingArchive: "OpenViking archive",
+        knowledgeArchive: "Knowledge archive",
         relationshipAwareRoutines: "Relationship-aware routines",
         selfGrowthSuggestions: "Self-growth suggestions",
       },
@@ -1515,7 +1499,7 @@ export const enUS: Translations = {
         memoryTitle: "Memory and context",
         memoryValue: "Long-term preference retention",
         memoryProof:
-          "Supports workspace/thread context and OpenViking governance flows.",
+          "Supports workspace/thread context and memory governance flows.",
         ecosystemTitle: "Tools and plugin ecosystem",
         ecosystemValue: "Extensible and verifiable capability",
         ecosystemProof:

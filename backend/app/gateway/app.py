@@ -115,10 +115,6 @@ This gateway provides custom endpoints for models, MCP configuration, skills, an
                 "description": "Manage project work containers, execution plans, project threads, and project timeline state",
             },
             {
-                "name": "openviking",
-                "description": "Embedded OpenViking notebook ingest and retrieval surfaces",
-            },
-            {
                 "name": "recall",
                 "description": "Search transcript recall results independently from structured memory",
             },

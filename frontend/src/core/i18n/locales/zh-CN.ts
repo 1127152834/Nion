@@ -729,8 +729,8 @@ export const zhCN: Translations = {
           title: "记忆提供者",
           description:
             "选择当前用于落盘长期记忆数据的存储模式。",
-          modeSummary: "OpenViking 模式：embedded / remote",
-          activeModeLabel: "当前 OpenViking 模式",
+          modeSummary: "当前存储模式",
+          activeModeLabel: "当前模式",
         },
         console: {
           title: "记忆控制台",
@@ -774,22 +774,6 @@ export const zhCN: Translations = {
         overviewDescription: "这是 Nion 当前整理出的长期记忆，会随着你的对话持续更新。",
         threadLabel: "线程",
         agentLabel: "智能体",
-      },
-      openviking: {
-        title: "嵌入式 OpenViking 笔记资源",
-        description:
-          "内部操作面板，用于重建 notebook 资源索引并检查嵌入式 OpenViking 的检索结果。",
-        previewTitle: "预览上下文",
-        reindexButton: "重新索引笔记",
-        reindexingButton: "正在重新索引...",
-        reindexResult: "本次已索引 {count} 篇笔记",
-        searchPlaceholder: "搜索笔记资源",
-        searchButton: "搜索笔记资源",
-        idle: "输入关键词后，从嵌入式 OpenViking notebook 资源层中检索。",
-        empty: "没有找到匹配的笔记资源。",
-        loadFailed: "笔记资源结果暂时加载失败。",
-        headingLabel: "标题路径",
-        rangeLabel: "字符范围",
       },
       markdown: {
         overview: "概览",
@@ -1020,7 +1004,7 @@ export const zhCN: Translations = {
       notRecordedYet: "尚未记录",
       futureHooks: "未来钩子",
       futureHookLabels: {
-        openvikingArchive: "OpenViking 归档",
+        knowledgeArchive: "知识归档",
         relationshipAwareRoutines: "关系感知例程",
         selfGrowthSuggestions: "自成长建议",
       },
@@ -1459,7 +1443,7 @@ export const zhCN: Translations = {
         memoryTitle: "记忆与上下文",
         memoryValue: "长期偏好持续沉淀",
         memoryProof:
-          "支持 workspace/thread 级上下文与 OpenViking 记忆治理能力。",
+          "支持 workspace/thread 级上下文与记忆治理能力。",
         ecosystemTitle: "工具与插件生态",
         ecosystemValue: "能力可扩展、可验证",
         ecosystemProof:

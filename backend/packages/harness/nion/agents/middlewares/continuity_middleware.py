@@ -10,8 +10,6 @@ from langgraph.runtime import Runtime
 from nion.config.paths import Paths, get_paths
 from nion.memory_os.context_assembler import MemoryOSContextAssembler
 from nion.memory_os.repository import MemoryOSRepository
-from nion.openviking import build_continuity_context_block, classify_retrieval_intent
-from nion.openviking.runtime_retriever import RuntimeNotebookRetriever
 from nion.recall.local_archive import LocalRecallArchive
 
 
@@ -20,7 +18,6 @@ class ContinuityMiddleware(AgentMiddleware[AgentState]):
         super().__init__()
         self._paths = Paths(base_dir) if base_dir else get_paths()
         self._archive = LocalRecallArchive(self._paths.recall_db_file)
-        self._notebook_retriever = RuntimeNotebookRetriever(base_dir=base_dir)
         self._memory_repo = MemoryOSRepository(self._paths.memory_os_index_db_file)
 
     def before_model(self, state: AgentState, runtime: Runtime) -> dict | None:
@@ -42,20 +39,18 @@ class ContinuityMiddleware(AgentMiddleware[AgentState]):
         latest_content = str(latest_human.content)
         memory_pack = MemoryOSContextAssembler(self._memory_repo).build_continuity_memory_pack()
         recall_results = self._search_candidates(thread_id, latest_content)
-        notebook_items = self._search_notebook_context_items(latest_content)
         memory_block = memory_pack.to_prompt_block()
-        if not recall_results and not notebook_items and not memory_block:
+        if not recall_results and not memory_block:
             return None
 
         blocks: list[str] = []
         if memory_block:
             blocks.append(memory_block)
-        if recall_results or notebook_items:
+        if recall_results:
             blocks.append(
-                build_continuity_context_block(
-                    recall_results=recall_results,
-                    notebook_items=notebook_items,
-                )
+                "<continuity_context>\n"
+                + "\n".join(f"- {row.snippet}" for row in recall_results)
+                + "\n</continuity_context>"
             )
 
         return {
@@ -81,30 +76,3 @@ class ContinuityMiddleware(AgentMiddleware[AgentState]):
             if results:
                 return results
         return []
-
-    def _search_notebook_context_items(self, content: str):
-        intent = classify_retrieval_intent(content)
-        if not intent.search_notebook:
-            return []
-        queries = self._notebook_queries(content)
-        pack = None
-        for query in queries:
-            candidate = self._notebook_retriever.search(query, limit=3)
-            if candidate.items:
-                pack = candidate
-                break
-        if pack is None:
-            return []
-        return pack.items
-
-    def _notebook_queries(self, content: str) -> list[str]:
-        raw = content.strip()
-        tokens = [token for token in re.findall(r"[A-Za-z0-9_]+", raw.lower()) if len(token) >= 3]
-        candidates: list[str] = []
-        if raw:
-            candidates.append(raw)
-        if tokens:
-            deduped = list(dict.fromkeys(tokens))
-            candidates.append(" ".join(deduped))
-            candidates.extend(reversed(deduped))
-        return candidates
