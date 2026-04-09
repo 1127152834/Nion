@@ -12,14 +12,6 @@ import AutomationRemindersPage from "@/app/workspace/automation/reminders/page";
 import AutomationTasksPage from "@/app/workspace/automation/tasks/page";
 import BridgePage from "@/app/workspace/bridge/page";
 import WorkspaceMemoryPage from "@/app/workspace/memory/page";
-import WorkspaceMemoryFactsPage from "@/app/workspace/memory/facts/page";
-import WorkspaceMemoryGrowthPage from "@/app/workspace/memory/growth/page";
-import WorkspaceMemoryHistoryPage from "@/app/workspace/memory/history/page";
-import WorkspaceMemoryRuntimeTracePage from "@/app/workspace/memory/runtime-trace/page";
-import WorkspaceMemorySearchPage from "@/app/workspace/memory/search/page";
-import WorkspaceMemorySearchResultsPage from "@/app/workspace/memory/search/results/page";
-import WorkspaceMemorySoulPage from "@/app/workspace/memory/soul/page";
-import WorkspaceMemoryUserPage from "@/app/workspace/memory/user/page";
 import NotebookPage from "@/app/workspace/notebook/page";
 import NotebookTrashPage from "@/app/workspace/notebook/trash/page";
 import ToolPolicyPage from "@/app/workspace/tool-policy/page";
@@ -164,70 +156,6 @@ export function DesktopRendererApp() {
                 element={
                   <WorkspaceRoute>
                     <WorkspaceMemoryPage />
-                  </WorkspaceRoute>
-                }
-              />
-              <Route
-                path="/workspace/memory/search"
-                element={
-                  <WorkspaceRoute>
-                    <WorkspaceMemorySearchPage />
-                  </WorkspaceRoute>
-                }
-              />
-              <Route
-                path="/workspace/memory/search/results"
-                element={
-                  <WorkspaceRoute>
-                    <WorkspaceMemorySearchResultsPage />
-                  </WorkspaceRoute>
-                }
-              />
-              <Route
-                path="/workspace/memory/user"
-                element={
-                  <WorkspaceRoute>
-                    <WorkspaceMemoryUserPage />
-                  </WorkspaceRoute>
-                }
-              />
-              <Route
-                path="/workspace/memory/history"
-                element={
-                  <WorkspaceRoute>
-                    <WorkspaceMemoryHistoryPage />
-                  </WorkspaceRoute>
-                }
-              />
-              <Route
-                path="/workspace/memory/facts"
-                element={
-                  <WorkspaceRoute>
-                    <WorkspaceMemoryFactsPage />
-                  </WorkspaceRoute>
-                }
-              />
-              <Route
-                path="/workspace/memory/growth"
-                element={
-                  <WorkspaceRoute>
-                    <WorkspaceMemoryGrowthPage />
-                  </WorkspaceRoute>
-                }
-              />
-              <Route
-                path="/workspace/memory/soul"
-                element={
-                  <WorkspaceRoute>
-                    <WorkspaceMemorySoulPage />
-                  </WorkspaceRoute>
-                }
-              />
-              <Route
-                path="/workspace/memory/runtime-trace"
-                element={
-                  <WorkspaceRoute>
-                    <WorkspaceMemoryRuntimeTracePage />
                   </WorkspaceRoute>
                 }
               />
