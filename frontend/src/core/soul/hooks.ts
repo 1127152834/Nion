@@ -16,7 +16,7 @@ export function useSoulSummary() {
   return { soulSummary: data ?? null, isLoading, error, hasSoulSurface: Boolean(data) };
 }
 
-export function useSoulProposals() {
+export function useSoulProposalsV2() {
   const { data, isLoading, error } = useQuery({
     queryKey: ["soul", "proposals"],
     queryFn: () => loadSoulProposals(),
@@ -42,7 +42,7 @@ export function useSoulEvents() {
   };
 }
 
-export function useAcceptSoulProposal() {
+export function useAcceptSoulProposalV2() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (memoryId: string) => acceptSoulProposal(memoryId),
@@ -55,7 +55,7 @@ export function useAcceptSoulProposal() {
   });
 }
 
-export function useRejectSoulProposal() {
+export function useRejectSoulProposalV2() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (memoryId: string) => rejectSoulProposal(memoryId),
@@ -67,3 +67,7 @@ export function useRejectSoulProposal() {
     },
   });
 }
+
+export const useSoulProposals = useSoulProposalsV2;
+export const useAcceptSoulProposal = useAcceptSoulProposalV2;
+export const useRejectSoulProposal = useRejectSoulProposalV2;

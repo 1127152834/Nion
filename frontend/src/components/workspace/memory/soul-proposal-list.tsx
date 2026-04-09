@@ -8,9 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { pathOfMemorySoul } from "@/core/navigation/desktop-routes";
 import {
-  useAcceptSoulProposal,
-  useRejectSoulProposal,
-  useSoulProposals,
+  useAcceptSoulProposalV2,
+  useRejectSoulProposalV2,
+  useSoulProposalsV2,
 } from "@/core/soul/hooks";
 
 const SOUL_CONSOLE_HREF = pathOfMemorySoul();
@@ -21,9 +21,9 @@ export function SoulProposalList(props: {
     lastRejectedProposalId: string | null;
   }) => void;
 }) {
-  const { proposals } = useSoulProposals();
-  const accept = useAcceptSoulProposal();
-  const reject = useRejectSoulProposal();
+  const { proposals } = useSoulProposalsV2();
+  const accept = useAcceptSoulProposalV2();
+  const reject = useRejectSoulProposalV2();
   const [lastAcceptedProposalId, setLastAcceptedProposalId] = useState<string | null>(null);
   const [lastRejectedProposalId, setLastRejectedProposalId] = useState<string | null>(null);
 

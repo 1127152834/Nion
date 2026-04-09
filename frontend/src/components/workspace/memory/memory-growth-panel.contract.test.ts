@@ -8,10 +8,11 @@ void test("memory growth panel exposes status-aware growth governance controls",
     "utf8",
   );
 
-  assert.match(source, /useFreezeMemoryGrowthItem/);
-  assert.match(source, /useRejectMemoryGrowthItem/);
-  assert.match(source, /useAcceptMemoryGrowthItem/);
-  assert.match(source, /useResumeMemoryGrowthItem/);
+  assert.match(source, /useMemoryGrowthV2/);
+  assert.match(source, /useFreezeMemoryGrowthItemV2/);
+  assert.match(source, /useRejectMemoryGrowthItemV2/);
+  assert.match(source, /useAcceptMemoryGrowthItemV2/);
+  assert.match(source, /useResumeMemoryGrowthItemV2/);
   assert.match(source, /接受/);
   assert.match(source, /冻结/);
   assert.match(source, /恢复/);
