@@ -50,6 +50,11 @@ test("desktop renderer wires the multi-page automation workspace routes", () => 
   assert.match(source, /path="\/workspace\/automation\/reminders\/:jobId"/);
   assert.match(source, /path="\/workspace\/automation\/tasks"/);
   assert.match(source, /path="\/workspace\/automation\/tasks\/:jobId"/);
+  assert.match(source, /DesktopAutomationReminderDetailRoute/);
+  assert.match(source, /DesktopAutomationTaskDetailRoute/);
+  assert.match(source, /useParams<\{ jobId: string \}>/);
+  assert.doesNotMatch(source, /import AutomationReminderDetailPage from "@\/app\/workspace\/automation\/reminders\/\[jobId\]\/page"/);
+  assert.doesNotMatch(source, /import AutomationTaskDetailPage from "@\/app\/workspace\/automation\/tasks\/\[jobId\]\/page"/);
 });
 
 test("desktop renderer wires the dedicated new-agent route", () => {

@@ -1,4 +1,4 @@
-import { HashRouter, Navigate, Route, Routes } from "react-router-dom";
+import { HashRouter, Navigate, Route, Routes, useParams } from "react-router-dom";
 
 import { ThemeProvider } from "@/components/theme-provider";
 import WorkspaceLayout from "@/app/workspace/layout";
@@ -9,9 +9,7 @@ import NewAgentPage from "@/app/workspace/agents/new/page";
 import AboutPage from "@/app/workspace/about/page";
 import AutomationPage from "@/app/workspace/automation/page";
 import AutomationRemindersPage from "@/app/workspace/automation/reminders/page";
-import AutomationReminderDetailPage from "@/app/workspace/automation/reminders/[jobId]/page";
 import AutomationTasksPage from "@/app/workspace/automation/tasks/page";
-import AutomationTaskDetailPage from "@/app/workspace/automation/tasks/[jobId]/page";
 import BridgePage from "@/app/workspace/bridge/page";
 import WorkspaceMemoryPage from "@/app/workspace/memory/page";
 import WorkspaceMemoryFactsPage from "@/app/workspace/memory/facts/page";
@@ -23,6 +21,8 @@ import WorkspaceMemoryUserPage from "@/app/workspace/memory/user/page";
 import NotebookPage from "@/app/workspace/notebook/page";
 import NotebookTrashPage from "@/app/workspace/notebook/trash/page";
 import ToolPolicyPage from "@/app/workspace/tool-policy/page";
+import { AutomationJobDetailPage } from "@/components/workspace/automation/automation-job-detail-page";
+import { AutomationShell } from "@/components/workspace/automation/automation-shell";
 import { I18nProvider } from "@/core/i18n/context";
 import { detectLocale } from "@/core/i18n";
 
@@ -30,6 +30,26 @@ import { DesktopImageProvider } from "./shims/image-context";
 
 function WorkspaceRoute({ children }: { children: React.ReactNode }) {
   return <WorkspaceLayout>{children}</WorkspaceLayout>;
+}
+
+function DesktopAutomationReminderDetailRoute() {
+  const { jobId = "" } = useParams<{ jobId: string }>();
+
+  return (
+    <AutomationShell>
+      <AutomationJobDetailPage kind="reminder" jobId={jobId} />
+    </AutomationShell>
+  );
+}
+
+function DesktopAutomationTaskDetailRoute() {
+  const { jobId = "" } = useParams<{ jobId: string }>();
+
+  return (
+    <AutomationShell>
+      <AutomationJobDetailPage kind="scheduled_task" jobId={jobId} />
+    </AutomationShell>
+  );
 }
 
 export function DesktopRendererApp() {
@@ -101,7 +121,7 @@ export function DesktopRendererApp() {
                 path="/workspace/automation/reminders/:jobId"
                 element={
                   <WorkspaceRoute>
-                    <AutomationReminderDetailPage />
+                    <DesktopAutomationReminderDetailRoute />
                   </WorkspaceRoute>
                 }
               />
@@ -117,7 +137,7 @@ export function DesktopRendererApp() {
                 path="/workspace/automation/tasks/:jobId"
                 element={
                   <WorkspaceRoute>
-                    <AutomationTaskDetailPage />
+                    <DesktopAutomationTaskDetailRoute />
                   </WorkspaceRoute>
                 }
               />
