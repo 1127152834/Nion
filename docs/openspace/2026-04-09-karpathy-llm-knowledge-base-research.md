@@ -35,6 +35,21 @@
 - 高价值结论能持续写回知识库
 - AI 的回答默认建立在知识库对象之上，而不是只建立在当前 note 或检索片段之上
 
+不过这不意味着 Nion 要从零开始。现有 notebook 里已经有一批很适合转成“共同维护知识库”工作流的入口：
+
+- `save-to-notebook-trigger`
+  现在是把 thread 或最后一条回复保存进 notebook；未来可以升级成“保存为 source / 保存为 synthesis / 保存为 query”
+- `quick capture`
+  现在是写入收件箱；未来可以明确成为 knowledge inbox 的入口
+- `inbox`
+  现在是整理新进入 notebook 的内容；未来可以变成 source triage / compile queue / review queue
+- `history`
+  现在记录 note 修改；未来可以扩展成 knowledge page 的演化记录
+- `memory extract`
+  现在更像从 note 提炼 memory；未来可以升级成从 source/note 生成 concept/topic/synthesis 的知识提炼入口
+
+这意味着后续设计不应该把现有 notebook 全盘推翻，而应该把这些已有入口重新命名和重组，让它们服务于“共同维护知识库”而不是“编辑笔记”。
+
 ## 结论
 
 Karpathy 这次引爆的不是一个“更强的 RAG”，而是一种更适合代理时代的知识工作模式：让 LLM 维护一个持续增长、可浏览、可交叉引用、可回灌的新中间层，而不是在每次提问时从原始资料里重新拼上下文。这个模式的最小骨架是三层：`raw sources` 作为不可变事实层，`wiki markdown` 作为持久知识层，`AGENTS.md / CLAUDE.md` 一类 schema 作为代理操作层[1]。
