@@ -26,3 +26,19 @@ void test("soul settings no longer depend on proposal-oriented companions", asyn
   assert.doesNotMatch(summaryCardSource, /accept/i);
   assert.doesNotMatch(summaryCardSource, /reject/i);
 });
+
+void test("soul settings are no longer treated as a memory-owned route", async () => {
+  const homePageSource = await readFile(
+    new URL("./memory-home-page.tsx", import.meta.url),
+    "utf8",
+  );
+  const summaryCardSource = await readFile(
+    new URL("./soul-summary-card.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.doesNotMatch(homePageSource, /\/workspace\/memory\/soul|pathOfMemorySoul/);
+  assert.doesNotMatch(summaryCardSource, /\/workspace\/memory\/soul|pathOfMemorySoul/);
+  assert.doesNotMatch(homePageSource, /Soul Console|soul-console/i);
+  assert.doesNotMatch(summaryCardSource, /Soul Console|soul-console/i);
+});

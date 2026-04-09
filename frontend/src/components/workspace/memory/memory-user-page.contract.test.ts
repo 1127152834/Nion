@@ -20,5 +20,7 @@ void test("memory user page is read-only and uses conversation-based correction"
   assert.doesNotMatch(source, /useRejectUserModelItem/);
   assert.match(source, /这条记错了|别再记这个|直接告诉我/);
   assert.doesNotMatch(source, /MemoryConsolePanel/);
+  assert.doesNotMatch(source, /\/workspace\/memory\/ledger|查看 ledger/);
+  assert.doesNotMatch(source, /\/workspace\/memory\/evidence|查看 evidence/);
   assert.doesNotMatch(source, /markdown\.recentMonths/);
 });
