@@ -139,8 +139,8 @@ class TestConfigQueries:
             mock_load.assert_called_once_with(enabled_only=True)
 
     def test_get_memory(self, client):
-        memory = {"version": "1.0", "facts": []}
-        with patch("nion.memory_os.compat.build_legacy_memory_view", return_value=memory) as mock_get:
+        memory = {"version": "2.0", "facts": []}
+        with patch("nion.memory_os.compat.build_canonical_memory_payload", return_value=memory) as mock_get:
             result = client.get_memory()
             mock_get.assert_called_once()
         assert result == memory
@@ -796,8 +796,8 @@ class TestSkillsManagement:
 
 class TestMemoryManagement:
     def test_reload_memory(self, client):
-        data = {"version": "1.0", "facts": []}
-        with patch("nion.memory_os.compat.build_legacy_memory_view", return_value=data):
+        data = {"version": "2.0", "facts": []}
+        with patch("nion.memory_os.compat.build_canonical_memory_payload", return_value=data):
             result = client.reload_memory()
         assert result == data
 

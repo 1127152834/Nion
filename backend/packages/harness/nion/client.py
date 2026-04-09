@@ -995,9 +995,9 @@ class NionClient:
         Returns:
             Memory data dict (see src/agents/memory/updater.py for structure).
         """
-        from nion.memory_os.compat import build_legacy_memory_view
+        from nion.memory_os.compat import build_canonical_memory_payload
 
-        return build_legacy_memory_view()
+        return build_canonical_memory_payload()
 
     def get_model(self, name: str) -> dict | None:
         """Get a specific runtime model configuration by name.
@@ -1221,9 +1221,9 @@ class NionClient:
         Returns:
             The reloaded memory data dict.
         """
-        from nion.memory_os.compat import build_legacy_memory_view
+        from nion.memory_os.compat import build_canonical_memory_payload
 
-        return build_legacy_memory_view()
+        return build_canonical_memory_payload()
 
     def clear_memory(self) -> dict:
         """Clear persisted memory data and return the empty payload."""
