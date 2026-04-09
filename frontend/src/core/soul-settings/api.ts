@@ -1,8 +1,8 @@
 import { getBackendBaseURL } from "@/core/config";
 
 import type {
-  SoulConsoleMutationResult,
   SoulSettingsDraft,
+  SoulSettingsMutationResult,
   SoulSettingsResponse,
 } from "./types";
 
@@ -32,7 +32,9 @@ export async function loadSoulSettings(): Promise<SoulSettingsResponse> {
   }
 
   if (!isSoulSettingsResponse(payload)) {
-    throw new Error("Invalid soul settings payload returned from loadSoulSettings");
+    throw new Error(
+      "Invalid soul settings payload returned from loadSoulSettings",
+    );
   }
 
   return payload;
@@ -40,7 +42,7 @@ export async function loadSoulSettings(): Promise<SoulSettingsResponse> {
 
 export async function applySoulSettings(
   draft: SoulSettingsDraft,
-): Promise<SoulConsoleMutationResult> {
+): Promise<SoulSettingsMutationResult> {
   const response = await fetch(`${getBackendBaseURL()}/api/memory/soul/apply`, {
     method: "POST",
     headers: {
@@ -55,8 +57,28 @@ export async function applySoulSettings(
   }
 
   if (!isObjectRecord(payload) || typeof payload.action !== "string") {
-    throw new Error("Invalid soul settings mutation payload returned from applySoulSettings");
+    throw new Error(
+      "Invalid soul settings mutation payload returned from applySoulSettings",
+    );
   }
 
-  return payload as SoulConsoleMutationResult;
+  return {
+    action: payload.action,
+    core_identity:
+      typeof payload.core_identity === "string"
+        ? payload.core_identity
+        : undefined,
+    speech_style:
+      typeof payload.speech_style === "string"
+        ? payload.speech_style
+        : undefined,
+    values_and_boundaries:
+      typeof payload.values_and_boundaries === "string"
+        ? payload.values_and_boundaries
+        : undefined,
+    relationship_stance:
+      typeof payload.relationship_stance === "string"
+        ? payload.relationship_stance
+        : undefined,
+  };
 }

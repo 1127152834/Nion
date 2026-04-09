@@ -10,9 +10,11 @@ void test("soul summary card mirrors settings-facing soul summary instead of con
 
   assert.match(source, /核心人格|说话方式|价值观|关系基调/);
   assert.match(source, /adaptive overlay|临时表达模式/);
+  assert.match(source, /Settings &gt; Soul/);
   assert.doesNotMatch(source, /Soul Console/);
   assert.doesNotMatch(source, /identity narrative/i);
   assert.doesNotMatch(source, /proposal/i);
   assert.doesNotMatch(source, /growth/i);
+  assert.doesNotMatch(source, /soul-console/);
   assert.doesNotMatch(source, /我正在变成什么样/);
 });

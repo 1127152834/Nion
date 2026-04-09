@@ -14,7 +14,7 @@ export interface SoulSettingsDraft {
   relationship_stance: string;
 }
 
-export interface SoulConsoleMutationResult {
+export interface SoulSettingsMutationResult {
   action: string;
   core_identity?: string;
   speech_style?: string;

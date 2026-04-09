@@ -1,7 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { applySoulSettings, loadSoulSettings } from "./api";
-import type { SoulConsoleMutationResult, SoulSettingsDraft, SoulSettingsResponse } from "./types";
+import type {
+  SoulSettingsDraft,
+  SoulSettingsMutationResult,
+  SoulSettingsResponse,
+} from "./types";
 
 const EMPTY_SOUL_SETTINGS: SoulSettingsResponse = {
   core_identity: "目前还没有稳定的核心人格设置。",
@@ -28,13 +32,10 @@ export function useSoulSettings() {
 export function useApplySoulSettings() {
   const queryClient = useQueryClient();
 
-  return useMutation<SoulConsoleMutationResult, Error, SoulSettingsDraft>({
+  return useMutation<SoulSettingsMutationResult, Error, SoulSettingsDraft>({
     mutationFn: (draft) => applySoulSettings(draft),
     onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["soul-settings"] }),
-        queryClient.invalidateQueries({ queryKey: ["soul", "summary"] }),
-      ]);
+      await queryClient.invalidateQueries({ queryKey: ["soul-settings"] });
     },
   });
 }
