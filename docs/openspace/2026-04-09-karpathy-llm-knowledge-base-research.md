@@ -59,6 +59,20 @@ Karpathy 这次引爆的不是一个“更强的 RAG”，而是一种更适合�
 
 这说明它不是“后来回头看好像有很多人做”，而是在 Karpathy 提出模式后 2 到 5 天内，GitHub 和 HN 就同时出现了实现与讨论的集中爆发。
 
+另一个热度锚点是，GitHub 对 Karpathy 这份 gist 的公开页面快照显示它已经达到 `7675 stars / 1588 forks / 218 comments`。这说明它不是一个小范围 agent 圈内 memo，而是一次明显越过小圈层的概念传播。
+
+## 建议的学习顺序
+
+如果目标不是“看热闹”，而是最快学明白这个范式，顺序应该这样排：
+
+1. 先读 Karpathy 的 gist，理解三层结构和 `ingest / query / lint / index / log` 这些动作到底在解决什么问题[1]
+2. 然后看 `atomicmemory/llm-wiki-compiler`，因为它最接近“把抽象模式变成编译器”的标准答案[2]
+3. 再看 `ussumant/llm-wiki-compiler` 或 `nvk/llm-wiki`，理解这套模式如何嵌进 Claude Code / agent 工作流，而不是单独跑一个系统[4][5]
+4. 如果你关心跨代理和多源 ingest，再看 `llm-wiki-kit`，重点看 MCP、PDF/URL/YouTube 接入和 FTS 搜索[6]
+5. 最后再看 `yologdev/karpathy-llm-wiki`，它更像“这个范式如何延展成自生长产品”的展示，不该作为第一站[3]
+
+这套顺序的理由很简单：先学骨架，再学嵌入代理，再学服务化，最后看叙事化扩展。反过来学，很容易被 showcase 吸走注意力。
+
 ## 交付物
 
 完整研究报告已输出到：
