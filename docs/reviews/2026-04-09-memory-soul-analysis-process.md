@@ -143,10 +143,31 @@
 4. `soul_judge` 是否保留并真正接主链，还是删掉避免双轨？
 5. 现有 contract tests 哪些应保留为“重构后仍成立的产品约束”，哪些只是当前错误产品面的快照？
 
+## 共识规划结果
+
+- Planner 已产出：
+  - `.omx/plans/prd-memory-soul-boundary-reset.md`
+  - `.omx/plans/test-spec-memory-soul-boundary-reset.md`
+  - `docs/reviews/2026-04-09-memory-soul-consensus-plan.md`
+- Architect 结论：`ITERATE`
+  - 要求补齐 strongest rejected alternative
+  - 要求把 contract 重定义前置
+  - 要求把 `prompt/runtime`、`soul_governance`、`relationship_soul`、导航入口一起纳入
+- Critic 首轮结论：`ITERATE`
+  - 要求补齐明确的 Acceptance Criteria
+  - 要求把 Risks/Mitigations/rollback 写硬
+  - 要求加入 `memory updater/queue`、developer gating、contract migration 清单
+- 当前已根据上述 blocking issues 修订计划文档。
+
+## 当前结论
+
+- 这轮分析已经从“发现问题”推进到“可执行计划”。
+- 当前更适合进入 `team` 执行模式，而不是直接单线改码，因为任务天然分为：
+  - backend boundary/runtime lane
+  - frontend IA/surface lane
+  - tests/contracts/docs lane
+
 ## 下一步
 
-- 等待后端/前端 explorer 子结果，补齐模块级改造清单。
-- 基于上述事实进入 Planner → Architect → Critic 共识规划。
-- 产出 `.omx/plans/prd-memory-soul-boundary-reset.md`
-- 产出 `.omx/plans/test-spec-memory-soul-boundary-reset.md`
-- 在仓库内同步产出可审阅版本。
+- 若进入执行，优先按共识计划的 `Phase 0 -> Phase 4` 顺序推进。
+- 执行前先以共识计划为准，不再新增新的高层设想。
