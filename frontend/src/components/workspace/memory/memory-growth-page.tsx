@@ -1,20 +1,11 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
-
 import { pathOfMemory } from "@/core/navigation/desktop-routes";
 
 import { MemoryBackLink } from "./memory-back-link";
 import { MemoryGrowthPanel } from "./memory-growth-panel";
-import { SoulConsolePage } from "./soul-console-page";
 
 export function MemoryGrowthPage() {
-  const searchParams = useSearchParams();
-
-  if (searchParams.get("soul") === "console") {
-    return <SoulConsolePage />;
-  }
-
   return (
     <main className="flex size-full min-h-0 flex-col gap-6 overflow-y-auto px-4 py-6 sm:px-6">
       <header className="border bg-background px-6 py-5">

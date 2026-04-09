@@ -11,10 +11,6 @@ async function readFileOrEmpty(url: URL) {
 }
 
 void test("soul console contract exposes layered surfaces, revision metadata, and edit affordances", async () => {
-  const growthPageSource = await readFile(
-    new URL("./memory-growth-page.tsx", import.meta.url),
-    "utf8",
-  );
   const homePageSource = await readFile(
     new URL("./memory-home-page.tsx", import.meta.url),
     "utf8",
@@ -23,7 +19,6 @@ void test("soul console contract exposes layered surfaces, revision metadata, an
     new URL("./soul-console-page.tsx", import.meta.url),
   );
 
-  assert.match(growthPageSource, /SoulConsolePage/);
   assert.match(homePageSource, /Soul Console|soul-console/i);
   assert.match(consoleSource, /Soul Console/);
   assert.match(consoleSource, /constitution/i);

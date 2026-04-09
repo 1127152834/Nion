@@ -83,14 +83,14 @@ Delivers:
 
 ## Required Execution Order
 
-- [ ] Execute Milestone A plan completely
-- [ ] Verify Milestone A exit criteria
-- [ ] Execute Milestone B plan completely
-- [ ] Verify Milestone B exit criteria
-- [ ] Execute Milestone C plan completely
-- [ ] Verify Milestone C exit criteria
-- [ ] Execute Milestone D plan completely
-- [ ] Verify Milestone D exit criteria
+- [x] Execute Milestone A plan completely
+- [x] Verify Milestone A exit criteria
+- [x] Execute Milestone B plan completely
+- [x] Verify Milestone B exit criteria
+- [x] Execute Milestone C plan completely
+- [x] Verify Milestone C exit criteria
+- [x] Execute Milestone D plan completely
+- [x] Verify Milestone D exit criteria
 
 No milestone may skip ahead of the previous one.
 
@@ -105,12 +105,9 @@ The implementation is only complete when:
 - compatibility routes still work
 - the roadmap file marks all milestones complete
 
-## Execution Handoff
+Status 2026-04-09:
 
-Plan complete and saved to `/Users/zhangtiancheng/Documents/项目/agent/nion/docs/superpowers/plans/2026-04-08-memory-soul-dual-layer-implementation-plan.md`. Two execution options:
-
-1. Subagent-Driven (recommended) - I dispatch a fresh subagent per task, review between tasks, fast iteration
-
-2. Inline Execution - Execute tasks in this session using executing-plans, batch execution with checkpoints
-
-Which approach?
+- all four milestone plans are implemented in the current worktree lineage
+- milestone verification suites passed before the latest checkpoint commits were recorded
+- compatibility routes remain in place during the cutover window
+- roadmap/spec checkpoints have been updated to reflect M1-M4 completion

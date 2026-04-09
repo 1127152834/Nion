@@ -60,7 +60,7 @@
 - Create: `/Users/zhangtiancheng/Documents/项目/agent/nion/backend/packages/harness/nion/memory/soul/judge.py`
 - Create: `/Users/zhangtiancheng/Documents/项目/agent/nion/backend/tests/test_soul_judge_service.py`
 
-- [ ] **Step 1: Write failing tests for four-layer soul decision rules**
+- [x] **Step 1: Write failing tests for four-layer soul decision rules**
 
 ```python
 from nion.memory.soul.judge import judge_soul_signal
@@ -97,7 +97,7 @@ def test_soul_judge_rejects_direct_constitution_mutation():
     assert decision.action == "reject"
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run:
 
@@ -107,7 +107,7 @@ cd /Users/zhangtiancheng/Documents/项目/agent/nion/backend && UV_LINK_MODE=cop
 
 Expected: import failure
 
-- [ ] **Step 3: Implement soul models and judge**
+- [x] **Step 3: Implement soul models and judge**
 
 Implement:
 
@@ -126,7 +126,7 @@ Implement:
   - `reject`
   - `expire_existing_overlay`
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run:
 
@@ -136,7 +136,7 @@ cd /Users/zhangtiancheng/Documents/项目/agent/nion/backend && UV_LINK_MODE=cop
 
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add \
@@ -155,7 +155,7 @@ git commit -m "feat: add four-layer soul judge models"
 - Modify: `/Users/zhangtiancheng/Documents/项目/agent/nion/backend/packages/harness/nion/memory_os/soul_governance.py`
 - Modify: `/Users/zhangtiancheng/Documents/项目/agent/nion/backend/packages/harness/nion/memory_os/relationship_soul.py`
 
-- [ ] **Step 1: Extend existing soul runtime tests**
+- [x] **Step 1: Extend existing soul runtime tests**
 
 Add to `backend/tests/test_memory_os_soul_runtime.py`:
 
@@ -169,7 +169,7 @@ def test_soul_runtime_assembles_constitution_identity_relationship_and_overlay(t
     assert "<adaptive_overlay>" in runtime
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run:
 
@@ -179,7 +179,7 @@ cd /Users/zhangtiancheng/Documents/项目/agent/nion/backend && UV_LINK_MODE=cop
 
 Expected: failures because runtime still uses old tags/semantics
 
-- [ ] **Step 3: Implement canonical soul service and update runtime/governance**
+- [x] **Step 3: Implement canonical soul service and update runtime/governance**
 
 Implement:
 
@@ -189,7 +189,7 @@ Implement:
 - overlay promotion/expiry rules
 - soul governance writes canonical revisions and compatible events
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run:
 
@@ -202,7 +202,7 @@ cd /Users/zhangtiancheng/Documents/项目/agent/nion/backend && UV_LINK_MODE=cop
 
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add \
@@ -224,7 +224,7 @@ git commit -m "feat: rebuild soul runtime on canonical layers"
 - Modify: `/Users/zhangtiancheng/Documents/项目/agent/nion/backend/packages/harness/nion/memory_os/projections.py`
 - Modify: `/Users/zhangtiancheng/Documents/项目/agent/nion/backend/packages/harness/nion/memory_os/automation_bridge.py`
 
-- [ ] **Step 1: Write failing projection tests**
+- [x] **Step 1: Write failing projection tests**
 
 ```python
 from pathlib import Path
@@ -249,7 +249,7 @@ def test_project_learning_outputs_creates_procedure_and_automation_links(tmp_pat
     assert result["automation_projection_id"]
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run:
 
@@ -259,7 +259,7 @@ cd /Users/zhangtiancheng/Documents/项目/agent/nion/backend && UV_LINK_MODE=cop
 
 Expected: import failure
 
-- [ ] **Step 3: Implement projection service and update orchestrator**
+- [x] **Step 3: Implement projection service and update orchestrator**
 
 Implement:
 
@@ -270,7 +270,7 @@ Implement:
 
 Keep existing growth/soul event stream compatibility.
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run:
 
@@ -283,7 +283,7 @@ cd /Users/zhangtiancheng/Documents/项目/agent/nion/backend && UV_LINK_MODE=cop
 
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add \
@@ -310,7 +310,7 @@ git commit -m "feat: add canonical learning projection chain"
 - Modify: `/Users/zhangtiancheng/Documents/项目/agent/nion/frontend/src/components/workspace/memory/memory-growth-page.tsx`
 - Modify: `/Users/zhangtiancheng/Documents/项目/agent/nion/frontend/src/components/workspace/memory/memory-home-page.tsx`
 
-- [ ] **Step 1: Add failing contract test for Soul Console**
+- [x] **Step 1: Add failing contract test for Soul Console**
 
 ```ts
 import test from "node:test";
@@ -326,7 +326,7 @@ void test("soul console page shows constitution identity relationship and overla
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run:
 
@@ -337,7 +337,7 @@ cd /Users/zhangtiancheng/Documents/项目/agent/nion/frontend && node --test \
 
 Expected: missing page
 
-- [ ] **Step 3: Implement Soul Console and update soul data hooks**
+- [x] **Step 3: Implement Soul Console and update soul data hooks**
 
 Implement:
 
@@ -349,7 +349,7 @@ Implement:
   - rollback recent overlay
 - update soul hooks/API to support new console payloads
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run:
 
@@ -362,7 +362,7 @@ cd /Users/zhangtiancheng/Documents/项目/agent/nion/frontend && node --test \
 
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add \
@@ -388,7 +388,7 @@ git commit -m "feat: ship soul console and layered soul surfaces"
 - Modify: `/Users/zhangtiancheng/Documents/项目/agent/nion/backend/packages/harness/nion/agents/memory/queue.py`
 - Modify: `/Users/zhangtiancheng/Documents/项目/agent/nion/backend/packages/harness/nion/agents/memory/updater.py`
 
-- [ ] **Step 1: Write failing retirement tests**
+- [x] **Step 1: Write failing retirement tests**
 
 ```python
 from unittest.mock import patch
@@ -407,7 +407,7 @@ def test_legacy_memory_middleware_and_queue_are_not_primary_after_m4():
     assert "MemoryMiddleware" not in names
 ```
 
-- [ ] **Step 2: Run tests to verify current state**
+- [x] **Step 2: Run tests to verify current state**
 
 Run:
 
@@ -419,7 +419,7 @@ cd /Users/zhangtiancheng/Documents/项目/agent/nion/backend && UV_LINK_MODE=cop
 
 Expected: current tests or new assertions show legacy components still present internally
 
-- [ ] **Step 3: Retire old queue/updater from primary responsibilities**
+- [x] **Step 3: Retire old queue/updater from primary responsibilities**
 
 Implement:
 
@@ -427,7 +427,7 @@ Implement:
 - remove any remaining primary-path responsibility from `agents/memory/queue.py` and `agents/memory/updater.py`
 - document that canonical write/read truth now lives in v2 modules
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run:
 
@@ -440,7 +440,7 @@ cd /Users/zhangtiancheng/Documents/项目/agent/nion/backend && UV_LINK_MODE=cop
 
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add \
@@ -457,7 +457,7 @@ git commit -m "refactor: retire legacy memory mainline responsibilities"
 - Modify: `/Users/zhangtiancheng/Documents/项目/agent/nion/docs/superpowers/plans/2026-04-08-memory-soul-dual-layer-roadmap.md`
 - Modify: `/Users/zhangtiancheng/Documents/项目/agent/nion/docs/superpowers/specs/2026-04-08-nion-memory-soul-dual-layer-design.md`
 
-- [ ] **Step 1: Run backend final verification**
+- [x] **Step 1: Run backend final verification**
 
 Run:
 
@@ -475,7 +475,7 @@ cd /Users/zhangtiancheng/Documents/项目/agent/nion/backend && UV_LINK_MODE=cop
 
 Expected: PASS
 
-- [ ] **Step 2: Run frontend final verification**
+- [x] **Step 2: Run frontend final verification**
 
 Run:
 
@@ -489,7 +489,7 @@ cd /Users/zhangtiancheng/Documents/项目/agent/nion/frontend && pnpm test:contr
 
 Expected: PASS
 
-- [ ] **Step 3: Update roadmap/spec to mark full architecture delivery**
+- [x] **Step 3: Update roadmap/spec to mark full architecture delivery**
 
 Record that M4 completion means:
 
@@ -498,7 +498,13 @@ Record that M4 completion means:
 - legacy memory internals are retired from primary use
 - compatibility facades remain stable
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
+
+Completion note 2026-04-09:
+
+- Soul Console 最终以独立路由 `/workspace/memory/soul` 与独立 API `/api/memory/soul` 交付，而不是继续保留 `growth?soul=console` 借道路径
+- legacy queue / updater 被保留为 compatibility-only shim，但已显式退出 primary path 语义
+- 该计划中的所有步骤已经完成，并由 milestone-level verification 重新验证
 
 ```bash
 git add \
