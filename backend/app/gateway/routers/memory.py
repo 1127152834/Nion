@@ -4,6 +4,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from nion.memory_os.compat import (
+    build_canonical_memory_payload,
     build_legacy_memory_view,
     clear_memory_os_memory,
     create_memory_os_fact,
@@ -60,6 +61,21 @@ class MemoryResponse(BaseModel):
     facts: list[Fact] = Field(default_factory=list)
 
 
+class MemoryUserFacingItem(BaseModel):
+    id: str = Field(..., description="Stable identifier for the memory item")
+    content: str = Field(..., description="User-facing memory content")
+    source_label: str = Field(..., description="Human-readable source label")
+    updated_at: str = Field(default="", description="Last update timestamp")
+    reason: str = Field(default="", description="Why this item exists in memory")
+    related_refs: list[str] = Field(default_factory=list, description="Related references")
+
+
+class MemoryUserFacingResponse(BaseModel):
+    user_profile: list[MemoryUserFacingItem] = Field(default_factory=list)
+    long_term_background: list[MemoryUserFacingItem] = Field(default_factory=list)
+    fact_memories: list[MemoryUserFacingItem] = Field(default_factory=list)
+
+
 def _map_memory_fact_value_error(exc: ValueError) -> HTTPException:
     """Convert updater validation errors into stable API responses."""
     if exc.args and exc.args[0] == "confidence":
@@ -103,16 +119,120 @@ class MemoryStatusResponse(BaseModel):
     """Response model for memory status."""
 
     config: MemoryConfigResponse
-    data: MemoryResponse
+    data: MemoryUserFacingResponse
+
+
+def _build_memory_user_facing_payload() -> dict[str, object]:
+    payload = build_canonical_memory_payload()
+    user = payload.get("user", {})
+    history = payload.get("history", {})
+    facts = payload.get("facts", [])
+
+    def context_item(
+        *,
+        item_id: str,
+        content: str,
+        updated_at: str,
+        source_label: str,
+        reason: str,
+    ) -> dict[str, object] | None:
+        text = content.strip()
+        if not text:
+            return None
+        return {
+            "id": item_id,
+            "content": text,
+            "source_label": source_label,
+            "updated_at": updated_at,
+            "reason": reason,
+            "related_refs": [],
+        }
+
+    user_profile = [
+        item
+        for item in [
+            context_item(
+                item_id="user_profile.work_context",
+                content=str(user.get("workContext", {}).get("summary", "")),
+                updated_at=str(user.get("workContext", {}).get("updatedAt", "")),
+                source_label="用户画像",
+                reason="稳定的工作角色与职责背景。",
+            ),
+            context_item(
+                item_id="user_profile.personal_context",
+                content=str(user.get("personalContext", {}).get("summary", "")),
+                updated_at=str(user.get("personalContext", {}).get("updatedAt", "")),
+                source_label="用户画像",
+                reason="稳定的个人偏好与长期背景。",
+            ),
+            context_item(
+                item_id="user_profile.top_of_mind",
+                content=str(user.get("topOfMind", {}).get("summary", "")),
+                updated_at=str(user.get("topOfMind", {}).get("updatedAt", "")),
+                source_label="用户画像",
+                reason="当前长期关注事项中的稳定部分。",
+            ),
+        ]
+        if item is not None
+    ]
+
+    long_term_background = [
+        item
+        for item in [
+            context_item(
+                item_id="long_term_background.recent_months",
+                content=str(history.get("recentMonths", {}).get("summary", "")),
+                updated_at=str(history.get("recentMonths", {}).get("updatedAt", "")),
+                source_label="长期背景",
+                reason="最近阶段沉淀下来的长期背景。",
+            ),
+            context_item(
+                item_id="long_term_background.earlier_context",
+                content=str(history.get("earlierContext", {}).get("summary", "")),
+                updated_at=str(history.get("earlierContext", {}).get("updatedAt", "")),
+                source_label="长期背景",
+                reason="更早形成且仍然有效的长期背景。",
+            ),
+            context_item(
+                item_id="long_term_background.long_term_background",
+                content=str(history.get("longTermBackground", {}).get("summary", "")),
+                updated_at=str(history.get("longTermBackground", {}).get("updatedAt", "")),
+                source_label="长期背景",
+                reason="长期稳定背景信息。",
+            ),
+        ]
+        if item is not None
+    ]
+
+    fact_memories = [
+        {
+            "id": str(fact.get("id", "")),
+            "content": str(fact.get("content", "")).strip(),
+            "source_label": "事实记忆",
+            "updated_at": str(fact.get("createdAt", "")),
+            "reason": "稳定事实或长期偏好。",
+            "related_refs": [str(fact.get("source", "")).strip()]
+            if str(fact.get("source", "")).strip()
+            else [],
+        }
+        for fact in facts
+        if str(fact.get("content", "")).strip()
+    ]
+
+    return {
+        "user_profile": user_profile,
+        "long_term_background": long_term_background,
+        "fact_memories": fact_memories,
+    }
 
 
 @router.get(
     "/memory",
-    response_model=MemoryResponse,
+    response_model=MemoryUserFacingResponse,
     summary="Get Memory Data",
     description="Retrieve the current global memory data including user context, history, and facts.",
 )
-async def get_memory() -> MemoryResponse:
+async def get_memory() -> MemoryUserFacingResponse:
     """Get the current global memory data.
 
     Returns:
@@ -146,16 +266,16 @@ async def get_memory() -> MemoryResponse:
         }
         ```
     """
-    return MemoryResponse(**build_legacy_memory_view())
+    return MemoryUserFacingResponse(**_build_memory_user_facing_payload())
 
 
 @router.post(
     "/memory/reload",
-    response_model=MemoryResponse,
+    response_model=MemoryUserFacingResponse,
     summary="Reload Memory Data",
     description="Reload memory data from the storage file, refreshing the in-memory cache.",
 )
-async def reload_memory() -> MemoryResponse:
+async def reload_memory() -> MemoryUserFacingResponse:
     """Reload memory data from file.
 
     This forces a reload of the memory data from the storage file,
@@ -164,7 +284,7 @@ async def reload_memory() -> MemoryResponse:
     Returns:
         The reloaded memory data.
     """
-    return MemoryResponse(**build_legacy_memory_view())
+    return MemoryUserFacingResponse(**_build_memory_user_facing_payload())
 
 
 @router.delete(
@@ -321,9 +441,9 @@ async def get_memory_status() -> MemoryStatusResponse:
         Combined memory configuration and current data.
     """
     config = get_memory_os_config()
-    memory_data = build_legacy_memory_view()
+    memory_data = _build_memory_user_facing_payload()
 
     return MemoryStatusResponse(
         config=MemoryConfigResponse(**config),
-        data=MemoryResponse(**memory_data),
+        data=MemoryUserFacingResponse(**memory_data),
     )

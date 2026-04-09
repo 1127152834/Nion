@@ -26,6 +26,14 @@ def _sample_memory(facts: list[dict] | None = None) -> dict:
     }
 
 
+def _sample_user_facing_memory() -> dict:
+    return {
+        "user_profile": [],
+        "long_term_background": [],
+        "fact_memories": [],
+    }
+
+
 def collect_gateway_routes() -> set[str]:
     app = create_app()
     return {route.path for route in app.routes}
@@ -184,7 +192,16 @@ def test_memory_router_reads_memory_os_projection_without_legacy_updater(
 
     assert response.status_code == 200
     payload = response.json()
-    assert payload["user"]["workContext"]["summary"] == "负责财务 BP"
+    assert payload["user_profile"] == [
+        {
+            "id": "user_profile.work_context",
+            "content": "负责财务 BP",
+            "source_label": "用户画像",
+            "updated_at": "2026-04-07T00:00:00Z",
+            "reason": "稳定的工作角色与职责背景。",
+            "related_refs": [],
+        }
+    ]
 
 
 def test_memory_router_status_uses_memory_os_projection_without_legacy_updater(
@@ -198,6 +215,7 @@ def test_memory_router_status_uses_memory_os_projection_without_legacy_updater(
 
     assert response.status_code == 200
     assert "data" in response.json()
+    assert "user_profile" in response.json()["data"]
 
 
 def test_memory_router_does_not_register_memory_os_or_maintenance_routes() -> None:
