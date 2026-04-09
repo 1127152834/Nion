@@ -108,6 +108,14 @@ Cons：
 7. `prompt.py / prompt_sections/core.py / soul_runtime / runtime_engine` 在运行时注入上遵守 stable/active 分层。
 8. `memory updater/queue` 已明确退出主链，internal surface 有真实 gating，而不是仅靠文案区分。
 
+## Current Verification Snapshot
+
+- backend targeted verification: `58 passed in 15.62s`
+- frontend contract verification: `12 passed`
+- doc integrity: `git diff --check` 通过
+
+这些结果不是“计划实施已完成”，而是证明当前分析与计划基于新鲜代码证据，且现有错误产品面确实被合同测试锁定。
+
 ## PRD 提纲
 
 1. 问题定义与现状证据

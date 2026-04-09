@@ -167,6 +167,25 @@
   - frontend IA/surface lane
   - tests/contracts/docs lane
 
+## Fresh Verification Evidence
+
+本轮为了满足 `critic_verification`，又补了一轮新鲜验证，而不是复用旧结果：
+
+- 后端定向测试：
+  - `backend/.venv/bin/python -m pytest backend/tests/test_memory_os_growth_orchestrator.py backend/tests/test_memory_os_soul_runtime.py backend/tests/test_memory_growth_router.py backend/tests/test_soul_judge_service.py backend/tests/test_memory_os_soul_governance.py backend/tests/test_memory_os_relationship_soul.py backend/tests/test_memory_os_soul_events.py backend/tests/test_memory_os_soul_artifacts.py backend/tests/test_soul_onboarding_tool.py backend/tests/test_soul_onboarding_prompt.py -q`
+  - 结果：`58 passed in 15.62s`
+- 前端 contract tests：
+  - `pnpm --dir frontend test:contracts -- src/components/workspace/memory/memory-routes.contract.test.ts src/components/workspace/memory/memory-route-smoke.contract.test.ts src/components/workspace/memory/memory-user-page.contract.test.ts src/components/workspace/memory/memory-growth-panel.contract.test.ts src/components/workspace/memory/soul-console-page.contract.test.ts src/components/workspace/memory/soul-summary-card.contract.test.ts src/components/workspace/memory/soul-proposal-list.contract.test.ts src/components/workspace/memory/soul-growth-timeline.contract.test.ts src/components/workspace/settings/memory-surface-tabs.contract.test.ts`
+  - 结果：`12 passed`
+- 文档校验：
+  - `git diff --check -- docs/reviews/2026-04-09-memory-soul-consensus-plan.md docs/reviews/2026-04-09-memory-soul-analysis-process.md`
+  - 结果：通过
+
+这组 fresh evidence 进一步证明：
+
+1. 当前 memory/soul/growth/router/runtime 的判断不是基于回忆，而是基于当前代码和当前测试结果。
+2. 现有前端 contract tests 仍在锁定旧的治理控制台式产品面，因此“先重写合同，再改页面”必须保持为前置门槛。
+
 ## 下一步
 
 - 若进入执行，优先按共识计划的 `Phase 0 -> Phase 4` 顺序推进。
