@@ -1,7 +1,7 @@
 # Memory / Soul Runtime Mainchain Design
 
-日期：2026-04-10  
-状态：Draft for review  
+日期：2026-04-10
+状态：Draft for review
 范围：`B. 运行时主链重构`
 
 ## 1. 任务定义
@@ -15,7 +15,7 @@
 
 但这并不等于系统已经真正稳定。当前剩余问题集中在**运行时主链**，也就是：
 
-1. 运行时实际读取的 memory / soul 数据仍由多条链分别拼装。  
+1. 运行时实际读取的 memory / soul 数据仍由多条链分别拼装。
    现在至少存在这些入口：
    - `backend/packages/harness/nion/agents/lead_agent/prompt.py`
    - `backend/packages/harness/nion/agents/middlewares/continuity_middleware.py`
@@ -23,13 +23,13 @@
    - `backend/packages/harness/nion/memory/runtime_engine/service.py`
    - `backend/packages/harness/nion/memory_os/soul_runtime.py`
 
-2. `Soul` 的稳定层和短期层虽然在产品面已经分开，但运行时还没有单一 owner。  
+2. `Soul` 的稳定层和短期层虽然在产品面已经分开，但运行时还没有单一 owner。
    `identity_narrative`、`relationship_stance`、`adaptive_overlay` 仍然存在“谁负责写、谁负责读、谁负责过期”的多头语义。
 
-3. legacy memory updater / queue 仍然挂在主链附近。  
+3. legacy memory updater / queue 仍然挂在主链附近。
    它们已经被标记为 compatibility-only，但仍然被 middleware 直接引用，意味着系统仍保留“旧链也许还会写主记忆”的结构性风险。
 
-4. internal governance 还没有完成真正的 owner 定义。  
+4. internal governance 还没有完成真正的 owner 定义。
    现在产品面已经切干净，但 internal surface、compat helpers、runtime compatibility 仍没有完全收束成“明确保留”或“明确退休”的状态。
 
 这个阶段的目标不是继续做页面，而是把**运行时主链**做成和产品模型一致的真实系统。

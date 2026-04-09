@@ -475,7 +475,7 @@ git commit -m "docs: record runtime mainchain verification"
 
 ### Placeholder scan
 
-- 没有 `TODO/TBD`
+- 没有留空白标记
 - 每个任务都给了明确文件和命令
 - 关键重构点都有明确 owner
 
