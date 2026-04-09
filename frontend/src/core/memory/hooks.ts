@@ -11,6 +11,7 @@ import {
 import type {
   MemoryFactInput,
   MemoryFactPatchInput,
+  MemoryUserFacing,
   UserMemory,
 } from "./types";
 
@@ -19,7 +20,7 @@ export function useMemory() {
     queryKey: ["memory"],
     queryFn: () => loadMemory(),
   });
-  return { memory: data ?? null, isLoading, error };
+  return { memory: (data ?? null) as MemoryUserFacing | null, isLoading, error };
 }
 
 export function useClearMemory() {
@@ -27,8 +28,8 @@ export function useClearMemory() {
 
   return useMutation({
     mutationFn: () => clearMemory(),
-    onSuccess: (memory) => {
-      queryClient.setQueryData<UserMemory>(["memory"], memory);
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["memory"] });
     },
   });
 }
@@ -38,8 +39,8 @@ export function useDeleteMemoryFact() {
 
   return useMutation({
     mutationFn: (factId: string) => deleteMemoryFact(factId),
-    onSuccess: (memory) => {
-      queryClient.setQueryData<UserMemory>(["memory"], memory);
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["memory"] });
     },
   });
 }
@@ -49,8 +50,8 @@ export function useImportMemory() {
 
   return useMutation({
     mutationFn: (memory: UserMemory) => importMemory(memory),
-    onSuccess: (memory) => {
-      queryClient.setQueryData<UserMemory>(["memory"], memory);
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["memory"] });
     },
   });
 }
@@ -60,8 +61,8 @@ export function useCreateMemoryFact() {
 
   return useMutation({
     mutationFn: (input: MemoryFactInput) => createMemoryFact(input),
-    onSuccess: (memory) => {
-      queryClient.setQueryData<UserMemory>(["memory"], memory);
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["memory"] });
     },
   });
 }
@@ -77,8 +78,8 @@ export function useUpdateMemoryFact() {
       factId: string;
       input: MemoryFactPatchInput;
     }) => updateMemoryFact(factId, input),
-    onSuccess: (memory) => {
-      queryClient.setQueryData<UserMemory>(["memory"], memory);
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["memory"] });
     },
   });
 }

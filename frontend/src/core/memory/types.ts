@@ -7,6 +7,21 @@ export interface MemoryFact {
   source: string;
 }
 
+export interface MemoryUserFacingItem {
+  id: string;
+  content: string;
+  source_label: string;
+  updated_at: string;
+  reason: string;
+  related_refs: string[];
+}
+
+export interface MemoryUserFacing {
+  user_profile: MemoryUserFacingItem[];
+  long_term_background: MemoryUserFacingItem[];
+  fact_memories: MemoryUserFacingItem[];
+}
+
 export interface MemoryFactInput {
   content: string;
   category: string;

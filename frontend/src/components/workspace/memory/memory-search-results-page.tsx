@@ -59,21 +59,13 @@ export function MemorySearchResultsPage() {
 
   const searchLabels = useMemo<StructuredMemorySearchLabels>(
     () => ({
-      work: t.settings.memory.markdown.work,
-      personal: t.settings.memory.markdown.personal,
-      topOfMind: t.settings.memory.markdown.topOfMind,
-      recentMonths: t.settings.memory.markdown.recentMonths,
-      earlierContext: t.settings.memory.markdown.earlierContext,
-      longTermBackground: t.settings.memory.markdown.longTermBackground,
+      userProfile: t.settings.memory.markdown.userContext,
+      longTermBackground: t.settings.memory.markdown.historyBackground,
       facts: t.settings.memory.markdown.facts,
     }),
     [
-      t.settings.memory.markdown.work,
-      t.settings.memory.markdown.personal,
-      t.settings.memory.markdown.topOfMind,
-      t.settings.memory.markdown.recentMonths,
-      t.settings.memory.markdown.earlierContext,
-      t.settings.memory.markdown.longTermBackground,
+      t.settings.memory.markdown.userContext,
+      t.settings.memory.markdown.historyBackground,
       t.settings.memory.markdown.facts,
     ],
   );

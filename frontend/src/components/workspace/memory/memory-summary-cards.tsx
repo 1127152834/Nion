@@ -1,42 +1,45 @@
 "use client";
 
 import { useI18n } from "@/core/i18n/hooks";
-import type { UserMemory } from "@/core/memory/types";
+import type { MemoryUserFacing } from "@/core/memory/types";
 import { formatTimeAgo } from "@/core/utils/datetime";
 
-function hasMeaningfulSummary(values: Array<{ summary: string }>) {
-  return values.some((item) => item.summary.trim() !== "");
+function hasMeaningfulContent(values: Array<{ content: string }>) {
+  return values.some((item) => item.content.trim() !== "");
 }
 
-export function MemorySummaryCards(props: { memory: UserMemory | null }) {
+export function MemorySummaryCards(props: { memory: MemoryUserFacing | null }) {
   const { t } = useI18n();
   const memory = props.memory;
 
   const userContextReady = memory
-    ? hasMeaningfulSummary([
-        memory.user.workContext,
-        memory.user.personalContext,
-        memory.user.topOfMind,
-      ])
+    ? hasMeaningfulContent(memory.user_profile)
     : false;
 
   const historyReady = memory
-    ? hasMeaningfulSummary([
-        memory.history.recentMonths,
-        memory.history.earlierContext,
-        memory.history.longTermBackground,
-      ])
+    ? hasMeaningfulContent(memory.long_term_background)
     : false;
+
+  const lastUpdated = memory
+    ? [
+        ...memory.user_profile,
+        ...memory.long_term_background,
+        ...memory.fact_memories,
+      ]
+        .map((item) => item.updated_at)
+        .filter(Boolean)
+        .sort()
+        .at(-1) ?? null
+    : null;
 
   const cards = [
     {
       label: t.settings.memory.summaryCards.factCount,
-      value: String(memory?.facts.length ?? 0),
+      value: String(memory?.fact_memories.length ?? 0),
     },
     {
       label: t.settings.memory.summaryCards.lastUpdated,
-      value:
-        formatTimeAgo(memory?.lastUpdated) ?? t.settings.memory.notAvailable,
+      value: formatTimeAgo(lastUpdated) ?? t.settings.memory.notAvailable,
     },
     {
       label: t.settings.memory.summaryCards.userContext,

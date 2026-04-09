@@ -1,11 +1,7 @@
-import type { UserMemory } from "./types";
+import type { MemoryUserFacing } from "./types";
 
 export type StructuredMemorySearchLabels = {
-  work: string;
-  personal: string;
-  topOfMind: string;
-  recentMonths: string;
-  earlierContext: string;
+  userProfile: string;
   longTermBackground: string;
   facts: string;
 };
@@ -93,71 +89,42 @@ function buildSnippet(content: string, compact: string, terms: string[]) {
 }
 
 function getSearchableEntries(
-  memory: UserMemory,
+  memory: MemoryUserFacing,
   labels: StructuredMemorySearchLabels,
 ): SearchableEntry[] {
   return [
-    {
-      id: "workContext",
+    ...memory.user_profile.map((item) => ({
+      id: item.id,
       kind: "section" as const,
-      title: labels.work,
-      content: memory.user.workContext.summary,
-      updatedAt: memory.user.workContext.updatedAt,
-      scoreBoost: 0.4,
-    },
-    {
-      id: "personalContext",
-      kind: "section" as const,
-      title: labels.personal,
-      content: memory.user.personalContext.summary,
-      updatedAt: memory.user.personalContext.updatedAt,
-      scoreBoost: 0.2,
-    },
-    {
-      id: "topOfMind",
-      kind: "section" as const,
-      title: labels.topOfMind,
-      content: memory.user.topOfMind.summary,
-      updatedAt: memory.user.topOfMind.updatedAt,
+      title: labels.userProfile,
+      content: item.content,
+      updatedAt: item.updated_at,
+      source: item.source_label,
       scoreBoost: 0.3,
-    },
-    {
-      id: "recentMonths",
-      kind: "section" as const,
-      title: labels.recentMonths,
-      content: memory.history.recentMonths.summary,
-      updatedAt: memory.history.recentMonths.updatedAt,
-      scoreBoost: 0.1,
-    },
-    {
-      id: "earlierContext",
-      kind: "section" as const,
-      title: labels.earlierContext,
-      content: memory.history.earlierContext.summary,
-      updatedAt: memory.history.earlierContext.updatedAt,
-    },
-    {
-      id: "longTermBackground",
+    })),
+    ...memory.long_term_background.map((item) => ({
+      id: item.id,
       kind: "section" as const,
       title: labels.longTermBackground,
-      content: memory.history.longTermBackground.summary,
-      updatedAt: memory.history.longTermBackground.updatedAt,
-    },
-    ...memory.facts.map((fact) => ({
+      content: item.content,
+      updatedAt: item.updated_at,
+      source: item.source_label,
+      scoreBoost: 0.1,
+    })),
+    ...memory.fact_memories.map((fact) => ({
       id: fact.id,
       kind: "fact" as const,
       title: labels.facts,
       content: fact.content,
-      updatedAt: fact.createdAt,
-      confidence: fact.confidence,
-      source: fact.source,
+      updatedAt: fact.updated_at,
+      source: fact.source_label,
       scoreBoost: 0.5,
     })),
   ].filter((entry) => entry.content.trim().length > 0);
 }
 
 export function searchStructuredMemory(
-  memory: UserMemory,
+  memory: MemoryUserFacing,
   query: string,
   labels: StructuredMemorySearchLabels,
 ): StructuredMemorySearchResult[] {
