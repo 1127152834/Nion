@@ -403,7 +403,7 @@ def test_memory_growth_router_exposes_rich_recent_soul_events(monkeypatch, tmp_p
     assert body["events"][0]["metadata"]["artifact_uri"].endswith("staged_identity_narrative.md")
 
 
-def test_memory_soul_router_exposes_console_payload_and_governance_actions(monkeypatch, tmp_path):
+def test_memory_soul_router_exposes_settings_payload_without_governance_actions(monkeypatch, tmp_path):
     monkeypatch.setenv("NION_HOME", str(tmp_path))
     repo = MemoryOSRepository(tmp_path / "memory-os" / "index.sqlite3")
     repo.save_memory_record(
@@ -504,20 +504,20 @@ def test_memory_soul_router_exposes_console_payload_and_governance_actions(monke
     )
 
     with TestClient(create_app()) as client:
-        console = client.get("/api/memory/soul")
-        edit = client.post(
-            "/api/memory/soul/relationship_stance/edit",
-            json={"summary": "继续保持低刺激，但允许在关键节点更主动提醒。"},
-        )
+        settings = client.get("/api/memory/soul")
         freeze = client.post("/api/memory/soul/relationship_stance/freeze-auto-evolution")
         rollback = client.post("/api/memory/soul/adaptive_overlay/rollback")
 
-    assert console.status_code == 200
-    assert console.json()["layers"][0]["label"] == "Constitution"
-    assert any(layer["id"] == "relationship_stance" for layer in console.json()["layers"])
-    assert edit.status_code == 200
-    assert edit.json()["action"] == "edit"
-    assert freeze.status_code == 200
-    assert freeze.json()["action"] == "freeze_auto_evolution"
-    assert rollback.status_code == 200
-    assert rollback.json()["action"] == "rollback"
+    assert settings.status_code == 200
+    body = settings.json()
+    assert body["core_identity"] == "长期陪伴、克制稳定、结论先行。"
+    assert body["speech_style"] == "目前还没有稳定的说话方式设置。"
+    assert body["values_and_boundaries"] == "长期陪伴、克制稳定、结论先行。"
+    assert body["relationship_stance"] == "保持低刺激、少施压、结论先行。"
+    assert body["has_active_overlay"] is True
+    assert body["adaptive_overlay_summary"] == "近期减少鼓励式措辞。"
+    assert "layers" not in body
+    assert "currentRevisionReason" not in body
+
+    assert freeze.status_code == 404
+    assert rollback.status_code == 404

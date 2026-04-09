@@ -1,33 +1,15 @@
-export type SoulConsoleLayerId =
-  | "constitution"
-  | "identity_narrative"
-  | "relationship_stance"
-  | "adaptive_overlay";
-
-export interface SoulConsoleLayer {
-  id: SoulConsoleLayerId;
-  label: string;
-  summary: string;
-  reason: string;
-  time: string | null;
-  revisionLabel: string;
-  revisionId: string | null;
-  memoryId: string | null;
-  evidenceRef: string | null;
-  editable: boolean;
-  actionLabel?: string;
-  isFrozen?: boolean;
+export interface SoulSettingsResponse {
+  core_identity: string;
+  speech_style: string;
+  values_and_boundaries: string;
+  relationship_stance: string;
+  has_active_overlay: boolean;
+  adaptive_overlay_summary: string | null;
 }
 
-export interface SoulConsoleResponse {
-  layers: SoulConsoleLayer[];
-  currentRevisionReason: string;
-  currentRevisionTime: string | null;
-}
-
-export interface SoulConsoleMutationResult {
-  memory_id: string;
-  action: string;
-  layer?: string;
-  summary?: string;
+export interface SoulSettingsDraft {
+  core_identity: string;
+  speech_style: string;
+  values_and_boundaries: string;
+  relationship_stance: string;
 }

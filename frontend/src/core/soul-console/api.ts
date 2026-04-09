@@ -1,59 +1,35 @@
 import { getBackendBaseURL } from "@/core/config";
 
-import type { SoulConsoleMutationResult, SoulConsoleResponse } from "./types";
+import type { SoulSettingsResponse } from "./types";
 
-export async function loadSoulConsole(): Promise<SoulConsoleResponse> {
+function isObjectRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function isSoulSettingsResponse(value: unknown): value is SoulSettingsResponse {
+  return (
+    isObjectRecord(value) &&
+    typeof value.core_identity === "string" &&
+    typeof value.speech_style === "string" &&
+    typeof value.values_and_boundaries === "string" &&
+    typeof value.relationship_stance === "string" &&
+    typeof value.has_active_overlay === "boolean" &&
+    (typeof value.adaptive_overlay_summary === "string" ||
+      value.adaptive_overlay_summary === null)
+  );
+}
+
+export async function loadSoulSettings(): Promise<SoulSettingsResponse> {
   const response = await fetch(`${getBackendBaseURL()}/api/memory/soul`);
-  if (!response.ok) {
-    throw new Error(`Failed to load soul console (${response.status})`);
-  }
-  return (await response.json()) as SoulConsoleResponse;
-}
+  const payload = (await response.json().catch(() => null)) as unknown;
 
-export async function editSoulLayer(
-  layer: "relationship_stance" | "adaptive_overlay",
-  summary: string,
-): Promise<SoulConsoleMutationResult> {
-  const response = await fetch(
-    `${getBackendBaseURL()}/api/memory/soul/${encodeURIComponent(layer)}/edit`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ summary }),
-    },
-  );
   if (!response.ok) {
-    throw new Error(`Failed to edit soul layer (${response.status})`);
+    throw new Error(`Failed to load soul settings (${response.status})`);
   }
-  return (await response.json()) as SoulConsoleMutationResult;
-}
 
-export async function rollbackSoulOverlay(): Promise<SoulConsoleMutationResult> {
-  const response = await fetch(
-    `${getBackendBaseURL()}/api/memory/soul/adaptive_overlay/rollback`,
-    { method: "POST" },
-  );
-  if (!response.ok) {
-    throw new Error(`Failed to rollback soul overlay (${response.status})`);
+  if (!isSoulSettingsResponse(payload)) {
+    throw new Error("Invalid soul settings payload returned from loadSoulSettings");
   }
-  return (await response.json()) as SoulConsoleMutationResult;
-}
 
-export async function freezeSoulLayerAutoEvolution(
-  layer:
-    | "constitution"
-    | "identity_narrative"
-    | "relationship_stance"
-    | "adaptive_overlay",
-): Promise<SoulConsoleMutationResult> {
-  const response = await fetch(
-    `${getBackendBaseURL()}/api/memory/soul/${encodeURIComponent(layer)}/freeze-auto-evolution`,
-    { method: "POST" },
-  );
-  if (!response.ok) {
-    throw new Error(`Failed to freeze soul layer (${response.status})`);
-  }
-  return (await response.json()) as SoulConsoleMutationResult;
+  return payload;
 }
