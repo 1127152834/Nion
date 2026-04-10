@@ -12,7 +12,7 @@ def test_get_memory_storage_uses_configured_storage_class():
     storage_module._storage_instance = None
     set_memory_config(
         MemoryConfig(
-            storage_class="nion.agents.memory.storage.FileMemoryStorage"
+            storage_class="nion.compat_memory.storage.FileMemoryStorage"
         )
     )
 

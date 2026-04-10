@@ -24,7 +24,7 @@ class MemoryConfig(BaseModel):
         ),
     )
     storage_class: str = Field(
-        default="nion.agents.memory.storage.FileMemoryStorage",
+        default="nion.compat_memory.storage.FileMemoryStorage",
         description="Python class path for the active memory storage provider",
     )
     debounce_seconds: int = Field(
