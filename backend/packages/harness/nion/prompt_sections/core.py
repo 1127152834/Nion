@@ -214,7 +214,6 @@ SYSTEM_PROMPT_TEMPLATE = "\n\n".join(
 @dataclass(slots=True)
 class CorePromptSectionProvider:
     agent_display_name: str
-    soul: str
     subagent_reminder: str
     subagent_thinking: str
     provider_id: str = "prompt.core"
@@ -291,17 +290,4 @@ class CorePromptSectionProvider:
                 order=85,
             ),
         ]
-
-        if self.soul:
-            sections.insert(
-                1,
-                PromptSection(
-                    key="core.soul",
-                    title=None,
-                    content=self.soul,
-                    scope="global_static",
-                    layer="core",
-                    order=20,
-                ),
-            )
         return sections

@@ -64,23 +64,6 @@ def _get_memory_context(
     return ""
 
 
-def get_agent_soul(agent_name: str | None) -> str:
-    del agent_name
-    try:
-        from nion.config.paths import get_paths
-        from nion.memory_os.repository import MemoryOSRepository
-        from nion.memory_os.soul_runtime import compile_soul_runtime
-
-        repo = MemoryOSRepository(get_paths().memory_os_index_db_file)
-        runtime_soul = compile_soul_runtime(repo)
-        if runtime_soul:
-            return runtime_soul
-    except Exception as exc:
-        print(f"Failed to load soul runtime: {exc}")
-
-    return ""
-
-
 def _build_notebook_assistant_overlay(agent_name: str | None) -> str:
     return build_notebook_assistant_overlay(agent_name)
 
@@ -124,7 +107,6 @@ def _resolve_prompt_profile(context: PromptBuildContext) -> AgentPromptProfile:
 def _build_prompt_registry(
     *,
     agent_display_name: str,
-    soul: str,
     memory_context: str,
     subagent_enabled: bool,
     max_concurrent_subagents: int,
@@ -157,7 +139,6 @@ def _build_prompt_registry(
             provider_id="prompt.core",
             provider=CorePromptSectionProvider(
                 agent_display_name=agent_display_name,
-                soul=soul,
                 subagent_reminder=subagent_reminder,
                 subagent_thinking=subagent_thinking,
             ),
@@ -238,7 +219,6 @@ def apply_prompt_template(
     profile = _resolve_prompt_profile(context)
     registry = _build_prompt_registry(
         agent_display_name=agent_name or "Nion 2.0",
-        soul="",
         memory_context=memory_context,
         subagent_enabled=subagent_enabled,
         max_concurrent_subagents=max_concurrent_subagents,
@@ -266,7 +246,6 @@ __all__ = [
     "build_acp_section",
     "build_user_selected_extensions_section",
     "get_available_subagent_names",
-    "get_agent_soul",
     "get_deferred_tools_prompt_section",
     "get_skills_prompt_section",
 ]

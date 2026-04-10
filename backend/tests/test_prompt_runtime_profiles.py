@@ -198,18 +198,38 @@ def test_apply_prompt_template_default_registry_keeps_memory_only_in_session_dyn
 
 
 def test_apply_prompt_template_does_not_consult_separate_soul_runtime(monkeypatch) -> None:
+    captured: dict[str, object] = {}
+
+    def _fake_build_prompt_artifact(*, context, sections):
+        captured["context"] = context
+        captured["sections"] = sections
+        return PromptBuildArtifact(
+            full_prompt="STATIC\n\n__PROMPT_DYNAMIC_BOUNDARY__\n\nDYNAMIC",
+            static_prefix="STATIC",
+            dynamic_suffix="DYNAMIC",
+            section_manifest=sections,
+        )
+
+    monkeypatch.setattr(
+        "nion.agents.lead_agent.prompt.build_prompt_artifact",
+        _fake_build_prompt_artifact,
+    )
     monkeypatch.setattr(
         "nion.agents.lead_agent.prompt._get_memory_context",
         lambda *args, **kwargs: "<memory_os_context>\n## Core Identity\n稳定、克制、长期主义。\n</memory_os_context>",
     )
-    monkeypatch.setattr(
-        "nion.agents.lead_agent.prompt.get_agent_soul",
-        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("should not call get_agent_soul")),
-    )
 
-    prompt = apply_prompt_template(agent_name="default")
+    apply_prompt_template(agent_name="default")
 
-    assert "Core Identity" in prompt
+    keys = [section.key for section in captured["sections"]]
+    assert "core.soul" not in keys
+    memory_sections = [
+        section
+        for section in captured["sections"]
+        if "Core Identity" in section.content
+    ]
+    assert len(memory_sections) == 1
+    assert memory_sections[0].key == "dynamic.memory"
 
 
 def test_apply_prompt_template_real_prompt_removes_legacy_extension_placeholders() -> None:
