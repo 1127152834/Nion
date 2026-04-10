@@ -58,8 +58,7 @@ export const enUS: Translations = {
   // Welcome
   welcome: {
     greeting: "Hello, again!",
-    description:
-      "One thought, everything delivered. Your personal AI assistant that understands your intent and acts for you.",
+    description: "Start here and turn the next idea straight into work.",
 
     createYourOwnSkill: "Create Your Own Skill",
     createYourOwnSkillDescription:

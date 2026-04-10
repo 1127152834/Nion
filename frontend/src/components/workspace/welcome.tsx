@@ -1,14 +1,12 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useEffect, useMemo } from "react";
+import { useMemo } from "react";
 
 import { useI18n } from "@/core/i18n/hooks";
 import { cn } from "@/lib/utils";
 
 import { AuroraText } from "../ui/aurora-text";
-
-let waved = false;
 
 export function Welcome({
   className,
@@ -26,28 +24,20 @@ export function Welcome({
     }
     return ["var(--color-foreground)"];
   }, [isUltra]);
-  useEffect(() => {
-    waved = true;
-  }, []);
 
   return (
     <div
       className={cn(
-        "mx-auto flex w-full flex-col items-center justify-center gap-4 px-4 text-center",
+        "mx-auto flex w-full flex-col items-center justify-center gap-3 px-4 text-center",
         className,
       )}
     >
-      <div className="text-[clamp(2.35rem,4.6vw,3.6rem)] font-semibold tracking-[-0.06em] text-balance text-foreground">
+      <div className="text-[clamp(1.85rem,3.2vw,2.8rem)] font-semibold tracking-[-0.05em] text-balance text-foreground">
         {searchParams.get("mode") === "skill" ? (
           `✨ ${t.welcome.createYourOwnSkill} ✨`
         ) : (
-          <div className="flex items-center justify-center gap-3">
-            <div
-              className={cn(
-                "inline-flex shrink-0 items-center justify-center",
-                !waved ? "animate-wave" : "",
-              )}
-            >
+          <div className="flex items-center justify-center gap-2.5">
+            <div className="inline-flex shrink-0 items-center justify-center">
               {isUltra ? "🚀" : "👋"}
             </div>
             <AuroraText colors={colors}>{t.welcome.greeting}</AuroraText>
@@ -65,7 +55,7 @@ export function Welcome({
           )}
         </div>
       ) : (
-        <div className="text-foreground/62 max-w-[44rem] text-[15px] leading-8 sm:text-base">
+        <div className="text-foreground/62 max-w-[32rem] text-sm leading-7 sm:text-[15px]">
           {t.welcome.description.includes("\n") ? (
             <pre className="font-sans whitespace-pre-wrap">
               {t.welcome.description}

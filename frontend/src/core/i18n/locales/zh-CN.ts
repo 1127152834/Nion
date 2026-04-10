@@ -58,8 +58,7 @@ export const zhCN: Translations = {
   // Welcome
   welcome: {
     greeting: "你好，欢迎回来！",
-    description:
-      "一念之间，万事即达。你的专属 AI 智能助手，懂你所想，为你而行。\n耗费繁琐操作，只需一个念头，工作与生活，皆可轻松托付。",
+    description: "从这里开始，把想法直接变成任务。",
 
     createYourOwnSkill: "创建你自己的 Agent SKill",
     createYourOwnSkillDescription:
