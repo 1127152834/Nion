@@ -626,7 +626,7 @@ export const enUS: Translations = {
     title: "Settings",
     description: "Adjust how Nion looks and behaves for you.",
     loadingState: "Loading config center…",
-    configCenterError: "Config center is unavailable right now.",
+    configCenterError: "Some settings are temporarily unavailable.",
     navGroups: {
       experience: "Experience",
       conversation: "Conversation",

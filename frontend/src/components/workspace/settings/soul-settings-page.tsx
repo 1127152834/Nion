@@ -90,15 +90,13 @@ export function SoulSettingsPage() {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="space-y-2">
             <p className="text-muted-foreground text-[11px] font-medium tracking-[0.16em] uppercase">
-              Settings
+              Settings &gt; Soul
             </p>
             <h1 className="text-[1.85rem] font-semibold tracking-tight">
               Soul
             </h1>
             <p className="text-muted-foreground max-w-3xl text-sm leading-7">
-              这里只保留稳定层 Soul 设置：核心人格、说话方式、价值观 /
-              边界、关系基调，
-              以及当前是否存在临时表达模式。产品主路径不再暴露治理元数据。
+              定义这个助手长期稳定的人格、表达方式与相处基调。
             </p>
           </div>
           <Badge variant="secondary">Stable Settings</Badge>
@@ -110,9 +108,6 @@ export function SoulSettingsPage() {
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <CardTitle>当前状态</CardTitle>
-              <p className="text-muted-foreground mt-2 text-sm leading-7">
-                稳定层只响应用户明确设置或聊天中的明确确认；自动变化只允许出现在临时表达模式。
-              </p>
             </div>
             <Badge
               variant={settings.has_active_overlay ? "secondary" : "outline"}
@@ -135,10 +130,6 @@ export function SoulSettingsPage() {
                 : "当前没有临时表达模式。"}
             </p>
           </div>
-          <p className="text-muted-foreground text-xs">
-            正式入口位于 Settings &gt;
-            Soul。稳定层只能由用户直接设定，或在对话中明确要求修改。
-          </p>
         </CardContent>
       </Card>
 
@@ -199,10 +190,6 @@ export function SoulSettingsPage() {
           <CardTitle>草稿应用</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 text-sm">
-          <p className="text-muted-foreground">
-            这里展示的都是稳定层字段。系统不会主动改写稳定
-            Soul；只有用户手动应用，或在对话里明确要求时才会更新。
-          </p>
           <div className="flex flex-wrap items-center gap-3">
             <Button
               type="button"
@@ -231,8 +218,8 @@ export function SoulSettingsPage() {
             </Button>
             <span className="text-muted-foreground text-xs">
               {hasDraftChanges
-                ? "草稿已经变化；点击应用后会写入稳定层设置。"
-                : "当前草稿与已加载设置一致。"}
+                ? "草稿已更新。"
+                : "当前没有未保存的改动。"}
             </span>
           </div>
         </CardContent>

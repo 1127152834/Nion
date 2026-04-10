@@ -17,6 +17,9 @@ void test("soul settings page exposes stable settings instead of governance cons
   assert.doesNotMatch(source, /冻结自动演化/);
   assert.doesNotMatch(source, /Soul Console/);
   assert.doesNotMatch(source, /soul-console/);
+  assert.doesNotMatch(source, /这里只保留稳定层 Soul 设置/);
+  assert.doesNotMatch(source, /正式入口位于 Settings/);
+  assert.doesNotMatch(source, /稳定层只响应用户明确设置/);
 });
 
 void test("soul settings page stays outside the retired memory route namespace", async () => {
