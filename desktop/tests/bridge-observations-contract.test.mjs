@@ -137,7 +137,13 @@ test("bridge manager records manager start and stop observations", async () => {
   const adapter = createStubAdapter("telegram");
   const observations = [];
   const manager = createBridgeManager({
-    loadSettings: () => ({ settings: { remote_bridge_enabled: "true", bridge_telegram_verified: "true" } }),
+    loadSettings: () => ({
+      settings: {
+        remote_bridge_enabled: "true",
+        bridge_telegram_verified: "true",
+        bridge_telegram_bot_token: "token",
+      },
+    }),
     adapters: [adapter],
     listBindings: () => [],
     upsertBinding: (binding) => ({
@@ -174,7 +180,14 @@ test("bridge manager records adapter start failures", async () => {
   };
 
   const manager = createBridgeManager({
-    loadSettings: () => ({ settings: { remote_bridge_enabled: "true", bridge_feishu_verified: "true" } }),
+    loadSettings: () => ({
+      settings: {
+        remote_bridge_enabled: "true",
+        bridge_feishu_verified: "true",
+        bridge_feishu_app_id: "app-id",
+        bridge_feishu_app_secret: "app-secret",
+      },
+    }),
     adapters: [adapter],
     listBindings: () => [],
     upsertBinding: (binding) => ({
@@ -208,7 +221,13 @@ test("bridge manager records adapter runtime failures from the background loop",
   adapter.consumeErrorCount = 1;
 
   const manager = createBridgeManager({
-    loadSettings: () => ({ settings: { remote_bridge_enabled: "true", bridge_discord_verified: "true" } }),
+    loadSettings: () => ({
+      settings: {
+        remote_bridge_enabled: "true",
+        bridge_discord_verified: "true",
+        bridge_discord_bot_token: "discord-token",
+      },
+    }),
     adapters: [adapter],
     listBindings: () => [],
     upsertBinding: (binding) => ({

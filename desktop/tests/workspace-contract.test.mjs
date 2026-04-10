@@ -11,18 +11,19 @@ test("desktop workspace defines builder and forge packaging scripts", () => {
   assert.ok(pkg.scripts["build:helper"]);
 });
 
-test("desktop renderer wires the project workspace routes", () => {
+test("desktop renderer wires the current workspace top-level routes", () => {
   const source = fs.readFileSync(
     new URL("../src/renderer/renderer-app.tsx", import.meta.url),
     "utf8",
   );
 
-  assert.match(source, /path="\/workspace\/projects"/);
-  assert.match(source, /path="\/workspace\/projects\/:project_id"/);
-  assert.match(source, /path="\/workspace\/projects\/:project_id\/threads\/:thread_id"/);
+  assert.match(source, /path="\/workspace\/chats"/);
+  assert.match(source, /path="\/workspace\/agents"/);
+  assert.match(source, /path="\/workspace\/bridge"/);
+  assert.match(source, /path="\/workspace\/about"/);
 });
 
-test("desktop renderer wires notebook and memory workspace routes without self-maintenance", () => {
+test("desktop renderer wires notebook and the single memory route without retired subroutes", () => {
   const source = fs.readFileSync(
     new URL("../src/renderer/renderer-app.tsx", import.meta.url),
     "utf8",
@@ -31,11 +32,13 @@ test("desktop renderer wires notebook and memory workspace routes without self-m
   assert.match(source, /path="\/workspace\/notebook"/);
   assert.match(source, /path="\/workspace\/notebook\/trash"/);
   assert.match(source, /path="\/workspace\/memory"/);
-  assert.match(source, /path="\/workspace\/memory\/search"/);
-  assert.match(source, /path="\/workspace\/memory\/search\/results"/);
-  assert.match(source, /path="\/workspace\/memory\/user"/);
-  assert.match(source, /path="\/workspace\/memory\/history"/);
-  assert.match(source, /path="\/workspace\/memory\/facts"/);
+  assert.doesNotMatch(source, /path="\/workspace\/memory\/search"/);
+  assert.doesNotMatch(source, /path="\/workspace\/memory\/search\/results"/);
+  assert.doesNotMatch(source, /path="\/workspace\/memory\/user"/);
+  assert.doesNotMatch(source, /path="\/workspace\/memory\/history"/);
+  assert.doesNotMatch(source, /path="\/workspace\/memory\/facts"/);
+  assert.doesNotMatch(source, /path="\/workspace\/memory\/growth"/);
+  assert.doesNotMatch(source, /path="\/workspace\/memory\/runtime-trace"/);
   assert.doesNotMatch(source, /path="\/workspace\/self-maintenance"/);
 });
 
