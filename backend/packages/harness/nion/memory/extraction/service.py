@@ -26,6 +26,14 @@ def extract_memory_proposals_from_evidence(
 def _extract_from_content(*, content: str, evidence_id: str) -> list[MemoryProposal]:
     proposals: list[MemoryProposal] = []
 
+    user_name = _extract_user_name(content=content, evidence_id=evidence_id)
+    if user_name is not None:
+        proposals.append(user_name)
+
+    mutual_addressing = _extract_mutual_addressing(content=content, evidence_id=evidence_id)
+    if mutual_addressing is not None:
+        proposals.append(mutual_addressing)
+
     preference = _extract_explicit_preference(content=content, evidence_id=evidence_id)
     if preference is not None:
         proposals.append(preference)
@@ -47,6 +55,52 @@ def _extract_from_content(*, content: str, evidence_id: str) -> list[MemoryPropo
         proposals.append(learning_topic)
 
     return proposals
+
+
+def _extract_user_name(*, content: str, evidence_id: str) -> MemoryProposal | None:
+    match = re.search(r"(?:我叫|我的名字叫)([^，。！？；\s]{1,16})", content)
+    if match is None:
+        return None
+    user_name = _clean_fragment(match.group(1))
+    if not user_name:
+        return None
+    return _proposal(
+        proposed_domain="user_model",
+        proposed_kind="user_name",
+        candidate_claim=f"用户姓名：{user_name}",
+        candidate_payload={"user_name": user_name},
+        supporting_evidence_ids=[evidence_id],
+        estimated_stability="core",
+        estimated_salience=0.94,
+        estimated_confidence=0.98,
+        change_type="new",
+        judge_hints=["explicit_user_statement", "user_identity_signal"],
+    )
+
+
+def _extract_mutual_addressing(*, content: str, evidence_id: str) -> MemoryProposal | None:
+    match = _match_mutual_addressing(content=content)
+    if match is None:
+        return None
+
+    preferred_address_for_user, assistant_self_name = match
+    rule = f"你叫我{preferred_address_for_user}，我叫你{assistant_self_name}"
+    return _proposal(
+        proposed_domain="relationship",
+        proposed_kind="mutual_addressing",
+        candidate_claim=rule,
+        candidate_payload={
+            "preferred_address_for_user": preferred_address_for_user,
+            "assistant_self_name": assistant_self_name,
+            "mutual_addressing_rule": rule,
+        },
+        supporting_evidence_ids=[evidence_id],
+        estimated_stability="stable",
+        estimated_salience=0.92,
+        estimated_confidence=0.97,
+        change_type="new",
+        judge_hints=["explicit_user_statement", "mutual_addressing_signal"],
+    )
 
 
 def _extract_explicit_preference(*, content: str, evidence_id: str) -> MemoryProposal | None:
@@ -104,6 +158,8 @@ def _extract_work_context(*, content: str, evidence_id: str) -> MemoryProposal |
 
 
 def _extract_address_style(*, content: str, evidence_id: str) -> MemoryProposal | None:
+    if _match_mutual_addressing(content=content) is not None:
+        return None
     match = re.search(r"(?:称呼我|叫我)([^，。！；\s]{1,12})", content)
     if match is None:
         return None
@@ -194,6 +250,23 @@ def _extract_learning_topic_hint(*, content: str, evidence_id: str) -> MemoryPro
 
 def _proposal(**kwargs: object) -> MemoryProposal:
     return MemoryProposal(proposal_id=f"prop_{uuid.uuid4().hex[:12]}", **kwargs)
+
+
+def _match_mutual_addressing(*, content: str) -> tuple[str, str] | None:
+    match = re.search(
+        r"你(?:以后)?(?:就)?叫我([^，。！？；\s]{1,12})[，,、\s]*我(?:就)?叫你([^，。！？；\s]{1,12})",
+        content,
+    )
+    if match is None:
+        return None
+
+    preferred_address_for_user = _clean_fragment(match.group(1))
+    assistant_self_name = _clean_fragment(match.group(2))
+    preferred_address_for_user = re.sub(r"(就行|即可|就好|好了?)$", "", preferred_address_for_user)
+    assistant_self_name = re.sub(r"(就行|即可|就好|好了?)$", "", assistant_self_name)
+    if not preferred_address_for_user or not assistant_self_name:
+        return None
+    return preferred_address_for_user, assistant_self_name
 
 
 def _clean_fragment(value: str) -> str:

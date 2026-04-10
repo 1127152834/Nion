@@ -60,6 +60,8 @@ def _proposal_to_candidate(*, proposal: MemoryProposal, thread_id: str) -> Candi
     expires_at = _expires_at(created_at=created_at, stability=proposal.estimated_stability)
     subtype_map = {
         "explicit_preference": "communication_preference",
+        "user_name": "user_name",
+        "mutual_addressing": "mutual_addressing",
         "work_context": "work_context",
         "address_style": "address_style",
         "initiative_boundary": "initiative_policy",

@@ -110,6 +110,37 @@ def test_extract_memory_proposals_from_evidence_ignores_non_user_and_empty_conte
     assert proposals == []
 
 
+def test_extract_memory_proposals_from_evidence_extracts_user_identity_contract():
+    proposals = extract_memory_proposals_from_evidence(
+        evidence_documents=[
+            _evidence_document(
+                evidence_id="ev_identity",
+                turn_id="turn-identity",
+                content="我叫张天成，你以后叫我大哥，我叫你小老弟。",
+            )
+        ]
+    )
+
+    by_kind = {proposal.proposed_kind: proposal for proposal in proposals}
+
+    assert "user_name" in by_kind
+    assert "mutual_addressing" in by_kind
+
+    user_name = by_kind["user_name"]
+    assert user_name.proposed_domain == "user_model"
+    assert user_name.candidate_payload["user_name"] == "张天成"
+    assert user_name.supporting_evidence_ids == ["ev_identity"]
+
+    mutual_addressing = by_kind["mutual_addressing"]
+    assert mutual_addressing.proposed_domain == "relationship"
+    assert mutual_addressing.candidate_payload == {
+        "preferred_address_for_user": "大哥",
+        "assistant_self_name": "小老弟",
+        "mutual_addressing_rule": "你叫我大哥，我叫你小老弟",
+    }
+    assert mutual_addressing.supporting_evidence_ids == ["ev_identity"]
+
+
 def test_memory_os_extractor_is_thin_compatibility_wrapper_over_extraction_service():
     candidates = extract_candidates_from_exchange(
         messages=[
