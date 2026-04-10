@@ -2,17 +2,17 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 为 Nion 增加稳定的用户身份记忆层，让名字、双向称谓、长期沟通偏好跨线程稳定生效，并把 Soul 从重草稿表单改成聊天优先、设置页即时生效的轻调教交互。
+**Goal:** 为 Nion 补出稳定的用户身份记忆层，让名字、双向称谓、长期沟通偏好跨线程稳定生效，并把 Soul 调整为聊天优先、设置页即时生效的轻调教交互。
 
-**Architecture:** 这轮实现按“先 owner、再提取、再注入、再交互”的顺序推进。第一批先建立 `UserIdentityProfile` 的正式后端 owner 和 API 合同；第二批把名字/称谓/风格声明接入直接写入稳定层的聊天链路；第三批把 runtime 改成 always-on identity + soul baseline；第四批改设置页为卡片式即时生效面板，并补行为验收和 dogfood。Task 2、Task 3、Task 4 在 Task 1 稳定后可以并行。
+**Architecture:** 这轮实现分成五个批次。先建立 `UserIdentityProfile` 的正式 owner 和 API 合同，再补名字/称谓/沟通偏好的确定性提取；之后把 runtime 改成 always-on identity + soul baseline；最后重做前端的 `Settings > Soul` 交互并升级行为验收题库。Task 2、Task 3、Task 4 在 Task 1 完成后可以并行推进。
 
-**Tech Stack:** Python, FastAPI routers, LangChain/LangGraph middleware, SQLite/JSON persistence, React, TypeScript, node:test, pytest, agent-browser dogfood
+**Tech Stack:** Python, FastAPI, SQLite, LangChain/LangGraph middleware, React, TypeScript, node:test, pytest, agent-browser dogfood
 
 ---
 
 ## File Map
 
-### Backend: user identity owner
+### Backend foundation
 
 - Create: `backend/packages/harness/nion/user_identity/__init__.py`
 - Create: `backend/packages/harness/nion/user_identity/models.py`
@@ -20,8 +20,10 @@
 - Create: `backend/packages/harness/nion/user_identity/service.py`
 - Create: `backend/packages/harness/nion/user_identity/runtime.py`
 - Create: `backend/app/gateway/routers/user_identity.py`
+- Modify: `backend/app/gateway/routers/__init__.py`
+- Modify: `backend/app/runtime/app_factory.py`
 
-### Backend: extraction and chat-first mutation
+### Extraction and post-turn mutation
 
 - Modify: `backend/packages/harness/nion/memory/extraction/models.py`
 - Modify: `backend/packages/harness/nion/memory/extraction/service.py`
@@ -29,7 +31,7 @@
 - Create: `backend/packages/harness/nion/agents/middlewares/user_identity_middleware.py`
 - Modify: `backend/packages/harness/nion/agents/lead_agent/agent.py`
 
-### Backend: runtime injection
+### Runtime injection
 
 - Modify: `backend/packages/harness/nion/memory/runtime_engine/models.py`
 - Modify: `backend/packages/harness/nion/memory/runtime_engine/service.py`
@@ -37,13 +39,11 @@
 - Modify: `backend/packages/harness/nion/agents/lead_agent/prompt.py`
 - Modify: `backend/packages/harness/nion/agents/middlewares/continuity_middleware.py`
 
-### Backend: soul write path
+### Soul and frontend interaction
 
+- Modify: `backend/app/gateway/routers/user_identity.py`
 - Modify: `backend/app/gateway/routers/memory_soul.py`
 - Modify: `backend/packages/harness/nion/memory/soul/console_service.py`
-
-### Frontend: user identity and soul interaction
-
 - Create: `frontend/src/core/user-identity/types.ts`
 - Create: `frontend/src/core/user-identity/api.ts`
 - Create: `frontend/src/core/user-identity/hooks.ts`
@@ -54,12 +54,14 @@
 - Modify: `frontend/src/core/soul-settings/types.ts`
 - Modify: `frontend/src/core/soul-settings/api.ts`
 - Modify: `frontend/src/core/soul-settings/hooks.ts`
+- Modify: `backend/tests/test_user_identity_router.py`
 
-### Tests / acceptance
+### Tests and verification
 
 - Create: `backend/tests/test_user_identity_repository.py`
 - Create: `backend/tests/test_user_identity_service.py`
 - Create: `backend/tests/test_user_identity_router.py`
+- Create: `backend/tests/test_user_identity_middleware.py`
 - Modify: `backend/tests/test_memory_extraction_service.py`
 - Modify: `backend/tests/test_memory_os_extractor.py`
 - Modify: `backend/tests/test_runtime_memory_engine.py`
@@ -74,13 +76,16 @@
 - Create: `backend/packages/harness/nion/user_identity/repository.py`
 - Create: `backend/packages/harness/nion/user_identity/service.py`
 - Create: `backend/app/gateway/routers/user_identity.py`
+- Modify: `backend/app/gateway/routers/__init__.py`
+- Modify: `backend/app/runtime/app_factory.py`
 - Create: `backend/tests/test_user_identity_repository.py`
 - Create: `backend/tests/test_user_identity_service.py`
 - Create: `backend/tests/test_user_identity_router.py`
 
-- [ ] **Step 1: Write the failing repository tests**
+- [ ] **Step 1: Write the failing repository and router tests**
 
 ```python
+# backend/tests/test_user_identity_repository.py
 from nion.user_identity.models import UserIdentityProfile
 from nion.user_identity.repository import UserIdentityRepository
 
@@ -107,20 +112,24 @@ def test_user_identity_repository_round_trips_profile(tmp_path):
 ```
 
 ```python
+# backend/tests/test_user_identity_router.py
 from fastapi.testclient import TestClient
+
 from app.gateway.app import create_app
 
 
-def test_user_identity_router_exposes_profile(tmp_path, monkeypatch):
+def test_user_identity_router_exposes_empty_profile(monkeypatch, tmp_path):
     monkeypatch.setenv("NION_HOME", str(tmp_path))
+
     with TestClient(create_app()) as client:
         response = client.get("/api/user-identity")
 
     assert response.status_code == 200
     assert response.json()["user_name"] == ""
+    assert response.json()["preferred_address_for_user"] == ""
 ```
 
-- [ ] **Step 2: Run the new backend tests to verify they fail**
+- [ ] **Step 2: Run the tests to verify they fail**
 
 Run:
 
@@ -133,15 +142,12 @@ backend/.venv/bin/python -m pytest \
 
 Expected:
 
-- FAIL because `nion.user_identity` package and `/api/user-identity` router do not exist yet
+- FAIL because `nion.user_identity` package and `/api/user-identity` route do not yet exist
 
-- [ ] **Step 3: Create the stable profile model and repository**
-
-Implementation skeleton:
-
-`backend/packages/harness/nion/user_identity/models.py`
+- [ ] **Step 3: Implement the model, repository, and service**
 
 ```python
+# backend/packages/harness/nion/user_identity/models.py
 from pydantic import BaseModel, Field
 
 
@@ -160,9 +166,8 @@ class UserIdentityProfile(BaseModel):
     updated_at: str = ""
 ```
 
-`backend/packages/harness/nion/user_identity/repository.py`
-
 ```python
+# backend/packages/harness/nion/user_identity/repository.py
 import json
 from pathlib import Path
 
@@ -186,16 +191,12 @@ class UserIdentityRepository:
 
     def save(self, profile: UserIdentityProfile) -> UserIdentityProfile:
         self._path.parent.mkdir(parents=True, exist_ok=True)
-        self._path.write_text(
-            profile.model_dump_json(indent=2),
-            encoding="utf-8",
-        )
+        self._path.write_text(profile.model_dump_json(indent=2), encoding="utf-8")
         return profile
 ```
 
-`backend/packages/harness/nion/user_identity/service.py`
-
 ```python
+# backend/packages/harness/nion/user_identity/service.py
 from nion.memory_os.clock import utcnow_z
 from nion.user_identity.models import UserIdentityProfile
 from nion.user_identity.repository import UserIdentityRepository
@@ -214,11 +215,10 @@ class UserIdentityService:
         )
 ```
 
-- [ ] **Step 4: Add the router contract**
-
-`backend/app/gateway/routers/user_identity.py`
+- [ ] **Step 4: Add the router and register it**
 
 ```python
+# backend/app/gateway/routers/user_identity.py
 from fastapi import APIRouter
 
 from nion.config.paths import get_paths
@@ -237,7 +237,14 @@ async def get_user_identity():
     return _service().get_profile().model_dump(mode="json")
 ```
 
-- [ ] **Step 5: Run the targeted tests again**
+Update:
+
+- `backend/app/gateway/routers/__init__.py`
+- `backend/app/runtime/app_factory.py`
+
+to include `user_identity.router`.
+
+- [ ] **Step 5: Run the tests again**
 
 Run:
 
@@ -257,6 +264,8 @@ Expected:
 ```bash
 git add backend/packages/harness/nion/user_identity \
   backend/app/gateway/routers/user_identity.py \
+  backend/app/gateway/routers/__init__.py \
+  backend/app/runtime/app_factory.py \
   backend/tests/test_user_identity_repository.py \
   backend/tests/test_user_identity_service.py \
   backend/tests/test_user_identity_router.py
@@ -272,9 +281,7 @@ git commit -m "Introduce the stable user identity profile layer"
 - Modify: `backend/tests/test_memory_extraction_service.py`
 - Modify: `backend/tests/test_memory_os_extractor.py`
 
-- [ ] **Step 1: Write failing extraction tests for names and mutual addressing**
-
-Add to `backend/tests/test_memory_extraction_service.py`:
+- [ ] **Step 1: Write failing tests for explicit name and mutual addressing extraction**
 
 ```python
 def test_extract_memory_proposals_from_evidence_captures_user_name_and_mutual_addressing():
@@ -292,8 +299,6 @@ def test_extract_memory_proposals_from_evidence_captures_user_name_and_mutual_ad
     assert "user_name" in kinds
     assert "mutual_addressing" in kinds
 ```
-
-Add to `backend/tests/test_memory_os_extractor.py`:
 
 ```python
 def test_extractor_turns_name_and_addressing_signal_into_candidates():
@@ -321,24 +326,7 @@ Expected:
 
 - FAIL because extraction service does not emit `user_name` or `mutual_addressing`
 
-- [ ] **Step 3: Extend proposal kinds**
-
-`backend/packages/harness/nion/memory/extraction/models.py`
-
-Add new kinds in usage, without changing `MemoryProposal` shape:
-
-```python
-# New proposed_kind values used by extraction.service:
-# - user_name
-# - user_alias
-# - assistant_self_name
-# - mutual_addressing
-# - communication_contract
-```
-
-`backend/packages/harness/nion/memory/extraction/service.py`
-
-Add deterministic extractors:
+- [ ] **Step 3: Implement deterministic extractors**
 
 ```python
 def _extract_user_name(*, content: str, evidence_id: str) -> MemoryProposal | None:
@@ -382,11 +370,11 @@ def _extract_mutual_addressing(*, content: str, evidence_id: str) -> MemoryPropo
     )
 ```
 
-Wire them into `_extract_from_content()`.
+Wire these into `_extract_from_content()` before generic relationship extraction.
 
-- [ ] **Step 4: Map the new proposal kinds into candidate subtypes**
+- [ ] **Step 4: Map new proposal kinds to candidate subtypes**
 
-`backend/packages/harness/nion/memory_os/extractor.py`
+Update `backend/packages/harness/nion/memory_os/extractor.py`:
 
 ```python
     subtype_map = {
@@ -402,7 +390,7 @@ Wire them into `_extract_from_content()`.
     }
 ```
 
-- [ ] **Step 5: Run the extraction tests again**
+- [ ] **Step 5: Run the tests again**
 
 Run:
 
@@ -416,7 +404,7 @@ Expected:
 
 - PASS
 
-- [ ] **Step 6: Commit the extraction layer**
+- [ ] **Step 6: Commit the extraction work**
 
 ```bash
 git add backend/packages/harness/nion/memory/extraction/models.py \
@@ -427,7 +415,7 @@ git add backend/packages/harness/nion/memory/extraction/models.py \
 git commit -m "Extract user identity and mutual addressing signals"
 ```
 
-## Task 3: Make User Identity Always-On In Runtime
+## Task 3: Inject User Identity As Always-On Runtime Context
 
 **Files:**
 - Create: `backend/packages/harness/nion/user_identity/runtime.py`
@@ -438,9 +426,7 @@ git commit -m "Extract user identity and mutual addressing signals"
 - Modify: `backend/tests/test_runtime_memory_engine.py`
 - Modify: `backend/tests/test_memory_runtime_soul_bundle.py`
 
-- [ ] **Step 1: Write failing runtime tests for always-on user identity**
-
-Add to `backend/tests/test_runtime_memory_engine.py`:
+- [ ] **Step 1: Write failing runtime tests**
 
 ```python
 def test_build_runtime_memory_context_includes_user_identity_profile_even_without_query_match(tmp_path):
@@ -487,7 +473,7 @@ Expected:
 
 - [ ] **Step 3: Extend runtime models and builder**
 
-`backend/packages/harness/nion/memory/runtime_engine/models.py`
+Update `backend/packages/harness/nion/memory/runtime_engine/models.py`:
 
 ```python
 class RuntimeMemorySections(BaseModel):
@@ -500,15 +486,17 @@ class RuntimeMemorySections(BaseModel):
     ...
 ```
 
-`backend/packages/harness/nion/user_identity/runtime.py`
+Create `backend/packages/harness/nion/user_identity/runtime.py`:
 
 ```python
+from pathlib import Path
+
 from nion.user_identity.repository import UserIdentityRepository
 
 
-def build_runtime_user_identity_summary(base_dir) -> str | None:
+def build_runtime_user_identity_summary(base_dir: str | Path) -> str | None:
     profile = UserIdentityRepository(base_dir).load()
-    parts = []
+    parts: list[str] = []
     if profile.user_name:
         parts.append(f"用户姓名：{profile.user_name}")
     if profile.preferred_address_for_user:
@@ -519,32 +507,22 @@ def build_runtime_user_identity_summary(base_dir) -> str | None:
         parts.append(f"互称规则：{profile.mutual_addressing_rule}")
     if profile.communication_style_preferences:
         parts.append("沟通偏好：" + " / ".join(profile.communication_style_preferences))
-    return "\\n".join(parts) or None
+    return "\n".join(parts) or None
 ```
 
-`backend/packages/harness/nion/memory/runtime_engine/service.py`
+Use it in `build_runtime_memory_context(...)`.
 
-Add `base_dir` parameter and inject:
+- [ ] **Step 4: Reorder prompt/context pack output**
 
-```python
-user_identity_profile=build_runtime_user_identity_summary(base_dir),
-```
-
-- [ ] **Step 4: Make prompt/continuity consume the new always-on identity block**
-
-`backend/packages/harness/nion/memory_os/context_assembler.py`
-
-Update `runtime_memory_to_context_pack()` ordering so identity comes before soul:
+Update `backend/packages/harness/nion/memory_os/context_assembler.py` so runtime pack ordering starts with:
 
 ```python
 ("User Identity", sections.user_identity_profile),
 ("Core Identity", sections.core_identity),
-...
+("Speech Style", sections.speech_style),
 ```
 
-`backend/packages/harness/nion/agents/middlewares/continuity_middleware.py`
-
-Pass `base_dir=self._paths.base_dir` into `build_runtime_memory_pack(...)`.
+Update `backend/packages/harness/nion/agents/middlewares/continuity_middleware.py` to pass `base_dir=self._paths.base_dir` into `build_runtime_memory_pack(...)`.
 
 - [ ] **Step 5: Run the runtime tests again**
 
@@ -560,7 +538,7 @@ Expected:
 
 - PASS
 
-- [ ] **Step 6: Commit the runtime layer**
+- [ ] **Step 6: Commit the runtime work**
 
 ```bash
 git add backend/packages/harness/nion/user_identity/runtime.py \
@@ -579,7 +557,6 @@ git commit -m "Inject user identity as always-on runtime context"
 - Create: `backend/packages/harness/nion/agents/middlewares/user_identity_middleware.py`
 - Modify: `backend/packages/harness/nion/agents/lead_agent/agent.py`
 - Modify: `backend/packages/harness/nion/user_identity/service.py`
-- Modify: `backend/tests/test_user_identity_service.py`
 - Create: `backend/tests/test_user_identity_middleware.py`
 
 - [ ] **Step 1: Write failing middleware tests**
@@ -606,7 +583,7 @@ def test_user_identity_middleware_applies_explicit_name_and_addressing_before_mo
     assert profile.assistant_self_name == "小老弟"
 ```
 
-- [ ] **Step 2: Run the middleware tests to verify they fail**
+- [ ] **Step 2: Run the tests to verify they fail**
 
 Run:
 
@@ -617,33 +594,32 @@ backend/.venv/bin/python -m pytest \
 
 Expected:
 
-- FAIL because middleware does not exist
+- FAIL because middleware does not yet exist
 
-- [ ] **Step 3: Implement direct-apply update methods**
+- [ ] **Step 3: Implement direct-apply profile patching**
 
-`backend/packages/harness/nion/user_identity/service.py`
-
-Add:
+Update `backend/packages/harness/nion/user_identity/service.py`:
 
 ```python
     def apply_patch(self, patch: dict[str, object]) -> UserIdentityProfile:
         current = self.get_profile()
         update = {k: v for k, v in patch.items() if v not in (None, "", [])}
+        if not update:
+            return current
         return self.replace_profile(current.model_copy(update=update))
 ```
 
-`backend/packages/harness/nion/agents/middlewares/user_identity_middleware.py`
+Create `backend/packages/harness/nion/agents/middlewares/user_identity_middleware.py`:
 
 ```python
 from langchain.agents import AgentState
 from langchain.agents.middleware import AgentMiddleware
-from langchain_core.messages import HumanMessage
 from langgraph.runtime import Runtime
 
-from nion.user_identity.repository import UserIdentityRepository
-from nion.user_identity.service import UserIdentityService
 from nion.memory.extraction.service import extract_memory_proposals_from_evidence
 from nion.memory_os.extractor import _human_evidence_documents
+from nion.user_identity.repository import UserIdentityRepository
+from nion.user_identity.service import UserIdentityService
 
 
 class UserIdentityMiddleware(AgentMiddleware[AgentState]):
@@ -653,17 +629,19 @@ class UserIdentityMiddleware(AgentMiddleware[AgentState]):
 
     def before_model(self, state: AgentState, runtime: Runtime):
         thread_id = runtime.context.get("thread_id") if runtime.context else "thread:unknown"
-        messages = state.get("messages", [])
         proposals = extract_memory_proposals_from_evidence(
-            evidence_documents=_human_evidence_documents(messages=messages, thread_id=thread_id)
+            evidence_documents=_human_evidence_documents(
+                messages=state.get("messages", []),
+                thread_id=thread_id,
+            )
         )
-        patch = {}
+        patch: dict[str, object] = {}
         for proposal in proposals:
             if proposal.proposed_kind == "user_name":
                 patch["user_name"] = proposal.candidate_payload["user_name"]
-            if proposal.proposed_kind == "mutual_addressing":
+            elif proposal.proposed_kind == "mutual_addressing":
                 patch.update(proposal.candidate_payload)
-            if proposal.proposed_kind == "explicit_preference":
+            elif proposal.proposed_kind == "explicit_preference":
                 patch["communication_style_preferences"] = proposal.candidate_payload["preference_hints"]
         if patch:
             self._service.apply_patch(patch)
@@ -672,9 +650,7 @@ class UserIdentityMiddleware(AgentMiddleware[AgentState]):
 
 - [ ] **Step 4: Register the middleware before continuity**
 
-`backend/packages/harness/nion/agents/lead_agent/agent.py`
-
-In `_build_middlewares(...)`, insert:
+Modify `_build_middlewares(...)` in `backend/packages/harness/nion/agents/lead_agent/agent.py`:
 
 ```python
 from nion.agents.middlewares.user_identity_middleware import UserIdentityMiddleware
@@ -709,9 +685,10 @@ git add backend/packages/harness/nion/agents/middlewares/user_identity_middlewar
 git commit -m "Apply explicit user identity changes directly from chat"
 ```
 
-## Task 5: Replace Soul Draft Form With Immediate Tuning Panels
+## Task 5: Replace Soul Draft Workflow With Immediate Tuning Panels
 
 **Files:**
+- Modify: `backend/app/gateway/routers/user_identity.py`
 - Create: `frontend/src/core/user-identity/types.ts`
 - Create: `frontend/src/core/user-identity/api.ts`
 - Create: `frontend/src/core/user-identity/hooks.ts`
@@ -722,20 +699,20 @@ git commit -m "Apply explicit user identity changes directly from chat"
 - Modify: `frontend/src/core/soul-settings/types.ts`
 - Modify: `frontend/src/core/soul-settings/api.ts`
 - Modify: `frontend/src/core/soul-settings/hooks.ts`
+- Modify: `backend/tests/test_user_identity_router.py`
 - Modify: `backend/app/gateway/routers/memory_soul.py`
 - Modify: `backend/packages/harness/nion/memory/soul/console_service.py`
 - Modify: `backend/tests/test_memory_soul_router.py`
 
-- [ ] **Step 1: Write failing frontend contract tests for immediate tuning**
-
-Add `frontend/src/components/workspace/settings/user-identity-panel.contract.test.ts`:
+- [ ] **Step 1: Write failing frontend contract tests**
 
 ```ts
+// frontend/src/components/workspace/settings/user-identity-panel.contract.test.ts
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-void test("user identity panel exposes inline save interactions instead of a draft form", async () => {
+void test("user identity panel exposes inline tuning instead of a bulk draft form", async () => {
   const source = await readFile(
     new URL("./user-identity-panel.tsx", import.meta.url),
     "utf8",
@@ -747,7 +724,7 @@ void test("user identity panel exposes inline save interactions instead of a dra
 });
 ```
 
-Update `soul-settings-page.contract.test.ts`:
+Update `frontend/src/components/workspace/settings/soul-settings-page.contract.test.ts`:
 
 ```ts
   assert.doesNotMatch(source, /草稿应用/);
@@ -766,13 +743,44 @@ cd frontend && node --test \
 
 Expected:
 
-- FAIL because user-identity panel does not exist and Soul page still uses draft/apply structure
+- FAIL because user-identity panel does not yet exist and Soul page still exposes draft/apply workflow
 
 - [ ] **Step 3: Add field-level PATCH APIs**
 
-`backend/app/gateway/routers/memory_soul.py`
+Update `backend/app/gateway/routers/user_identity.py`:
 
 ```python
+from typing import Literal
+
+from pydantic import BaseModel
+
+
+class UserIdentityPatchRequest(BaseModel):
+    field: Literal[
+        "user_name",
+        "preferred_address_for_user",
+        "assistant_self_name",
+        "mutual_addressing_rule",
+        "user_role",
+        "timezone",
+        "long_term_background_summary",
+    ]
+    value: str
+
+
+@router.patch("")
+async def patch_user_identity(request: UserIdentityPatchRequest):
+    return _service().apply_patch({request.field: request.value}).model_dump(mode="json")
+```
+
+Update `backend/tests/test_user_identity_router.py` to cover field-level patch write-through.
+
+Update `backend/app/gateway/routers/memory_soul.py`:
+
+```python
+from typing import Literal
+
+
 class SoulSettingsPatchRequest(BaseModel):
     field: Literal["core_identity", "speech_style", "values_and_boundaries", "relationship_stance"]
     value: str
@@ -780,33 +788,38 @@ class SoulSettingsPatchRequest(BaseModel):
 
 @router.patch("")
 async def patch_soul_setting(request: SoulSettingsPatchRequest):
-    return patch_soul_setting_value(_repo(), field=request.field, value=request.value, created_at=utcnow_z())
+    return patch_soul_setting_value(
+        _repo(),
+        field=request.field,
+        value=request.value,
+        created_at=utcnow_z(),
+    )
 ```
 
-`backend/packages/harness/nion/memory/soul/console_service.py`
+Update `backend/packages/harness/nion/memory/soul/console_service.py`:
 
 ```python
-def patch_soul_setting_value(...):
-    # map one field to one stable record/update and return the updated field/value
+def patch_soul_setting_value(repository, *, field: str, value: str, created_at: str, actor: str = "user:default"):
+    # map one field to one stable record update and return {"action": "patch", "field": field, "value": value}
 ```
 
-Create `frontend/src/core/user-identity/api.ts` and `hooks.ts` with matching GET/PATCH calls to `/api/user-identity`.
+Create frontend user-identity API/hooks around `/api/user-identity`.
 
-- [ ] **Step 4: Build the tuning panels**
+- [ ] **Step 4: Build the immediate tuning panels**
 
 `frontend/src/components/workspace/settings/user-identity-panel.tsx`
 
 ```tsx
 export function UserIdentityPanel() {
-  // one card per field cluster
-  // local editing state
-  // save on blur or explicit per-card save
+  // current value
+  // local input
+  // save on blur or per-card save
 }
 ```
 
 `frontend/src/components/workspace/settings/soul-settings-page.tsx`
 
-Replace the bulk draft/apply section with:
+Restructure to:
 
 ```tsx
 <UserIdentityPanel />
@@ -820,10 +833,10 @@ Each card should:
 
 - show current value
 - allow local edit
-- write immediately via field-level mutation
-- show light success/error state
+- PATCH immediately
+- show light success / error feedback
 
-- [ ] **Step 5: Run frontend contract tests and typecheck**
+- [ ] **Step 5: Run frontend tests and typecheck**
 
 Run:
 
@@ -841,7 +854,7 @@ Expected:
 
 - PASS
 
-- [ ] **Step 6: Commit the immediate tuning UI**
+- [ ] **Step 6: Commit the interaction layer**
 
 ```bash
 git add frontend/src/core/user-identity \
@@ -850,10 +863,12 @@ git add frontend/src/core/user-identity \
   frontend/src/components/workspace/settings/soul-settings-page.tsx \
   frontend/src/components/workspace/settings/soul-settings-page.contract.test.ts \
   frontend/src/core/soul-settings \
+  backend/app/gateway/routers/user_identity.py \
   backend/app/gateway/routers/memory_soul.py \
   backend/packages/harness/nion/memory/soul/console_service.py \
+  backend/tests/test_user_identity_router.py \
   backend/tests/test_memory_soul_router.py
-git commit -m "Turn Soul settings into immediate tuning panels"
+git commit -m "Turn user identity and soul settings into immediate tuning panels"
 ```
 
 ## Task 6: Upgrade Acceptance Coverage And Final Verification
@@ -862,9 +877,9 @@ git commit -m "Turn Soul settings into immediate tuning panels"
 - Modify: `docs/test/10-memory-soul/behavioral-acceptance-questions.md`
 - Create/Modify: `artifacts/dogfood/<new-run>/report.md`
 
-- [ ] **Step 1: Add identity-and-addressing behavior questions**
+- [ ] **Step 1: Add identity-and-addressing acceptance questions**
 
-Append to `docs/test/10-memory-soul/behavioral-acceptance-questions.md`:
+Append:
 
 ```md
 ### 题：用户名字跨线程回忆
@@ -880,7 +895,7 @@ Append to `docs/test/10-memory-soul/behavioral-acceptance-questions.md`:
 通过标准：两边都必须答对。
 ```
 
-- [ ] **Step 2: Run full backend / frontend / desktop verification**
+- [ ] **Step 2: Run full verification**
 
 Run:
 
@@ -904,9 +919,8 @@ Required flow:
    - `我叫什么？`
    - `你该怎么叫我？`
    - `我该怎么叫你？`
-4. 聊天中再说：`以后你说话冷静一点，先给结论。`
-5. 新线程回查：
-   - `我喜欢你怎么回答？`
+4. 再说：`以后你回答冷静一点，先给结论。`
+5. 新线程回查：`我喜欢你怎么回答？`
 
 Expected:
 
@@ -916,5 +930,5 @@ Expected:
 
 ```bash
 git add docs/test/10-memory-soul/behavioral-acceptance-questions.md artifacts/dogfood
-git commit -m "Verify user identity memory and direct Soul tuning behavior"
+git commit -m "Verify user identity memory and direct soul tuning behavior"
 ```
