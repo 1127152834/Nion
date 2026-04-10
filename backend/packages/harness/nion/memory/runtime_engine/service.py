@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from nion.memory.runtime_engine.models import RuntimeMemoryResult, RuntimeMemorySections
 from nion.memory.runtime_engine.search_plan import RuntimeMemorySearchPlan, build_runtime_search_plan
+from nion.memory.runtime_engine.soul_bundle import build_runtime_soul_bundle
+from nion.memory_os.clock import utcnow_z
 from nion.memory_os.context_pack import MemoryContextPack, MemoryContextPackItem
 from nion.memory_os.repository import MemoryOSRepository
 
@@ -21,18 +23,13 @@ def build_runtime_memory_context(
         )
 
     plan = build_runtime_search_plan(query)
+    soul_bundle = build_runtime_soul_bundle(repository, now_z=utcnow_z())
     sections = RuntimeMemorySections(
-        constitution=_latest_summary(repository, domain="soul", subtype="core"),
-        relationship_stance=_latest_summary(
-            repository,
-            domain="soul",
-            subtype="relationship_soul",
-        ),
-        identity_narrative=_latest_summary(
-            repository,
-            domain="agent_self",
-            subtype="identity_narrative",
-        ),
+        core_identity=soul_bundle.core_identity,
+        speech_style=soul_bundle.speech_style,
+        values_and_boundaries=soul_bundle.values_and_boundaries,
+        relationship_stance=soul_bundle.relationship_stance,
+        adaptive_overlay=soul_bundle.adaptive_overlay,
         hot_memories=_collect_hot_memories(repository, plan=plan),
         relevant_procedures=_collect_relevant_procedures(repository, plan=plan),
         scoped_recall=_collect_scoped_recall(repository, thread_id=thread_id, plan=plan),
@@ -46,9 +43,11 @@ def runtime_memory_to_context_pack(result: RuntimeMemoryResult) -> MemoryContext
     sections = result.sections
 
     for title, content in (
-        ("Constitution", sections.constitution),
+        ("Core Identity", sections.core_identity),
+        ("Speech Style", sections.speech_style),
+        ("Values and Boundaries", sections.values_and_boundaries),
         ("Relationship Stance", sections.relationship_stance),
-        ("Identity Narrative", sections.identity_narrative),
+        ("Adaptive Overlay", sections.adaptive_overlay),
     ):
         if content:
             items.append(
@@ -75,19 +74,6 @@ def runtime_memory_to_context_pack(result: RuntimeMemoryResult) -> MemoryContext
             )
 
     return MemoryContextPack(items=items)
-
-
-def _latest_summary(
-    repository: MemoryOSRepository,
-    *,
-    domain: str,
-    subtype: str,
-) -> str | None:
-    for row in repository.list_memory_records(domain=domain, status="active"):
-        if row["subtype"] == subtype:
-            summary = str(row["summary"]).strip()
-            return summary or None
-    return None
 
 
 def _collect_hot_memories(

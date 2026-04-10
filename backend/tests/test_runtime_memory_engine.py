@@ -8,9 +8,11 @@ from nion.memory_os.soul_artifacts import MemoryOSSoulArtifactStore
 def test_runtime_memory_sections_empty_factory_returns_all_layers_cleared():
     sections = RuntimeMemorySections.empty()
 
-    assert sections.constitution is None
+    assert sections.core_identity is None
+    assert sections.speech_style is None
+    assert sections.values_and_boundaries is None
     assert sections.relationship_stance is None
-    assert sections.identity_narrative is None
+    assert sections.adaptive_overlay is None
     assert sections.hot_memories == []
     assert sections.relevant_procedures == []
     assert sections.scoped_recall == []
@@ -19,18 +21,22 @@ def test_runtime_memory_sections_empty_factory_returns_all_layers_cleared():
 
 def test_runtime_memory_sections_include_expected_layers():
     sections = RuntimeMemorySections(
-        constitution="core",
+        core_identity="core",
+        speech_style="speech",
+        values_and_boundaries="values",
         relationship_stance="stance",
-        identity_narrative="narrative",
+        adaptive_overlay="overlay",
         hot_memories=["m1"],
         relevant_procedures=["p1"],
         scoped_recall=["r1"],
         verbatim_evidence=["e1"],
     )
 
-    assert sections.constitution == "core"
+    assert sections.core_identity == "core"
+    assert sections.speech_style == "speech"
+    assert sections.values_and_boundaries == "values"
     assert sections.relationship_stance == "stance"
-    assert sections.identity_narrative == "narrative"
+    assert sections.adaptive_overlay == "overlay"
     assert sections.hot_memories == ["m1"]
     assert sections.relevant_procedures == ["p1"]
     assert sections.scoped_recall == ["r1"]
@@ -170,9 +176,11 @@ def test_build_runtime_memory_context_assembles_all_required_sections(tmp_path: 
 
     assert result.gated is False
     assert result.gating_reason is None
-    assert result.sections.constitution == "稳定、克制、长期主义。"
+    assert result.sections.core_identity == "稳定、克制、长期主义。"
+    assert result.sections.speech_style == "我是长期陪伴型助手。"
+    assert result.sections.values_and_boundaries == "稳定、克制、长期主义。"
     assert result.sections.relationship_stance == "面对当前用户时，保持低刺激、少施压、结论先行。"
-    assert result.sections.identity_narrative == "我是长期陪伴型助手。"
+    assert result.sections.adaptive_overlay is None
     assert result.sections.hot_memories == ["用户偏好直接表达，避免铺垫。"]
     assert result.sections.relevant_procedures == ["财务汇报默认使用结论/风险/动作三段式。"]
     assert result.sections.scoped_recall == ["上次已经用三段式写过财务周报。"]
