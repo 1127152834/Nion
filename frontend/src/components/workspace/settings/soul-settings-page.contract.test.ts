@@ -9,8 +9,9 @@ void test("soul settings page exposes stable settings instead of governance cons
   );
 
   assert.match(source, /核心人格|说话方式|价值观|关系基调/);
-  assert.match(source, /草稿|应用/);
   assert.match(source, /Settings\s*&gt;\s*Soul/);
+  assert.doesNotMatch(source, /草稿应用/);
+  assert.doesNotMatch(source, /当前没有未保存的改动/);
   assert.doesNotMatch(source, /revision/i);
   assert.doesNotMatch(source, /evidence_ref/i);
   assert.doesNotMatch(source, /rollback/i);

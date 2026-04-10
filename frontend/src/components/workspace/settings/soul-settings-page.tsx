@@ -7,82 +7,124 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { UserIdentityPanel } from "@/components/workspace/settings/user-identity-panel";
 import {
-  useApplySoulSettings,
+  usePatchSoulSetting,
   useSoulSettings,
 } from "@/core/soul-settings/hooks";
-import type {
-  SoulSettingsDraft,
-  SoulSettingsResponse,
-} from "@/core/soul-settings/types";
+import type { SoulSettingsField } from "@/core/soul-settings/types";
 
-const SOUL_SETTINGS_FIELDS: Array<{
-  key: keyof SoulSettingsDraft;
+const SOUL_FIELDS: Array<{
+  key: SoulSettingsField;
   title: string;
-  description: string;
   placeholder: string;
 }> = [
   {
     key: "core_identity",
     title: "核心人格",
-    description: "长期稳定的人格基底，决定助手在长期陪伴中的基本姿态。",
-    placeholder: "例如：长期陪伴、克制稳定、结论先行、以用户长期价值为先。",
+    placeholder: "例如：长期陪伴、克制稳定、结论先行。",
   },
   {
     key: "speech_style",
     title: "说话方式",
-    description: "回答时的语气、节奏与表达习惯，只描述稳定偏好。",
-    placeholder: "例如：先给结论，再补上下文；少口号，少过度鼓励。",
+    placeholder: "例如：先给结论，再补上下文。",
   },
   {
     key: "values_and_boundaries",
     title: "价值观 / 边界",
-    description: "明确哪些原则必须长期坚持，哪些边界不能越过。",
-    placeholder: "例如：不代替用户做最终判断，不用情绪裹挟结论。",
+    placeholder: "例如：不代替用户做最终判断。",
   },
   {
     key: "relationship_stance",
     title: "关系基调",
-    description: "全局唯一的相处基调，用来约束长期陪伴关系。",
-    placeholder: "例如：低刺激、少施压、结论先行、稳定陪伴。",
+    placeholder: "例如：低刺激、少施压、稳定陪伴。",
   },
 ];
 
-function createDraft(settings: SoulSettingsResponse): SoulSettingsDraft {
-  return {
-    core_identity: settings.core_identity,
-    speech_style: settings.speech_style,
-    values_and_boundaries: settings.values_and_boundaries,
-    relationship_stance: settings.relationship_stance,
-  };
+const EMPTY_SOUL_VALUES: Record<SoulSettingsField, string> = {
+  core_identity: "目前还没有稳定的核心人格设置。",
+  speech_style: "目前还没有稳定的说话方式设置。",
+  values_and_boundaries: "目前还没有稳定的价值观与边界设置。",
+  relationship_stance: "目前还没有稳定的关系基调设置。",
+};
+
+function normalizeSoulValue(field: SoulSettingsField, value: string): string {
+  return value === EMPTY_SOUL_VALUES[field] ? "" : value;
+}
+
+function SoulFieldCard(props: {
+  field: SoulSettingsField;
+  title: string;
+  currentValue: string;
+  placeholder: string;
+  isPending: boolean;
+  onSave: (field: SoulSettingsField, value: string) => Promise<void>;
+}) {
+  const [draft, setDraft] = useState(props.currentValue);
+
+  useEffect(() => {
+    setDraft(props.currentValue);
+  }, [props.currentValue]);
+
+  const isDirty = draft !== props.currentValue;
+
+  return (
+    <Card>
+      <CardHeader className="space-y-3">
+        <div className="flex items-start justify-between gap-3">
+          <CardTitle>{props.title}</CardTitle>
+          <Badge variant={isDirty ? "secondary" : "outline"}>
+            {props.isPending ? "保存中" : isDirty ? "待保存" : "已同步"}
+          </Badge>
+        </div>
+        <p className="text-muted-foreground text-sm whitespace-pre-wrap">
+          {props.currentValue || "尚未设置"}
+        </p>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <Textarea
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+          placeholder={props.placeholder}
+          className="min-h-32"
+        />
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-muted-foreground text-xs">保存后立即生效。</p>
+          <Button
+            type="button"
+            size="sm"
+            disabled={!isDirty || props.isPending}
+            onClick={() => void props.onSave(props.field, draft)}
+          >
+            {props.isPending ? "保存中" : "保存"}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
 
 export function SoulSettingsPage() {
   const { settings, isLoading, error } = useSoulSettings();
-  const applySoulSettings = useApplySoulSettings();
-  const [draft, setDraft] = useState<SoulSettingsDraft>(() =>
-    createDraft(settings),
-  );
+  const patchSoulSetting = usePatchSoulSetting();
 
-  useEffect(() => {
-    setDraft({
-      core_identity: settings.core_identity,
-      speech_style: settings.speech_style,
-      values_and_boundaries: settings.values_and_boundaries,
-      relationship_stance: settings.relationship_stance,
-    });
-  }, [
-    settings.core_identity,
-    settings.speech_style,
-    settings.values_and_boundaries,
-    settings.relationship_stance,
-  ]);
+  async function saveSoulField(field: SoulSettingsField, value: string) {
+    const label = SOUL_FIELDS.find((item) => item.key === field)?.title ?? "设定";
 
-  const hasDraftChanges =
-    draft.core_identity !== settings.core_identity ||
-    draft.speech_style !== settings.speech_style ||
-    draft.values_and_boundaries !== settings.values_and_boundaries ||
-    draft.relationship_stance !== settings.relationship_stance;
+    try {
+      await patchSoulSetting.mutateAsync({
+        field,
+        value: value.trim(),
+      });
+      toast.success(`${label}已更新`);
+    } catch (mutationError) {
+      toast.error(
+        mutationError instanceof Error
+          ? mutationError.message
+          : `${label}更新失败`,
+      );
+    }
+  }
 
   return (
     <main className="flex size-full min-h-0 flex-col gap-6 overflow-y-auto px-4 py-6 sm:px-6">
@@ -95,42 +137,25 @@ export function SoulSettingsPage() {
             <h1 className="text-[1.85rem] font-semibold tracking-tight">
               Soul
             </h1>
-            <p className="text-muted-foreground max-w-3xl text-sm leading-7">
-              定义这个助手长期稳定的人格、表达方式与相处基调。
+            <p className="text-muted-foreground text-sm">
+              长期设定会直接影响后续对话。
             </p>
           </div>
-          <Badge variant="secondary">Stable Settings</Badge>
+          <Badge variant={settings.has_active_overlay ? "secondary" : "outline"}>
+            {settings.has_active_overlay ? "当前有临时微调" : "当前是稳定模式"}
+          </Badge>
         </div>
       </header>
 
       <Card>
-        <CardHeader className="gap-3">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <CardTitle>当前状态</CardTitle>
-            </div>
-            <Badge
-              variant={settings.has_active_overlay ? "secondary" : "outline"}
-            >
-              {settings.has_active_overlay
-                ? "存在临时表达模式"
-                : "无临时表达模式"}
-            </Badge>
-          </div>
+        <CardHeader className="space-y-2">
+          <CardTitle>当前表达</CardTitle>
+          <p className="text-muted-foreground text-sm whitespace-pre-wrap">
+            {settings.has_active_overlay
+              ? settings.adaptive_overlay_summary ?? "临时微调已生效。"
+              : "没有额外临时微调。"}
+          </p>
         </CardHeader>
-        <CardContent className="space-y-3 text-sm">
-          <div className="bg-muted/10 rounded-lg border p-4">
-            <div className="text-muted-foreground text-xs font-medium tracking-[0.14em] uppercase">
-              临时表达模式
-            </div>
-            <p className="text-muted-foreground mt-2 text-sm leading-7 whitespace-pre-wrap">
-              {settings.has_active_overlay
-                ? (settings.adaptive_overlay_summary ??
-                  "当前存在临时表达模式。")
-                : "当前没有临时表达模式。"}
-            </p>
-          </div>
-        </CardContent>
       </Card>
 
       {isLoading ? (
@@ -145,85 +170,32 @@ export function SoulSettingsPage() {
         </section>
       ) : null}
 
-      <section className="grid gap-4 lg:grid-cols-2">
-        {SOUL_SETTINGS_FIELDS.map((field) => (
-          <Card key={field.key}>
-            <CardHeader>
-              <CardTitle>{field.title}</CardTitle>
-              <p className="text-muted-foreground text-sm leading-7">
-                {field.description}
-              </p>
-            </CardHeader>
-            <CardContent className="space-y-4 text-sm">
-              <div className="bg-muted/10 rounded-lg border p-4">
-                <div className="text-muted-foreground text-xs font-medium tracking-[0.14em] uppercase">
-                  当前设置
-                </div>
-                <p className="text-muted-foreground mt-2 text-sm leading-7 whitespace-pre-wrap">
-                  {settings[field.key]}
-                </p>
-              </div>
+      <UserIdentityPanel />
 
-              <div className="space-y-2">
-                <label className="text-muted-foreground text-xs font-medium tracking-[0.14em] uppercase">
-                  {field.title}草稿
-                </label>
-                <Textarea
-                  value={draft[field.key]}
-                  onChange={(event) =>
-                    setDraft((current) => ({
-                      ...current,
-                      [field.key]: event.target.value,
-                    }))
-                  }
-                  placeholder={field.placeholder}
-                  className="min-h-32"
-                />
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </section>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>草稿应用</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3 text-sm">
-          <div className="flex flex-wrap items-center gap-3">
-            <Button
-              type="button"
-              onClick={() =>
-                void applySoulSettings
-                  .mutateAsync({
-                    core_identity: draft.core_identity.trim(),
-                    speech_style: draft.speech_style.trim(),
-                    values_and_boundaries: draft.values_and_boundaries.trim(),
-                    relationship_stance: draft.relationship_stance.trim(),
-                  })
-                  .then(() => {
-                    toast.success("已应用 Soul 设置");
-                  })
-                  .catch((mutationError) => {
-                    toast.error(
-                      mutationError instanceof Error
-                        ? mutationError.message
-                        : "应用 Soul 设置失败",
-                    );
-                  })
+      <section className="space-y-4">
+        <div>
+          <h2 className="text-lg font-semibold tracking-tight">长期风格</h2>
+          <p className="text-muted-foreground text-sm">
+            逐项调整即可。
+          </p>
+        </div>
+        <div className="grid gap-4 xl:grid-cols-2">
+          {SOUL_FIELDS.map((field) => (
+            <SoulFieldCard
+              key={field.key}
+              field={field.key}
+              title={field.title}
+              currentValue={normalizeSoulValue(field.key, settings[field.key])}
+              placeholder={field.placeholder}
+              isPending={
+                patchSoulSetting.isPending &&
+                patchSoulSetting.variables?.field === field.key
               }
-              disabled={!hasDraftChanges || applySoulSettings.isPending}
-            >
-              应用
-            </Button>
-            <span className="text-muted-foreground text-xs">
-              {hasDraftChanges
-                ? "草稿已更新。"
-                : "当前没有未保存的改动。"}
-            </span>
-          </div>
-        </CardContent>
-      </Card>
+              onSave={saveSoulField}
+            />
+          ))}
+        </div>
+      </section>
     </main>
   );
 }
