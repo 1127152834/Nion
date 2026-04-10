@@ -80,7 +80,7 @@ export function SettingsDialog(props: SettingsDialogProps) {
     : "appearance";
   const [activeSection, setActiveSection] =
     useState<SettingsSection>(resolvedDefaultSection);
-  const { isLoading: isConfigLoading, error: configError } = useConfigCenter({
+  const { isLoading: isConfigLoading } = useConfigCenter({
     enabled: dialogProps.open,
   });
 
@@ -228,17 +228,15 @@ export function SettingsDialog(props: SettingsDialogProps) {
       onOpenChange={(open) => props.onOpenChange?.(open)}
     >
       <DialogContent
-        className="flex h-[82vh] max-h-[calc(100vh-1.5rem)] flex-col sm:max-w-5xl md:max-w-6xl"
+        className="flex h-[86vh] max-h-[calc(100vh-1rem)] flex-col sm:max-w-5xl md:max-w-6xl"
         aria-describedby={undefined}
       >
         <DialogHeader className="gap-1">
           <DialogTitle>{t.settings.title}</DialogTitle>
           <p className="text-muted-foreground text-sm">
-            {configError
-              ? t.settings.configCenterError
-              : isConfigLoading
-                ? t.settings.loadingState
-                : t.settings.description}
+            {isConfigLoading
+              ? t.settings.loadingState
+              : t.settings.description}
           </p>
         </DialogHeader>
         <SettingsDialogProvider
@@ -249,9 +247,9 @@ export function SettingsDialog(props: SettingsDialogProps) {
         >
           <div className="grid min-h-0 flex-1 gap-4 md:grid-cols-[220px_1fr]">
             <nav className="bg-sidebar min-h-0 overflow-y-auto rounded-lg border border-sidebar-border p-2">
-              <div className="space-y-3 pr-1">
+              <div className="space-y-2 pr-1">
                 {navGroups.map((group) => (
-                  <div key={group.id} className="space-y-2">
+                  <div key={group.id} className="space-y-1.5">
                     <SettingsNavGroupTitle title={group.title} />
                     <ul className="space-y-1">
                       {group.items.map(({ id, label, icon: Icon }) => {
@@ -262,7 +260,7 @@ export function SettingsDialog(props: SettingsDialogProps) {
                               type="button"
                               onClick={() => setActiveSection(id)}
                               className={cn(
-                                "group flex w-full items-center gap-3 rounded-md border px-3 py-2 text-sm transition-colors",
+                                "group flex w-full items-center gap-3 rounded-md border px-3 py-1.5 text-sm transition-colors",
                                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                                 active
                                   ? "border-sidebar-border bg-sidebar-accent font-semibold text-foreground"

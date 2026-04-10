@@ -8,7 +8,9 @@ void test("settings dialog keeps enough viewport height for the knowledge sectio
     "utf8",
   );
 
-  assert.match(source, /h-\[82vh\]/);
-  assert.match(source, /max-h-\[calc\(100vh-1\.5rem\)\]/);
-  assert.doesNotMatch(source, /h-\[75vh\]/);
+  assert.match(source, /h-\[86vh\]/);
+  assert.match(source, /max-h-\[calc\(100vh-1rem\)\]/);
+  assert.doesNotMatch(source, /h-\[82vh\]/);
+  assert.match(source, /space-y-2 pr-1/);
+  assert.match(source, /px-3 py-1\.5 text-sm/);
 });
