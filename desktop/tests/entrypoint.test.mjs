@@ -24,6 +24,16 @@ test("auto-start accepts relative entry arguments resolved against cwd", () => {
   }
 });
 
+test("auto-start ignores leading Electron flags before the entry script", () => {
+  assert.equal(
+    shouldAutoStartDesktopMain(
+      "/tmp/project/dist/main/index.js",
+      ["--remote-debugging-port=9229", "/tmp/project/dist/main/index.js"],
+    ),
+    true,
+  );
+});
+
 test("auto-start rejects unrelated entry arguments", () => {
   assert.equal(
     shouldAutoStartDesktopMain("/tmp/project/dist/main/index.js", "/tmp/project/dist/main/other.js"),

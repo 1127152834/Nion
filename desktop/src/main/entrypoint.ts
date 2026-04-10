@@ -3,13 +3,14 @@ import path from "node:path";
 
 export function shouldAutoStartDesktopMain(
   moduleFilename: string,
-  argvEntry = process.argv[1],
+  argvEntries: string | string[] = process.argv.slice(1),
 ): boolean {
-  if (!argvEntry) {
+  const entry = resolveEntrypoint(argvEntries);
+  if (!entry) {
     return false;
   }
 
-  return normalizePath(argvEntry) === normalizePath(moduleFilename);
+  return normalizePath(entry) === normalizePath(moduleFilename);
 }
 
 function normalizePath(value: string): string {
@@ -20,4 +21,19 @@ function normalizePath(value: string): string {
   } catch {
     return resolved;
   }
+}
+
+function resolveEntrypoint(argvEntries: string | string[]): string | null {
+  if (typeof argvEntries === "string") {
+    return argvEntries || null;
+  }
+
+  for (const candidate of argvEntries) {
+    if (!candidate || candidate.startsWith("-")) {
+      continue;
+    }
+    return candidate;
+  }
+
+  return null;
 }
