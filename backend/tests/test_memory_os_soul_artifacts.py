@@ -76,7 +76,7 @@ def test_soul_artifact_store_writes_relationship_soul_artifact(tmp_path: Path):
         source_relationship_ids=["rel_01", "rel_02"],
     )
 
-    assert artifact["memory_record"]["memory_id"] == "soul_rel_user_default"
+    assert artifact["memory_record"]["memory_id"] == "relationship_soul_user_default"
     assert artifact["memory_record"]["artifact_uri"].endswith("relationship_soul.md")
     assert Path(artifact["artifact_path"]).read_text(encoding="utf-8").startswith("# Relationship Soul")
 

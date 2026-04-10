@@ -35,10 +35,6 @@ def test_skill_update_records_human_readable_event(monkeypatch, tmp_path: Path) 
 
     paths_module._paths = None
     monkeypatch.setattr(
-        "app.gateway.routers.skills.get_skills_root_path",
-        lambda: skills_root,
-    )
-    monkeypatch.setattr(
         "app.gateway.routers.skills.load_skills",
         lambda enabled_only=False: load_skills(
             skills_path=skills_root,
@@ -78,10 +74,6 @@ def test_skill_read_records_event(monkeypatch, tmp_path: Path) -> None:
     import nion.config.paths as paths_module
 
     paths_module._paths = None
-    monkeypatch.setattr(
-        "app.gateway.routers.skills.get_skills_root_path",
-        lambda: skills_root,
-    )
     monkeypatch.setattr(
         "app.gateway.routers.skills.load_skills",
         lambda enabled_only=False: load_skills(

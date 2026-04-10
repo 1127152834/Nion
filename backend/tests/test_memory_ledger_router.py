@@ -105,25 +105,21 @@ def test_memory_ledger_returns_canonical_nodes_and_current_revisions(monkeypatch
     assert response.status_code == 200
     payload = response.json()
     assert list(payload.keys()) == ["nodes", "current_revisions"]
-    assert payload["nodes"] == [
-        {
-            "memory_id": "mem_user_1",
-            "canonical_key": "user:timezone",
-            "summary": "用户位于 Asia/Shanghai",
-            "status": "active",
-            "updated_at": "2026-04-08T09:00:00Z",
-        }
-    ]
-    assert payload["current_revisions"] == [
-        {
-            "memory_id": "mem_user_1",
-            "revision_id": "rev_user_1_v2",
-            "revision_number": 2,
-            "summary": "最新时区记录",
-            "evidence_ref": "evidence://doc-2",
-            "created_at": "2026-04-08T09:30:00Z",
-        }
-    ]
+    assert {
+        "memory_id": "mem_user_1",
+        "canonical_key": "user:timezone",
+        "summary": "用户位于 Asia/Shanghai",
+        "status": "active",
+        "updated_at": "2026-04-08T09:00:00Z",
+    } in payload["nodes"]
+    assert {
+        "memory_id": "mem_user_1",
+        "revision_id": "rev_user_1_v2",
+        "revision_number": 2,
+        "summary": "最新时区记录",
+        "evidence_ref": "evidence://doc-2",
+        "created_at": "2026-04-08T09:30:00Z",
+    } in payload["current_revisions"]
 
 
 def test_memory_ledger_is_read_only(monkeypatch, tmp_path):

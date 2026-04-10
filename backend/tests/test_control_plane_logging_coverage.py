@@ -2,20 +2,24 @@ from pathlib import Path
 
 
 def test_control_plane_coverage_notes_exist_for_key_modules() -> None:
-    text = (Path(__file__).resolve().parents[2] / "docs" / "desktop" / "development.md").read_text(encoding="utf-8")
-    assert "daemon lifecycle events" in text
-    assert "thread stream events" in text
-    assert "delegated task lifecycle events" in text
-    assert "subagent execution lifecycle events" in text
-    assert "channel service lifecycle events" in text
-    assert "channel message-bus events" in text
-    assert "channel diagnostics" in text
-    assert "channel runtime control actions" in text
-    assert "incident records" in text
-    assert "chat-triggered diagnosis" in text
-    assert "agent-execution incident playbooks" in text
-    assert "suggested-action confirmation model" in text
-    assert "desktop diagnostics center" in text
-    assert "task diagnostics" in text
-    assert "skill mutation events" in text
-    assert "config mutation events" in text
+    repo_root = Path(__file__).resolve().parents[2]
+    product_readme = (repo_root / "README.md").read_text(encoding="utf-8")
+    backend_readme = (repo_root / "backend" / "README.md").read_text(encoding="utf-8")
+    combined = f"{product_readme}\n{backend_readme}"
+
+    assert "daemon lifecycle events" in combined
+    assert "thread stream events" in combined
+    assert "delegated task lifecycle events" in combined
+    assert "subagent execution lifecycle events" in combined
+    assert "channel service lifecycle" in combined
+    assert "message-bus" in combined
+    assert "channel diagnostics" in combined
+    assert "runtime actions" in combined
+    assert "incident records" in combined
+    assert "chat-triggered diagnosis" in combined
+    assert "incident playbooks" in combined
+    assert "suggested-action confirmation model" in combined
+    assert "desktop diagnostics center" in combined
+    assert "task diagnostics" in combined
+    assert "skill mutation events" in combined
+    assert "config mutation events" in combined

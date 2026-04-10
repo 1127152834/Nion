@@ -26,21 +26,20 @@ def recall_client(tmp_path: Path):
 
 
 def test_recall_query_endpoint_returns_normalized_items(recall_client: TestClient) -> None:
-    seed = recall_client.post(
-        "/api/recall/query",
-        json={"thread_id": "t1", "query": "yesterday"},
-    )
-
-    assert seed.status_code == 200
-    assert "items" in seed.json()
-    assert seed.json()["items"][0]["kind"] == "no_match"
-
-
-def test_recall_continuity_endpoint_returns_block(recall_client: TestClient) -> None:
-    response = recall_client.post(
-        "/api/recall/continuity",
-        json={"thread_id": "t1", "user_message": "continue yesterday"},
+    response = recall_client.get(
+        "/api/recall/search",
+        params={"thread_id": "t1", "q": "yesterday"},
     )
 
     assert response.status_code == 200
-    assert "<continuity_context>" in response.json()["continuity_block"]
+    assert response.json() == {"scope": "thread", "results": []}
+
+
+def test_recall_search_endpoint_can_query_global_scope(recall_client: TestClient) -> None:
+    response = recall_client.get(
+        "/api/recall/search",
+        params={"q": "yesterday"},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {"scope": "global", "results": []}

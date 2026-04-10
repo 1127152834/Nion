@@ -11,7 +11,7 @@ class TestThreadDataMiddleware:
         result = middleware.before_agent(state={}, runtime=Runtime(context={"thread_id": "thread-123"}))
 
         assert result is not None
-        assert result["thread_data"]["workspace_path"].endswith("threads/thread-123/user-data/workspace")
+        assert result["thread_data"]["workspace_path"].endswith("threads/thread-123/user-data/workdir")
         assert result["thread_data"]["uploads_path"].endswith("threads/thread-123/user-data/uploads")
         assert result["thread_data"]["outputs_path"].endswith("threads/thread-123/user-data/outputs")
 
@@ -26,7 +26,7 @@ class TestThreadDataMiddleware:
         result = middleware.before_agent(state={}, runtime=runtime)
 
         assert result is not None
-        assert result["thread_data"]["workspace_path"].endswith("threads/thread-from-config/user-data/workspace")
+        assert result["thread_data"]["workspace_path"].endswith("threads/thread-from-config/user-data/workdir")
         assert runtime.context is None
 
     def test_before_agent_uses_thread_id_from_configurable_when_context_missing_thread_id(self, tmp_path, monkeypatch):
