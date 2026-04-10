@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from typing import Any
 
-from nion.memory.soul.service import derive_relationship_stance_snapshot, get_soul_layer_snapshot
+from nion.memory.soul.service import get_soul_layer_snapshot
 from nion.memory_os.models import UserOverrideRecord
 from nion.memory_os.repository import MemoryOSRepository
 
@@ -20,7 +20,7 @@ def build_soul_settings_payload(
 ) -> dict[str, Any]:
     core = get_soul_layer_snapshot(repository, layer="core", now_z=now_z)
     identity = get_soul_layer_snapshot(repository, layer="identity_narrative", now_z=now_z)
-    relationship = derive_relationship_stance_snapshot(repository, now_z=now_z)
+    relationship = get_soul_layer_snapshot(repository, layer="relationship_stance", now_z=now_z)
     overlay = get_soul_layer_snapshot(repository, layer="adaptive_overlay", now_z=now_z)
 
     values_override = _load_values_override(repository)

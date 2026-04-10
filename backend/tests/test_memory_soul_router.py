@@ -152,3 +152,52 @@ def test_memory_soul_router_exposes_settings_payload_without_governance_actions(
     ]
 
     assert retired_growth.status_code == 404
+
+
+def test_memory_soul_router_does_not_derive_stable_relationship_stance_from_internal_relationship_records(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    repo = MemoryOSRepository(tmp_path / "memory-os" / "index.sqlite3")
+    repo.save_memory_record(
+        {
+            "memory_id": "soul_core_main",
+            "domain": "soul",
+            "subtype": "core",
+            "owner_type": "system",
+            "scope": "agent",
+            "memory_type": "semantic",
+            "subject_id": "agent:main",
+            "status": "active",
+            "summary": "长期陪伴、克制稳定、结论先行。",
+            "confidence": 1.0,
+            "created_at": "2026-04-08T00:00:00Z",
+            "updated_at": "2026-04-08T00:00:00Z",
+            "artifact_uri": "nion://memory-os/artifacts/soul/core/core_soul.md",
+            "provenance": {"source_type": "test"},
+        }
+    )
+    repo.save_memory_record(
+        {
+            "memory_id": "rel_01",
+            "domain": "relationship",
+            "subtype": "initiative_policy",
+            "owner_type": "agent",
+            "scope": "user",
+            "memory_type": "semantic",
+            "subject_id": "user:default",
+            "status": "active",
+            "summary": "用户偏好低打扰、少施压、结论先行的支持方式。",
+            "confidence": 0.9,
+            "created_at": "2026-04-08T00:00:00Z",
+            "updated_at": "2026-04-08T00:00:00Z",
+            "provenance": {"source_type": "test"},
+        }
+    )
+
+    with TestClient(create_app()) as client:
+        response = client.get("/api/memory/soul")
+
+    assert response.status_code == 200
+    assert response.json()["relationship_stance"] == "目前还没有稳定的关系基调设置。"

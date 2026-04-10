@@ -169,7 +169,7 @@ class MemoryOSSoulArtifactStore:
         path = self._artifacts_dir / "soul" / "relationship" / "relationship_soul.md"
         summary = _extract_summary(body)
         record = {
-            "memory_id": "soul_rel_user_default",
+            "memory_id": "relationship_soul_user_default",
             "domain": "soul",
             "subtype": "relationship_soul",
             "owner_type": "agent",
@@ -190,17 +190,6 @@ class MemoryOSSoulArtifactStore:
                 "source_relationship_ids": source_relationship_ids or [],
             },
         }
-        write_canonical_soul_layer(
-            self._repository,
-            layer="relationship_stance",
-            summary=summary,
-            created_at=created_at,
-            payload={
-                "artifact_uri": record["artifact_uri"],
-                "source_type": "relationship_derivation",
-                "source_relationship_ids": source_relationship_ids or [],
-            },
-        )
         return self._write_artifact(path=path, body=body, record=record)
 
     def _write_artifact(

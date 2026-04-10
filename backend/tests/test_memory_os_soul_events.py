@@ -106,8 +106,8 @@ def test_soul_events_capture_narrative_relationship_journal_and_automation_outpu
     ]
     assert event_map["identity_narrative_staged"]["memory_id"] == "agent_self_narrative_staged_main"
     assert event_map["identity_narrative_promoted"]["related_memory_id"] == "agent_self_narrative_staged_main"
-    assert event_map["relationship_soul_refreshed"]["memory_id"] == "soul_rel_user_default"
+    assert event_map["relationship_soul_refreshed"]["memory_id"] == "relationship_soul_user_default"
     assert event_map["soul_journal_written"]["metadata"]["journal_path"].endswith("reflection_2026-04-07.md")
     assert event_map["soul_automation_created"]["memory_id"] == "job_01"
-    assert event_map["soul_automation_created"]["related_memory_id"] == "soul_rel_user_default"
+    assert event_map["soul_automation_created"]["related_memory_id"] == "relationship_soul_user_default"
     assert event_map["soul_automation_created"]["metadata"]["provenance_learning_id"] == "learning_01"

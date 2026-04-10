@@ -142,7 +142,10 @@ def test_soul_runtime_ignores_stale_relationship_soul(monkeypatch, tmp_path: Pat
     assert "过时的 relationship soul" not in runtime
 
 
-def test_soul_runtime_prefers_canonical_layers_and_derived_relationship_stance(monkeypatch, tmp_path: Path):
+def test_soul_runtime_prefers_canonical_layers_without_deriving_stable_relationship_stance(
+    monkeypatch,
+    tmp_path: Path,
+):
     from nion.memory_os import soul_runtime
     from nion.memory_os.relationship_soul import refresh_relationship_soul
 
@@ -253,7 +256,7 @@ def test_soul_runtime_prefers_canonical_layers_and_derived_relationship_stance(m
     assert "稳定、克制、长期主义" in runtime
     assert "我是长期陪伴型助手" in runtime
     assert "近期减少鼓励式措辞" in runtime
-    assert "用户偏好低刺激、少施压、结论先行" in runtime
+    assert "用户偏好低刺激、少施压、结论先行" not in runtime
 
 
 def test_build_relationship_soul_summary_respects_real_freshness_window(monkeypatch, tmp_path: Path):

@@ -2,10 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from nion.memory.soul.service import (
-    derive_relationship_stance_snapshot,
-    get_soul_layer_snapshot,
-)
+from nion.memory.soul.service import get_soul_layer_snapshot
 from nion.memory_os.repository import MemoryOSRepository
 
 
@@ -29,7 +26,11 @@ def build_runtime_soul_bundle(
         layer="identity_narrative",
         now_z=now_z,
     )
-    relationship = derive_relationship_stance_snapshot(repository, now_z=now_z)
+    relationship = get_soul_layer_snapshot(
+        repository,
+        layer="relationship_stance",
+        now_z=now_z,
+    )
     overlay = get_soul_layer_snapshot(
         repository,
         layer="adaptive_overlay",

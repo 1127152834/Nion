@@ -193,15 +193,19 @@ def derive_relationship_stance_snapshot(
     *,
     now_z: str,
 ) -> SoulLayerSnapshot | None:
-    now = _parse_z_datetime(now_z)
-    soul_layer = get_soul_layer_snapshot(
+    return get_soul_layer_snapshot(
         repository,
         layer="relationship_stance",
         now_z=now_z,
     )
-    if soul_layer is not None:
-        return soul_layer
 
+
+def derive_relationship_signal_snapshot(
+    repository: MemoryOSRepository,
+    *,
+    now_z: str,
+) -> SoulLayerSnapshot | None:
+    now = _parse_z_datetime(now_z)
     node = repository.get_memory_node_by_canonical_key(_RELATIONSHIP_CANONICAL_KEY)
     if node is not None and node.status == "active" and _is_fresh(
         updated_at=node.updated_at,
@@ -232,39 +236,42 @@ def derive_relationship_stance_snapshot(
         source_ids.append(str(row["memory_id"]))
         if len(summaries) == 2:
             break
-    if not summaries:
-        for row in repository.list_memory_records(domain="soul", status="active"):
-            if row["subtype"] != "relationship_soul":
-                continue
-            updated_at = str(row.get("updated_at") or row.get("created_at") or "")
-            if not updated_at:
-                continue
-            if not _is_fresh(
-                updated_at=updated_at,
-                freshness_window=_SOUL_LAYER_SPECS["relationship_stance"]["freshness_window"],
-                now=now,
-            ):
-                return None
-            return SoulLayerSnapshot(
-                layer="relationship_stance",
-                memory_id=str(row["memory_id"]),
-                summary=str(row["summary"]),
-                created_at=str(row.get("created_at") or updated_at),
-                updated_at=updated_at,
-                payload={},
-                source="relationship_soul_record",
-            )
-        return None
-    summary = "；".join(summaries)
-    return SoulLayerSnapshot(
-        layer="relationship_stance",
-        memory_id=_SOUL_LAYER_SPECS["relationship_stance"]["memory_id"],
-        summary=summary,
-        created_at=None,
-        updated_at=now_z,
-        payload={"layer": "relationship_stance", "source_relationship_ids": source_ids},
-        source="relationship_records",
-    )
+    if summaries:
+        summary = "；".join(summaries)
+        return SoulLayerSnapshot(
+            layer="relationship_stance",
+            memory_id="relationship_soul_user_default",
+            summary=summary,
+            created_at=None,
+            updated_at=now_z,
+            payload={"layer": "relationship_stance", "source_relationship_ids": source_ids},
+            source="relationship_records",
+        )
+
+    for row in repository.list_memory_records(domain="soul", status="active"):
+        if row["subtype"] != "relationship_soul":
+            continue
+        if str(row["memory_id"]) != "relationship_soul_user_default":
+            continue
+        updated_at = str(row.get("updated_at") or row.get("created_at") or "")
+        if not updated_at:
+            continue
+        if not _is_fresh(
+            updated_at=updated_at,
+            freshness_window=_SOUL_LAYER_SPECS["relationship_stance"]["freshness_window"],
+            now=now,
+        ):
+            return None
+        return SoulLayerSnapshot(
+            layer="relationship_stance",
+            memory_id=str(row["memory_id"]),
+            summary=str(row["summary"]),
+            created_at=str(row.get("created_at") or updated_at),
+            updated_at=updated_at,
+            payload={},
+            source="relationship_soul_record",
+        )
+    return None
 
 
 def write_canonical_relationship_memory(

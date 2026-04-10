@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from nion.memory.soul.service import (
-    derive_relationship_stance_snapshot,
+    derive_relationship_signal_snapshot,
     write_canonical_relationship_memory,
 )
 from .clock import utcnow_z
@@ -11,7 +11,7 @@ from .soul_events import record_soul_event
 
 
 def build_relationship_soul_summary(repository: MemoryOSRepository) -> str | None:
-    snapshot = derive_relationship_stance_snapshot(
+    snapshot = derive_relationship_signal_snapshot(
         repository,
         now_z=utcnow_z(),
     )
@@ -23,7 +23,7 @@ def refresh_relationship_soul(
     *,
     created_at: str,
 ) -> dict[str, object]:
-    snapshot = derive_relationship_stance_snapshot(repository, now_z=created_at)
+    snapshot = derive_relationship_signal_snapshot(repository, now_z=created_at)
     if snapshot is None:
         raise ValueError("No active relationship records available for soul refresh")
     summary = snapshot.summary
