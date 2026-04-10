@@ -49,6 +49,14 @@ def test_local_daemon_exposes_runtime_profile_and_model_admin_routes() -> None:
         )
 
 
+def test_local_daemon_exposes_user_identity_route() -> None:
+    with TestClient(create_app()) as client:
+        response = client.get("/api/user-identity")
+
+    assert response.status_code == 200
+    assert response.json()["user_name"] == ""
+
+
 def test_local_daemon_exposes_artifacts_and_uploads_routes() -> None:
     with TestClient(create_app()) as client:
         uploads = client.get("/api/threads/test-thread/uploads/list")
