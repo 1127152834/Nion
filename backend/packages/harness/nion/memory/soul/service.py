@@ -21,7 +21,7 @@ _SOUL_LAYER_SPECS = {
         "record_domain": "soul",
         "record_subtype": "relationship_soul",
         "scope": "user",
-        "freshness_window": timedelta(days=7),
+        "freshness_window": None,
     },
     "identity_narrative": {
         "memory_id": "agent_self_narrative_main",
@@ -29,7 +29,7 @@ _SOUL_LAYER_SPECS = {
         "record_domain": "agent_self",
         "record_subtype": "identity_narrative",
         "scope": "agent",
-        "freshness_window": timedelta(days=7),
+        "freshness_window": None,
     },
     "adaptive_overlay": {
         "memory_id": "soul_overlay_active_main",

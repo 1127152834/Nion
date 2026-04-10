@@ -50,7 +50,10 @@ def test_soul_runtime_compiles_core_narrative_relationship_and_overlay(monkeypat
     assert "减少鼓励式措辞" in runtime
 
 
-def test_soul_runtime_ignores_stale_overlay_or_narrative(monkeypatch, tmp_path: Path):
+def test_soul_runtime_keeps_stable_narrative_but_ignores_stale_overlay(
+    monkeypatch,
+    tmp_path: Path,
+):
     from nion.memory_os import soul_runtime
 
     repo = MemoryOSRepository(tmp_path / "memory-os" / "index.sqlite3")
@@ -92,11 +95,14 @@ def test_soul_runtime_ignores_stale_overlay_or_narrative(monkeypatch, tmp_path: 
 
     assert "稳定、克制、长期主义" in runtime
     assert "低刺激、少施压、结论先行" in runtime
-    assert "已经过时的身份叙事" not in runtime
+    assert "已经过时的身份叙事" in runtime
     assert "过时的 overlay" not in runtime
 
 
-def test_soul_runtime_ignores_stale_relationship_soul(monkeypatch, tmp_path: Path):
+def test_soul_runtime_keeps_stable_relationship_stance_even_when_old(
+    monkeypatch,
+    tmp_path: Path,
+):
     from nion.memory_os import soul_runtime
 
     repo = MemoryOSRepository(tmp_path / "memory-os" / "index.sqlite3")
@@ -139,7 +145,7 @@ def test_soul_runtime_ignores_stale_relationship_soul(monkeypatch, tmp_path: Pat
     assert "稳定、克制、长期主义" in runtime
     assert "长期陪伴型助手" in runtime
     assert "减少鼓励式措辞" in runtime
-    assert "过时的 relationship soul" not in runtime
+    assert "过时的 relationship soul" in runtime
 
 
 def test_soul_runtime_prefers_canonical_layers_without_deriving_stable_relationship_stance(
@@ -259,11 +265,13 @@ def test_soul_runtime_prefers_canonical_layers_without_deriving_stable_relations
     assert "用户偏好低刺激、少施压、结论先行" not in runtime
 
 
-def test_build_relationship_soul_summary_respects_real_freshness_window(monkeypatch, tmp_path: Path):
-    from nion.memory_os import relationship_soul
+def test_stable_relationship_stance_snapshot_ignores_freshness_expiry(
+    monkeypatch,
+    tmp_path: Path,
+):
+    from nion.memory.soul.service import derive_relationship_stance_snapshot
 
     repo = MemoryOSRepository(tmp_path / "memory-os" / "index.sqlite3")
-    monkeypatch.setattr(relationship_soul, "utcnow_z", lambda: "2026-04-08T00:00:00Z", raising=False)
 
     repo.save_memory_node(
         {
@@ -287,9 +295,13 @@ def test_build_relationship_soul_summary_respects_real_freshness_window(monkeypa
         payload={"layer": "relationship_stance"},
     )
 
-    summary = relationship_soul.build_relationship_soul_summary(repo)
+    snapshot = derive_relationship_stance_snapshot(
+        repo,
+        now_z="2026-04-08T00:00:00Z",
+    )
 
-    assert summary is None
+    assert snapshot is not None
+    assert snapshot.summary == "这是一个已经过期的 relationship stance。"
 
 
 def test_soul_runtime_skips_expired_overlay_but_keeps_fresh_narrative(monkeypatch, tmp_path: Path):
