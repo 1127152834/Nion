@@ -201,3 +201,60 @@ def test_memory_soul_router_does_not_derive_stable_relationship_stance_from_inte
 
     assert response.status_code == 200
     assert response.json()["relationship_stance"] == "目前还没有稳定的关系基调设置。"
+
+
+def test_memory_soul_router_patches_single_field_without_accumulating_duplicate_value_overrides(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    repo = MemoryOSRepository(tmp_path / "memory-os" / "index.sqlite3")
+
+    with TestClient(create_app()) as client:
+        first = client.patch(
+            "/api/memory/soul",
+            json={
+                "field": "values_and_boundaries",
+                "value": "不代替用户做最终判断。",
+            },
+        )
+        second = client.patch(
+            "/api/memory/soul",
+            json={
+                "field": "values_and_boundaries",
+                "value": "不替用户拍板。",
+            },
+        )
+        speech = client.patch(
+            "/api/memory/soul",
+            json={
+                "field": "speech_style",
+                "value": "先给结论，再补上下文。",
+            },
+        )
+        settings = client.get("/api/memory/soul")
+
+    overrides = [
+        entry
+        for entry in repo.list_user_overrides(memory_id="soul_core_main")
+        if entry.field_name == "values_and_boundaries"
+    ]
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert speech.status_code == 200
+    assert second.json() == {
+        "action": "patch",
+        "field": "values_and_boundaries",
+        "value": "不替用户拍板。",
+    }
+    assert speech.json() == {
+        "action": "patch",
+        "field": "speech_style",
+        "value": "先给结论，再补上下文。",
+    }
+    assert len(overrides) == 1
+    assert overrides[0].value == {"text": "不替用户拍板。"}
+    assert settings.status_code == 200
+    assert settings.json()["values_and_boundaries"] == "不替用户拍板。"
+    assert settings.json()["speech_style"] == "先给结论，再补上下文。"

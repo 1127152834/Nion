@@ -29,3 +29,23 @@ def test_user_identity_router_is_available_in_desktop_runtime_app() -> None:
     routes = {route.path for route in app.routes}
 
     assert "/api/user-identity" in routes
+
+
+def test_user_identity_router_patches_field_value(monkeypatch, tmp_path) -> None:
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+
+    with TestClient(create_app()) as client:
+        response = client.patch(
+            "/api/user-identity",
+            json={
+                "field": "communication_style_preferences",
+                "value": ["先给结论", "直接一点"],
+            },
+        )
+
+    assert response.status_code == 200
+    assert response.json()["communication_style_preferences"] == [
+        "先给结论",
+        "直接一点",
+    ]

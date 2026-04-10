@@ -1,10 +1,16 @@
 from __future__ import annotations
 
+from typing import Literal
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from nion.config.paths import get_paths
-from nion.memory.soul.console_service import apply_soul_settings, build_soul_settings_payload
+from nion.memory.soul.console_service import (
+    apply_soul_settings,
+    build_soul_settings_payload,
+    patch_soul_setting_value,
+)
 from nion.memory_os.clock import utcnow_z
 from nion.memory_os.repository import MemoryOSRepository
 
@@ -27,6 +33,16 @@ class SoulSettingsApplyRequest(BaseModel):
     relationship_stance: str
 
 
+class SoulSettingsPatchRequest(BaseModel):
+    field: Literal[
+        "core_identity",
+        "speech_style",
+        "values_and_boundaries",
+        "relationship_stance",
+    ]
+    value: str
+
+
 def _repo() -> MemoryOSRepository:
     return MemoryOSRepository(get_paths().memory_os_index_db_file)
 
@@ -45,6 +61,19 @@ async def apply_soul_settings_route(request: SoulSettingsApplyRequest):
             speech_style=request.speech_style,
             values_and_boundaries=request.values_and_boundaries,
             relationship_stance=request.relationship_stance,
+            created_at=utcnow_z(),
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Invalid soul settings request") from exc
+
+
+@router.patch("")
+async def patch_soul_setting_route(request: SoulSettingsPatchRequest):
+    try:
+        return patch_soul_setting_value(
+            _repo(),
+            field=request.field,
+            value=request.value,
             created_at=utcnow_z(),
         )
     except ValueError as exc:

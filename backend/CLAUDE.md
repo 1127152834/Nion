@@ -127,9 +127,11 @@ When extending memory in this repository:
 Soul product contract in this repository:
 
 - `/api/user-identity` is the stable owner surface for user name, mutual addressing, and long-term communication preferences.
+- `PATCH /api/user-identity` is the field-level immediate write path for stable user identity updates.
 - Explicit user identity statements from the current user turn should write straight into the stable profile before continuity/runtime assembly; do not add proposal-confirmation indirection for this lane.
 - `/api/memory/soul` returns the stable settings-shaped payload used by `Settings > Soul`.
-- `/api/memory/soul/apply` is the only product-facing write path for stable soul settings.
+- `PATCH /api/memory/soul` is the preferred field-level write path for stable soul settings.
+- `/api/memory/soul/apply` remains available as the bulk update path while the product surface is moving away from draft/apply flows.
 - `adaptive_overlay` may still exist internally, but proposal / rollback / growth governance routes are not part of the product-facing API surface.
 - `relationship_soul` remains a derived soul layer, not a new relationship truth source.
 

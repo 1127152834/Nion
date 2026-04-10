@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import uuid
 from typing import Any
 
 from nion.memory.soul.service import get_soul_layer_snapshot
@@ -11,6 +10,27 @@ _DEFAULT_CORE_IDENTITY = "目前还没有稳定的核心人格设置。"
 _DEFAULT_SPEECH_STYLE = "目前还没有稳定的说话方式设置。"
 _DEFAULT_VALUES_AND_BOUNDARIES = "目前还没有稳定的价值观与边界设置。"
 _DEFAULT_RELATIONSHIP_STANCE = "目前还没有稳定的关系基调设置。"
+_VALUES_AND_BOUNDARIES_OVERRIDE_ID = "soul_core_main:values_and_boundaries"
+_SOUL_FIELD_CONFIG = {
+    "core_identity": {
+        "memory_id": "soul_core_main",
+        "canonical_key": "soul:layer:core:agent:main",
+        "scope": "agent",
+        "layer": "core",
+    },
+    "speech_style": {
+        "memory_id": "agent_self_narrative_main",
+        "canonical_key": "soul:layer:identity_narrative:agent:main",
+        "scope": "agent",
+        "layer": "identity_narrative",
+    },
+    "relationship_stance": {
+        "memory_id": "soul_rel_user_default",
+        "canonical_key": "soul:layer:relationship_stance:user:default",
+        "scope": "user",
+        "layer": "relationship_stance",
+    },
+}
 
 
 def build_soul_settings_payload(
@@ -47,36 +67,34 @@ def apply_soul_settings(
     created_at: str,
     actor: str = "user:default",
 ) -> dict[str, Any]:
-    core_text = core_identity.strip()
-    speech_text = speech_style.strip()
-    values_text = values_and_boundaries.strip()
-    relationship_text = relationship_stance.strip()
-
-    if not core_text or not speech_text or not values_text or not relationship_text:
-        raise ValueError("settings")
-
-    _update_record_summary(repository, "soul_core_main", core_text, created_at, actor)
-    _update_record_summary(repository, "agent_self_narrative_main", speech_text, created_at, actor)
-    _update_record_summary(repository, "soul_rel_user_default", relationship_text, created_at, actor)
-    _ensure_memory_node(
+    core_text = patch_soul_setting_value(
         repository,
-        memory_id="soul_core_main",
-        canonical_key="soul:layer:core:agent:main",
-        scope="agent",
-        summary=core_text,
+        field="core_identity",
+        value=core_identity,
         created_at=created_at,
-    )
-    repository.save_user_override(
-        UserOverrideRecord(
-            override_id=f"soul_core_main:values:{uuid.uuid4().hex[:10]}",
-            memory_id="soul_core_main",
-            field_name="values_and_boundaries",
-            value={"text": values_text},
-            reason="Soul Settings apply",
-            created_at=created_at,
-            updated_at=created_at,
-        )
-    )
+        actor=actor,
+    )["value"]
+    speech_text = patch_soul_setting_value(
+        repository,
+        field="speech_style",
+        value=speech_style,
+        created_at=created_at,
+        actor=actor,
+    )["value"]
+    values_text = patch_soul_setting_value(
+        repository,
+        field="values_and_boundaries",
+        value=values_and_boundaries,
+        created_at=created_at,
+        actor=actor,
+    )["value"]
+    relationship_text = patch_soul_setting_value(
+        repository,
+        field="relationship_stance",
+        value=relationship_stance,
+        created_at=created_at,
+        actor=actor,
+    )["value"]
     return {
         "action": "apply",
         "core_identity": core_text,
@@ -84,6 +102,55 @@ def apply_soul_settings(
         "values_and_boundaries": values_text,
         "relationship_stance": relationship_text,
     }
+
+
+def patch_soul_setting_value(
+    repository: MemoryOSRepository,
+    *,
+    field: str,
+    value: str,
+    created_at: str,
+    actor: str = "user:default",
+) -> dict[str, str]:
+    text = value.strip()
+    if not text:
+        raise ValueError("settings")
+
+    if field == "values_and_boundaries":
+        repository.save_user_override(
+            UserOverrideRecord(
+                override_id=_VALUES_AND_BOUNDARIES_OVERRIDE_ID,
+                memory_id="soul_core_main",
+                field_name="values_and_boundaries",
+                value={"text": text},
+                reason="Soul Settings patch",
+                created_at=created_at,
+                updated_at=created_at,
+            )
+        )
+        return {"action": "patch", "field": field, "value": text}
+
+    config = _SOUL_FIELD_CONFIG.get(field)
+    if config is None:
+        raise ValueError("settings")
+
+    _update_record_summary(
+        repository,
+        config["memory_id"],
+        text,
+        created_at,
+        actor,
+    )
+    _upsert_memory_node(
+        repository,
+        memory_id=config["memory_id"],
+        canonical_key=config["canonical_key"],
+        scope=config["scope"],
+        layer=config["layer"],
+        summary=text,
+        created_at=created_at,
+    )
+    return {"action": "patch", "field": field, "value": text}
 
 
 def _summary_or_default(snapshot: Any | None, default_text: str) -> str:
@@ -136,18 +203,17 @@ def _find_memory_record(repository: MemoryOSRepository, memory_id: str) -> dict[
     return None
 
 
-def _ensure_memory_node(
+def _upsert_memory_node(
     repository: MemoryOSRepository,
     *,
     memory_id: str,
     canonical_key: str,
     scope: str,
+    layer: str,
     summary: str,
     created_at: str,
 ) -> None:
     node = repository.get_memory_node(memory_id)
-    if node is not None:
-        return
     repository.save_memory_node(
         {
             "memory_id": memory_id,
@@ -157,9 +223,9 @@ def _ensure_memory_node(
             "node_type": "soul_layer",
             "status": "active",
             "summary": summary,
-            "created_at": created_at,
+            "created_at": node.created_at if node is not None else created_at,
             "updated_at": created_at,
-            "metadata": {"layer": "core"},
+            "metadata": {"layer": layer},
         }
     )
 
