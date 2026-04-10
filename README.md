@@ -25,7 +25,7 @@
 - 聊天追问建议模型可在“模型设置”页单独指定；未设置时默认跟随当前聊天模型
 - 嵌入式会话契约：`NionClient` 与 scheduler workflow 也支持 `session_mode` / `memory_read` / `memory_write`，与 Web 聊天入口保持一致；带 checkpointer 的多轮线程会继承已持久化的记忆会话策略，不会因后续缺省调用而误恢复长期记忆注入/写回
 - 结构化长期记忆：`/api/memory` 已切到 Memory OS 兼容视图，运行时不再以 `memory.json` 作为长期记忆后端
-- 用户身份主档：后端新增 `/api/user-identity` 稳定 owner，用于承载用户姓名、互相称谓与长期沟通偏好这类 always-on 身份信息
+- 用户身份主档：后端新增 `/api/user-identity` 稳定 owner，用于承载用户姓名、互相称谓与长期沟通偏好这类 always-on 身份信息；运行时上下文会优先注入这层，再拼接稳定 Soul
 - Memory OS：当前代码库已将 user model、prompt/continuity context、growth governance、retention、agent-owned automation ownership 全部纳入统一 Memory OS 主链
 - Soul System：主智能体使用 canonical soul artifact 与 compiled soul runtime，运行时不再依赖 `SOUL.md` fallback
 - Memory / Soul 完整版本收口能力：当前代码库已补 canonical clock、soul runtime freshness、growth orchestrator、retention archive/purge、agent-owned automation bridge，以及前端 `test:contracts` 合同测试入口

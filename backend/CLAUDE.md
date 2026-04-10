@@ -113,6 +113,7 @@ When extending memory in this repository:
   - Keep `growth_orchestrator.py` as the coordination layer for soul reflection, learning, procedure, and automation projections.
   - Keep `retention.py` as the archive/purge lifecycle owner; prompt context should keep reading only active records.
   - Keep `automation_bridge.py` as the Memory OS boundary for agent-owned / soul-driven automation provenance events.
+  - Runtime memory packs must inject the stable `user_identity_profile` block before Soul stable layers when that profile exists.
   - Frontend memory/soul contract tests should be runnable through `pnpm test:contracts -- <test files...>`.
 - Capability governance expectations:
   - `get_capability_catalog` is the first discovery surface when the agent or user needs to know what built-in capability lanes exist.

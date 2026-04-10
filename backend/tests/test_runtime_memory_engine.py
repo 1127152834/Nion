@@ -3,11 +3,14 @@ from pathlib import Path
 from nion.memory.runtime_engine.models import RuntimeMemoryResult, RuntimeMemorySections
 from nion.memory_os.repository import MemoryOSRepository
 from nion.memory_os.soul_artifacts import MemoryOSSoulArtifactStore
+from nion.user_identity.models import UserIdentityProfile
+from nion.user_identity.repository import UserIdentityRepository
 
 
 def test_runtime_memory_sections_empty_factory_returns_all_layers_cleared():
     sections = RuntimeMemorySections.empty()
 
+    assert sections.user_identity_profile is None
     assert sections.core_identity is None
     assert sections.speech_style is None
     assert sections.values_and_boundaries is None
@@ -21,6 +24,7 @@ def test_runtime_memory_sections_empty_factory_returns_all_layers_cleared():
 
 def test_runtime_memory_sections_include_expected_layers():
     sections = RuntimeMemorySections(
+        user_identity_profile="identity",
         core_identity="core",
         speech_style="speech",
         values_and_boundaries="values",
@@ -32,6 +36,7 @@ def test_runtime_memory_sections_include_expected_layers():
         verbatim_evidence=["e1"],
     )
 
+    assert sections.user_identity_profile == "identity"
     assert sections.core_identity == "core"
     assert sections.speech_style == "speech"
     assert sections.values_and_boundaries == "values"
@@ -185,6 +190,58 @@ def test_build_runtime_memory_context_assembles_all_required_sections(tmp_path: 
     assert result.sections.relevant_procedures == ["财务汇报默认使用结论/风险/动作三段式。"]
     assert result.sections.scoped_recall == ["上次已经用三段式写过财务周报。"]
     assert result.sections.verbatim_evidence == ['用户原话："按之前那种三段式"。']
+
+
+def test_build_runtime_memory_context_includes_user_identity_profile_even_without_query_match(
+    tmp_path: Path,
+):
+    from nion.memory.runtime_engine.service import build_runtime_memory_context
+
+    repo = MemoryOSRepository(tmp_path / "memory-os" / "index.sqlite3")
+    UserIdentityRepository(tmp_path).save(
+        UserIdentityProfile(
+            user_name="张天成",
+            preferred_address_for_user="大哥",
+            assistant_self_name="小老弟",
+            mutual_addressing_rule="你叫我大哥，我叫你小老弟",
+            communication_style_preferences=["结论先行", "少施压"],
+        )
+    )
+
+    result = build_runtime_memory_context(
+        repository=repo,
+        query="你知道我叫啥不",
+        thread_id="thread-1",
+        memory_read=True,
+        base_dir=tmp_path,
+    )
+
+    assert result.sections.user_identity_profile is not None
+    assert "用户姓名：张天成" in result.sections.user_identity_profile
+    assert "称呼用户：大哥" in result.sections.user_identity_profile
+    assert "助手自称：小老弟" in result.sections.user_identity_profile
+
+
+def test_runtime_memory_to_context_pack_places_user_identity_before_soul_layers():
+    from nion.memory.runtime_engine.service import runtime_memory_to_context_pack
+
+    pack = runtime_memory_to_context_pack(
+        RuntimeMemoryResult(
+            query="继续",
+            thread_id="thread-1",
+            sections=RuntimeMemorySections(
+                user_identity_profile="用户姓名：张天成",
+                core_identity="长期陪伴、克制稳定、结论先行。",
+                speech_style="先给结论，再补上下文。",
+            ),
+        )
+    )
+
+    assert [item.title for item in pack.items[:3]] == [
+        "User Identity",
+        "Core Identity",
+        "Speech Style",
+    ]
 
 
 def test_build_runtime_memory_context_returns_gated_empty_result_when_memory_read_disabled(

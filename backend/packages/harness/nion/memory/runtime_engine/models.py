@@ -4,6 +4,7 @@ from pydantic import BaseModel, Field
 
 
 class RuntimeMemorySections(BaseModel):
+    user_identity_profile: str | None = None
     core_identity: str | None = None
     speech_style: str | None = None
     values_and_boundaries: str | None = None

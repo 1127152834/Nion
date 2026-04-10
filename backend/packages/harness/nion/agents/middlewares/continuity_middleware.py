@@ -45,6 +45,7 @@ class ContinuityMiddleware(AgentMiddleware[AgentState]):
                 query=latest_content,
                 thread_id=thread_id,
                 memory_read=True,
+                base_dir=str(self._paths.base_dir),
             )
             memory_block = memory_pack.to_prompt_block()
         recall_results = self._search_candidates(thread_id, latest_content)

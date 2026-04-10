@@ -1,9 +1,11 @@
 from pathlib import Path
 
-from nion.memory_os.models import UserOverrideRecord
 from nion.memory.runtime_engine.models import RuntimeMemorySections
+from nion.memory_os.models import UserOverrideRecord
 from nion.memory_os.repository import MemoryOSRepository
 from nion.memory_os.soul_artifacts import MemoryOSSoulArtifactStore
+from nion.user_identity.models import UserIdentityProfile
+from nion.user_identity.repository import UserIdentityRepository
 
 
 def _seed_stable_soul(repo: MemoryOSRepository, *, created_at: str) -> None:
@@ -139,6 +141,7 @@ def _seed_stable_soul(repo: MemoryOSRepository, *, created_at: str) -> None:
 def test_runtime_memory_sections_empty_factory_returns_explicit_soul_fields():
     sections = RuntimeMemorySections.empty()
 
+    assert sections.user_identity_profile is None
     assert sections.core_identity is None
     assert sections.speech_style is None
     assert sections.values_and_boundaries is None
@@ -155,6 +158,12 @@ def test_build_runtime_memory_context_splits_stable_soul_and_overlay(tmp_path: P
 
     repo = MemoryOSRepository(tmp_path / "memory-os" / "index.sqlite3")
     _seed_stable_soul(repo, created_at="2026-04-10T00:00:00Z")
+    UserIdentityRepository(tmp_path).save(
+        UserIdentityProfile(
+            user_name="张天成",
+            preferred_address_for_user="大哥",
+        )
+    )
     MemoryOSSoulArtifactStore(repository=repo, base_dir=tmp_path).write_active_overlay(
         body="# Active Soul Overlay\n\n## Expression Adjustments\n近期减少鼓励式措辞。\n",
         created_at="2026-04-10T00:10:00Z",
@@ -182,9 +191,11 @@ def test_build_runtime_memory_context_splits_stable_soul_and_overlay(tmp_path: P
         query="继续之前的财务周报",
         thread_id="thread-1",
         memory_read=True,
+        base_dir=tmp_path,
     )
 
     assert result.gated is False
+    assert result.sections.user_identity_profile == "用户姓名：张天成\n称呼用户：大哥"
     assert result.sections.core_identity == "长期陪伴、克制稳定、结论先行。"
     assert result.sections.speech_style == "先给结论，再补上下文。"
     assert result.sections.values_and_boundaries == "不代替用户做最终判断。"
@@ -240,7 +251,9 @@ def test_build_runtime_memory_context_does_not_promote_internal_relationship_sig
         query="继续之前的财务周报",
         thread_id="thread-1",
         memory_read=True,
+        base_dir=tmp_path,
     )
 
+    assert result.sections.user_identity_profile is None
     assert result.sections.core_identity == "长期陪伴、克制稳定、结论先行。"
     assert result.sections.relationship_stance is None

@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from nion.memory.runtime_engine.models import RuntimeMemoryResult, RuntimeMemorySections
 from nion.memory.runtime_engine.search_plan import RuntimeMemorySearchPlan, build_runtime_search_plan
 from nion.memory.runtime_engine.soul_bundle import build_runtime_soul_bundle
 from nion.memory_os.clock import utcnow_z
 from nion.memory_os.context_pack import MemoryContextPack, MemoryContextPackItem
 from nion.memory_os.repository import MemoryOSRepository
+from nion.user_identity.runtime import build_runtime_user_identity_summary
 
 
 def build_runtime_memory_context(
@@ -14,6 +17,7 @@ def build_runtime_memory_context(
     query: str,
     thread_id: str,
     memory_read: bool = True,
+    base_dir: str | Path | None = None,
 ) -> RuntimeMemoryResult:
     if not memory_read:
         return RuntimeMemoryResult.empty(
@@ -25,6 +29,7 @@ def build_runtime_memory_context(
     plan = build_runtime_search_plan(query)
     soul_bundle = build_runtime_soul_bundle(repository, now_z=utcnow_z())
     sections = RuntimeMemorySections(
+        user_identity_profile=build_runtime_user_identity_summary(base_dir),
         core_identity=soul_bundle.core_identity,
         speech_style=soul_bundle.speech_style,
         values_and_boundaries=soul_bundle.values_and_boundaries,
@@ -43,6 +48,7 @@ def runtime_memory_to_context_pack(result: RuntimeMemoryResult) -> MemoryContext
     sections = result.sections
 
     for title, content in (
+        ("User Identity", sections.user_identity_profile),
         ("Core Identity", sections.core_identity),
         ("Speech Style", sections.speech_style),
         ("Values and Boundaries", sections.values_and_boundaries),
