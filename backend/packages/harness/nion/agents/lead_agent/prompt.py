@@ -238,7 +238,7 @@ def apply_prompt_template(
     profile = _resolve_prompt_profile(context)
     registry = _build_prompt_registry(
         agent_display_name=agent_name or "Nion 2.0",
-        soul=get_agent_soul(agent_name),
+        soul="",
         memory_context=memory_context,
         subagent_enabled=subagent_enabled,
         max_concurrent_subagents=max_concurrent_subagents,

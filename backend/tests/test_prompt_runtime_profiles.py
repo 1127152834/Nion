@@ -141,12 +141,12 @@ def test_apply_prompt_template_default_registry_builds_real_provider_sections(mo
 
     assert captured["context"].agent_name == "notebook-chat"
     keys = [section.key for section in captured["sections"]]
-    assert keys[:4] == [
+    assert keys[:3] == [
         "core.role",
-        "core.soul",
         "core.thinking_style",
         "core.clarification_system",
     ]
+    assert "core.soul" not in keys
     assert "dynamic.notebook_assistant" in keys
     assert "dynamic.current_notebook_note" in keys
     assert "dynamic.cli_tools" in keys
@@ -181,7 +181,7 @@ def test_apply_prompt_template_default_registry_keeps_memory_only_in_session_dyn
     )
     monkeypatch.setattr(
         "nion.agents.lead_agent.prompt._get_memory_context",
-        lambda agent_name=None: "<memory>remember me</memory>",
+        lambda *args, **kwargs: "<memory>remember me</memory>",
     )
 
     apply_prompt_template(agent_name="default")
@@ -195,6 +195,21 @@ def test_apply_prompt_template_default_registry_keeps_memory_only_in_session_dyn
     assert memory_sections[0].key == "dynamic.memory"
     assert memory_sections[0].scope == "session_dynamic"
     assert memory_sections[0].source == "prompt.session"
+
+
+def test_apply_prompt_template_does_not_consult_separate_soul_runtime(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "nion.agents.lead_agent.prompt._get_memory_context",
+        lambda *args, **kwargs: "<memory_os_context>\n## Core Identity\n稳定、克制、长期主义。\n</memory_os_context>",
+    )
+    monkeypatch.setattr(
+        "nion.agents.lead_agent.prompt.get_agent_soul",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("should not call get_agent_soul")),
+    )
+
+    prompt = apply_prompt_template(agent_name="default")
+
+    assert "Core Identity" in prompt
 
 
 def test_apply_prompt_template_real_prompt_removes_legacy_extension_placeholders() -> None:
