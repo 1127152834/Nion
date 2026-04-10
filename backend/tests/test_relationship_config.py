@@ -1,18 +1,17 @@
-from nion.config.paths import Paths
-from nion.config.relationship_config import RelationshipConfig
+from nion.relationships.models import FamiliarityLevel, RelationshipProfile, RelationshipType
+from nion.relationships.repository import RelationshipRepository
 
 
-def test_relationship_config_defaults() -> None:
-    config = RelationshipConfig()
+def test_relationship_profile_defaults() -> None:
+    profile = RelationshipProfile(agent_name="companion")
 
-    assert config.enabled is True
-    assert config.default_type == "neutral"
-    assert config.default_familiarity == "formal"
+    assert profile.relationship_type == RelationshipType.neutral
+    assert profile.familiarity_level == FamiliarityLevel.formal
 
 
-def test_paths_expose_relationship_file() -> None:
-    paths = Paths(base_dir="/tmp/nion")
+def test_relationship_repository_uses_agent_specific_relationship_file(tmp_path) -> None:
+    repo = RelationshipRepository(base_dir=tmp_path)
 
-    assert paths.agent_relationship_file("companion").as_posix().endswith(
+    assert repo._profile_path("companion").as_posix().endswith(
         "/agents/companion/relationship.json"
     )

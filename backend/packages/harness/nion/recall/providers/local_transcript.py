@@ -1,6 +1,6 @@
 """Local transcript recall provider."""
 
-from nion.recall.local_archive import LocalArchive
+from nion.recall.local_archive import LocalRecallArchive
 from nion.recall.models import (
     ContinuityRequest,
     ContinuitySourceResult,
@@ -14,12 +14,16 @@ from nion.recall.models import (
 class LocalTranscriptRecallProvider:
     """Query the local transcript archive and normalize results."""
 
-    def __init__(self, archive: LocalArchive):
+    def __init__(self, archive: LocalRecallArchive):
         self._archive = archive
 
     def query(self, request: RecallQueryRequest) -> RecallQueryResult:
-        messages = self._archive.query(request.thread_id, request.query, request.max_items)
-        if not messages:
+        results = self._archive.search_thread(
+            request.thread_id,
+            request.query,
+            request.max_items,
+        )
+        if not results:
             return RecallQueryResult(
                 items=[
                     RecallQueryItem(
@@ -38,11 +42,11 @@ class LocalTranscriptRecallProvider:
                 source="local",
                 kind="transcript_match",
                 score=max(0.0, 1.0 - (index * 0.05)),
-                summary=message.content,
-                thread_id=message.thread_id,
-                uri=f"local://thread/{message.thread_id}/messages/{message.message_id}",
+                summary=result.snippet,
+                thread_id=result.thread_id,
+                uri=f"local://thread/{result.thread_id}/messages/{index}",
             )
-            for index, message in enumerate(messages)
+            for index, result in enumerate(results)
         ]
         return RecallQueryResult(items=items)
 

@@ -1,12 +1,18 @@
-from nion.recall.local_archive import LocalArchive
-from nion.recall.models import RecallQueryRequest
+from nion.recall.local_archive import LocalRecallArchive
+from nion.recall.models import RecallQueryRequest, RecallTurn
 from nion.recall.providers.local_transcript import LocalTranscriptRecallProvider
 
 
 def test_local_recall_provider_returns_normalized_items(tmp_path) -> None:
-    archive = LocalArchive(db_path=tmp_path / "recall.db")
-    archive.append_message("thread-1", "human", "We chose backend-host execution.")
-    archive.append_message("thread-1", "ai", "Yes, backend-host execution stays.")
+    archive = LocalRecallArchive(tmp_path / "recall.db")
+    archive.append_turns(
+        thread_id="thread-1",
+        agent_name="lead_agent",
+        turns=[
+            RecallTurn(role="human", content="We chose backend-host execution."),
+            RecallTurn(role="ai", content="Yes, backend-host execution stays."),
+        ],
+    )
     provider = LocalTranscriptRecallProvider(archive=archive)
 
     result = provider.query(
@@ -24,7 +30,7 @@ def test_local_recall_provider_returns_normalized_items(tmp_path) -> None:
 
 
 def test_local_recall_provider_returns_deterministic_fallback_when_empty(tmp_path) -> None:
-    archive = LocalArchive(db_path=tmp_path / "recall.db")
+    archive = LocalRecallArchive(tmp_path / "recall.db")
     provider = LocalTranscriptRecallProvider(archive=archive)
 
     result = provider.query(
