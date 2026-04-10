@@ -23,7 +23,6 @@ def test_soul_contract_literals_are_stable():
     assert SOUL_JUDGE_ACTIONS == (
         "accept_overlay",
         "extend_overlay",
-        "promote_to_relationship_stance",
         "promote_to_identity_narrative",
         "reject",
         "expire_existing_overlay",
@@ -115,7 +114,7 @@ def test_soul_judge_extends_existing_overlay_for_similar_signal():
     assert decision.target_layer == "adaptive_overlay"
 
 
-def test_soul_judge_promotes_overlay_to_relationship_stance_when_repeated():
+def test_soul_judge_keeps_repeated_overlay_signals_inside_overlay_lane():
     signal = SoulSignal(
         signal_id="sig_relationship",
         source_memory_ids=["mem_3"],
@@ -128,8 +127,8 @@ def test_soul_judge_promotes_overlay_to_relationship_stance_when_repeated():
 
     decision = judge_soul_signal(signal, existing_layers={})
 
-    assert decision.action == "promote_to_relationship_stance"
-    assert decision.target_layer == "relationship_stance"
+    assert decision.action == "accept_overlay"
+    assert decision.target_layer == "adaptive_overlay"
 
 
 def test_soul_judge_promotes_identity_narrative_when_stable_self_story_emerges():

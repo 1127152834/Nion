@@ -158,6 +158,47 @@ class MemoryOSSoulArtifactStore:
         )
         return self._write_artifact(path=path, body=body, record=record)
 
+    def extend_active_overlay(self, *, created_at: str) -> dict[str, object]:
+        existing = next(
+            (
+                row
+                for row in self._repository.list_memory_records(domain="soul")
+                if str(row["memory_id"]) == "soul_overlay_active_main"
+                and str(row["subtype"]) == "adaptive_overlay"
+            ),
+            None,
+        )
+        if existing is None:
+            raise KeyError("soul_overlay_active_main")
+
+        record = {
+            **existing,
+            "updated_at": created_at,
+        }
+        self._repository.save_memory_record(record)
+
+        node = self._repository.get_memory_node("soul_overlay_active_main")
+        if node is not None:
+            self._repository.save_memory_node(
+                {
+                    "memory_id": node.memory_id,
+                    "canonical_key": node.canonical_key,
+                    "owner_type": node.owner_type,
+                    "scope": node.scope,
+                    "node_type": node.node_type,
+                    "status": node.status,
+                    "summary": node.summary,
+                    "created_at": node.created_at,
+                    "updated_at": created_at,
+                    "metadata": dict(node.metadata),
+                }
+            )
+
+        return {
+            "artifact_path": str(self._artifacts_dir / "soul" / "overlays" / "active_overlay.md"),
+            "memory_record": record,
+        }
+
     def write_relationship_soul(
         self,
         *,

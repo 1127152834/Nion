@@ -42,14 +42,6 @@ def judge_soul_signal(
             metadata={"signal_id": signal.signal_id},
         )
 
-    if signal.suggested_layer == "adaptive_overlay" and int(signal.metadata.get("repeat_count", 0)) >= 3:
-        return SoulJudgeDecision(
-            action="promote_to_relationship_stance",
-            target_layer="relationship_stance",
-            rationale="Repeated adaptive signals should become relationship stance instead of a temporary overlay.",
-            metadata={"signal_id": signal.signal_id},
-        )
-
     if signal.suggested_layer == "adaptive_overlay" and active_overlays:
         return SoulJudgeDecision(
             action="extend_overlay",

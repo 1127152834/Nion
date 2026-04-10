@@ -20,7 +20,6 @@ SOUL_LAYERS = (
 SOUL_JUDGE_ACTIONS = (
     "accept_overlay",
     "extend_overlay",
-    "promote_to_relationship_stance",
     "promote_to_identity_narrative",
     "reject",
     "expire_existing_overlay",
@@ -35,7 +34,6 @@ SoulLayer = Literal[
 SoulJudgeAction = Literal[
     "accept_overlay",
     "extend_overlay",
-    "promote_to_relationship_stance",
     "promote_to_identity_narrative",
     "reject",
     "expire_existing_overlay",

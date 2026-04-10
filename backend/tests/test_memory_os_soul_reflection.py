@@ -51,7 +51,9 @@ def test_soul_reflection_does_not_create_overlay_without_threshold(tmp_path: Pat
     assert records == []
 
 
-def test_soul_reflection_skips_duplicate_overlay_refresh(tmp_path: Path):
+def test_soul_reflection_extends_duplicate_overlay_refresh_and_renews_timestamp(
+    tmp_path: Path,
+):
     from nion.memory_os.soul_reflection import reflect_soul_growth
 
     repo = MemoryOSRepository(tmp_path / "memory-os" / "index.sqlite3")
@@ -74,9 +76,15 @@ def test_soul_reflection_skips_duplicate_overlay_refresh(tmp_path: Path):
     overlays = [
         item for item in repo.list_memory_records(domain="soul") if item["subtype"] == "adaptive_overlay"
     ]
+    overlay_revisions = repo.list_memory_revisions(memory_id="soul_overlay_active_main")
     event_types = [event.event_type for event in repo.list_soul_events()]
 
     assert first["overlay_updated"] is True
     assert second["overlay_updated"] is False
+    assert second["overlay_extended"] is True
     assert len(overlays) == 1
+    assert overlays[0]["created_at"] == "2026-04-06T00:00:00Z"
+    assert overlays[0]["updated_at"] == "2026-04-07T00:00:00Z"
+    assert len(overlay_revisions) == 1
     assert event_types.count("adaptive_overlay_refreshed") == 1
+    assert event_types.count("adaptive_overlay_extended") == 1

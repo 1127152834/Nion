@@ -24,11 +24,12 @@ def reflect_soul_growth(
     )
 
     overlay_updated = False
+    overlay_extended = False
     if _meets_proposal_threshold(repeated_needs, evidence_days):
         summary = repeated_needs[0]
         overlay_summary = f"基于长期重复信号，当前临时表达模式会围绕“{summary}”调整陪伴与支持方式。"
         current_overlay = _find_active_overlay(repository)
-        if current_overlay is None or str(current_overlay["summary"]).strip() != overlay_summary:
+        if current_overlay is None:
             artifact = MemoryOSSoulArtifactStore(
                 repository=repository,
                 base_dir=base_dir,
@@ -57,10 +58,59 @@ def reflect_soul_growth(
                 },
             )
             overlay_updated = True
+        elif str(current_overlay["summary"]).strip() != overlay_summary:
+            artifact = MemoryOSSoulArtifactStore(
+                repository=repository,
+                base_dir=base_dir,
+            ).write_active_overlay(
+                body="\n".join(
+                    [
+                        "# Active Soul Overlay",
+                        "",
+                        "## Expression Adjustments",
+                        overlay_summary,
+                    ]
+                ),
+                created_at=created_at,
+            )
+            record_soul_event(
+                repository,
+                event_type="adaptive_overlay_refreshed",
+                memory_id=str(artifact["memory_record"]["memory_id"]),
+                summary=f"当前临时表达模式已更新：{overlay_summary}",
+                created_at=created_at,
+                source="soul_reflection",
+                metadata={
+                    "artifact_uri": artifact["memory_record"]["artifact_uri"],
+                    "trigger_kind": "repeated_need",
+                    "trigger_summary": summary,
+                },
+            )
+            overlay_updated = True
+        else:
+            artifact = MemoryOSSoulArtifactStore(
+                repository=repository,
+                base_dir=base_dir,
+            ).extend_active_overlay(created_at=created_at)
+            record_soul_event(
+                repository,
+                event_type="adaptive_overlay_extended",
+                memory_id=str(artifact["memory_record"]["memory_id"]),
+                summary=f"当前临时表达模式续期：{overlay_summary}",
+                created_at=created_at,
+                source="soul_reflection",
+                metadata={
+                    "artifact_uri": artifact["memory_record"]["artifact_uri"],
+                    "trigger_kind": "repeated_need",
+                    "trigger_summary": summary,
+                },
+            )
+            overlay_extended = True
 
     return {
         "journal_path": journal_path,
         "overlay_updated": overlay_updated,
+        "overlay_extended": overlay_extended,
     }
 
 
