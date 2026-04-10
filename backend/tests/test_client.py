@@ -575,19 +575,7 @@ class TestEnsureAgent:
         mock_agent = MagicMock()
         client._agent = mock_agent
         config = client._get_runnable_config("t1")
-        client._agent_config_key = (
-            None,
-            None,
-            True,
-            False,
-            False,
-            False,
-            (),
-            (),
-            (),
-            "workspace",
-            "{}",
-        )
+        client._agent_config_key = client._build_agent_config_key(config["configurable"])
         client._ensure_agent(config)
 
         # Should still be the same mock — no recreation
@@ -1499,12 +1487,34 @@ class TestScenarioMemoryWorkflow:
 
     def test_memory_full_lifecycle(self, client):
         """get_memory → reload → get_status covers the full memory API."""
-        initial_data = {"version": "1.0", "facts": [{"id": "f1", "content": "User likes Python"}]}
+        initial_data = {"version": "2.0", "facts": [{"id": "f1", "content": "User likes Python"}]}
         updated_data = {
-            "version": "1.0",
+            "version": "2.0",
             "facts": [
                 {"id": "f1", "content": "User likes Python"},
                 {"id": "f2", "content": "User prefers dark mode"},
+            ],
+        }
+        user_facing_data = {
+            "user_profile": [],
+            "long_term_background": [],
+            "fact_memories": [
+                {
+                    "id": "f1",
+                    "content": "User likes Python",
+                    "source_label": "事实记忆",
+                    "updated_at": "",
+                    "reason": "",
+                    "related_refs": [],
+                },
+                {
+                    "id": "f2",
+                    "content": "User prefers dark mode",
+                    "source_label": "事实记忆",
+                    "updated_at": "",
+                    "reason": "",
+                    "related_refs": [],
+                },
             ],
         }
 
@@ -1517,11 +1527,11 @@ class TestScenarioMemoryWorkflow:
         config.injection_enabled = True
         config.max_injection_tokens = 2000
 
-        with patch("nion.memory_os.compat.build_legacy_memory_view", return_value=initial_data):
+        with patch("nion.memory_os.compat.build_canonical_memory_payload", return_value=initial_data):
             mem = client.get_memory()
         assert len(mem["facts"]) == 1
 
-        with patch("nion.memory_os.compat.build_legacy_memory_view", return_value=updated_data):
+        with patch("nion.memory_os.compat.build_canonical_memory_payload", return_value=updated_data):
             refreshed = client.reload_memory()
         assert len(refreshed["facts"]) == 2
 
@@ -1535,11 +1545,11 @@ class TestScenarioMemoryWorkflow:
                 "injection_enabled": True,
                 "max_injection_tokens": 2000,
             }),
-            patch("nion.memory_os.compat.build_legacy_memory_view", return_value=updated_data),
+            patch("nion.memory_os.compat.build_memory_user_facing_payload", return_value=user_facing_data),
         ):
             status = client.get_memory_status()
         assert status["config"]["enabled"] is True
-        assert len(status["data"]["facts"]) == 2
+        assert len(status["data"]["fact_memories"]) == 2
 
 
 class TestScenarioSkillInstallAndUse:
@@ -1932,22 +1942,6 @@ class TestGatewayConformance:
         mem_cfg.injection_enabled = True
         mem_cfg.max_injection_tokens = 2000
 
-        memory_data = {
-            "version": "1.0",
-            "lastUpdated": "",
-            "user": {
-                "workContext": {"summary": "", "updatedAt": ""},
-                "personalContext": {"summary": "", "updatedAt": ""},
-                "topOfMind": {"summary": "", "updatedAt": ""},
-            },
-            "history": {
-                "recentMonths": {"summary": "", "updatedAt": ""},
-                "earlierContext": {"summary": "", "updatedAt": ""},
-                "longTermBackground": {"summary": "", "updatedAt": ""},
-            },
-            "facts": [],
-        }
-
         with (
             patch("nion.memory_os.compat.get_memory_os_config", return_value={
                 "enabled": True,
@@ -1958,13 +1952,17 @@ class TestGatewayConformance:
                 "injection_enabled": True,
                 "max_injection_tokens": 2000,
             }),
-            patch("nion.memory_os.compat.build_legacy_memory_view", return_value={
-                **memory_data,
-                "version": "2.0",
-            }),
+            patch(
+                "nion.memory_os.compat.build_memory_user_facing_payload",
+                return_value={
+                    "user_profile": [],
+                    "long_term_background": [],
+                    "fact_memories": [],
+                },
+            ),
         ):
             result = client.get_memory_status()
 
         parsed = MemoryStatusResponse(**result)
         assert parsed.config.enabled is True
-        assert parsed.data.version == "2.0"
+        assert parsed.data.fact_memories == []

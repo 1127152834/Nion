@@ -82,6 +82,51 @@ def build_canonical_facts_surface(repository: MemoryOSRepository | None = None) 
     }
 
 
+def build_memory_user_facing_payload(repository: MemoryOSRepository | None = None) -> dict[str, Any]:
+    payload = build_canonical_memory_payload(repository)
+    user = payload.get("user", {})
+    history = payload.get("history", {})
+    facts = payload.get("facts", [])
+
+    user_profile = [
+        item
+        for item in (
+            _build_memory_user_facing_context_item(
+                section=dict(user.get(section_name, {})),
+                item_id=item_id,
+                source_label=source_label,
+                reason=reason,
+            )
+            for section_name, item_id, source_label, reason in _USER_PROFILE_DEFINITIONS
+        )
+        if item is not None
+    ]
+    long_term_background = [
+        item
+        for item in (
+            _build_memory_user_facing_context_item(
+                section=dict(history.get(section_name, {})),
+                item_id=item_id,
+                source_label=source_label,
+                reason=reason,
+            )
+            for section_name, item_id, source_label, reason in _LONG_TERM_BACKGROUND_DEFINITIONS
+        )
+        if item is not None
+    ]
+    fact_memories = [
+        item
+        for item in (_build_memory_user_facing_fact_item(dict(fact)) for fact in facts)
+        if item is not None
+    ]
+
+    return {
+        "user_profile": user_profile,
+        "long_term_background": long_term_background,
+        "fact_memories": fact_memories,
+    }
+
+
 def build_legacy_memory_view(repository: MemoryOSRepository | None = None) -> dict[str, Any]:
     return build_canonical_memory_payload(repository)
 
@@ -352,6 +397,45 @@ def _context_section(record: dict[str, Any] | None) -> dict[str, str]:
     }
 
 
+def _build_memory_user_facing_context_item(
+    *,
+    section: dict[str, Any],
+    item_id: str,
+    source_label: str,
+    reason: str,
+) -> dict[str, Any] | None:
+    content = str(section.get("summary", "")).strip()
+    if not content:
+        return None
+    return {
+        "id": item_id,
+        "content": content,
+        "source_label": source_label,
+        "updated_at": str(section.get("updatedAt", "")),
+        "reason": reason,
+        "related_refs": [],
+    }
+
+
+def _build_memory_user_facing_fact_item(fact: dict[str, Any]) -> dict[str, Any] | None:
+    content = str(fact.get("content", "")).strip()
+    if not content:
+        return None
+
+    raw_source = str(fact.get("source", "")).strip()
+    category = str(fact.get("category", "")).strip().lower()
+    related_refs = [raw_source] if raw_source and raw_source not in {"manual", "unknown"} else []
+
+    return {
+        "id": str(fact.get("id", "")),
+        "content": content,
+        "source_label": _FACT_SOURCE_LABELS.get(category, "事实记忆"),
+        "updated_at": str(fact.get("createdAt", "")),
+        "reason": "来自长期对话沉淀的稳定事实记忆。",
+        "related_refs": related_refs,
+    }
+
+
 def _read_legacy_memory_payload(path: Path) -> dict[str, Any] | None:
     try:
         import json
@@ -529,6 +613,54 @@ _CONTEXT_ORDER = {
     "recentMonths": 3,
     "earlierContext": 4,
     "longTermBackground": 5,
+}
+
+_USER_PROFILE_DEFINITIONS = (
+    (
+        "workContext",
+        "user_profile.work_context",
+        "工作语境",
+        "用户画像中的工作语境长期有效，适合作为稳定背景记忆展示。",
+    ),
+    (
+        "personalContext",
+        "user_profile.personal_context",
+        "个人背景",
+        "用户画像中的个人背景会持续影响协作方式，适合作为稳定背景记忆展示。",
+    ),
+    (
+        "topOfMind",
+        "user_profile.top_of_mind",
+        "当前关注",
+        "持续一段时间仍然重要的关注点，会保留为用户画像的一部分。",
+    ),
+)
+
+_LONG_TERM_BACKGROUND_DEFINITIONS = (
+    (
+        "recentMonths",
+        "long_term_background.recent_months",
+        "近期背景",
+        "最近阶段持续成立的背景信息，会作为长期背景的一部分保留。",
+    ),
+    (
+        "earlierContext",
+        "long_term_background.earlier_context",
+        "更早背景",
+        "更早形成且仍然影响当前协作的背景信息。",
+    ),
+    (
+        "longTermBackground",
+        "long_term_background.long_term_background",
+        "长期背景",
+        "跨较长时间保持稳定的背景信息。",
+    ),
+)
+
+_FACT_SOURCE_LABELS = {
+    "preference": "偏好事实",
+    "identity": "身份事实",
+    "context": "背景事实",
 }
 
 

@@ -191,6 +191,12 @@ class TestLoadSubagentsConfig:
 
 
 class TestRegistryGetSubagentConfig:
+    @pytest.fixture(autouse=True)
+    def _allow_host_bash(self, monkeypatch):
+        from nion.subagents import registry as registry_module
+
+        monkeypatch.setattr(registry_module, "is_host_bash_allowed", lambda: True, raising=False)
+
     def teardown_method(self):
         _reset_subagents_config()
 
@@ -278,6 +284,12 @@ class TestRegistryGetSubagentConfig:
 
 
 class TestRegistryListSubagents:
+    @pytest.fixture(autouse=True)
+    def _allow_host_bash(self, monkeypatch):
+        from nion.subagents import registry as registry_module
+
+        monkeypatch.setattr(registry_module, "is_host_bash_allowed", lambda: True, raising=False)
+
     def teardown_method(self):
         _reset_subagents_config()
 
