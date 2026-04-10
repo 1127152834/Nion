@@ -14,6 +14,7 @@ from nion.agents.middlewares.todo_middleware import TodoMiddleware
 from nion.agents.middlewares.tool_error_handling_middleware import (
     build_lead_runtime_middlewares,
 )
+from nion.agents.middlewares.user_identity_middleware import UserIdentityMiddleware
 from nion.agents.middlewares.view_image_middleware import ViewImageMiddleware
 from nion.agents.thread_state import ThreadState
 from nion.config.agents_config import load_agent_config
@@ -218,6 +219,7 @@ def _build_middlewares(
         middlewares.append(todo_list_middleware)
 
     middlewares.append(RecallCaptureMiddleware(agent_name=agent_name or "lead_agent"))
+    middlewares.append(UserIdentityMiddleware())
     middlewares.append(ContinuityMiddleware())
     app_config = get_app_config()
 

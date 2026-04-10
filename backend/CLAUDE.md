@@ -127,6 +127,7 @@ When extending memory in this repository:
 Soul product contract in this repository:
 
 - `/api/user-identity` is the stable owner surface for user name, mutual addressing, and long-term communication preferences.
+- Explicit user identity statements from the current user turn should write straight into the stable profile before continuity/runtime assembly; do not add proposal-confirmation indirection for this lane.
 - `/api/memory/soul` returns the stable settings-shaped payload used by `Settings > Soul`.
 - `/api/memory/soul/apply` is the only product-facing write path for stable soul settings.
 - `adaptive_overlay` may still exist internally, but proposal / rollback / growth governance routes are not part of the product-facing API surface.
