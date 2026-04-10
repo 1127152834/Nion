@@ -79,6 +79,7 @@ FastAPI application on port 8001 with health check at `GET /health`.
 | **Models** (`/api/models`) | runtime model catalog |
 | **MCP** (`/api/mcp`) | MCP config surfaces |
 | **Memory** (`/api/memory`) | memory data and config |
+| **User Identity** (`/api/user-identity`) | stable user identity profile owner contract |
 | **Notebook** (`/api/notebook`) | notebook CRUD / history / restore / inbox / import / asset archive |
 | **Uploads** (`/api/threads/{id}/uploads`) | uploads list / delete |
 | **Artifacts** (`/api/threads/{id}/artifacts`) | serve artifacts |
@@ -123,6 +124,7 @@ When extending memory in this repository:
 
 Soul product contract in this repository:
 
+- `/api/user-identity` is the stable owner surface for user name, mutual addressing, and long-term communication preferences.
 - `/api/memory/soul` returns the stable settings-shaped payload used by `Settings > Soul`.
 - `/api/memory/soul/apply` is the only product-facing write path for stable soul settings.
 - `adaptive_overlay` may still exist internally, but proposal / rollback / growth governance routes are not part of the product-facing API surface.

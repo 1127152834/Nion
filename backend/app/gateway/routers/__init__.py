@@ -1,8 +1,8 @@
 from . import (
     artifacts,
     automation,
-    capability_actions,
     capabilities,
+    capability_actions,
     cli,
     config,
     desktop_system,
@@ -20,6 +20,7 @@ from . import (
     threads,
     tool_policy,
     uploads,
+    user_identity,
 )
 
 __all__ = [
@@ -44,4 +45,5 @@ __all__ = [
     "threads",
     "tool_policy",
     "uploads",
+    "user_identity",
 ]

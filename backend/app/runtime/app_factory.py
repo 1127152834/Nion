@@ -39,8 +39,8 @@ def create_runtime_app(
         agents,
         artifacts,
         automation,
-        capability_actions,
         capabilities,
+        capability_actions,
         cli,
         config,
         desktop_system,
@@ -50,9 +50,9 @@ def create_runtime_app(
         memory_canonical,
         memory_evidence,
         memory_ledger,
+        memory_runtime_trace,
         memory_settings,
         memory_soul,
-        memory_runtime_trace,
         model_admin,
         models,
         notebook,
@@ -63,6 +63,7 @@ def create_runtime_app(
         threads,
         tool_policy,
         uploads,
+        user_identity,
     )
 
     app = FastAPI(
@@ -111,6 +112,7 @@ def create_runtime_app(
         capabilities.router,
         tool_policy.router,
         skills.router,
+        user_identity.router,
         artifacts.router,
         uploads.router,
         agents.router,
