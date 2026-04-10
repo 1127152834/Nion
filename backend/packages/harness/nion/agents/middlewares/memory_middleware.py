@@ -226,6 +226,9 @@ class MemoryMiddleware(AgentMiddleware[MemoryMiddlewareState]):
         correction_detected = detect_correction(filtered_messages)
         reinforcement_detected = False if correction_detected else detect_reinforcement(filtered_messages)
         queue = get_memory_queue()
+        if not bool(getattr(queue, "primary_path_enabled", False)):
+            logger.debug("Legacy memory queue is compatibility-only and disabled on the primary path")
+            return None
         queue.add(
             thread_id=thread_id,
             messages=filtered_messages,
