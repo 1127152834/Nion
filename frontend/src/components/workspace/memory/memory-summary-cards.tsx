@@ -12,13 +12,13 @@ export function MemorySummaryCards(props: { memory: MemoryUserFacing | null }) {
   const { t } = useI18n();
   const memory = props.memory;
 
-  const userContextReady = memory
-    ? hasMeaningfulContent(memory.user_profile)
-    : false;
+  const userProfileCount = memory
+    ? memory.user_profile.filter((item) => item.content.trim() !== "").length
+    : 0;
 
-  const historyReady = memory
-    ? hasMeaningfulContent(memory.long_term_background)
-    : false;
+  const longTermBackgroundCount = memory
+    ? memory.long_term_background.filter((item) => item.content.trim() !== "").length
+    : 0;
 
   const lastUpdated = memory
     ? [
@@ -42,16 +42,12 @@ export function MemorySummaryCards(props: { memory: MemoryUserFacing | null }) {
       value: formatTimeAgo(lastUpdated) ?? t.settings.memory.notAvailable,
     },
     {
-      label: t.settings.memory.summaryCards.userContext,
-      value: userContextReady
-        ? t.settings.memory.summaryCards.ready
-        : t.settings.memory.summaryCards.empty,
+      label: t.settings.memory.summaryCards.userProfile,
+      value: String(userProfileCount),
     },
     {
-      label: t.settings.memory.summaryCards.historyBackground,
-      value: historyReady
-        ? t.settings.memory.summaryCards.ready
-        : t.settings.memory.summaryCards.empty,
+      label: t.settings.memory.summaryCards.longTermBackground,
+      value: String(longTermBackgroundCount),
     },
   ];
 

@@ -734,10 +734,8 @@ export interface Translations {
       summaryCards: {
         factCount: string;
         lastUpdated: string;
-        userContext: string;
-        historyBackground: string;
-        ready: string;
-        empty: string;
+        userProfile: string;
+        longTermBackground: string;
       };
       searchPlaceholder: string;
       filterAll: string;

@@ -10,8 +10,10 @@ void test("memory summary cards keep summary coverage without nested bordered co
 
   assert.match(source, /summaryCards\.factCount/);
   assert.match(source, /summaryCards\.lastUpdated/);
-  assert.match(source, /summaryCards\.userContext/);
-  assert.match(source, /summaryCards\.historyBackground/);
+  assert.match(source, /summaryCards\.userProfile/);
+  assert.match(source, /summaryCards\.longTermBackground/);
+  assert.doesNotMatch(source, /summaryCards\.userContext/);
+  assert.doesNotMatch(source, /summaryCards\.historyBackground/);
   assert.match(source, /text-\[11px\].*uppercase/s);
   assert.match(source, /text-\[1\.9rem\]|text-\[2rem\]/);
   assert.match(source, /xl:grid-cols-4/);

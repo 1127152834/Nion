@@ -18,12 +18,7 @@ function MemoryGroup(props: {
   return (
     <section className="rounded-lg border bg-background p-5">
       <div className="flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-[1.05rem] font-semibold tracking-tight">{props.title}</h2>
-          <p className="mt-2 text-sm leading-7 text-muted-foreground">
-            这里只展示当前已经稳定留下来的内容。如果有错误，直接在对话里告诉我。
-          </p>
-        </div>
+        <h2 className="text-[1.05rem] font-semibold tracking-tight">{props.title}</h2>
         <div className="text-xs text-muted-foreground">{props.items.length} 条</div>
       </div>
 
@@ -68,9 +63,6 @@ function MemoryGroup(props: {
                     {item.related_refs.length > 0 ? item.related_refs.join(" / ") : "暂无引用"}
                   </div>
                 </div>
-                <p className="text-xs">
-                  如果这条记错了，直接对我说：这条记错了，或别再记这个。
-                </p>
               </div>
             </details>
           ))
@@ -91,10 +83,7 @@ export function MemoryHomePage() {
             <p className="text-[11px] font-medium tracking-[0.16em] text-muted-foreground uppercase">
               Memory
             </p>
-            <h1 className="text-[2rem] font-semibold tracking-tight">当前记住了什么</h1>
-            <p className="max-w-3xl text-sm leading-7 text-muted-foreground">
-              这里只展示已经留下来的用户画像、长期背景和事实记忆，不再包含治理控制台入口。
-            </p>
+            <h1 className="text-[2rem] font-semibold tracking-tight">记忆</h1>
           </div>
         </div>
         <MemorySummaryCards memory={memory} />
