@@ -103,6 +103,7 @@ Memory now uses `nion.memory_os.*` as the runtime memory backbone, and the repos
 When extending memory in this repository:
 - do not reintroduce runtime dependence on `memory.json` or legacy `nion.agents.memory.*`
 - do not reintroduce the old provider-based memory / AutoDream product shell
+- explicit user identity statements such as user name and mutual addressing must be extracted deterministically; do not let them collapse back into generic `address_style` only
 - current product surface expectation:
   - `/workspace/memory` must stay as the single user-facing memory surface and only expose grouped user-facing memory content
   - `/workspace/memory` must not expose governance, growth, ledger, evidence, runtime-trace, or soul-control routes

@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
 import hashlib
 import uuid
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from langchain_core.messages import HumanMessage
@@ -35,7 +35,7 @@ def _human_evidence_documents(*, messages: list[Any], thread_id: str) -> list[Ev
         content = str(message.content).strip()
         if not content:
             continue
-        evidence_id = f"compat_{hashlib.sha1(f'{thread_id}:{index}:{content}'.encode('utf-8')).hexdigest()[:12]}"
+        evidence_id = f"compat_{hashlib.sha1(f'{thread_id}:{index}:{content}'.encode()).hexdigest()[:12]}"
         message_id = getattr(message, "id", None) or f"human-{index}"
         documents.append(
             EvidenceDocument(
@@ -60,7 +60,7 @@ def _proposal_to_candidate(*, proposal: MemoryProposal, thread_id: str) -> Candi
     expires_at = _expires_at(created_at=created_at, stability=proposal.estimated_stability)
     subtype_map = {
         "explicit_preference": "communication_preference",
-        "user_name": "user_name",
+        "user_name": "identity_name",
         "mutual_addressing": "mutual_addressing",
         "work_context": "work_context",
         "address_style": "address_style",
@@ -91,6 +91,6 @@ def _expires_at(*, created_at: str, stability: str) -> str:
         "stable": timedelta(days=30),
         "core": timedelta(days=90),
     }
-    created_at_dt = datetime.fromisoformat(created_at.replace("Z", "+00:00")).astimezone(timezone.utc)
+    created_at_dt = datetime.fromisoformat(created_at.replace("Z", "+00:00")).astimezone(UTC)
     expires_at_dt = created_at_dt + ttl_by_stability.get(stability, timedelta(days=7))
     return expires_at_dt.replace(microsecond=0).isoformat().replace("+00:00", "Z")

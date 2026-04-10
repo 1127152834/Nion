@@ -58,7 +58,7 @@ def _extract_from_content(*, content: str, evidence_id: str) -> list[MemoryPropo
 
 
 def _extract_user_name(*, content: str, evidence_id: str) -> MemoryProposal | None:
-    match = re.search(r"(?:我叫|我的名字叫)([^，。！？；\s]{1,16})", content)
+    match = re.search(r"(?:我叫|我的名字叫|我的名字是)([^，。！？；\s]{1,16})", content)
     if match is None:
         return None
     user_name = _clean_fragment(match.group(1))

@@ -27,13 +27,13 @@ def test_extractor_turns_user_identity_contract_into_user_identity_candidates():
 
     by_subtype = {candidate.proposed_subtype: candidate for candidate in candidates}
 
-    assert "user_name" in by_subtype
+    assert "identity_name" in by_subtype
     assert "mutual_addressing" in by_subtype
 
-    assert by_subtype["user_name"].proposed_domain == "user_model"
-    assert by_subtype["user_name"].summary == "用户姓名：张天成"
-    assert by_subtype["user_name"].raw_evidence_refs
-    assert all(ref.startswith("compat_") for ref in by_subtype["user_name"].raw_evidence_refs)
+    assert by_subtype["identity_name"].proposed_domain == "user_model"
+    assert by_subtype["identity_name"].summary == "用户姓名：张天成"
+    assert by_subtype["identity_name"].raw_evidence_refs
+    assert all(ref.startswith("compat_") for ref in by_subtype["identity_name"].raw_evidence_refs)
 
     assert by_subtype["mutual_addressing"].proposed_domain == "relationship"
     assert by_subtype["mutual_addressing"].summary == "你叫我大哥，我叫你小老弟"
