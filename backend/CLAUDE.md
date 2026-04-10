@@ -128,6 +128,7 @@ Soul product contract in this repository:
 
 - `/api/user-identity` is the stable owner surface for user name, mutual addressing, and long-term communication preferences.
 - `PATCH /api/user-identity` is the field-level immediate write path for stable user identity updates.
+- When `preferred_address_for_user` and `assistant_self_name` are both present, the stable profile should auto-derive `mutual_addressing_rule` unless the caller explicitly overrides it.
 - Explicit user identity statements from the current user turn should write straight into the stable profile before continuity/runtime assembly; do not add proposal-confirmation indirection for this lane.
 - `/api/memory/soul` returns the stable settings-shaped payload used by `Settings > Soul`.
 - `PATCH /api/memory/soul` is the preferred field-level write path for stable soul settings.

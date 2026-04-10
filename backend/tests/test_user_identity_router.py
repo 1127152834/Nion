@@ -49,3 +49,29 @@ def test_user_identity_router_patches_field_value(monkeypatch, tmp_path) -> None
         "先给结论",
         "直接一点",
     ]
+
+
+def test_user_identity_router_derives_mutual_addressing_rule_from_two_address_fields(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+
+    with TestClient(create_app()) as client:
+        first = client.patch(
+            "/api/user-identity",
+            json={"field": "preferred_address_for_user", "value": "大哥"},
+        )
+        second = client.patch(
+            "/api/user-identity",
+            json={"field": "assistant_self_name", "value": "小老弟"},
+        )
+        profile = client.get("/api/user-identity")
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert profile.status_code == 200
+    assert profile.json()["preferred_address_for_user"] == "大哥"
+    assert profile.json()["assistant_self_name"] == "小老弟"
+    assert profile.json()["mutual_addressing_rule"] == "你叫我大哥，我叫你小老弟"
