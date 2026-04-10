@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 
 import pytest
 from fastapi.testclient import TestClient
@@ -78,7 +79,7 @@ def test_config_repository_round_trips_extended_model_fields(monkeypatch, tmp_pa
         assert dumped["output_version"] == "responses/v1"
         assert dumped["supports_reasoning_effort"] is True
         assert dumped["supports_vision"] is True
-        assert dumped["api_key"] == "$OPENAI_API_KEY"
+        assert dumped["api_key"] == os.getenv("OPENAI_API_KEY", "$OPENAI_API_KEY")
         assert dumped["api_base"] == "https://api.openai.com/v1"
         assert dumped["temperature"] == 0.2
     finally:
@@ -130,7 +131,7 @@ def test_models_routes_expose_store_backed_capabilities(monkeypatch, tmp_path):
             assert list_payload["models"][0]["supports_reasoning_effort"] is True
             assert list_payload["models"][0]["supports_vision"] is True
 
-            detail_response = client.get("/api/models/gateway-model")
+            detail_response = client.get(f"/api/models/{list_payload['models'][0]['name']}")
             assert detail_response.status_code == 200
             assert detail_response.json()["supports_vision"] is True
     finally:

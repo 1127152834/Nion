@@ -11,8 +11,8 @@ def test_notebook_chat_prompt_declares_notebook_specific_identity() -> None:
 
     assert "笔记助手" in prompt
     assert "当前笔记" in prompt
-    assert "必须以当前笔记内容为依据" in prompt
-    assert "不能退化成通用助手" in prompt
+    assert "当用户问“你叫什么 / 你是谁”时" in prompt
+    assert "不能回答成通用的 Nion 2.0 身份介绍" in prompt
 
 
 def test_notebook_chat_prompt_with_current_note_requires_note_grounded_answers() -> None:

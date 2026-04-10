@@ -44,10 +44,9 @@ def get_app_config():
 def resolve_model_name_with_fallback(
     requested_name: str | None = None,
     fallback_name: str | None = None,
-) -> str:
+) -> str | None:
     """Resolve a runtime model name, falling back to a valid default when stale."""
     registry = get_model_registry_service(app_config_provider=get_app_config)
-    default_name = registry.get_default_model().runtime_name
 
     def _normalize(value: str | None) -> str | None:
         if value is None:
@@ -79,6 +78,23 @@ def resolve_model_name_with_fallback(
                 resolved_fallback,
             )
         return resolved_fallback
+
+    try:
+        default_name = registry.get_default_model().runtime_name
+    except ValueError:
+        if normalized_requested is not None:
+            logger.warning(
+                "Runtime model '%s' is not registered; using the configured name without registry validation.",
+                normalized_requested,
+            )
+            return normalized_requested
+        if normalized_fallback is not None:
+            logger.warning(
+                "Runtime fallback model '%s' is not registered; using the configured name without registry validation.",
+                normalized_fallback,
+            )
+            return normalized_fallback
+        return None
 
     if normalized_requested is not None and normalized_requested != default_name:
         logger.warning(

@@ -21,8 +21,8 @@ def test_encrypt_and_decrypt_provider_api_key_round_trip():
 
 
 def test_mask_provider_secret_only_keeps_last_four_characters():
-    assert mask_provider_secret("sk-test-123456") == "••••3456"
-    assert mask_provider_secret("abcd") == "••••"
+    assert mask_provider_secret("sk-test-123456") == "sk-te******456"
+    assert mask_provider_secret("abcd") == "****"
 
 
 def test_get_model_management_secret_falls_back_to_local_secret_file(

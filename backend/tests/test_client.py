@@ -1242,22 +1242,26 @@ class TestScenarioConfigManagement:
 
     def test_model_and_skill_discovery(self, client):
         """List models → get specific model → list skills → get specific skill."""
-        # List models
-        result = client.list_models()
-        assert len(result["models"]) >= 1
-        model_name = result["models"][0]["name"]
+        runtime_model = MagicMock()
+        runtime_model.runtime_name = "test-model"
+        runtime_model.model.model_id = "gpt-test"
+        runtime_model.model.display_name = "Test Model"
+        runtime_model.runtime_model_config.description = "A test model"
+        runtime_model.runtime_model_config.supports_thinking = False
+        runtime_model.runtime_model_config.supports_reasoning_effort = False
+        runtime_model.runtime_model_config.supports_vision = False
 
-        # Get specific model
-        model_cfg = MagicMock()
-        model_cfg.name = model_name
-        model_cfg.model = model_name
-        model_cfg.display_name = None
-        model_cfg.description = None
-        model_cfg.supports_thinking = False
-        model_cfg.supports_reasoning_effort = False
-        client._app_config.get_model_config.return_value = model_cfg
-        detail = client.get_model(model_name)
-        assert detail["name"] == model_name
+        # List models
+        with patch("nion.client.get_model_registry_service") as mock_service:
+            mock_service.return_value.list_runtime_models.return_value = [runtime_model]
+            mock_service.return_value.resolve_model.return_value = runtime_model
+            result = client.list_models()
+            assert len(result["models"]) >= 1
+            model_name = result["models"][0]["name"]
+
+            # Get specific model
+            detail = client.get_model(model_name)
+            assert detail["name"] == model_name
 
         # List skills
         skill = MagicMock()

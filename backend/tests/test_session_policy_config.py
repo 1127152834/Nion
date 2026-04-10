@@ -137,7 +137,7 @@ def test_suggestions_router_prefers_configured_model_name(monkeypatch, tmp_path)
 
     class _FakeChatModel:
         def invoke(self, prompt):
-            assert "Conversation:" in prompt
+            assert prompt[-1].content.startswith("Conversation:")
             return _FakeResponse()
 
     def _fake_create_chat_model(*, name=None, thinking_enabled=False):

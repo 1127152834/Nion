@@ -4,6 +4,7 @@ import sys
 from unittest.mock import MagicMock, patch
 
 import pytest
+from pydantic import ValidationError
 
 import nion.config.app_config as app_config_module
 from nion.agents.checkpointer import get_checkpointer, reset_checkpointer
@@ -118,14 +119,8 @@ class TestGetCheckpointer:
                 get_checkpointer()
 
     def test_postgres_raises_when_connection_string_missing(self):
-        load_checkpointer_config_from_dict({"type": "postgres"})
-        mock_saver = MagicMock()
-        mock_module = MagicMock()
-        mock_module.PostgresSaver = mock_saver
-        with patch.dict(sys.modules, {"langgraph.checkpoint.postgres": mock_module}):
-            reset_checkpointer()
-            with pytest.raises(ValueError, match="connection_string is required"):
-                get_checkpointer()
+        with pytest.raises(ValidationError, match="connection_string is required"):
+            load_checkpointer_config_from_dict({"type": "postgres"})
 
     def test_sqlite_creates_saver(self):
         """SQLite checkpointer is created when package is available."""

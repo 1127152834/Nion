@@ -3,19 +3,49 @@
 from __future__ import annotations
 
 import importlib.util
+import sys
+import types
 from pathlib import Path
+
+_MISSING = object()
 
 
 def _load_provisioner_module():
     """Load docker/provisioner/app.py as an importable test module."""
     repo_root = Path(__file__).resolve().parents[2]
     module_path = repo_root / "docker" / "provisioner" / "app.py"
-    spec = importlib.util.spec_from_file_location("provisioner_app_test", module_path)
-    assert spec is not None
-    assert spec.loader is not None
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
+    originals = {
+        name: sys.modules.get(name, _MISSING)
+        for name in ("kubernetes", "kubernetes.client", "kubernetes.client.rest", "kubernetes.config")
+    }
+    kubernetes_module = types.ModuleType("kubernetes")
+    client_module = types.ModuleType("kubernetes.client")
+    client_module.CoreV1Api = lambda *args, **kwargs: None
+    client_rest_module = types.ModuleType("kubernetes.client.rest")
+    client_rest_module.ApiException = type("ApiException", (Exception,), {})
+    config_module = types.ModuleType("kubernetes.config")
+    config_module.load_kube_config = lambda *args, **kwargs: None
+    config_module.load_incluster_config = lambda *args, **kwargs: None
+    kubernetes_module.client = client_module
+    kubernetes_module.config = config_module
+    sys.modules["kubernetes"] = kubernetes_module
+    sys.modules["kubernetes.client"] = client_module
+    sys.modules["kubernetes.client.rest"] = client_rest_module
+    sys.modules["kubernetes.config"] = config_module
+
+    try:
+        spec = importlib.util.spec_from_file_location("provisioner_app_test", module_path)
+        assert spec is not None
+        assert spec.loader is not None
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+    finally:
+        for name, original in originals.items():
+            if original is _MISSING:
+                sys.modules.pop(name, None)
+            else:
+                sys.modules[name] = original
 
 
 def test_wait_for_kubeconfig_rejects_directory(tmp_path):

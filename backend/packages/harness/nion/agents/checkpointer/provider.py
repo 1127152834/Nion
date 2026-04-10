@@ -136,7 +136,12 @@ def get_checkpointer() -> Checkpointer:
     if config is None and _app_config is None:
         # Only load app config lazily when neither the app config nor an explicit
         # checkpointer config has been initialized yet.
-        get_app_config()
+        try:
+            get_app_config()
+        except FileNotFoundError:
+            logger.info(
+                "Checkpointer config unavailable because app config is missing; using InMemorySaver."
+            )
         config = get_checkpointer_config()
     if config is None:
         from langgraph.checkpoint.memory import InMemorySaver
