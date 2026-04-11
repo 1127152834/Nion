@@ -33,6 +33,7 @@ import { MessageGroup } from "./message-group";
 import { MessageListItem } from "./message-list-item";
 import { PermissionRequestCard } from "./permission-request-card";
 import { MessageListSkeleton } from "./skeleton";
+import { DelegationSummary } from "./delegation-summary";
 import { SubtaskCard } from "./subtask-card";
 import { ToolActivitySummaryCard } from "./tool-activity-summary-card";
 
@@ -220,44 +221,12 @@ export function MessageList({
                 }
               }
             }
-            const results: React.ReactNode[] = [];
-            for (const message of group.messages.filter(
-              (message) => message.type === "ai",
-            )) {
-              if (hasReasoning(message)) {
-                results.push(
-                  <MessageGroup
-                    key={"thinking-group-" + message.id}
-                    messages={[message]}
-                    isLoading={thread.isLoading}
-                  />,
-                );
-              }
-              results.push(
-                <div
-                  key="subtask-count"
-                  className="text-muted-foreground font-norma pt-2 text-sm"
-                >
-                  {t.subtasks.executing(tasks.size)}
-                </div>,
-              );
-              const taskIds = getTaskToolCallIds(message.tool_calls);
-              for (const taskId of taskIds ?? []) {
-                results.push(
-                  <SubtaskCard
-                    key={"task-group-" + taskId}
-                    taskId={taskId}
-                    isLoading={thread.isLoading}
-                  />,
-                );
-              }
-            }
             return (
               <div
                 key={"subtask-group-" + group.id}
                 className="relative z-1 flex flex-col gap-2"
               >
-                {results}
+                <DelegationSummary count={tasks.size} />
               </div>
             );
           } else if (group.type === "assistant:tool-activity-summary") {

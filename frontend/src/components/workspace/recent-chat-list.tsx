@@ -79,6 +79,7 @@ import {
   bridgePlatformLabel,
   useBridgeTranslation,
 } from "./bridge/useBridgeTranslation";
+import { ChildRunInspector } from "./child-runs/child-run-inspector";
 import { ChildRunList } from "./child-runs/child-run-list";
 import { WorkspaceThreadListItem } from "./thread-list-items";
 import { ThreadTypeTabs } from "./thread-type-tabs";
@@ -166,6 +167,8 @@ export function RecentChatList() {
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
   const [renameThreadId, setRenameThreadId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
+  const [childRunInspectorOpen, setChildRunInspectorOpen] = useState(false);
+  const [selectedChildRunId, setSelectedChildRunId] = useState<string | null>(null);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedThreadIds, setSelectedThreadIds] = useState<string[]>([]);
 
@@ -321,6 +324,10 @@ export function RecentChatList() {
     const childRuns = Object.values(thread.values.child_runs ?? {}).filter(
       (item) => item.status !== "closed",
     );
+    const selectedChildRun =
+      selectedChildRunId
+        ? childRuns.find((item) => item.child_run_id === selectedChildRunId) ?? null
+        : null;
 
     const selectionControl = selectionMode ? (
       <button
@@ -371,7 +378,27 @@ export function RecentChatList() {
               onSelect={() => toggleThreadSelection(thread.thread_id)}
             />
             {selectionControl}
-            {isActive ? <ChildRunList childRuns={childRuns} /> : null}
+            {isActive ? (
+              <>
+                <ChildRunList
+                  childRuns={childRuns}
+                  onSelect={(childRun) => {
+                    setSelectedChildRunId(childRun.child_run_id);
+                    setChildRunInspectorOpen(true);
+                  }}
+                />
+                <ChildRunInspector
+                  open={childRunInspectorOpen}
+                  childRun={selectedChildRun}
+                  onOpenChange={(open) => {
+                    setChildRunInspectorOpen(open);
+                    if (!open) {
+                      setSelectedChildRunId(null);
+                    }
+                  }}
+                />
+              </>
+            ) : null}
             {!selectionMode && env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY !== "true" ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
