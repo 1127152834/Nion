@@ -159,6 +159,7 @@ Custom-agent orchestration contract:
 - `/api/threads/search` must remain blind to child runs; inspection happens only through `/api/threads/{thread_id}/child-runs*`.
 - `AgentConfig.delegation` is the explicit source of truth for delegated reply policy, memory-write defaults, and delegatable private skills.
 - Mention-based delegated execution is separate from the built-in subagent registry and task-tool worker lane.
+- Local same-runtime custom agents stay on the LangGraph/local execution path; ACP and A2A are only remote transport seams, not the default local coordination mechanism.
 
 ### Local Daemon Surface
 

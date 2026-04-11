@@ -14,6 +14,7 @@ from pydantic import BaseModel, Field
 from nion.config.acp_config import ACPAgentConfig
 from nion.config.app_config import AppConfig
 from nion.config.paths import get_paths
+from nion.orchestration.remote_agent_transport import RemoteAgentTarget
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +22,10 @@ logger = logging.getLogger(__name__)
 class _InvokeACPAgentInput(BaseModel):
     agent: str = Field(description="Name of the ACP agent to invoke")
     prompt: str = Field(description="The concise task prompt to send to the agent")
+
+
+def build_acp_remote_agent_target(agent_name: str) -> RemoteAgentTarget:
+    return RemoteAgentTarget(kind="acp", agent_name=agent_name)
 
 
 def _get_work_dir(thread_id: str | None) -> str:

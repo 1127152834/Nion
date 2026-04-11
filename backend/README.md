@@ -143,6 +143,7 @@ Async task delegation with concurrent execution:
 - **Concurrency**: Max 3 subagents per turn, 15-minute timeout
 - **Execution**: Background thread pools with status tracking and SSE events
 - **Flow**: Agent calls `task()` tool → executor runs subagent in background → polls for completion → returns result
+- **Custom-agent orchestration**: governed custom agents now use ephemeral child-run records under the parent thread plus `/api/threads/{thread_id}/child-runs*` inspection routes; local catalog agents stay on the in-process LangGraph path while ACP/A2A remain remote transport seams
 
 ### Memory System
 
