@@ -70,6 +70,7 @@ import type { AgentThread, AgentThreadState } from "@/core/threads/types";
 import {
   bridgeInfoOfThread,
   pathOfThread,
+  projectInfoOfThread,
   titleOfThread,
 } from "@/core/threads/utils";
 import { env } from "@/env";
@@ -96,21 +97,29 @@ function groupEntriesBySource(
     thread: AgentThread;
     pendingClarification: boolean;
   }>,
-  type: "bridge",
+  type: "project" | "bridge",
   bt: ReturnType<typeof useBridgeTranslation>["t"],
 ): ThreadGroupSection[] {
   const sections = new Map<string, ThreadGroupSection>();
 
   for (const entry of entries) {
-    const bridge = bridgeInfoOfThread(entry.thread);
-    const bridgeLabel = bridge?.label?.trim();
-    const normalizedBridgeLabel =
-      bridgeLabel && bridgeLabel.length > 0 ? bridgeLabel : undefined;
-    const groupLabel = normalizedBridgeLabel ?? bridgePlatformLabel(
-      bridge?.platform ?? "bridge",
-      bt,
-    );
-    const groupId = `${bridge?.platform ?? "bridge"}:${groupLabel}`;
+    const groupLabel =
+      type === "project"
+        ? (projectInfoOfThread(entry.thread)?.project_name ?? "Project")
+        : (() => {
+            const bridge = bridgeInfoOfThread(entry.thread);
+            const bridgeLabel = bridge?.label?.trim();
+            const normalizedBridgeLabel =
+              bridgeLabel && bridgeLabel.length > 0 ? bridgeLabel : undefined;
+            return normalizedBridgeLabel ?? bridgePlatformLabel(
+              bridge?.platform ?? "bridge",
+              bt,
+            );
+          })();
+    const groupId =
+      type === "project"
+        ? `project:${projectInfoOfThread(entry.thread)?.project_id ?? groupLabel}`
+        : `${bridgeInfoOfThread(entry.thread)?.platform ?? "bridge"}:${groupLabel}`;
     const existing = sections.get(groupId);
     if (existing) {
       existing.entries.push(entry);
@@ -156,11 +165,14 @@ export function RecentChatList() {
   );
   const activeGroup = filterThreadsByWorkspaceType(threadGroups, activeType);
   const groupedSections = useMemo(() => {
+    if (activeType === "project") {
+      return groupEntriesBySource(threadGroups.project, "project", bt);
+    }
     if (activeType === "bridge") {
       return groupEntriesBySource(threadGroups.bridge, "bridge", bt);
     }
     return [];
-  }, [activeType, bt, threadGroups.bridge]);
+  }, [activeType, bt, threadGroups.bridge, threadGroups.project]);
 
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
   const [renameThreadId, setRenameThreadId] = useState<string | null>(null);
@@ -299,6 +311,7 @@ export function RecentChatList() {
   );
 
   if (
+    threadGroups.project.length === 0 &&
     threadGroups.bridge.length === 0 &&
     threadGroups.general.length === 0
   ) {

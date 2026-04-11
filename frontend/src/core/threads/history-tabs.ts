@@ -1,14 +1,14 @@
 import type { AgentThread } from "./types";
-import { bridgeInfoOfThread } from "./utils";
+import { bridgeInfoOfThread, projectInfoOfThread } from "./utils";
 
-export type WorkspaceThreadType = "general" | "bridge";
+export type WorkspaceThreadType = "general" | "project" | "bridge";
 
 export const DEFAULT_WORKSPACE_THREAD_TYPE: WorkspaceThreadType = "general";
 
 export function parseWorkspaceThreadType(
   value: string | null | undefined,
 ): WorkspaceThreadType {
-  return value === "bridge" || value === "general"
+  return value === "bridge" || value === "project" || value === "general"
     ? value
     : DEFAULT_WORKSPACE_THREAD_TYPE;
 }
@@ -18,7 +18,11 @@ export function resolveWorkspaceThreadType(input: {
   value?: string | null;
 }): WorkspaceThreadType {
   const parsed = parseWorkspaceThreadType(input.value);
-  if (input.value === "bridge" || input.value === "general") {
+  if (
+    input.value === "bridge" ||
+    input.value === "project" ||
+    input.value === "general"
+  ) {
     return parsed;
   }
   return parsed;
@@ -35,11 +39,18 @@ export function groupThreadsByWorkspaceType(entries: WorkspaceThreadEntry[]) {
   const ordered = [...pending, ...regular];
 
   return {
+    project: ordered.filter(
+      (entry) => projectInfoOfThread(entry.thread),
+    ),
     bridge: ordered.filter(
-      (entry) => bridgeInfoOfThread(entry.thread),
+      (entry) =>
+        !projectInfoOfThread(entry.thread) &&
+        bridgeInfoOfThread(entry.thread),
     ),
     general: ordered.filter(
-      (entry) => !bridgeInfoOfThread(entry.thread),
+      (entry) =>
+        !projectInfoOfThread(entry.thread) &&
+        !bridgeInfoOfThread(entry.thread),
     ),
   };
 }

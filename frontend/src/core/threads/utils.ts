@@ -40,3 +40,11 @@ export function bridgeInfoOfThread(thread: AgentThread) {
   }
   return bridge;
 }
+
+export function projectInfoOfThread(thread: AgentThread) {
+  const project = thread.values?.project;
+  if (project?.source !== "project" || !project.project_id || !project.project_name) {
+    return null;
+  }
+  return project;
+}
