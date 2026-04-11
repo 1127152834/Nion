@@ -243,6 +243,7 @@ NION_STATIC_EXPORT=1 pnpm --dir frontend build
   - 稳定层只能由用户显式设置或在对话中明确要求修改
 - `Settings > 记忆`
   - 现在承载真实向量设置面：本地模式 / 远端模式切换、模型下载、索引重建、当前模型与索引状态
+  - 本地模型准备后会把真实 embedding 维度写入模型缓存元数据，避免设置页对非默认本地模型显示错误指纹
   - 不再展示 embedding 假面板、控制台、路径/指纹之类的诊断字段
 - `/workspace/automation/*`
   - 已开始区分 `user-owned` 与 `agent-owned` automation

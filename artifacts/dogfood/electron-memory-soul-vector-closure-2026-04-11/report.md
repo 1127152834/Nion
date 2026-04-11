@@ -134,4 +134,7 @@ Subproject B 已形成真实产品闭环：
 ## 7. 剩余风险
 
 1. 本次本地模式验收使用了本机已有 Hugging Face 快照路径，而没有在验收环境里重新下载默认 `BAAI/bge-m3`。原因是当前机器上的 Hugging Face xet 下载链会卡死并返回 `416 Range Not Satisfiable`。这属于环境/下载链风险，不是本轮产品合同风险。
-2. `LocalManagedEmbeddingProvider.metadata()` 当前仍把本地模式维度写死为 `1024`。本次验收选用的轻量模型实际维度是 `384`，但因为 rebuild/query 始终使用同一模型，索引与查询行为仍然正确。这个维度元数据不一致不阻塞 Subproject B 闭环，但应作为后续精化项处理。
+
+后续补充：
+
+- `LocalManagedEmbeddingProvider` 现已在模型下载/首次加载时把真实 embedding 维度写入 `provider-metadata.json`，设置页和 provider fingerprint 不再对非默认本地模型显示错误维度。
