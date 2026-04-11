@@ -52,6 +52,7 @@
 - 桌面 renderer 通过特权 `nion://app` 协议加载静态资源
 - preload 会向前端同步注入本地 helper base URL，前端不再假设 `/api/*` 由浏览器同源反代提供
 - 本地 daemon 必须与 renderer 需要的 gateway 路由保持同步，包括 `/api/model-admin/*` 与 `/api/threads/{thread_id}/runtime-profile`
+- Electron client session 现在会在 daemon 被替换后自动恢复；同一个 `client_id` 的 heartbeat 不再因为 daemon 重启而长期卡在 `404 client not found`
 - `electron-builder` 默认发布到 GitHub Releases；只有设置 `NION_UPDATE_BASE_URL` 时才会额外写入 generic/CDN 更新源
 - `make build-desktop` 只做桌面编译；`make desktop-dev` 会在编译后直接拉起 Electron
 - `make desktop-dev` 现在会在启动前自动强制停止旧的 Vite renderer、旧的 Electron 主进程，以及占用 `127.0.0.1:43115` 的本地 daemon，避免新一轮开发会话复用上一轮残留进程

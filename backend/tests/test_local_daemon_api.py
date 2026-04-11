@@ -3,6 +3,7 @@ from fastapi.testclient import TestClient
 from app.daemon.app import create_app
 from nion.config.app_config import reset_app_config
 from nion.config.extensions_config import reset_extensions_config
+from nion.config.paths import reset_paths
 
 
 def test_local_daemon_exposes_runtime_and_threads_routes() -> None:
@@ -49,12 +50,27 @@ def test_local_daemon_exposes_runtime_profile_and_model_admin_routes() -> None:
         )
 
 
-def test_local_daemon_exposes_user_identity_route() -> None:
+def test_local_daemon_exposes_user_identity_route(monkeypatch, tmp_path) -> None:
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
     with TestClient(create_app()) as client:
         response = client.get("/api/user-identity")
 
     assert response.status_code == 200
     assert response.json()["user_name"] == ""
+
+
+def test_local_daemon_heartbeat_can_recover_a_missing_client_session() -> None:
+    with TestClient(create_app()) as client:
+        response = client.post(
+            "/api/daemon/clients/electron-recovered/heartbeat",
+            json={"client_type": "electron"},
+        )
+        runtime = client.get("/api/daemon/runtime-info")
+
+    assert response.status_code == 204
+    assert runtime.status_code == 200
+    assert runtime.json()["clients"]["electron"] == 1
 
 
 def test_local_daemon_exposes_artifacts_and_uploads_routes() -> None:

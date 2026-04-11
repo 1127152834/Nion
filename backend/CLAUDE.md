@@ -156,10 +156,16 @@ route surface aligned with the renderer expectations, including:
 - `/api/threads/{thread_id}/runtime-profile`
 - `/api/models`, `/api/config`, `/api/skills`, `/api/files`, `/api/cli/catalog`
 - `/api/memory`
+- `/api/daemon/clients/register`, `/api/daemon/clients/{client_id}/heartbeat`, `/api/daemon/clients/{client_id}`
 - `/api/daemon/logs`, `/api/daemon/logs/tail`
 - `/api/daemon/diagnostics`, `/api/daemon/diagnostics/threads/{thread_id}`, `/api/daemon/diagnostics/skills/{skill_name}`
 - `/api/daemon/diagnostics/tasks/{task_id}`
 - `/api/daemon/channels/*`
+
+Desktop daemon client contract:
+
+- Electron heartbeats must preserve a stable `client_id` across daemon replacement/restart.
+- `POST /api/daemon/clients/{client_id}/heartbeat` may receive `client_type`; when a session is missing after daemon replacement, it should recover that same `client_id` instead of forcing the desktop shell into repeated `404 client not found`.
 
 Runtime profile execution contract:
 

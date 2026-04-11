@@ -15,6 +15,10 @@ class RegisterClientRequest(BaseModel):
     client_id: str | None = None
 
 
+class HeartbeatClientRequest(BaseModel):
+    client_type: str | None = None
+
+
 class RegisterClientResponse(BaseModel):
     client_id: str
     client_type: str
@@ -48,10 +52,17 @@ async def register_client(
 
 
 @router.post("/{client_id}/heartbeat", status_code=status.HTTP_204_NO_CONTENT)
-async def heartbeat_client(client_id: str, request: Request) -> Response:
+async def heartbeat_client(
+    client_id: str,
+    request: Request,
+    payload: HeartbeatClientRequest | None = None,
+) -> Response:
     service = get_daemon_service(request)
     if not service.heartbeat_client(client_id):
-        raise HTTPException(status_code=404, detail="client not found")
+        client_type = (payload.client_type or "").strip().lower() if payload else ""
+        if not client_type:
+            raise HTTPException(status_code=404, detail="client not found")
+        service.register_client(client_id, client_type)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 

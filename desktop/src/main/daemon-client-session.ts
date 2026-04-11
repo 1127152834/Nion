@@ -10,34 +10,73 @@ type RegisterClientResponse = {
 export async function createElectronClientSession(
   baseUrl: string,
 ): Promise<ElectronClientSession> {
-  const registerResponse = await fetch(`${baseUrl}/api/daemon/clients/register`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      client_type: "electron",
-    }),
-  });
+  let currentClientId = "";
+  let disposed = false;
+  let heartbeatInFlight: Promise<void> | null = null;
 
-  if (!registerResponse.ok) {
-    throw new Error(`Failed to register Electron client (${registerResponse.status})`);
+  async function registerClient(clientId?: string): Promise<string> {
+    const registerResponse = await fetch(`${baseUrl}/api/daemon/clients/register`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        client_type: "electron",
+        ...(clientId ? { client_id: clientId } : {}),
+      }),
+    });
+
+    if (!registerResponse.ok) {
+      throw new Error(`Failed to register Electron client (${registerResponse.status})`);
+    }
+
+    const payload = (await registerResponse.json()) as RegisterClientResponse;
+    currentClientId = payload.client_id;
+    return currentClientId;
   }
 
-  const payload = (await registerResponse.json()) as RegisterClientResponse;
-  const clientId = payload.client_id;
+  async function sendHeartbeat(): Promise<void> {
+    if (!currentClientId || disposed) {
+      return;
+    }
+
+    const response = await fetch(`${baseUrl}/api/daemon/clients/${currentClientId}/heartbeat`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        client_type: "electron",
+      }),
+    });
+
+    if (response.status === 404 && !disposed) {
+      await registerClient(currentClientId);
+    }
+  }
+
+  await registerClient();
 
   const interval = setInterval(() => {
-    void fetch(`${baseUrl}/api/daemon/clients/${clientId}/heartbeat`, {
-      method: "POST",
-    }).catch(() => undefined);
+    if (heartbeatInFlight) {
+      return heartbeatInFlight;
+    }
+    heartbeatInFlight = sendHeartbeat()
+      .catch(() => undefined)
+      .finally(() => {
+        heartbeatInFlight = null;
+      });
+    return heartbeatInFlight;
   }, 1_000);
 
   return {
-    clientId,
+    get clientId() {
+      return currentClientId;
+    },
     async dispose() {
+      disposed = true;
       clearInterval(interval);
-      await fetch(`${baseUrl}/api/daemon/clients/${clientId}`, {
+      await fetch(`${baseUrl}/api/daemon/clients/${currentClientId}`, {
         method: "DELETE",
       }).catch(() => undefined);
     },
