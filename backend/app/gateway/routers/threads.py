@@ -53,6 +53,10 @@ class NotebookAssistantSessionResponse(BaseModel):
     created: bool
 
 
+class ChildRunListResponse(BaseModel):
+    items: list[dict[str, Any]]
+
+
 def get_thread_service() -> ThreadService:
     return create_default_thread_service()
 
@@ -132,8 +136,32 @@ async def create_or_resume_notebook_assistant_session(
 async def get_thread_state(
     thread_id: str,
     service: ThreadService = Depends(get_thread_service),
-) -> dict[str, Any]:
+    ) -> dict[str, Any]:
     return service.get_state(thread_id)
+
+
+@router.get("/{thread_id}/child-runs", response_model=ChildRunListResponse)
+async def list_child_runs(thread_id: str) -> ChildRunListResponse:
+    from nion.orchestration.service import ChildRunService
+
+    service = ChildRunService()
+    return ChildRunListResponse(
+        items=[item.model_dump() for item in service.list_open(thread_id)]
+    )
+
+
+@router.get("/{thread_id}/child-runs/{child_run_id}")
+async def get_child_run(thread_id: str, child_run_id: str) -> dict[str, Any]:
+    from nion.orchestration.service import ChildRunService
+
+    return ChildRunService().get(thread_id, child_run_id).model_dump()
+
+
+@router.post("/{thread_id}/child-runs/{child_run_id}/close")
+async def close_child_run(thread_id: str, child_run_id: str) -> dict[str, Any]:
+    from nion.orchestration.service import ChildRunService
+
+    return ChildRunService().close(thread_id, child_run_id).model_dump()
 
 
 @router.patch("/{thread_id}/state")
