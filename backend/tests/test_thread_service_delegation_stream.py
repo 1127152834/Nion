@@ -12,6 +12,10 @@ class FakeExecutor:
 
 
 def test_thread_service_routes_mentioned_turns_to_delegated_executor(monkeypatch):
+    monkeypatch.setattr(
+        "nion.threads.service.resolve_agent_config",
+        lambda name: object() if name == "research-agent" else None,
+    )
     service = ThreadService()
     service._delegated_executor = FakeExecutor()  # noqa: SLF001
 
@@ -23,5 +27,11 @@ def test_thread_service_routes_mentioned_turns_to_delegated_executor(monkeypatch
 
     assert any(
         event.type == "custom" and event.data["type"] == "child_run_created"
+        for event in events
+    )
+    assert any(
+        event.type == "messages-tuple"
+        and event.data["type"] == "ai"
+        and "research-agent" in event.data["content"]
         for event in events
     )

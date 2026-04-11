@@ -389,7 +389,9 @@ export function RecentChatList() {
                 />
                 <ChildRunInspector
                   open={childRunInspectorOpen}
-                  childRun={selectedChildRun}
+                  threadId={thread.thread_id}
+                  childRunId={selectedChildRunId}
+                  childRunPreview={selectedChildRun}
                   onOpenChange={(open) => {
                     setChildRunInspectorOpen(open);
                     if (!open) {

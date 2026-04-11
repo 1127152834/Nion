@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Nion is a LangGraph-based AI super agent system with a full-stack architecture. The backend provides a "super agent" with sandbox execution, persistent memory, subagent delegation, and extensible tool integration - all operating in per-thread isolated environments.
+Nion is a LangGraph-based AI super agent system with a full-stack architecture. The backend provides a "super agent" with sandbox execution, persistent memory, subagent delegation, governed custom-agent child runs, and extensible tool integration - all operating in per-thread isolated environments.
 
 **Architecture**:
 - **LangGraph Server** (port 2024): Agent runtime and workflow execution
@@ -186,6 +186,14 @@ Prompt assembly contract:
 - Keep `SYSTEM_PROMPT_TEMPLATE` as the core static prompt body, but assemble prompt sections through prompt section providers under `packages/harness/nion/prompt_sections/`.
 - `apply_prompt_template()` should build `PromptBuildContext`, resolve an `AgentPromptProfile`, ask the prompt section registry for sections, then call `build_prompt_artifact()`.
 - `threads/service.py` may pass session/runtime guidance through context, but must not reintroduce direct prompt text concatenation.
+
+Delegated custom-agent orchestration contract:
+
+- Main thread replies remain single-speaker: only the main agent speaks to the user.
+- Mentioned/delegated custom agents run as temporary child runs under the parent thread.
+- Child runs must not be stored or searched as formal `ThreadRecord` entries.
+- Local custom-agent orchestration should prefer LangGraph state/subgraph/checkpointer primitives.
+- ACP/A2A should only be used through an explicit remote transport seam, not as the default local delegation path.
 
 Bridge configuration direction:
 - Bridge credentials, enabled flags, verification state, and defaults are moving into Config Center / `config.db`

@@ -26,7 +26,7 @@ When frontend behavior changes across chat, CLI tools, settings, notebook, agent
 
 Default frontend development should stay on `pnpm dev`, which currently runs `next dev --webpack`. This avoids the known Turbopack panic when the repository lives under a non-ASCII path. Use `pnpm dev:turbo` only when working from an ASCII-safe path or when debugging a Turbopack-specific issue.
 
-No test framework is configured.
+Contract tests use `node --test` via `pnpm test:contracts`; type safety uses `pnpm typecheck`.
 
 ## Architecture
 
@@ -37,6 +37,13 @@ Frontend (Next.js) ──▶ LangGraph SDK ──▶ LangGraph Backend (lead_age
 ```
 
 The frontend is a stateful chat application. Users create **threads** (conversations), send messages, and receive streamed AI responses. The backend orchestrates agents that can produce **artifacts** (files/code) and **todos**.
+
+Delegated custom-agent UI contract:
+
+- The main chat remains the only formal user-facing conversation.
+- Delegated custom agents appear as temporary child runs attached to the active parent thread.
+- Child runs can be inspected from the sidebar but must not become first-class recent chats.
+- The main message list should prefer compact delegation summaries over full child-run transcripts.
 
 ### Source Layout (`src/`)
 

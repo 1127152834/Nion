@@ -3,7 +3,6 @@ import {
   ConversationContent,
 } from "@/components/ai-elements/conversation";
 import { useI18n } from "@/core/i18n/hooks";
-import { getTaskToolCallIds } from "@/core/messages/tool-calls";
 import {
   extractContentFromMessage,
   extractPresentFilesFromMessage,
@@ -11,7 +10,6 @@ import {
   groupMessages,
   hasContent,
   hasPresentFiles,
-  hasReasoning,
 } from "@/core/messages/utils";
 import { useRehypeSplitWordsIntoSpans } from "@/core/rehype";
 import type { Subtask } from "@/core/tasks";
@@ -28,13 +26,12 @@ import { ArtifactFileList } from "../artifacts/artifact-file-list";
 import { StreamingIndicator } from "../streaming-indicator";
 
 import { ClarificationCard } from "./clarification-card";
+import { DelegationSummary } from "./delegation-summary";
 import { MarkdownContent } from "./markdown-content";
 import { MessageGroup } from "./message-group";
 import { MessageListItem } from "./message-list-item";
 import { PermissionRequestCard } from "./permission-request-card";
 import { MessageListSkeleton } from "./skeleton";
-import { DelegationSummary } from "./delegation-summary";
-import { SubtaskCard } from "./subtask-card";
 import { ToolActivitySummaryCard } from "./tool-activity-summary-card";
 
 export function MessageList({

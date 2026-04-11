@@ -7,10 +7,11 @@ from datetime import UTC, datetime
 from typing import Any
 
 from nion.client import NionClient, StreamEvent
-from nion.config.agents_config import AGENT_NAME_PATTERN
+from nion.config.agents_config import AGENT_NAME_PATTERN, resolve_agent_config
 from nion.memory.evidence_capture.service import resolve_optional_bool
 from nion.notebook.service import NotebookNotFoundError, NotebookService
 from nion.orchestration.delegated_agent_executor import DelegatedAgentExecutor
+from nion.orchestration.mention_parser import parse_agent_mentions
 
 from .models import (
     ThreadCliManagementState,
@@ -112,6 +113,50 @@ class ThreadService:
             config={},
         )
 
+    def _resolve_delegated_agents(self, message_text: str) -> list[str]:
+        return [
+            step.agent_name
+            for step in parse_agent_mentions(message_text)
+            if resolve_agent_config(step.agent_name) is not None
+        ]
+
+    def _build_delegated_summary(
+        self,
+        *,
+        original_request: str,
+        child_results: list[tuple[str, str]],
+    ) -> str:
+        if not child_results:
+            return "已识别到子智能体调度请求，但没有可汇总的子智能体结果。"
+
+        sections = "\n\n".join(
+            f"### @{agent_name}\n{result}" for agent_name, result in child_results
+        )
+        return (
+            f"已按主智能体编排完成请求：{original_request}\n\n"
+            "以下是各子智能体回传的结果汇总：\n\n"
+            f"{sections}"
+        )
+
+    def _build_delegated_agent_prompt(
+        self,
+        *,
+        original_request: str,
+        child_results: list[tuple[str, str]],
+    ) -> str:
+        if not child_results:
+            return original_request
+
+        upstream = "\n\n".join(
+            f"@{agent_name} 的上游结果：\n{result}"
+            for agent_name, result in child_results
+        )
+        return (
+            f"原始请求：\n{original_request}\n\n"
+            "你正在执行一个主智能体编排链中的后续步骤。请基于以下上游结果继续完成你的部分：\n\n"
+            f"{upstream}"
+        )
+
     def delete_thread(self, thread_id: str) -> None:
         self._repository.delete_thread(thread_id)
 
@@ -129,18 +174,69 @@ class ThreadService:
         existing_record = self._repository.get_thread(thread_id)
         existing_title = existing_record.values.title if existing_record is not None else None
         try:
-            mentioned_agents = re.findall(r"@([A-Za-z0-9-]+)", message_text)
+            mentioned_agents = self._resolve_delegated_agents(message_text)
             if mentioned_agents:
+                child_results: list[tuple[str, str]] = []
                 for agent_name in mentioned_agents:
-                    yield from self._delegated_executor.stream(
+                    latest_result = ""
+                    delegated_prompt = self._build_delegated_agent_prompt(
+                        original_request=message_text,
+                        child_results=child_results,
+                    )
+                    for event in self._delegated_executor.stream(
                         parent_thread_id=thread_id,
                         agent_name=agent_name,
-                        prompt=message_text,
+                        prompt=delegated_prompt,
                         model_name=context.get("model_name"),
-                    )
+                    ):
+                        if (
+                            event.type == "custom"
+                            and event.data.get("type") == "child_run_completed"
+                            and isinstance(event.data.get("result"), str)
+                        ):  # pragma: no branch - event contract is linear here
+                            latest_result = event.data["result"]
+                        yield event
+                    if latest_result:
+                        child_results.append((agent_name, latest_result))
+
+                summary_text = self._build_delegated_summary(
+                    original_request=message_text,
+                    child_results=child_results,
+                )
+                summary_message = {
+                    "type": "ai",
+                    "content": summary_text,
+                    "id": f"delegated:{datetime.now(UTC).timestamp()}",
+                }
+                human_message = {
+                    "type": "human",
+                    "content": message_text,
+                }
+                existing_messages = (
+                    existing_record.values.messages if existing_record is not None else []
+                )
+                latest_values = {
+                    "title": existing_title or "Untitled",
+                    "messages": [*existing_messages, human_message, summary_message],
+                    "artifacts": existing_record.values.artifacts if existing_record is not None else [],
+                }
+                persisted = self._repository.upsert_thread(
+                    thread_id,
+                    agent_name=str(context.get("agent_name") or "lead_agent"),
+                    values=latest_values,
+                )
+                yield StreamEvent(type="messages-tuple", data=summary_message)
                 yield StreamEvent(
                     type="values",
-                    data={"title": "Delegated", "messages": [], "artifacts": []},
+                    data={
+                        "title": persisted.values.title,
+                        "messages": persisted.values.messages,
+                        "artifacts": persisted.values.artifacts,
+                    },
+                )
+                yield StreamEvent(
+                    type="end",
+                    data={"usage": {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0}},
                 )
                 return
 

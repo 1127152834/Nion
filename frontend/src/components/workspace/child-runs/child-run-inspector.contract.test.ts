@@ -19,5 +19,6 @@ void test("child run inspector is driven from the sidebar and the main message l
   assert.match(sidebarSource, /ChildRunInspector/);
   assert.match(sidebarSource, /ChildRunList/);
   assert.match(inspectorSource, /Dialog/);
+  assert.match(inspectorSource, /useChildRun/);
   assert.match(messageListSource, /DelegationSummary/);
 });

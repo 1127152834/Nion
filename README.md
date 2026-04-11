@@ -9,7 +9,7 @@
 
 ## 核心能力
 
-- 多智能体协作：主智能体可按任务拆解并调度子智能体并行执行
+- 多智能体协作：主智能体统一对外发声，custom agent 可被调度为临时子会话执行，并在左侧历史中展开检查
 - 沙箱与文件系统：支持安全执行命令、读写文件、产物沉淀与回溯
 - 技能系统：支持按需加载技能（SKILL）与工具扩展（含 MCP）
 - 配置中心：运行时可视化配置，配置持久化到本地 SQLite
@@ -37,6 +37,8 @@
 - Memory / Soul 完整版本收口能力：当前代码库已补 canonical clock、soul runtime freshness、growth orchestrator、retention archive/purge、agent-owned automation bridge，以及前端 `test:contracts` 合同测试入口
 - 能力治理主线：当前代码库已补 capability catalog / capability actions / skill runtime / explicit notebook-memory bridge provenance / capability autopilot prompt guidance；默认策略改为“用户只说目标，agent 优先自动发现并调用 notebook / memory / skill / MCP / CLI 能力”
 - token telemetry：聊天主流与子智能体流式执行会按 chunk 逐步标记 token source，避免跨 Python `Context` 恢复流时触发 telemetry 清理异常
+- 临时子会话：被调度 custom agent 的执行记录会以 parent thread 下的临时 child runs 形式存在，可检查但不进入正式 thread history / search
+- 远程协同边界：站内 local custom-agent orchestration 默认走 LangGraph；ACP/A2A 只作为 remote transport seam
 
 ---
 

@@ -14,4 +14,9 @@ export type ChildRunRecord = {
   result?: string;
   error?: string;
   latest_message?: string;
+  messages?: Array<{
+    role: "human" | "ai" | "tool";
+    content: string;
+    created_at: string;
+  }>;
 };

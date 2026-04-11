@@ -4,6 +4,8 @@
 
 - [10-memory-soul/README.md](/Users/zhangtiancheng/Documents/项目/agent/nion/docs/test/10-memory-soul/README.md)
   - 记忆系统与 Soul 系统的产品边界、最小回归集合、行为验收题库。
+- `single-main-agent custom-agent orchestration`
+  - 当前实现阶段的正式回归面以 `.omx/plans/test-spec-single-main-agent-custom-agent-orchestration.md` 为准，覆盖 child run、delegation policy、LangGraph orchestration、ACP/A2A transport seam。
 
 维护约定：
 
