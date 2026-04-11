@@ -238,6 +238,18 @@ class Paths:
         """
         return self.thread_dir(thread_id) / "user-data" / "outputs"
 
+    def child_runs_dir(self, thread_id: str) -> Path:
+        """Directory for ephemeral child-run records under a parent thread."""
+        return self.thread_dir(thread_id) / "child-runs"
+
+    def child_run_file(self, thread_id: str, child_run_id: str) -> Path:
+        """JSON storage path for a single child-run record."""
+        if not _SAFE_THREAD_ID_RE.match(child_run_id):
+            raise ValueError(
+                f"Invalid child_run_id {child_run_id!r}: only alphanumeric characters, hyphens, and underscores are allowed."
+            )
+        return self.child_runs_dir(thread_id) / f"{child_run_id}.json"
+
     def sandbox_user_data_dir(self, thread_id: str) -> Path:
         """
         Host path for the user-data root.
