@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 import threading
+import uuid
 from collections.abc import Generator
 from datetime import UTC, datetime
 from typing import Any
@@ -10,6 +11,8 @@ from nion.client import NionClient, StreamEvent
 from nion.config.agents_config import AGENT_NAME_PATTERN
 from nion.memory.evidence_capture.service import resolve_optional_bool
 from nion.notebook.service import NotebookNotFoundError, NotebookService
+from nion.orchestration.delegated_agent_executor import DelegatedAgentExecutor
+from nion.orchestration.mention_parser import parse_agent_mentions
 
 from .models import (
     ThreadCliManagementState,
@@ -53,6 +56,7 @@ class ThreadService:
     ) -> None:
         self._repository = repository or ThreadRepository()
         self._client = client or NionClient()
+        self._delegated_executor = DelegatedAgentExecutor()
 
     def search(self, params: ThreadSearchParams) -> list[dict[str, Any]]:
         return self._repository.search(
@@ -101,6 +105,13 @@ class ThreadService:
     def delete_thread(self, thread_id: str) -> None:
         self._repository.delete_thread(thread_id)
 
+    def _build_request_for_test(self, *, text: str, context: dict[str, Any]) -> ThreadStreamRequest:
+        return ThreadStreamRequest(
+            messages=[{"type": "human", "content": [{"type": "text", "text": text}]}],
+            context=context,
+            config={},
+        )
+
     def stream(
         self,
         thread_id: str,
@@ -116,6 +127,40 @@ class ThreadService:
         existing_title = existing_record.values.title if existing_record is not None else None
         try:
             context.setdefault("thread_id", thread_id)
+            mention_steps = parse_agent_mentions(message_text)
+            if mention_steps:
+                child_results: list[tuple[str, str]] = []
+                for step in mention_steps:
+                    for event in self._delegated_executor.stream(
+                        parent_thread_id=thread_id,
+                        agent_name=step.agent_name,
+                        prompt=message_text,
+                        model_name=context.get("model_name"),
+                    ):
+                        if event.type == "custom" and event.data.get("type") == "child_run_completed":
+                            result = event.data.get("result")
+                            child_results.append(
+                                (
+                                    step.agent_name,
+                                    result if isinstance(result, str) else "",
+                                )
+                            )
+                        yield event
+                latest_values = self._build_delegated_values(
+                    request=request,
+                    existing_record=existing_record,
+                    child_results=child_results,
+                )
+                yield StreamEvent(type="values", data=latest_values)
+                yield StreamEvent(type="end", data={"usage": {}})
+                self._persist_latest_values(
+                    thread_id=thread_id,
+                    latest_values=latest_values,
+                    context=context,
+                    message_text=message_text,
+                    cli_tools_enabled=False,
+                )
+                return
             if request.assistant_id and "agent_name" not in context:
                 normalized_agent_name = _normalize_assistant_id_to_agent_name(request.assistant_id)
                 if normalized_agent_name is not None:
@@ -177,36 +222,80 @@ class ThreadService:
                 yield event
 
             if latest_values is not None:
-                latest_values["cli_management"] = self._next_cli_management_state(
+                self._persist_latest_values(
+                    thread_id=thread_id,
+                    latest_values=latest_values,
+                    context=context,
                     message_text=message_text,
                     cli_tools_enabled=cli_tools_enabled,
-                    previous_state=self._get_cli_management_state(thread_id),
-                ).model_dump()
-                if context.get("project_id"):
-                    latest_values["project"] = {
-                        "source": "project",
-                        "project_id": str(context.get("project_id")),
-                        "project_name": str(
-                            context.get("project_name")
-                            or latest_values.get("project", {}).get("project_name")
-                            or "Project"
-                        ),
-                        "project_phase": context.get("project_phase"),
-                        "primary_plan_id": context.get("primary_plan_id"),
-                        "inherit_project_context": True,
-                    }
-                persisted = self._repository.upsert_thread(
-                    thread_id,
-                    agent_name=str(context.get("agent_name") or "lead_agent"),
-                    values=latest_values,
-                )
-                self._queue_title_generation(
-                    thread_id=thread_id,
-                    values=persisted.values.model_dump(),
-                    context=context,
                 )
         finally:
             _release_thread_run(thread_id)
+
+    def _build_delegated_values(
+        self,
+        *,
+        request: ThreadStreamRequest,
+        existing_record: ThreadRecord | None,
+        child_results: list[tuple[str, str]],
+    ) -> dict[str, Any]:
+        existing_messages = (
+            list(existing_record.values.messages)
+            if existing_record is not None
+            else []
+        )
+        assistant_summary = _build_delegated_summary_message(child_results)
+        return {
+            "title": resolve_preferred_thread_title(
+                current_title=existing_record.values.title if existing_record is not None else None,
+                incoming_title="Delegated",
+            )
+            or "Delegated",
+            "messages": [
+                *existing_messages,
+                *request.messages,
+                assistant_summary,
+            ],
+            "artifacts": list(existing_record.values.artifacts) if existing_record is not None else [],
+        }
+
+    def _persist_latest_values(
+        self,
+        *,
+        thread_id: str,
+        latest_values: dict[str, Any],
+        context: dict[str, Any],
+        message_text: str,
+        cli_tools_enabled: bool,
+    ) -> None:
+        latest_values["cli_management"] = self._next_cli_management_state(
+            message_text=message_text,
+            cli_tools_enabled=cli_tools_enabled,
+            previous_state=self._get_cli_management_state(thread_id),
+        ).model_dump()
+        if context.get("project_id"):
+            latest_values["project"] = {
+                "source": "project",
+                "project_id": str(context.get("project_id")),
+                "project_name": str(
+                    context.get("project_name")
+                    or latest_values.get("project", {}).get("project_name")
+                    or "Project"
+                ),
+                "project_phase": context.get("project_phase"),
+                "primary_plan_id": context.get("primary_plan_id"),
+                "inherit_project_context": True,
+            }
+        persisted = self._repository.upsert_thread(
+            thread_id,
+            agent_name=str(context.get("agent_name") or "lead_agent"),
+            values=latest_values,
+        )
+        self._queue_title_generation(
+            thread_id=thread_id,
+            values=persisted.values.model_dump(),
+            context=context,
+        )
 
     def _queue_title_generation(
         self,
@@ -365,6 +454,24 @@ def _extract_human_message_payload(messages: list[dict[str, Any]]) -> dict[str, 
     return {
         "content": content,
         "additional_kwargs": additional_kwargs if isinstance(additional_kwargs, dict) else {},
+    }
+
+
+def _build_delegated_summary_message(
+    child_results: list[tuple[str, str]],
+) -> dict[str, Any]:
+    if child_results:
+        lines = [
+            f"- {agent_name}: {result or 'completed'}"
+            for agent_name, result in child_results
+        ]
+        content = "Delegated execution completed.\n" + "\n".join(lines)
+    else:
+        content = "Delegated execution completed."
+    return {
+        "type": "ai",
+        "id": f"delegated-summary-{uuid.uuid4().hex[:8]}",
+        "content": content,
     }
 
 
