@@ -242,6 +242,23 @@ Cons:
 - child run 必须有独立 `child_run_id`
 - 所有 child run 输出最终都回到主智能体再回复用户
 
+### LangGraph Capability Mapping
+
+这版设计需要显式绑定 LangGraph 的原生能力，而不是只在文案上说“使用 LangGraph”：
+
+1. `StateGraph`
+   - 作为主编排骨架，承载主线程状态、child-run 摘要、mention 解析结果与最终综合结果。
+2. `Send`
+   - 用于 orchestrator fan-out 动态 worker assignments，适合把 `@智能体` 链和可并行步骤拆成 child runs。
+3. subgraphs
+   - delegated custom-agent execution 应被建模为可流式观察的 subgraph / child graph execution，而不是普通 tool side effect。
+4. checkpointer
+   - 主 orchestrator graph 必须挂 checkpointer，保证 child-run 生命周期、刷新恢复、以及任务恢复的一致性。
+5. `Command` / interrupt
+   - 用于提权审批、人类确认点、以及未来的主智能体仲裁停顿。
+6. streaming + custom events
+   - 用于把 `child_run_created/running/completed/failed/closed` 推到前端 sidebar 和 inspector。
+
 ### Why LangGraph Here
 
 - 当前代码虽然主要使用 `create_agent(...)`，但已经有 `Command`、streaming、thread state 和 resumable 流接口；适合在 orchestration 层引入显式图而不强制重写所有 agent runtime
@@ -259,6 +276,8 @@ Cons:
   - 不共享同一 thread sandbox / workdir 的 agent 岛
 
 因此，A2A 在本规划里是 **可插拔远程协调通道**，不是站内 custom agent 编排的默认通道。
+
+原因是官方 A2A 的问题域本来就是“运行在不同服务器、不同框架上的 opaque agents 之间互操作”。它适合远程企业 agent、跨租户 agent、以及独立 runtime agent 岛，不适合作为站内本地 custom-agent 编排的默认主路径。
 
 ## Governance Defaults
 
@@ -308,6 +327,7 @@ Cons:
 - 新增 `backend/packages/harness/nion/orchestration/models.py`
 - 在主线程 state 中增加 `child_runs_summary`
 - child run 详细记录放到父线程目录下的 ephemeral store，而不是 `threads/*/thread.json`
+- 明确主 graph 与 child-run subgraph 的共享状态键、隔离状态键、以及恢复语义
 
 ### Workstream 2: Catalog-Agent Delegation Bridge
 
@@ -337,6 +357,7 @@ Cons:
 - 前端显式 mention 进入 submit payload/context
 - orchestration graph 解析 mention graph
 - 支持显式串行链与主智能体自主补全的隐式子步骤
+- 对可并行步骤使用 `Send` 生成 worker assignments
 
 ### Workstream 4: Ephemeral Child Conversation Lifecycle
 
@@ -367,6 +388,7 @@ Cons:
 - 把现有 `task_started/task_running/task_completed` 扩展成结构化 `child_run_*` 事件
 - 前端用事件驱动的 child-run store，而不是只在 message grouping 内拼装
 - 保留主消息流中的轻量摘要；详细内容下沉到 child-run inspector
+- 子会话流式观察优先与 LangGraph subgraph namespace 对齐
 
 ### Workstream 6: Governance Policy Layer
 
@@ -395,6 +417,7 @@ Cons:
 - Phase 1 接 ACP adapter
 - Phase 2 视企业协同需要接 A2A transport
 - orchestration graph 只依赖 transport interface，不依赖具体协议
+- transport interface 至少抽象 capability discovery、session/task creation、streaming result consumption、async completion/polling
 
 ## Risks And Mitigations
 
@@ -417,6 +440,12 @@ Mitigation:
 - v1 默认关闭 delegated long-term write
 - 仅产出 memory candidates
 
+### Risk 4: 图级编排做成“伪图”，实际仍靠 tool message 拼接，导致 child-run 生命周期不可恢复
+
+Mitigation:
+- child runs 必须进入正式 orchestration state + checkpointer
+- 不接受只靠前端从 `assistant:subagent` 分组反推完整 child-run 视图
+
 ## Pre-mortem
 
 1. 系统做成了“custom agent = 新 subagent type”，后续权限/SOUL/记忆全混在一起，半年后不可维护。
@@ -433,6 +462,12 @@ Mitigation:
 2. 确认 child run 不进入正式 thread search contract
 3. 确认 delegated 态默认不直接对用户发言
 4. 确认 A2A 只作为 remote transport seam，而不是站内默认执行路径
+5. 确认 LangGraph 能力映射是显式落地的，而不是抽象口号
+
+## Reference Notes
+
+- LangGraph 官方文档明确支持 `StateGraph`、`Send`、subgraph streaming、checkpointer、`Command` / interrupt，这些能力都应被直接映射进本方案。
+- A2A 官方协议面向跨服务器 opaque agent 互操作，适合作为 remote transport seam，不应默认替代站内 graph orchestration。
 
 ## Available-Agent-Types Roster
 

@@ -37,6 +37,11 @@
   - created -> running -> failed
   - completed/failed -> closed
 - child-run store 不写入 `ThreadRecord`
+- LangGraph orchestration glue 正确：
+  - `Send` 生成的 worker assignments 与计划链一致
+  - subgraph namespace 正确映射到 `child_run_id`
+  - checkpointer 恢复后 child-run 状态不丢失
+  - `Command` / interrupt 能在提权或审批点暂停并恢复
 
 #### Frontend
 
@@ -64,6 +69,7 @@
 - 编排请求能产生结构化 `child_run_created/running/completed/failed/closed` 事件
 - 前端刷新页面时，活跃 child runs 可恢复
 - 任务结束后 child run 自动关闭，且不会在后续历史搜索中出现
+- 开启 subgraph streaming 时，child run 事件能按 namespace 正确落到对应 inspector
 
 ### End-to-End
 
@@ -117,6 +123,7 @@
 5. private skill 在 delegated 态被全部裸露
 6. 普通无 `@` 的 lead-only 聊天也强制走重编排路径
 7. A2A/ACP 在站内本地 custom-agent 场景被错误启用
+8. 没有真正使用 LangGraph subgraph/checkpointer，导致 child-run 只能前端临时拼装、刷新即丢
 
 ## Manual / Smoke
 
@@ -148,6 +155,14 @@
 2. 构造需要 remote execution 的任务
 3. 确认 orchestration graph 走 remote transport seam
 4. 确认本地 custom agent 不受影响
+
+### A2A Flow
+
+1. 配置一个 A2A-compatible remote agent mock / adapter
+2. 构造跨 runtime 的远程协同任务
+3. 确认系统先通过 capability/agent card 发现远程 agent
+4. 确认本地 custom agent 仍走站内 LangGraph path
+5. 确认远程 agent 的 opaque memory/tool state 不泄漏到本地 child-run contract
 
 ## Verification by Workstream
 
@@ -186,4 +201,3 @@
 - 主线程统一回复规则无破例
 - child run 不进入正式线程搜索/归档
 - A2A/ACP seam 不影响本地默认编排路径
-
