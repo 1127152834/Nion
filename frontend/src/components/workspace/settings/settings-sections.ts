@@ -5,6 +5,7 @@ export const SETTINGS_SECTIONS = [
   "notification",
   "daemon",
   "memory",
+  "identity",
   "soul",
   "tools",
   "search",

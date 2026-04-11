@@ -23,10 +23,11 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { SidebarGroupLabel } from "@/components/ui/sidebar";
-import { AppearanceSettingsPage } from "@/components/workspace/settings/appearance-settings-page";
 import { AgentIntegrationsSettingsPage } from "@/components/workspace/settings/agent-integrations-settings-page";
+import { AppearanceSettingsPage } from "@/components/workspace/settings/appearance-settings-page";
 import { CLIToolsPage } from "@/components/workspace/settings/cli-tools-page";
 import { DaemonSettingsPage } from "@/components/workspace/settings/daemon-settings-page";
+import { IdentitySettingsPage } from "@/components/workspace/settings/identity-settings-page";
 import { MCPServersPage } from "@/components/workspace/settings/mcp-servers-page";
 import { MemorySettingsPage } from "@/components/workspace/settings/memory-settings-page";
 import { ModelSettingsPage } from "@/components/workspace/settings/model-settings-page";
@@ -123,6 +124,11 @@ export function SettingsDialog(props: SettingsDialogProps) {
           label: t.settings.sections.memory,
           icon: BrainIcon,
         },
+        identity: {
+          id: "identity",
+          label: t.settings.sections.identity,
+          icon: SparklesIcon,
+        },
         soul: {
           id: "soul",
           label: "Soul",
@@ -179,7 +185,7 @@ export function SettingsDialog(props: SettingsDialogProps) {
         {
           id: "knowledge",
           title: t.settings.navGroups.knowledge,
-          items: [items.memory, items.soul],
+          items: [items.memory, items.identity, items.soul],
         },
         {
           id: "capabilities",
@@ -207,7 +213,7 @@ export function SettingsDialog(props: SettingsDialogProps) {
       t.settings.sections.models,
       t.settings.sections.sessionPolicy,
       t.settings.sections.memory,
-      t.settings.sections.tools,
+      t.settings.sections.identity,
       t.settings.sections.tools,
       t.settings.sections.search,
       t.settings.sections.cliTools,
@@ -293,6 +299,7 @@ export function SettingsDialog(props: SettingsDialogProps) {
                   <SessionPolicySettingsPage />
                 )}
                 {activeSection === "memory" && <MemorySettingsPage />}
+                {activeSection === "identity" && <IdentitySettingsPage />}
                 {activeSection === "soul" && <SoulSettingsPage />}
                 {activeSection === "daemon" && <DaemonSettingsPage />}
                 {activeSection === "tools" && <ToolSettingsPage />}

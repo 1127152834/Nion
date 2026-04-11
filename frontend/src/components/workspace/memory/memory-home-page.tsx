@@ -73,7 +73,7 @@ function MemoryGroup(props: {
 }
 
 export function MemoryHomePage() {
-  const { memory } = useMemory();
+  const { memory, isLoading, error } = useMemory();
 
   return (
     <main className="flex size-full min-h-0 flex-col gap-6 overflow-y-auto px-4 py-6 sm:px-6">
@@ -86,11 +86,23 @@ export function MemoryHomePage() {
             <h1 className="text-[2rem] font-semibold tracking-tight">记忆</h1>
           </div>
         </div>
-        <MemorySummaryCards memory={memory} />
+        {!isLoading && !error ? <MemorySummaryCards memory={memory} /> : null}
       </header>
 
+      {isLoading ? (
+        <section className="rounded-lg border border-dashed bg-background px-5 py-6 text-sm text-muted-foreground">
+          正在加载记忆...
+        </section>
+      ) : null}
+
+      {error ? (
+        <section className="rounded-lg border border-destructive/40 bg-destructive/5 px-5 py-6 text-sm text-destructive">
+          {error instanceof Error ? error.message : "记忆加载失败"}
+        </section>
+      ) : null}
+
       <div className="grid gap-4 xl:grid-cols-3">
-        <MemoryGroup title="用户画像" items={memory?.user_profile ?? []} />
+        <MemoryGroup title="你的信息" items={memory?.user_profile ?? []} />
         <MemoryGroup title="长期背景" items={memory?.long_term_background ?? []} />
         <MemoryGroup title="事实记忆" items={memory?.fact_memories ?? []} />
       </div>

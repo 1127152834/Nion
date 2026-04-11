@@ -21,6 +21,9 @@ void test("soul settings page exposes stable settings instead of governance cons
   assert.doesNotMatch(source, /这里只保留稳定层 Soul 设置/);
   assert.doesNotMatch(source, /正式入口位于 Settings/);
   assert.doesNotMatch(source, /稳定层只响应用户明确设置/);
+  assert.doesNotMatch(source, /UserIdentityPanel|user-identity-panel/);
+  assert.doesNotMatch(source, /has_active_overlay|adaptive_overlay_summary/);
+  assert.doesNotMatch(source, /当前有临时微调|当前是稳定模式|没有额外临时微调|当前表达/);
 });
 
 void test("soul settings page stays outside the retired memory route namespace", async () => {

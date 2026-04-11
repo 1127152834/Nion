@@ -12,3 +12,8 @@ void test("agent integrations appears as a first-class settings section", () => 
   assert.equal(SETTINGS_SECTIONS.includes("agentIntegrations"), true);
   assert.equal(parseSettingsSection("agentIntegrations"), "agentIntegrations");
 });
+
+void test("identity appears as a first-class settings section", () => {
+  assert.equal(SETTINGS_SECTIONS.includes("identity"), true);
+  assert.equal(parseSettingsSection("identity"), "identity");
+});

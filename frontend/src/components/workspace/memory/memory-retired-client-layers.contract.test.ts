@@ -18,6 +18,14 @@ const RETIRED_FILES = [
   "../../../core/memory-growth-v2/api.ts",
   "../../../core/memory-growth-v2/hooks.ts",
   "../../../core/memory-growth-v2/types.ts",
+  "../settings/memory-embedding-panel.tsx",
+  "../settings/memory-console-panel.tsx",
+  "../settings/memory-settings-page.storage.ts",
+  "./memory-user-page.tsx",
+  "../../../core/memory-canonical/api.ts",
+  "../../../core/memory-canonical/hooks.ts",
+  "../../../core/memory-canonical/types.ts",
+  "../../../core/memory/search.ts",
 ] as const;
 
 void test("retired soul and growth client layers are physically deleted", async () => {

@@ -8,7 +8,8 @@ void test("memory home page only exposes user-facing memory content groups", asy
     "utf8",
   );
 
-  assert.match(source, /用户画像|长期背景|事实记忆/);
+  assert.match(source, /你的信息|长期背景|事实记忆/);
+  assert.match(source, /正在加载记忆|记忆加载失败/);
   assert.doesNotMatch(source, /Agent Growth/);
   assert.doesNotMatch(source, /Memory ledger/);
   assert.doesNotMatch(source, /Memory evidence/);

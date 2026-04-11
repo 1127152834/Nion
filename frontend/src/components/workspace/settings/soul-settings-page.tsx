@@ -7,12 +7,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { UserIdentityPanel } from "@/components/workspace/settings/user-identity-panel";
 import {
   usePatchSoulSetting,
   useSoulSettings,
 } from "@/core/soul-settings/hooks";
 import type { SoulSettingsField } from "@/core/soul-settings/types";
+
+import { useSettingsDialog } from "./settings-dialog-context";
 
 const SOUL_FIELDS: Array<{
   key: SoulSettingsField;
@@ -107,6 +108,7 @@ function SoulFieldCard(props: {
 export function SoulSettingsPage() {
   const { settings, isLoading, error } = useSoulSettings();
   const patchSoulSetting = usePatchSoulSetting();
+  const { goToSection } = useSettingsDialog();
 
   async function saveSoulField(field: SoulSettingsField, value: string) {
     const label = SOUL_FIELDS.find((item) => item.key === field)?.title ?? "设定";
@@ -138,25 +140,18 @@ export function SoulSettingsPage() {
               Soul
             </h1>
             <p className="text-muted-foreground text-sm">
-              长期设定会直接影响后续对话。
+              这里决定助手长期稳定的说话方式、价值边界和关系基调。
             </p>
           </div>
-          <Badge variant={settings.has_active_overlay ? "secondary" : "outline"}>
-            {settings.has_active_overlay ? "当前有临时微调" : "当前是稳定模式"}
-          </Badge>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => goToSection("identity")}
+          >
+            打开身份设置
+          </Button>
         </div>
       </header>
-
-      <Card>
-        <CardHeader className="space-y-2">
-          <CardTitle>当前表达</CardTitle>
-          <p className="text-muted-foreground text-sm whitespace-pre-wrap">
-            {settings.has_active_overlay
-              ? settings.adaptive_overlay_summary ?? "临时微调已生效。"
-              : "没有额外临时微调。"}
-          </p>
-        </CardHeader>
-      </Card>
 
       {isLoading ? (
         <section className="bg-background text-muted-foreground rounded-lg border px-5 py-4 text-sm">
@@ -170,13 +165,11 @@ export function SoulSettingsPage() {
         </section>
       ) : null}
 
-      <UserIdentityPanel />
-
       <section className="space-y-4">
         <div>
-          <h2 className="text-lg font-semibold tracking-tight">长期风格</h2>
+          <h2 className="text-lg font-semibold tracking-tight">长期设定</h2>
           <p className="text-muted-foreground text-sm">
-            逐项调整即可。
+            改的是长期层，不需要一次写很长，抓住稳定特征就够了。
           </p>
         </div>
         <div className="grid gap-4 xl:grid-cols-2">

@@ -106,9 +106,10 @@ When extending memory in this repository:
 - explicit user identity statements such as user name and mutual addressing must be extracted deterministically; do not let them collapse back into generic `address_style` only
 - explicit long-term soul instructions such as answer style, values/boundaries, and relationship stance must write into stable soul directly; do not leave them in onboarding-only or prompt-only limbo
 - current product surface expectation:
-  - `/workspace/memory` must stay as the single user-facing memory surface and only expose grouped user-facing memory content
-  - `/workspace/memory` must not expose governance, growth, ledger, evidence, runtime-trace, or soul-control routes
-  - `Settings > Soul` owns stable soul settings; product routes must not reintroduce soul proposal or growth controls
+- `/workspace/memory` must stay as the single user-facing memory surface and only expose grouped user-facing memory content
+- `/workspace/memory` must not expose governance, growth, ledger, evidence, runtime-trace, or soul-control routes
+- `Settings > Identity` is the stable user-facing owner surface for long-lived user identity fields; do not fold it back into Memory or Soul control surfaces
+- `Settings > Soul` owns stable soul settings; product routes must not reintroduce soul proposal or growth controls
   - `/workspace/automation/*` must distinguish `user-owned` vs `agent-owned`, and explain provenance/mutability in product language
 - Memory/Soul hardening expectations:
   - Use `nion.memory_os.clock.utcnow_z()` for Memory OS time values.

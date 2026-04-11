@@ -638,6 +638,7 @@ export const enUS: Translations = {
       models: "Models",
       sessionPolicy: "Session Policy",
       memory: "Memory",
+      identity: "Identity",
       automation: "Automation",
       tools: "Tools",
       search: "Search",

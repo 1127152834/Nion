@@ -611,6 +611,7 @@ export const zhCN: Translations = {
       models: "模型",
       sessionPolicy: "会话策略",
       memory: "记忆",
+      identity: "身份",
       automation: "自动化",
       tools: "工具",
       search: "搜索",

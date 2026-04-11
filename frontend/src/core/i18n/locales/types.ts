@@ -650,6 +650,7 @@ export interface Translations {
       models: string;
       sessionPolicy: string;
       memory: string;
+      identity: string;
       automation: string;
       tools: string;
       search: string;

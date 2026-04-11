@@ -6,8 +6,8 @@
 
 ## 核心验收点
 
-1. `/workspace/memory` 只展示分组后的用户画像、长期背景、事实记忆，不暴露治理控制面。
-2. `Settings > Soul` 只展示稳定层 Soul 设置，并允许通过草稿 + 应用写入。
+1. `/workspace/memory` 只展示分组后的你的信息、长期背景、事实记忆，不暴露治理控制面。
+2. `Settings > 身份` 与 `Settings > Soul` 必须分开，分别承载稳定身份与稳定 Soul 设置。
 3. `identity_narrative` 与 `relationship_soul` 都有正式 artifact 路径与稳定状态。
 4. `agent-owned automation` 的来源、限制、暂停/恢复链路全部可见可测。
 5. legacy fallback 仅在 canonical source 缺失时生效。
@@ -22,7 +22,7 @@ cd backend && \
 uv run pytest tests/test_memory_os_*.py tests/test_memory_router.py tests/test_memory_soul_router.py tests/test_automation_router.py -q
 
 cd frontend && \
-pnpm test:contracts -- src/core/test-runner.contract.test.ts src/components/workspace/memory/memory-home-page.contract.test.ts src/components/workspace/memory/memory-user-page.contract.test.ts src/components/workspace/memory/memory-retired-client-layers.contract.test.ts src/components/workspace/settings/soul-settings-page.contract.test.ts && \
+pnpm test:contracts -- src/core/test-runner.contract.test.ts src/components/workspace/memory/memory-home-page.contract.test.ts src/components/workspace/memory/memory-retired-client-layers.contract.test.ts src/components/workspace/settings/user-identity-panel.contract.test.ts src/components/workspace/settings/soul-settings-page.contract.test.ts src/components/workspace/settings/memory-settings-page.config.test.ts && \
 node --test src/core/navigation/desktop-routes.test.ts
 ```
 

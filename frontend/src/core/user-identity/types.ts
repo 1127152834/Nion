@@ -15,12 +15,14 @@ export interface UserIdentityProfile {
 
 export type UserIdentityField =
   | "user_name"
+  | "user_aliases"
   | "preferred_address_for_user"
   | "assistant_self_name"
   | "mutual_addressing_rule"
   | "communication_style_preferences"
   | "user_role"
   | "timezone"
+  | "interaction_boundaries"
   | "long_term_background_summary";
 
 export interface UserIdentityPatchRequest {
