@@ -5,8 +5,8 @@ import { toast } from "sonner";
 import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
 
 import { getAPIClient } from "../api";
-import { reduceChildRunEvent } from "../child-runs/reducer";
 import type { ThreadClientSearchParams } from "../api/thread-client";
+import { reduceChildRunEvent } from "../child-runs/reducer";
 import { useI18n } from "../i18n/hooks";
 import type { FileInMessage } from "../messages/utils";
 import { useUpdateSubtask } from "../tasks/context";
@@ -15,11 +15,11 @@ import { getFilesForUpload, uploadFiles } from "../uploads";
 
 import { removeThreadFromSearchCache } from "./cache";
 import { getThreadRequestErrorCopy, getThreadRequestErrorMessage } from "./error-copy";
-import { resolvePreferredThreadTitle } from "./title";
 import {
   mergeThreadMessages,
   reconcileLoadedThreadMessages,
 } from "./thread-state";
+import { resolvePreferredThreadTitle } from "./title";
 import type {
   AIMessage,
   AgentThread,

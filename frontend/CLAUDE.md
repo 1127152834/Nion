@@ -80,6 +80,7 @@ The frontend is a stateful chat application. Users create **threads** (conversat
 - **Environment validation** uses `@t3-oss/env-nextjs` with Zod schemas (`src/env.js`). Skip with `SKIP_ENV_VALIDATION=1`
 - **Thread titles** treat `"Untitled"` as a placeholder only; stream snapshots must not overwrite an existing manual or generated title back to that placeholder
 - **Internal conversation summaries** are still kept in thread context, but the message timeline should render them only as a compact compression tag, never as an expanded body block
+- **Delegated child runs** are sidebar-inspectable temporary sessions restored from `/api/threads/{thread_id}/child-runs`; do not promote them to first-class recent chats or expand their full transcripts into the main message list
 
 ## Code Style
 

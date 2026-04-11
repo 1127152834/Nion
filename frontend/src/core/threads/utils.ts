@@ -1,7 +1,7 @@
 import { isInternalSummaryMessage } from "../messages/utils";
 
-import type { AgentThread, Message } from "./types";
 import { resolvePreferredThreadTitle } from "./title";
+import type { AgentThread, Message } from "./types";
 export {
   pathOfAutomation,
   pathOfChatHistoryType,

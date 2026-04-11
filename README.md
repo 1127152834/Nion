@@ -258,6 +258,11 @@ NION_STATIC_EXPORT=1 pnpm --dir frontend build
   - `frontend/package.json` 已提供 `pnpm test:contracts -- <test files...>` 入口，用于运行 memory/soul 相关 `node:test` 合同测试
 - 能力治理 runtime
   - 后端已提供 `get_capability_catalog`、`get_capability_actions`、`execute_capability_action`
+- custom-agent orchestration
+  - 主聊天仍然只有一个正式对外发声者：主智能体
+  - 被调度的 custom agent 会以 parent thread 下的临时 child runs 运行
+  - child runs 可从 active thread row 展开检查，但不会进入正式 recent chats / thread search
+  - 本地 custom-agent 协同优先走 LangGraph；ACP/A2A 只是 remote transport seam
   - agent prompt 已获得压缩版 capability guidance，并默认采用 capability autopilot 策略
   - `bridge:notebook-to-memory` 仍然是显式桥接，不会把 Notebook 自动变成 Memory
 

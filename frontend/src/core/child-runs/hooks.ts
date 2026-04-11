@@ -5,7 +5,7 @@ import { loadChildRun, loadChildRuns } from "./api";
 export function useChildRuns(threadId: string | null | undefined) {
   return useQuery({
     queryKey: ["child-runs", "list", threadId],
-    queryFn: () => loadChildRuns(threadId as string),
+    queryFn: () => loadChildRuns(threadId!),
     enabled: !!threadId,
   });
 }
@@ -16,7 +16,7 @@ export function useChildRun(
 ) {
   return useQuery({
     queryKey: ["child-runs", "detail", threadId, childRunId],
-    queryFn: () => loadChildRun(threadId as string, childRunId as string),
+    queryFn: () => loadChildRun(threadId!, childRunId!),
     enabled: !!threadId && !!childRunId,
   });
 }
