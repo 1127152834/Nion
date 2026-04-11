@@ -206,6 +206,18 @@ class Paths:
             raise ValueError(f"Invalid thread_id {thread_id!r}: only alphanumeric characters, hyphens, and underscores are allowed.")
         return self.base_dir / "threads" / thread_id
 
+    def child_runs_dir(self, thread_id: str) -> Path:
+        """Directory for ephemeral child runs under a parent thread."""
+        return self.thread_dir(thread_id) / "child-runs"
+
+    def child_run_file(self, thread_id: str, child_run_id: str) -> Path:
+        """File path for one ephemeral child run record."""
+        if not _SAFE_THREAD_ID_RE.match(child_run_id):
+            raise ValueError(
+                f"Invalid child_run_id {child_run_id!r}: only alphanumeric characters, hyphens, and underscores are allowed."
+            )
+        return self.child_runs_dir(thread_id) / f"{child_run_id}.json"
+
     def sandbox_work_dir(self, thread_id: str) -> Path:
         """
         Host path for the agent's sandbox workdir.
