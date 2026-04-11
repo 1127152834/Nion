@@ -321,9 +321,7 @@ export function RecentChatList() {
     const bridgeLabel = bridgeInfo
       ? bridgePlatformLabel(bridgeInfo.platform, bt)
       : "";
-    const childRuns = Object.values(thread.values.child_runs ?? {}).filter(
-      (item) => item.status !== "closed",
-    );
+    const childRuns = Object.values(thread.values.child_runs ?? {});
     const selectedChildRun =
       selectedChildRunId
         ? childRuns.find((item) => item.child_run_id === selectedChildRunId) ?? null

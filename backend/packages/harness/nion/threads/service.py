@@ -7,10 +7,12 @@ from datetime import UTC, datetime
 from typing import Any
 
 from nion.client import NionClient, StreamEvent
+from nion.agents.checkpointer import get_checkpointer
 from nion.config.agents_config import AGENT_NAME_PATTERN, resolve_agent_config
 from nion.memory.evidence_capture.service import resolve_optional_bool
 from nion.notebook.service import NotebookNotFoundError, NotebookService
 from nion.orchestration.delegated_agent_executor import DelegatedAgentExecutor
+from nion.orchestration.graph import build_agent_orchestrator_graph
 from nion.orchestration.mention_parser import parse_agent_mentions
 
 from .models import (
@@ -113,48 +115,10 @@ class ThreadService:
             config={},
         )
 
-    def _resolve_delegated_agents(self, message_text: str) -> list[str]:
-        return [
-            step.agent_name
+    def _has_delegated_agents(self, message_text: str) -> bool:
+        return any(
+            resolve_agent_config(step.agent_name) is not None
             for step in parse_agent_mentions(message_text)
-            if resolve_agent_config(step.agent_name) is not None
-        ]
-
-    def _build_delegated_summary(
-        self,
-        *,
-        original_request: str,
-        child_results: list[tuple[str, str]],
-    ) -> str:
-        if not child_results:
-            return "已识别到子智能体调度请求，但没有可汇总的子智能体结果。"
-
-        sections = "\n\n".join(
-            f"### @{agent_name}\n{result}" for agent_name, result in child_results
-        )
-        return (
-            f"已按主智能体编排完成请求：{original_request}\n\n"
-            "以下是各子智能体回传的结果汇总：\n\n"
-            f"{sections}"
-        )
-
-    def _build_delegated_agent_prompt(
-        self,
-        *,
-        original_request: str,
-        child_results: list[tuple[str, str]],
-    ) -> str:
-        if not child_results:
-            return original_request
-
-        upstream = "\n\n".join(
-            f"@{agent_name} 的上游结果：\n{result}"
-            for agent_name, result in child_results
-        )
-        return (
-            f"原始请求：\n{original_request}\n\n"
-            "你正在执行一个主智能体编排链中的后续步骤。请基于以下上游结果继续完成你的部分：\n\n"
-            f"{upstream}"
         )
 
     def delete_thread(self, thread_id: str) -> None:
@@ -174,35 +138,35 @@ class ThreadService:
         existing_record = self._repository.get_thread(thread_id)
         existing_title = existing_record.values.title if existing_record is not None else None
         try:
-            mentioned_agents = self._resolve_delegated_agents(message_text)
-            if mentioned_agents:
-                child_results: list[tuple[str, str]] = []
-                for agent_name in mentioned_agents:
-                    latest_result = ""
-                    delegated_prompt = self._build_delegated_agent_prompt(
-                        original_request=message_text,
-                        child_results=child_results,
-                    )
-                    for event in self._delegated_executor.stream(
-                        parent_thread_id=thread_id,
-                        agent_name=agent_name,
-                        prompt=delegated_prompt,
-                        model_name=context.get("model_name"),
-                    ):
-                        if (
-                            event.type == "custom"
-                            and event.data.get("type") == "child_run_completed"
-                            and isinstance(event.data.get("result"), str)
-                        ):  # pragma: no branch - event contract is linear here
-                            latest_result = event.data["result"]
-                        yield event
-                    if latest_result:
-                        child_results.append((agent_name, latest_result))
-
-                summary_text = self._build_delegated_summary(
-                    original_request=message_text,
-                    child_results=child_results,
+            if self._has_delegated_agents(message_text):
+                graph = build_agent_orchestrator_graph(
+                    checkpointer=get_checkpointer(),
+                    delegated_executor=self._delegated_executor,
+                    agent_resolver=resolve_agent_config,
                 )
+                graph_state: dict[str, Any] | None = None
+                for raw_chunk in graph.stream(
+                    {"thread_id": thread_id, "user_text": message_text},
+                    config={"configurable": {"thread_id": thread_id}},
+                    stream_mode=["values", "custom"],
+                ):
+                    if (
+                        isinstance(raw_chunk, tuple)
+                        and len(raw_chunk) == 2
+                        and isinstance(raw_chunk[0], str)
+                    ):
+                        mode, data = raw_chunk
+                    else:
+                        mode, data = "values", raw_chunk
+
+                    if mode == "custom" and isinstance(data, dict):
+                        yield StreamEvent(type="custom", data=data)
+                        continue
+
+                    if mode == "values" and isinstance(data, dict):
+                        graph_state = data
+
+                summary_text = str(graph_state.get("final_reply") or "") if graph_state else ""
                 summary_message = {
                     "type": "ai",
                     "content": summary_text,
