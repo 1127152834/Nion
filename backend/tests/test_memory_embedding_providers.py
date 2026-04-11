@@ -197,7 +197,7 @@ def test_build_rebuild_plan_keeps_provider_authoritative_even_when_store_matches
 
 def test_vector_store_query_models_capture_rebuild_aware_inputs() -> None:
     query = VectorStoreQuery(
-        text="财务 BP 的表达方式",
+        vector=[0.2, 0.8, 0.1],
         limit=5,
         filters={"domain": "user_model"},
     )
@@ -213,6 +213,7 @@ def test_vector_store_query_models_capture_rebuild_aware_inputs() -> None:
     )
 
     assert query.limit == 5
+    assert query.vector == [0.2, 0.8, 0.1]
     assert query.filters == {"domain": "user_model"}
     assert record.payload["summary"] == "负责财务 BP"
     assert hit.score == 0.88

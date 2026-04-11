@@ -1,81 +1,89 @@
 from __future__ import annotations
 
-import json
-
-from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from app.gateway.routers import memory_settings
-from nion.config.paths import get_paths, reset_paths
-from nion.memory.embedding.local_managed import LocalManagedEmbeddingProviderMetadata
+from app.gateway.app import create_app
+from nion.config.paths import reset_paths
 
 
-def test_memory_settings_router_returns_embedding_snapshot(monkeypatch, tmp_path):
+def test_memory_settings_router_supports_patch_download_and_rebuild(
+    monkeypatch,
+    tmp_path,
+) -> None:
     monkeypatch.setenv("NION_HOME", str(tmp_path))
     reset_paths()
 
-    paths = get_paths()
-    paths.memory_os_vector_dir.mkdir(parents=True, exist_ok=True)
-    (paths.memory_os_vector_dir / "manifest.json").write_text(
-        json.dumps({"downloaded": True, "artifact_count": 3}),
-        encoding="utf-8",
+    monkeypatch.setattr(
+        "app.gateway.routers.memory_settings.MemoryEmbeddingDownloadManager",
+        lambda: _StubDownloadManager(),
+    )
+    monkeypatch.setattr(
+        "app.gateway.routers.memory_settings.MemoryEmbeddingIndexService",
+        _StubIndexService,
     )
 
-    provider = LocalManagedEmbeddingProviderMetadata(
-        provider_id="local-default",
-        model_name="bge-m3",
-        dimensions=1024,
-        revision="2026-04-09",
-        metadata={"bundle": "desktop"},
-    )
+    with TestClient(create_app()) as client:
+        patch = client.patch(
+            "/api/memory/settings",
+            json={
+                "mode": "remote_managed",
+                "remote_endpoint": "https://api.example.com/v1/embeddings",
+                "remote_api_key": "secret",
+                "remote_model_name": "text-embedding-3-large",
+                "remote_dimensions": 3072,
+            },
+        )
+        download = client.post("/api/memory/settings/download")
+        rebuild = client.post("/api/memory/settings/rebuild")
+        read_back = client.get("/api/memory/settings")
 
-    payload = memory_settings.read_memory_settings_snapshot(
-        paths=paths,
-        provider=provider,
-    )
-
-    assert payload["provider_mode"] == {
-        "id": "local_managed",
-        "label": "本机推荐",
-        "description": "优先使用桌面托管 embedding，兼顾离线可用性与默认体验。",
+    assert patch.status_code == 200
+    assert patch.json()["provider_mode"]["id"] == "remote_managed"
+    assert patch.json()["remote_config"] == {
+        "endpoint": "https://api.example.com/v1/embeddings",
+        "api_key_configured": True,
+        "model_name": "text-embedding-3-large",
+        "dimensions": 3072,
     }
-    assert payload["download_status"] == {
-        "state": "ready",
-        "detail": "检测到本地 embedding 资产，可直接用于索引与检索。",
-    }
-    assert payload["active_fingerprint"] == {
-        "provider_key": "local_managed:local-default",
-        "model_key": "bge-m3",
-        "fingerprint": provider.fingerprint.fingerprint,
-        "dimensions": 1024,
-        "distance_metric": "cosine",
-        "revision": "2026-04-09",
-    }
-    assert payload["index_health"] == {
-        "state": "ready",
-        "detail": "向量索引目录已就绪，可复用当前 embedding 快照。",
-        "vector_path": str(paths.memory_os_vector_dir),
-        "artifact_count": 3,
-    }
+    assert download.status_code == 200
+    assert download.json()["action"] == "download"
+    assert rebuild.status_code == 200
+    assert rebuild.json()["job"]["state"] == "completed"
+    assert rebuild.json()["job"]["record_count"] == 3
+    assert read_back.status_code == 200
+    assert read_back.json()["index_health"]["record_count"] == 3
 
 
-def test_memory_settings_router_is_read_only(monkeypatch, tmp_path):
-    monkeypatch.setenv("NION_HOME", str(tmp_path))
-    reset_paths()
-
-    app = FastAPI()
-    app.include_router(memory_settings.router)
-
-    with TestClient(app) as client:
-        response = client.post("/api/memory/settings", json={})
-
-    assert response.status_code == 405
+class _StubDownloadManager:
+    def ensure_local_model(self, *, base_dir, model_id: str, model_key: str):
+        model_dir = base_dir / "memory-os" / "indexes" / "vector" / "models" / model_key
+        model_dir.mkdir(parents=True, exist_ok=True)
+        return model_dir
 
 
-def test_memory_settings_router_exposes_get_endpoint() -> None:
-    app = FastAPI()
-    app.include_router(memory_settings.router)
+class _StubIndexService:
+    def __init__(self, *, base_dir, repository, settings) -> None:
+        self._base_dir = base_dir
 
-    routes = {route.path for route in app.routes}
-
-    assert "/api/memory/settings" in routes
+    def rebuild_full_index(self):
+        manifest_path = self._base_dir / "memory-os" / "indexes" / "vector" / "manifest.json"
+        manifest_path.parent.mkdir(parents=True, exist_ok=True)
+        manifest = {
+            "provider": {
+                "provider_key": "remote_managed:remote-default",
+                "model_key": "text-embedding-3-large",
+                "fingerprint": "fp-remote",
+                "dimensions": 3072,
+                "distance_metric": "cosine",
+                "revision": "2026-04-11",
+            },
+            "provider_kind": "remote_managed",
+            "provider_id": "remote-default",
+            "record_count": 3,
+            "rebuilt_at": "2026-04-11T00:00:00Z",
+        }
+        manifest_path.write_text(__import__("json").dumps(manifest), encoding="utf-8")
+        return {
+            "record_count": 3,
+            "manifest": manifest,
+        }

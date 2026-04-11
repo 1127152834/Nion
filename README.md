@@ -242,7 +242,8 @@ NION_STATIC_EXPORT=1 pnpm --dir frontend build
   - Soul 稳定层按字段逐项即时保存，不再依赖统一草稿 / 应用区
   - 稳定层只能由用户显式设置或在对话中明确要求修改
 - `Settings > 记忆`
-  - 只保留查看入口与设置入口，不再展示 embedding 假面板、控制台、诊断字段或机制说明
+  - 现在承载真实向量设置面：本地模式 / 远端模式切换、模型下载、索引重建、当前模型与索引状态
+  - 不再展示 embedding 假面板、控制台、路径/指纹之类的诊断字段
 - `/workspace/automation/*`
   - 已开始区分 `user-owned` 与 `agent-owned` automation
   - 列表页会分开呈现 `用户创建` 与 `Agent 创建`

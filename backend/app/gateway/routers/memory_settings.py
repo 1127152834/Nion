@@ -2,128 +2,209 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import APIRouter
+from pydantic import BaseModel
 
 from nion.config.paths import Paths, get_paths
-from nion.memory.embedding.local_managed import LocalManagedEmbeddingProviderMetadata
-from nion.memory.embedding.provider import EmbeddingProviderMetadata
+from nion.memory.embedding.download_manager import MemoryEmbeddingDownloadManager
+from nion.memory.embedding.index_service import MemoryEmbeddingIndexService
+from nion.memory.embedding.provider_factory import build_embedding_provider
+from nion.memory.embedding.settings import EmbeddingSystemSettings
+from nion.memory.embedding.settings_repository import EmbeddingSettingsRepository
+from nion.memory_os.compat import get_memory_os_repository
 
 router = APIRouter(prefix="/api/memory/settings", tags=["memory"])
 
 
-def _default_provider() -> EmbeddingProviderMetadata:
-    return LocalManagedEmbeddingProviderMetadata(
-        provider_id="local-default",
-        model_name="bge-m3",
-        dimensions=1024,
-        revision="2026-04-09",
-        metadata={"bundle": "desktop"},
-    )
+class MemorySettingsPatchRequest(BaseModel):
+    mode: Literal["local_managed", "remote_managed"] | None = None
+    local_model_id: str | None = None
+    local_model_key: str | None = None
+    remote_endpoint: str | None = None
+    remote_api_key: str | None = None
+    remote_model_name: str | None = None
+    remote_dimensions: int | None = None
+
+
+def _settings_repo(paths: Paths | None = None) -> EmbeddingSettingsRepository:
+    resolved_paths = paths or get_paths()
+    return EmbeddingSettingsRepository(resolved_paths.base_dir)
 
 
 def _read_manifest(path: Path) -> dict[str, Any]:
     manifest_file = path / "manifest.json"
     if not manifest_file.exists():
         return {}
-
     try:
         payload = json.loads(manifest_file.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
         return {}
-
     return payload if isinstance(payload, dict) else {}
 
 
-def _mode_copy(provider: EmbeddingProviderMetadata) -> dict[str, str]:
-    if provider.provider_kind == "remote_managed":
+def _mode_copy(mode: str) -> dict[str, str]:
+    if mode == "remote_managed":
         return {
-            "id": provider.provider_kind,
-            "label": "云端增强",
-            "description": "连接托管 embedding 服务，换取更高上限与更轻本地负担。",
-        }
-    if provider.provider_kind == "custom_compatible":
-        return {
-            "id": provider.provider_kind,
-            "label": "高级自定义",
-            "description": "接入自定义兼容端点，按团队要求维护模型与协议。",
+            "id": "remote_managed",
+            "label": "远端模式",
+            "description": "连接远端 embedding 服务，适合统一模型和更轻本地负担。",
         }
     return {
-        "id": provider.provider_kind,
-        "label": "本机推荐",
-        "description": "优先使用桌面托管 embedding，兼顾离线可用性与默认体验。",
+        "id": "local_managed",
+        "label": "本地模式",
+        "description": "使用本机托管模型，适合默认可控和本地构建索引。",
     }
 
 
-def _download_status(path: Path, provider: EmbeddingProviderMetadata) -> dict[str, str]:
-    if provider.provider_kind == "remote_managed":
+def _download_status(paths: Paths, settings: EmbeddingSystemSettings) -> dict[str, str]:
+    model_dir = paths.memory_os_vector_dir / "models" / settings.local_model_key
+    if settings.mode == "remote_managed":
         return {
             "state": "remote",
-            "detail": "当前模式依赖远端 embedding 服务，不要求本地下载资产。",
+            "detail": "当前模式使用远端 embedding 服务，不需要本地模型下载。",
         }
-    if provider.provider_kind == "custom_compatible":
+    if settings.download_detail:
         return {
-            "state": "custom",
-            "detail": "当前模式由自定义服务托管，下载状态由外部端点自行负责。",
+            "state": settings.download_state,
+            "detail": settings.download_detail,
         }
-    if (path / "manifest.json").exists():
+    if model_dir.exists():
         return {
             "state": "ready",
-            "detail": "检测到本地 embedding 资产，可直接用于索引与检索。",
+            "detail": "本地模型已就绪，可以直接重建向量索引。",
         }
     return {
         "state": "missing",
-        "detail": "尚未检测到本地 embedding 资产，首次构建索引前需要准备模型文件。",
+        "detail": "本地模型尚未准备好，首次构建前需要先下载。",
     }
 
 
-def _index_health(path: Path, manifest: dict[str, Any]) -> dict[str, Any]:
-    ready = path.exists() and any(path.iterdir())
-    artifact_count = manifest.get("artifact_count")
-    if not isinstance(artifact_count, int):
-        artifact_count = 0
-
+def _active_fingerprint(
+    provider_metadata,
+    manifest: dict[str, Any],
+    settings: EmbeddingSystemSettings,
+) -> dict[str, Any]:
+    fingerprint = manifest.get("provider")
+    if isinstance(fingerprint, dict):
+        return {
+            "provider_key": str(fingerprint.get("provider_key", "")),
+            "model_key": str(fingerprint.get("model_key", "")),
+            "fingerprint": str(fingerprint.get("fingerprint", settings.active_fingerprint)),
+            "dimensions": int(fingerprint.get("dimensions", 0) or 0),
+            "distance_metric": str(fingerprint.get("distance_metric", "cosine")),
+            "revision": fingerprint.get("revision"),
+        }
+    provider_fingerprint = provider_metadata.fingerprint
     return {
-        "state": "ready" if ready else "empty",
-        "detail": (
-            "向量索引目录已就绪，可复用当前 embedding 快照。"
-            if ready
-            else "向量索引目录尚未建立或仍为空，后续构建后会显示健康状态。"
-        ),
-        "vector_path": str(path),
-        "artifact_count": artifact_count,
+        "provider_key": provider_fingerprint.provider_key,
+        "model_key": provider_fingerprint.model_key,
+        "fingerprint": settings.active_fingerprint or provider_fingerprint.fingerprint,
+        "dimensions": provider_fingerprint.dimensions,
+        "distance_metric": provider_fingerprint.distance_metric,
+        "revision": provider_fingerprint.revision,
+    }
+
+
+def _index_health(paths: Paths, settings: EmbeddingSystemSettings, manifest: dict[str, Any]) -> dict[str, Any]:
+    if settings.health_detail:
+        state = settings.health_state
+        detail = settings.health_detail
+    elif manifest:
+        state = "ready"
+        detail = "向量索引已就绪，可以参与长期记忆检索。"
+    else:
+        state = "empty"
+        detail = "还没有构建向量索引。"
+    return {
+        "state": state,
+        "detail": detail,
+        "record_count": int(manifest.get("record_count", 0) or 0),
+        "last_rebuild_at": manifest.get("rebuilt_at") or settings.last_rebuild_at or None,
     }
 
 
 def read_memory_settings_snapshot(
     *,
     paths: Paths | None = None,
-    provider: EmbeddingProviderMetadata | None = None,
+    settings: EmbeddingSystemSettings | None = None,
 ) -> dict[str, Any]:
     resolved_paths = paths or get_paths()
-    resolved_provider = provider or _default_provider()
+    resolved_settings = settings or _settings_repo(resolved_paths).load()
+    provider = build_embedding_provider(
+        base_dir=resolved_paths.base_dir,
+        settings=resolved_settings,
+    )
     manifest = _read_manifest(resolved_paths.memory_os_vector_dir)
-    fingerprint = resolved_provider.fingerprint
 
     return {
-        "provider_mode": _mode_copy(resolved_provider),
-        "download_status": _download_status(
-            resolved_paths.memory_os_vector_dir,
-            resolved_provider,
+        "provider_mode": _mode_copy(resolved_settings.mode),
+        "download_status": _download_status(resolved_paths, resolved_settings),
+        "active_fingerprint": _active_fingerprint(
+            provider.metadata(),
+            manifest,
+            resolved_settings,
         ),
-        "active_fingerprint": {
-            "provider_key": fingerprint.provider_key,
-            "model_key": fingerprint.model_key,
-            "fingerprint": fingerprint.fingerprint,
-            "dimensions": fingerprint.dimensions,
-            "distance_metric": fingerprint.distance_metric,
-            "revision": fingerprint.revision,
+        "index_health": _index_health(resolved_paths, resolved_settings, manifest),
+        "local_config": {
+            "model_id": resolved_settings.local_model_id,
+            "model_key": resolved_settings.local_model_key,
         },
-        "index_health": _index_health(resolved_paths.memory_os_vector_dir, manifest),
+        "remote_config": {
+            "endpoint": resolved_settings.remote_endpoint,
+            "api_key_configured": bool(resolved_settings.remote_api_key),
+            "model_name": resolved_settings.remote_model_name,
+            "dimensions": resolved_settings.remote_dimensions,
+        },
     }
 
 
 @router.get("")
 async def get_memory_settings() -> dict[str, Any]:
     return read_memory_settings_snapshot()
+
+
+@router.patch("")
+async def patch_memory_settings(request: MemorySettingsPatchRequest) -> dict[str, Any]:
+    repo = _settings_repo()
+    settings = repo.update(request.model_dump())
+    return read_memory_settings_snapshot(settings=settings)
+
+
+@router.post("/download")
+async def download_memory_embedding_assets() -> dict[str, Any]:
+    paths = get_paths()
+    repo = _settings_repo(paths)
+    settings = repo.load()
+    manager = MemoryEmbeddingDownloadManager()
+    model_dir = manager.ensure_local_model(
+        base_dir=paths.base_dir,
+        model_id=settings.local_model_id,
+        model_key=settings.local_model_key,
+    )
+    settings = repo.update(
+        {
+            "download_state": "ready",
+            "download_detail": "本地模型已下载完成，可以开始构建索引。",
+        }
+    )
+    provider = build_embedding_provider(base_dir=paths.base_dir, settings=settings)
+    return {
+        "action": "download",
+        "model_dir": str(model_dir),
+        "provider": provider.metadata().model_dump(mode="json"),
+    }
+
+
+@router.post("/rebuild")
+async def rebuild_memory_vector_index() -> dict[str, Any]:
+    paths = get_paths()
+    settings = _settings_repo(paths).load()
+    service = MemoryEmbeddingIndexService(
+        base_dir=paths.base_dir,
+        repository=get_memory_os_repository(),
+        settings=settings,
+    )
+    result = service.rebuild_full_index()
+    return {"action": "rebuild", "job": {"state": "completed", **result}}

@@ -1,7 +1,16 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { loadMemorySettings } from "./api";
-import type { MemorySettingsResponse } from "./types";
+import {
+  downloadMemoryEmbeddingAssets,
+  loadMemorySettings,
+  patchMemorySettings,
+  rebuildMemoryVectorIndex,
+} from "./api";
+import type {
+  MemorySettingsActionResult,
+  MemorySettingsPatchRequest,
+  MemorySettingsResponse,
+} from "./types";
 
 const EMPTY_MEMORY_SETTINGS: MemorySettingsResponse = {
   provider_mode: {
@@ -24,8 +33,18 @@ const EMPTY_MEMORY_SETTINGS: MemorySettingsResponse = {
   index_health: {
     state: "loading",
     detail: "正在检查索引状态。",
-    vector_path: "",
-    artifact_count: 0,
+    record_count: 0,
+    last_rebuild_at: null,
+  },
+  local_config: {
+    model_id: "BAAI/bge-m3",
+    model_key: "bge-m3",
+  },
+  remote_config: {
+    endpoint: "",
+    api_key_configured: false,
+    model_name: "text-embedding-3-large",
+    dimensions: 3072,
   },
 };
 
@@ -40,4 +59,37 @@ export function useMemorySettings() {
     isLoading,
     error,
   };
+}
+
+export function usePatchMemorySettings() {
+  const queryClient = useQueryClient();
+
+  return useMutation<MemorySettingsResponse, Error, MemorySettingsPatchRequest>({
+    mutationFn: (request) => patchMemorySettings(request),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["memory-settings"] });
+    },
+  });
+}
+
+export function useDownloadMemoryEmbeddingAssets() {
+  const queryClient = useQueryClient();
+
+  return useMutation<MemorySettingsActionResult, Error>({
+    mutationFn: () => downloadMemoryEmbeddingAssets(),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["memory-settings"] });
+    },
+  });
+}
+
+export function useRebuildMemoryVectorIndex() {
+  const queryClient = useQueryClient();
+
+  return useMutation<MemorySettingsActionResult, Error>({
+    mutationFn: () => rebuildMemoryVectorIndex(),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["memory-settings"] });
+    },
+  });
 }

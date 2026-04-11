@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useI18n } from "@/core/i18n/hooks";
 import { pathOfMemory } from "@/core/navigation/desktop-routes";
 
+import { MemoryEmbeddingPanel } from "./memory-embedding-panel";
 import { useSettingsDialog } from "./settings-dialog-context";
 import { SettingsSection } from "./settings-section";
 
@@ -16,9 +17,11 @@ export function MemorySettingsPage() {
   return (
     <SettingsSection
       title={t.settings.memory.title}
-      description="记忆页只保留用户真正需要的入口：去哪里看、去哪里改，以及什么时候直接在对话里说。"
+      description="先把向量模式配置好，再决定什么时候去看记忆、改身份或改 Soul。"
     >
       <div className="space-y-4">
+        <MemoryEmbeddingPanel />
+
         <section className="rounded-xl border bg-background/80 p-5 shadow-sm">
           <div className="space-y-2">
             <div className="text-sm font-medium">查看已经记住的内容</div>

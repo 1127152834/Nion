@@ -4,6 +4,7 @@ from pathlib import Path
 
 from nion.memory.runtime_engine.models import RuntimeMemoryResult, RuntimeMemorySections
 from nion.memory.runtime_engine.search_plan import RuntimeMemorySearchPlan, build_runtime_search_plan
+from nion.memory.search_fusion.structured_search_service import search_structured_memory
 from nion.memory.runtime_engine.soul_bundle import build_runtime_soul_bundle
 from nion.memory_os.clock import utcnow_z
 from nion.memory_os.context_pack import MemoryContextPack, MemoryContextPackItem
@@ -35,7 +36,7 @@ def build_runtime_memory_context(
         values_and_boundaries=soul_bundle.values_and_boundaries,
         relationship_stance=soul_bundle.relationship_stance,
         adaptive_overlay=soul_bundle.adaptive_overlay,
-        hot_memories=_collect_hot_memories(repository, plan=plan),
+        hot_memories=_collect_hot_memories(repository, plan=plan, base_dir=base_dir),
         relevant_procedures=_collect_relevant_procedures(repository, plan=plan),
         scoped_recall=_collect_scoped_recall(repository, thread_id=thread_id, plan=plan),
         verbatim_evidence=_collect_verbatim_evidence(repository, thread_id=thread_id, plan=plan),
@@ -86,8 +87,19 @@ def _collect_hot_memories(
     repository: MemoryOSRepository,
     *,
     plan: RuntimeMemorySearchPlan,
+    base_dir: str | Path | None = None,
 ) -> list[str]:
     limit = 2 if plan.depth == "deep" else 1
+    if base_dir is not None:
+        vector_results = search_structured_memory(
+            base_dir=Path(base_dir),
+            repository=repository,
+            query=plan.query,
+            domain="user_model",
+            limit=limit,
+        )
+        if vector_results:
+            return vector_results
     return _collect_matching_summaries(
         repository.list_memory_records(domain="user_model", status="active"),
         query=plan.query,

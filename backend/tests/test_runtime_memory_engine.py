@@ -314,4 +314,44 @@ def test_build_runtime_memory_context_does_not_fallback_to_latest_on_unmatched_c
     )
 
     assert result.sections.hot_memories == []
+
+
+def test_build_runtime_memory_context_uses_vector_hits_for_hot_memories_when_lexical_misses(
+    tmp_path: Path,
+    monkeypatch,
+):
+    from nion.memory.runtime_engine.service import build_runtime_memory_context
+
+    repo = MemoryOSRepository(tmp_path / "memory-os" / "index.sqlite3")
+    repo.save_memory_record(
+        {
+            "memory_id": "hot_01",
+            "domain": "user_model",
+            "subtype": "communication_preference",
+            "owner_type": "agent",
+            "scope": "user",
+            "memory_type": "semantic",
+            "subject_id": "user:default",
+            "status": "active",
+            "summary": "用户偏好直接表达，避免铺垫。",
+            "confidence": 0.92,
+            "created_at": "2026-04-05T00:00:00Z",
+            "updated_at": "2026-04-05T00:00:00Z",
+            "provenance": {"source_type": "test"},
+        }
+    )
+    monkeypatch.setattr(
+        "nion.memory.runtime_engine.service.search_structured_memory",
+        lambda *, base_dir, repository, query, domain, limit: ["用户偏好直接表达，避免铺垫。"],
+    )
+
+    result = build_runtime_memory_context(
+        repository=repo,
+        query="偏好冷启动写法",
+        thread_id="thread-1",
+        memory_read=True,
+        base_dir=tmp_path,
+    )
+
+    assert result.sections.hot_memories == ["用户偏好直接表达，避免铺垫。"]
     assert result.sections.relevant_procedures == []

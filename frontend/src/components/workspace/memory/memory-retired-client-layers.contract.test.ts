@@ -18,7 +18,6 @@ const RETIRED_FILES = [
   "../../../core/memory-growth-v2/api.ts",
   "../../../core/memory-growth-v2/hooks.ts",
   "../../../core/memory-growth-v2/types.ts",
-  "../settings/memory-embedding-panel.tsx",
   "../settings/memory-console-panel.tsx",
   "../settings/memory-settings-page.storage.ts",
   "./memory-user-page.tsx",

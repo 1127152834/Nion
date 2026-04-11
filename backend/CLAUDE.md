@@ -79,6 +79,7 @@ FastAPI application on port 8001 with health check at `GET /health`.
 | **Models** (`/api/models`) | runtime model catalog |
 | **MCP** (`/api/mcp`) | MCP config surfaces |
 | **Memory** (`/api/memory`) | memory data and config |
+| **Memory Settings** (`/api/memory/settings`) | vector mode / download / rebuild product surface |
 | **User Identity** (`/api/user-identity`) | stable user identity profile owner contract |
 | **Notebook** (`/api/notebook`) | notebook CRUD / history / restore / inbox / import / asset archive |
 | **Uploads** (`/api/threads/{id}/uploads`) | uploads list / delete |
@@ -134,6 +135,8 @@ Soul product contract in this repository:
 - When `preferred_address_for_user` and `assistant_self_name` are both present, the stable profile should auto-derive `mutual_addressing_rule` unless the caller explicitly overrides it.
 - Explicit user identity statements from the current user turn should write straight into the stable profile before continuity/runtime assembly; do not add proposal-confirmation indirection for this lane.
 - `/api/memory` user-facing payload must project stable identity fields from `UserIdentityProfile` ahead of old `workContext / personalContext / topOfMind` context slots.
+- `/api/memory/settings` is no longer a read-only snapshot contract. It must own real vector product actions: `PATCH /api/memory/settings`, `POST /api/memory/settings/download`, and `POST /api/memory/settings/rebuild`.
+- Product-facing vector mode scope is limited to `local_managed` and `remote_managed`. Do not reintroduce `custom_compatible` into the user-facing product contract for this phase.
 - `/api/memory/soul` returns the stable settings-shaped payload used by `Settings > Soul`.
 - `PATCH /api/memory/soul` is the preferred field-level write path for stable soul settings.
 - Explicit long-term soul instructions from chat must reuse the same stable soul patch path as `/api/memory/soul`, not a sidecar proposal lane.

@@ -1,0 +1,82 @@
+from __future__ import annotations
+
+from nion.memory.embedding.index_service import MemoryEmbeddingIndexService
+from nion.memory.search_fusion.models import SearchRouteHit
+from nion.memory.search_fusion.vector_search import search_vector_memory
+from nion.memory_os.repository import MemoryOSRepository
+
+
+def test_vector_search_returns_hits_from_rebuilt_index(monkeypatch, tmp_path) -> None:
+    repo = MemoryOSRepository(tmp_path / "memory-os" / "index.sqlite3")
+    repo.save_memory_record(
+        {
+            "memory_id": "mem:user:finance",
+            "domain": "user_model",
+            "subtype": "user_role",
+            "owner_type": "agent",
+            "scope": "user",
+            "memory_type": "semantic",
+            "subject_id": "user:default",
+            "status": "active",
+            "summary": "财务 BP",
+            "confidence": 0.9,
+            "created_at": "2026-04-11T00:00:00Z",
+            "updated_at": "2026-04-11T00:00:00Z",
+            "provenance": {"source_type": "test"},
+        }
+    )
+
+    monkeypatch.setattr(
+        "nion.memory.embedding.index_service.build_embedding_provider",
+        lambda *, base_dir, settings: _StubEmbeddingProvider(),
+    )
+    monkeypatch.setattr(
+        "nion.memory.search_fusion.vector_search.build_embedding_provider",
+        lambda *, base_dir, settings: _StubEmbeddingProvider(),
+    )
+    monkeypatch.setattr(
+        "nion.memory.embedding.index_service.MemoryEmbeddingDownloadManager",
+        lambda: _StubDownloadManager(),
+    )
+
+    MemoryEmbeddingIndexService(base_dir=tmp_path, repository=repo).rebuild_full_index()
+
+    hits = search_vector_memory(
+        base_dir=tmp_path,
+        query="预算协同岗位",
+        filters={"domain": "user_model"},
+        limit=1,
+    )
+
+    assert hits == [
+        SearchRouteHit(candidate_id="mem:user:finance", route="vector", score=0.9938837346736189)
+    ]
+
+
+class _StubEmbeddingProvider:
+    provider_id = "local-default"
+
+    def metadata(self):
+        from nion.memory.embedding.local_managed import (
+            LocalManagedEmbeddingProviderMetadata,
+        )
+
+        return LocalManagedEmbeddingProviderMetadata(
+            provider_id="local-default",
+            model_name="stub-model",
+            dimensions=2,
+            revision="2026-04-11",
+            metadata={"bundle": "test"},
+        )
+
+    def embed(self, texts: list[str]) -> list[list[float]]:
+        if texts == ["财务 BP"]:
+            return [[1.0, 0.0]]
+        return [[0.9, 0.1]]
+
+
+class _StubDownloadManager:
+    def ensure_local_model(self, *, base_dir, model_id: str, model_key: str):
+        model_dir = base_dir / "memory-os" / "indexes" / "vector" / "models" / model_key
+        model_dir.mkdir(parents=True, exist_ok=True)
+        return model_dir
