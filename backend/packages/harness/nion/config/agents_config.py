@@ -5,7 +5,7 @@ import re
 from typing import Any
 
 import yaml
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from nion.config.builtin_agents import BUILTIN_AGENTS
 from nion.config.paths import get_paths
@@ -14,6 +14,13 @@ logger = logging.getLogger(__name__)
 
 SOUL_FILENAME = "SOUL.md"
 AGENT_NAME_PATTERN = re.compile(r"^[A-Za-z0-9-]+$")
+
+
+class AgentDelegationConfig(BaseModel):
+    allow_direct_user_reply: bool = False
+    allow_memory_write: bool = False
+    private_skills: list[str] = Field(default_factory=list)
+    delegatable_private_skills: list[str] = Field(default_factory=list)
 
 
 class AgentConfig(BaseModel):
@@ -32,6 +39,7 @@ class AgentConfig(BaseModel):
     entrypoint: str | None = None
     tool_policy: str | None = None
     soul: str | None = None
+    delegation: AgentDelegationConfig = Field(default_factory=AgentDelegationConfig)
 
 
 def list_builtin_agents() -> list[AgentConfig]:
