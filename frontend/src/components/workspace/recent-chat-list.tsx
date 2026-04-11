@@ -48,6 +48,8 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { getAPIClient } from "@/core/api";
+import { useChildRuns } from "@/core/child-runs/hooks";
+import type { ChildRunRecord } from "@/core/child-runs/types";
 import { useI18n } from "@/core/i18n/hooks";
 import { useLocalSettings } from "@/core/settings";
 import {
@@ -80,6 +82,8 @@ import {
   bridgePlatformLabel,
   useBridgeTranslation,
 } from "./bridge/useBridgeTranslation";
+import { ChildRunInspector } from "./child-runs/child-run-inspector";
+import { ChildRunList } from "./child-runs/child-run-list";
 import { WorkspaceThreadListItem } from "./thread-list-items";
 import { ThreadTypeTabs } from "./thread-type-tabs";
 
@@ -144,6 +148,7 @@ export function RecentChatList() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const threadIdFromPath = searchParams.get("thread");
+  const { data: childRuns = [] } = useChildRuns(threadIdFromPath);
   const { data: threads = [] } = useThreads();
   const { mutate: deleteThread } = useDeleteThread();
   const { mutate: deleteThreads } = useDeleteThreads();
@@ -177,6 +182,8 @@ export function RecentChatList() {
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
   const [renameThreadId, setRenameThreadId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
+  const [childRunInspectorOpen, setChildRunInspectorOpen] = useState(false);
+  const [selectedChildRun, setSelectedChildRun] = useState<ChildRunRecord | null>(null);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedThreadIds, setSelectedThreadIds] = useState<string[]>([]);
 
@@ -439,6 +446,15 @@ export function RecentChatList() {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : null}
+            {isActive ? (
+              <ChildRunList
+                childRuns={childRuns.filter((item) => item.status !== "closed")}
+                onSelect={(childRun) => {
+                  setSelectedChildRun(childRun);
+                  setChildRunInspectorOpen(true);
+                }}
+              />
+            ) : null}
           </div>
         </SidebarMenuButton>
       </SidebarMenuItem>
@@ -574,6 +590,12 @@ export function RecentChatList() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <ChildRunInspector
+        open={childRunInspectorOpen}
+        threadId={threadIdFromPath}
+        childRun={selectedChildRun}
+        onOpenChange={setChildRunInspectorOpen}
+      />
     </>
   );
 }

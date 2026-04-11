@@ -1,4 +1,5 @@
 import type { ObjectMention } from "../automation/object-mentions";
+import type { ChildRunRecord } from "../child-runs/types";
 import type { Todo } from "../todos";
 
 export type ToolCall = {
@@ -50,6 +51,7 @@ export interface AgentThreadState extends Record<string, unknown> {
   todos?: Todo[];
   tool_activity_timeline?: Array<Record<string, unknown>>;
   latest_tool_activity?: Record<string, unknown> | null;
+  child_runs?: Record<string, ChildRunRecord>;
   resolved_permission_request_ids?: string[];
   bridge?: {
     source: "bridge";

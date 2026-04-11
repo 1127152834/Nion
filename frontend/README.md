@@ -63,6 +63,8 @@ pnpm start
 └── /workspace/notebook                      # Notebook workspace
 ```
 
+The chat sidebar now supports temporary delegated child runs under the active thread row. These child runs are inspectable from the sidebar, but they are not first-class recent chats and are restored from the dedicated `/api/threads/{thread_id}/child-runs` surface instead of thread search history.
+
 ## Configuration
 
 ### Environment Variables

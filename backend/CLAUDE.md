@@ -86,6 +86,7 @@ FastAPI application on port 8001 with health check at `GET /health`.
 | **Uploads** (`/api/threads/{id}/uploads`) | uploads list / delete |
 | **Artifacts** (`/api/threads/{id}/artifacts`) | serve artifacts |
 | **Suggestions** (`/api/threads/{id}/suggestions`) | follow-up question generation |
+| **Child Runs** (`/api/threads/{id}/child-runs`) | temporary delegated custom-agent inspection surface |
 
 Model registry rule:
 - Provider catalog metadata such as `context_window` and `max_output_tokens` is reference data, not a guaranteed request-time contract.
@@ -151,6 +152,13 @@ Thread title handling:
 - Treat `"Untitled"` as a placeholder state, not a user-confirmed title.
 - Later stream snapshots may carry `"Untitled"` again, but they must not overwrite an existing non-placeholder thread title such as a manually renamed title.
 - Background title generation should keep using the placeholder/non-placeholder distinction when deciding whether another title pass is allowed.
+
+Custom-agent orchestration contract:
+
+- Delegated custom-agent runs persist under the parent thread directory as ephemeral `child-runs/*.json` records, not as `thread.json` history.
+- `/api/threads/search` must remain blind to child runs; inspection happens only through `/api/threads/{thread_id}/child-runs*`.
+- `AgentConfig.delegation` is the explicit source of truth for delegated reply policy, memory-write defaults, and delegatable private skills.
+- Mention-based delegated execution is separate from the built-in subagent registry and task-tool worker lane.
 
 ### Local Daemon Surface
 
