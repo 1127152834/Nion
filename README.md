@@ -213,7 +213,7 @@ pnpm --dir frontend dev
 - `/api/langgraph/*` → `http://127.0.0.1:2024/*`
 - 其余 `/api/*` → `http://127.0.0.1:8001/api/*`
 
-开发代理配置里的 `allowedDevOrigins` 已允许 `127.0.0.1` 与 `localhost`，因此可通过 `http://127.0.0.1:2026` 或 `http://localhost:2026` 访问统一开发入口。
+开发代理配置里的 `allowedDevOrigins` 已允许 `127.0.0.1` 与 `localhost`，因此可通过 `http://127.0.0.1:2026` 或 `http://localhost:2026` 访问统一开发入口。若前端直接跑在 `3000` 端口，网关 CORS 也必须同时允许 `http://localhost:3000` 与 `http://127.0.0.1:3000`，否则设置页和 Memory 页会因为浏览器预检失败回退到空默认状态。
 
 如果需要显式启用 Turbopack，请运行：
 

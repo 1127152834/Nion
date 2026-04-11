@@ -53,6 +53,7 @@ make format
 - Keep webpack-backed `next dev` as the default workflow to avoid the known Turbopack panic when the repository lives under a non-ASCII path.
 - Only use `pnpm --dir frontend dev:turbo` when you are in an ASCII-safe path or explicitly debugging a Turbopack-only issue.
 - The dev surface may be opened through `http://127.0.0.1:2026` or `http://localhost:2026`; `allowedDevOrigins` already allows both origins.
+- When the frontend is run standalone on port `3000`, the gateway CORS allowlist must continue to permit both `http://localhost:3000` and `http://127.0.0.1:3000`, otherwise settings and memory fetches fail back to empty client defaults.
 
 ## Architecture
 

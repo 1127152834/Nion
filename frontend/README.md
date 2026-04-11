@@ -35,6 +35,7 @@ cp .env.example .env
 pnpm dev
 
 # The app will be available at http://localhost:3000
+# Standalone loopback access also works at http://127.0.0.1:3000
 # API routes are proxied to the local backend services automatically
 ```
 
@@ -77,7 +78,7 @@ NEXT_PUBLIC_BACKEND_BASE_URL="http://localhost:8001"
 NEXT_PUBLIC_LANGGRAPH_BASE_URL="http://localhost:2024"
 ```
 
-When running behind the local nginx entrypoint (`http://localhost:2026`), the frontend can use relative `/api/*` requests. When running standalone via `pnpm dev`, `next.config.js` rewrites `/api/langgraph/*` to `http://127.0.0.1:2024/*` and rewrites the remaining `/api/*` requests to `http://127.0.0.1:8001/api/*`. The settings shell now expects `/api/config`, `/api/config/schema`, and `/api/config/runtime-status` to be proxied to the gateway.
+When running behind the local nginx entrypoint (`http://localhost:2026`), the frontend can use relative `/api/*` requests. When running standalone via `pnpm dev`, `next.config.js` rewrites `/api/langgraph/*` to `http://127.0.0.1:2024/*` and rewrites the remaining `/api/*` requests to `http://127.0.0.1:8001/api/*`. The settings shell now expects `/api/config`, `/api/config/schema`, and `/api/config/runtime-status` to be proxied to the gateway. The backend gateway must keep CORS open for both `http://localhost:3000` and `http://127.0.0.1:3000`, or browser fetches from the standalone frontend will fall back to client-side empty defaults.
 The chat runtime shell also expects `/api/threads/{thread_id}/runtime-profile`, `/api/threads/{thread_id}/files/*`, and `/api/cli/catalog`.
 ## Project Structure
 
