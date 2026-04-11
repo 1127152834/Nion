@@ -79,6 +79,7 @@ import {
   bridgePlatformLabel,
   useBridgeTranslation,
 } from "./bridge/useBridgeTranslation";
+import { ChildRunList } from "./child-runs/child-run-list";
 import { WorkspaceThreadListItem } from "./thread-list-items";
 import { ThreadTypeTabs } from "./thread-type-tabs";
 
@@ -317,6 +318,9 @@ export function RecentChatList() {
     const bridgeLabel = bridgeInfo
       ? bridgePlatformLabel(bridgeInfo.platform, bt)
       : "";
+    const childRuns = Object.values(thread.values.child_runs ?? {}).filter(
+      (item) => item.status !== "closed",
+    );
 
     const selectionControl = selectionMode ? (
       <button
@@ -367,6 +371,7 @@ export function RecentChatList() {
               onSelect={() => toggleThreadSelection(thread.thread_id)}
             />
             {selectionControl}
+            {isActive ? <ChildRunList childRuns={childRuns} /> : null}
             {!selectionMode && env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY !== "true" ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

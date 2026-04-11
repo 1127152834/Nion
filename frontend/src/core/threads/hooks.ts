@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
 
 import { getAPIClient } from "../api";
+import { reduceChildRunEvent } from "../child-runs/reducer";
 import type { ThreadClientSearchParams } from "../api/thread-client";
 import { useI18n } from "../i18n/hooks";
 import type { FileInMessage } from "../messages/utils";
@@ -60,6 +61,13 @@ const EMPTY_THREAD_STATE: AgentThreadState = {
   artifacts: [],
   todos: [],
 };
+
+const CHILD_RUN_EVENT_TYPES = new Set([
+  "child_run_created",
+  "child_run_running",
+  "child_run_completed",
+  "child_run_closed",
+]);
 
 function updateThreadSearchCacheEntry(
   oldData: Array<AgentThread> | undefined,
@@ -333,6 +341,20 @@ export function useThreadStream({
                   }) ?? thread.values?.title ?? EMPTY_THREAD_STATE.title,
                   messages: mergedMessages,
                 },
+              }));
+            }
+
+            if (
+              eventType === "custom"
+              && typeof eventData?.type === "string"
+              && CHILD_RUN_EVENT_TYPES.has(eventData.type)
+            ) {
+              setValues((current) => ({
+                ...current,
+                child_runs: reduceChildRunEvent(
+                  current.child_runs ?? {},
+                  eventData as Parameters<typeof reduceChildRunEvent>[1],
+                ),
               }));
             }
 
