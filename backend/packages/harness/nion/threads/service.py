@@ -10,6 +10,7 @@ from nion.client import NionClient, StreamEvent
 from nion.config.agents_config import AGENT_NAME_PATTERN
 from nion.memory.evidence_capture.service import resolve_optional_bool
 from nion.notebook.service import NotebookNotFoundError, NotebookService
+from nion.orchestration.delegated_agent_executor import DelegatedAgentExecutor
 
 from .models import (
     ThreadCliManagementState,
@@ -53,6 +54,7 @@ class ThreadService:
     ) -> None:
         self._repository = repository or ThreadRepository()
         self._client = client or NionClient()
+        self._delegated_executor = DelegatedAgentExecutor()
 
     def search(self, params: ThreadSearchParams) -> list[dict[str, Any]]:
         return self._repository.search(
@@ -98,6 +100,18 @@ class ThreadService:
     def update_state(self, thread_id: str, values: dict[str, Any]) -> dict[str, Any]:
         return self._repository.update_state(thread_id, values).model_dump()
 
+    def _build_request_for_test(
+        self,
+        *,
+        text: str,
+        context: dict[str, Any],
+    ) -> ThreadStreamRequest:
+        return ThreadStreamRequest(
+            messages=[{"type": "human", "content": [{"type": "text", "text": text}]}],
+            context=context,
+            config={},
+        )
+
     def delete_thread(self, thread_id: str) -> None:
         self._repository.delete_thread(thread_id)
 
@@ -115,6 +129,21 @@ class ThreadService:
         existing_record = self._repository.get_thread(thread_id)
         existing_title = existing_record.values.title if existing_record is not None else None
         try:
+            mentioned_agents = re.findall(r"@([A-Za-z0-9-]+)", message_text)
+            if mentioned_agents:
+                for agent_name in mentioned_agents:
+                    yield from self._delegated_executor.stream(
+                        parent_thread_id=thread_id,
+                        agent_name=agent_name,
+                        prompt=message_text,
+                        model_name=context.get("model_name"),
+                    )
+                yield StreamEvent(
+                    type="values",
+                    data={"title": "Delegated", "messages": [], "artifacts": []},
+                )
+                return
+
             context.setdefault("thread_id", thread_id)
             if request.assistant_id and "agent_name" not in context:
                 normalized_agent_name = _normalize_assistant_id_to_agent_name(request.assistant_id)

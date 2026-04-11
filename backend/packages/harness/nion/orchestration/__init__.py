@@ -1,3 +1,4 @@
+from .delegated_agent_executor import DelegatedAgentExecutor
 from .graph import build_agent_orchestrator_graph
 from .mention_parser import MentionedAgentStep, parse_agent_mentions
 from .models import ChildRunMessage, ChildRunRecord, ChildRunStatus
@@ -11,6 +12,7 @@ __all__ = [
     "ChildRunRepository",
     "ChildRunService",
     "ChildRunStatus",
+    "DelegatedAgentExecutor",
     "MentionedAgentStep",
     "parse_agent_mentions",
 ]
