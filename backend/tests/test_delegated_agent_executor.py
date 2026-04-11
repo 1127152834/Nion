@@ -44,3 +44,36 @@ def test_delegated_executor_persists_child_run_messages(tmp_path):
     assert [message.role for message in stored.messages] == ["human", "ai", "tool", "ai"]
     assert stored.messages[0].content == "帮我搜索资料"
     assert stored.messages[-1].content == "最终结果"
+
+
+class FailingChildClient:
+    def stream(self, *args, **kwargs):
+        raise RuntimeError("remote failure")
+
+
+def test_delegated_executor_marks_child_run_failed_when_child_agent_crashes(tmp_path):
+    repo = ChildRunRepository(base_dir=tmp_path)
+    executor = DelegatedAgentExecutor(
+        repository=repo,
+        client_factory=lambda **kwargs: FailingChildClient(),
+    )
+
+    events = list(
+        executor.stream(
+            parent_thread_id="thread-1",
+            agent_name="research-agent",
+            prompt="帮我搜索资料",
+        )
+    )
+
+    created = next(
+        event for event in events if event.type == "custom" and event.data["type"] == "child_run_created"
+    )
+    failed = next(
+        event for event in events if event.type == "custom" and event.data["type"] == "child_run_failed"
+    )
+    stored = repo.get("thread-1", created.data["child_run_id"])
+
+    assert failed.data["error"] == "remote failure"
+    assert stored.status == "closed"
+    assert stored.error == "remote failure"

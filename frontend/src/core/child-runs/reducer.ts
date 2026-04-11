@@ -4,6 +4,7 @@ type ChildRunEvent =
   | { type: "child_run_created"; child_run_id: string; agent_name: string }
   | { type: "child_run_running"; child_run_id: string; message: string }
   | { type: "child_run_completed"; child_run_id: string; result: string }
+  | { type: "child_run_failed"; child_run_id: string; error: string }
   | { type: "child_run_closed"; child_run_id: string };
 
 export function reduceChildRunEvent(
@@ -44,6 +45,17 @@ export function reduceChildRunEvent(
         ...existing,
         status: "completed",
         result: event.result,
+      },
+    };
+  }
+
+  if (event.type === "child_run_failed") {
+    return {
+      ...current,
+      [event.child_run_id]: {
+        ...existing,
+        status: "failed",
+        error: event.error,
       },
     };
   }

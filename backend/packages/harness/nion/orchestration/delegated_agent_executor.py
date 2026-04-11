@@ -72,55 +72,74 @@ class DelegatedAgentExecutor:
             },
         )
 
-        client = self._client_factory(agent_name=agent_name)
-        final_text = ""
-        for event in client.stream(
-            prompt,
-            thread_id=f"{parent_thread_id}-{child_run_id}",
-            agent_name=agent_name,
-            model_name=model_name,
-            memory_write=False,
-            session_mode="temporary_chat",
-        ):
-            if event.type == "messages-tuple" and event.data.get("type") == "ai":
-                content = event.data.get("content", "")
-                if isinstance(content, str) and content:
-                    final_text = content
-                    record = self._append_message(record, role="ai", content=content)
-                    yield StreamEvent(
-                        type="custom",
-                        data={
-                            "type": "child_run_running",
-                            "child_run_id": child_run_id,
-                            "message": content,
-                        },
-                    )
-            elif event.type == "messages-tuple" and event.data.get("type") == "tool":
-                content = event.data.get("content", "")
-                if isinstance(content, str) and content:
-                    record = self._append_message(record, role="tool", content=content)
+        try:
+            client = self._client_factory(agent_name=agent_name)
+            final_text = ""
+            for event in client.stream(
+                prompt,
+                thread_id=f"{parent_thread_id}-{child_run_id}",
+                agent_name=agent_name,
+                model_name=model_name,
+                memory_write=False,
+                session_mode="temporary_chat",
+            ):
+                if event.type == "messages-tuple" and event.data.get("type") == "ai":
+                    content = event.data.get("content", "")
+                    if isinstance(content, str) and content:
+                        final_text = content
+                        record = self._append_message(record, role="ai", content=content)
+                        yield StreamEvent(
+                            type="custom",
+                            data={
+                                "type": "child_run_running",
+                                "child_run_id": child_run_id,
+                                "message": content,
+                            },
+                        )
+                elif event.type == "messages-tuple" and event.data.get("type") == "tool":
+                    content = event.data.get("content", "")
+                    if isinstance(content, str) and content:
+                        record = self._append_message(record, role="tool", content=content)
 
-        completed = record.model_copy(
-            update={
-                "status": "completed",
-                "result": final_text,
-                "finished_at": utcnow_z(),
-            }
-        )
-        self._repository.save(completed)
-        yield StreamEvent(
-            type="custom",
-            data={
-                "type": "child_run_completed",
-                "child_run_id": child_run_id,
-                "result": final_text,
-            },
-        )
-        self._repository.close(parent_thread_id, child_run_id)
-        yield StreamEvent(
-            type="custom",
-            data={
-                "type": "child_run_closed",
-                "child_run_id": child_run_id,
-            },
-        )
+            completed = record.model_copy(
+                update={
+                    "status": "completed",
+                    "result": final_text,
+                    "finished_at": utcnow_z(),
+                }
+            )
+            self._repository.save(completed)
+            yield StreamEvent(
+                type="custom",
+                data={
+                    "type": "child_run_completed",
+                    "child_run_id": child_run_id,
+                    "result": final_text,
+                },
+            )
+        except Exception as exc:
+            failed = record.model_copy(
+                update={
+                    "status": "failed",
+                    "error": str(exc),
+                    "finished_at": utcnow_z(),
+                }
+            )
+            self._repository.save(failed)
+            yield StreamEvent(
+                type="custom",
+                data={
+                    "type": "child_run_failed",
+                    "child_run_id": child_run_id,
+                    "error": str(exc),
+                },
+            )
+        finally:
+            self._repository.close(parent_thread_id, child_run_id)
+            yield StreamEvent(
+                type="custom",
+                data={
+                    "type": "child_run_closed",
+                    "child_run_id": child_run_id,
+                },
+            )
