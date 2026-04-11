@@ -56,6 +56,7 @@ class AgentCreateRequest(BaseModel):
     model: str | None = Field(default=None, description="Optional model override")
     tool_groups: list[str] | None = Field(default=None, description="Optional tool group whitelist")
     soul: str = Field(default="", description="SOUL.md content — agent personality and behavioral guardrails")
+    delegation: dict | None = Field(default=None, description="Delegated execution policy override")
 
 
 class AgentUpdateRequest(BaseModel):
@@ -65,6 +66,7 @@ class AgentUpdateRequest(BaseModel):
     model: str | None = Field(default=None, description="Updated model override")
     tool_groups: list[str] | None = Field(default=None, description="Updated tool group whitelist")
     soul: str | None = Field(default=None, description="Updated SOUL.md content")
+    delegation: dict | None = Field(default=None, description="Updated delegated execution policy")
 
 
 def _validate_agent_name(name: str) -> None:
@@ -238,6 +240,8 @@ async def create_agent_endpoint(request: AgentCreateRequest) -> AgentResponse:
             config_data["model"] = request.model
         if request.tool_groups is not None:
             config_data["tool_groups"] = request.tool_groups
+        if request.delegation is not None:
+            config_data["delegation"] = request.delegation
 
         config_file = agent_dir / "config.yaml"
         with open(config_file, "w", encoding="utf-8") as f:
@@ -299,7 +303,10 @@ async def update_agent(name: str, request: AgentUpdateRequest) -> AgentResponse:
 
     try:
         # Update config if any config fields changed
-        config_changed = any(v is not None for v in [request.description, request.model, request.tool_groups])
+        config_changed = any(
+            v is not None
+            for v in [request.description, request.model, request.tool_groups, request.delegation]
+        )
 
         if config_changed:
             updated: dict = {
@@ -313,6 +320,14 @@ async def update_agent(name: str, request: AgentUpdateRequest) -> AgentResponse:
             new_tool_groups = request.tool_groups if request.tool_groups is not None else agent_cfg.tool_groups
             if new_tool_groups is not None:
                 updated["tool_groups"] = new_tool_groups
+
+            new_delegation = (
+                request.delegation
+                if request.delegation is not None
+                else agent_cfg.delegation.model_dump(mode="json")
+            )
+            if new_delegation is not None:
+                updated["delegation"] = new_delegation
 
             config_file = agent_dir / "config.yaml"
             with open(config_file, "w", encoding="utf-8") as f:
