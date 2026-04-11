@@ -28,6 +28,8 @@
 - 用户身份主档：后端新增 `/api/user-identity` 稳定 owner，用于承载用户姓名、互相称谓与长期沟通偏好这类 always-on 身份信息；运行时上下文会优先注入这层，再拼接稳定 Soul
 - 显式身份提取：记忆提取链已能确定性识别“我叫张天成”“你以后叫我大哥，我叫你小老弟”这类名字与互称契约信号，避免再被误折叠成泛化称呼偏好
 - 聊天直写闭环：当前轮显式说出的名字、互称规则、沟通偏好会直接写入 `UserIdentityProfile`，后续 continuity/runtime 不再依赖下一轮 recall 才生效
+- Soul 直写闭环：当前轮显式说出的长期说话方式、价值边界、关系基调会直接写入 stable soul，不再只停留在设置页或 onboarding tool
+- 稳定身份投影：`/api/memory` 的 `user_profile` 现在会投影用户姓名、互称、沟通偏好、角色、时区、互动边界、长期背景等稳定身份信息
 - 稳定设置写入合同：`/api/user-identity` 与 `/api/memory/soul` 已支持字段级即时写入，为设置页的卡片级保存提供后端基础
 - 互称规则归一化：即使用户在设置页分开保存“称呼你”和“我的自称”，系统也会自动生成稳定的互称规则，避免出现半配置状态
 - Memory OS：当前代码库已将 user model、prompt/continuity context、growth governance、retention、agent-owned automation ownership 全部纳入统一 Memory OS 主链

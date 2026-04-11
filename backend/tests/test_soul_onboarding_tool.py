@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from nion.memory.soul.console_service import build_soul_settings_payload
 from nion.memory_os.compat import finalize_legacy_cutover
 from nion.memory_os.repository import MemoryOSRepository
 from nion.tools.builtins.soul_onboarding_tool import initialize_soul_profile
@@ -28,3 +29,8 @@ def test_initialize_soul_profile_replaces_default_seed_with_user_initialized_cor
     assert record["status"] == "active"
     assert record["provenance"]["initialized"] is True
     assert "温柔但清晰" in record["summary"]
+
+    settings = build_soul_settings_payload(repo, now_z="2026-04-11T00:00:00Z")
+    assert settings["core_identity"] == "温柔但清晰，先理解再表达，尽量陪伴式沟通。"
+    assert settings["speech_style"] == "少说教；少压迫感；结论先行"
+    assert settings["values_and_boundaries"] == "长期陪伴；真诚；克制"

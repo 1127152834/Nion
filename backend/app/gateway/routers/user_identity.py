@@ -16,12 +16,14 @@ router = APIRouter(prefix="/api/user-identity", tags=["memory"])
 class UserIdentityPatchRequest(BaseModel):
     field: Literal[
         "user_name",
+        "user_aliases",
         "preferred_address_for_user",
         "assistant_self_name",
         "mutual_addressing_rule",
         "communication_style_preferences",
         "user_role",
         "timezone",
+        "interaction_boundaries",
         "long_term_background_summary",
     ]
     value: str | list[str]
@@ -48,7 +50,7 @@ def _normalize_patch_value(
     field: str,
     value: str | list[str],
 ) -> str | list[str]:
-    if field == "communication_style_preferences":
+    if field in {"communication_style_preferences", "interaction_boundaries", "user_aliases"}:
         return _normalize_preference_values(value)
     if not isinstance(value, str):
         raise HTTPException(status_code=400, detail="Invalid user identity patch value")

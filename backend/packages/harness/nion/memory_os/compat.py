@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from nion.config.paths import get_paths
+from nion.user_identity.repository import UserIdentityRepository
 
 from .clock import utcnow_z
 from .import_legacy import import_legacy_memory_payload
@@ -88,7 +89,7 @@ def build_memory_user_facing_payload(repository: MemoryOSRepository | None = Non
     history = payload.get("history", {})
     facts = payload.get("facts", [])
 
-    user_profile = [
+    user_profile = _build_user_identity_items(repository) + [
         item
         for item in (
             _build_memory_user_facing_context_item(
@@ -415,6 +416,52 @@ def _build_memory_user_facing_context_item(
         "reason": reason,
         "related_refs": [],
     }
+
+
+def _build_user_identity_items(
+    repository: MemoryOSRepository | None,
+) -> list[dict[str, Any]]:
+    del repository
+    profile = UserIdentityRepository(get_paths().base_dir).load()
+    updated_at = profile.updated_at
+    definitions = (
+        ("user_profile.user_name", "用户姓名", profile.user_name, "用户身份主档中的稳定姓名。"),
+        ("user_profile.preferred_address", "称呼你", profile.preferred_address_for_user, "系统当前对用户的稳定称呼。"),
+        ("user_profile.assistant_self_name", "我的自称", profile.assistant_self_name, "系统当前对自己的稳定自称。"),
+        ("user_profile.mutual_addressing_rule", "互称规则", profile.mutual_addressing_rule, "系统当前沿用的稳定互称规则。"),
+        (
+            "user_profile.communication_preferences",
+            "沟通偏好",
+            " / ".join(profile.communication_style_preferences),
+            "长期稳定的回答方式偏好。",
+        ),
+        ("user_profile.user_role", "用户角色", profile.user_role, "长期稳定的用户角色信息。"),
+        ("user_profile.timezone", "时区", profile.timezone, "当前用户稳定时区。"),
+        (
+            "user_profile.interaction_boundaries",
+            "互动边界",
+            " / ".join(profile.interaction_boundaries),
+            "长期稳定的互动边界与协作约束。",
+        ),
+        (
+            "user_profile.long_term_background",
+            "长期背景",
+            profile.long_term_background_summary,
+            "稳定的长期背景摘要。",
+        ),
+    )
+    items: list[dict[str, Any]] = []
+    for item_id, source_label, content, reason in definitions:
+        section = {"summary": content, "updatedAt": updated_at}
+        item = _build_memory_user_facing_context_item(
+            section=section,
+            item_id=item_id,
+            source_label=source_label,
+            reason=reason,
+        )
+        if item is not None:
+            items.append(item)
+    return items
 
 
 def _build_memory_user_facing_fact_item(fact: dict[str, Any]) -> dict[str, Any] | None:

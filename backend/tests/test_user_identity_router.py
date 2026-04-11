@@ -75,3 +75,39 @@ def test_user_identity_router_derives_mutual_addressing_rule_from_two_address_fi
     assert profile.json()["preferred_address_for_user"] == "大哥"
     assert profile.json()["assistant_self_name"] == "小老弟"
     assert profile.json()["mutual_addressing_rule"] == "你叫我大哥，我叫你小老弟"
+
+
+def test_user_identity_router_patches_extended_fields(monkeypatch, tmp_path) -> None:
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+
+    with TestClient(create_app()) as client:
+        role = client.patch("/api/user-identity", json={"field": "user_role", "value": "财务 BP"})
+        timezone = client.patch("/api/user-identity", json={"field": "timezone", "value": "Asia/Shanghai"})
+        boundaries = client.patch(
+            "/api/user-identity",
+            json={"field": "interaction_boundaries", "value": ["不要替我拍板", "少施压"]},
+        )
+        aliases = client.patch(
+            "/api/user-identity",
+            json={"field": "user_aliases", "value": ["老张", "张总"]},
+        )
+        background = client.patch(
+            "/api/user-identity",
+            json={
+                "field": "long_term_background_summary",
+                "value": "长期负责经营分析与月度复盘。",
+            },
+        )
+        profile = client.get("/api/user-identity")
+
+    assert role.status_code == 200
+    assert timezone.status_code == 200
+    assert boundaries.status_code == 200
+    assert aliases.status_code == 200
+    assert background.status_code == 200
+    assert profile.json()["user_role"] == "财务 BP"
+    assert profile.json()["timezone"] == "Asia/Shanghai"
+    assert profile.json()["interaction_boundaries"] == ["不要替我拍板", "少施压"]
+    assert profile.json()["user_aliases"] == ["老张", "张总"]
+    assert profile.json()["long_term_background_summary"] == "长期负责经营分析与月度复盘。"

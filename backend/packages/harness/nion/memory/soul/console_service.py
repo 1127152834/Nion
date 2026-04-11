@@ -117,6 +117,7 @@ def patch_soul_setting_value(
         raise ValueError("settings")
 
     if field == "values_and_boundaries":
+        _ensure_soul_core_exists(repository, created_at=created_at, actor=actor)
         repository.save_user_override(
             UserOverrideRecord(
                 override_id=_VALUES_AND_BOUNDARIES_OVERRIDE_ID,
@@ -167,6 +168,39 @@ def _load_values_override(repository: MemoryOSRepository) -> str | None:
         return None
     text = str(item.value.get("text", "")).strip()
     return text or None
+
+
+def _ensure_soul_core_exists(
+    repository: MemoryOSRepository,
+    *,
+    created_at: str,
+    actor: str,
+) -> None:
+    existing_summary = ""
+    record = _find_memory_record(repository, "soul_core_main")
+    if record is not None:
+        existing_summary = str(record.get("summary", "")).strip()
+    if not existing_summary:
+        node = repository.get_memory_node("soul_core_main")
+        if node is not None:
+            existing_summary = str(node.summary).strip()
+    summary = existing_summary or _DEFAULT_CORE_IDENTITY
+    _update_record_summary(
+        repository,
+        "soul_core_main",
+        summary,
+        created_at,
+        actor,
+    )
+    _upsert_memory_node(
+        repository,
+        memory_id="soul_core_main",
+        canonical_key="soul:layer:core:agent:main",
+        scope="agent",
+        layer="core",
+        summary=summary,
+        created_at=created_at,
+    )
 
 
 def _update_record_summary(

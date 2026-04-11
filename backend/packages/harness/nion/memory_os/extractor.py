@@ -62,10 +62,15 @@ def _proposal_to_candidate(*, proposal: MemoryProposal, thread_id: str) -> Candi
         "explicit_preference": "communication_preference",
         "user_name": "identity_name",
         "mutual_addressing": "mutual_addressing",
+        "user_role": "identity_role",
+        "timezone": "timezone",
         "work_context": "work_context",
         "address_style": "address_style",
         "initiative_boundary": "initiative_policy",
         "learning_topic_hint": "topic",
+        "soul_speech_style": "soul_speech_style",
+        "soul_values_and_boundaries": "soul_values_and_boundaries",
+        "soul_relationship_stance": "soul_relationship_stance",
     }
     return CandidateRecord(
         candidate_id=f"cand_{uuid.uuid4().hex[:10]}",

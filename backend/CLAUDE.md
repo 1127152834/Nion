@@ -104,6 +104,7 @@ When extending memory in this repository:
 - do not reintroduce runtime dependence on `memory.json` or legacy `nion.agents.memory.*`
 - do not reintroduce the old provider-based memory / AutoDream product shell
 - explicit user identity statements such as user name and mutual addressing must be extracted deterministically; do not let them collapse back into generic `address_style` only
+- explicit long-term soul instructions such as answer style, values/boundaries, and relationship stance must write into stable soul directly; do not leave them in onboarding-only or prompt-only limbo
 - current product surface expectation:
   - `/workspace/memory` must stay as the single user-facing memory surface and only expose grouped user-facing memory content
   - `/workspace/memory` must not expose governance, growth, ledger, evidence, runtime-trace, or soul-control routes
@@ -127,11 +128,14 @@ When extending memory in this repository:
 Soul product contract in this repository:
 
 - `/api/user-identity` is the stable owner surface for user name, mutual addressing, and long-term communication preferences.
+- `/api/user-identity` also owns stable extended identity fields such as `user_role`, `timezone`, `interaction_boundaries`, `long_term_background_summary`, and `user_aliases`.
 - `PATCH /api/user-identity` is the field-level immediate write path for stable user identity updates.
 - When `preferred_address_for_user` and `assistant_self_name` are both present, the stable profile should auto-derive `mutual_addressing_rule` unless the caller explicitly overrides it.
 - Explicit user identity statements from the current user turn should write straight into the stable profile before continuity/runtime assembly; do not add proposal-confirmation indirection for this lane.
+- `/api/memory` user-facing payload must project stable identity fields from `UserIdentityProfile` ahead of old `workContext / personalContext / topOfMind` context slots.
 - `/api/memory/soul` returns the stable settings-shaped payload used by `Settings > Soul`.
 - `PATCH /api/memory/soul` is the preferred field-level write path for stable soul settings.
+- Explicit long-term soul instructions from chat must reuse the same stable soul patch path as `/api/memory/soul`, not a sidecar proposal lane.
 - `/api/memory/soul/apply` remains available as the bulk update path while the product surface is moving away from draft/apply flows.
 - `adaptive_overlay` may still exist internally, but proposal / rollback / growth governance routes are not part of the product-facing API surface.
 - `relationship_soul` remains a derived soul layer, not a new relationship truth source.

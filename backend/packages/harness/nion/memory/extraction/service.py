@@ -34,6 +34,26 @@ def _extract_from_content(*, content: str, evidence_id: str) -> list[MemoryPropo
     if mutual_addressing is not None:
         proposals.append(mutual_addressing)
 
+    user_role = _extract_user_role(content=content, evidence_id=evidence_id)
+    if user_role is not None:
+        proposals.append(user_role)
+
+    timezone = _extract_timezone(content=content, evidence_id=evidence_id)
+    if timezone is not None:
+        proposals.append(timezone)
+
+    soul_speech_style = _extract_soul_speech_style(content=content, evidence_id=evidence_id)
+    if soul_speech_style is not None:
+        proposals.append(soul_speech_style)
+
+    soul_values = _extract_soul_values_and_boundaries(content=content, evidence_id=evidence_id)
+    if soul_values is not None:
+        proposals.append(soul_values)
+
+    soul_relationship = _extract_soul_relationship_stance(content=content, evidence_id=evidence_id)
+    if soul_relationship is not None:
+        proposals.append(soul_relationship)
+
     preference = _extract_explicit_preference(content=content, evidence_id=evidence_id)
     if preference is not None:
         proposals.append(preference)
@@ -100,6 +120,133 @@ def _extract_mutual_addressing(*, content: str, evidence_id: str) -> MemoryPropo
         estimated_confidence=0.97,
         change_type="new",
         judge_hints=["explicit_user_statement", "mutual_addressing_signal"],
+    )
+
+
+def _extract_user_role(*, content: str, evidence_id: str) -> MemoryProposal | None:
+    for pattern in (
+        r"(?:我是|我是一名)([^，。！？；]{2,24})",
+        r"(?:我主要负责|我负责)([^，。！？；]{2,24})",
+    ):
+        match = re.search(pattern, content)
+        if match is None:
+            continue
+        role = _clean_fragment(match.group(1))
+        role = re.sub(r"^(一个|一名)", "", role).strip()
+        if role.startswith("负责"):
+            role = role.removeprefix("负责").strip()
+        if role:
+            return _proposal(
+                proposed_domain="user_model",
+                proposed_kind="user_role",
+                candidate_claim=f"用户角色：{role}",
+                candidate_payload={"user_role": role},
+                supporting_evidence_ids=[evidence_id],
+                estimated_stability="stable",
+                estimated_salience=0.82,
+                estimated_confidence=0.9,
+                change_type="new",
+                judge_hints=["explicit_user_statement", "identity_role_signal"],
+            )
+    return None
+
+
+def _extract_timezone(*, content: str, evidence_id: str) -> MemoryProposal | None:
+    match = re.search(
+        r"(?:时区(?:是|在)?|timezone(?: is)?)(?:\s*[:：]?\s*)([A-Za-z]+\/[A-Za-z0-9_\-+]+|UTC[+-]?\d{1,2}|GMT[+-]?\d{1,2}|东八区|西八区|北京时间)",
+        content,
+        flags=re.IGNORECASE,
+    )
+    if match is None:
+        return None
+    timezone = _clean_fragment(match.group(1))
+    if not timezone:
+        return None
+    return _proposal(
+        proposed_domain="user_model",
+        proposed_kind="timezone",
+        candidate_claim=f"用户时区：{timezone}",
+        candidate_payload={"timezone": timezone},
+        supporting_evidence_ids=[evidence_id],
+        estimated_stability="stable",
+        estimated_salience=0.78,
+        estimated_confidence=0.9,
+        change_type="new",
+        judge_hints=["explicit_user_statement", "timezone_signal"],
+    )
+
+
+def _extract_soul_speech_style(*, content: str, evidence_id: str) -> MemoryProposal | None:
+    if "以后你回答" not in content and "你以后" not in content:
+        return None
+    hints: list[str] = []
+    if "冷静" in content:
+        hints.append("冷静")
+    if "先给结论" in content or "先说结论" in content or "结论先行" in content:
+        hints.append("先给结论")
+    if "别太热情" in content or "少热情" in content:
+        hints.append("少热情")
+    if not hints:
+        return None
+    return _proposal(
+        proposed_domain="soul",
+        proposed_kind="soul_speech_style",
+        candidate_claim=content,
+        candidate_payload={"speech_style": "、".join(hints) + "。"},
+        supporting_evidence_ids=[evidence_id],
+        estimated_stability="stable",
+        estimated_salience=0.91,
+        estimated_confidence=0.94,
+        change_type="new",
+        judge_hints=["explicit_user_statement", "stable_soul_signal"],
+    )
+
+
+def _extract_soul_values_and_boundaries(*, content: str, evidence_id: str) -> MemoryProposal | None:
+    if "你以后" not in content and "以后你" not in content:
+        return None
+    value: str | None = None
+    if any(token in content for token in ("不要替我拍板", "不要替我做决定", "别替我做决定")):
+        value = "不替用户拍板。"
+    elif any(token in content for token in ("你可以替我拍板", "你来替我做决定")):
+        value = "可以替用户拍板。"
+    if value is None:
+        return None
+    return _proposal(
+        proposed_domain="soul",
+        proposed_kind="soul_values_and_boundaries",
+        candidate_claim=content,
+        candidate_payload={"values_and_boundaries": value},
+        supporting_evidence_ids=[evidence_id],
+        estimated_stability="stable",
+        estimated_salience=0.9,
+        estimated_confidence=0.95,
+        change_type="new",
+        judge_hints=["explicit_user_statement", "stable_soul_signal"],
+    )
+
+
+def _extract_soul_relationship_stance(*, content: str, evidence_id: str) -> MemoryProposal | None:
+    if "关系" not in content and "你以后" not in content:
+        return None
+    hints: list[str] = []
+    if "低刺激" in content:
+        hints.append("低刺激")
+    if "少施压" in content:
+        hints.append("少施压")
+    if not hints:
+        return None
+    return _proposal(
+        proposed_domain="soul",
+        proposed_kind="soul_relationship_stance",
+        candidate_claim=content,
+        candidate_payload={"relationship_stance": "、".join(hints) + "。"},
+        supporting_evidence_ids=[evidence_id],
+        estimated_stability="stable",
+        estimated_salience=0.88,
+        estimated_confidence=0.93,
+        change_type="new",
+        judge_hints=["explicit_user_statement", "stable_soul_signal"],
     )
 
 

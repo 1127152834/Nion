@@ -141,6 +141,36 @@ def test_extract_memory_proposals_from_evidence_extracts_user_identity_contract(
     assert mutual_addressing.supporting_evidence_ids == ["ev_identity"]
 
 
+def test_extract_memory_proposals_from_evidence_extracts_stable_soul_and_extended_identity_signals():
+    proposals = extract_memory_proposals_from_evidence(
+        evidence_documents=[
+            _evidence_document(
+                evidence_id="ev_soul",
+                turn_id="turn-soul",
+                content=(
+                    "我是财务 BP，时区是 Asia/Shanghai。"
+                    "以后你回答冷静一点，先给结论，别太热情。"
+                    "你以后不要替我拍板，关系上低刺激一点，少施压。"
+                ),
+            )
+        ]
+    )
+
+    by_kind = {proposal.proposed_kind: proposal for proposal in proposals}
+
+    assert by_kind["user_role"].candidate_payload == {"user_role": "财务 BP"}
+    assert by_kind["timezone"].candidate_payload == {"timezone": "Asia/Shanghai"}
+    assert by_kind["soul_speech_style"].candidate_payload == {
+        "speech_style": "冷静、先给结论、少热情。"
+    }
+    assert by_kind["soul_values_and_boundaries"].candidate_payload == {
+        "values_and_boundaries": "不替用户拍板。"
+    }
+    assert by_kind["soul_relationship_stance"].candidate_payload == {
+        "relationship_stance": "低刺激、少施压。"
+    }
+
+
 def test_memory_os_extractor_is_thin_compatibility_wrapper_over_extraction_service():
     candidates = extract_candidates_from_exchange(
         messages=[

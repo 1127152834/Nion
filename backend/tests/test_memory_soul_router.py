@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 
 from app.gateway.app import create_app
+from app.gateway.routers import memory_soul
 from nion.memory_os.repository import MemoryOSRepository
 
 
@@ -9,6 +10,7 @@ def test_memory_soul_router_exposes_settings_payload_without_governance_actions(
     tmp_path,
 ) -> None:
     monkeypatch.setenv("NION_HOME", str(tmp_path))
+    monkeypatch.setattr(memory_soul, "utcnow_z", lambda: "2026-04-10T00:00:00Z")
     repo = MemoryOSRepository(tmp_path / "memory-os" / "index.sqlite3")
     repo.save_memory_record(
         {

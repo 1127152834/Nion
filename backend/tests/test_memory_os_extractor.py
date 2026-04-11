@@ -37,3 +37,27 @@ def test_extractor_turns_user_identity_contract_into_user_identity_candidates():
 
     assert by_subtype["mutual_addressing"].proposed_domain == "relationship"
     assert by_subtype["mutual_addressing"].summary == "你叫我大哥，我叫你小老弟"
+
+
+def test_extractor_does_not_crash_when_messages_contain_stable_soul_or_extended_identity_signals():
+    candidates = extract_candidates_from_exchange(
+        messages=[
+            HumanMessage(
+                content=(
+                    "我是财务 BP，时区是 Asia/Shanghai。"
+                    "以后你回答冷静一点，先给结论，别太热情。"
+                    "你以后不要替我拍板，关系上低刺激一点，少施压。"
+                )
+            ),
+            AIMessage(content="明白。"),
+        ],
+        thread_id="thread-soul",
+    )
+
+    by_subtype = {candidate.proposed_subtype: candidate for candidate in candidates}
+
+    assert "identity_role" in by_subtype
+    assert "timezone" in by_subtype
+    assert "soul_speech_style" in by_subtype
+    assert "soul_values_and_boundaries" in by_subtype
+    assert "soul_relationship_stance" in by_subtype
