@@ -11,7 +11,7 @@
 3. 被调度智能体默认不直接向用户发言，只把结果回传主智能体。
 4. child run 可在左侧展开查看，但不进入正式 thread history / search。
 5. delegated 态的 permissions / private skills / SOUL / memory 规则可预测、可验证。
-6. 站内协同优先走 LangGraph 编排；ACP 是当前可运行的 remote transport，A2A 在本阶段只验证 discovery-ready seam。
+6. 站内协同优先走 LangGraph 编排；ACP 与 A2A 都必须作为真实可运行的 remote transport，而不是文档占位 seam。
 
 ## Expanded Test Plan
 
@@ -158,11 +158,11 @@
 
 ### A2A Flow
 
-1. 配置一个 A2A agent card mock / adapter
-2. 调用 discovery seam 拉取 agent card
-3. 确认系统当前明确报出 “discovery-only，未实现 remote execution/session/streaming”
-4. 确认本地 custom agent 仍走站内 LangGraph path
-5. 确认不会把 A2A discovery 误描述成已可用的执行 transport
+1. 配置一个 A2A-compatible remote agent mock / adapter
+2. 构造跨 runtime 的远程协同任务
+3. 确认系统先拉取 agent card，再通过 `message/send` 或 `message/stream` 发起调用
+4. 确认同一 thread 的后续调用会复用远端 `contextId/taskId`
+5. 确认本地 custom agent 仍走站内 LangGraph path，且远端 agent 的 opaque state 不泄漏到本地 child-run contract
 
 ## Verification by Workstream
 
@@ -188,7 +188,7 @@
 
 - 通过阈值：
   - delegated policy contract tests 全绿
-  - ACP seam smoke 通过，A2A discovery seam 合同通过
+  - ACP/A2A transport seam smoke 通过
 - 关键用例：
   - permission ceiling 生效
   - remote transport 只在需要时触发
@@ -200,4 +200,4 @@
 - Frontend contract/e2e 通过
 - 主线程统一回复规则无破例
 - child run 不进入正式线程搜索/归档
-- ACP/A2A seam 不影响本地默认编排路径，且 A2A discovery-only 边界清晰
+- ACP/A2A seam 不影响本地默认编排路径，且 A2A remote execution/session/streaming 行为可验证

@@ -155,6 +155,25 @@ def build_acp_section() -> str:
     )
 
 
+def build_a2a_section() -> str:
+    try:
+        from nion.config.a2a_config import get_a2a_agents
+
+        agents = get_a2a_agents()
+        if not agents:
+            return ""
+    except Exception:
+        return ""
+
+    return (
+        "\n**A2A Agent Tasks (invoke_a2a_agent):**\n"
+        "- A2A agents are remote runtimes reached through the A2A protocol.\n"
+        "- Write self-contained prompts and do not assume they can see local `/mnt/user-data` paths.\n"
+        "- Reuse the same thread when follow-up calls should continue the remote A2A context.\n"
+        "- Use `invoke_a2a_agent` only when a configured A2A agent is actually needed.\n"
+    )
+
+
 def _normalize_selected_entries(values: list[str] | None) -> list[str]:
     if not values:
         return []
@@ -306,6 +325,19 @@ class ExtensionPromptSectionProvider:
                     scope="session_dynamic",
                     layer="extension",
                     order=70,
+                )
+            )
+
+        a2a_section = build_a2a_section()
+        if a2a_section:
+            sections.append(
+                PromptSection(
+                    key="dynamic.a2a",
+                    title=None,
+                    content=a2a_section,
+                    scope="session_dynamic",
+                    layer="extension",
+                    order=75,
                 )
             )
 

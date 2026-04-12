@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal, Protocol
 
+from nion.config.a2a_config import A2AAgentConfig
 from nion.config.acp_config import ACPAgentConfig
 
 TransportKind = Literal["local", "acp", "a2a"]
@@ -14,6 +15,7 @@ class RemoteAgentTarget:
     agent_name: str
     base_url: str | None = None
     acp_config: ACPAgentConfig | None = None
+    a2a_config: A2AAgentConfig | None = None
 
 
 class RemoteAgentTransport(Protocol):
@@ -37,6 +39,11 @@ def resolve_remote_transport(target: RemoteAgentTarget) -> RemoteAgentTransport:
             agent_name=target.agent_name,
             agent_config=target.acp_config,
         )
-    from nion.orchestration.remote_transports.a2a import A2ADiscoveryTransport
+    from nion.orchestration.remote_transports.a2a import A2ATransport
 
-    return A2ADiscoveryTransport(base_url=target.base_url or "")
+    if target.a2a_config is None:
+        raise ValueError("A2A transport requires a2a_config")
+    return A2ATransport.from_config(
+        agent_name=target.agent_name,
+        agent_config=target.a2a_config,
+    )

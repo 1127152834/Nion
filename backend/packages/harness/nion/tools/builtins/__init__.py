@@ -37,6 +37,7 @@ from .control_plane_tools import (
     update_skill_tool,
 )
 from .present_file_tool import present_file_tool
+from .invoke_a2a_agent_tool import build_invoke_a2a_agent_tool
 from .setup_agent_tool import setup_agent
 from .soul_onboarding_tool import initialize_soul_profile
 from .skill_tool import use_skill_tool
@@ -48,6 +49,7 @@ __all__ = [
     "initialize_soul_profile",
     "use_skill_tool",
     "present_file_tool",
+    "build_invoke_a2a_agent_tool",
     "ask_clarification_tool",
     "cli_tools_list_tool",
     "cli_tools_install_tool",

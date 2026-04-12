@@ -218,6 +218,18 @@ class Paths:
             )
         return self.child_runs_dir(thread_id) / f"{child_run_id}.json"
 
+    def a2a_sessions_dir(self, thread_id: str) -> Path:
+        """Directory for A2A remote-session continuity under a thread."""
+        return self.thread_dir(thread_id) / "a2a-sessions"
+
+    def a2a_session_file(self, thread_id: str, agent_name: str) -> Path:
+        """File path for one thread-scoped A2A agent session record."""
+        if not _SAFE_THREAD_ID_RE.match(agent_name):
+            raise ValueError(
+                f"Invalid agent_name {agent_name!r}: only alphanumeric characters, hyphens, and underscores are allowed."
+            )
+        return self.a2a_sessions_dir(thread_id) / f"{agent_name}.json"
+
     def sandbox_work_dir(self, thread_id: str) -> Path:
         """
         Host path for the agent's sandbox workdir.

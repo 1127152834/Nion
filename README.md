@@ -39,7 +39,7 @@
 - token telemetry：聊天主流与子智能体流式执行会按 chunk 逐步标记 token source，避免跨 Python `Context` 恢复流时触发 telemetry 清理异常
 - 临时子会话：被调度 custom agent 的执行记录会以 parent thread 下的临时 child runs 形式存在，可检查但不进入正式 thread history / search
 - delegated runtime 收口：被调度 custom agent 默认关闭 MCP，并只保留最小化 builtin surface，避免继承主线程的 control-plane / mutation 工具面
-- 远程协同边界：站内 local custom-agent orchestration 默认走 LangGraph；ACP 是当前可运行的 remote transport，A2A 目前保持 discovery-only seam
+- 远程协同边界：站内 local custom-agent orchestration 默认走 LangGraph；ACP 与 A2A 都可以作为真实 remote transport 使用
 
 ---
 

@@ -111,7 +111,23 @@ Current orchestration boundary:
 - child runs are stored outside `ThreadRecord` search/history
 - delegated child runs use a dedicated runtime surface: MCP stays off and builtin tools are reduced to the read-only minimum instead of inheriting workspace control-plane tools
 - delegated turns now emit the standard thread stream shape and reuse the normal finishing path for persistence, project context, CLI state, and title generation
-- ACP is the currently usable remote transport; A2A stays discovery-only in this phase and is not the default in-app local orchestration path
+- ACP and A2A are both usable remote transports; neither is the default in-app local orchestration path
+
+Remote agent config lives in Config Center:
+
+- `acp_agents.<name>` for ACP adapters
+- `a2a_agents.<name>` for A2A endpoints
+
+`a2a_agents` supports:
+
+- `base_url`
+- `description`
+- `transport` (`auto`, `jsonrpc`, `http+json`)
+- `streaming`
+- `timeout_seconds`
+- `poll_interval_seconds`
+- `max_poll_attempts`
+- `headers`
 
 ### Middleware Chain
 
