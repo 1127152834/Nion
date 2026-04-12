@@ -130,6 +130,113 @@ class ThreadService:
             return set()
         return set(caller_agent.tool_groups)
 
+    def _stream_delegated_turn(
+        self,
+        *,
+        thread_id: str,
+        message_text: str,
+        context: dict[str, Any],
+        existing_record: ThreadRecord | None,
+    ) -> Generator[StreamEvent, None, None]:
+        caller_permissions = self._resolve_caller_permissions(context)
+        graph = build_agent_orchestrator_graph(
+            checkpointer=get_checkpointer(),
+            delegated_executor=self._delegated_executor,
+            agent_resolver=resolve_agent_config,
+            caller_permissions=caller_permissions,
+        )
+        graph_state: dict[str, Any] | None = None
+        for raw_chunk in graph.stream(
+            {"thread_id": thread_id, "user_text": message_text},
+            config={"configurable": {"thread_id": thread_id}},
+            stream_mode=["values", "custom"],
+        ):
+            if (
+                isinstance(raw_chunk, tuple)
+                and len(raw_chunk) == 2
+                and isinstance(raw_chunk[0], str)
+            ):
+                mode, data = raw_chunk
+            else:
+                mode, data = "values", raw_chunk
+
+            if mode == "custom" and isinstance(data, dict):
+                yield StreamEvent(type="custom", data=data)
+                continue
+
+            if mode == "values" and isinstance(data, dict):
+                graph_state = data
+
+        summary_text = str(graph_state.get("final_reply") or "") if graph_state else ""
+        summary_message = {
+            "type": "ai",
+            "content": summary_text,
+            "id": f"delegated:{datetime.now(UTC).timestamp()}",
+        }
+        human_message = {
+            "type": "human",
+            "content": message_text,
+        }
+        existing_messages = (
+            existing_record.values.messages if existing_record is not None else []
+        )
+        existing_artifacts = (
+            existing_record.values.artifacts if existing_record is not None else []
+        )
+        existing_title = existing_record.values.title if existing_record is not None else "Untitled"
+
+        yield StreamEvent(type="messages-tuple", data=summary_message)
+        yield StreamEvent(
+            type="values",
+            data={
+                "title": existing_title,
+                "messages": [*existing_messages, human_message, summary_message],
+                "artifacts": existing_artifacts,
+            },
+        )
+        yield StreamEvent(
+            type="end",
+            data={"usage": {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0}},
+        )
+
+    def _finalize_thread_run(
+        self,
+        *,
+        thread_id: str,
+        latest_values: dict[str, Any],
+        message_text: str,
+        cli_tools_enabled: bool,
+        context: dict[str, Any],
+    ) -> None:
+        latest_values["cli_management"] = self._next_cli_management_state(
+            message_text=message_text,
+            cli_tools_enabled=cli_tools_enabled,
+            previous_state=self._get_cli_management_state(thread_id),
+        ).model_dump()
+        if context.get("project_id"):
+            latest_values["project"] = {
+                "source": "project",
+                "project_id": str(context.get("project_id")),
+                "project_name": str(
+                    context.get("project_name")
+                    or latest_values.get("project", {}).get("project_name")
+                    or "Project"
+                ),
+                "project_phase": context.get("project_phase"),
+                "primary_plan_id": context.get("primary_plan_id"),
+                "inherit_project_context": True,
+            }
+        persisted = self._repository.upsert_thread(
+            thread_id,
+            agent_name=str(context.get("agent_name") or "lead_agent"),
+            values=latest_values,
+        )
+        self._queue_title_generation(
+            thread_id=thread_id,
+            values=persisted.values.model_dump(),
+            context=context,
+        )
+
     def delete_thread(self, thread_id: str) -> None:
         self._repository.delete_thread(thread_id)
 
@@ -147,120 +254,61 @@ class ThreadService:
         existing_record = self._repository.get_thread(thread_id)
         existing_title = existing_record.values.title if existing_record is not None else None
         try:
-            if self._has_delegated_agents(message_text):
-                caller_permissions = self._resolve_caller_permissions(context)
-                graph = build_agent_orchestrator_graph(
-                    checkpointer=get_checkpointer(),
-                    delegated_executor=self._delegated_executor,
-                    agent_resolver=resolve_agent_config,
-                    caller_permissions=caller_permissions,
-                )
-                graph_state: dict[str, Any] | None = None
-                for raw_chunk in graph.stream(
-                    {"thread_id": thread_id, "user_text": message_text},
-                    config={"configurable": {"thread_id": thread_id}},
-                    stream_mode=["values", "custom"],
-                ):
-                    if (
-                        isinstance(raw_chunk, tuple)
-                        and len(raw_chunk) == 2
-                        and isinstance(raw_chunk[0], str)
-                    ):
-                        mode, data = raw_chunk
-                    else:
-                        mode, data = "values", raw_chunk
-
-                    if mode == "custom" and isinstance(data, dict):
-                        yield StreamEvent(type="custom", data=data)
-                        continue
-
-                    if mode == "values" and isinstance(data, dict):
-                        graph_state = data
-
-                summary_text = str(graph_state.get("final_reply") or "") if graph_state else ""
-                summary_message = {
-                    "type": "ai",
-                    "content": summary_text,
-                    "id": f"delegated:{datetime.now(UTC).timestamp()}",
-                }
-                human_message = {
-                    "type": "human",
-                    "content": message_text,
-                }
-                existing_messages = (
-                    existing_record.values.messages if existing_record is not None else []
-                )
-                latest_values = {
-                    "title": existing_title or "Untitled",
-                    "messages": [*existing_messages, human_message, summary_message],
-                    "artifacts": existing_record.values.artifacts if existing_record is not None else [],
-                }
-                persisted = self._repository.upsert_thread(
-                    thread_id,
-                    agent_name=str(context.get("agent_name") or "lead_agent"),
-                    values=latest_values,
-                )
-                yield StreamEvent(type="messages-tuple", data=summary_message)
-                yield StreamEvent(
-                    type="values",
-                    data={
-                        "title": persisted.values.title,
-                        "messages": persisted.values.messages,
-                        "artifacts": persisted.values.artifacts,
-                    },
-                )
-                yield StreamEvent(
-                    type="end",
-                    data={"usage": {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0}},
-                )
-                return
-
             context.setdefault("thread_id", thread_id)
             if request.assistant_id and "agent_name" not in context:
                 normalized_agent_name = _normalize_assistant_id_to_agent_name(request.assistant_id)
                 if normalized_agent_name is not None:
                     context["agent_name"] = normalized_agent_name
 
-            notebook_context = _build_notebook_runtime_context(context)
+            cli_tools_enabled = False
+            if self._has_delegated_agents(message_text):
+                event_stream = self._stream_delegated_turn(
+                    thread_id=thread_id,
+                    message_text=message_text,
+                    context=context,
+                    existing_record=existing_record,
+                )
+            else:
+                notebook_context = _build_notebook_runtime_context(context)
+                selected_cli_tools = _extract_selected_cli_tools(request.messages)
+                cli_tools_enabled = self._should_enable_cli_tools_for_request(
+                    message_text,
+                    thread_id=thread_id,
+                    selected_cli_tools=selected_cli_tools,
+                )
+                event_stream = self._client.stream(
+                    message_text,
+                    thread_id=thread_id,
+                    human_message_payload=human_payload,
+                    model_name=context.get("model_name"),
+                    thinking_enabled=bool(context.get("thinking_enabled", True)),
+                    plan_mode=bool(context.get("is_plan_mode", False)),
+                    subagent_enabled=bool(context.get("subagent_enabled", False)),
+                    cli_tools_enabled=cli_tools_enabled,
+                    requested_skills=context.get("requested_skills", []),
+                    selected_mcp_tools=context.get("selected_mcp_tools", []),
+                    selected_cli_tools=selected_cli_tools,
+                    agent_name=context.get("agent_name"),
+                    recursion_limit=config.get("recursion_limit", 100),
+                    surface=context.get("surface", "workspace"),
+                    notebook_context=notebook_context,
+                    execution_mode=context.get("execution_mode"),
+                    host_workdir=context.get("host_workdir"),
+                    session_mode=context.get("session_mode"),
+                    memory_read=resolve_optional_bool(
+                        context.get("memory_read"),
+                        default=True,
+                    ),
+                    memory_write=resolve_optional_bool(
+                        context.get("memory_write"),
+                        default=context.get("session_mode") != "temporary_chat",
+                    ),
+                    project_id=context.get("project_id"),
+                    project_phase=context.get("project_phase"),
+                    primary_plan_id=context.get("primary_plan_id"),
+                )
 
-            selected_cli_tools = _extract_selected_cli_tools(request.messages)
-            cli_tools_enabled = self._should_enable_cli_tools_for_request(
-                message_text,
-                thread_id=thread_id,
-                selected_cli_tools=selected_cli_tools,
-            )
-
-            for event in self._client.stream(
-                message_text,
-                thread_id=thread_id,
-                human_message_payload=human_payload,
-                model_name=context.get("model_name"),
-                thinking_enabled=bool(context.get("thinking_enabled", True)),
-                plan_mode=bool(context.get("is_plan_mode", False)),
-                subagent_enabled=bool(context.get("subagent_enabled", False)),
-                cli_tools_enabled=cli_tools_enabled,
-                requested_skills=context.get("requested_skills", []),
-                selected_mcp_tools=context.get("selected_mcp_tools", []),
-                selected_cli_tools=selected_cli_tools,
-                agent_name=context.get("agent_name"),
-                recursion_limit=config.get("recursion_limit", 100),
-                surface=context.get("surface", "workspace"),
-                notebook_context=notebook_context,
-                execution_mode=context.get("execution_mode"),
-                host_workdir=context.get("host_workdir"),
-                session_mode=context.get("session_mode"),
-                memory_read=resolve_optional_bool(
-                    context.get("memory_read"),
-                    default=True,
-                ),
-                memory_write=resolve_optional_bool(
-                    context.get("memory_write"),
-                    default=context.get("session_mode") != "temporary_chat",
-                ),
-                project_id=context.get("project_id"),
-                project_phase=context.get("project_phase"),
-                primary_plan_id=context.get("primary_plan_id"),
-            ):
+            for event in event_stream:
                 if event.type == "values":
                     incoming_title = event.data.get("title")
                     resolved_title = resolve_preferred_thread_title(
@@ -277,32 +325,11 @@ class ThreadService:
                 yield event
 
             if latest_values is not None:
-                latest_values["cli_management"] = self._next_cli_management_state(
+                self._finalize_thread_run(
+                    thread_id=thread_id,
+                    latest_values=latest_values,
                     message_text=message_text,
                     cli_tools_enabled=cli_tools_enabled,
-                    previous_state=self._get_cli_management_state(thread_id),
-                ).model_dump()
-                if context.get("project_id"):
-                    latest_values["project"] = {
-                        "source": "project",
-                        "project_id": str(context.get("project_id")),
-                        "project_name": str(
-                            context.get("project_name")
-                            or latest_values.get("project", {}).get("project_name")
-                            or "Project"
-                        ),
-                        "project_phase": context.get("project_phase"),
-                        "primary_plan_id": context.get("primary_plan_id"),
-                        "inherit_project_context": True,
-                    }
-                persisted = self._repository.upsert_thread(
-                    thread_id,
-                    agent_name=str(context.get("agent_name") or "lead_agent"),
-                    values=latest_values,
-                )
-                self._queue_title_generation(
-                    thread_id=thread_id,
-                    values=persisted.values.model_dump(),
                     context=context,
                 )
         finally:

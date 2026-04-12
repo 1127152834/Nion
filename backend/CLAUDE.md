@@ -193,6 +193,7 @@ Delegated custom-agent orchestration contract:
 - Mentioned/delegated custom agents run as temporary child runs under the parent thread.
 - Child runs must not be stored or searched as formal `ThreadRecord` entries.
 - Delegated custom-agent runtime uses the dedicated `delegated` surface: config-driven tool groups may be narrowed by caller permissions, builtin tools must not inherit workspace control-plane/mutation lanes, and MCP stays disabled by default.
+- Delegated turns must emit the same `messages-tuple -> values -> end` shape as normal thread runs and then reuse the common thread finishing path for persistence, CLI management state, project projection, and background title generation.
 - Local custom-agent orchestration should prefer LangGraph state/subgraph/checkpointer primitives.
 - ACP/A2A should only be used through an explicit remote transport seam, not as the default local delegation path.
 
