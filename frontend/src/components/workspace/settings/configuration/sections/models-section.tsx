@@ -44,7 +44,11 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useI18n } from "@/core/i18n/hooks";
-import { loadProviderSecretValue } from "@/core/model-admin/api";
+import {
+  discoverProviderModels,
+  loadProviderSecretValue,
+  testProviderInstance,
+} from "@/core/model-admin/api";
 import {
   loadModelMetadata,
   loadProviderModels,
@@ -57,6 +61,10 @@ import { ConfirmActionDialog } from "../../confirm-action-dialog";
 import {
   buildDraftProviderConnectionSignature,
   hasDraftProviderConnectionChanges,
+  resolveDraftProviderApiKeySignatureValue,
+  resolveDraftProviderExecutionMode,
+  shouldUseDraftApiKeyValue,
+  shouldHydratePersistedApiKeyForDraftExecution,
 } from "../../model-management/provider-connection";
 import {
   asArray,
@@ -556,6 +564,46 @@ function getProviderApiKeyDisplay(provider: Record<string, unknown>): string {
   return Number.isFinite(length) && length > 0
     ? "•".repeat(length)
     : "";
+}
+
+function getProviderApiKeySignatureValue(provider: Record<string, unknown>): string {
+  return resolveDraftProviderApiKeySignatureValue({
+    apiKey: asString(provider.api_key),
+    apiKeyMasked: asString(provider.api_key_masked),
+    apiKeyLength: Number(provider.api_key_length),
+    apiKeyDirty: asBoolean(provider.api_key_dirty, false),
+  });
+}
+
+async function resolveProviderExecutionApiKey(input: {
+  provider: Record<string, unknown>;
+  providerId: string;
+  executionMode: "persisted" | "draft";
+}): Promise<string> {
+  const currentApiKey = asString(input.provider.api_key).trim();
+  if (
+    shouldUseDraftApiKeyValue({
+      apiKey: currentApiKey,
+      apiKeyMasked: asString(input.provider.api_key_masked),
+      apiKeyDirty: asBoolean(input.provider.api_key_dirty, false),
+    })
+  ) {
+    return currentApiKey;
+  }
+
+  if (
+    shouldHydratePersistedApiKeyForDraftExecution({
+      providerId: input.providerId,
+      executionMode: input.executionMode,
+      apiKeyDirty: asBoolean(input.provider.api_key_dirty, false),
+      apiKeyPresent: asBoolean(input.provider.api_key_present, false),
+    })
+  ) {
+    const secret = await loadProviderSecretValue(input.providerId);
+    return secret.api_key.trim();
+  }
+
+  return "";
 }
 
 function isFieldBlank(value: unknown): boolean {
@@ -1147,13 +1195,55 @@ export function ModelsSection({
   ) => {
     setTestingProviderKey(input.providerKey);
     try {
-      const result = await testModelConnection({
-        use: input.use,
-        model: input.model,
-        api_key: input.apiKey,
-        api_base: input.apiBase,
-        provider_protocol: input.protocol,
-      });
+      const result = input.providerId
+        ? await (async () => {
+            const providerId = input.providerId;
+            if (!providerId) {
+              throw new Error(copy.noProvider);
+            }
+            const provider = providerById.get(providerId);
+            if (!provider) {
+              throw new Error(copy.noProvider);
+            }
+
+            const executionMode = resolveDraftProviderExecutionMode({
+              providerId,
+              protocol: input.protocol,
+              apiBase: input.apiBase,
+              apiKeyDisplay: getProviderApiKeySignatureValue(provider),
+              persistedSignature: asString(provider.last_test_signature),
+              apiKeyDirty: asBoolean(provider.api_key_dirty, false),
+            });
+
+            if (executionMode === "persisted") {
+              const response = await testProviderInstance(providerId, {
+                timeout_seconds: 12,
+                probe_message: "Hello",
+              });
+              return response.result;
+            }
+
+            const resolvedApiKey = await resolveProviderExecutionApiKey({
+              provider,
+              providerId,
+              executionMode,
+            });
+
+            return testModelConnection({
+              use: input.use,
+              model: input.model,
+              api_key: resolvedApiKey,
+              api_base: input.apiBase,
+              provider_protocol: input.protocol,
+            });
+          })()
+        : await testModelConnection({
+            use: input.use,
+            model: input.model,
+            api_key: input.apiKey,
+            api_base: input.apiBase,
+            provider_protocol: input.protocol,
+          });
 
       const feedback: ProviderFeedback = {
         success: result.success,
@@ -1172,7 +1262,7 @@ export function ModelsSection({
           last_test_signature: buildDraftProviderConnectionSignature({
             protocol: getProviderProtocol(current),
             apiBase: asString(current.api_base).trim(),
-            apiKeyDisplay: getProviderApiKeyDisplay(current),
+            apiKeyDisplay: getProviderApiKeySignatureValue(current),
           }),
         }));
       } else {
@@ -1194,7 +1284,7 @@ export function ModelsSection({
           last_test_signature: buildDraftProviderConnectionSignature({
             protocol: getProviderProtocol(current),
             apiBase: asString(current.api_base).trim(),
-            apiKeyDisplay: getProviderApiKeyDisplay(current),
+            apiKeyDisplay: getProviderApiKeySignatureValue(current),
           }),
         }));
       } else {
@@ -1216,17 +1306,36 @@ export function ModelsSection({
 
     setLoadingCatalogProviderId(providerId);
     try {
-      const result = await loadProviderModels({
-        use: asString(provider.use).trim(),
-        api_key: asString(provider.api_key).trim(),
-        api_base: asString(provider.api_base).trim(),
-        provider_protocol: getProviderProtocol(provider),
+      const providerProtocol = getProviderProtocol(provider);
+      const executionMode = resolveDraftProviderExecutionMode({
+        providerId,
+        protocol: providerProtocol,
+        apiBase: asString(provider.api_base).trim(),
+        apiKeyDisplay: getProviderApiKeySignatureValue(provider),
+        persistedSignature: asString(provider.last_test_signature),
+        apiKeyDirty: asBoolean(provider.api_key_dirty, false),
       });
+
+      const result = executionMode === "persisted"
+        ? (await discoverProviderModels(providerId)).result
+        : await loadProviderModels({
+            use: asString(provider.use).trim(),
+            api_key: await resolveProviderExecutionApiKey({
+              provider,
+              providerId,
+              executionMode,
+            }),
+            api_base: asString(provider.api_base).trim(),
+            provider_protocol: providerProtocol,
+          });
 
       updateProviderAt(providerIndex, (current) => {
         return {
           ...current,
-          catalog_models: result.models.map((model) => mapProviderModelOptionToConfig(model)),
+          catalog_models: result.models.map((model) => mapProviderModelOptionToConfig({
+            ...model,
+            source: model.source ?? "",
+          })),
           catalog_updated_at: new Date().toISOString(),
           catalog_provider_type: result.provider_type,
           catalog_message: result.message,
@@ -1588,12 +1697,12 @@ export function ModelsSection({
     const currentSignature = buildDraftProviderConnectionSignature({
       protocol: getProviderProtocol(provider),
       apiBase: asString(provider.api_base).trim(),
-      apiKeyDisplay: getProviderApiKeyDisplay(provider),
+      apiKeyDisplay: getProviderApiKeySignatureValue(provider),
     });
     const hasConnectionChanges = hasDraftProviderConnectionChanges({
       protocol: getProviderProtocol(provider),
       apiBase: asString(provider.api_base).trim(),
-      apiKeyDisplay: getProviderApiKeyDisplay(provider),
+      apiKeyDisplay: getProviderApiKeySignatureValue(provider),
       persistedSignature,
       apiKeyDirty: asBoolean(provider.api_key_dirty, false),
     });
