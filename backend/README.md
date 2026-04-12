@@ -51,6 +51,7 @@ Current memory state:
 - `/api/memory` is a compatibility-shaped Memory OS surface, not a legacy `memory.json` backend
 - `Notebook` remains a separate knowledge-base / second-brain domain
 - provider-based memory, AutoDream, self-maintenance, heartbeat-driven memory maintenance, compaction, and rebuild are not part of the current runtime
+- structured memory vector retrieval is best-effort at runtime; if the embedding provider request fails, the search path must fall back to lexical matching instead of aborting the chat submit flow
 
 ---
 

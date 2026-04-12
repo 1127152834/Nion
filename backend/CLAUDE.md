@@ -140,6 +140,7 @@ Soul product contract in this repository:
 - `/api/memory/settings` is no longer a read-only snapshot contract. It must own real vector product actions: `PATCH /api/memory/settings`, `POST /api/memory/settings/download`, and `POST /api/memory/settings/rebuild`.
 - Product-facing vector mode scope is limited to `local_managed` and `remote_managed`. Do not reintroduce `custom_compatible` into the user-facing product contract for this phase.
 - Local managed embedding preparation must persist the model's real embedding dimension into the local cache metadata so `/api/memory/settings` and provider fingerprints stay truthful for non-default local models.
+- Structured memory retrieval must treat vector search as best-effort. Remote embedding HTTP failures must degrade to lexical fallback instead of aborting the main chat submit path.
 - `/api/memory/soul` returns the stable settings-shaped payload used by `Settings > Soul`.
 - `PATCH /api/memory/soul` is the preferred field-level write path for stable soul settings.
 - Explicit long-term soul instructions from chat must reuse the same stable soul patch path as `/api/memory/soul`, not a sidecar proposal lane.

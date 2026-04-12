@@ -1,12 +1,17 @@
 from __future__ import annotations
 
+import logging
 from pathlib import Path
+
+import httpx
 
 from nion.memory.embedding.duckdb_store import DuckDBVectorStore
 from nion.memory.embedding.provider_factory import build_embedding_provider
 from nion.memory.embedding.settings_repository import EmbeddingSettingsRepository
 from nion.memory.embedding.vector_store import VectorStoreQuery
 from nion.memory.search_fusion.models import SearchRouteHit
+
+logger = logging.getLogger(__name__)
 
 
 def search_vector_memory(
@@ -31,6 +36,9 @@ def search_vector_memory(
                 filters=filters,
             )
         )
+    except httpx.HTTPError as exc:
+        logger.warning("Vector search skipped because embedding provider request failed: %s", exc)
+        return []
     except ModuleNotFoundError:
         return []
     return [
