@@ -1,6 +1,7 @@
 import logging
 
 from langchain.chat_models import BaseChatModel
+from langchain_openai import ChatOpenAI
 
 from nion.config import (
     get_tracing_config,
@@ -16,6 +17,8 @@ logger = logging.getLogger(__name__)
 RUNTIME_METADATA_FIELDS = {
     "context_window",
 }
+
+DEFAULT_OPENAI_COMPATIBLE_TIMEOUT_SECONDS = 30.0
 
 
 def _deep_merge_dicts(base: dict | None, override: dict) -> dict:
@@ -105,10 +108,6 @@ def resolve_model_name_with_fallback(
     return default_name
 
 
-def get_app_config():
-    return ensure_latest_app_config(process_name="langgraph")
-
-
 def create_chat_model(name: str | None = None, thinking_enabled: bool = False, **kwargs) -> BaseChatModel:
     """Create a chat model instance from the runtime model registry.
 
@@ -162,6 +161,14 @@ def create_chat_model(name: str | None = None, thinking_enabled: bool = False, *
 
     for field_name in RUNTIME_METADATA_FIELDS:
         model_settings_from_config.pop(field_name, None)
+
+    if issubclass(model_class, ChatOpenAI):
+        has_explicit_timeout = any(
+            key in kwargs or key in model_settings_from_config
+            for key in ("timeout", "request_timeout")
+        )
+        if not has_explicit_timeout:
+            model_settings_from_config["timeout"] = DEFAULT_OPENAI_COMPATIBLE_TIMEOUT_SECONDS
 
     # Compute effective when_thinking_enabled by merging in the `thinking` shortcut field.
     # The `thinking` shortcut is equivalent to setting when_thinking_enabled["thinking"].

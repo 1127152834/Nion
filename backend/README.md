@@ -52,6 +52,7 @@ Current memory state:
 - `Notebook` remains a separate knowledge-base / second-brain domain
 - provider-based memory, AutoDream, self-maintenance, heartbeat-driven memory maintenance, compaction, and rebuild are not part of the current runtime
 - structured memory vector retrieval is best-effort at runtime; if the embedding provider request fails, the search path must fall back to lexical matching instead of aborting the chat submit flow
+- openai-compatible chat providers default to a 30-second request timeout unless the model config explicitly overrides it, so bad upstream/provider bindings fail with an error instead of leaving the desktop chat spinner active forever
 
 ---
 
