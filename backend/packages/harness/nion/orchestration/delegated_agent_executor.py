@@ -112,8 +112,10 @@ class DelegatedAgentExecutor:
                 agent_name=agent_name,
                 model_name=model_name,
                 requested_skills=profile.allowed_private_skills,
+                include_mcp=False,
                 tool_groups_override=tool_groups_override,
                 additional_system_prompt=overlay,
+                surface="delegated",
                 memory_write=profile.allow_memory_write,
                 session_mode="temporary_chat",
             ):

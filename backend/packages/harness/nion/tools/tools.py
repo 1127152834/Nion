@@ -53,6 +53,12 @@ from nion.tools.catalog import ToolCatalogEntry, build_configured_tool_catalog
 
 logger = logging.getLogger(__name__)
 
+DELEGATED_SURFACE_ALLOWED_BUILTIN_TOOLS = frozenset(
+    {
+        "view_image",
+    }
+)
+
 BASE_BUILTIN_TOOLS = [
     present_file_tool,
     ask_clarification_tool,
@@ -164,6 +170,8 @@ def get_available_tools(
             model_name,
         )
 
+    builtin_tools = _apply_builtin_surface_policy(surface, builtin_tools)
+
     mcp_tools = []
     reset_deferred_registry()
     if include_mcp:
@@ -237,3 +245,17 @@ def _apply_surface_policy(
             continue
         filtered.append(tool)
     return filtered
+
+
+def _apply_builtin_surface_policy(
+    surface: str,
+    builtin_tools: list[BaseTool],
+) -> list[BaseTool]:
+    if surface != "delegated":
+        return builtin_tools
+
+    return [
+        tool
+        for tool in builtin_tools
+        if getattr(tool, "name", None) in DELEGATED_SURFACE_ALLOWED_BUILTIN_TOOLS
+    ]

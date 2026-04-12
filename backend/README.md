@@ -109,6 +109,7 @@ Current orchestration boundary:
 - built-in `task()` subagents remain worker-style runtimes
 - catalog custom agents can now be delegated as temporary child runs
 - child runs are stored outside `ThreadRecord` search/history
+- delegated child runs use a dedicated runtime surface: MCP stays off and builtin tools are reduced to the read-only minimum instead of inheriting workspace control-plane tools
 - ACP/A2A are reserved for remote transport, not for the default in-app local orchestration path
 
 ### Middleware Chain

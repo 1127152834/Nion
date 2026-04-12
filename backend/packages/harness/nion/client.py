@@ -258,6 +258,7 @@ class NionClient:
             "subagent_enabled": overrides.get("subagent_enabled", self._subagent_enabled),
             "cli_tools_enabled": overrides.get("cli_tools_enabled", False),
             "requested_skills": overrides.get("requested_skills", []),
+            "include_mcp": overrides.get("include_mcp", True),
             "selected_mcp_tools": overrides.get("selected_mcp_tools", []),
             "selected_cli_tools": overrides.get("selected_cli_tools", []),
             "tool_groups_override": overrides.get("tool_groups_override"),
@@ -283,6 +284,7 @@ class NionClient:
             configurable.get("subagent_enabled"),
             configurable.get("cli_tools_enabled"),
             tuple(configurable.get("requested_skills") or []),
+            configurable.get("include_mcp", True),
             tuple(configurable.get("selected_mcp_tools") or []),
             tuple(configurable.get("selected_cli_tools") or []),
             tuple(configurable.get("tool_groups_override") or []),
@@ -308,6 +310,7 @@ class NionClient:
         subagent_enabled = cfg.get("subagent_enabled", False)
         cli_tools_enabled = cfg.get("cli_tools_enabled", False)
         requested_skills = cfg.get("requested_skills") or []
+        include_mcp = cfg.get("include_mcp", True)
         selected_mcp_tools = cfg.get("selected_mcp_tools") or []
         selected_cli_tools = cfg.get("selected_cli_tools") or []
         tool_groups_override = cfg.get("tool_groups_override")
@@ -321,6 +324,7 @@ class NionClient:
             "tools": self._get_tools(
                 model_name=model_name,
                 groups=tool_groups_override,
+                include_mcp=include_mcp,
                 subagent_enabled=subagent_enabled,
                 cli_tools_enabled=cli_tools_enabled,
                 surface=surface,
@@ -369,6 +373,7 @@ class NionClient:
                 "subagent_enabled": subagent_enabled,
                 "cli_tools_enabled": cli_tools_enabled,
                 "requested_skills": requested_skills,
+                "include_mcp": include_mcp,
                 "selected_mcp_tools": selected_mcp_tools,
                 "selected_cli_tools": selected_cli_tools,
                 "tool_groups_override": tool_groups_override,
@@ -383,6 +388,7 @@ class NionClient:
         *,
         model_name: str | None,
         groups: list[str] | None = None,
+        include_mcp: bool = True,
         subagent_enabled: bool,
         cli_tools_enabled: bool = False,
         surface: str = "workspace",
@@ -393,6 +399,7 @@ class NionClient:
         return get_available_tools(
             model_name=model_name,
             groups=groups,
+            include_mcp=include_mcp,
             subagent_enabled=subagent_enabled,
             cli_tools_enabled=cli_tools_enabled,
             surface=surface,

@@ -38,6 +38,7 @@
 - 能力治理主线：当前代码库已补 capability catalog / capability actions / skill runtime / explicit notebook-memory bridge provenance / capability autopilot prompt guidance；默认策略改为“用户只说目标，agent 优先自动发现并调用 notebook / memory / skill / MCP / CLI 能力”
 - token telemetry：聊天主流与子智能体流式执行会按 chunk 逐步标记 token source，避免跨 Python `Context` 恢复流时触发 telemetry 清理异常
 - 临时子会话：被调度 custom agent 的执行记录会以 parent thread 下的临时 child runs 形式存在，可检查但不进入正式 thread history / search
+- delegated runtime 收口：被调度 custom agent 默认关闭 MCP，并只保留最小化 builtin surface，避免继承主线程的 control-plane / mutation 工具面
 - 远程协同边界：站内 local custom-agent orchestration 默认走 LangGraph；ACP/A2A 只作为 remote transport seam
 
 ---

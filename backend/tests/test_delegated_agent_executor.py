@@ -85,6 +85,8 @@ def test_delegated_executor_applies_policy_to_runtime_kwargs(tmp_path):
 
     assert captured["requested_skills"] == ["search-web"]
     assert captured["tool_groups_override"] == ["web"]
+    assert captured["surface"] == "delegated"
+    assert captured["include_mcp"] is False
     assert captured["memory_write"] is False
     assert "Do not address the user directly" in str(captured["additional_system_prompt"])
 
