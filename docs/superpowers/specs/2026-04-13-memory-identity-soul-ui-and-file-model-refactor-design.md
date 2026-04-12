@@ -6,6 +6,17 @@
 
 ---
 
+## 原型入口
+
+与本设计配套的高保真静态原型位于：
+
+- [docs/prototypes/memory-identity-soul-file-native/README.md](/Users/zhangtiancheng/Documents/项目/agent/nion/docs/prototypes/memory-identity-soul-file-native/README.md)
+- [docs/prototypes/memory-identity-soul-file-native/index.html](/Users/zhangtiancheng/Documents/项目/agent/nion/docs/prototypes/memory-identity-soul-file-native/index.html)
+
+原型用于冻结这轮重构的产品形态与交互方向，不等同于生产实现。
+
+---
+
 ## 1. 为什么要做这轮重构
 
 当前系统的问题已经不是“某几个接口还不够优雅”，而是**产品心智、存储模型、运行时主链、页面设计**四层同时拧巴。

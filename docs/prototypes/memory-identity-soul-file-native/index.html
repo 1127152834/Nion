@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nion Memory / Identity / Soul Prototype</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@500;700&family=Manrope:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./prototype.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">Nion</div>
+          <p class="brand-copy">你的长期档案与助手默契</p>
+        </div>
+
+        <nav class="nav">
+          <button class="nav-link is-active" data-panel-target="memory">
+            <span class="nav-label">记忆</span>
+            <span class="nav-meta">当前在脑海里的内容</span>
+          </button>
+          <button class="nav-link" data-panel-target="identity">
+            <span class="nav-label">身份</span>
+            <span class="nav-meta">系统如何认识你</span>
+          </button>
+          <button class="nav-link" data-panel-target="soul">
+            <span class="nav-label">Soul</span>
+            <span class="nav-meta">助手长期怎么表现</span>
+          </button>
+        </nav>
+
+        <section class="sidebar-note">
+          <p class="eyebrow">设计意图</p>
+          <p>
+            这版原型走的是“个人档案中心 + 文档资产”的混合模型。普通用户先看懂，再逐步感知
+            `MEMORY.md`、`IDENTITY.md`、`SOUL.md`。
+          </p>
+        </section>
+      </aside>
+
+      <main class="workspace">
+        <section class="hero">
+          <div>
+            <p class="eyebrow">Personal Context Center</p>
+            <h1>让助手记住该记住的，而不是把你推进后台配置台</h1>
+            <p class="hero-copy">
+              这不是给开发者用的控制面板。它更像一个清晰、安静、可回看的个人档案中心：你可以看到当前活跃记忆、长期档案、身份主档，以及这个助手的长期灵魂文件。
+            </p>
+          </div>
+          <div class="hero-card">
+            <p class="hero-card-title">当前设计锚点</p>
+            <ul>
+              <li>外层像档案中心</li>
+              <li>内层保留文件原生资产感</li>
+              <li>编辑是局部的，不是整页表单墙</li>
+            </ul>
+          </div>
+        </section>
+
+        <div class="panel-frame">
+          <section class="panel is-active" data-panel="memory">
+            <header class="panel-header">
+              <div>
+                <p class="eyebrow">Memory</p>
+                <h2>当前记忆</h2>
+                <p class="panel-copy">
+                  先展示当前最活跃、最该带进对话的记忆，再往下看系统已经沉淀下来的长期档案。
+                </p>
+              </div>
+              <div class="status-pill">最近更新于 12 分钟前</div>
+            </header>
+
+            <section class="document-hero memory-hero">
+              <div class="document-meta">
+                <span class="document-chip">活跃记忆文件</span>
+                <span class="document-name">MEMORY.md</span>
+              </div>
+              <div class="document-body">
+                <div class="document-column">
+                  <h3>现在最该记得的</h3>
+                  <ul class="bullet-list">
+                    <li>用户是财务 BP，常做经营分析与月度复盘</li>
+                    <li>当前沟通偏好是先给结论，再补上下文</li>
+                    <li>最近反复提到的重点是结构化信息和稳定协作</li>
+                    <li>需要低刺激、少施压的协作方式</li>
+                  </ul>
+                </div>
+                <div class="document-column">
+                  <h3>为什么这些会在这里</h3>
+                  <p>
+                    这里不是全部长期记忆，而是当前最热、最常用、最应该跟着走的内容。它像一张助手桌面上的便签纸。
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            <section class="section-block">
+              <div class="section-heading">
+                <div>
+                  <p class="eyebrow">Long-term Memory</p>
+                  <h3>长期档案</h3>
+                </div>
+                <p class="section-copy">
+                  长期记忆不是第二篇长文档，而是系统整理好的档案夹。外面是分组，打开后才看具体条目。
+                </p>
+              </div>
+
+              <div class="vault-grid">
+                <article class="vault-folder">
+                  <div class="folder-top">
+                    <span class="folder-tag">档案夹</span>
+                    <span class="folder-count">4 条</span>
+                  </div>
+                  <h4>你的基本情况</h4>
+                  <p>姓名、常用称呼、时区、稳定角色等，属于系统长期识别你的主档。</p>
+                  <button class="ghost-link" data-detail-target="memory-detail-1">查看档案</button>
+                </article>
+
+                <article class="vault-folder">
+                  <div class="folder-top">
+                    <span class="folder-tag">档案夹</span>
+                    <span class="folder-count">3 条</span>
+                  </div>
+                  <h4>长期工作背景</h4>
+                  <p>那些不会轻易变化、但会持续影响对话语境的背景信息。</p>
+                  <button class="ghost-link" data-detail-target="memory-detail-2">查看档案</button>
+                </article>
+
+                <article class="vault-folder">
+                  <div class="folder-top">
+                    <span class="folder-tag">档案夹</span>
+                    <span class="folder-count">5 条</span>
+                  </div>
+                  <h4>稳定偏好与习惯</h4>
+                  <p>偏好的表达方式、互动边界、做事节奏，系统会长期沿用。</p>
+                  <button class="ghost-link" data-detail-target="memory-detail-3">查看档案</button>
+                </article>
+
+                <article class="vault-folder">
+                  <div class="folder-top">
+                    <span class="folder-tag">档案夹</span>
+                    <span class="folder-count">6 条</span>
+                  </div>
+                  <h4>长期事实与经验</h4>
+                  <p>经多次对话沉淀下来的稳定事实，不会频繁出现在活跃记忆中。</p>
+                  <button class="ghost-link" data-detail-target="memory-detail-4">查看档案</button>
+                </article>
+              </div>
+            </section>
+
+            <section class="section-block detail-area">
+              <div class="section-heading">
+                <div>
+                  <p class="eyebrow">Detail</p>
+                  <h3>档案详情</h3>
+                </div>
+                <p class="section-copy">
+                  单条长期记忆默认只看摘要。真正需要时，再展开看形成原因、来源和最近更新时间。
+                </p>
+              </div>
+
+              <div class="detail-card is-active" id="memory-detail-1">
+                <div class="detail-kicker">你的基本情况</div>
+                <h4>你叫张天成，平时更适合被称呼为“大哥”</h4>
+                <dl class="detail-grid">
+                  <div>
+                    <dt>形成原因</dt>
+                    <dd>用户多次显式说明名字和互称方式，已转为稳定身份主档。</dd>
+                  </div>
+                  <div>
+                    <dt>最近更新时间</dt>
+                    <dd>今天 09:42</dd>
+                  </div>
+                  <div>
+                    <dt>来源依据</dt>
+                    <dd>线程：本周预算复盘 / 线程：自动化委托设定</dd>
+                  </div>
+                  <div>
+                    <dt>当前作用</dt>
+                    <dd>默认进入新对话，不需要每次重新说明。</dd>
+                  </div>
+                </dl>
+              </div>
+
+              <div class="detail-card" id="memory-detail-2">
+                <div class="detail-kicker">长期工作背景</div>
+                <h4>长期负责经营分析、月度复盘与财务汇报</h4>
+                <dl class="detail-grid">
+                  <div>
+                    <dt>形成原因</dt>
+                    <dd>来自连续多轮对话的长期稳定背景，而不是一次性临时任务。</dd>
+                  </div>
+                  <div>
+                    <dt>最近更新时间</dt>
+                    <dd>昨天 18:10</dd>
+                  </div>
+                  <div>
+                    <dt>来源依据</dt>
+                    <dd>线程：月度经营分析 / 线程：采购成本追踪</dd>
+                  </div>
+                  <div>
+                    <dt>当前作用</dt>
+                    <dd>影响系统默认的工作语境和示例内容。</dd>
+                  </div>
+                </dl>
+              </div>
+
+              <div class="detail-card" id="memory-detail-3">
+                <div class="detail-kicker">稳定偏好与习惯</div>
+                <h4>偏好先给结论、表达直接，但不要替我拍板</h4>
+                <dl class="detail-grid">
+                  <div>
+                    <dt>形成原因</dt>
+                    <dd>用户明确说明长期沟通偏好与互动边界，属于稳定偏好。</dd>
+                  </div>
+                  <div>
+                    <dt>最近更新时间</dt>
+                    <dd>今天 08:15</dd>
+                  </div>
+                  <div>
+                    <dt>来源依据</dt>
+                    <dd>线程：工作汇报格式调整</dd>
+                  </div>
+                  <div>
+                    <dt>当前作用</dt>
+                    <dd>影响回答风格、提醒方式与主动性边界。</dd>
+                  </div>
+                </dl>
+              </div>
+
+              <div class="detail-card" id="memory-detail-4">
+                <div class="detail-kicker">长期事实与经验</div>
+                <h4>对结构化记忆、流程沉淀和稳定协作方式有持续偏好</h4>
+                <dl class="detail-grid">
+                  <div>
+                    <dt>形成原因</dt>
+                    <dd>多次围绕记忆系统和流程设计的讨论中反复出现，已沉淀为长期事实。</dd>
+                  </div>
+                  <div>
+                    <dt>最近更新时间</dt>
+                    <dd>今天 10:26</dd>
+                  </div>
+                  <div>
+                    <dt>来源依据</dt>
+                    <dd>线程：Memory/Soul 重构讨论</dd>
+                  </div>
+                  <div>
+                    <dt>当前作用</dt>
+                    <dd>帮助系统决定展示方式、信息组织方式和回答结构。</dd>
+                  </div>
+                </dl>
+              </div>
+            </section>
+          </section>
+
+          <section class="panel" data-panel="identity">
+            <header class="panel-header">
+              <div>
+                <p class="eyebrow">Identity</p>
+                <h2>身份主档</h2>
+                <p class="panel-copy">
+                  这是系统长期认识你的方式。它首先是一份身份文件，然后才是可局部编辑的字段。
+                </p>
+              </div>
+              <div class="status-pill">已同步到 IDENTITY.md</div>
+            </header>
+
+            <section class="document-hero">
+              <div class="document-meta">
+                <span class="document-chip">身份主档</span>
+                <span class="document-name">IDENTITY.md</span>
+              </div>
+              <div class="identity-layout">
+                <article class="doc-preview">
+                  <div class="doc-head">
+                    <h3>Identity</h3>
+                    <button class="primary-link" data-edit-target="identity-edit">
+                      编辑此文档
+                    </button>
+                  </div>
+                  <div class="doc-section">
+                    <div class="doc-label">Core</div>
+                    <p>用户姓名：张天成</p>
+                    <p>称呼方式：大哥</p>
+                    <p>助手自称：小老弟</p>
+                    <p>互称规则：你叫我大哥，我叫你小老弟</p>
+                  </div>
+                  <div class="doc-section">
+                    <div class="doc-label">Preferences</div>
+                    <p>先给结论</p>
+                    <p>直接一点</p>
+                  </div>
+                  <div class="doc-section">
+                    <div class="doc-label">Boundaries</div>
+                    <p>不要替我拍板</p>
+                    <p>少施压</p>
+                  </div>
+                  <div class="doc-section">
+                    <div class="doc-label">Background</div>
+                    <p>角色：财务 BP</p>
+                    <p>时区：Asia/Shanghai</p>
+                    <p>长期背景：长期负责经营分析与月度复盘。</p>
+                  </div>
+                </article>
+
+                <aside class="doc-inspector">
+                  <h3>为什么这样设计</h3>
+                  <ul class="bullet-list compact">
+                    <li>普通用户先看到“这是我的身份主档”</li>
+                    <li>系统仍然可以把这份文件解析成结构化 profile</li>
+                    <li>不需要把全部信息做成一面大表单</li>
+                  </ul>
+
+                  <div class="micro-card">
+                    <div class="micro-kicker">日常体验</div>
+                    <p>新对话里，助手会默认带着这些信息，不需要每次重新解释。</p>
+                  </div>
+                </aside>
+              </div>
+            </section>
+
+            <section class="section-block">
+              <div class="section-heading">
+                <div>
+                  <p class="eyebrow">Section Editing</p>
+                  <h3>局部编辑，而不是整页填表</h3>
+                </div>
+                <p class="section-copy">
+                  编辑是针对某一段进行的。这样普通用户不会被十几个输入框同时轰炸，也更接近真实文档的修改体验。
+                </p>
+              </div>
+
+              <div class="editor-shell is-active" id="identity-edit">
+                <div class="editor-top">
+                  <div>
+                    <div class="editor-label">正在编辑</div>
+                    <h4>Preferences / 沟通偏好</h4>
+                  </div>
+                  <div class="editor-actions">
+                    <button class="secondary-link">取消</button>
+                    <button class="solid-button">保存</button>
+                  </div>
+                </div>
+                <div class="editor-grid">
+                  <textarea>
+先给结论
+直接一点</textarea
+                  >
+                  <div class="editor-help">
+                    <h5>编辑说明</h5>
+                    <p>
+                      这里只改“长期有效”的沟通偏好。像“这次先简单一点”这样的临时要求，不应该写进身份主档。
+                    </p>
+                    <ul class="bullet-list compact">
+                      <li>每行一条</li>
+                      <li>尽量写长期不变的习惯</li>
+                      <li>保存后会回写到 `IDENTITY.md`</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </section>
+
+          <section class="panel" data-panel="soul">
+            <header class="panel-header">
+              <div>
+                <p class="eyebrow">Soul</p>
+                <h2>助手灵魂主档</h2>
+                <p class="panel-copy">
+                  这页不应该让人感觉在维护数据库字段，而应该像在定义这个助手长期稳定的人格文件。
+                </p>
+              </div>
+              <div class="status-pill">稳定层已编译</div>
+            </header>
+
+            <section class="document-hero soul-hero">
+              <div class="document-meta">
+                <span class="document-chip">灵魂主档</span>
+                <span class="document-name">SOUL.md</span>
+              </div>
+
+              <div class="soul-grid">
+                <article class="soul-document">
+                  <div class="doc-head">
+                    <h3>Soul</h3>
+                    <button class="primary-link" data-edit-target="soul-edit">
+                      编辑灵魂文件
+                    </button>
+                  </div>
+                  <div class="soul-sections">
+                    <section>
+                      <div class="doc-label">Core Identity</div>
+                      <p>长期陪伴、克制稳定、结论先行。</p>
+                    </section>
+                    <section>
+                      <div class="doc-label">Speech Style</div>
+                      <p>先给结论，再补上下文。表达直接，但不粗暴。</p>
+                    </section>
+                    <section>
+                      <div class="doc-label">Values And Boundaries</div>
+                      <p>提醒风险，但不越权拍板。不替用户做最终判断。</p>
+                    </section>
+                    <section>
+                      <div class="doc-label">Relationship Stance</div>
+                      <p>低刺激、少施压、稳定陪伴。</p>
+                    </section>
+                  </div>
+                </article>
+
+                <aside class="context-column">
+                  <div class="micro-card overlay-note">
+                    <div class="micro-kicker">临时表达层</div>
+                    <h4>当前存在一个轻量 overlay</h4>
+                    <p>这周减少鼓励式措辞，保持更冷静的工作语气。</p>
+                    <span class="mini-chip">仅影响近期表达，不改写 SOUL.md</span>
+                  </div>
+
+                  <div class="micro-card">
+                    <div class="micro-kicker">产品取舍</div>
+                    <p>
+                      普通用户不需要理解 governance、revision、rollback。只需要知道：这里定义长期风格，临时变化不会偷偷篡改主档。
+                    </p>
+                  </div>
+                </aside>
+              </div>
+            </section>
+
+            <section class="section-block">
+              <div class="section-heading">
+                <div>
+                  <p class="eyebrow">Section Editing</p>
+                  <h3>局部修改 SOUL，不是同时展开四个大 textarea</h3>
+                </div>
+                <p class="section-copy">
+                  这是高保真原型里最重要的一刀：页面主体是文档，编辑入口是局部的。这样才像产品，不像后台。
+                </p>
+              </div>
+
+              <div class="editor-shell is-active" id="soul-edit">
+                <div class="editor-top">
+                  <div>
+                    <div class="editor-label">正在编辑</div>
+                    <h4>Speech Style / 说话方式</h4>
+                  </div>
+                  <div class="editor-actions">
+                    <button class="secondary-link">取消</button>
+                    <button class="solid-button">保存</button>
+                  </div>
+                </div>
+                <div class="editor-grid">
+                  <textarea>
+先给结论，再补上下文。
+表达直接，但不粗暴。</textarea
+                  >
+                  <div class="editor-help">
+                    <h5>这里改的是长期风格</h5>
+                    <p>
+                      如果用户只是说“今天先简单点”，那是临时要求，不该直接写进 `SOUL.md`。写进这里的必须是长期稳定风格。
+                    </p>
+                    <ul class="bullet-list compact">
+                      <li>保存后回写 `SOUL.md`</li>
+                      <li>runtime 读取的是编译结果</li>
+                      <li>临时 overlay 单独存在，不覆盖 stable soul</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </section>
+        </div>
+      </main>
+    </div>
+
+    <script src="./prototype.js"></script>
+  </body>
+</html>
