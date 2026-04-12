@@ -51,17 +51,7 @@ void test("recent chat list resolves the next thread after batch delete when the
   assert.match(source, /router\.push\(pathOfThread\(nextThreadId,\s*\{\s*type:/);
 });
 
-void test("recent chat list marks project conversations with a project badge and project route", async () => {
-  const source = await readFile(
-    new URL("./recent-chat-list.tsx", import.meta.url),
-    "utf8",
-  );
-
-  assert.match(source, /WorkspaceThreadListItem/);
-  assert.match(source, /WorkspaceThreadListItem/);
-});
-
-void test("recent chat list groups conversations into project, bridge, and general sections", async () => {
+void test("recent chat list groups conversations into bridge and general sections", async () => {
   const source = await readFile(
     new URL("./recent-chat-list.tsx", import.meta.url),
     "utf8",
@@ -72,6 +62,8 @@ void test("recent chat list groups conversations into project, bridge, and gener
   assert.match(source, /pathOfThread\(nextThreadId,\s*\{\s*type:/);
   assert.match(source, /ThreadTypeTabs/);
   assert.match(source, /scope="sidebar"/);
+  assert.doesNotMatch(source, /project_name/);
+  assert.doesNotMatch(source, /t\.sidebar\.projects/);
 });
 
 void test("recent chat list scopes selection to the active thread type", async () => {
@@ -86,7 +78,7 @@ void test("recent chat list scopes selection to the active thread type", async (
   assert.match(source, /WorkspaceThreadListItem/);
 });
 
-void test("recent chat list renders project and bridge threads as collapsible source groups", async () => {
+void test("recent chat list renders bridge threads as collapsible source groups", async () => {
   const source = await readFile(
     new URL("./recent-chat-list.tsx", import.meta.url),
     "utf8",
@@ -95,7 +87,6 @@ void test("recent chat list renders project and bridge threads as collapsible so
   assert.match(source, /Collapsible/);
   assert.match(source, /CollapsibleTrigger/);
   assert.match(source, /CollapsibleContent/);
-  assert.match(source, /project_name/);
   assert.match(source, /bridge\?\.label/);
   assert.match(source, /defaultOpen/);
 });

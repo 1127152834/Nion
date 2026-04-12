@@ -9,7 +9,7 @@
 
 - custom-agent orchestration
   - backend: child-run repository / router / delegation policy / mention parser / orchestrator graph / delegated thread routing
-  - frontend: recent chat child-run sidebar wiring / child-run inspector contract / main-thread delegation summary
+  - frontend: dedicated sidebar child-run panel / child-run inspector contract / main-thread delegation summary / recent-chat two-tab taxonomy
 
 维护约定：
 

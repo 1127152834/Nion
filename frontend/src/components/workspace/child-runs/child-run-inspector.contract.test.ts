@@ -4,7 +4,7 @@ import test from "node:test";
 
 void test("child run inspector is driven from the sidebar and the main message list keeps only a summary", async () => {
   const sidebarSource = await readFile(
-    new URL("../recent-chat-list.tsx", import.meta.url),
+    new URL("../workspace-sidebar-child-runs.tsx", import.meta.url),
     "utf8",
   );
   const inspectorSource = await readFile(

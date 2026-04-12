@@ -16,6 +16,7 @@ import { RecentChatList } from "./recent-chat-list";
 import { WorkspaceHeader } from "./workspace-header";
 import { WorkspaceNavChatList } from "./workspace-nav-chat-list";
 import { WorkspaceNavMenu } from "./workspace-nav-menu";
+import { WorkspaceSidebarChildRuns } from "./workspace-sidebar-child-runs";
 import { WorkspaceSidebarPrimaryAction } from "./workspace-sidebar-primary-action";
 
 export function WorkspaceSidebar({
@@ -37,6 +38,10 @@ export function WorkspaceSidebar({
         <WorkspaceNavChatList />
         {isSidebarOpen ? (
           <>
+            <SidebarSeparator />
+            <Suspense fallback={null}>
+              <WorkspaceSidebarChildRuns />
+            </Suspense>
             <SidebarSeparator />
             <Suspense fallback={null}>
               <RecentChatList />

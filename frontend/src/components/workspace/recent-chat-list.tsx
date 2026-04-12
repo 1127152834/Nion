@@ -48,8 +48,6 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { getAPIClient } from "@/core/api";
-import { useChildRuns } from "@/core/child-runs/hooks";
-import type { ChildRunRecord } from "@/core/child-runs/types";
 import { useI18n } from "@/core/i18n/hooks";
 import { useLocalSettings } from "@/core/settings";
 import {
@@ -72,7 +70,6 @@ import type { AgentThread, AgentThreadState } from "@/core/threads/types";
 import {
   bridgeInfoOfThread,
   pathOfThread,
-  projectInfoOfThread,
   titleOfThread,
 } from "@/core/threads/utils";
 import { env } from "@/env";
@@ -82,8 +79,6 @@ import {
   bridgePlatformLabel,
   useBridgeTranslation,
 } from "./bridge/useBridgeTranslation";
-import { ChildRunInspector } from "./child-runs/child-run-inspector";
-import { ChildRunList } from "./child-runs/child-run-list";
 import { WorkspaceThreadListItem } from "./thread-list-items";
 import { ThreadTypeTabs } from "./thread-type-tabs";
 
@@ -101,29 +96,20 @@ function groupEntriesBySource(
     thread: AgentThread;
     pendingClarification: boolean;
   }>,
-  type: "project" | "bridge",
   bt: ReturnType<typeof useBridgeTranslation>["t"],
 ): ThreadGroupSection[] {
   const sections = new Map<string, ThreadGroupSection>();
 
   for (const entry of entries) {
-    const groupLabel =
-      type === "project"
-        ? (projectInfoOfThread(entry.thread)?.project_name ?? "Project")
-        : (() => {
-            const bridge = bridgeInfoOfThread(entry.thread);
-            const bridgeLabel = bridge?.label?.trim();
-            const normalizedBridgeLabel =
-              bridgeLabel && bridgeLabel.length > 0 ? bridgeLabel : undefined;
-            return normalizedBridgeLabel ?? bridgePlatformLabel(
-              bridge?.platform ?? "bridge",
-              bt,
-            );
-          })();
-    const groupId =
-      type === "project"
-        ? `project:${projectInfoOfThread(entry.thread)?.project_id ?? groupLabel}`
-        : `${bridgeInfoOfThread(entry.thread)?.platform ?? "bridge"}:${groupLabel}`;
+    const bridge = bridgeInfoOfThread(entry.thread);
+    const bridgeLabel = bridge?.label?.trim();
+    const normalizedBridgeLabel =
+      bridgeLabel && bridgeLabel.length > 0 ? bridgeLabel : undefined;
+    const groupLabel = normalizedBridgeLabel ?? bridgePlatformLabel(
+      bridge?.platform ?? "bridge",
+      bt,
+    );
+    const groupId = `${bridge?.platform ?? "bridge"}:${groupLabel}`;
     const existing = sections.get(groupId);
     if (existing) {
       existing.entries.push(entry);
@@ -148,7 +134,6 @@ export function RecentChatList() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const threadIdFromPath = searchParams.get("thread");
-  const { data: childRuns = [] } = useChildRuns(threadIdFromPath);
   const { data: threads = [] } = useThreads();
   const { mutate: deleteThread } = useDeleteThread();
   const { mutate: deleteThreads } = useDeleteThreads();
@@ -170,23 +155,17 @@ export function RecentChatList() {
   );
   const activeGroup = filterThreadsByWorkspaceType(threadGroups, activeType);
   const groupedSections = useMemo(() => {
-    if (activeType === "project") {
-      return groupEntriesBySource(threadGroups.project, "project", bt);
-    }
     if (activeType === "bridge") {
-      return groupEntriesBySource(threadGroups.bridge, "bridge", bt);
+      return groupEntriesBySource(threadGroups.bridge, bt);
     }
     return [];
-  }, [activeType, bt, threadGroups.bridge, threadGroups.project]);
+  }, [activeType, bt, threadGroups.bridge]);
 
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
   const [renameThreadId, setRenameThreadId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
-  const [childRunInspectorOpen, setChildRunInspectorOpen] = useState(false);
-  const [selectedChildRun, setSelectedChildRun] = useState<ChildRunRecord | null>(null);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedThreadIds, setSelectedThreadIds] = useState<string[]>([]);
-  const openChildRuns = childRuns.filter((item) => item.status !== "closed");
 
   const handleDelete = useCallback(
     (threadId: string) => {
@@ -319,7 +298,6 @@ export function RecentChatList() {
   );
 
   if (
-    threadGroups.project.length === 0 &&
     threadGroups.bridge.length === 0 &&
     threadGroups.general.length === 0
   ) {
@@ -447,15 +425,6 @@ export function RecentChatList() {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : null}
-            {isActive ? (
-              <ChildRunList
-                childRuns={openChildRuns}
-                onSelect={(childRun) => {
-                  setSelectedChildRun(childRun);
-                  setChildRunInspectorOpen(true);
-                }}
-              />
-            ) : null}
           </div>
         </SidebarMenuButton>
       </SidebarMenuItem>
@@ -500,15 +469,6 @@ export function RecentChatList() {
             }}
             className="px-2"
           />
-          {threadIdFromPath && openChildRuns.length > 0 ? (
-            <ChildRunList
-              childRuns={openChildRuns}
-              onSelect={(childRun) => {
-                setSelectedChildRun(childRun);
-                setChildRunInspectorOpen(true);
-              }}
-            />
-          ) : null}
           {selectionMode ? (
             <div className="flex items-center justify-between gap-3 px-2 pt-1 text-[11px] text-muted-foreground">
               <span className="tracking-[0.01em] text-foreground/52">
@@ -600,12 +560,6 @@ export function RecentChatList() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      <ChildRunInspector
-        open={childRunInspectorOpen}
-        threadId={threadIdFromPath}
-        childRun={selectedChildRun}
-        onOpenChange={setChildRunInspectorOpen}
-      />
     </>
   );
 }
