@@ -210,6 +210,13 @@ def create_chat_model(name: str | None = None, thinking_enabled: bool = False, *
     from nion.models.openai_codex_provider import CodexChatModel
 
     if issubclass(model_class, CodexChatModel):
+        has_explicit_request_timeout = any(
+            key in kwargs or key in model_settings_from_config
+            for key in ("request_timeout",)
+        )
+        if not has_explicit_request_timeout:
+            model_settings_from_config["request_timeout"] = DEFAULT_OPENAI_COMPATIBLE_TIMEOUT_SECONDS
+
         # The ChatGPT Codex endpoint currently rejects max_tokens/max_output_tokens.
         model_settings_from_config.pop("max_tokens", None)
 

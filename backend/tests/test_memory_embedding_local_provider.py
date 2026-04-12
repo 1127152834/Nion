@@ -13,9 +13,10 @@ def test_local_provider_prepares_model_cache_and_embeds_texts(
     calls: dict[str, object] = {}
 
     class _FakeSentenceTransformer:
-        def __init__(self, model_id: str, *, cache_folder: str) -> None:
+        def __init__(self, model_id: str, *, cache_folder: str, local_files_only: bool) -> None:
             calls["model_id"] = model_id
             calls["cache_folder"] = cache_folder
+            calls["local_files_only"] = local_files_only
 
         def get_sentence_embedding_dimension(self) -> int:
             return 3
@@ -44,6 +45,7 @@ def test_local_provider_prepares_model_cache_and_embeds_texts(
         "cache_folder": str(
             tmp_path / "memory-os" / "indexes" / "vector" / "models" / "bge-m3"
         ),
+        "local_files_only": True,
         "texts": ["财务 BP", "经营分析"],
         "normalize_embeddings": True,
     }
@@ -55,9 +57,10 @@ def test_local_provider_metadata_uses_loaded_model_dimensions(
     tmp_path: Path,
 ) -> None:
     class _FakeSentenceTransformer:
-        def __init__(self, model_id: str, *, cache_folder: str) -> None:
+        def __init__(self, model_id: str, *, cache_folder: str, local_files_only: bool) -> None:
             self.model_id = model_id
             self.cache_folder = cache_folder
+            self.local_files_only = local_files_only
 
         def get_sentence_embedding_dimension(self) -> int:
             return 384
@@ -81,6 +84,33 @@ def test_local_provider_metadata_uses_loaded_model_dimensions(
     metadata = provider.metadata()
 
     assert metadata.dimensions == 384
+
+
+def test_local_provider_requires_pre_downloaded_assets(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    class _FakeSentenceTransformer:
+        def __init__(self, model_id: str, *, cache_folder: str, local_files_only: bool) -> None:
+            raise OSError("missing local files")
+
+    monkeypatch.setattr(
+        "nion.memory.embedding.local_provider._get_sentence_transformer_class",
+        lambda: _FakeSentenceTransformer,
+    )
+
+    provider = LocalManagedEmbeddingProvider(
+        base_dir=tmp_path,
+        model_id="BAAI/bge-m3",
+        cache_key="bge-m3",
+    )
+
+    try:
+        provider.embed(["财务 BP"])
+    except OSError as exc:
+        assert str(exc) == "missing local files"
+    else:
+        raise AssertionError("expected local-only provider to require pre-downloaded assets")
 
 
 def test_local_provider_metadata_reads_cached_dimensions_without_loading_model(

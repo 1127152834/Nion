@@ -43,6 +43,7 @@ class CodexChatModel(BaseChatModel):
     model: str = "gpt-5.4"
     reasoning_effort: str = "medium"
     retry_max_attempts: int = MAX_RETRIES
+    request_timeout: float = 30.0
     _access_token: str = ""
     _account_id: str = ""
 
@@ -55,6 +56,8 @@ class CodexChatModel(BaseChatModel):
     def _validate_retry_config(self) -> None:
         if self.retry_max_attempts < 1:
             raise ValueError("retry_max_attempts must be >= 1")
+        if self.request_timeout <= 0:
+            raise ValueError("request_timeout must be > 0")
 
     def model_post_init(self, __context: Any) -> None:
         """Auto-load Codex CLI credentials."""
@@ -217,23 +220,33 @@ class CodexChatModel(BaseChatModel):
         """Stream SSE from Codex API and collect the final response."""
         completed_response = None
         streamed_output_items: dict[int, dict[str, Any]] = {}
+        deadline = time.monotonic() + self.request_timeout
 
-        with httpx.Client(timeout=300) as client:
-            with client.stream("POST", f"{CODEX_BASE_URL}/responses", headers=headers, json=payload) as resp:
-                resp.raise_for_status()
-                for line in resp.iter_lines():
-                    data = self._parse_sse_data_line(line)
-                    if not data:
-                        continue
+        try:
+            with httpx.Client(timeout=self.request_timeout) as client:
+                with client.stream("POST", f"{CODEX_BASE_URL}/responses", headers=headers, json=payload) as resp:
+                    resp.raise_for_status()
+                    for line in resp.iter_lines():
+                        if time.monotonic() >= deadline:
+                            raise RuntimeError(
+                                f"Codex API request timed out after {self.request_timeout} seconds"
+                            )
+                        data = self._parse_sse_data_line(line)
+                        if not data:
+                            continue
 
-                    event_type = data.get("type")
-                    if event_type == "response.output_item.done":
-                        output_index = data.get("output_index")
-                        output_item = data.get("item")
-                        if isinstance(output_index, int) and isinstance(output_item, dict):
-                            streamed_output_items[output_index] = output_item
-                    elif event_type == "response.completed":
-                        completed_response = data["response"]
+                        event_type = data.get("type")
+                        if event_type == "response.output_item.done":
+                            output_index = data.get("output_index")
+                            output_item = data.get("item")
+                            if isinstance(output_index, int) and isinstance(output_item, dict):
+                                streamed_output_items[output_index] = output_item
+                        elif event_type == "response.completed":
+                            completed_response = data["response"]
+        except (httpx.TimeoutException, TimeoutError) as exc:
+            raise RuntimeError(
+                f"Codex API request timed out after {self.request_timeout} seconds"
+            ) from exc
 
         if not completed_response:
             raise RuntimeError("Codex API stream ended without response.completed event")

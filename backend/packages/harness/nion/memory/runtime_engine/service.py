@@ -91,15 +91,18 @@ def _collect_hot_memories(
 ) -> list[str]:
     limit = 2 if plan.depth == "deep" else 1
     if base_dir is not None:
-        vector_results = search_structured_memory(
-            base_dir=Path(base_dir),
-            repository=repository,
-            query=plan.query,
-            domain="user_model",
-            limit=limit,
-        )
-        if vector_results:
-            return vector_results
+        try:
+            vector_results = search_structured_memory(
+                base_dir=Path(base_dir),
+                repository=repository,
+                query=plan.query,
+                domain="user_model",
+                limit=limit,
+            )
+            if vector_results:
+                return vector_results
+        except Exception:
+            pass
     return _collect_matching_summaries(
         repository.list_memory_records(domain="user_model", status="active"),
         query=plan.query,
