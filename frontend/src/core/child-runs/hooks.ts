@@ -1,12 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 
-import { loadChildRun, loadChildRuns } from "./api";
+import { getChildRun, listChildRuns } from "./api";
 
 export function useChildRuns(threadId: string | null | undefined) {
   return useQuery({
-    queryKey: ["child-runs", "list", threadId],
-    queryFn: () => loadChildRuns(threadId!),
-    enabled: !!threadId,
+    queryKey: ["child-runs", threadId],
+    queryFn: () => listChildRuns(threadId!),
+    enabled: Boolean(threadId),
   });
 }
 
@@ -15,8 +15,8 @@ export function useChildRun(
   childRunId: string | null | undefined,
 ) {
   return useQuery({
-    queryKey: ["child-runs", "detail", threadId, childRunId],
-    queryFn: () => loadChildRun(threadId!, childRunId!),
-    enabled: !!threadId && !!childRunId,
+    queryKey: ["child-runs", threadId, childRunId],
+    queryFn: () => getChildRun(threadId!, childRunId!),
+    enabled: Boolean(threadId && childRunId),
   });
 }

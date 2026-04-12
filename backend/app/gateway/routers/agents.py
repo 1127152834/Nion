@@ -40,6 +40,7 @@ class AgentResponse(BaseModel):
     entrypoint: str | None = Field(default=None, description="Stable runtime entrypoint")
     tool_policy: str | None = Field(default=None, description="Tool access policy")
     soul: str | None = Field(default=None, description="SOUL.md content (included on GET /{name})")
+    delegation: dict | None = Field(default=None, description="Delegation policy for governed execution")
 
 
 class AgentsListResponse(BaseModel):
@@ -56,7 +57,7 @@ class AgentCreateRequest(BaseModel):
     model: str | None = Field(default=None, description="Optional model override")
     tool_groups: list[str] | None = Field(default=None, description="Optional tool group whitelist")
     soul: str = Field(default="", description="SOUL.md content — agent personality and behavioral guardrails")
-    delegation: dict | None = Field(default=None, description="Delegated execution policy override")
+    delegation: dict | None = Field(default=None, description="Delegation policy fields")
 
 
 class AgentUpdateRequest(BaseModel):
@@ -66,7 +67,7 @@ class AgentUpdateRequest(BaseModel):
     model: str | None = Field(default=None, description="Updated model override")
     tool_groups: list[str] | None = Field(default=None, description="Updated tool group whitelist")
     soul: str | None = Field(default=None, description="Updated SOUL.md content")
-    delegation: dict | None = Field(default=None, description="Updated delegated execution policy")
+    delegation: dict | None = Field(default=None, description="Updated delegation policy fields")
 
 
 def _validate_agent_name(name: str) -> None:
@@ -113,6 +114,7 @@ def _agent_config_to_response(agent_cfg: AgentConfig, include_soul: bool = False
         entrypoint=agent_cfg.entrypoint,
         tool_policy=agent_cfg.tool_policy,
         soul=soul,
+        delegation=agent_cfg.delegation.model_dump(),
     )
 
 
@@ -240,8 +242,6 @@ async def create_agent_endpoint(request: AgentCreateRequest) -> AgentResponse:
             config_data["model"] = request.model
         if request.tool_groups is not None:
             config_data["tool_groups"] = request.tool_groups
-        if request.delegation is not None:
-            config_data["delegation"] = request.delegation
 
         config_file = agent_dir / "config.yaml"
         with open(config_file, "w", encoding="utf-8") as f:
@@ -303,10 +303,7 @@ async def update_agent(name: str, request: AgentUpdateRequest) -> AgentResponse:
 
     try:
         # Update config if any config fields changed
-        config_changed = any(
-            v is not None
-            for v in [request.description, request.model, request.tool_groups, request.delegation]
-        )
+        config_changed = any(v is not None for v in [request.description, request.model, request.tool_groups])
 
         if config_changed:
             updated: dict = {
@@ -320,14 +317,6 @@ async def update_agent(name: str, request: AgentUpdateRequest) -> AgentResponse:
             new_tool_groups = request.tool_groups if request.tool_groups is not None else agent_cfg.tool_groups
             if new_tool_groups is not None:
                 updated["tool_groups"] = new_tool_groups
-
-            new_delegation = (
-                request.delegation
-                if request.delegation is not None
-                else agent_cfg.delegation.model_dump(mode="json")
-            )
-            if new_delegation is not None:
-                updated["delegation"] = new_delegation
 
             config_file = agent_dir / "config.yaml"
             with open(config_file, "w", encoding="utf-8") as f:

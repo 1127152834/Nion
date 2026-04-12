@@ -12,6 +12,7 @@ The next layer is the daemon control plane:
 - structured event logging in SQLite
 - daemon and thread diagnostics
 - delegated task and subagent execution diagnostics
+- temporary child-run inspection for delegated custom agents
 - agent-facing self-inspection tools
 - guarded self-operation tools for approved surfaces
 
@@ -100,7 +101,33 @@ The single LangGraph agent (`lead_agent`) is the runtime entry point, created vi
 - **Middleware chain** for cross-cutting concerns (9 middlewares)
 - **Tool system** with sandbox, MCP, community, and built-in tools
 - **Subagent delegation** for parallel task execution
+- **Delegated custom-agent orchestration** for temporary child runs under a formal parent thread
 - **System prompt** with skills injection, memory context, and working directory guidance
+
+Current orchestration boundary:
+
+- built-in `task()` subagents remain worker-style runtimes
+- catalog custom agents can now be delegated as temporary child runs
+- child runs are stored outside `ThreadRecord` search/history
+- delegated child runs use a dedicated runtime surface: MCP stays off and builtin tools are reduced to the read-only minimum instead of inheriting workspace control-plane tools
+- delegated turns now emit the standard thread stream shape and reuse the normal finishing path for persistence, project context, CLI state, and title generation
+- ACP and A2A are both usable remote transports; neither is the default in-app local orchestration path
+
+Remote agent config lives in Config Center:
+
+- `acp_agents.<name>` for ACP adapters
+- `a2a_agents.<name>` for A2A endpoints
+
+`a2a_agents` supports:
+
+- `base_url`
+- `description`
+- `transport` (`auto`, `jsonrpc`, `http+json`)
+- `streaming`
+- `timeout_seconds`
+- `poll_interval_seconds`
+- `max_poll_attempts`
+- `headers`
 
 ### Middleware Chain
 

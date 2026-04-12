@@ -51,6 +51,92 @@ def test_cli_builtin_tools_are_exposed_with_cli_flag() -> None:
     assert "codepilot_cli_tools_update" in names
 
 
+def test_delegated_surface_strips_control_plane_and_mutation_builtins(monkeypatch) -> None:
+    from nion.tools import tools as tools_module
+
+    fake_config = type(
+        "_Config",
+        (),
+        {
+            "tools": [],
+            "surface_policy": type(
+                "_Policy",
+                (),
+                {
+                    "get_rule": staticmethod(
+                        lambda _surface: type(
+                            "_Rule",
+                            (),
+                            {
+                                "allowed_groups": [],
+                                "denied_groups": [],
+                                "allowed_tools": [],
+                                "denied_tools": [],
+                            },
+                        )()
+                    )
+                },
+            )(),
+            "tool_search": type("_ToolSearch", (), {"enabled": False})(),
+        },
+    )()
+
+    resolved_model = type(
+        "_ResolvedModel",
+        (),
+        {
+            "runtime_name": "vision-model",
+            "runtime_model_config": type("_RuntimeConfig", (), {"supports_vision": True})(),
+        },
+    )()
+    fake_registry = type(
+        "_Registry",
+        (),
+        {"get_default_model": staticmethod(lambda: resolved_model)},
+    )()
+
+    monkeypatch.setattr(tools_module, "get_app_config", lambda: fake_config)
+    monkeypatch.setattr(tools_module, "build_configured_tool_catalog", lambda _config: {})
+    monkeypatch.setattr(tools_module, "get_model_registry_service", lambda app_config_provider=None: fake_registry)
+    monkeypatch.setattr(
+        tools_module,
+        "BASE_BUILTIN_TOOLS",
+        [
+            type("_Tool", (), {"name": "get_runtime_status"})(),
+            type("_Tool", (), {"name": "present_files"})(),
+            type("_Tool", (), {"name": "ask_clarification"})(),
+        ],
+    )
+    monkeypatch.setattr(
+        tools_module,
+        "CLI_BUILTIN_TOOLS",
+        [type("_Tool", (), {"name": "codepilot_cli_tools_list"})()],
+    )
+    monkeypatch.setattr(
+        tools_module,
+        "SUBAGENT_TOOLS",
+        [type("_Tool", (), {"name": "task"})()],
+    )
+    monkeypatch.setattr(tools_module, "get_acp_agents", lambda: {"codex": object()})
+    monkeypatch.setattr(
+        tools_module,
+        "build_invoke_acp_agent_tool",
+        lambda _agents: type("_Tool", (), {"name": "invoke_acp_agent"})(),
+    )
+
+    names = {
+        tool.name
+        for tool in tools_module.get_available_tools(
+            include_mcp=False,
+            subagent_enabled=True,
+            cli_tools_enabled=True,
+            surface="delegated",
+        )
+    }
+
+    assert names == {"view_image"}
+
+
 def test_host_bash_tool_is_hidden_when_local_host_bash_is_not_allowed(monkeypatch) -> None:
     from nion.tools import tools as tools_module
 

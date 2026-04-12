@@ -1,10 +1,8 @@
-from __future__ import annotations
-
 from nion.config.agents_config import AgentConfig, AgentDelegationConfig
 from nion.orchestration.delegation_policy import build_delegated_execution_profile
 
 
-def test_delegated_execution_profile_denies_direct_user_reply_by_default() -> None:
+def test_delegated_execution_profile_denies_direct_user_reply_by_default():
     agent = AgentConfig(
         name="research-agent",
         delegation=AgentDelegationConfig(

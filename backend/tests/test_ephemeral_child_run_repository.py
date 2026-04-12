@@ -1,10 +1,8 @@
-from __future__ import annotations
-
 from nion.orchestration.models import ChildRunRecord
 from nion.orchestration.repository import ChildRunRepository
 
 
-def test_child_run_repository_round_trips_record(tmp_path) -> None:
+def test_child_run_repository_round_trips_record(tmp_path):
     repo = ChildRunRepository(base_dir=tmp_path)
     record = ChildRunRecord(
         child_run_id="child-1",
@@ -18,12 +16,11 @@ def test_child_run_repository_round_trips_record(tmp_path) -> None:
     repo.save(record)
 
     loaded = repo.list_for_thread("thread-1")
-
     assert [item.child_run_id for item in loaded] == ["child-1"]
     assert loaded[0].agent_name == "research-agent"
 
 
-def test_closing_child_run_removes_it_from_open_listing(tmp_path) -> None:
+def test_closing_child_run_removes_it_from_open_listing(tmp_path):
     repo = ChildRunRepository(base_dir=tmp_path)
     record = ChildRunRecord(
         child_run_id="child-2",
@@ -33,8 +30,8 @@ def test_closing_child_run_removes_it_from_open_listing(tmp_path) -> None:
         status="running",
         description="Summarize research",
     )
-
     repo.save(record)
+
     repo.close("thread-1", "child-2")
 
     assert repo.list_open_for_thread("thread-1") == []

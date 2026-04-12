@@ -396,6 +396,20 @@ export function useThreadStream({
               }));
             }
 
+            if (
+              eventType === "custom"
+              && typeof eventData?.type === "string"
+              && CHILD_RUN_EVENT_TYPES.has(eventData.type)
+            ) {
+              setValues((current) => ({
+                ...current,
+                child_runs: reduceChildRunEvent(
+                  current.child_runs ?? {},
+                  eventData as Parameters<typeof reduceChildRunEvent>[1],
+                ),
+              }));
+            }
+
             if (eventType === "end") {
               listeners.current.onFinish?.({
                 ...valuesRef.current,

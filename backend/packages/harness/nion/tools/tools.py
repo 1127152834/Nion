@@ -2,6 +2,7 @@ import logging
 
 from langchain.tools import BaseTool
 
+from nion.config.a2a_config import get_a2a_agents
 from nion.config import get_app_config
 from nion.config.acp_config import get_acp_agents
 from nion.model_management.service import get_model_registry_service
@@ -47,11 +48,18 @@ from nion.tools.builtins import (
     update_skill_tool,
     view_image_tool,
 )
+from nion.tools.builtins.invoke_a2a_agent_tool import build_invoke_a2a_agent_tool
 from nion.tools.builtins.invoke_acp_agent_tool import build_invoke_acp_agent_tool
 from nion.tools.builtins.tool_search import reset_deferred_registry
 from nion.tools.catalog import ToolCatalogEntry, build_configured_tool_catalog
 
 logger = logging.getLogger(__name__)
+
+DELEGATED_SURFACE_ALLOWED_BUILTIN_TOOLS = frozenset(
+    {
+        "view_image",
+    }
+)
 
 BASE_BUILTIN_TOOLS = [
     present_file_tool,
@@ -139,6 +147,14 @@ def get_available_tools(
             len(acp_agents),
         )
 
+    a2a_agents = get_a2a_agents()
+    if a2a_agents:
+        builtin_tools.append(build_invoke_a2a_agent_tool(a2a_agents))
+        logger.info(
+            "Including A2A invocation tool for %d configured A2A agent(s)",
+            len(a2a_agents),
+        )
+
     if subagent_enabled:
         builtin_tools.extend(SUBAGENT_TOOLS)
         logger.info("Including subagent tools (task)")
@@ -163,6 +179,8 @@ def get_available_tools(
             "Including view_image_tool for model '%s' (supports_vision=True)",
             model_name,
         )
+
+    builtin_tools = _apply_builtin_surface_policy(surface, builtin_tools)
 
     mcp_tools = []
     reset_deferred_registry()
@@ -237,3 +255,17 @@ def _apply_surface_policy(
             continue
         filtered.append(tool)
     return filtered
+
+
+def _apply_builtin_surface_policy(
+    surface: str,
+    builtin_tools: list[BaseTool],
+) -> list[BaseTool]:
+    if surface != "delegated":
+        return builtin_tools
+
+    return [
+        tool
+        for tool in builtin_tools
+        if getattr(tool, "name", None) in DELEGATED_SURFACE_ALLOWED_BUILTIN_TOOLS
+    ]

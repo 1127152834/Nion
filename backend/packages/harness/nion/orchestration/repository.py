@@ -34,7 +34,7 @@ class ChildRunRepository:
                 ChildRunRecord.model_validate_json(path.read_text(encoding="utf-8"))
                 for path in root.glob("*.json")
             ),
-            key=lambda item: item.started_at or item.child_run_id,
+            key=lambda item: (item.started_at, item.child_run_id),
         )
 
     def list_open_for_thread(self, thread_id: str) -> list[ChildRunRecord]:

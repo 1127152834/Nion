@@ -1,9 +1,9 @@
-from __future__ import annotations
-
 from nion.orchestration.mention_parser import parse_agent_mentions
 
 
-def test_parse_agent_mentions_preserves_chain_order() -> None:
+def test_parse_agent_mentions_preserves_chain_order():
     steps = parse_agent_mentions("@agent-1 搜索资料，然后交给 @agent-2 总结，再交给 @agent-3 排版")
-
     assert [step.agent_name for step in steps] == ["agent-1", "agent-2", "agent-3"]
+    assert steps[0].instruction == "搜索资料"
+    assert steps[1].instruction == "总结"
+    assert steps[2].instruction == "排版"

@@ -177,6 +177,7 @@ Cons:
 
 - 先落 runtime/contract/test spec，再进入实现
 - A2A 不在 v1 作为强依赖，但必须留 transport seam
+- A2A 需要具备真实 remote execution 能力，包括 agent card、message send/stream 与线程级会话续用
 
 ## Scope
 

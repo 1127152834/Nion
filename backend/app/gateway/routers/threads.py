@@ -136,7 +136,7 @@ async def create_or_resume_notebook_assistant_session(
 async def get_thread_state(
     thread_id: str,
     service: ThreadService = Depends(get_thread_service),
-) -> dict[str, Any]:
+    ) -> dict[str, Any]:
     return service.get_state(thread_id)
 
 

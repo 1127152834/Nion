@@ -5,7 +5,12 @@ from collections.abc import Generator
 from typing import Callable
 
 from nion.client import NionClient, StreamEvent
+from nion.config.agents_config import AgentConfig, resolve_agent_config
 from nion.memory_os.clock import utcnow_z
+from nion.orchestration.delegation_policy import (
+    DelegatedExecutionProfile,
+    build_delegated_execution_profile,
+)
 from nion.orchestration.models import ChildRunMessage, ChildRunRecord
 from nion.orchestration.repository import ChildRunRepository
 
@@ -15,12 +20,38 @@ class DelegatedAgentExecutor:
         self,
         *,
         repository: ChildRunRepository | None = None,
-        client_factory: Callable[[str], NionClient] | None = None,
+        client_factory=None,
+        agent_resolver: Callable[[str], AgentConfig | None] | None = None,
+        profile_builder: Callable[..., DelegatedExecutionProfile] | None = None,
     ) -> None:
         self._repository = repository or ChildRunRepository()
         self._client_factory = client_factory or (
-            lambda agent_name: NionClient(agent_name=agent_name, subagent_enabled=False)
+            lambda **kwargs: NionClient(agent_name=kwargs["agent_name"], subagent_enabled=False)
         )
+        self._agent_resolver = agent_resolver or resolve_agent_config
+        self._profile_builder = profile_builder or build_delegated_execution_profile
+
+    def _append_message(
+        self,
+        record: ChildRunRecord,
+        *,
+        role: str,
+        content: str,
+    ) -> ChildRunRecord:
+        updated = record.model_copy(
+            update={
+                "messages": [
+                    *record.messages,
+                    ChildRunMessage(
+                        role=role,
+                        content=content,
+                        created_at=utcnow_z(),
+                    ),
+                ]
+            }
+        )
+        self._repository.save(updated)
+        return updated
 
     def stream(
         self,
@@ -29,7 +60,18 @@ class DelegatedAgentExecutor:
         agent_name: str,
         prompt: str,
         model_name: str | None = None,
+        caller_permissions: set[str] | None = None,
     ) -> Generator[StreamEvent, None, None]:
+        agent_config = self._agent_resolver(agent_name)
+        effective_permissions = caller_permissions or set(agent_config.tool_groups or []) if agent_config else set()
+        profile = (
+            self._profile_builder(
+                agent_config,
+                caller_permissions=effective_permissions,
+            )
+            if agent_config is not None
+            else DelegatedExecutionProfile(agent_name=agent_name)
+        )
         child_run_id = f"child-{uuid.uuid4().hex[:8]}"
         record = ChildRunRecord(
             child_run_id=child_run_id,
@@ -40,7 +82,8 @@ class DelegatedAgentExecutor:
             description=prompt,
             started_at=utcnow_z(),
         )
-        self._repository.save(record)
+        record = self._repository.save(record)
+        record = self._append_message(record, role="human", content=prompt)
         yield StreamEvent(
             type="custom",
             data={
@@ -50,45 +93,49 @@ class DelegatedAgentExecutor:
             },
         )
 
-        client = self._client_factory(agent_name)
-        final_text = ""
-
         try:
+            tool_groups_override = (
+                sorted(set(agent_config.tool_groups or []) & set(profile.effective_permissions))
+                if agent_config is not None and agent_config.tool_groups and profile.effective_permissions
+                else (agent_config.tool_groups if agent_config is not None else None)
+            )
+            overlay = (
+                profile.soul_overlay
+                if not profile.allow_direct_user_reply
+                else ""
+            )
+            client = self._client_factory(agent_name=agent_name)
+            final_text = ""
             for event in client.stream(
                 prompt,
                 thread_id=f"{parent_thread_id}-{child_run_id}",
                 agent_name=agent_name,
                 model_name=model_name,
-                memory_write=False,
+                requested_skills=profile.allowed_private_skills,
+                include_mcp=False,
+                tool_groups_override=tool_groups_override,
+                additional_system_prompt=overlay,
+                surface="delegated",
+                memory_write=profile.allow_memory_write,
                 session_mode="temporary_chat",
-                subagent_enabled=False,
             ):
-                if event.type == "messages-tuple":
-                    message_type = event.data.get("type")
-                    content = event.data.get("content")
-                    if message_type in {"ai", "tool"} and isinstance(content, str) and content:
-                        role = "ai" if message_type == "ai" else "tool"
-                        record.messages.append(
-                            ChildRunMessage(
-                                role=role,
-                                content=content,
-                                created_at=utcnow_z(),
-                            )
+                if event.type == "messages-tuple" and event.data.get("type") == "ai":
+                    content = event.data.get("content", "")
+                    if isinstance(content, str) and content:
+                        final_text = content
+                        record = self._append_message(record, role="ai", content=content)
+                        yield StreamEvent(
+                            type="custom",
+                            data={
+                                "type": "child_run_running",
+                                "child_run_id": child_run_id,
+                                "message": content,
+                            },
                         )
-                        self._repository.save(record)
-                        if role == "ai":
-                            final_text = content
-                            yield StreamEvent(
-                                type="custom",
-                                data={
-                                    "type": "child_run_running",
-                                    "child_run_id": child_run_id,
-                                    "message": content,
-                                },
-                            )
-                elif event.type == "tool-activity":
-                    record.tool_activity_timeline.append(event.data)
-                    self._repository.save(record)
+                elif event.type == "messages-tuple" and event.data.get("type") == "tool":
+                    content = event.data.get("content", "")
+                    if isinstance(content, str) and content:
+                        record = self._append_message(record, role="tool", content=content)
 
             completed = record.model_copy(
                 update={
@@ -124,12 +171,11 @@ class DelegatedAgentExecutor:
                 },
             )
         finally:
-            closed = self._repository.close(parent_thread_id, child_run_id)
+            self._repository.close(parent_thread_id, child_run_id)
             yield StreamEvent(
                 type="custom",
                 data={
                     "type": "child_run_closed",
                     "child_run_id": child_run_id,
-                    "status": closed.status,
                 },
             )

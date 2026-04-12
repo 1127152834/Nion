@@ -2,16 +2,17 @@ from __future__ import annotations
 
 import re
 import threading
-import uuid
 from collections.abc import Generator
 from datetime import UTC, datetime
 from typing import Any
 
 from nion.client import NionClient, StreamEvent
-from nion.config.agents_config import AGENT_NAME_PATTERN
+from nion.agents.checkpointer import get_checkpointer
+from nion.config.agents_config import AGENT_NAME_PATTERN, resolve_agent_config
 from nion.memory.evidence_capture.service import resolve_optional_bool
 from nion.notebook.service import NotebookNotFoundError, NotebookService
 from nion.orchestration.delegated_agent_executor import DelegatedAgentExecutor
+from nion.orchestration.graph import build_agent_orchestrator_graph
 from nion.orchestration.mention_parser import parse_agent_mentions
 
 from .models import (
@@ -102,171 +103,110 @@ class ThreadService:
     def update_state(self, thread_id: str, values: dict[str, Any]) -> dict[str, Any]:
         return self._repository.update_state(thread_id, values).model_dump()
 
-    def delete_thread(self, thread_id: str) -> None:
-        self._repository.delete_thread(thread_id)
-
-    def _build_request_for_test(self, *, text: str, context: dict[str, Any]) -> ThreadStreamRequest:
+    def _build_request_for_test(
+        self,
+        *,
+        text: str,
+        context: dict[str, Any],
+    ) -> ThreadStreamRequest:
         return ThreadStreamRequest(
             messages=[{"type": "human", "content": [{"type": "text", "text": text}]}],
             context=context,
             config={},
         )
 
-    def stream(
-        self,
-        thread_id: str,
-        request: ThreadStreamRequest,
-    ) -> Generator[StreamEvent, None, None]:
-        _claim_thread_run(thread_id)
-        human_payload = _extract_human_message_payload(request.messages)
-        message_text = _extract_message_text(request.messages)
-        context = dict(request.context)
-        config = request.config
-        latest_values: dict[str, Any] | None = None
-        existing_record = self._repository.get_thread(thread_id)
-        existing_title = existing_record.values.title if existing_record is not None else None
-        try:
-            context.setdefault("thread_id", thread_id)
-            mention_steps = parse_agent_mentions(message_text)
-            if mention_steps:
-                child_results: list[tuple[str, str]] = []
-                for step in mention_steps:
-                    for event in self._delegated_executor.stream(
-                        parent_thread_id=thread_id,
-                        agent_name=step.agent_name,
-                        prompt=message_text,
-                        model_name=context.get("model_name"),
-                    ):
-                        if event.type == "custom" and event.data.get("type") == "child_run_completed":
-                            result = event.data.get("result")
-                            child_results.append(
-                                (
-                                    step.agent_name,
-                                    result if isinstance(result, str) else "",
-                                )
-                            )
-                        yield event
-                latest_values = self._build_delegated_values(
-                    request=request,
-                    existing_record=existing_record,
-                    child_results=child_results,
-                )
-                yield StreamEvent(type="values", data=latest_values)
-                yield StreamEvent(type="end", data={"usage": {}})
-                self._persist_latest_values(
-                    thread_id=thread_id,
-                    latest_values=latest_values,
-                    context=context,
-                    message_text=message_text,
-                    cli_tools_enabled=False,
-                )
-                return
-            if request.assistant_id and "agent_name" not in context:
-                normalized_agent_name = _normalize_assistant_id_to_agent_name(request.assistant_id)
-                if normalized_agent_name is not None:
-                    context["agent_name"] = normalized_agent_name
+    def _has_delegated_agents(self, message_text: str) -> bool:
+        return any(
+            resolve_agent_config(step.agent_name) is not None
+            for step in parse_agent_mentions(message_text)
+        )
 
-            notebook_context = _build_notebook_runtime_context(context)
+    def _resolve_caller_permissions(self, context: dict[str, Any]) -> set[str]:
+        caller_agent_name = context.get("agent_name")
+        if not isinstance(caller_agent_name, str) or not caller_agent_name.strip():
+            return set()
+        caller_agent = resolve_agent_config(caller_agent_name.strip())
+        if caller_agent is None or not caller_agent.tool_groups:
+            return set()
+        return set(caller_agent.tool_groups)
 
-            selected_cli_tools = _extract_selected_cli_tools(request.messages)
-            cli_tools_enabled = self._should_enable_cli_tools_for_request(
-                message_text,
-                thread_id=thread_id,
-                selected_cli_tools=selected_cli_tools,
-            )
-
-            for event in self._client.stream(
-                message_text,
-                thread_id=thread_id,
-                human_message_payload=human_payload,
-                model_name=context.get("model_name"),
-                thinking_enabled=bool(context.get("thinking_enabled", True)),
-                plan_mode=bool(context.get("is_plan_mode", False)),
-                subagent_enabled=bool(context.get("subagent_enabled", False)),
-                cli_tools_enabled=cli_tools_enabled,
-                requested_skills=context.get("requested_skills", []),
-                selected_mcp_tools=context.get("selected_mcp_tools", []),
-                selected_cli_tools=selected_cli_tools,
-                agent_name=context.get("agent_name"),
-                recursion_limit=config.get("recursion_limit", 100),
-                surface=context.get("surface", "workspace"),
-                notebook_context=notebook_context,
-                execution_mode=context.get("execution_mode"),
-                host_workdir=context.get("host_workdir"),
-                session_mode=context.get("session_mode"),
-                memory_read=resolve_optional_bool(
-                    context.get("memory_read"),
-                    default=True,
-                ),
-                memory_write=resolve_optional_bool(
-                    context.get("memory_write"),
-                    default=context.get("session_mode") != "temporary_chat",
-                ),
-                project_id=context.get("project_id"),
-                project_phase=context.get("project_phase"),
-                primary_plan_id=context.get("primary_plan_id"),
-            ):
-                if event.type == "values":
-                    incoming_title = event.data.get("title")
-                    resolved_title = resolve_preferred_thread_title(
-                        current_title=existing_title,
-                        incoming_title=incoming_title if isinstance(incoming_title, str) else None,
-                    )
-                    latest_values = {
-                        "title": resolved_title or "Untitled",
-                        "messages": event.data.get("messages", []),
-                        "artifacts": event.data.get("artifacts", []),
-                    }
-                    existing_title = latest_values["title"]
-                    event.data["title"] = latest_values["title"]
-                yield event
-
-            if latest_values is not None:
-                self._persist_latest_values(
-                    thread_id=thread_id,
-                    latest_values=latest_values,
-                    context=context,
-                    message_text=message_text,
-                    cli_tools_enabled=cli_tools_enabled,
-                )
-        finally:
-            _release_thread_run(thread_id)
-
-    def _build_delegated_values(
+    def _stream_delegated_turn(
         self,
         *,
-        request: ThreadStreamRequest,
+        thread_id: str,
+        message_text: str,
+        context: dict[str, Any],
         existing_record: ThreadRecord | None,
-        child_results: list[tuple[str, str]],
-    ) -> dict[str, Any]:
-        existing_messages = (
-            list(existing_record.values.messages)
-            if existing_record is not None
-            else []
+    ) -> Generator[StreamEvent, None, None]:
+        caller_permissions = self._resolve_caller_permissions(context)
+        graph = build_agent_orchestrator_graph(
+            checkpointer=get_checkpointer(),
+            delegated_executor=self._delegated_executor,
+            agent_resolver=resolve_agent_config,
+            caller_permissions=caller_permissions,
         )
-        assistant_summary = _build_delegated_summary_message(child_results)
-        return {
-            "title": resolve_preferred_thread_title(
-                current_title=existing_record.values.title if existing_record is not None else None,
-                incoming_title="Delegated",
-            )
-            or "Delegated",
-            "messages": [
-                *existing_messages,
-                *request.messages,
-                assistant_summary,
-            ],
-            "artifacts": list(existing_record.values.artifacts) if existing_record is not None else [],
-        }
+        graph_state: dict[str, Any] | None = None
+        for raw_chunk in graph.stream(
+            {"thread_id": thread_id, "user_text": message_text},
+            config={"configurable": {"thread_id": thread_id}},
+            stream_mode=["values", "custom"],
+        ):
+            if (
+                isinstance(raw_chunk, tuple)
+                and len(raw_chunk) == 2
+                and isinstance(raw_chunk[0], str)
+            ):
+                mode, data = raw_chunk
+            else:
+                mode, data = "values", raw_chunk
 
-    def _persist_latest_values(
+            if mode == "custom" and isinstance(data, dict):
+                yield StreamEvent(type="custom", data=data)
+                continue
+
+            if mode == "values" and isinstance(data, dict):
+                graph_state = data
+
+        summary_text = str(graph_state.get("final_reply") or "") if graph_state else ""
+        summary_message = {
+            "type": "ai",
+            "content": summary_text,
+            "id": f"delegated:{datetime.now(UTC).timestamp()}",
+        }
+        human_message = {
+            "type": "human",
+            "content": message_text,
+        }
+        existing_messages = (
+            existing_record.values.messages if existing_record is not None else []
+        )
+        existing_artifacts = (
+            existing_record.values.artifacts if existing_record is not None else []
+        )
+        existing_title = existing_record.values.title if existing_record is not None else "Untitled"
+
+        yield StreamEvent(type="messages-tuple", data=summary_message)
+        yield StreamEvent(
+            type="values",
+            data={
+                "title": existing_title,
+                "messages": [*existing_messages, human_message, summary_message],
+                "artifacts": existing_artifacts,
+            },
+        )
+        yield StreamEvent(
+            type="end",
+            data={"usage": {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0}},
+        )
+
+    def _finalize_thread_run(
         self,
         *,
         thread_id: str,
         latest_values: dict[str, Any],
-        context: dict[str, Any],
         message_text: str,
         cli_tools_enabled: bool,
+        context: dict[str, Any],
     ) -> None:
         latest_values["cli_management"] = self._next_cli_management_state(
             message_text=message_text,
@@ -296,6 +236,104 @@ class ThreadService:
             values=persisted.values.model_dump(),
             context=context,
         )
+
+    def delete_thread(self, thread_id: str) -> None:
+        self._repository.delete_thread(thread_id)
+
+    def stream(
+        self,
+        thread_id: str,
+        request: ThreadStreamRequest,
+    ) -> Generator[StreamEvent, None, None]:
+        _claim_thread_run(thread_id)
+        human_payload = _extract_human_message_payload(request.messages)
+        message_text = _extract_message_text(request.messages)
+        context = dict(request.context)
+        config = request.config
+        latest_values: dict[str, Any] | None = None
+        existing_record = self._repository.get_thread(thread_id)
+        existing_title = existing_record.values.title if existing_record is not None else None
+        try:
+            context.setdefault("thread_id", thread_id)
+            if request.assistant_id and "agent_name" not in context:
+                normalized_agent_name = _normalize_assistant_id_to_agent_name(request.assistant_id)
+                if normalized_agent_name is not None:
+                    context["agent_name"] = normalized_agent_name
+
+            cli_tools_enabled = False
+            if self._has_delegated_agents(message_text):
+                event_stream = self._stream_delegated_turn(
+                    thread_id=thread_id,
+                    message_text=message_text,
+                    context=context,
+                    existing_record=existing_record,
+                )
+            else:
+                notebook_context = _build_notebook_runtime_context(context)
+                selected_cli_tools = _extract_selected_cli_tools(request.messages)
+                cli_tools_enabled = self._should_enable_cli_tools_for_request(
+                    message_text,
+                    thread_id=thread_id,
+                    selected_cli_tools=selected_cli_tools,
+                )
+                event_stream = self._client.stream(
+                    message_text,
+                    thread_id=thread_id,
+                    human_message_payload=human_payload,
+                    model_name=context.get("model_name"),
+                    thinking_enabled=bool(context.get("thinking_enabled", True)),
+                    plan_mode=bool(context.get("is_plan_mode", False)),
+                    subagent_enabled=bool(context.get("subagent_enabled", False)),
+                    cli_tools_enabled=cli_tools_enabled,
+                    requested_skills=context.get("requested_skills", []),
+                    selected_mcp_tools=context.get("selected_mcp_tools", []),
+                    selected_cli_tools=selected_cli_tools,
+                    agent_name=context.get("agent_name"),
+                    recursion_limit=config.get("recursion_limit", 100),
+                    surface=context.get("surface", "workspace"),
+                    notebook_context=notebook_context,
+                    execution_mode=context.get("execution_mode"),
+                    host_workdir=context.get("host_workdir"),
+                    session_mode=context.get("session_mode"),
+                    memory_read=resolve_optional_bool(
+                        context.get("memory_read"),
+                        default=True,
+                    ),
+                    memory_write=resolve_optional_bool(
+                        context.get("memory_write"),
+                        default=context.get("session_mode") != "temporary_chat",
+                    ),
+                    project_id=context.get("project_id"),
+                    project_phase=context.get("project_phase"),
+                    primary_plan_id=context.get("primary_plan_id"),
+                )
+
+            for event in event_stream:
+                if event.type == "values":
+                    incoming_title = event.data.get("title")
+                    resolved_title = resolve_preferred_thread_title(
+                        current_title=existing_title,
+                        incoming_title=incoming_title if isinstance(incoming_title, str) else None,
+                    )
+                    latest_values = {
+                        "title": resolved_title or "Untitled",
+                        "messages": event.data.get("messages", []),
+                        "artifacts": event.data.get("artifacts", []),
+                    }
+                    existing_title = latest_values["title"]
+                    event.data["title"] = latest_values["title"]
+                yield event
+
+            if latest_values is not None:
+                self._finalize_thread_run(
+                    thread_id=thread_id,
+                    latest_values=latest_values,
+                    message_text=message_text,
+                    cli_tools_enabled=cli_tools_enabled,
+                    context=context,
+                )
+        finally:
+            _release_thread_run(thread_id)
 
     def _queue_title_generation(
         self,
@@ -454,24 +492,6 @@ def _extract_human_message_payload(messages: list[dict[str, Any]]) -> dict[str, 
     return {
         "content": content,
         "additional_kwargs": additional_kwargs if isinstance(additional_kwargs, dict) else {},
-    }
-
-
-def _build_delegated_summary_message(
-    child_results: list[tuple[str, str]],
-) -> dict[str, Any]:
-    if child_results:
-        lines = [
-            f"- {agent_name}: {result or 'completed'}"
-            for agent_name, result in child_results
-        ]
-        content = "Delegated execution completed.\n" + "\n".join(lines)
-    else:
-        content = "Delegated execution completed."
-    return {
-        "type": "ai",
-        "id": f"delegated-summary-{uuid.uuid4().hex[:8]}",
-        "content": content,
     }
 
 

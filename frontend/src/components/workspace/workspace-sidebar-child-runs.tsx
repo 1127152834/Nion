@@ -37,7 +37,8 @@ export function WorkspaceSidebarChildRuns() {
       <ChildRunInspector
         open={inspectorOpen}
         threadId={threadId}
-        childRun={selectedChildRun}
+        childRunId={selectedChildRun?.child_run_id ?? null}
+        childRunPreview={selectedChildRun}
         onOpenChange={setInspectorOpen}
       />
     </>

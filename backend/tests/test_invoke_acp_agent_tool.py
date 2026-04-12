@@ -29,7 +29,7 @@ def test_missing_acp_executable_returns_actionable_error():
 
 
 def test_build_permission_response_denies_by_default(monkeypatch):
-    from nion.tools.builtins import invoke_acp_agent_tool as module
+    from nion.orchestration.remote_transports import acp as module
 
     class DummyDeniedOutcome:
         def __init__(self, *, outcome):
@@ -159,7 +159,7 @@ def test_invoke_acp_agent_passes_resolved_env(monkeypatch):
 
 def test_get_work_dir_uses_per_thread_path_when_thread_id_given(monkeypatch, tmp_path):
     from nion.config import paths as paths_module
-    from nion.tools.builtins import invoke_acp_agent_tool as module
+    from nion.orchestration.remote_transports import acp as module
 
     monkeypatch.setattr(module, "get_paths", lambda: paths_module.Paths(base_dir=tmp_path))
 
@@ -168,3 +168,48 @@ def test_get_work_dir_uses_per_thread_path_when_thread_id_given(monkeypatch, tmp
     expected = tmp_path / "threads" / "thread-abc-123" / "acp-workspace"
     assert result == str(expected)
     assert expected.exists()
+
+
+def test_invoke_acp_agent_tool_delegates_to_transport_seam(monkeypatch):
+    from nion.tools.builtins.invoke_acp_agent_tool import build_invoke_acp_agent_tool
+
+    captured: dict[str, object] = {}
+
+    class FakeTransport:
+        kind = "acp"
+
+        async def run(self, prompt: str, *, thread_id: str | None = None) -> str:
+            captured["prompt"] = prompt
+            captured["thread_id"] = thread_id
+            return "transport result"
+
+    def _fake_resolve(target):
+        captured["target"] = target
+        return FakeTransport()
+
+    monkeypatch.setattr(
+        "nion.tools.builtins.invoke_acp_agent_tool.resolve_remote_transport",
+        _fake_resolve,
+    )
+
+    tool = build_invoke_acp_agent_tool(
+        {
+            "codex": ACPAgentConfig(
+                command="python3",
+                args=["-m", "fake-acp-adapter"],
+                description="Codex ACP adapter",
+            )
+        }
+    )
+
+    result = asyncio.run(
+        tool.coroutine(
+            agent="codex",
+            prompt="hello",
+            config={"configurable": {"thread_id": "thread-123"}},
+        )
+    )
+
+    assert result == "transport result"
+    assert captured["prompt"] == "hello"
+    assert captured["thread_id"] == "thread-123"

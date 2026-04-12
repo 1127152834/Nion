@@ -1,30 +1,11 @@
 import type { ChildRunRecord } from "./types";
 
 type ChildRunEvent =
-  | {
-      type: "child_run_created";
-      child_run_id: string;
-      agent_name?: string;
-    }
-  | {
-      type: "child_run_running";
-      child_run_id: string;
-      message?: string;
-    }
-  | {
-      type: "child_run_completed";
-      child_run_id: string;
-      result?: string;
-    }
-  | {
-      type: "child_run_failed";
-      child_run_id: string;
-      error?: string;
-    }
-  | {
-      type: "child_run_closed";
-      child_run_id: string;
-    };
+  | { type: "child_run_created"; child_run_id: string; agent_name: string }
+  | { type: "child_run_running"; child_run_id: string; message: string }
+  | { type: "child_run_completed"; child_run_id: string; result: string }
+  | { type: "child_run_failed"; child_run_id: string; error: string }
+  | { type: "child_run_closed"; child_run_id: string };
 
 export function reduceChildRunEvent(
   current: Record<string, ChildRunRecord>,
@@ -35,8 +16,8 @@ export function reduceChildRunEvent(
       ...current,
       [event.child_run_id]: {
         child_run_id: event.child_run_id,
-        agent_name: event.agent_name ?? "custom-agent",
-        title: event.agent_name ?? "custom-agent",
+        agent_name: event.agent_name,
+        title: event.agent_name,
         status: "created",
         description: "",
       },
@@ -44,9 +25,7 @@ export function reduceChildRunEvent(
   }
 
   const existing = current[event.child_run_id];
-  if (!existing) {
-    return current;
-  }
+  if (!existing) return current;
 
   if (event.type === "child_run_running") {
     return {
@@ -54,7 +33,7 @@ export function reduceChildRunEvent(
       [event.child_run_id]: {
         ...existing,
         status: "running",
-        latest_message: event.message ?? existing.latest_message,
+        latest_message: event.message,
       },
     };
   }
@@ -65,7 +44,7 @@ export function reduceChildRunEvent(
       [event.child_run_id]: {
         ...existing,
         status: "completed",
-        result: event.result ?? existing.result,
+        result: event.result,
       },
     };
   }
@@ -76,7 +55,7 @@ export function reduceChildRunEvent(
       [event.child_run_id]: {
         ...existing,
         status: "failed",
-        error: event.error ?? existing.error,
+        error: event.error,
       },
     };
   }
