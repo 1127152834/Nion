@@ -250,7 +250,7 @@ def test_memory_router_does_not_register_memory_os_or_maintenance_routes() -> No
     assert "/api/memory" in routes
     assert "/api/memory/config" in routes
     assert "/api/memory/status" in routes
-    assert "/api/memory/reload" in routes
+    assert "/api/memory/reload" not in routes
 
     assert "/api/memory-os/providers/families" not in routes
     assert "/api/autodream/run" not in routes

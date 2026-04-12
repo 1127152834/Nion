@@ -84,6 +84,9 @@ export function MemoryHomePage() {
               Memory
             </p>
             <h1 className="text-[2rem] font-semibold tracking-tight">记忆</h1>
+            <p className="text-sm text-muted-foreground">
+              这是由助手自动维护的结构化阅读页，当前内容来自 MEMORY.md 与长期记忆档案。
+            </p>
           </div>
         </div>
         {!isLoading && !error ? <MemorySummaryCards memory={memory} /> : null}
