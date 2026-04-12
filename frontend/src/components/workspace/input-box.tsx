@@ -153,6 +153,10 @@ type RecentMentionsState = {
 const RECENT_MENTION_LIMIT = 5;
 const MAX_INLINE_MENTION_SUMMARY_ITEMS = 3;
 
+function getNextAtMentionTab(current: AtMentionTab): AtMentionTab {
+  return current === "notebook" ? "agent" : "notebook";
+}
+
 function normalizePath(path: string): string {
   return path.replace(/\\/g, "/").replace(/\/{2,}/g, "/");
 }
@@ -1242,6 +1246,13 @@ export function InputBox({
         return;
       }
 
+      if (event.key === "Tab" && mentionState.trigger === "@") {
+        event.preventDefault();
+        setActiveMentionTab((current) => getNextAtMentionTab(current));
+        setMentionActiveIndex(0);
+        return;
+      }
+
       const flatOptions = mentionGroups.flatMap((group) => group.options);
       if (flatOptions.length === 0) {
         return;
@@ -1261,7 +1272,16 @@ export function InputBox({
         return;
       }
 
-      if (event.key === "Enter" || event.key === "Tab") {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        const currentOption = flatOptions[mentionActiveIndex];
+        if (currentOption) {
+          applyMentionOption(currentOption);
+        }
+        return;
+      }
+
+      if (event.key === "Tab") {
         event.preventDefault();
         const currentOption = flatOptions[mentionActiveIndex];
         if (currentOption) {
