@@ -399,6 +399,20 @@ export async function startDesktopMain(): Promise<void> {
   });
 
   process.env.NION_DESKTOP_BACKEND_URL = daemonCommand.urls.base;
+  runtimeInfo = {
+    mode: "local-daemon",
+    baseUrl: daemonCommand.urls.base,
+    healthUrl: daemonCommand.urls.health,
+    workingDirectory: daemonCommand.cwd,
+    clientId: null,
+    allowBackgroundRunning: false,
+  };
+  ipcMain.handle(DESKTOP_IPC_CHANNELS.runtimeInfo, async () => {
+    if (!runtimeInfo) {
+      throw new Error("Desktop runtime info is unavailable");
+    }
+    return runtimeInfo;
+  });
   const preloadPath = path.join(__dirname, "..", "preload", "index.js");
   const rendererUrl =
     process.env.NION_DESKTOP_RENDERER_URL?.trim() || "nion://app/index.html";
@@ -416,12 +430,8 @@ export async function startDesktopMain(): Promise<void> {
   };
 
   const updater = createDesktopUpdater();
-  registerUpdaterHandlers(ipcMain, updater, () => {
-    if (!runtimeInfo) {
-      throw new Error("Desktop runtime info is unavailable");
-    }
-    return runtimeInfo;
-  });
+  ipcMain.handle(DESKTOP_IPC_CHANNELS.checkForUpdates, async () => updater.checkForUpdates());
+  ipcMain.handle(DESKTOP_IPC_CHANNELS.quitAndInstallUpdate, async () => updater.quitAndInstall());
 
   terminalManager.setOnData((id, data) => {
     mainWindow?.webContents.send(DESKTOP_IPC_CHANNELS.terminalOnData, { id, data });
