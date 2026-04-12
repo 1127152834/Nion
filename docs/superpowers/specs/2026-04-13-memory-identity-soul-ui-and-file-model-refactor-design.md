@@ -268,6 +268,28 @@ Nion 不应该简单二选一。
 
 - 直接生成最终用户人格化回复
 
+### 协同边界补充
+
+这轮重构里，`Orchestration` 不能被当成“另一个以后再看”的旁支模块。
+
+原因很简单：
+
+- 如果 `IDENTITY.md` / `SOUL.md` / `MEMORY.md` 成了 runtime 的正式主档
+- 但被调度的 child agents 仍然可以绕过主智能体，直接把自己的结果表述成最终用户回复
+
+那整个重构会在最关键的地方漏掉。
+
+所以这轮必须把多智能体协同一起纳入边界重构，至少做到：
+
+1. child agents 只产出内部工作材料
+2. 主智能体仍然是唯一正式对外发声者
+3. 主智能体在最终回复前，统一消费：
+   - `IDENTITY.md`
+   - `SOUL.md`
+   - `MEMORY.md`
+   - child work products
+4. A2A / ACP 仍然只是 transport seam，不改变最终 speaking owner
+
 ---
 
 ## 4.2 文件原生资产模型
@@ -415,6 +437,40 @@ runtime-context/
 3. runtime 注入优先从文件资产和编译产物取值
 4. 不再让 UI 围绕数据库字段长出来
 
+### 多智能体协同与运行时关系
+
+多智能体协同也必须服从同一个 runtime 模型。
+
+正确链路应该是：
+
+```text
+用户请求
+-> 主智能体读取 RuntimeContextBundle
+-> 主智能体决定是否调度 child agents
+-> child agents 执行并返回 child work products
+-> 主智能体再次结合 RuntimeContextBundle + child work products
+-> 主智能体生成最终用户回复
+```
+
+不允许的链路：
+
+```text
+用户请求
+-> child agent 输出用户文案
+-> orchestrator 直接拼接 child results
+-> 作为最终用户回复
+```
+
+这条禁令很重要。
+
+因为在新的文件原生模型里：
+
+- `IDENTITY.md` 决定系统如何长期理解用户
+- `SOUL.md` 决定系统长期怎么说话
+- `MEMORY.md` 决定当前热上下文
+
+如果最终回复不经过主智能体统一 synthesis，这三个主档就会被协同链路直接绕过。
+
 ### 运行时注入顺序
 
 ```text
@@ -424,13 +480,15 @@ RuntimeContextBundle
 3. adaptive overlay
 4. MEMORY.md active summary
 5. retrieved long-term memories
-6. procedures / evidence / scoped recall
+6. child work products
+7. procedures / evidence / scoped recall
 ```
 
 这里的关键区别是：
 
 - `IDENTITY.md` / `SOUL.md` / `MEMORY.md` 是静态热资产
 - 向量检索是动态补充
+- child work products 是内部执行补充材料，不是用户面最终文案
 
 不是反过来。
 
@@ -684,6 +742,11 @@ backend/packages/harness/nion/runtime_context/files/
 - `MemoryReadService`
   - 生成产品面分组视图
   - 同时维护 `MEMORY.md`
+- `DelegationCoordinator`
+  - 从“调度并直接拼接结果”改成“只产出 child work products，交由主智能体统一 synthesis”
+- `RemoteAgentTransport`
+  - 保持 ACP / A2A seam 角色
+  - 不拥有最终 speaking 权
 
 ### 数据层
 
@@ -706,10 +769,15 @@ GET   /api/memory
 GET   /api/internal/memory/index
 PATCH /api/internal/memory/index
 POST  /api/internal/memory/rebuild
+
+GET   /api/threads/:thread_id/child-runs
+GET   /api/threads/:thread_id/child-runs/:child_run_id
 ```
 
 产品面看到的是 document + grouped memory view。  
 internal settings 看到的是索引和 provider。
+
+child runs 的定位仍然是 inspectable internal execution surface，不是正式聊天消息流。
 
 ## 8.3 Frontend 结构
 
@@ -758,9 +826,17 @@ frontend/src/components/workspace/documents/
 
 1. runtime bundle 优先读 compiled document artifacts
 2. vector recall 作为补充层
+3. child work products 纳入 runtime bundle
 3. 删除错误 fallback
 
-### Phase E：清 compat 和旧 UI 壳
+### Phase E：让多智能体协同对齐新的主档体系
+
+1. main agent 保持唯一 speaking owner
+2. child agents 只产出 child work products
+3. delegated execution 不得绕过 `IDENTITY.md / SOUL.md / MEMORY.md`
+4. A2A / ACP transport 与 local orchestration 一并校正到同一 speaking contract
+
+### Phase F：清 compat 和旧 UI 壳
 
 1. 退休旧字段直写主链
 2. 退休错误合同测试
@@ -775,6 +851,7 @@ frontend/src/components/workspace/documents/
 3. 不要把 `MEMORY.md` 做成全量长期记忆 dump。
 4. 不要让 embedding/provider/index settings 继续和内容展示页面混在一起。
 5. 不要再给这些页面加更多解释文案来弥补信息架构错误。
+6. 不要让 child agent 的结果直接变成最终用户回复。
 
 最后一条很重要：
 
@@ -799,6 +876,7 @@ frontend/src/components/workspace/documents/
 - Identity 是“系统如何认识你”
 - Soul 是“助手长期怎么表现”
 - Memory settings 是“检索系统怎么工作”
+- Orchestration 是“系统内部怎么协同完成任务”，但不单独夺走主智能体的 speaking owner
 
 ### 交互模型
 
@@ -806,6 +884,7 @@ frontend/src/components/workspace/documents/
 - Identity / Soul 进入整文编辑模式
 - 保存即编译
 - runtime 默认注入文件编译产物
+- 多智能体协同的最终回复仍由主智能体统一生成
 
 ### 参考策略
 
