@@ -2,9 +2,15 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import Generator
+from typing import Callable
 
 from nion.client import NionClient, StreamEvent
+from nion.config.agents_config import AgentConfig, resolve_agent_config
 from nion.memory_os.clock import utcnow_z
+from nion.orchestration.delegation_policy import (
+    DelegatedExecutionProfile,
+    build_delegated_execution_profile,
+)
 from nion.orchestration.models import ChildRunMessage, ChildRunRecord
 from nion.orchestration.repository import ChildRunRepository
 
@@ -15,11 +21,15 @@ class DelegatedAgentExecutor:
         *,
         repository: ChildRunRepository | None = None,
         client_factory=None,
+        agent_resolver: Callable[[str], AgentConfig | None] | None = None,
+        profile_builder: Callable[..., DelegatedExecutionProfile] | None = None,
     ) -> None:
         self._repository = repository or ChildRunRepository()
         self._client_factory = client_factory or (
             lambda **kwargs: NionClient(agent_name=kwargs["agent_name"], subagent_enabled=False)
         )
+        self._agent_resolver = agent_resolver or resolve_agent_config
+        self._profile_builder = profile_builder or build_delegated_execution_profile
 
     def _append_message(
         self,
@@ -50,7 +60,18 @@ class DelegatedAgentExecutor:
         agent_name: str,
         prompt: str,
         model_name: str | None = None,
+        caller_permissions: set[str] | None = None,
     ) -> Generator[StreamEvent, None, None]:
+        agent_config = self._agent_resolver(agent_name)
+        effective_permissions = caller_permissions or set(agent_config.tool_groups or []) if agent_config else set()
+        profile = (
+            self._profile_builder(
+                agent_config,
+                caller_permissions=effective_permissions,
+            )
+            if agent_config is not None
+            else DelegatedExecutionProfile(agent_name=agent_name)
+        )
         child_run_id = f"child-{uuid.uuid4().hex[:8]}"
         record = ChildRunRecord(
             child_run_id=child_run_id,
@@ -73,6 +94,16 @@ class DelegatedAgentExecutor:
         )
 
         try:
+            tool_groups_override = (
+                sorted(set(agent_config.tool_groups or []) & set(profile.effective_permissions))
+                if agent_config is not None and agent_config.tool_groups and profile.effective_permissions
+                else (agent_config.tool_groups if agent_config is not None else None)
+            )
+            overlay = (
+                profile.soul_overlay
+                if not profile.allow_direct_user_reply
+                else ""
+            )
             client = self._client_factory(agent_name=agent_name)
             final_text = ""
             for event in client.stream(
@@ -80,7 +111,10 @@ class DelegatedAgentExecutor:
                 thread_id=f"{parent_thread_id}-{child_run_id}",
                 agent_name=agent_name,
                 model_name=model_name,
-                memory_write=False,
+                requested_skills=profile.allowed_private_skills,
+                tool_groups_override=tool_groups_override,
+                additional_system_prompt=overlay,
+                memory_write=profile.allow_memory_write,
                 session_mode="temporary_chat",
             ):
                 if event.type == "messages-tuple" and event.data.get("type") == "ai":

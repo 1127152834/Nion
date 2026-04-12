@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from operator import add
 from typing import Annotated, Any, Callable, TypedDict
 
 from langgraph.config import get_stream_writer
@@ -15,7 +14,7 @@ class OrchestrationState(TypedDict, total=False):
     mode: str
     mention_steps: list[dict[str, Any]]
     current_index: int
-    child_results: Annotated[list[dict[str, str]], add]
+    child_results: list[dict[str, str]]
     final_reply: str
 
 
@@ -61,6 +60,7 @@ def build_agent_orchestrator_graph(
     checkpointer,
     delegated_executor,
     agent_resolver: Callable[[str], Any | None],
+    caller_permissions: set[str] | None = None,
     summary_builder: Callable[[str, list[tuple[str, str]]], str] | None = None,
 ):
     summary_fn = summary_builder or (
@@ -81,6 +81,7 @@ def build_agent_orchestrator_graph(
             "mention_steps": steps,
             "mode": "delegated" if steps else "lead_only",
             "current_index": 0,
+            "child_results": [],
         }
 
     def plan_agent_chain_node(state: OrchestrationState):
@@ -111,6 +112,7 @@ def build_agent_orchestrator_graph(
             parent_thread_id=state["thread_id"],
             agent_name=step["agent_name"],
             prompt=delegated_prompt,
+            caller_permissions=caller_permissions,
         ):
             if event.type == "custom":
                 writer(event.data)
@@ -121,10 +123,11 @@ def build_agent_orchestrator_graph(
                     latest_result = event.data["result"]
         return {
             "child_results": [
+                *state.get("child_results", []),
                 {
                     "agent_name": step["agent_name"],
                     "result": latest_result,
-                }
+                },
             ],
             "current_index": current_index + 1,
         }

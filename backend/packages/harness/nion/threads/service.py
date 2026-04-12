@@ -121,6 +121,15 @@ class ThreadService:
             for step in parse_agent_mentions(message_text)
         )
 
+    def _resolve_caller_permissions(self, context: dict[str, Any]) -> set[str]:
+        caller_agent_name = context.get("agent_name")
+        if not isinstance(caller_agent_name, str) or not caller_agent_name.strip():
+            return set()
+        caller_agent = resolve_agent_config(caller_agent_name.strip())
+        if caller_agent is None or not caller_agent.tool_groups:
+            return set()
+        return set(caller_agent.tool_groups)
+
     def delete_thread(self, thread_id: str) -> None:
         self._repository.delete_thread(thread_id)
 
@@ -139,10 +148,12 @@ class ThreadService:
         existing_title = existing_record.values.title if existing_record is not None else None
         try:
             if self._has_delegated_agents(message_text):
+                caller_permissions = self._resolve_caller_permissions(context)
                 graph = build_agent_orchestrator_graph(
                     checkpointer=get_checkpointer(),
                     delegated_executor=self._delegated_executor,
                     agent_resolver=resolve_agent_config,
+                    caller_permissions=caller_permissions,
                 )
                 graph_state: dict[str, Any] | None = None
                 for raw_chunk in graph.stream(

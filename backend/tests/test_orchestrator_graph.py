@@ -26,7 +26,15 @@ def test_orchestrator_graph_runs_agent_chain_sequentially_with_upstream_context(
     calls: list[tuple[str, str]] = []
 
     class FakeExecutor:
-        def stream(self, *, parent_thread_id: str, agent_name: str, prompt: str, model_name=None):
+        def stream(
+            self,
+            *,
+            parent_thread_id: str,
+            agent_name: str,
+            prompt: str,
+            model_name=None,
+            caller_permissions=None,
+        ):
             calls.append((agent_name, prompt))
             yield StreamEvent(
                 type="custom",
@@ -74,3 +82,70 @@ def test_orchestrator_graph_runs_agent_chain_sequentially_with_upstream_context(
     assert "research-agent-done" in calls[1][1]
     assert "writer-agent-done" in calls[2][1]
     assert "formatter-agent-done" in result["final_reply"]
+
+
+def test_orchestrator_graph_does_not_leak_child_results_between_same_thread_invocations():
+    calls: list[tuple[str, str]] = []
+
+    class FakeExecutor:
+        def stream(
+            self,
+            *,
+            parent_thread_id: str,
+            agent_name: str,
+            prompt: str,
+            model_name=None,
+            caller_permissions=None,
+        ):
+            calls.append((agent_name, prompt))
+            yield StreamEvent(
+                type="custom",
+                data={
+                    "type": "child_run_created",
+                    "child_run_id": f"{agent_name}-run",
+                    "agent_name": agent_name,
+                },
+            )
+            yield StreamEvent(
+                type="custom",
+                data={
+                    "type": "child_run_completed",
+                    "child_run_id": f"{agent_name}-run",
+                    "result": f"{agent_name}-done",
+                },
+            )
+            yield StreamEvent(
+                type="custom",
+                data={
+                    "type": "child_run_closed",
+                    "child_run_id": f"{agent_name}-run",
+                },
+            )
+
+    graph = build_agent_orchestrator_graph(
+        checkpointer=InMemorySaver(),
+        delegated_executor=FakeExecutor(),
+        agent_resolver=lambda _name: object(),
+    )
+    config = {"configurable": {"thread_id": "thread-1"}}
+
+    first = graph.invoke(
+        {
+            "user_text": "@research-agent 搜索资料，交给 @writer-agent 总结",
+            "thread_id": "thread-1",
+        },
+        config=config,
+    )
+    second = graph.invoke(
+        {
+            "user_text": "@formatter-agent 输出 HTML",
+            "thread_id": "thread-1",
+        },
+        config=config,
+    )
+
+    assert "research-agent-done" in first["final_reply"]
+    assert "writer-agent-done" in first["final_reply"]
+    assert "research-agent-done" not in second["final_reply"]
+    assert "writer-agent-done" not in second["final_reply"]
+    assert "formatter-agent-done" in second["final_reply"]
