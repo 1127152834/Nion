@@ -177,6 +177,7 @@ Cons:
 
 - 先落 runtime/contract/test spec，再进入实现
 - A2A 不在 v1 作为强依赖，但必须留 transport seam
+- A2A 在 v1 只要求 discovery-ready seam；真正的 remote execution / session / streaming 留到下一阶段
 
 ## Scope
 
