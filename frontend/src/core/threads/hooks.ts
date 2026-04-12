@@ -84,6 +84,28 @@ function updateThreadSearchCacheEntry(
   );
 }
 
+function insertThreadSearchCacheEntry(
+  oldData: Array<AgentThread> | undefined,
+  threadId: string,
+) {
+  const existing = oldData ?? [];
+  if (existing.some((thread) => thread.thread_id === threadId)) {
+    return existing;
+  }
+
+  const placeholder: AgentThread = {
+    thread_id: threadId,
+    updated_at: new Date().toISOString(),
+    values: {
+      ...EMPTY_THREAD_STATE,
+      title: "Untitled",
+      messages: [],
+    },
+  };
+
+  return [placeholder, ...existing];
+}
+
 export function useThreadStream({
   threadId,
   context,
@@ -184,6 +206,20 @@ export function useThreadStream({
     [queryClient],
   );
 
+  const insertThreadSearchCache = useCallback(
+    (threadId: string) => {
+      queryClient.setQueriesData(
+        {
+          queryKey: ["threads", "search"],
+          exact: false,
+        },
+        (oldData: Array<AgentThread> | undefined) =>
+          insertThreadSearchCacheEntry(oldData, threadId),
+      );
+    },
+    [queryClient],
+  );
+
   useEffect(() => {
     const currentThreadId = onStreamThreadId;
     if (!currentThreadId) {
@@ -260,6 +296,7 @@ export function useThreadStream({
           onCreated: (createdThreadId) => {
             handleStreamStart(createdThreadId);
             setOnStreamThreadId(createdThreadId);
+            insertThreadSearchCache(createdThreadId);
           },
           onEvent: (eventType, eventData) => {
             const activeStreamThreadId = threadIdRef.current ?? requestedThreadId ?? null;
@@ -446,7 +483,7 @@ export function useThreadStream({
         void queryClient.invalidateQueries({ queryKey: ["threads", "search"] });
       }
     },
-    [apiClient, handleStreamStart, isActiveStreamThread, queryClient, t.workspace.requestError, updateSubtask, updateThreadSearchCache],
+    [apiClient, handleStreamStart, insertThreadSearchCache, isActiveStreamThread, queryClient, t.workspace.requestError, updateSubtask, updateThreadSearchCache],
   );
 
   const thread: BaseStream<AgentThreadState> = useMemo(

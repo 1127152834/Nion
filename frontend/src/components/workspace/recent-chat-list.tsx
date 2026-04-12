@@ -186,6 +186,7 @@ export function RecentChatList() {
   const [selectedChildRun, setSelectedChildRun] = useState<ChildRunRecord | null>(null);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedThreadIds, setSelectedThreadIds] = useState<string[]>([]);
+  const openChildRuns = childRuns.filter((item) => item.status !== "closed");
 
   const handleDelete = useCallback(
     (threadId: string) => {
@@ -448,7 +449,7 @@ export function RecentChatList() {
             ) : null}
             {isActive ? (
               <ChildRunList
-                childRuns={childRuns.filter((item) => item.status !== "closed")}
+                childRuns={openChildRuns}
                 onSelect={(childRun) => {
                   setSelectedChildRun(childRun);
                   setChildRunInspectorOpen(true);
@@ -499,6 +500,15 @@ export function RecentChatList() {
             }}
             className="px-2"
           />
+          {threadIdFromPath && openChildRuns.length > 0 ? (
+            <ChildRunList
+              childRuns={openChildRuns}
+              onSelect={(childRun) => {
+                setSelectedChildRun(childRun);
+                setChildRunInspectorOpen(true);
+              }}
+            />
+          ) : null}
           {selectionMode ? (
             <div className="flex items-center justify-between gap-3 px-2 pt-1 text-[11px] text-muted-foreground">
               <span className="tracking-[0.01em] text-foreground/52">
