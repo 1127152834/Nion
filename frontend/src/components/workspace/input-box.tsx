@@ -2,10 +2,10 @@
 
 import type { ChatStatus } from "ai";
 import {
+  BotIcon,
   CheckIcon,
   FileIcon,
   FolderIcon,
-  FolderKanbanIcon,
   GraduationCapIcon,
   LightbulbIcon,
   PaperclipIcon,
@@ -17,7 +17,7 @@ import {
   XIcon,
   ZapIcon,
 } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import {
   useCallback,
   useEffect,
@@ -60,6 +60,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import { useAgents } from "@/core/agents";
 import {
   buildNotebookDirectoryObjectMention,
   buildNotebookDirectoryMentionOptions,
@@ -114,6 +115,7 @@ type MentionOption = {
   label: string;
   value: string;
   kind:
+    | "agent"
     | "file"
     | "directory"
     | "notebook-directory"
@@ -140,6 +142,8 @@ type MentionGroup = {
   label: string;
   options: MentionOption[];
 };
+
+type AtMentionTab = "notebook" | "agent";
 
 type RecentMentionsState = {
   "@": string[];
@@ -239,6 +243,7 @@ function resolveMentionState(value: string, caret: number): MentionState | null 
 function isSelectedInlineMention(params: {
   trigger: MentionTrigger;
   value: string;
+  selectedAgents: string[];
   selectedSkills: string[];
   selectedContexts: SelectedContextTag[];
   selectedMcpTools: string[];
@@ -248,6 +253,7 @@ function isSelectedInlineMention(params: {
   const {
     trigger,
     value,
+    selectedAgents,
     selectedSkills,
     selectedContexts,
     selectedMcpTools,
@@ -260,6 +266,7 @@ function isSelectedInlineMention(params: {
   }
 
   return (
+    selectedAgents.includes(value) ||
     selectedContexts.some((item) => item.value === value) ||
     selectedObjectMentions.some((item) => item.value === value) ||
     selectedMcpTools.includes(value) ||
@@ -269,18 +276,19 @@ function isSelectedInlineMention(params: {
 
 function parseMentions(
   text: string,
+  selectedAgents: string[],
   selectedSkills: string[],
   selectedContexts: SelectedContextTag[],
   selectedMcpTools: string[],
   selectedObjectMentions: ObjectMention[],
 ): Array<{
-  type: "skill" | "context" | "tool" | "object";
+  type: "skill" | "context" | "tool" | "object" | "agent";
   value: string;
   start: number;
   end: number;
 }> {
   const mentions: Array<{
-    type: "skill" | "context" | "tool" | "object";
+    type: "skill" | "context" | "tool" | "object" | "agent";
     value: string;
     start: number;
     end: number;
@@ -322,6 +330,13 @@ function parseMentions(
         start: match.index + leadingWhitespace.length,
         end: match.index + fullMatch.length,
       });
+    } else if (selectedAgents.includes(value)) {
+      mentions.push({
+        type: "agent",
+        value,
+        start: match.index + leadingWhitespace.length,
+        end: match.index + fullMatch.length,
+      });
     } else if (
       selectedObjectMentions.some((mention) => mention.value === value)
     ) {
@@ -350,7 +365,7 @@ function MentionHighlightOverlay({
 }: {
   text: string;
   mentions: Array<{
-    type: "skill" | "context" | "tool" | "object";
+    type: "skill" | "context" | "tool" | "object" | "agent";
     value: string;
     start: number;
     end: number;
@@ -389,6 +404,8 @@ function MentionHighlightOverlay({
           const colorClass =
             segment.type === "skill"
               ? "bg-purple-500/30 dark:bg-purple-500/20"
+              : segment.type === "agent"
+                ? "bg-emerald-500/30 dark:bg-emerald-500/20"
               : segment.type === "object"
                 ? "bg-amber-500/30 dark:bg-amber-500/20"
               : segment.type === "context"
@@ -533,22 +550,25 @@ export function InputBox({
   const { t } = useI18n();
   const searchParams = useSearchParams();
   const [modelDialogOpen, setModelDialogOpen] = useState(false);
+  const { agents } = useAgents();
   const { models } = useModels();
   const { skills } = useSkills();
   const { config: mcpConfig } = useMCPConfig();
   const { config: cliConfig } = useCLIConfig();
   const { tree: notebookTree } = useNotebookTree();
   const { thread, isMock } = useThread();
-  const projectInfo = thread.values.project;
   const { textInput } = usePromptInputController();
   const promptRootRef = useRef<HTMLDivElement | null>(null);
   const [mentionState, setMentionState] = useState<MentionState | null>(null);
+  const [activeMentionTab, setActiveMentionTab] = useState<AtMentionTab>("notebook");
   const [mentionActiveIndex, setMentionActiveIndex] = useState(0);
+  const [selectedAgents, setSelectedAgents] = useState<string[]>([]);
   const [selectedContexts, setSelectedContexts] = useState<SelectedContextTag[]>([]);
   const [selectedMcpTools, setSelectedMcpTools] = useState<string[]>([]);
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const [selectedCliTools, setSelectedCliTools] = useState<string[]>([]);
   const [selectedObjectMentions, setSelectedObjectMentions] = useState<ObjectMention[]>([]);
+  const [pinnedAgents, setPinnedAgents] = useState<string[]>([]);
   const [pinnedContexts, setPinnedContexts] = useState<string[]>([]);
   const [pinnedSkills, setPinnedSkills] = useState<string[]>([]);
   const [pinnedMcpTools, setPinnedMcpTools] = useState<string[]>([]);
@@ -649,6 +669,20 @@ export function InputBox({
     [notebookTree.directories],
   );
 
+  const agentMentionOptions = useMemo<MentionOption[]>(
+    () =>
+      agents
+        .filter((agent) => agent.kind === "custom")
+        .map((agent) => ({
+          id: `agent:${agent.name}`,
+          label: agent.name,
+          value: agent.name,
+          kind: "agent" as const,
+          description: agent.description || "智能体",
+        })),
+    [agents],
+  );
+
   const skillMentionOptions = useMemo<MentionOption[]>(
     () =>
       skills.map((skill: Skill) => ({
@@ -700,10 +734,9 @@ export function InputBox({
     }
     const source =
       mentionState.trigger === "@"
-        ? [
-            ...notebookDirectoryMentionOptions,
-            ...fileMentionOptions,
-          ]
+        ? activeMentionTab === "agent"
+          ? agentMentionOptions
+          : notebookDirectoryMentionOptions
         : skillMentionOptions;
     const normalizedQuery = mentionState.query.trim().toLowerCase();
     return source
@@ -721,7 +754,8 @@ export function InputBox({
       .slice(0, 80)
       .map((item) => item.option);
   }, [
-    fileMentionOptions,
+    activeMentionTab,
+    agentMentionOptions,
     mentionState,
     notebookDirectoryMentionOptions,
     skillMentionOptions,
@@ -730,6 +764,17 @@ export function InputBox({
   const mentionGroups = useMemo<MentionGroup[]>(() => {
     if (!mentionState) {
       return [];
+    }
+    if (mentionState.trigger === "@") {
+      return filteredMentionOptions.length > 0
+        ? [
+            {
+              id: activeMentionTab,
+              label: activeMentionTab === "agent" ? "智能体" : "Notebook",
+              options: filteredMentionOptions,
+            },
+          ]
+        : [];
     }
     const recents = recentMentions[mentionState.trigger] ?? [];
     const byValue = new Map(
@@ -761,34 +806,8 @@ export function InputBox({
       }
       return groups;
     }
-    const notebookDirectories = remaining.filter(
-      (item) => item.kind === "notebook-directory",
-    );
-    const directories = remaining.filter((item) => item.kind === "directory");
-    const files = remaining.filter((item) => item.kind === "file");
-    if (notebookDirectories.length > 0) {
-      groups.push({
-        id: "notebook-directories",
-        label: "Notebook",
-        options: notebookDirectories.slice(0, 20),
-      });
-    }
-    if (directories.length > 0) {
-      groups.push({
-        id: "directories",
-        label: "Directories",
-        options: directories.slice(0, 20),
-      });
-    }
-    if (files.length > 0) {
-      groups.push({
-        id: "files",
-        label: "Files",
-        options: files.slice(0, 40),
-      });
-    }
     return groups;
-  }, [filteredMentionOptions, mentionState, recentMentions]);
+  }, [activeMentionTab, filteredMentionOptions, mentionState, recentMentions]);
 
   const filteredContextSelectorOptions = useMemo(() => {
     const normalizedQuery = contextSelectorQuery.trim().toLowerCase();
@@ -957,6 +976,10 @@ export function InputBox({
     });
   }, []);
 
+  const addSelectedAgent = useCallback((value: string) => {
+    setSelectedAgents((prev) => (prev.includes(value) ? prev : [...prev, value]));
+  }, []);
+
   const addSelectedSkill = useCallback((value: string) => {
     setSelectedSkills((prev) => (prev.includes(value) ? prev : [...prev, value]));
   }, []);
@@ -976,6 +999,13 @@ export function InputBox({
   }, []);
 
   const syncSelectedMentionsFromText = useCallback((value: string) => {
+    setSelectedAgents((prev) =>
+      prev.filter(
+        (item) =>
+          pinnedAgents.includes(item) ||
+          hasInlineMention(value, `@${item}`),
+      ),
+    );
     setSelectedContexts((prev) =>
       prev.filter(
         (item) =>
@@ -1010,7 +1040,7 @@ export function InputBox({
             : hasInlineMention(value, `#${item}`),
       ),
     );
-  }, [pinnedCliTools, pinnedContexts, pinnedMcpTools, pinnedSkills]);
+  }, [pinnedAgents, pinnedCliTools, pinnedContexts, pinnedMcpTools, pinnedSkills]);
 
   useEffect(() => {
     syncSelectedMentionsFromText(textInput.value);
@@ -1019,6 +1049,11 @@ export function InputBox({
   const removeSelectedContext = useCallback((value: string) => {
     setPinnedContexts((prev) => prev.filter((item) => item !== value));
     setSelectedContexts((prev) => prev.filter((item) => item.value !== value));
+  }, []);
+
+  const removeSelectedAgent = useCallback((value: string) => {
+    setPinnedAgents((prev) => prev.filter((item) => item !== value));
+    setSelectedAgents((prev) => prev.filter((item) => item !== value));
   }, []);
 
   const removeSelectedSkill = useCallback((value: string) => {
@@ -1057,6 +1092,8 @@ export function InputBox({
               label: option.label,
             }),
           );
+        } else if (option.kind === "agent") {
+          addSelectedAgent(option.value);
         } else {
           addSelectedContext(
             option.value,
@@ -1079,6 +1116,7 @@ export function InputBox({
       });
     },
     [
+      addSelectedAgent,
       addSelectedObjectMention,
       addSelectedContext,
       addSelectedSkill,
@@ -1128,8 +1166,16 @@ export function InputBox({
       setMentionState(null);
       return;
     }
+    if (
+      resolved.trigger === "@" &&
+      (mentionState?.trigger !== "@" ||
+        mentionState.start !== resolved.start ||
+        mentionState.end !== resolved.end)
+    ) {
+      setActiveMentionTab("notebook");
+    }
     setMentionState(resolved);
-  }, []);
+  }, [mentionState]);
 
   const handleMentionKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -1163,6 +1209,7 @@ export function InputBox({
               !isSelectedInlineMention({
                 trigger: deletion.trigger,
                 value: deletion.value,
+                selectedAgents,
                 selectedSkills,
                 selectedContexts,
                 selectedMcpTools,
@@ -1232,6 +1279,7 @@ export function InputBox({
       selectedContexts,
       selectedMcpTools,
       selectedObjectMentions,
+      selectedAgents,
       selectedSkills,
       syncMentionState,
       syncSelectedMentionsFromText,
@@ -1365,12 +1413,14 @@ export function InputBox({
     () =>
       parseMentions(
         textInput.value,
+        selectedAgents,
         selectedSkills,
         selectedContexts,
         selectedMcpTools,
         selectedObjectMentions,
       ),
     [
+      selectedAgents,
       selectedContexts,
       selectedMcpTools,
       selectedObjectMentions,
@@ -1380,6 +1430,7 @@ export function InputBox({
   );
 
   const hasAnySelectedMentions =
+    selectedAgents.length > 0 ||
     selectedContexts.length > 0 ||
     selectedObjectMentions.length > 0 ||
     selectedSkills.length > 0 ||
@@ -1448,6 +1499,32 @@ export function InputBox({
                 </div>
               ) : (
                 <div className="max-h-60 overflow-auto p-1">
+                  {mentionState.trigger === "@" ? (
+                    <div className="mb-1 flex gap-1 px-1">
+                      {[
+                        { id: "notebook", label: "Notebook" },
+                        { id: "agent", label: "智能体" },
+                      ].map((tab) => (
+                        <button
+                          key={tab.id}
+                          type="button"
+                          className={cn(
+                            "rounded-md px-2 py-1 text-xs font-medium",
+                            activeMentionTab === tab.id
+                              ? "bg-accent text-accent-foreground"
+                              : "text-muted-foreground hover:bg-accent/50",
+                          )}
+                          onMouseDown={(event) => {
+                            event.preventDefault();
+                            setActiveMentionTab(tab.id as AtMentionTab);
+                            setMentionActiveIndex(0);
+                          }}
+                        >
+                          {tab.label}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
                   {(() => {
                     let optionIndex = -1;
                     return mentionGroups.map((group) => (
@@ -1473,6 +1550,9 @@ export function InputBox({
                                 }}
                               >
                                 <span className="text-muted-foreground mt-0.5">
+                                  {option.kind === "agent" && (
+                                    <BotIcon className="size-3.5" />
+                                  )}
                                   {option.kind === "directory" && (
                                     <FolderIcon className="size-3.5" />
                                   )}
@@ -1572,6 +1652,29 @@ export function InputBox({
                           <span className="min-w-0 truncate">
                             {mention.label}
                           </span>
+                        </button>
+                      ))}
+                  </div>
+                </div>
+              )}
+              {selectedAgents.length > 0 && (
+                <div className="flex items-center gap-1.5">
+                  <span className="text-muted-foreground inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-[11px]">
+                    <BotIcon className="size-3" />
+                    智能体
+                  </span>
+                  <div className="flex items-center gap-1">
+                    {selectedAgents
+                      .slice(0, MAX_INLINE_MENTION_SUMMARY_ITEMS)
+                      .map((agent) => (
+                        <button
+                          key={agent}
+                          type="button"
+                          className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20 inline-flex max-w-40 items-center gap-1 rounded-md px-2 py-0.5 text-[11px]"
+                          onClick={() => removeSelectedAgent(agent)}
+                        >
+                          <BotIcon className="size-3 shrink-0" />
+                          <span className="min-w-0 truncate">{agent}</span>
                         </button>
                       ))}
                   </div>

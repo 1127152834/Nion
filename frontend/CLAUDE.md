@@ -82,6 +82,7 @@ The frontend is a stateful chat application. Users create **threads** (conversat
 - **Internal conversation summaries** are still kept in thread context, but the message timeline should render them only as a compact compression tag, never as an expanded body block
 - **Delegated child runs** are sidebar-inspectable temporary sessions restored from `/api/threads/{thread_id}/child-runs`; render them through the dedicated sidebar child-run panel, do not promote them to first-class recent chats or expand their full transcripts into the main message list
 - **Workspace chat history taxonomy** is fixed at `general` and `bridge`; do not reintroduce a separate `project` history tab unless a new approved contract explicitly restores it
+- **Inline `@` mentions** in the composer are tabbed between `Notebook` and `智能体`; custom-agent mentions must stay visually distinct from notebook/object/context mentions
 
 ## Code Style
 
