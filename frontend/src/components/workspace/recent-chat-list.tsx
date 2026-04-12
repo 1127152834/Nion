@@ -48,6 +48,8 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { getAPIClient } from "@/core/api";
+import { useChildRuns } from "@/core/child-runs/hooks";
+import type { ChildRunRecord } from "@/core/child-runs/types";
 import { useI18n } from "@/core/i18n/hooks";
 import { useLocalSettings } from "@/core/settings";
 import {
@@ -93,6 +95,26 @@ type ThreadGroupSection = {
   }>;
 };
 
+function mergeChildRuns(
+  localChildRuns: AgentThread["values"]["child_runs"],
+  persistedChildRuns: ChildRunRecord[],
+): ChildRunRecord[] {
+  const merged = new Map<string, ChildRunRecord>();
+
+  for (const childRun of persistedChildRuns) {
+    merged.set(childRun.child_run_id, childRun);
+  }
+
+  for (const childRun of Object.values(localChildRuns ?? {})) {
+    merged.set(childRun.child_run_id, {
+      ...(merged.get(childRun.child_run_id) ?? {}),
+      ...childRun,
+    } as ChildRunRecord);
+  }
+
+  return Array.from(merged.values());
+}
+
 function groupEntriesBySource(
   entries: Array<{
     thread: AgentThread;
@@ -137,7 +159,10 @@ export function RecentChatList() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const threadIdFromPath = searchParams.get("thread");
+  const activeThreadId =
+    threadIdFromPath && threadIdFromPath !== "new" ? threadIdFromPath : null;
   const { data: threads = [] } = useThreads();
+  const { data: activeThreadChildRuns = [] } = useChildRuns(activeThreadId);
   const { mutate: deleteThread } = useDeleteThread();
   const { mutate: deleteThreads } = useDeleteThreads();
   const { mutate: renameThread } = useRenameThread();
@@ -321,7 +346,9 @@ export function RecentChatList() {
     const bridgeLabel = bridgeInfo
       ? bridgePlatformLabel(bridgeInfo.platform, bt)
       : "";
-    const childRuns = Object.values(thread.values.child_runs ?? {});
+    const childRuns = isActive
+      ? mergeChildRuns(thread.values.child_runs, activeThreadChildRuns)
+      : Object.values(thread.values.child_runs ?? {});
     const selectedChildRun =
       selectedChildRunId
         ? childRuns.find((item) => item.child_run_id === selectedChildRunId) ?? null

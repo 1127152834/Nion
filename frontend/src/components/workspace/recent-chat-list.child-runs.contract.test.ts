@@ -17,4 +17,5 @@ void test("thread hooks and recent chat list wire child-run state into the sideb
   assert.match(hooksSource, /reduceChildRunEvent/);
   assert.match(listSource, /childRuns/);
   assert.match(listSource, /ChildRunList/);
+  assert.match(listSource, /useChildRuns/);
 });
