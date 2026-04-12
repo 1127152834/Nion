@@ -130,6 +130,21 @@ Program 03D-B 已把 desktop bridge incident workflow 补上：
 
 这些事件必须既可查询，又要有人能直接读懂。
 
+## 项目知识库
+
+当前项目知识库主工作区位于：
+
+- `/Users/zhangtiancheng/Documents/wiki`
+
+仓库内的阅读导航入口位于：
+
+- `docs/project-knowledge-map.md`
+
+约束：
+
+- 重大功能、路由、UI、状态真相源、残余清理变更，必须同步更新知识库页面
+- 不要把知识理解建立在过期 review 或旧路径 `~/wiki` 假设上
+
 ## 快速开始
 
 ### 1) 准备环境
