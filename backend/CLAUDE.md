@@ -148,6 +148,7 @@ Soul product contract in this repository:
 - `/api/memory/soul/apply` remains available as the bulk update path while the product surface is moving away from draft/apply flows.
 - `adaptive_overlay` may still exist internally, but proposal / rollback / growth governance routes are not part of the product-facing API surface.
 - `relationship_soul` remains a derived soul layer, not a new relationship truth source.
+- 当前已确定下一阶段方向：`SOUL.md` / `IDENTITY.md` / `MEMORY.md` 将升级为文件原生主档，结构化存储与向量索引退到 projection / retrieval 层；详细指导见 `docs/superpowers/specs/2026-04-13-memory-identity-soul-ui-and-file-model-refactor-design.md`。
 
 Thread title handling:
 
