@@ -1,4 +1,5 @@
 from langgraph.checkpoint.memory import InMemorySaver
+from nion.client import StreamEvent
 
 from nion.orchestration.graph import build_agent_orchestrator_graph
 
@@ -19,3 +20,57 @@ def test_orchestrator_graph_short_circuits_when_no_mentions():
         config={"configurable": {"thread_id": "thread-1"}},
     )
     assert result["mode"] == "lead_only"
+
+
+def test_orchestrator_graph_runs_agent_chain_sequentially_with_upstream_context():
+    calls: list[tuple[str, str]] = []
+
+    class FakeExecutor:
+        def stream(self, *, parent_thread_id: str, agent_name: str, prompt: str, model_name=None):
+            calls.append((agent_name, prompt))
+            yield StreamEvent(
+                type="custom",
+                data={
+                    "type": "child_run_created",
+                    "child_run_id": f"{agent_name}-run",
+                    "agent_name": agent_name,
+                },
+            )
+            yield StreamEvent(
+                type="custom",
+                data={
+                    "type": "child_run_completed",
+                    "child_run_id": f"{agent_name}-run",
+                    "result": f"{agent_name}-done",
+                },
+            )
+            yield StreamEvent(
+                type="custom",
+                data={
+                    "type": "child_run_closed",
+                    "child_run_id": f"{agent_name}-run",
+                },
+            )
+
+    graph = build_agent_orchestrator_graph(
+        checkpointer=InMemorySaver(),
+        delegated_executor=FakeExecutor(),
+        agent_resolver=lambda _name: object(),
+    )
+    result = graph.invoke(
+        {
+            "user_text": "@research-agent 搜索资料，交给 @writer-agent 总结三条，再交给 @formatter-agent 输出 HTML",
+            "thread_id": "thread-1",
+        },
+        config={"configurable": {"thread_id": "thread-1"}},
+    )
+
+    assert [name for name, _prompt in calls] == [
+        "research-agent",
+        "writer-agent",
+        "formatter-agent",
+    ]
+    assert "搜索资料" in calls[0][1]
+    assert "research-agent-done" in calls[1][1]
+    assert "writer-agent-done" in calls[2][1]
+    assert "formatter-agent-done" in result["final_reply"]

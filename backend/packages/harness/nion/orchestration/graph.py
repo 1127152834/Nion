@@ -5,7 +5,6 @@ from typing import Annotated, Any, Callable, TypedDict
 
 from langgraph.config import get_stream_writer
 from langgraph.graph import END, START, StateGraph
-from langgraph.types import Send
 
 from nion.orchestration.mention_parser import MentionedAgentStep, parse_agent_mentions
 
@@ -15,6 +14,7 @@ class OrchestrationState(TypedDict, total=False):
     user_text: str
     mode: str
     mention_steps: list[dict[str, Any]]
+    current_index: int
     child_results: Annotated[list[dict[str, str]], add]
     final_reply: str
 
@@ -77,7 +77,11 @@ def build_agent_orchestrator_graph(
             for step in parsed_steps
             if agent_resolver(step.agent_name) is not None
         ]
-        return {"mention_steps": steps, "mode": "delegated" if steps else "lead_only"}
+        return {
+            "mention_steps": steps,
+            "mode": "delegated" if steps else "lead_only",
+            "current_index": 0,
+        }
 
     def plan_agent_chain_node(state: OrchestrationState):
         return state
@@ -85,14 +89,13 @@ def build_agent_orchestrator_graph(
     def dispatch_child_runs(state: OrchestrationState):
         if state.get("mode") != "delegated":
             return "synthesize"
-        return [
-            Send("run_child_agent", {"step": step, "thread_id": state["thread_id"], "user_text": state["user_text"], "child_results": state.get("child_results", [])})
-            for step in state["mention_steps"]
-        ]
+        return "run_child_agent"
 
     def run_child_agent(state: dict[str, Any]):
         writer = get_stream_writer()
         latest_result = ""
+        current_index = int(state.get("current_index", 0))
+        step = state["mention_steps"][current_index]
         prior_results = [
             (item["agent_name"], item["result"])
             for item in state.get("child_results", [])
@@ -101,12 +104,12 @@ def build_agent_orchestrator_graph(
             and isinstance(item.get("result"), str)
         ]
         delegated_prompt = _build_delegated_agent_prompt(
-            original_request=state["user_text"],
+            original_request=step.get("instruction") or state["user_text"],
             child_results=prior_results,
         )
         for event in delegated_executor.stream(
             parent_thread_id=state["thread_id"],
-            agent_name=state["step"]["agent_name"],
+            agent_name=step["agent_name"],
             prompt=delegated_prompt,
         ):
             if event.type == "custom":
@@ -119,11 +122,17 @@ def build_agent_orchestrator_graph(
         return {
             "child_results": [
                 {
-                    "agent_name": state["step"]["agent_name"],
+                    "agent_name": step["agent_name"],
                     "result": latest_result,
                 }
-            ]
+            ],
+            "current_index": current_index + 1,
         }
+
+    def route_after_child_run(state: OrchestrationState):
+        if int(state.get("current_index", 0)) < len(state.get("mention_steps", [])):
+            return "run_child_agent"
+        return "synthesize"
 
     def synthesize_node(state: OrchestrationState):
         if state.get("mode") == "lead_only":
@@ -152,6 +161,10 @@ def build_agent_orchestrator_graph(
         dispatch_child_runs,
         ["run_child_agent", "synthesize"],
     )
-    builder.add_edge("run_child_agent", "synthesize")
+    builder.add_conditional_edges(
+        "run_child_agent",
+        route_after_child_run,
+        ["run_child_agent", "synthesize"],
+    )
     builder.add_edge("synthesize", END)
     return builder.compile(checkpointer=checkpointer)
