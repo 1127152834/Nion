@@ -47,7 +47,7 @@
 更合理的模型是：
 
 - `SOUL.md` 是稳定人格的权威源
-- UI 只是这个文档的编辑器 / 切片视图
+- UI 只是这个文档的预览器 / 整文编辑器
 - runtime 读取的是 compiled soul artifact，但 source of truth 是文件
 
 也就是说：
@@ -63,7 +63,7 @@
 
 - `IDENTITY.md` 作为用户身份主档
 - 包含姓名、互称、沟通偏好、角色、时区、长期背景、边界
-- UI 支持字段化编辑，但最终回写的是同一个身份文件
+- UI 默认预览整份 Markdown，进入编辑模式后直接编辑整篇文件
 
 这会直接解决两个问题：
 
@@ -85,12 +85,12 @@
 
 所以我建议：
 
-- `MEMORY.md`：当前活跃长期上下文的摘要文件
+- `MEMORY.md`：当前活跃长期上下文的结构化摘要文件
 - `memory-os` / 向量索引 / 数据库：长期稳定记忆与检索层
 
 这里最重要的不是“是不是一定叫 `MEMORY.md`”，而是：
 
-> **热上下文必须文件化，可读、可检查、可版本化；冷记忆必须可检索，但不能直接裸露给用户。**
+> **热上下文必须文件化、可检查、可版本化；但普通用户页面可以把它渲染成结构化 UI，而不是直接展示 Markdown 原文。冷记忆必须可检索，但不能直接裸露给用户。**
 
 ### 2.4 UI 必须从“配置台”重构成“资产浏览 + 轻编辑”
 
@@ -113,7 +113,7 @@
 - 文档资产感
 - 清晰层级
 - 轻交互、重阅读
-- 少量局部改写，不是卡片堆积
+- Identity / Soul 走整篇 Markdown 预览与编辑双态；Memory 以结构化阅读为主，不让普通用户手动直接维护
 
 ---
 
@@ -322,6 +322,8 @@ runtime-context/
 - 对用户可读
 - 对 agent 可注入
 - 对系统可解析
+- 页面默认以 Markdown 预览模式打开
+- 用户进入编辑模式后，编辑整篇 `IDENTITY.md`
 
 ### `SOUL.md`
 
@@ -346,7 +348,9 @@ runtime-context/
 要求：
 
 - 不拆成碎字段作为主存储
-- UI 可以字段化编辑，但最终写回文档
+- UI 默认预览整篇 `SOUL.md`
+- 用户进入编辑模式后，编辑整篇 `SOUL.md`
+- 保存后直接生效
 - 运行时读取 compiled profile，但 source of truth 是文档
 
 ### `MEMORY.md`
@@ -377,6 +381,8 @@ runtime-context/
 - 热
 - 可读
 - 适合直接进 prompt
+- 底层是 Markdown 文档，产品面默认渲染成结构化阅读页
+- 当前阶段不让普通用户手动直接编辑
 
 ### 长期记忆层
 
@@ -445,7 +451,7 @@ RuntimeContextBundle
 所以新的页面主形态应该是：
 
 - **文档浏览器**
-- **片段编辑器**
+- **整文编辑器**
 - **状态总览**
 
 而不是：
@@ -458,7 +464,7 @@ RuntimeContextBundle
 
 主视觉对象应该是：
 
-- 活跃记忆文档预览
+- 结构化的活跃记忆阅读区（底层对应 `MEMORY.md`）
 - 三类长期记忆摘要
 
 不是统计卡片堆。
@@ -468,26 +474,26 @@ RuntimeContextBundle
 主视觉对象应该是：
 
 - `IDENTITY.md` 文档预览
-- 左侧导航到各段落
-- 右侧局部编辑抽屉或片段编辑器
+- Markdown 双态切换：预览 / 编辑
+- 整篇文档保存后立即生效
 
 ### Soul 页面
 
 主视觉对象应该是：
 
 - `SOUL.md` 文档预览
-- 四个长期段落的切片编辑
+- Markdown 双态切换：预览 / 编辑
 - 当前 overlay 状态的弱提示
 
 不是四张孤零零的大卡片。
 
-## 6.3 交互应该像“编辑文档片段”，不是“填后台表”
+## 6.3 交互应该像“编辑整篇文档”，不是“填后台表”
 
 正确交互：
 
-- hover 某一段 -> 出现“编辑”
-- 点击编辑 -> 局部抽屉 / side panel
-- 保存 -> 回写文件 -> 实时更新编译视图
+- 默认进入 Markdown 预览模式
+- 点击“编辑文档” -> 进入整篇文档编辑模式
+- 保存 -> 回写文件 -> 实时更新编译视图 -> 立即生效
 
 而不是：
 
@@ -534,7 +540,7 @@ RuntimeContextBundle
 ```text
 Memory
 ├─ Hero: Active Memory
-│  ├─ MEMORY.md preview
+│  ├─ Structured active memory view
 │  └─ 最近更新时间 / 热记忆条数 / 当前作用范围
 ├─ Long-Term Memory Sections
 │  ├─ Identity highlights
@@ -545,10 +551,12 @@ Memory
 
 ### 交互
 
-- 默认看到 `MEMORY.md` 预览
+- 默认看到结构化阅读页
+- 底层资产仍然是 `MEMORY.md`
 - 下方三组长期记忆是 secondary
 - 每条记忆可展开看来源与更新时间
 - 不提供“导入/导出/删除/手改”产品动作
+- 当前阶段不提供用户直接编辑 `MEMORY.md`
 - 如果要纠正，直接给一个“去对话里纠正”的轻链接提示
 
 ### 视觉方向
@@ -568,19 +576,14 @@ Memory
 ```text
 Identity
 ├─ Hero: IDENTITY.md preview
-├─ Sections
-│  ├─ Core
-│  ├─ Preferences
-│  ├─ Boundaries
-│  └─ Background
-└─ Edit drawer
+├─ Mode switch: Preview / Edit
+└─ Single Markdown document surface
 ```
 
 ### 交互
 
-- 主页面默认展示 `IDENTITY.md` 的结构化预览
-- 每一段右上角出现 `编辑`
-- 点击后在右侧抽屉编辑对应段落
+- 主页面默认展示 `IDENTITY.md` 的 Markdown 预览
+- 点击“编辑文档”后，切换到整篇 Markdown 编辑模式
 - 保存后：
   - 更新 `IDENTITY.md`
   - 更新 parsed projection
@@ -603,19 +606,15 @@ Identity
 ```text
 Soul
 ├─ Hero: SOUL.md preview
-├─ Sections
-│  ├─ Core Identity
-│  ├─ Speech Style
-│  ├─ Values And Boundaries
-│  └─ Relationship Stance
+├─ Mode switch: Preview / Edit
 ├─ Adaptive Overlay (弱提示)
-└─ Edit drawer
+└─ Single Markdown document surface
 ```
 
 ### 交互
 
-- 默认看 `SOUL.md` 预览
-- 每段支持局部编辑
+- 默认看 `SOUL.md` 的 Markdown 预览
+- 点击“编辑文档”后，进入整篇 Markdown 编辑模式
 - 如果有 overlay，只在页面顶部弱提示：
   - 当前存在临时表达层
   - 不和 stable soul 混显示
@@ -681,7 +680,7 @@ backend/packages/harness/nion/runtime_context/files/
 - `UserIdentityService`
   - 从“直接存 JSON 主档”改成“文件主档 + 结构化投影”
 - `SoulSettingsService`
-  - 从“字段 patch 优先”改成“文件主档 + 段落 patch”
+  - 从“字段 patch 优先”改成“文件主档 + 整文编辑”
 - `MemoryReadService`
   - 生成产品面分组视图
   - 同时维护 `MEMORY.md`
@@ -697,12 +696,11 @@ backend/packages/harness/nion/runtime_context/files/
 
 ```text
 GET   /api/identity/document
-PATCH /api/identity/sections/:section_id
+PUT   /api/identity/document
 
 GET   /api/soul/document
-PATCH /api/soul/sections/:section_id
+PUT   /api/soul/document
 
-GET   /api/memory/document
 GET   /api/memory
 
 GET   /api/internal/memory/index
@@ -720,8 +718,8 @@ internal settings 看到的是索引和 provider。
 ```text
 frontend/src/components/workspace/documents/
   document-hero.tsx
-  document-section-list.tsx
-  document-edit-drawer.tsx
+  markdown-document-view.tsx
+  markdown-document-editor.tsx
   sync-status-badge.tsx
 ```
 
@@ -833,7 +831,7 @@ frontend/src/components/workspace/documents/
 
 2. `产品面与交互重构`
    - 重做 Memory / Identity / Soul 页面
-   - 从卡片堆切到文档预览 + 局部编辑
+   - 从卡片堆切到文档预览 + 整文编辑双态
 
 3. `runtime 与 retrieval 切换`
    - runtime 以文件编译产物为主

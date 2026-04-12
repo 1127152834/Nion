@@ -37,3 +37,29 @@ editButtons.forEach((button) => {
     }
   });
 });
+
+const modeButtons = Array.from(document.querySelectorAll("[data-doc-mode]"));
+
+function activateDocumentMode(doc, mode) {
+  const preview = document.querySelector(`[data-doc-preview="${doc}"]`);
+  const editor = document.querySelector(`[data-doc-editor="${doc}"]`);
+  const buttons = modeButtons.filter((button) => button.dataset.doc === doc);
+
+  if (preview) {
+    preview.classList.toggle("is-active", mode === "preview");
+  }
+  if (editor) {
+    editor.classList.toggle("is-active", mode === "edit");
+  }
+
+  buttons.forEach((button) => {
+    const isActive = button.dataset.docMode === mode;
+    button.classList.toggle("is-active", isActive);
+  });
+}
+
+modeButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    activateDocumentMode(button.dataset.doc, button.dataset.docMode);
+  });
+});

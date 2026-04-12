@@ -312,13 +312,18 @@ textarea {
 .document-body,
 .identity-layout,
 .editor-grid,
-.soul-grid {
+.soul-grid,
+.memory-dashboard {
   display: grid;
   gap: var(--space-5);
 }
 
 .document-body {
   grid-template-columns: 1.1fr 0.9fr;
+}
+
+.memory-dashboard {
+  grid-template-columns: minmax(0, 1.2fr) minmax(260px, 0.8fr);
 }
 
 .document-column h3,
@@ -328,6 +333,61 @@ textarea {
   margin: 0 0 var(--space-3);
   font-size: 1.15rem;
   font-weight: 800;
+}
+
+.active-memory-card,
+.memory-note,
+.markdown-shell {
+  border-radius: 30px;
+  border: 1px solid color-mix(in oklab, var(--line) 86%, white);
+  background: color-mix(in oklab, var(--panel-strong) 90%, white);
+}
+
+.active-memory-card,
+.memory-note,
+.markdown-shell {
+  padding: var(--space-5);
+}
+
+.active-memory-card h3,
+.memory-note h4 {
+  margin: 0 0 var(--space-3);
+  font-size: 1.2rem;
+  letter-spacing: -0.02em;
+}
+
+.memory-lines {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-4);
+}
+
+.memory-lines li {
+  display: grid;
+  gap: var(--space-2);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid color-mix(in oklab, var(--line) 78%, white);
+}
+
+.memory-lines li:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.memory-lines span {
+  color: var(--soft);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.memory-lines p {
+  margin: 0;
+  line-height: 1.7;
+  color: var(--text);
 }
 
 .section-block {
@@ -439,6 +499,110 @@ textarea {
   grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
 }
 
+.markdown-shell {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.markdown-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.mode-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.mode-actions .secondary-link,
+.mode-actions .primary-link {
+  padding: 0.8rem 1.1rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklab, var(--line) 82%, white);
+}
+
+.mode-actions .secondary-link {
+  color: var(--muted);
+}
+
+.mode-actions .secondary-link.is-active {
+  color: var(--text);
+  background: color-mix(in oklab, var(--panel) 84%, white);
+}
+
+.markdown-preview,
+.markdown-editor {
+  display: none;
+}
+
+.markdown-preview.is-active,
+.markdown-editor.is-active {
+  display: block;
+}
+
+.markdown-preview {
+  padding: var(--space-6);
+  border-radius: 28px;
+  background:
+    linear-gradient(180deg, color-mix(in oklab, white 92%, var(--panel) 8%) 0%, color-mix(in oklab, var(--accent-soft) 12%, white) 100%);
+  border: 1px solid color-mix(in oklab, var(--line) 84%, white);
+}
+
+.markdown-preview h1,
+.markdown-preview h2 {
+  margin-top: 0;
+  font-family: var(--serif);
+  letter-spacing: -0.03em;
+}
+
+.markdown-preview h1 {
+  font-size: clamp(2rem, 2.2vw, 2.6rem);
+  margin-bottom: var(--space-5);
+}
+
+.markdown-preview h2 {
+  font-size: 1.25rem;
+  margin-bottom: var(--space-3);
+  margin-top: var(--space-5);
+}
+
+.markdown-preview p,
+.markdown-preview li {
+  line-height: 1.8;
+}
+
+.markdown-preview ul {
+  margin: 0;
+  padding-left: 1.2rem;
+}
+
+.markdown-editor textarea {
+  min-height: 430px;
+  font-family: var(--sans);
+}
+
+.editor-footer {
+  margin-top: var(--space-4);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.editor-footer p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.soul-shell .markdown-preview {
+  background:
+    linear-gradient(180deg, color-mix(in oklab, white 94%, var(--panel) 6%) 0%, color-mix(in oklab, oklch(0.94 0.02 58) 18%, white) 100%);
+}
+
 .doc-preview,
 .doc-inspector,
 .soul-document,
@@ -532,7 +696,8 @@ textarea {
   .document-body,
   .identity-layout,
   .soul-grid,
-  .editor-grid {
+  .editor-grid,
+  .memory-dashboard {
     grid-template-columns: 1fr;
   }
 }
@@ -560,7 +725,9 @@ textarea {
   .panel-header,
   .section-heading,
   .editor-top,
-  .doc-head {
+  .doc-head,
+  .markdown-toolbar,
+  .editor-footer {
     flex-direction: column;
   }
 

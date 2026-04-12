@@ -23,23 +23,23 @@
         <nav class="nav">
           <button class="nav-link is-active" data-panel-target="memory">
             <span class="nav-label">记忆</span>
-            <span class="nav-meta">当前在脑海里的内容</span>
+            <span class="nav-meta">助手当前整理好的记忆</span>
           </button>
           <button class="nav-link" data-panel-target="identity">
             <span class="nav-label">身份</span>
-            <span class="nav-meta">系统如何认识你</span>
+            <span class="nav-meta">IDENTITY.md</span>
           </button>
           <button class="nav-link" data-panel-target="soul">
             <span class="nav-label">Soul</span>
-            <span class="nav-meta">助手长期怎么表现</span>
+            <span class="nav-meta">SOUL.md</span>
           </button>
         </nav>
 
         <section class="sidebar-note">
-          <p class="eyebrow">设计意图</p>
+          <p class="eyebrow">修正版模型</p>
           <p>
-            这版原型走的是“个人档案中心 + 文档资产”的混合模型。普通用户先看懂，再逐步感知
-            `MEMORY.md`、`IDENTITY.md`、`SOUL.md`。
+            身份和 Soul 是真实 Markdown 文档，默认预览，可进入整文编辑。
+            记忆页是结构化阅读页，底层由助手维护 `MEMORY.md`。
           </p>
         </section>
       </aside>
@@ -48,17 +48,17 @@
         <section class="hero">
           <div>
             <p class="eyebrow">Personal Context Center</p>
-            <h1>让助手记住该记住的，而不是把你推进后台配置台</h1>
+            <h1>像看档案一样理解助手，而不是填后台表单</h1>
             <p class="hero-copy">
-              这不是给开发者用的控制面板。它更像一个清晰、安静、可回看的个人档案中心：你可以看到当前活跃记忆、长期档案、身份主档，以及这个助手的长期灵魂文件。
+              普通职员不需要看到数据库字段。身份和 Soul 就是两份 Markdown 文档；记忆则是助手整理出来的结构化阅读页。
             </p>
           </div>
           <div class="hero-card">
-            <p class="hero-card-title">当前设计锚点</p>
+            <p class="hero-card-title">交互锚点</p>
             <ul>
-              <li>外层像档案中心</li>
-              <li>内层保留文件原生资产感</li>
-              <li>编辑是局部的，不是整页表单墙</li>
+              <li>Identity / Soul 默认预览 Markdown</li>
+              <li>进入编辑后修改整篇文档</li>
+              <li>Memory 由助手维护，用户先只读</li>
             </ul>
           </div>
         </section>
@@ -68,46 +68,61 @@
             <header class="panel-header">
               <div>
                 <p class="eyebrow">Memory</p>
-                <h2>当前记忆</h2>
+                <h2>记忆</h2>
                 <p class="panel-copy">
-                  先展示当前最活跃、最该带进对话的记忆，再往下看系统已经沉淀下来的长期档案。
+                  这是 `MEMORY.md` 的产品化阅读视图。底层可以是结构化 Markdown，但普通用户不需要直接维护原文。
                 </p>
               </div>
-              <div class="status-pill">最近更新于 12 分钟前</div>
+              <div class="status-pill">由助手自动维护</div>
             </header>
 
             <section class="document-hero memory-hero">
               <div class="document-meta">
-                <span class="document-chip">活跃记忆文件</span>
-                <span class="document-name">MEMORY.md</span>
+                <span class="document-chip">活跃记忆</span>
+                <span class="document-name">来自 MEMORY.md</span>
               </div>
-              <div class="document-body">
-                <div class="document-column">
-                  <h3>现在最该记得的</h3>
-                  <ul class="bullet-list">
-                    <li>用户是财务 BP，常做经营分析与月度复盘</li>
-                    <li>当前沟通偏好是先给结论，再补上下文</li>
-                    <li>最近反复提到的重点是结构化信息和稳定协作</li>
-                    <li>需要低刺激、少施压的协作方式</li>
+              <div class="memory-dashboard">
+                <article class="active-memory-card">
+                  <div class="doc-label">现在最该带进对话的内容</div>
+                  <h3>活跃记忆</h3>
+                  <ul class="memory-lines">
+                    <li>
+                      <span>身份</span>
+                      <p>张天成，偏好被称呼为“大哥”。</p>
+                    </li>
+                    <li>
+                      <span>工作语境</span>
+                      <p>财务 BP，经常处理经营分析、采购成本和月度复盘。</p>
+                    </li>
+                    <li>
+                      <span>沟通习惯</span>
+                      <p>先给结论，再补上下文；直接，但不要替用户拍板。</p>
+                    </li>
+                    <li>
+                      <span>近期重点</span>
+                      <p>正在重构 Memory / Identity / Soul 的产品模型和页面体验。</p>
+                    </li>
                   </ul>
-                </div>
-                <div class="document-column">
-                  <h3>为什么这些会在这里</h3>
+                </article>
+
+                <aside class="memory-note">
+                  <div class="micro-kicker">为什么不是 Markdown 原文</div>
                   <p>
-                    这里不是全部长期记忆，而是当前最热、最常用、最应该跟着走的内容。它像一张助手桌面上的便签纸。
+                    `MEMORY.md` 主要给 agent 自己维护。用户需要的是看懂“助手现在记住了什么”，不是去手改一份运行时便签。
                   </p>
-                </div>
+                  <span class="mini-chip">当前阶段：只读</span>
+                </aside>
               </div>
             </section>
 
             <section class="section-block">
               <div class="section-heading">
                 <div>
-                  <p class="eyebrow">Long-term Memory</p>
-                  <h3>长期档案</h3>
+                  <p class="eyebrow">Long-term Dossier</p>
+                  <h3>长期记忆档案</h3>
                 </div>
                 <p class="section-copy">
-                  长期记忆不是第二篇长文档，而是系统整理好的档案夹。外面是分组，打开后才看具体条目。
+                  长期记忆不塞进 `MEMORY.md`，而是进入结构化存储与检索层。页面把它整理成普通人能理解的档案夹。
                 </p>
               </div>
 
@@ -118,7 +133,7 @@
                     <span class="folder-count">4 条</span>
                   </div>
                   <h4>你的基本情况</h4>
-                  <p>姓名、常用称呼、时区、稳定角色等，属于系统长期识别你的主档。</p>
+                  <p>姓名、常用称呼、时区、稳定角色等。</p>
                   <button class="ghost-link" data-detail-target="memory-detail-1">查看档案</button>
                 </article>
 
@@ -128,7 +143,7 @@
                     <span class="folder-count">3 条</span>
                   </div>
                   <h4>长期工作背景</h4>
-                  <p>那些不会轻易变化、但会持续影响对话语境的背景信息。</p>
+                  <p>不会轻易变化、会持续影响对话语境的背景。</p>
                   <button class="ghost-link" data-detail-target="memory-detail-2">查看档案</button>
                 </article>
 
@@ -138,7 +153,7 @@
                     <span class="folder-count">5 条</span>
                   </div>
                   <h4>稳定偏好与习惯</h4>
-                  <p>偏好的表达方式、互动边界、做事节奏，系统会长期沿用。</p>
+                  <p>表达方式、互动边界、做事节奏。</p>
                   <button class="ghost-link" data-detail-target="memory-detail-3">查看档案</button>
                 </article>
 
@@ -148,7 +163,7 @@
                     <span class="folder-count">6 条</span>
                   </div>
                   <h4>长期事实与经验</h4>
-                  <p>经多次对话沉淀下来的稳定事实，不会频繁出现在活跃记忆中。</p>
+                  <p>多次对话沉淀下来的稳定事实。</p>
                   <button class="ghost-link" data-detail-target="memory-detail-4">查看档案</button>
                 </article>
               </div>
@@ -161,7 +176,7 @@
                   <h3>档案详情</h3>
                 </div>
                 <p class="section-copy">
-                  单条长期记忆默认只看摘要。真正需要时，再展开看形成原因、来源和最近更新时间。
+                  单条长期记忆默认只显示摘要。需要确认时，再展开看原因、时间和来源。
                 </p>
               </div>
 
@@ -240,7 +255,7 @@
                 <dl class="detail-grid">
                   <div>
                     <dt>形成原因</dt>
-                    <dd>多次围绕记忆系统和流程设计的讨论中反复出现，已沉淀为长期事实。</dd>
+                    <dd>多次围绕记忆系统和流程设计的讨论中反复出现。</dd>
                   </div>
                   <div>
                     <dt>最近更新时间</dt>
@@ -265,105 +280,92 @@
                 <p class="eyebrow">Identity</p>
                 <h2>身份主档</h2>
                 <p class="panel-copy">
-                  这是系统长期认识你的方式。它首先是一份身份文件，然后才是可局部编辑的字段。
+                  `IDENTITY.md` 就是一份 Markdown 文档。默认预览，进入编辑模式后直接编辑整篇文件。
                 </p>
               </div>
-              <div class="status-pill">已同步到 IDENTITY.md</div>
+              <div class="status-pill">保存后立即生效</div>
             </header>
 
-            <section class="document-hero">
-              <div class="document-meta">
-                <span class="document-chip">身份主档</span>
-                <span class="document-name">IDENTITY.md</span>
+            <section class="markdown-shell" data-doc-shell="identity">
+              <div class="markdown-toolbar">
+                <div>
+                  <span class="document-chip">身份主档</span>
+                  <span class="document-name">IDENTITY.md</span>
+                </div>
+                <div class="mode-actions">
+                  <button class="secondary-link is-active" data-doc-mode="preview" data-doc="identity">
+                    预览
+                  </button>
+                  <button class="primary-link" data-doc-mode="edit" data-doc="identity">
+                    编辑
+                  </button>
+                </div>
               </div>
-              <div class="identity-layout">
-                <article class="doc-preview">
-                  <div class="doc-head">
-                    <h3>Identity</h3>
-                    <button class="primary-link" data-edit-target="identity-edit">
-                      编辑此文档
-                    </button>
-                  </div>
-                  <div class="doc-section">
-                    <div class="doc-label">Core</div>
-                    <p>用户姓名：张天成</p>
-                    <p>称呼方式：大哥</p>
-                    <p>助手自称：小老弟</p>
-                    <p>互称规则：你叫我大哥，我叫你小老弟</p>
-                  </div>
-                  <div class="doc-section">
-                    <div class="doc-label">Preferences</div>
-                    <p>先给结论</p>
-                    <p>直接一点</p>
-                  </div>
-                  <div class="doc-section">
-                    <div class="doc-label">Boundaries</div>
-                    <p>不要替我拍板</p>
-                    <p>少施压</p>
-                  </div>
-                  <div class="doc-section">
-                    <div class="doc-label">Background</div>
-                    <p>角色：财务 BP</p>
-                    <p>时区：Asia/Shanghai</p>
-                    <p>长期背景：长期负责经营分析与月度复盘。</p>
-                  </div>
-                </article>
 
-                <aside class="doc-inspector">
-                  <h3>为什么这样设计</h3>
-                  <ul class="bullet-list compact">
-                    <li>普通用户先看到“这是我的身份主档”</li>
-                    <li>系统仍然可以把这份文件解析成结构化 profile</li>
-                    <li>不需要把全部信息做成一面大表单</li>
-                  </ul>
+              <article class="markdown-preview is-active" data-doc-preview="identity">
+                <h1>Identity</h1>
+                <h2>Core</h2>
+                <ul>
+                  <li>User name: 张天成</li>
+                  <li>Preferred address: 大哥</li>
+                  <li>Assistant self name: 小老弟</li>
+                  <li>Mutual addressing: 你叫我大哥，我叫你小老弟</li>
+                </ul>
+                <h2>Preferences</h2>
+                <ul>
+                  <li>先给结论</li>
+                  <li>直接一点</li>
+                </ul>
+                <h2>Boundaries</h2>
+                <ul>
+                  <li>不要替我拍板</li>
+                  <li>少施压</li>
+                </ul>
+                <h2>Background</h2>
+                <ul>
+                  <li>Role: 财务 BP</li>
+                  <li>Timezone: Asia/Shanghai</li>
+                  <li>Long-term background: 长期负责经营分析与月度复盘。</li>
+                </ul>
+              </article>
 
-                  <div class="micro-card">
-                    <div class="micro-kicker">日常体验</div>
-                    <p>新对话里，助手会默认带着这些信息，不需要每次重新解释。</p>
-                  </div>
-                </aside>
-              </div>
+              <section class="markdown-editor" data-doc-editor="identity">
+                <textarea># Identity
+
+## Core
+- User name: 张天成
+- Preferred address: 大哥
+- Assistant self name: 小老弟
+- Mutual addressing: 你叫我大哥，我叫你小老弟
+
+## Preferences
+- 先给结论
+- 直接一点
+
+## Boundaries
+- 不要替我拍板
+- 少施压
+
+## Background
+- Role: 财务 BP
+- Timezone: Asia/Shanghai
+- Long-term background: 长期负责经营分析与月度复盘。</textarea>
+                <div class="editor-footer">
+                  <p>保存后写回 `IDENTITY.md`，并立即更新运行时身份主档。</p>
+                  <button class="solid-button">保存并生效</button>
+                </div>
+              </section>
             </section>
 
             <section class="section-block">
               <div class="section-heading">
                 <div>
-                  <p class="eyebrow">Section Editing</p>
-                  <h3>局部编辑，而不是整页填表</h3>
+                  <p class="eyebrow">Agent-assisted editing</p>
+                  <h3>也可以在聊天里让助手帮你改</h3>
                 </div>
                 <p class="section-copy">
-                  编辑是针对某一段进行的。这样普通用户不会被十几个输入框同时轰炸，也更接近真实文档的修改体验。
+                  例如：“以后叫我大哥，我叫你小老弟。”系统最终仍然写回同一份 `IDENTITY.md`，不会产生另一套隐藏字段。
                 </p>
-              </div>
-
-              <div class="editor-shell is-active" id="identity-edit">
-                <div class="editor-top">
-                  <div>
-                    <div class="editor-label">正在编辑</div>
-                    <h4>Preferences / 沟通偏好</h4>
-                  </div>
-                  <div class="editor-actions">
-                    <button class="secondary-link">取消</button>
-                    <button class="solid-button">保存</button>
-                  </div>
-                </div>
-                <div class="editor-grid">
-                  <textarea>
-先给结论
-直接一点</textarea
-                  >
-                  <div class="editor-help">
-                    <h5>编辑说明</h5>
-                    <p>
-                      这里只改“长期有效”的沟通偏好。像“这次先简单一点”这样的临时要求，不应该写进身份主档。
-                    </p>
-                    <ul class="bullet-list compact">
-                      <li>每行一条</li>
-                      <li>尽量写长期不变的习惯</li>
-                      <li>保存后会回写到 `IDENTITY.md`</li>
-                    </ul>
-                  </div>
-                </div>
               </div>
             </section>
           </section>
@@ -374,103 +376,70 @@
                 <p class="eyebrow">Soul</p>
                 <h2>助手灵魂主档</h2>
                 <p class="panel-copy">
-                  这页不应该让人感觉在维护数据库字段，而应该像在定义这个助手长期稳定的人格文件。
+                  `SOUL.md` 也是一整篇 Markdown。用户可以预览，也可以直接进入整文编辑模式。
                 </p>
               </div>
               <div class="status-pill">稳定层已编译</div>
             </header>
 
-            <section class="document-hero soul-hero">
-              <div class="document-meta">
-                <span class="document-chip">灵魂主档</span>
-                <span class="document-name">SOUL.md</span>
+            <section class="markdown-shell soul-shell" data-doc-shell="soul">
+              <div class="markdown-toolbar">
+                <div>
+                  <span class="document-chip">灵魂主档</span>
+                  <span class="document-name">SOUL.md</span>
+                </div>
+                <div class="mode-actions">
+                  <button class="secondary-link is-active" data-doc-mode="preview" data-doc="soul">
+                    预览
+                  </button>
+                  <button class="primary-link" data-doc-mode="edit" data-doc="soul">
+                    编辑
+                  </button>
+                </div>
               </div>
 
-              <div class="soul-grid">
-                <article class="soul-document">
-                  <div class="doc-head">
-                    <h3>Soul</h3>
-                    <button class="primary-link" data-edit-target="soul-edit">
-                      编辑灵魂文件
-                    </button>
-                  </div>
-                  <div class="soul-sections">
-                    <section>
-                      <div class="doc-label">Core Identity</div>
-                      <p>长期陪伴、克制稳定、结论先行。</p>
-                    </section>
-                    <section>
-                      <div class="doc-label">Speech Style</div>
-                      <p>先给结论，再补上下文。表达直接，但不粗暴。</p>
-                    </section>
-                    <section>
-                      <div class="doc-label">Values And Boundaries</div>
-                      <p>提醒风险，但不越权拍板。不替用户做最终判断。</p>
-                    </section>
-                    <section>
-                      <div class="doc-label">Relationship Stance</div>
-                      <p>低刺激、少施压、稳定陪伴。</p>
-                    </section>
-                  </div>
-                </article>
+              <article class="markdown-preview is-active" data-doc-preview="soul">
+                <h1>Soul</h1>
+                <h2>Core Identity</h2>
+                <p>长期陪伴、克制稳定、结论先行。</p>
+                <h2>Speech Style</h2>
+                <p>先给结论，再补上下文。表达直接，但不粗暴。</p>
+                <h2>Values And Boundaries</h2>
+                <p>提醒风险，但不越权拍板。不替用户做最终判断。</p>
+                <h2>Relationship Stance</h2>
+                <p>低刺激、少施压、稳定陪伴。</p>
+              </article>
 
-                <aside class="context-column">
-                  <div class="micro-card overlay-note">
-                    <div class="micro-kicker">临时表达层</div>
-                    <h4>当前存在一个轻量 overlay</h4>
-                    <p>这周减少鼓励式措辞，保持更冷静的工作语气。</p>
-                    <span class="mini-chip">仅影响近期表达，不改写 SOUL.md</span>
-                  </div>
+              <section class="markdown-editor" data-doc-editor="soul">
+                <textarea># Soul
 
-                  <div class="micro-card">
-                    <div class="micro-kicker">产品取舍</div>
-                    <p>
-                      普通用户不需要理解 governance、revision、rollback。只需要知道：这里定义长期风格，临时变化不会偷偷篡改主档。
-                    </p>
-                  </div>
-                </aside>
-              </div>
+## Core Identity
+长期陪伴、克制稳定、结论先行。
+
+## Speech Style
+先给结论，再补上下文。表达直接，但不粗暴。
+
+## Values And Boundaries
+提醒风险，但不越权拍板。不替用户做最终判断。
+
+## Relationship Stance
+低刺激、少施压、稳定陪伴。</textarea>
+                <div class="editor-footer">
+                  <p>保存后写回 `SOUL.md`。临时 overlay 不会偷偷改写这份主档。</p>
+                  <button class="solid-button">保存并生效</button>
+                </div>
+              </section>
             </section>
 
             <section class="section-block">
               <div class="section-heading">
                 <div>
-                  <p class="eyebrow">Section Editing</p>
-                  <h3>局部修改 SOUL，不是同时展开四个大 textarea</h3>
+                  <p class="eyebrow">Temporary Overlay</p>
+                  <h3>临时表达层</h3>
                 </div>
                 <p class="section-copy">
-                  这是高保真原型里最重要的一刀：页面主体是文档，编辑入口是局部的。这样才像产品，不像后台。
+                  当前 overlay：这周减少鼓励式措辞，保持更冷静的工作语气。它只影响近期表达，不改写 `SOUL.md`。
                 </p>
-              </div>
-
-              <div class="editor-shell is-active" id="soul-edit">
-                <div class="editor-top">
-                  <div>
-                    <div class="editor-label">正在编辑</div>
-                    <h4>Speech Style / 说话方式</h4>
-                  </div>
-                  <div class="editor-actions">
-                    <button class="secondary-link">取消</button>
-                    <button class="solid-button">保存</button>
-                  </div>
-                </div>
-                <div class="editor-grid">
-                  <textarea>
-先给结论，再补上下文。
-表达直接，但不粗暴。</textarea
-                  >
-                  <div class="editor-help">
-                    <h5>这里改的是长期风格</h5>
-                    <p>
-                      如果用户只是说“今天先简单点”，那是临时要求，不该直接写进 `SOUL.md`。写进这里的必须是长期稳定风格。
-                    </p>
-                    <ul class="bullet-list compact">
-                      <li>保存后回写 `SOUL.md`</li>
-                      <li>runtime 读取的是编译结果</li>
-                      <li>临时 overlay 单独存在，不覆盖 stable soul</li>
-                    </ul>
-                  </div>
-                </div>
               </div>
             </section>
           </section>
