@@ -129,10 +129,9 @@ function groupEntriesBySource(
     const bridgeLabel = bridge?.label?.trim();
     const normalizedBridgeLabel =
       bridgeLabel && bridgeLabel.length > 0 ? bridgeLabel : undefined;
-    const groupLabel = normalizedBridgeLabel ?? bridgePlatformLabel(
-      bridge?.platform ?? "bridge",
-      bt,
-    );
+    const groupLabel =
+      normalizedBridgeLabel ??
+      bridgePlatformLabel(bridge?.platform ?? "bridge", bt);
     const groupId = `${bridge?.platform ?? "bridge"}:${groupLabel}`;
     const existing = sections.get(groupId);
     if (existing) {
@@ -192,7 +191,9 @@ export function RecentChatList() {
   const [renameThreadId, setRenameThreadId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [childRunInspectorOpen, setChildRunInspectorOpen] = useState(false);
-  const [selectedChildRunId, setSelectedChildRunId] = useState<string | null>(null);
+  const [selectedChildRunId, setSelectedChildRunId] = useState<string | null>(
+    null,
+  );
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedThreadIds, setSelectedThreadIds] = useState<string[]>([]);
 
@@ -258,7 +259,13 @@ export function RecentChatList() {
     if (nextThreadId) {
       void router.push(pathOfThread(nextThreadId, { type: activeType }));
     }
-  }, [activeType, deleteThreads, resolveNextThreadId, router, selectedThreadIds]);
+  }, [
+    activeType,
+    deleteThreads,
+    resolveNextThreadId,
+    router,
+    selectedThreadIds,
+  ]);
 
   const closeSelectionMode = useCallback(() => {
     setSelectionMode(false);
@@ -287,8 +294,8 @@ export function RecentChatList() {
     async (threadId: string) => {
       const VERCEL_URL = "https://nion-v2.vercel.app";
       const isLocalhost =
-        window.location.hostname === "localhost"
-        || window.location.hostname === "127.0.0.1";
+        window.location.hostname === "localhost" ||
+        window.location.hostname === "127.0.0.1";
       const baseUrl = isLocalhost ? VERCEL_URL : window.location.origin;
       const shareUrl = `${baseUrl}${pathOfThread(threadId, { type: activeType })}`;
       try {
@@ -326,10 +333,7 @@ export function RecentChatList() {
     [t],
   );
 
-  if (
-    threadGroups.bridge.length === 0 &&
-    threadGroups.general.length === 0
-  ) {
+  if (threadGroups.bridge.length === 0 && threadGroups.general.length === 0) {
     return null;
   }
 
@@ -348,17 +352,17 @@ export function RecentChatList() {
     const childRuns = isActive
       ? mergeChildRuns(thread.values.child_runs, activeThreadChildRuns)
       : Object.values(thread.values.child_runs ?? {});
-    const selectedChildRun =
-      selectedChildRunId
-        ? childRuns.find((item) => item.child_run_id === selectedChildRunId) ?? null
-        : null;
+    const selectedChildRun = selectedChildRunId
+      ? (childRuns.find((item) => item.child_run_id === selectedChildRunId) ??
+        null)
+      : null;
 
     const selectionControl = selectionMode ? (
       <button
         type="button"
         aria-pressed={selectedThreadIds.includes(thread.thread_id)}
         className={cn(
-          "selectionControl absolute right-3 top-1/2 z-10 flex size-6 -translate-y-1/2 items-center justify-center rounded-full border border-border/70 bg-background/92 text-foreground shadow-sm transition",
+          "selectionControl border-border/70 bg-background/92 text-foreground absolute top-1/2 right-3 z-10 flex size-6 -translate-y-1/2 items-center justify-center rounded-full border shadow-sm transition",
           selectedThreadIds.includes(thread.thread_id)
             ? "border-foreground bg-foreground text-background"
             : "hover:border-foreground/40 hover:bg-accent/40",
@@ -376,10 +380,7 @@ export function RecentChatList() {
     ) : null;
 
     return (
-      <SidebarMenuItem
-        key={thread.thread_id}
-        className="group/side-menu-item"
-      >
+      <SidebarMenuItem key={thread.thread_id} className="group/side-menu-item">
         <SidebarMenuButton
           isActive={false}
           asChild
@@ -425,7 +426,8 @@ export function RecentChatList() {
                 />
               </>
             ) : null}
-            {!selectionMode && env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY !== "true" ? (
+            {!selectionMode &&
+            env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY !== "true" ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <SidebarMenuAction
@@ -443,16 +445,15 @@ export function RecentChatList() {
                 >
                   <DropdownMenuItem
                     onSelect={() =>
-                      handleRenameClick(
-                        thread.thread_id,
-                        titleOfThread(thread),
-                      )
+                      handleRenameClick(thread.thread_id, titleOfThread(thread))
                     }
                   >
                     <Pencil className="text-muted-foreground" />
                     <span>{t.common.rename}</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => handleShare(thread.thread_id)}>
+                  <DropdownMenuItem
+                    onSelect={() => handleShare(thread.thread_id)}
+                  >
                     <Share2 className="text-muted-foreground" />
                     <span>{t.common.share}</span>
                   </DropdownMenuItem>
@@ -477,7 +478,9 @@ export function RecentChatList() {
                     </DropdownMenuSubContent>
                   </DropdownMenuSub>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onSelect={() => handleDelete(thread.thread_id)}>
+                  <DropdownMenuItem
+                    onSelect={() => handleDelete(thread.thread_id)}
+                  >
                     <Trash2 className="text-muted-foreground" />
                     <span>{t.common.delete}</span>
                   </DropdownMenuItem>
@@ -492,12 +495,14 @@ export function RecentChatList() {
 
   const currentOpenSectionId =
     groupedSections.find((section) =>
-      section.entries.some(({ thread }) => thread.thread_id === threadIdFromPath),
+      section.entries.some(
+        ({ thread }) => thread.thread_id === threadIdFromPath,
+      ),
     )?.id ?? groupedSections[0]?.id;
 
   return (
     <>
-      <SidebarGroup className="gap-1 pt-1">
+      <SidebarGroup className="min-h-0 flex-1 gap-1 pt-1">
         <div className="flex items-center justify-between px-2">
           <SidebarGroupLabel>
             {env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY !== "true"
@@ -508,7 +513,7 @@ export function RecentChatList() {
             <Button
               variant="ghost"
               size="sm"
-              className="h-auto rounded-none px-0 py-0 text-xs font-medium text-muted-foreground shadow-none transition-colors hover:bg-transparent hover:text-foreground"
+              className="text-muted-foreground hover:text-foreground h-auto rounded-none px-0 py-0 text-xs font-medium shadow-none transition-colors hover:bg-transparent"
               onClick={() => {
                 setSelectionMode((value) => !value);
                 setSelectedThreadIds([]);
@@ -518,7 +523,7 @@ export function RecentChatList() {
             </Button>
           ) : null}
         </div>
-        <SidebarGroupContent className="space-y-2 group-data-[collapsible=icon]:pointer-events-none group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0">
+        <SidebarGroupContent className="flex min-h-0 flex-1 flex-col space-y-2 group-data-[collapsible=icon]:pointer-events-none group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0">
           <ThreadTypeTabs
             scope="sidebar"
             value={activeType}
@@ -529,8 +534,8 @@ export function RecentChatList() {
             className="px-2"
           />
           {selectionMode ? (
-            <div className="flex items-center justify-between gap-3 px-2 pt-1 text-[11px] text-muted-foreground">
-              <span className="tracking-[0.01em] text-foreground/52">
+            <div className="text-muted-foreground flex items-center justify-between gap-3 px-2 pt-1 text-[11px]">
+              <span className="text-foreground/52 tracking-[0.01em]">
                 {t.chats.selectedCount.replace(
                   "{count}",
                   String(selectedThreadIds.length),
@@ -540,7 +545,7 @@ export function RecentChatList() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-auto rounded-none px-0 py-0 text-[11px] font-medium text-foreground/66 shadow-none transition-colors hover:bg-transparent hover:text-foreground"
+                  className="text-foreground/66 hover:text-foreground h-auto rounded-none px-0 py-0 text-[11px] font-medium shadow-none transition-colors hover:bg-transparent"
                   onClick={handleSelectAll}
                 >
                   {t.common.selectAll}
@@ -556,7 +561,7 @@ export function RecentChatList() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-auto rounded-none px-0 py-0 text-[11px] font-medium text-destructive/80 shadow-none transition-colors hover:bg-transparent hover:text-destructive disabled:text-destructive/35"
+                  className="text-destructive/80 hover:text-destructive disabled:text-destructive/35 h-auto rounded-none px-0 py-0 text-[11px] font-medium shadow-none transition-colors hover:bg-transparent"
                   disabled={selectedThreadIds.length === 0}
                   onClick={handleDeleteSelected}
                 >
@@ -565,38 +570,44 @@ export function RecentChatList() {
               </div>
             </div>
           ) : null}
-          <div key={activeType} className="animate-in fade-in-0 slide-in-from-bottom-1 pl-0 duration-300">
-            <SidebarMenu className="gap-0">
-              {groupedSections.length > 0 ? (
-                <div className="space-y-1 px-2 pb-2">
-                  {groupedSections.map((section) => (
-                    <Collapsible
-                      key={section.id}
-                      defaultOpen={section.id === currentOpenSectionId}
-                      className="group"
-                    >
-                      <CollapsibleTrigger className="group/header flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left text-[13px] font-medium text-foreground/88 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-0">
-                        <span className="min-w-0 flex-1 truncate">
-                          {section.label}
-                        </span>
-                        <ChevronDownIcon className="size-3.5 shrink-0 text-muted-foreground/90 transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] group-data-[state=open]/header:rotate-180 group-data-[state=open]/header:text-foreground/70" />
-                      </CollapsibleTrigger>
-                      <CollapsibleContent className="grid grid-rows-[0fr] transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] data-[state=open]:grid-rows-[1fr] data-[state=closed]:[&>div]:opacity-0 data-[state=closed]:[&>div]:-translate-y-1 data-[state=open]:[&>div]:opacity-100 data-[state=open]:[&>div]:translate-y-0 [&>div]:transition-all [&>div]:duration-300 [&>div]:ease-[cubic-bezier(0.22,1,0.36,1)]">
-                        <div className="overflow-hidden">
-                          <div className="ml-2 flex flex-col divide-y divide-border/45 border-l border-border/35 pl-2">
-                            {section.entries.map(renderThreadRow)}
+          <div
+            key={activeType}
+            className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto"
+            data-sidebar-scroll-region="recent-chats"
+          >
+            <div className="animate-in fade-in-0 slide-in-from-bottom-1 pl-0 duration-300">
+              <SidebarMenu className="gap-0">
+                {groupedSections.length > 0 ? (
+                  <div className="space-y-1 px-2 pb-2">
+                    {groupedSections.map((section) => (
+                      <Collapsible
+                        key={section.id}
+                        defaultOpen={section.id === currentOpenSectionId}
+                        className="group"
+                      >
+                        <CollapsibleTrigger className="group/header text-foreground/88 hover:text-foreground flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left text-[13px] font-medium transition-colors focus-visible:ring-0 focus-visible:outline-none">
+                          <span className="min-w-0 flex-1 truncate">
+                            {section.label}
+                          </span>
+                          <ChevronDownIcon className="text-muted-foreground/90 group-data-[state=open]/header:text-foreground/70 size-3.5 shrink-0 transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] group-data-[state=open]/header:rotate-180" />
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="grid grid-rows-[0fr] transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] data-[state=open]:grid-rows-[1fr] [&>div]:transition-all [&>div]:duration-300 [&>div]:ease-[cubic-bezier(0.22,1,0.36,1)] data-[state=closed]:[&>div]:-translate-y-1 data-[state=closed]:[&>div]:opacity-0 data-[state=open]:[&>div]:translate-y-0 data-[state=open]:[&>div]:opacity-100">
+                          <div className="overflow-hidden">
+                            <div className="divide-border/45 border-border/35 ml-2 flex flex-col divide-y border-l pl-2">
+                              {section.entries.map(renderThreadRow)}
+                            </div>
                           </div>
-                        </div>
-                      </CollapsibleContent>
-                    </Collapsible>
-                  ))}
-                </div>
-              ) : (
-                <div className="flex w-full flex-col divide-y divide-border/55 px-2 pb-2">
-                  {activeGroup.map(renderThreadRow)}
-                </div>
-              )}
-            </SidebarMenu>
+                        </CollapsibleContent>
+                      </Collapsible>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="divide-border/55 flex w-full flex-col divide-y px-2 pb-2">
+                    {activeGroup.map(renderThreadRow)}
+                  </div>
+                )}
+              </SidebarMenu>
+            </div>
           </div>
         </SidebarGroupContent>
       </SidebarGroup>
@@ -612,7 +623,10 @@ export function RecentChatList() {
             autoFocus
           />
           <DialogFooter>
-            <Button variant="outline" onClick={() => setRenameDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setRenameDialogOpen(false)}
+            >
               {t.common.cancel}
             </Button>
             <Button onClick={handleRenameSubmit}>{t.common.rename}</Button>
