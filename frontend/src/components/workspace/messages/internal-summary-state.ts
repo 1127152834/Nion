@@ -10,3 +10,15 @@ export function toggleInternalSummaryOpen(
   }
   return next;
 }
+
+export function getInternalSummaryItemId({
+  groupId,
+  messageId,
+  index,
+}: {
+  groupId?: string;
+  messageId?: string;
+  index: number;
+}) {
+  return groupId ?? messageId ?? `internal-summary-${index}`;
+}

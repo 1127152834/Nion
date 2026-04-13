@@ -30,7 +30,10 @@ import { StreamingIndicator } from "../streaming-indicator";
 
 import { ClarificationCard } from "./clarification-card";
 import { DelegationSummary } from "./delegation-summary";
-import { toggleInternalSummaryOpen } from "./internal-summary-state";
+import {
+  getInternalSummaryItemId,
+  toggleInternalSummaryOpen,
+} from "./internal-summary-state";
 import { MarkdownContent } from "./markdown-content";
 import { MessageGroup } from "./message-group";
 import { MessageListItem } from "./message-list-item";
@@ -78,7 +81,7 @@ export function MessageList({
       <ConversationContent
         className={cn("mx-auto w-full max-w-(--container-width-md) gap-8 pt-12", contentClassName)}
       >
-        {groupMessages(messages, (group) => {
+        {groupMessages(messages, (group, index) => {
           if (group.type === "human" || group.type === "assistant") {
             return group.messages.map((msg) => {
               return (
@@ -92,7 +95,11 @@ export function MessageList({
             });
           } else if (group.type === "system:internal-summary") {
             const message = group.messages[0];
-            const summaryId = group.id ?? message?.id ?? "internal-summary";
+            const summaryId = getInternalSummaryItemId({
+              groupId: group.id,
+              messageId: message?.id,
+              index,
+            });
             const isOpen = openSummaryIds.has(summaryId);
             const summaryContent = message
               ? extractInternalSummaryContent(message)

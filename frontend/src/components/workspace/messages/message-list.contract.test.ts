@@ -6,6 +6,8 @@ void test("message list renders internal summaries as a compact toggle with expa
   const source = await readFile(new URL("./message-list.tsx", import.meta.url), "utf8");
 
   assert.match(source, /group\.type === "system:internal-summary"/);
+  assert.match(source, /groupMessages\(messages, \(group, index\)/);
+  assert.match(source, /getInternalSummaryItemId/);
   assert.match(source, /toggleInternalSummaryOpen/);
   assert.match(source, /type="button"/);
   assert.match(source, /MarkdownContent/);

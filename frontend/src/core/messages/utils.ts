@@ -50,7 +50,7 @@ type MessageGroup =
 
 export function groupMessages<T>(
   messages: Message[],
-  mapper: (group: MessageGroup) => T,
+  mapper: (group: MessageGroup, index: number) => T,
 ): T[] {
   if (messages.length === 0) {
     return [];
@@ -168,7 +168,7 @@ export function groupMessages<T>(
   }
 
   return groups
-    .map(mapper)
+    .map((group, index) => mapper(group, index))
     .filter((result) => result !== undefined && result !== null) as T[];
 }
 
