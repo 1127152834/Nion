@@ -1,6 +1,10 @@
 "use client";
 
+import { useRebuildKnowledgeGraph } from "@/core/knowledge";
+
 export function KnowledgeGraphPage() {
+  const rebuild = useRebuildKnowledgeGraph();
+
   return (
     <main className="flex size-full min-h-0 flex-col gap-6 overflow-y-auto px-4 py-6 sm:px-6">
       <section className="rounded-lg border bg-background p-5">
@@ -18,7 +22,16 @@ export function KnowledgeGraphPage() {
               EXTRACTED / INFERRED / AMBIGUOUS edge types appear here.
             </p>
           </div>
-          <button className="rounded-md border px-3 py-2 text-sm">Rebuild graph</button>
+          <button
+            className="rounded-md border px-3 py-2 text-sm"
+            onClick={() => rebuild.mutate()}
+          >
+            Rebuild graph
+          </button>
+        </div>
+        <div className="mt-4 text-sm text-muted-foreground">
+          {rebuild.isPending ? "rebuilding…" : null}
+          {rebuild.data ? `nodes: ${rebuild.data.nodes.length}, edges: ${rebuild.data.edges.length}` : null}
         </div>
       </section>
     </main>

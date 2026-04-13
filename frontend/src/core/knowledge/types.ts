@@ -45,3 +45,33 @@ export interface KnowledgeCompileJob {
   };
   error_summary?: string;
 }
+
+export interface KnowledgeQueryResult {
+  answer_markdown: string;
+  page_ids: string[];
+}
+
+export interface KnowledgeGraphPayload {
+  nodes: Array<Record<string, unknown>>;
+  edges: Array<Record<string, unknown>>;
+}
+
+export interface KnowledgeRevisionRequest {
+  request_id: string;
+  page_id: string;
+  request_type: string;
+  instruction: string;
+  optional_source_refs: string[];
+  status: "open" | "previewed" | "applied" | "closed";
+  created_at: string;
+}
+
+export interface KnowledgeRevisionPreview extends KnowledgeRevisionRequest {}
+
+export interface KnowledgeLintReport {
+  orphan_pages: Array<Record<string, unknown>>;
+  broken_links: Array<Record<string, unknown>>;
+  stale_pages: Array<Record<string, unknown>>;
+  contradictions: Array<Record<string, unknown>>;
+  data_gaps: Array<Record<string, unknown>>;
+}

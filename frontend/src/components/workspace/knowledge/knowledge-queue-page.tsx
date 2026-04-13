@@ -1,6 +1,11 @@
 "use client";
 
+import { useApproveKnowledgeQueue, useKnowledgeQueue } from "@/core/knowledge";
+
 export function KnowledgeQueuePage() {
+  const { queue, isLoading, error } = useKnowledgeQueue();
+  const approve = useApproveKnowledgeQueue();
+
   return (
     <main className="flex size-full min-h-0 flex-col gap-6 overflow-y-auto px-4 py-6 sm:px-6">
       <section className="rounded-lg border bg-background p-5">
@@ -18,7 +23,23 @@ export function KnowledgeQueuePage() {
               queued / stale / compiled candidates are reviewed here.
             </p>
           </div>
-          <button className="rounded-md border px-3 py-2 text-sm">approve</button>
+          <button
+            className="rounded-md border px-3 py-2 text-sm"
+            onClick={() => approve.mutate(queue.map((item) => item.source_id))}
+          >
+            approve
+          </button>
+        </div>
+        <div className="mt-4 space-y-2 text-sm text-muted-foreground">
+          {isLoading ? <div>loading queue…</div> : null}
+          {error ? <div>queue error</div> : null}
+          {!isLoading && !error
+            ? queue.map((item) => (
+                <div key={item.source_id} className="rounded-md border px-3 py-2">
+                  {item.title} · {item.status}
+                </div>
+              ))
+            : null}
         </div>
       </section>
     </main>

@@ -1,6 +1,14 @@
 import { getBackendBaseURL } from "../config/index.ts";
 
-import type { KnowledgePage, KnowledgeSourceCandidate } from "./types";
+import type {
+  KnowledgeGraphPayload,
+  KnowledgeLintReport,
+  KnowledgePage,
+  KnowledgeQueryResult,
+  KnowledgeRevisionRequest,
+  KnowledgeCompileJob,
+  KnowledgeSourceCandidate,
+} from "./types";
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -58,6 +66,47 @@ function isKnowledgePage(value: unknown): value is KnowledgePage {
   );
 }
 
+function isKnowledgeQueryResult(value: unknown): value is KnowledgeQueryResult {
+  return (
+    isObjectRecord(value) &&
+    typeof value.answer_markdown === "string" &&
+    Array.isArray(value.page_ids) &&
+    value.page_ids.every((item) => typeof item === "string")
+  );
+}
+
+function isKnowledgeGraphPayload(value: unknown): value is KnowledgeGraphPayload {
+  return (
+    isObjectRecord(value) &&
+    Array.isArray(value.nodes) &&
+    Array.isArray(value.edges)
+  );
+}
+
+function isKnowledgeRevisionRequest(value: unknown): value is KnowledgeRevisionRequest {
+  return (
+    isObjectRecord(value) &&
+    typeof value.request_id === "string" &&
+    typeof value.page_id === "string" &&
+    typeof value.request_type === "string" &&
+    typeof value.instruction === "string" &&
+    Array.isArray(value.optional_source_refs) &&
+    typeof value.status === "string" &&
+    typeof value.created_at === "string"
+  );
+}
+
+function isKnowledgeLintReport(value: unknown): value is KnowledgeLintReport {
+  return (
+    isObjectRecord(value) &&
+    Array.isArray(value.orphan_pages) &&
+    Array.isArray(value.broken_links) &&
+    Array.isArray(value.stale_pages) &&
+    Array.isArray(value.contradictions) &&
+    Array.isArray(value.data_gaps)
+  );
+}
+
 export async function loadKnowledgeQueue(): Promise<KnowledgeSourceCandidate[]> {
   const response = await fetch(`${getBackendBaseURL()}/api/knowledge/queue`);
   if (!response.ok) {
@@ -75,6 +124,23 @@ export async function loadKnowledgeQueue(): Promise<KnowledgeSourceCandidate[]> 
   return payload;
 }
 
+export async function approveKnowledgeQueue(sourceIds: string[]): Promise<KnowledgeCompileJob> {
+  const response = await fetch(`${getBackendBaseURL()}/api/knowledge/queue/approve`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ source_ids: sourceIds }),
+  });
+  if (!response.ok) {
+    throw new Error(
+      resolveErrorMessage(
+        await response.text(),
+        `Failed to approve knowledge queue (${response.status})`,
+      ),
+    );
+  }
+  return readJson(response);
+}
+
 export async function loadKnowledgePage(pageId: string): Promise<KnowledgePage> {
   const response = await fetch(`${getBackendBaseURL()}/api/knowledge/pages/${pageId}`);
   if (!response.ok) {
@@ -88,6 +154,183 @@ export async function loadKnowledgePage(pageId: string): Promise<KnowledgePage> 
   const payload = (await readJson<unknown>(response)) as unknown;
   if (!isKnowledgePage(payload)) {
     throw new Error("Invalid knowledge page payload returned from loadKnowledgePage");
+  }
+  return payload;
+}
+
+export async function queryKnowledge(question: string): Promise<KnowledgeQueryResult> {
+  const response = await fetch(
+    `${getBackendBaseURL()}/api/knowledge/query?question=${encodeURIComponent(question)}`,
+  );
+  if (!response.ok) {
+    throw new Error(
+      resolveErrorMessage(
+        await response.text(),
+        `Failed to query knowledge (${response.status})`,
+      ),
+    );
+  }
+  const payload = (await readJson<unknown>(response)) as unknown;
+  if (!isKnowledgeQueryResult(payload)) {
+    throw new Error("Invalid knowledge query payload returned from queryKnowledge");
+  }
+  return payload;
+}
+
+export async function rebuildKnowledgeGraph(): Promise<KnowledgeGraphPayload> {
+  const response = await fetch(`${getBackendBaseURL()}/api/knowledge/graph/rebuild`, {
+    method: "POST",
+  });
+  if (!response.ok) {
+    throw new Error(
+      resolveErrorMessage(
+        await response.text(),
+        `Failed to rebuild knowledge graph (${response.status})`,
+      ),
+    );
+  }
+  const payload = (await readJson<unknown>(response)) as unknown;
+  if (!isKnowledgeGraphPayload(payload)) {
+    throw new Error("Invalid knowledge graph payload returned from rebuildKnowledgeGraph");
+  }
+  return payload;
+}
+
+export async function createKnowledgeRevision(input: {
+  page_id: string;
+  request_type: string;
+  instruction: string;
+  optional_source_refs: string[];
+}): Promise<KnowledgeRevisionRequest> {
+  const response = await fetch(`${getBackendBaseURL()}/api/knowledge/revisions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) {
+    throw new Error(
+      resolveErrorMessage(
+        await response.text(),
+        `Failed to create knowledge revision (${response.status})`,
+      ),
+    );
+  }
+  const payload = (await readJson<unknown>(response)) as unknown;
+  if (!isKnowledgeRevisionRequest(payload)) {
+    throw new Error("Invalid knowledge revision payload returned from createKnowledgeRevision");
+  }
+  return payload;
+}
+
+export async function previewKnowledgeRevision(
+  requestId: string,
+): Promise<KnowledgeRevisionRequest> {
+  const response = await fetch(
+    `${getBackendBaseURL()}/api/knowledge/revisions/${requestId}/preview`,
+    {
+      method: "POST",
+    },
+  );
+  if (!response.ok) {
+    throw new Error(
+      resolveErrorMessage(
+        await response.text(),
+        `Failed to preview knowledge revision (${response.status})`,
+      ),
+    );
+  }
+  const payload = (await readJson<unknown>(response)) as unknown;
+  if (!isKnowledgeRevisionRequest(payload)) {
+    throw new Error("Invalid knowledge revision payload returned from previewKnowledgeRevision");
+  }
+  return payload;
+}
+
+export async function closeKnowledgeRevision(
+  requestId: string,
+): Promise<KnowledgeRevisionRequest> {
+  const response = await fetch(
+    `${getBackendBaseURL()}/api/knowledge/revisions/${requestId}/close`,
+    {
+      method: "POST",
+    },
+  );
+  if (!response.ok) {
+    throw new Error(
+      resolveErrorMessage(
+        await response.text(),
+        `Failed to close knowledge revision (${response.status})`,
+      ),
+    );
+  }
+  const payload = (await readJson<unknown>(response)) as unknown;
+  if (!isKnowledgeRevisionRequest(payload)) {
+    throw new Error("Invalid knowledge revision payload returned from closeKnowledgeRevision");
+  }
+  return payload;
+}
+
+export async function applyKnowledgeRevision(
+  requestId: string,
+): Promise<KnowledgeRevisionRequest> {
+  const response = await fetch(
+    `${getBackendBaseURL()}/api/knowledge/revisions/${requestId}/apply`,
+    {
+      method: "POST",
+    },
+  );
+  if (!response.ok) {
+    throw new Error(
+      resolveErrorMessage(
+        await response.text(),
+        `Failed to apply knowledge revision (${response.status})`,
+      ),
+    );
+  }
+  const payload = (await readJson<unknown>(response)) as unknown;
+  if (!isKnowledgeRevisionRequest(payload)) {
+    throw new Error("Invalid knowledge revision payload returned from applyKnowledgeRevision");
+  }
+  return payload;
+}
+
+export async function saveKnowledgeSynthesis(input: {
+  question: string;
+  answer_markdown: string;
+}): Promise<KnowledgePage> {
+  const response = await fetch(`${getBackendBaseURL()}/api/knowledge/syntheses`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) {
+    throw new Error(
+      resolveErrorMessage(
+        await response.text(),
+        `Failed to save knowledge synthesis (${response.status})`,
+      ),
+    );
+  }
+  const payload = (await readJson<unknown>(response)) as unknown;
+  if (!isKnowledgePage(payload)) {
+    throw new Error("Invalid knowledge page payload returned from saveKnowledgeSynthesis");
+  }
+  return payload;
+}
+
+export async function loadKnowledgeLint(): Promise<KnowledgeLintReport> {
+  const response = await fetch(`${getBackendBaseURL()}/api/knowledge/lint`);
+  if (!response.ok) {
+    throw new Error(
+      resolveErrorMessage(
+        await response.text(),
+        `Failed to load knowledge lint (${response.status})`,
+      ),
+    );
+  }
+  const payload = (await readJson<unknown>(response)) as unknown;
+  if (!isKnowledgeLintReport(payload)) {
+    throw new Error("Invalid knowledge lint payload returned from loadKnowledgeLint");
   }
   return payload;
 }

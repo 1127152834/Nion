@@ -9,6 +9,8 @@ void test("knowledge queue page renders candidate state and approval affordance"
   );
 
   assert.match(source, /queue/i);
+  assert.match(source, /useKnowledgeQueue/);
+  assert.match(source, /useApproveKnowledgeQueue/);
   assert.match(source, /approve|批准/);
   assert.match(source, /stale|queued|compiled/);
 });
