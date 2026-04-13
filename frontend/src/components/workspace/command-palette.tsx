@@ -30,6 +30,7 @@ import {
 import { useI18n } from "@/core/i18n/hooks";
 import {
   pathOfMemory,
+  pathOfKnowledge,
   pathOfNotebook,
 } from "@/core/navigation/desktop-routes";
 import { pathOfNewThread } from "@/core/threads/utils";
@@ -44,6 +45,7 @@ export function CommandPalette() {
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const notebookPath = pathOfNotebook();
+  const knowledgePath = pathOfKnowledge();
   const memoryPath = pathOfMemory();
 
   const handleNewChat = useCallback(() => {
@@ -70,6 +72,11 @@ export function CommandPalette() {
     router.push(notebookPath);
     setOpen(false);
   }, [notebookPath, router]);
+
+  const handleOpenKnowledge = useCallback(() => {
+    router.push(knowledgePath);
+    setOpen(false);
+  }, [knowledgePath, router]);
 
   const handleOpenMemory = useCallback(() => {
     router.push(memoryPath);
@@ -117,6 +124,11 @@ export function CommandPalette() {
       id: "open-memory",
       keys: "Palette",
       label: t.shortcuts.openMemory,
+    },
+    {
+      id: "open-knowledge",
+      keys: "Palette",
+      label: t.shortcuts.openKnowledge,
     },
     {
       id: "open-settings",
@@ -170,6 +182,13 @@ export function CommandPalette() {
             >
               <BookTextIcon className="mr-2 h-4 w-4" />
               {t.sidebar.notebook}
+            </CommandItem>
+            <CommandItem
+              keywords={[t.shortcuts.openKnowledge, t.sidebar.knowledge]}
+              onSelect={handleOpenKnowledge}
+            >
+              <BookTextIcon className="mr-2 h-4 w-4" />
+              {t.sidebar.knowledge}
             </CommandItem>
             <CommandItem
               keywords={[t.shortcuts.openMemory, t.sidebar.memory]}

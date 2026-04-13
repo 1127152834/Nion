@@ -179,6 +179,7 @@ export const zhCN: Translations = {
     automation: "自动化",
     cliTools: "CLI 工具",
     notebook: "笔记",
+    knowledge: "知识库",
     memory: "记忆",
   },
 
@@ -260,6 +261,18 @@ export const zhCN: Translations = {
   },
 
   workspaceSurfaces: {
+    knowledge: {
+      eyebrow: "知识",
+      title: "知识库",
+      description:
+        "把经过编译的知识页、查询结果、图谱和修订请求集中在一个正式模块里，形成稳定、可追溯的知识工作面。",
+      queueTitle: "知识队列",
+      queueDescription:
+        "管理来自 Notebook 的候选原料，批准它们进入知识编译流程。",
+      graphTitle: "知识图谱",
+      graphDescription:
+        "查看知识页之间的显式链接与推断关系，定位断链、孤儿页和热点主题。",
+    },
     memory: {
       eyebrow: "记忆",
       title: "记忆",
@@ -590,6 +603,7 @@ export const zhCN: Translations = {
     openCommandPalette: "打开命令面板",
     toggleSidebar: "切换侧边栏",
     openNotebook: "打开笔记",
+    openKnowledge: "打开知识库",
     openMemory: "打开记忆",
   },
 

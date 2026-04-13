@@ -185,6 +185,7 @@ export const enUS: Translations = {
     automation: "Automation",
     cliTools: "CLI Tools",
     notebook: "Notebook",
+    knowledge: "Knowledge Base",
     memory: "Memory",
   },
 
@@ -271,6 +272,18 @@ export const enUS: Translations = {
   },
 
   workspaceSurfaces: {
+    knowledge: {
+      eyebrow: "Knowledge",
+      title: "Knowledge Base",
+      description:
+        "Keep compiled knowledge pages, query results, graph state, and revision workflows in one formal module for stable, source-traceable knowledge work.",
+      queueTitle: "Knowledge Queue",
+      queueDescription:
+        "Review source candidates arriving from Notebook and approve them into the knowledge compilation flow.",
+      graphTitle: "Knowledge Graph",
+      graphDescription:
+        "Inspect explicit and inferred relationships between knowledge pages, including broken links and orphan hotspots.",
+    },
     memory: {
       eyebrow: "Memory",
       title: "Memory",
@@ -617,6 +630,7 @@ export const enUS: Translations = {
     openCommandPalette: "Open Command Palette",
     toggleSidebar: "Toggle Sidebar",
     openNotebook: "Open Notebook",
+    openKnowledge: "Open Knowledge Base",
     openMemory: "Open Memory",
   },
 

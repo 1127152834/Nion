@@ -67,3 +67,12 @@ void test("workspace product copy keeps notebook and memory roles distinct", () 
   assert.match(enUS.settings.sections.memory, /memory/i);
   assert.match(zhCN.settings.sections.memory, /记忆/);
 });
+
+void test("workspace product copy keeps notebook knowledge and memory roles distinct", () => {
+  assert.match(enUS.workspaceSurfaces.knowledge.description, /knowledge/i);
+  assert.doesNotMatch(enUS.workspaceSurfaces.knowledge.description, /notebook/i);
+  assert.doesNotMatch(enUS.workspaceSurfaces.knowledge.description, /memory/i);
+  assert.match(zhCN.workspaceSurfaces.knowledge.description, /知识/);
+  assert.doesNotMatch(zhCN.workspaceSurfaces.knowledge.description, /笔记/);
+  assert.doesNotMatch(zhCN.workspaceSurfaces.knowledge.description, /记忆/);
+});

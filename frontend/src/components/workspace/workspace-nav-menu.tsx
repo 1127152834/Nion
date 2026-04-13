@@ -29,6 +29,7 @@ import {
 import { useI18n } from "@/core/i18n/hooks";
 import {
   pathOfMemory,
+  pathOfKnowledge,
   pathOfNotebook,
 } from "@/core/navigation/desktop-routes";
 
@@ -64,6 +65,7 @@ export function WorkspaceNavMenu() {
   const { t } = useI18n();
   const router = useRouter();
   const notebookPath = pathOfNotebook();
+  const knowledgePath = pathOfKnowledge();
   const memoryPath = pathOfMemory();
 
   useEffect(() => {
@@ -115,6 +117,15 @@ export function WorkspaceNavMenu() {
                   >
                     <BookTextIcon />
                     {t.sidebar.notebook}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setSettingsOpen(false);
+                      router.push(knowledgePath);
+                    }}
+                  >
+                    <BookTextIcon />
+                    {t.sidebar.knowledge}
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => {
