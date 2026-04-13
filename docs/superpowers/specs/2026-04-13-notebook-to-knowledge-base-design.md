@@ -290,14 +290,14 @@ type KnowledgeRevisionRequest = {
   request_type: "fix_fact" | "add_context" | "merge_pages" | "split_page" | "rename_page";
   instruction: string;
   optional_source_refs: string[];
-  status: "open" | "accepted" | "rejected" | "applied";
+  status: "open" | "previewed" | "applied" | "closed";
   created_by: "user";
   created_at: string;
   resolved_at?: string;
 };
 ```
 
-人通过 revision request 影响知识页，Agent 读取 page、sources 和 instruction 后生成 diff preview，用户确认后由 Agent 落盘。
+人通过 revision request 影响知识页，Agent 读取 page、sources 和 instruction 后生成 diff preview。用户确认后由 Agent 落盘；用户放弃或 Agent 判定无法安全执行时将请求关闭，不引入 accept/reject 产品语义。
 
 ---
 
