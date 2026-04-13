@@ -11,6 +11,8 @@ type NotebookInboxPanelCopy = {
   recentTitle: string;
   emptyTitle: string;
   emptyDescription: string;
+  knowledgeQueueLabel: string;
+  knowledgeStatusLabel: string;
   organizeLabel: string;
   selectFolderPlaceholder: string;
 };
@@ -23,6 +25,8 @@ type NotebookInboxPanelProps = {
   onSelectItem: (item: NotebookInboxItem) => void;
   onMoveDirectoryChange: (value: string) => void;
   onOrganizeItem: (item: NotebookInboxItem) => void;
+  onSendToKnowledge: (item: NotebookInboxItem) => void;
+  onViewKnowledgeStatus: (item: NotebookInboxItem) => void;
 };
 
 export function NotebookInboxPanel({
@@ -33,6 +37,8 @@ export function NotebookInboxPanel({
   onSelectItem,
   onMoveDirectoryChange,
   onOrganizeItem,
+  onSendToKnowledge,
+  onViewKnowledgeStatus,
 }: NotebookInboxPanelProps) {
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden rounded-[1.5rem] border border-[var(--notebook-border)] bg-[var(--notebook-panel)] p-4">
@@ -106,6 +112,26 @@ export function NotebookInboxPanel({
                   >
                     <MoveRightIcon className="size-3.5" />
                     <span>{copy.organizeLabel}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onSendToKnowledge(entry);
+                    }}
+                    className="flex items-center gap-1 rounded-md border border-[var(--notebook-border)] px-2 py-1 text-xs text-[var(--notebook-soft-text)] transition-colors hover:bg-[var(--notebook-hover)] hover:text-[var(--notebook-ink)]"
+                  >
+                    <span>{copy.knowledgeQueueLabel}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onViewKnowledgeStatus(entry);
+                    }}
+                    className="flex items-center gap-1 rounded-md border border-[var(--notebook-border)] px-2 py-1 text-xs text-[var(--notebook-soft-text)] transition-colors hover:bg-[var(--notebook-hover)] hover:text-[var(--notebook-ink)]"
+                  >
+                    <span>{copy.knowledgeStatusLabel}</span>
                   </button>
                 </span>
               </button>

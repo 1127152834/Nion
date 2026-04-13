@@ -5,6 +5,7 @@ import {
   applyNotebookAssist,
   archiveNotebookAsset,
   extractNotebookNoteToMemory,
+  enqueueNotebookSourceToKnowledge,
   cancelNotebookRewrite,
   createNotebookDirectory,
   createNotebookNote,
@@ -186,6 +187,16 @@ export function useExtractNotebookMemory() {
       extractNotebookNoteToMemory(input),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["memory"] });
+    },
+  });
+}
+
+export function useEnqueueNotebookSourceToKnowledge() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (sourceId: string) => enqueueNotebookSourceToKnowledge(sourceId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["knowledge", "queue"] });
     },
   });
 }

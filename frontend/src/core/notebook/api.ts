@@ -203,6 +203,28 @@ export async function extractNotebookNoteToMemory(
   return readJson(response);
 }
 
+export async function enqueueNotebookSourceToKnowledge(sourceId: string): Promise<{
+  job_id: string;
+  source_ids: string[];
+  trigger_mode: string;
+  status: string;
+}> {
+  const response = await fetch(`${getBackendBaseURL()}/api/knowledge/queue/approve`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ source_ids: [sourceId] }),
+  });
+  if (!response.ok) {
+    throw new Error(
+      resolveErrorMessage(
+        await response.text(),
+        `Failed to enqueue notebook source to knowledge (${response.status})`,
+      ),
+    );
+  }
+  return readJson(response);
+}
+
 export async function createNotebookDirectory(
   input: NotebookDirectoryCreateInput,
 ): Promise<string> {

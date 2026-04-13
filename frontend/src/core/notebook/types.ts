@@ -63,6 +63,8 @@ export interface NotebookInboxItem {
   summary?: string | null;
   mime_type?: string | null;
   tags: string[];
+  knowledge_source_id?: string | null;
+  knowledge_status?: string | null;
 }
 
 export interface NotebookInboxResponse {
@@ -78,6 +80,8 @@ export interface NotebookNoteSummary {
   summary: string;
   tags: string[];
   is_pinned: boolean;
+  knowledge_source_id?: string | null;
+  knowledge_status?: string | null;
 }
 
 export interface NotebookHistoryEntry {
