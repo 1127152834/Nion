@@ -43,7 +43,11 @@ export function KnowledgePageReader(props: { page: KnowledgePage | null }) {
       </section>
 
       <section className="rounded-lg border bg-background p-5">
-        <MarkdownContent content={props.page.body} />
+        <MarkdownContent
+          content={props.page.body}
+          isLoading={false}
+          rehypePlugins={[]}
+        />
       </section>
     </main>
   );
