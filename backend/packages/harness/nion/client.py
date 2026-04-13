@@ -268,6 +268,7 @@ class NionClient:
             "session_mode": overrides.get("session_mode"),
             "memory_read": overrides.get("memory_read", True),
             "memory_write": overrides.get("memory_write"),
+            "locale": overrides.get("locale"),
         }
         return RunnableConfig(
             configurable=configurable,
@@ -294,6 +295,7 @@ class NionClient:
             configurable.get("session_mode"),
             configurable.get("memory_read", True),
             configurable.get("memory_write"),
+            configurable.get("locale"),
         )
 
     def _ensure_agent(self, config: RunnableConfig):
@@ -590,6 +592,8 @@ class NionClient:
             context["execution_mode"] = kwargs.get("execution_mode")
         if "host_workdir" in kwargs:
             context["host_workdir"] = kwargs.get("host_workdir")
+        if "locale" in kwargs:
+            context["locale"] = kwargs.get("locale")
 
         seen_signatures: dict[str, str] = {}
         cumulative_ai_content: dict[str, str] = {}

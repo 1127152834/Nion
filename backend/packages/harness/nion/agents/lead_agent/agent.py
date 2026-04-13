@@ -7,6 +7,10 @@ from langchain_core.runnables import RunnableConfig
 from nion.agents.lead_agent.prompt import apply_prompt_template
 from nion.agents.middlewares.clarification_middleware import ClarificationMiddleware
 from nion.agents.middlewares.continuity_middleware import ContinuityMiddleware
+from nion.agents.middlewares.locale_aware_summarization import (
+    LocaleAwareSummarizationMiddleware,
+    build_summary_prompt_for_locale,
+)
 from nion.agents.middlewares.loop_detection_middleware import LoopDetectionMiddleware
 from nion.agents.middlewares.recall_capture_middleware import RecallCaptureMiddleware
 from nion.agents.middlewares.subagent_limit_middleware import SubagentLimitMiddleware
@@ -20,7 +24,6 @@ from nion.agents.thread_state import ThreadState
 from nion.config.agents_config import load_agent_config
 from nion.config.app_config import ensure_latest_app_config
 from nion.config.summarization_config import (
-    DEFAULT_SUMMARY_PROMPT,
     get_summarization_config,
 )
 from nion.model_management.service import get_model_registry_service
@@ -89,9 +92,11 @@ def _create_summarization_middleware() -> SummarizationMiddleware | None:
     if config.trim_tokens_to_summarize is not None:
         kwargs["trim_tokens_to_summarize"] = config.trim_tokens_to_summarize
 
-    kwargs["summary_prompt"] = config.summary_prompt or DEFAULT_SUMMARY_PROMPT
+    kwargs["summary_prompt"] = config.summary_prompt or build_summary_prompt_for_locale(
+        None
+    )
 
-    return SummarizationMiddleware(**kwargs)
+    return LocaleAwareSummarizationMiddleware(**kwargs)
 
 
 def _create_todo_list_middleware(is_plan_mode: bool) -> TodoMiddleware | None:

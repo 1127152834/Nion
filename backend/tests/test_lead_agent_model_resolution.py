@@ -7,6 +7,9 @@ from types import SimpleNamespace
 import pytest
 
 from nion.agents.lead_agent import agent as lead_agent_module
+from nion.agents.middlewares.locale_aware_summarization import (
+    LocaleAwareSummarizationMiddleware,
+)
 from nion.config.app_config import AppConfig
 from nion.config.model_config import ModelConfig
 from nion.config.sandbox_config import SandboxConfig
@@ -172,10 +175,6 @@ def test_build_middlewares_uses_resolved_model_name_for_vision(monkeypatch):
 def test_create_summarization_middleware_uses_runtime_model_instance(monkeypatch):
     captured: dict[str, object] = {}
 
-    class _FakeSummarizationMiddleware:
-        def __init__(self, **kwargs):
-            captured.update(kwargs)
-
     monkeypatch.setattr(
         lead_agent_module,
         "get_summarization_config",
@@ -199,14 +198,14 @@ def test_create_summarization_middleware_uses_runtime_model_instance(monkeypatch
         lambda **kwargs: {"kind": "runtime-model", **kwargs},
     )
     monkeypatch.setattr(
-        lead_agent_module,
-        "SummarizationMiddleware",
-        _FakeSummarizationMiddleware,
+        LocaleAwareSummarizationMiddleware,
+        "__init__",
+        lambda self, **kwargs: captured.update(kwargs),
     )
 
     middleware = lead_agent_module._create_summarization_middleware()
 
-    assert middleware is not None
+    assert isinstance(middleware, LocaleAwareSummarizationMiddleware)
     assert captured["model"] == {
         "kind": "runtime-model",
         "name": "gpt-5.4",

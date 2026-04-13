@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 
 ContextSizeType = Literal["fraction", "tokens", "messages"]
 DEFAULT_SUMMARIZATION_TOKENS = 20480
+DEFAULT_SUMMARY_LOCALE = "en-US"
 DEFAULT_SUMMARY_PROMPT = """<role>
 Conversation Compression Assistant
 </role>
@@ -33,6 +34,35 @@ Return only concise Markdown with these sections when relevant:
 
 <messages>
 Messages to summarize:
+{messages}
+</messages>"""
+ZH_CN_SUMMARY_PROMPT = """<role>
+对话压缩助手
+</role>
+
+<primary_objective>
+压缩较早的对话历史，同时保留用户决策、稳定偏好、当前约束和未解决问题。
+</primary_objective>
+
+<critical_rules>
+- 将用户的明确选择视为权威事实，并原样保留。
+- 保留实现约束、已选技术、目标文件、验收标准，以及 assistant 已完成的工作。
+- 用简短清单保留未解决歧义与待定决策。
+- 如果最新消息可能仍单独保留在摘要外，不要声称摘要覆盖了最新消息。
+- 不要臆造偏好、需求或已完成工作。
+</critical_rules>
+
+<output_format>
+仅返回简洁 Markdown，并在相关时使用这些 section：
+- 目标
+- 已确认决策
+- 约束
+- 已完成工作
+- 待确认问题
+</output_format>
+
+<messages>
+待总结消息：
 {messages}
 </messages>"""
 

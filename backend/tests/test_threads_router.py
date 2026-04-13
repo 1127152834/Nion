@@ -255,6 +255,28 @@ def test_thread_service_stream_passes_runtime_profile_and_keeps_cli_selection_ou
     }
 
 
+def test_thread_service_stream_passes_locale_to_client():
+    client = MagicMock()
+    client.stream.return_value = iter(
+        [SimpleNamespace(type="values", data={"title": "T", "messages": [], "artifacts": []})]
+    )
+    repository = MagicMock()
+    repository.get_thread.return_value = None
+    repository.upsert_thread.return_value = SimpleNamespace(values=SimpleNamespace(model_dump=lambda: {}))
+    service = ThreadService(repository=repository, client=client)
+
+    request = ThreadStreamRequest(
+        messages=[{"type": "human", "content": [{"type": "text", "text": "hi"}]}],
+        context={"locale": "zh-CN"},
+        config={},
+    )
+
+    list(service.stream("thread-1", request))
+
+    kwargs = client.stream.call_args.kwargs
+    assert kwargs["locale"] == "zh-CN"
+
+
 def test_thread_service_stream_rejects_concurrent_same_thread_runs():
     client = MagicMock()
     client.stream.return_value = iter(

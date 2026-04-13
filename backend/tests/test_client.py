@@ -246,6 +246,11 @@ class TestStream:
             "note_body": "hello",
         }
 
+    def test_get_runnable_config_includes_locale(self, client):
+        config = client._get_runnable_config("t1", locale="zh-CN")
+
+        assert config["configurable"]["locale"] == "zh-CN"
+
     def test_basic_message(self, client):
         """stream() emits messages-tuple + values + end for a simple AI reply."""
         ai = AIMessage(content="Hello!", id="ai-1")
@@ -284,6 +289,19 @@ class TestStream:
         call_kwargs = agent.stream.call_args.kwargs
         assert call_kwargs["context"]["thread_id"] == "t1"
         assert call_kwargs["context"]["agent_name"] == "test-agent-1"
+
+    def test_stream_passes_locale_into_agent_runtime_context(self, client):
+        agent = _make_agent_mock([{"messages": [AIMessage(content="ok", id="ai-1")]}])
+
+        with (
+            patch.object(client, "_ensure_agent"),
+            patch.object(client, "_agent", agent),
+        ):
+            list(client.stream("hi", thread_id="t-locale", locale="zh-CN"))
+
+        agent.stream.assert_called_once()
+        call_kwargs = agent.stream.call_args.kwargs
+        assert call_kwargs["context"]["locale"] == "zh-CN"
 
     def test_tool_call_and_result(self, client):
         """stream() emits messages-tuple events for tool calls and results."""
@@ -1691,6 +1709,40 @@ class TestScenarioEdgeCases:
         assert values_events[0].data["title"] == "First Title"
         assert values_events[1].data["title"] == "First Title"
         assert values_events[2].data["title"] == "Second Title"
+
+    def test_values_event_preserves_human_message_additional_kwargs(self, client):
+        summary = HumanMessage(
+            content="中文摘要",
+            id="summary-1",
+            additional_kwargs={
+                "internal_summary": True,
+                "summary_locale": "zh-CN",
+                "summary_format_version": 1,
+            },
+        )
+        chunks = [{"messages": [summary], "title": "T"}]
+        agent = _make_agent_mock(chunks)
+
+        with (
+            patch.object(client, "_ensure_agent"),
+            patch.object(client, "_agent", agent),
+        ):
+            events = list(client.stream("hi", thread_id="t-summary-values"))
+
+        values_events = [event for event in events if event.type == "values"]
+        assert values_events
+        assert values_events[-1].data["messages"] == [
+            {
+                "type": "human",
+                "content": "中文摘要",
+                "id": "summary-1",
+                "additional_kwargs": {
+                    "internal_summary": True,
+                    "summary_locale": "zh-CN",
+                    "summary_format_version": 1,
+                },
+            }
+        ]
 
     def test_concurrent_tool_calls_in_single_message(self, client):
         """Agent produces multiple tool_calls in one AIMessage — emitted as single messages-tuple."""

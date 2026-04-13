@@ -1,6 +1,9 @@
 from nion.agents.lead_agent import agent as lead_agent_module
+from nion.agents.middlewares.locale_aware_summarization import (
+    LocaleAwareSummarizationMiddleware,
+    build_summary_prompt_for_locale,
+)
 from nion.config.summarization_config import (
-    DEFAULT_SUMMARY_PROMPT,
     SummarizationConfig,
 )
 
@@ -20,17 +23,12 @@ def test_create_summarization_middleware_uses_nion_default_prompt_when_config_pr
         "create_chat_model",
         lambda **kwargs: "dummy-model",
     )
-
-    class DummyMiddleware:
-        def __init__(self, **kwargs):
-            captured.update(kwargs)
-
     monkeypatch.setattr(
-        lead_agent_module,
-        "SummarizationMiddleware",
-        DummyMiddleware,
+        LocaleAwareSummarizationMiddleware,
+        "__init__",
+        lambda self, **kwargs: captured.update(kwargs),
     )
 
     lead_agent_module._create_summarization_middleware()
 
-    assert captured["summary_prompt"] == DEFAULT_SUMMARY_PROMPT
+    assert captured["summary_prompt"] == build_summary_prompt_for_locale("en-US")

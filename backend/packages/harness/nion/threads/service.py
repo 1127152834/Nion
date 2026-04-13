@@ -206,6 +206,7 @@ class ThreadService:
             notebook_context=notebook_context,
             execution_mode=lead_context.get("execution_mode"),
             host_workdir=lead_context.get("host_workdir"),
+            locale=lead_context.get("locale"),
             session_mode=lead_context.get("session_mode"),
             memory_read=resolve_optional_bool(
                 lead_context.get("memory_read"),
@@ -316,6 +317,7 @@ class ThreadService:
                     notebook_context=notebook_context,
                     execution_mode=context.get("execution_mode"),
                     host_workdir=context.get("host_workdir"),
+                    locale=context.get("locale"),
                     session_mode=context.get("session_mode"),
                     memory_read=resolve_optional_bool(
                         context.get("memory_read"),
