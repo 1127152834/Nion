@@ -2,14 +2,15 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
-import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { type PromptInputMessage } from "@/components/ai-elements/prompt-input";
+import { WorkingDirectoryTrigger } from "@/components/workspace/artifacts";
 import {
-  WorkingDirectoryTrigger,
-} from "@/components/workspace/artifacts";
-import { ChatBox, useSpecificChatMode, useThreadChat } from "@/components/workspace/chats";
+  ChatBox,
+  useSpecificChatMode,
+  useThreadChat,
+} from "@/components/workspace/chats";
 import { ExportTrigger } from "@/components/workspace/export-trigger";
 import { InputBox } from "@/components/workspace/input-box";
 import { MessageList } from "@/components/workspace/messages";
@@ -32,6 +33,7 @@ import {
   fetchRuntimeProfile,
   updateRuntimeProfile,
 } from "@/core/runtime";
+import { useIsDesktopShell } from "@/core/runtime";
 import { useThreadSettings } from "@/core/settings";
 import {
   derivePendingClarification,
@@ -46,8 +48,8 @@ import { cn } from "@/lib/utils";
 
 export default function ChatThreadPage() {
   const { t } = useI18n();
-  const pathname = usePathname();
   const searchParams = useSearchParams();
+  const isDesktopShell = useIsDesktopShell();
   const { threadId, isNewThread, setIsNewThread, isMock } = useThreadChat();
   const [settings, setSettings] = useThreadSettings(threadId);
   useSpecificChatMode();
@@ -62,7 +64,8 @@ export default function ChatThreadPage() {
   const [runtimeProfileLoading, setRuntimeProfileLoading] = useState(false);
   const [runtimeProfileSaving, setRuntimeProfileSaving] = useState(false);
   const [isResolvingPermission, setIsResolvingPermission] = useState(false);
-  const [resolvedPermissionRequestIds, setResolvedPermissionRequestIds] = useState<string[]>([]);
+  const [resolvedPermissionRequestIds, setResolvedPermissionRequestIds] =
+    useState<string[]>([]);
 
   useEffect(() => {
     if (isMock) {
@@ -112,7 +115,8 @@ export default function ChatThreadPage() {
 
   const workspacePaths = useMemo(
     () => [
-      ...(workingDirectoryTree?.directories.map((item) => `${item.path}/`) ?? []),
+      ...(workingDirectoryTree?.directories.map((item) => `${item.path}/`) ??
+        []),
       ...(workingDirectoryTree?.files.map((item) => item.path) ?? []),
     ],
     [workingDirectoryTree],
@@ -180,24 +184,30 @@ export default function ChatThreadPage() {
     () => derivePendingClarification(thread.messages),
     [thread.messages],
   );
-  const pendingPermissionRequest = useMemo(
-    () => {
-      const derived = derivePendingPermissionRequest(thread.messages);
-      if (!derived) {
-        return null;
-      }
-      const persistedResolvedIds = thread.values.resolved_permission_request_ids ?? [];
-      return resolvedPermissionRequestIds.includes(derived.requestId) ||
-          persistedResolvedIds.includes(derived.requestId)
-        ? null
-        : derived;
-    },
-    [resolvedPermissionRequestIds, thread.messages, thread.values.resolved_permission_request_ids],
-  );
+  const pendingPermissionRequest = useMemo(() => {
+    const derived = derivePendingPermissionRequest(thread.messages);
+    if (!derived) {
+      return null;
+    }
+    const persistedResolvedIds =
+      thread.values.resolved_permission_request_ids ?? [];
+    return resolvedPermissionRequestIds.includes(derived.requestId) ||
+      persistedResolvedIds.includes(derived.requestId)
+      ? null
+      : derived;
+  }, [
+    resolvedPermissionRequestIds,
+    thread.messages,
+    thread.values.resolved_permission_request_ids,
+  ]);
 
   const handleSwitchMode = useCallback(
     async (mode: "sandbox" | "host") => {
-      if (runtimeProfile.locked || mode === runtimeProfile.execution_mode || isMock) {
+      if (
+        runtimeProfile.locked ||
+        mode === runtimeProfile.execution_mode ||
+        isMock
+      ) {
         return;
       }
 
@@ -236,7 +246,8 @@ export default function ChatThreadPage() {
   const handleReplaySubmit = useCallback(
     (payload: PermissionReplayPayload) => {
       const additionalKwargs =
-        payload.additional_kwargs && typeof payload.additional_kwargs === "object"
+        payload.additional_kwargs &&
+        typeof payload.additional_kwargs === "object"
           ? { ...payload.additional_kwargs }
           : {};
       if (payload.files.length > 0 && !("files" in additionalKwargs)) {
@@ -253,10 +264,9 @@ export default function ChatThreadPage() {
               cliTools?: string[];
             })
           : undefined;
-      const implicitMentions =
-        Array.isArray(additionalKwargs.implicit_mentions)
-          ? additionalKwargs.implicit_mentions
-          : [];
+      const implicitMentions = Array.isArray(additionalKwargs.implicit_mentions)
+        ? additionalKwargs.implicit_mentions
+        : [];
 
       void thread.submit(
         {
@@ -309,13 +319,7 @@ export default function ChatThreadPage() {
         },
       );
     },
-    [
-      currentMode,
-      settings.context,
-      thread,
-      threadId,
-      threadRuntimeContext,
-    ],
+    [currentMode, settings.context, thread, threadId, threadRuntimeContext],
   );
 
   const handlePermissionDecision = useCallback(
@@ -325,11 +329,11 @@ export default function ChatThreadPage() {
       }
       try {
         setIsResolvingPermission(true);
-        const resolution = await getAPIClient(isMock).resolvePermission(
+        const resolution = (await getAPIClient(isMock).resolvePermission(
           threadId,
           pendingPermissionRequest.requestId,
           decision,
-        ) as {
+        )) as {
           ok?: boolean;
           original_message_text?: string;
           consumed?: boolean;
@@ -376,11 +380,15 @@ export default function ChatThreadPage() {
       <ChatBox threadId={threadId}>
         <div className="relative flex size-full min-h-0 flex-col">
           <header
+            data-desktop-drag-region={
+              isDesktopShell ? "chat-thread-header" : undefined
+            }
             className={cn(
               "absolute top-0 right-0 left-0 z-30 flex h-14 shrink-0 items-center gap-2 px-4",
               isNewThread
                 ? "bg-background/0 backdrop-blur-none"
                 : "bg-background/72 shadow-xs backdrop-blur-xl",
+              isDesktopShell && "[-webkit-app-region:drag]",
             )}
           >
             <div className="flex min-w-0 flex-1 items-center text-sm font-medium">
@@ -390,18 +398,28 @@ export default function ChatThreadPage() {
                 <span className="sr-only">{t.pages.newChat}</span>
               )}
             </div>
-            <div className="flex items-center gap-1">
+            <div
+              data-desktop-no-drag={
+                isDesktopShell ? "chat-thread-actions" : undefined
+              }
+              className={cn(
+                "flex items-center gap-1",
+                isDesktopShell && "[-webkit-app-region:no-drag]",
+              )}
+            >
               {!isNewThread ? (
                 <TokenUsageIndicator messages={thread.messages} />
               ) : null}
               <WorkingDirectoryTrigger />
               {!isNewThread ? <ExportTrigger threadId={threadId} /> : null}
-              {!isNewThread ? <SaveToNotebookTrigger threadId={threadId} /> : null}
+              {!isNewThread ? (
+                <SaveToNotebookTrigger threadId={threadId} />
+              ) : null}
             </div>
           </header>
 
           {isNewThread ? (
-            <main className="flex min-h-0 flex-1 items-center overflow-y-auto px-4 pb-10 pt-20">
+            <main className="flex min-h-0 flex-1 items-center overflow-y-auto px-4 pt-20 pb-10">
               <NewChatStage
                 hero={<Welcome className="sm:pb-1" mode={currentMode} />}
                 controls={
@@ -415,7 +433,9 @@ export default function ChatThreadPage() {
                 }
                 composer={
                   <div className="flex w-full flex-col gap-3">
-                    {threadError ? <ThreadRequestErrorAlert error={threadError} /> : null}
+                    {threadError ? (
+                      <ThreadRequestErrorAlert error={threadError} />
+                    ) : null}
                     <InputBox
                       key={`new-thread-input-${threadId}`}
                       className="w-full"
@@ -428,7 +448,9 @@ export default function ChatThreadPage() {
                       pendingClarification={pendingClarification}
                       workspacePaths={workspacePaths}
                       context={settings.context}
-                      onContextChange={(context) => setSettings("context", context)}
+                      onContextChange={(context) =>
+                        setSettings("context", context)
+                      }
                       onSubmit={handleSubmit}
                       onStop={handleStop}
                     />
@@ -474,7 +496,9 @@ export default function ChatThreadPage() {
                     </div>
                   </div>
 
-                  {threadError ? <ThreadRequestErrorAlert error={threadError} /> : null}
+                  {threadError ? (
+                    <ThreadRequestErrorAlert error={threadError} />
+                  ) : null}
                   <InputBox
                     key={`thread-input-${threadId}`}
                     className="bg-background/5 w-full"
@@ -486,7 +510,9 @@ export default function ChatThreadPage() {
                     pendingClarification={pendingClarification}
                     workspacePaths={workspacePaths}
                     context={settings.context}
-                    onContextChange={(context) => setSettings("context", context)}
+                    onContextChange={(context) =>
+                      setSettings("context", context)
+                    }
                     onSubmit={handleSubmit}
                     onStop={handleStop}
                   />
