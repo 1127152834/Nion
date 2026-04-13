@@ -17,7 +17,7 @@ class KnowledgeGraphService:
     def build_graph(self) -> dict[str, list[dict[str, object]]]:
         nodes: list[dict[str, object]] = []
         edges: list[dict[str, object]] = []
-        for path in sorted(self._paths.knowledge_wiki_dir.glob("*.md")):
+        for path in sorted(self._paths.knowledge_wiki_dir.rglob("*.md")):
             page_id = path.stem.replace("__", ":", 1)
             page = self._store.read_page(page_id)
             nodes.append({"id": page.page_id, "label": page.title})

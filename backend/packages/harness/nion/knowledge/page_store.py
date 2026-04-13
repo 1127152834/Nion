@@ -12,13 +12,29 @@ def _page_filename(page_id: str) -> str:
     return f"{safe}.md"
 
 
+def _page_directory_name(page_type: str) -> str:
+    if page_type == "source":
+        return "sources"
+    if page_type == "entity":
+        return "entities"
+    if page_type == "concept":
+        return "concepts"
+    if page_type == "synthesis":
+        return "syntheses"
+    return "pages"
+
+
 class KnowledgePageStore:
     def __init__(self, base_dir: str | Path | None = None) -> None:
         self._paths = get_knowledge_paths(base_dir=base_dir)
         self._paths.ensure_knowledge_dirs()
 
-    def _page_path(self, page_id: str) -> Path:
-        return self._paths.knowledge_wiki_dir / _page_filename(page_id)
+    def _page_path(self, page_id: str, page_type: str) -> Path:
+        return (
+            self._paths.knowledge_wiki_dir
+            / _page_directory_name(page_type)
+            / _page_filename(page_id)
+        )
 
     def write_page(
         self,
@@ -31,7 +47,7 @@ class KnowledgePageStore:
         compiled_from: list[dict[str, str]],
         last_compiled_at: str,
     ) -> KnowledgePage:
-        path = self._page_path(page_id)
+        path = self._page_path(page_id, page_type)
         path.parent.mkdir(parents=True, exist_ok=True)
         frontmatter = {
             "title": title,
@@ -48,9 +64,10 @@ class KnowledgePageStore:
         return self.read_page(page_id)
 
     def read_page(self, page_id: str) -> KnowledgePage:
-        path = self._page_path(page_id)
-        if not path.exists():
+        candidates = list(self._paths.knowledge_wiki_dir.rglob(_page_filename(page_id)))
+        if not candidates:
             raise FileNotFoundError(f"Knowledge page not found: {page_id}")
+        path = candidates[0]
         frontmatter, body = split_knowledge_frontmatter(path.read_text(encoding="utf-8"))
         return KnowledgePage(
             page_id=str(frontmatter["page_id"]),

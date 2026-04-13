@@ -147,3 +147,43 @@ def test_knowledge_lint_endpoint_returns_lint_report(monkeypatch, tmp_path):
     assert response.status_code == 200
     payload = response.json()
     assert "broken_links" in payload
+
+
+def test_knowledge_syntheses_endpoint_persists_answer_as_page(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+
+    with TestClient(create_app()) as client:
+        response = client.post(
+            "/api/knowledge/syntheses",
+            json={
+                "question": "What does the roadmap say?",
+                "answer_markdown": "## Summary\nRoadmap summary",
+            },
+        )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["page_type"] == "synthesis"
+    assert payload["title"] == "What does the roadmap say?"
+
+
+def test_knowledge_revision_apply_endpoint_returns_applied_status(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+
+    with TestClient(create_app()) as client:
+        created = client.post(
+            "/api/knowledge/revisions",
+            json={
+                "page_id": "concept:roadmap",
+                "request_type": "fix_fact",
+                "instruction": "Fix the owner",
+                "optional_source_refs": [],
+            },
+        )
+        request_id = created.json()["request_id"]
+        applied = client.post(f"/api/knowledge/revisions/{request_id}/apply")
+
+    assert applied.status_code == 200
+    assert applied.json()["status"] == "applied"

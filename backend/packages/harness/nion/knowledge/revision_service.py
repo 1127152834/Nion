@@ -101,3 +101,11 @@ class KnowledgeRevisionService:
                 (request_id,),
             )
         return self._load(request_id)
+
+    def apply_request(self, request_id: str) -> KnowledgeRevisionRequest:
+        with self._connect() as conn:
+            conn.execute(
+                "UPDATE knowledge_revision_requests SET status = 'applied' WHERE request_id = ?",
+                (request_id,),
+            )
+        return self._load(request_id)

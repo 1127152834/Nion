@@ -27,6 +27,11 @@ class KnowledgeRevisionCreateRequest(BaseModel):
     optional_source_refs: list[str] = []
 
 
+class KnowledgeSynthesisCreateRequest(BaseModel):
+    question: str
+    answer_markdown: str
+
+
 @router.get("/queue", response_model=list[KnowledgeSourceCandidate])
 async def get_knowledge_queue() -> list[KnowledgeSourceCandidate]:
     notebook = NotebookService()
@@ -74,6 +79,21 @@ async def create_knowledge_revision(
     )
 
 
+@router.post("/syntheses", response_model=KnowledgePage)
+async def create_knowledge_synthesis(payload: KnowledgeSynthesisCreateRequest) -> KnowledgePage:
+    store = KnowledgePageStore()
+    page_id = f"synthesis:{payload.question.lower().replace(' ', '-')[:64]}"
+    return store.write_page(
+        page_id=page_id,
+        page_type="synthesis",
+        title=payload.question,
+        body=payload.answer_markdown,
+        sources=[],
+        compiled_from=[],
+        last_compiled_at="2026-04-13T00:00:00Z",
+    )
+
+
 @router.post("/revisions/{request_id}/preview", response_model=KnowledgeRevisionRequest)
 async def preview_knowledge_revision(request_id: str) -> KnowledgeRevisionRequest:
     service = KnowledgeRevisionService()
@@ -88,6 +108,15 @@ async def close_knowledge_revision(request_id: str) -> KnowledgeRevisionRequest:
     service = KnowledgeRevisionService()
     try:
         return service.close_request(request_id)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.post("/revisions/{request_id}/apply", response_model=KnowledgeRevisionRequest)
+async def apply_knowledge_revision(request_id: str) -> KnowledgeRevisionRequest:
+    service = KnowledgeRevisionService()
+    try:
+        return service.apply_request(request_id)
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 

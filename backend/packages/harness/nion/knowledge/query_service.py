@@ -27,7 +27,7 @@ class KnowledgeQueryService:
         ]
         page_ids: list[str] = []
         answer_parts: list[str] = []
-        for path in sorted(self._paths.knowledge_wiki_dir.glob("*.md")):
+        for path in sorted(self._paths.knowledge_wiki_dir.rglob("*.md")):
             page_id = path.stem.replace("__", ":")
             page = self._store.read_page(page_id)
             haystack = f"{page.title}\n{page.body}".lower()
