@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 import {
   Conversation,
   ConversationContent,
@@ -5,6 +7,7 @@ import {
 import { useI18n } from "@/core/i18n/hooks";
 import {
   extractContentFromMessage,
+  extractInternalSummaryContent,
   extractPresentFilesFromMessage,
   extractTextFromMessage,
   groupMessages,
@@ -27,6 +30,7 @@ import { StreamingIndicator } from "../streaming-indicator";
 
 import { ClarificationCard } from "./clarification-card";
 import { DelegationSummary } from "./delegation-summary";
+import { toggleInternalSummaryOpen } from "./internal-summary-state";
 import { MarkdownContent } from "./markdown-content";
 import { MessageGroup } from "./message-group";
 import { MessageListItem } from "./message-list-item";
@@ -62,6 +66,7 @@ export function MessageList({
   const { t } = useI18n();
   const rehypePlugins = useRehypeSplitWordsIntoSpans(thread.isLoading);
   const updateSubtask = useUpdateSubtask();
+  const [openSummaryIds, setOpenSummaryIds] = useState<Set<string>>(new Set());
   const messages = thread.messages;
   if (thread.isThreadLoading && messages.length === 0) {
     return <MessageListSkeleton />;
@@ -86,14 +91,38 @@ export function MessageList({
               );
             });
           } else if (group.type === "system:internal-summary") {
+            const message = group.messages[0];
+            const summaryId = group.id ?? message?.id ?? "internal-summary";
+            const isOpen = openSummaryIds.has(summaryId);
+            const summaryContent = message
+              ? extractInternalSummaryContent(message)
+              : "";
+
             return (
               <div
-                key={group.id}
-                className="flex w-full justify-center py-1"
+                key={summaryId}
+                className="flex w-full flex-col items-center justify-center py-1"
               >
-                <span className="text-muted-foreground bg-muted/60 inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] leading-none">
+                <button
+                  type="button"
+                  className="text-muted-foreground bg-muted/60 inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] leading-none"
+                  onClick={() =>
+                    setOpenSummaryIds((current) =>
+                      toggleInternalSummaryOpen(current, summaryId),
+                    )
+                  }
+                >
                   {t.conversation.compressedSummary}
-                </span>
+                </button>
+                {isOpen && summaryContent ? (
+                  <div className="bg-muted/35 border-muted-foreground/10 mt-3 w-full max-w-(--container-width-sm) rounded-2xl border px-4 py-3 text-sm leading-6">
+                    <MarkdownContent
+                      content={summaryContent}
+                      isLoading={thread.isLoading}
+                      rehypePlugins={rehypePlugins}
+                    />
+                  </div>
+                ) : null}
               </div>
             );
           } else if (group.type === "assistant:clarification") {

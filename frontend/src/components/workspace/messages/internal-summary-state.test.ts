@@ -31,3 +31,14 @@ void test("toggleInternalSummaryOpen opens then closes the same summary id", asy
   const closed = toggleInternalSummaryOpen(opened, "summary-1");
   assert.deepEqual([...closed], []);
 });
+
+void test("toggleInternalSummaryOpen returns a new set without mutating the current state", async () => {
+  const { toggleInternalSummaryOpen } = await loadInternalSummaryStateModule();
+  const current = new Set<string>(["summary-1"]);
+
+  const next = toggleInternalSummaryOpen(current, "summary-2");
+
+  assert.deepEqual([...current], ["summary-1"]);
+  assert.deepEqual([...next], ["summary-1", "summary-2"]);
+  assert.notEqual(next, current);
+});

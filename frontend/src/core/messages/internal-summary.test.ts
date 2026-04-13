@@ -4,6 +4,7 @@ import test from "node:test";
 
 import {
   extractContentFromMessage,
+  extractInternalSummaryContent,
   groupMessages,
   hasContent,
   isInternalSummaryMessage,
@@ -63,6 +64,31 @@ void test("keeps metadata-tagged summaries internal even when summary_locale is 
   } as const;
 
   assert.equal(isInternalSummaryMessage(message), true);
+});
+
+void test("extractInternalSummaryContent returns metadata-tagged summary text", () => {
+  const message = {
+    type: "human",
+    content: "  压缩后的上下文正文  ",
+    additional_kwargs: {
+      internal_summary: true,
+    },
+  } as const;
+
+  assert.equal(extractInternalSummaryContent(message), "压缩后的上下文正文");
+});
+
+void test("extractInternalSummaryContent keeps legacy structured summaries compatible", () => {
+  const message = {
+    type: "human",
+    content:
+      "  Here is a summary of the conversation to date:\n\n- User greeted the assistant.  ",
+  } as const;
+
+  assert.equal(
+    extractInternalSummaryContent(message),
+    "Here is a summary of the conversation to date:\n\n- User greeted the assistant.",
+  );
 });
 
 void test("summary messages are hidden from content helpers", () => {

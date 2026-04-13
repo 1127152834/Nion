@@ -306,8 +306,18 @@ export function hasContent(message: Message) {
   return false;
 }
 
+function hasInternalSummaryMetadata(message: Message) {
+  return message.additional_kwargs?.internal_summary === true;
+}
+
 export function isInternalSummaryMessage(message: Message) {
-  if (message.type !== "human" || typeof message.content !== "string") {
+  if (message.type !== "human") {
+    return false;
+  }
+  if (hasInternalSummaryMetadata(message)) {
+    return true;
+  }
+  if (typeof message.content !== "string") {
     return false;
   }
 
@@ -317,6 +327,16 @@ export function isInternalSummaryMessage(message: Message) {
   }
 
   return isStructuredInternalSummary(normalized);
+}
+
+export function extractInternalSummaryContent(message: Message) {
+  if (!isInternalSummaryMessage(message)) {
+    return "";
+  }
+  if (typeof message.content === "string") {
+    return message.content.trim();
+  }
+  return "";
 }
 
 function isStructuredInternalSummary(content: string) {
