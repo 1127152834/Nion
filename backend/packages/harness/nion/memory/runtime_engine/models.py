@@ -10,6 +10,7 @@ class RuntimeMemorySections(BaseModel):
     values_and_boundaries: str | None = None
     relationship_stance: str | None = None
     adaptive_overlay: str | None = None
+    active_memory_document: str | None = None
     hot_memories: list[str] = Field(default_factory=list)
     relevant_procedures: list[str] = Field(default_factory=list)
     scoped_recall: list[str] = Field(default_factory=list)
