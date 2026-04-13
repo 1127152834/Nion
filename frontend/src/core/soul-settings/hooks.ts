@@ -1,6 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { loadSoulSettings, patchSoulSetting } from "./api";
+import {
+  loadSoulDocument,
+  loadSoulSettings,
+  patchSoulSetting,
+  saveSoulDocument,
+} from "./api";
+import type {
+  SoulDocumentResponse,
+  SoulDocumentUpdateRequest,
+} from "./document-types";
 import type {
   SoulSettingsPatchRequest,
   SoulSettingsMutationResult,
@@ -40,4 +49,29 @@ export function usePatchSoulSetting() {
     },
     },
   );
+}
+
+export function useSoulDocument() {
+  const query = useQuery({
+    queryKey: ["soul-document"],
+    queryFn: () => loadSoulDocument(),
+  });
+
+  return {
+    document: query.data?.document ?? "# Soul\n",
+    isLoading: query.isLoading,
+    error: query.error,
+  };
+}
+
+export function useSaveSoulDocument() {
+  const queryClient = useQueryClient();
+
+  return useMutation<SoulDocumentResponse, Error, SoulDocumentUpdateRequest>({
+    mutationFn: (request) => saveSoulDocument(request),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["soul-document"] });
+      await queryClient.invalidateQueries({ queryKey: ["soul-settings"] });
+    },
+  });
 }

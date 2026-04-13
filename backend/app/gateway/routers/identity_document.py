@@ -4,7 +4,9 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 
 from nion.config.paths import get_paths
+from nion.runtime_context.files.compiler import compile_identity_document
 from nion.user_identity.repository import UserIdentityRepository
+from nion.user_identity.service import UserIdentityService
 
 router = APIRouter(prefix="/api/identity/document", tags=["memory"])
 
@@ -57,6 +59,10 @@ def _write_document(document: str) -> str:
     return document
 
 
+def _service() -> UserIdentityService:
+    return UserIdentityService(UserIdentityRepository(get_paths().base_dir))
+
+
 @router.get("", response_model=MarkdownDocumentResponse)
 async def get_identity_document() -> MarkdownDocumentResponse:
     return MarkdownDocumentResponse(document=_read_document())
@@ -66,4 +72,6 @@ async def get_identity_document() -> MarkdownDocumentResponse:
 async def put_identity_document(
     request: MarkdownDocumentUpdateRequest,
 ) -> MarkdownDocumentResponse:
-    return MarkdownDocumentResponse(document=_write_document(request.document))
+    document = _write_document(request.document)
+    _service().replace_profile(compile_identity_document(document))
+    return MarkdownDocumentResponse(document=document)

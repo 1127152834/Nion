@@ -4,7 +4,11 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 
 from nion.config.paths import get_paths
-from nion.memory.soul.console_service import build_soul_settings_payload
+from nion.memory.soul.console_service import (
+    build_soul_settings_payload,
+    patch_soul_setting_value,
+)
+from nion.runtime_context.files.compiler import compile_soul_document
 from nion.memory_os.clock import utcnow_z
 from nion.memory_os.repository import MemoryOSRepository
 
@@ -61,4 +65,15 @@ async def get_soul_document() -> MarkdownDocumentResponse:
 async def put_soul_document(
     request: MarkdownDocumentUpdateRequest,
 ) -> MarkdownDocumentResponse:
-    return MarkdownDocumentResponse(document=_write_document(request.document))
+    document = _write_document(request.document)
+    compiled = compile_soul_document(document)
+    created_at = utcnow_z()
+    for field, value in compiled.items():
+        if value.strip():
+            patch_soul_setting_value(
+                _repo(),
+                field=field,
+                value=value,
+                created_at=created_at,
+            )
+    return MarkdownDocumentResponse(document=document)
