@@ -1,3 +1,5 @@
+import { KnowledgeQueryPage } from "@/components/workspace/knowledge/knowledge-query-page";
+
 export default function WorkspaceKnowledgeQueryPage() {
-  return <div>Knowledge Query</div>;
+  return <KnowledgeQueryPage />;
 }
