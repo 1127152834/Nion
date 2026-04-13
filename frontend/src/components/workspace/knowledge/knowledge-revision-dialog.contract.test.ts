@@ -10,6 +10,9 @@ void test("knowledge revision dialog emits revision requests instead of direct e
 
   assert.match(source, /revision/i);
   assert.match(source, /useCreateKnowledgeRevision/);
+  assert.match(source, /usePreviewKnowledgeRevision/);
+  assert.match(source, /useApplyKnowledgeRevision/);
+  assert.match(source, /useCloseKnowledgeRevision/);
   assert.match(source, /fix_fact|add_context|merge_pages|split_page|rename_page/);
   assert.doesNotMatch(source, /contentEditable|Textarea/);
 });

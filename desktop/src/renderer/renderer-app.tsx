@@ -21,6 +21,7 @@ import NotebookTrashPage from "@/app/workspace/notebook/trash/page";
 import ToolPolicyPage from "@/app/workspace/tool-policy/page";
 import { AutomationJobDetailPage } from "@/components/workspace/automation/automation-job-detail-page";
 import { AutomationShell } from "@/components/workspace/automation/automation-shell";
+import { KnowledgePageDetailRoute } from "@/components/workspace/knowledge";
 import { I18nProvider } from "@/core/i18n/context";
 import { detectLocale } from "@/core/i18n";
 
@@ -48,6 +49,12 @@ function DesktopAutomationTaskDetailRoute() {
       <AutomationJobDetailPage kind="scheduled_task" jobId={jobId} />
     </AutomationShell>
   );
+}
+
+function DesktopKnowledgePageDetailRoute() {
+  const { pageId = "" } = useParams<{ pageId: string }>();
+
+  return <KnowledgePageDetailRoute pageId={pageId} />;
 }
 
 export function DesktopRendererApp() {
@@ -175,7 +182,7 @@ export function DesktopRendererApp() {
                 path="/workspace/knowledge/pages/:pageId"
                 element={
                   <WorkspaceRoute>
-                    <WorkspaceKnowledgePage />
+                    <DesktopKnowledgePageDetailRoute />
                   </WorkspaceRoute>
                 }
               />

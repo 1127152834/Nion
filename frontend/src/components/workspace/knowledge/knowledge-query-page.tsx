@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 
-import { useKnowledgeQuery } from "@/core/knowledge";
+import { useKnowledgeQuery, useSaveKnowledgeSynthesis } from "@/core/knowledge";
 
 export function KnowledgeQueryPage() {
   const [question] = useState("roadmap");
   const { result, isLoading, error } = useKnowledgeQuery(question);
+  const saveSynthesis = useSaveKnowledgeSynthesis();
 
   return (
     <main className="flex size-full min-h-0 flex-col gap-6 overflow-y-auto px-4 py-6 sm:px-6">
@@ -27,7 +28,19 @@ export function KnowledgeQueryPage() {
                 ? "query error"
                 : (result?.answer_markdown ?? "page-based query result area")}
           </div>
-          <button className="rounded-md border px-3 py-2 text-sm">保存为 synthesis</button>
+          <button
+            className="rounded-md border px-3 py-2 text-sm"
+            onClick={() => {
+              if (result?.answer_markdown) {
+                saveSynthesis.mutate({
+                  question: "What does the roadmap say?",
+                  answer_markdown: result.answer_markdown,
+                });
+              }
+            }}
+          >
+            保存为 synthesis
+          </button>
         </div>
       </section>
     </main>

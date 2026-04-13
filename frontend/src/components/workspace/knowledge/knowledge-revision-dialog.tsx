@@ -1,9 +1,17 @@
 "use client";
 
-import { useCreateKnowledgeRevision } from "@/core/knowledge";
+import {
+  useApplyKnowledgeRevision,
+  useCloseKnowledgeRevision,
+  useCreateKnowledgeRevision,
+  usePreviewKnowledgeRevision,
+} from "@/core/knowledge";
 
 export function KnowledgeRevisionDialog() {
   const createRevision = useCreateKnowledgeRevision();
+  const previewRevision = usePreviewKnowledgeRevision();
+  const applyRevision = useApplyKnowledgeRevision();
+  const closeRevision = useCloseKnowledgeRevision();
 
   return (
     <section className="rounded-lg border bg-background p-5">
@@ -17,14 +25,17 @@ export function KnowledgeRevisionDialog() {
         </div>
         <button
           className="rounded-md border px-3 py-2 text-sm"
-          onClick={() =>
-            createRevision.mutate({
+          onClick={async () => {
+            const created = await createRevision.mutateAsync({
               page_id: "concept:roadmap",
               request_type: "fix_fact",
               instruction: "Fix owner",
               optional_source_refs: [],
-            })
-          }
+            });
+            await previewRevision.mutateAsync(created.request_id);
+            await applyRevision.mutateAsync(created.request_id);
+            await closeRevision.mutateAsync(created.request_id);
+          }}
         >
           submit revision
         </button>

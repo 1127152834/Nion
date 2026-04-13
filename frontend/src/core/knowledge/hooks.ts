@@ -2,12 +2,16 @@ import { useQuery } from "@tanstack/react-query";
 
 import {
   closeKnowledgeRevision,
+  applyKnowledgeRevision,
+  approveKnowledgeQueue,
   createKnowledgeRevision,
   loadKnowledgeLint,
   loadKnowledgePage,
   loadKnowledgeQueue,
   queryKnowledge,
   rebuildKnowledgeGraph,
+  saveKnowledgeSynthesis,
+  previewKnowledgeRevision,
 } from "./api";
 import { useMutation } from "@tanstack/react-query";
 import type {
@@ -30,6 +34,12 @@ export function useKnowledgeQueue() {
     isLoading,
     error,
   };
+}
+
+export function useApproveKnowledgeQueue() {
+  return useMutation({
+    mutationFn: async (sourceIds: string[]) => approveKnowledgeQueue(sourceIds),
+  });
 }
 
 export function useKnowledgePage(pageId: string | null) {
@@ -77,9 +87,28 @@ export function useCreateKnowledgeRevision() {
   });
 }
 
+export function usePreviewKnowledgeRevision() {
+  return useMutation({
+    mutationFn: async (requestId: string) => previewKnowledgeRevision(requestId),
+  });
+}
+
 export function useCloseKnowledgeRevision() {
   return useMutation({
     mutationFn: async (requestId: string) => closeKnowledgeRevision(requestId),
+  });
+}
+
+export function useApplyKnowledgeRevision() {
+  return useMutation({
+    mutationFn: async (requestId: string) => applyKnowledgeRevision(requestId),
+  });
+}
+
+export function useSaveKnowledgeSynthesis() {
+  return useMutation({
+    mutationFn: async (input: { question: string; answer_markdown: string }) =>
+      saveKnowledgeSynthesis(input),
   });
 }
 

@@ -47,4 +47,5 @@ void test("desktop renderer registers all knowledge routes", async () => {
   assert.match(source, /"\/workspace\/knowledge\/graph"/);
   assert.match(source, /"\/workspace\/knowledge\/query"/);
   assert.match(source, /"\/workspace\/knowledge\/pages\/:pageId"/);
+  assert.match(source, /DesktopKnowledgePageDetailRoute/);
 });

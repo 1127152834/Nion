@@ -66,6 +66,8 @@ export interface KnowledgeRevisionRequest {
   created_at: string;
 }
 
+export interface KnowledgeRevisionPreview extends KnowledgeRevisionRequest {}
+
 export interface KnowledgeLintReport {
   orphan_pages: Array<Record<string, unknown>>;
   broken_links: Array<Record<string, unknown>>;
