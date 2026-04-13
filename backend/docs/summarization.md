@@ -123,7 +123,7 @@ keep:
 #### `summary_prompt`
 - **Type**: String or null
 - **Default**: built-in Nion prompt
-- **Description**: Custom prompt template for generating summaries. The default Nion prompt emphasizes confirmed user choices, durable constraints, completed work, and remaining open questions.
+- **Description**: Custom prompt template for generating summaries. When explicitly configured, this prompt takes precedence over locale-specific built-in templates. When omitted, Nion selects the built-in prompt template based on the runtime `locale`.
 
 **Default Prompt Behavior:**
 The built-in Nion prompt instructs the model to:
@@ -161,12 +161,21 @@ The middleware intelligently preserves message context:
 
 - **Recent Messages**: Always kept intact based on `keep` configuration
 - **AI/Tool Pairs**: Never split - if a cutoff point falls within tool messages, the system adjusts to keep the entire AI + Tool message sequence together
-- **Summary Format**: Summary is injected as a HumanMessage with the format:
+- **Summary Format**: New summaries are injected as `HumanMessage` objects whose `content` is the summary body itself, with structured metadata stored in `additional_kwargs`:
+  ```json
+  {
+    "internal_summary": true,
+    "summary_locale": "zh-CN",
+    "summary_format_version": 1
+  }
   ```
-  Here is a summary of the conversation to date:
 
-  [Generated summary text]
-  ```
+### Locale Behavior
+
+- If the runtime `context.locale` is `zh-CN`, Nion uses the built-in Chinese compression prompt and records `summary_locale: "zh-CN"`.
+- If the runtime `context.locale` is missing or not recognized, Nion falls back to the built-in English compression prompt and records `summary_locale: "en-US"`.
+- If `summarization.summary_prompt` is explicitly configured, that custom prompt overrides the locale-specific built-in prompt selection.
+- Existing legacy summaries using the older `Here is a summary of the conversation to date:` text remain readable by the frontend compatibility path, but new summaries no longer emit that wrapper text.
 
 ## Best Practices
 
