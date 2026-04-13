@@ -1,0 +1,17 @@
+from nion.knowledge.revision_service import KnowledgeRevisionService
+
+
+def test_revision_service_uses_non_proposal_statuses(tmp_path):
+    service = KnowledgeRevisionService(base_dir=tmp_path)
+    request = service.create_request(
+        page_id="concept:roadmap",
+        request_type="fix_fact",
+        instruction="Fix the owner name",
+        optional_source_refs=[],
+    )
+
+    assert request.status == "open"
+    previewed = service.mark_previewed(request.request_id)
+    assert previewed.status == "previewed"
+    closed = service.close_request(request.request_id)
+    assert closed.status == "closed"

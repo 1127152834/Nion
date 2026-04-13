@@ -13,6 +13,7 @@ def build_system_capability_catalog(
     agent_count: int = 0,
     memory_descriptor: dict[str, Any] | None = None,
     notebook_descriptor: dict[str, Any] | None = None,
+    knowledge_descriptor: dict[str, Any] | None = None,
     agent_descriptors: list[dict[str, Any]] | None = None,
     skill_descriptors: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
@@ -55,6 +56,7 @@ def build_system_capability_catalog(
             agent_count=agent_count,
             memory_descriptor=memory_descriptor,
             notebook_descriptor=notebook_descriptor,
+            knowledge_descriptor=knowledge_descriptor,
             agent_descriptors=agent_descriptors,
             skill_descriptors=skill_descriptors,
         ),
