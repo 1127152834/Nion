@@ -121,6 +121,7 @@ def test_locale_aware_before_model_prefers_explicit_summary_prompt_over_locale_d
         trigger=("messages", 2),
         keep=("messages", 1),
         summary_prompt="CUSTOM {messages}",
+        configured_summary_prompt="CUSTOM {messages}",
     )
     messages = [
         HumanMessage(content="你好", id="h-1"),
@@ -152,7 +153,6 @@ def test_locale_aware_treats_default_english_prompt_as_locale_selectable_fallbac
         model=_FakeChatModel(),
         trigger=("messages", 2),
         keep=("messages", 1),
-        summary_prompt=DEFAULT_SUMMARY_PROMPT,
     )
     messages = [
         HumanMessage(content="你好", id="h-1"),
@@ -177,3 +177,36 @@ def test_locale_aware_treats_default_english_prompt_as_locale_selectable_fallbac
     assert result is not None
     assert "已确认决策" in captured["prompt"]
     assert result["messages"][1].content == "locale-summary"
+
+
+def test_locale_aware_respects_explicit_default_prompt_override() -> None:
+    middleware = LocaleAwareSummarizationMiddleware(
+        model=_FakeChatModel(),
+        trigger=("messages", 2),
+        keep=("messages", 1),
+        summary_prompt=DEFAULT_SUMMARY_PROMPT,
+        configured_summary_prompt=DEFAULT_SUMMARY_PROMPT,
+    )
+    messages = [
+        HumanMessage(content="你好", id="h-1"),
+        AIMessage(content="世界", id="ai-1"),
+        HumanMessage(content="保留", id="h-2"),
+    ]
+    captured: dict[str, str] = {}
+
+    middleware.token_counter = lambda _: 100
+
+    def _capture_prompt(messages_to_summarize, prompt):
+        captured["prompt"] = prompt
+        return "explicit-default-summary"
+
+    middleware._create_summary_with_prompt = _capture_prompt
+
+    result = middleware.before_model(
+        {"messages": messages},
+        SimpleNamespace(context={"locale": "zh-CN"}),
+    )
+
+    assert result is not None
+    assert captured["prompt"] == DEFAULT_SUMMARY_PROMPT
+    assert result["messages"][1].content == "explicit-default-summary"

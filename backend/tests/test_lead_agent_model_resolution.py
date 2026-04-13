@@ -185,6 +185,7 @@ def test_create_summarization_middleware_uses_runtime_model_instance(monkeypatch
             keep=SimpleNamespace(to_tuple=lambda: ("messages", 20)),
             trim_tokens_to_summarize=3000,
             summary_prompt=None,
+            has_explicit_summary_prompt=lambda: False,
         ),
     )
     monkeypatch.setattr(

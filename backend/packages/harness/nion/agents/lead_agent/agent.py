@@ -92,8 +92,11 @@ def _create_summarization_middleware() -> SummarizationMiddleware | None:
     if config.trim_tokens_to_summarize is not None:
         kwargs["trim_tokens_to_summarize"] = config.trim_tokens_to_summarize
 
-    kwargs["summary_prompt"] = config.summary_prompt or build_summary_prompt_for_locale(
-        None
+    kwargs["summary_prompt"] = build_summary_prompt_for_locale(None)
+    kwargs["configured_summary_prompt"] = (
+        config.summary_prompt
+        if getattr(config, "has_explicit_summary_prompt", lambda: False)()
+        else None
     )
 
     return LocaleAwareSummarizationMiddleware(**kwargs)

@@ -17,10 +17,12 @@ from app.gateway.routers.memory import MemoryConfigResponse, MemoryStatusRespons
 from app.gateway.routers.models import ModelResponse, ModelsListResponse
 from app.gateway.routers.skills import SkillInstallResponse, SkillResponse, SkillsListResponse
 from app.gateway.routers.uploads import UploadResponse
+from nion.agents.lead_agent import agent as lead_agent_module
 from nion.agents.middlewares.locale_aware_summarization import (
     LocaleAwareSummarizationMiddleware,
 )
 from nion.client import NionClient
+from nion.config.summarization_config import ContextSize, SummarizationConfig
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -1758,31 +1760,28 @@ class TestScenarioEdgeCases:
         ]
 
     def test_stream_values_include_locale_aware_summary_metadata_end_to_end(self, client):
-        middleware = LocaleAwareSummarizationMiddleware(
-            model=SimpleNamespace(_llm_type="openai-chat"),
-            trigger=("messages", 2),
-            keep=("messages", 1),
-        )
-        messages = [
-            HumanMessage(content="你好", id="h-1"),
-            AIMessage(content="世界", id="ai-1"),
-            HumanMessage(content="保留", id="h-2"),
-        ]
-
-        middleware.token_counter = lambda _: 100
-        middleware._create_summary_with_prompt = lambda messages_to_summarize, prompt: "中文摘要"
-
-        summary_result = middleware.before_model(
-            {"messages": messages},
-            SimpleNamespace(context={"locale": "zh-CN"}),
-        )
-        assert summary_result is not None
-
-        agent = _make_agent_mock([{"messages": summary_result["messages"][1:], "title": "T"}])
-
         with (
-            patch.object(client, "_ensure_agent"),
-            patch.object(client, "_agent", agent),
+            patch("nion.client.create_chat_model", return_value=SimpleNamespace(_llm_type="openai-chat")),
+            patch.object(client, "_get_tools", return_value=[]),
+            patch("nion.client.apply_prompt_template", return_value="prompt"),
+            patch(
+                "nion.client.create_agent",
+                side_effect=_make_summarying_agent,
+            ),
+            patch(
+                "nion.agents.lead_agent.agent.get_summarization_config",
+                return_value=SummarizationConfig(
+                    enabled=True,
+                    trigger=ContextSize(type="messages", value=2),
+                    keep=ContextSize(type="messages", value=1),
+                    summary_prompt=None,
+                ),
+            ),
+            patch.object(
+                LocaleAwareSummarizationMiddleware,
+                "_create_summary_with_prompt",
+                lambda self, messages_to_summarize, prompt: "中文摘要",
+            ),
         ):
             events = list(client.stream("hi", thread_id="t-locale-summary", locale="zh-CN"))
 
@@ -1794,6 +1793,39 @@ class TestScenarioEdgeCases:
         assert summary_projection["additional_kwargs"]["internal_summary"] is True
         assert summary_projection["additional_kwargs"]["summary_locale"] == "zh-CN"
         assert summary_projection["additional_kwargs"]["summary_format_version"] == 1
+
+
+def _make_summarying_agent(**kwargs):
+    middlewares = kwargs["middleware"]
+
+    class _Agent:
+        def stream(self, state, *, config, context, stream_mode):
+            working_state = {
+                "messages": [
+                    HumanMessage(content="你好", id="h-1"),
+                    AIMessage(content="世界", id="ai-1"),
+                    HumanMessage(content="保留", id="h-2"),
+                ]
+            }
+            runtime = SimpleNamespace(context=context)
+
+            for middleware in middlewares:
+                if isinstance(middleware, LocaleAwareSummarizationMiddleware):
+                    result = middleware.before_model(working_state, runtime)
+                    if result is not None:
+                        working_state["messages"] = result["messages"][1:]
+                    break
+
+            yield (
+                "values",
+                {
+                    "messages": working_state["messages"],
+                    "title": "T",
+                    "artifacts": [],
+                },
+            )
+
+    return _Agent()
 
     def test_concurrent_tool_calls_in_single_message(self, client):
         """Agent produces multiple tool_calls in one AIMessage — emitted as single messages-tuple."""

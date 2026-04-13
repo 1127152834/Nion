@@ -115,6 +115,10 @@ class SummarizationConfig(BaseModel):
         description="Custom prompt template for generating summaries. If not provided, uses the default Nion prompt.",
     )
 
+    def has_explicit_summary_prompt(self) -> bool:
+        """Whether summary_prompt was explicitly provided in config input."""
+        return "summary_prompt" in self.model_fields_set
+
 
 # Global configuration instance
 _summarization_config: SummarizationConfig = SummarizationConfig()
