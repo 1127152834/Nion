@@ -124,6 +124,7 @@ export interface AgentThread extends Thread<AgentThreadState> {}
 
 export interface AgentThreadContext extends Record<string, unknown> {
   thread_id: string;
+  locale?: "zh-CN" | "en-US";
   model_name: string | undefined;
   thinking_enabled: boolean;
   is_plan_mode: boolean;

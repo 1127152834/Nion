@@ -127,6 +127,32 @@ void test("desktop thread client surfaces SSE error events", async () => {
   globalThis.fetch = originalFetch;
 });
 
+void test("desktop thread client forwards locale in stream context", async () => {
+  const originalFetch = globalThis.fetch;
+  let requestBody = "";
+
+  globalThis.fetch = async (_input, init) => {
+    requestBody = String(init?.body ?? "");
+    return new Response('event: created\ndata: {"thread_id":"t-1"}\n\n', {
+      status: 200,
+      headers: { "Content-Type": "text/event-stream" },
+    });
+  };
+
+  const client = createDesktopThreadClient({
+    getBaseURL: () => "http://127.0.0.1:43115/api/threads",
+  });
+
+  await client.streamRun(
+    "t-1",
+    { messages: [] },
+    { threadId: "t-1", context: { locale: "zh-CN" }, config: {} },
+  );
+
+  assert.match(requestBody, /"locale":"zh-CN"/);
+  globalThis.fetch = originalFetch;
+});
+
 void test("desktop thread client resolves permission through thread-level permission route", async () => {
   const originalFetch = globalThis.fetch;
   let requestedUrl = "";

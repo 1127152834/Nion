@@ -47,7 +47,7 @@ import { env } from "@/env";
 import { cn } from "@/lib/utils";
 
 export default function ChatThreadPage() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const searchParams = useSearchParams();
   const isDesktopShell = useIsDesktopShell();
   const { threadId, isNewThread, setIsNewThread, isMock } = useThreadChat();
@@ -127,6 +127,7 @@ export default function ChatThreadPage() {
     context: {
       ...settings.context,
       ...threadRuntimeContext,
+      locale,
     },
     isMock,
     onStart: (startedThreadId) => {
@@ -293,6 +294,7 @@ export default function ChatThreadPage() {
           context: {
             ...settings.context,
             ...threadRuntimeContext,
+            locale,
             requested_skills: shortcutSelections?.skills ?? [],
             selected_contexts: shortcutSelections?.contexts ?? [],
             selected_mcp_tools: shortcutSelections?.mcpTools ?? [],
@@ -319,7 +321,7 @@ export default function ChatThreadPage() {
         },
       );
     },
-    [currentMode, settings.context, thread, threadId, threadRuntimeContext],
+    [currentMode, locale, settings.context, thread, threadId, threadRuntimeContext],
   );
 
   const handlePermissionDecision = useCallback(

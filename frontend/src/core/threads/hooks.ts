@@ -114,7 +114,7 @@ export function useThreadStream({
   onFinish,
   onToolEnd,
 }: ThreadStreamOptions) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   // Track the thread ID that is currently streaming to handle thread changes during streaming
   const [onStreamThreadId, setOnStreamThreadId] = useState(() => threadId);
   // Ref to track current thread ID across async callbacks without causing re-renders,
@@ -713,6 +713,7 @@ export function useThreadStream({
             context: {
               ...extraContext,
               ...context,
+              locale: context.locale ?? locale,
               requested_skills: shortcutSelections?.skills ?? [],
               selected_contexts: shortcutSelections?.contexts ?? [],
               selected_mcp_tools: shortcutSelections?.mcpTools ?? [],
@@ -743,7 +744,7 @@ export function useThreadStream({
         void queryClient.invalidateQueries({ queryKey: ["threads", "search"] });
       }
     },
-    [thread, _handleOnStart, t.uploads.uploadingFiles, context, queryClient],
+    [thread, _handleOnStart, t.uploads.uploadingFiles, context, locale, queryClient],
   );
 
   // Merge thread with optimistic messages for display
