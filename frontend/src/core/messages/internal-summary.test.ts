@@ -39,6 +39,32 @@ User wants the thread summary to be hidden behind a small UI tag.
   assert.equal(isInternalSummaryMessage(message), true);
 });
 
+void test("recognizes structured internal summary messages from additional_kwargs metadata", () => {
+  const message = {
+    type: "human",
+    content: "压缩后的上下文正文",
+    additional_kwargs: {
+      internal_summary: true,
+      summary_locale: "zh-CN",
+      summary_format_version: 1,
+    },
+  } as const;
+
+  assert.equal(isInternalSummaryMessage(message), true);
+});
+
+void test("keeps metadata-tagged summaries internal even when summary_locale is missing", () => {
+  const message = {
+    type: "human",
+    content: "Stored summary without locale metadata",
+    additional_kwargs: {
+      internal_summary: true,
+    },
+  } as const;
+
+  assert.equal(isInternalSummaryMessage(message), true);
+});
+
 void test("summary messages are hidden from content helpers", () => {
   const message = {
     type: "human",
