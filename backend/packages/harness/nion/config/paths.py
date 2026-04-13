@@ -98,6 +98,31 @@ class Paths:
         return self.notebook_meta_dir / "index"
 
     @property
+    def knowledge_root_dir(self) -> Path:
+        """Knowledge root: `{base_dir}/knowledge`."""
+        return self.base_dir / "knowledge"
+
+    @property
+    def knowledge_raw_dir(self) -> Path:
+        """Knowledge raw source snapshot root."""
+        return self.knowledge_root_dir / "raw"
+
+    @property
+    def knowledge_wiki_dir(self) -> Path:
+        """Knowledge wiki page root."""
+        return self.knowledge_root_dir / "wiki"
+
+    @property
+    def knowledge_graph_dir(self) -> Path:
+        """Knowledge graph artifact root."""
+        return self.knowledge_root_dir / "graph"
+
+    @property
+    def knowledge_meta_dir(self) -> Path:
+        """Knowledge internal metadata root."""
+        return self.knowledge_root_dir / ".nion"
+
+    @property
     def memory_file(self) -> Path:
         """Path to the persisted memory file: `{base_dir}/memory.json`."""
         return self.base_dir / "memory.json"
@@ -330,6 +355,17 @@ class Paths:
             self.notebook_history_dir,
             self.notebook_trash_dir,
             self.notebook_index_dir,
+        ]:
+            directory.mkdir(parents=True, exist_ok=True)
+
+    def ensure_knowledge_dirs(self) -> None:
+        """Create standard knowledge directories under the dedicated knowledge root."""
+        for directory in [
+            self.knowledge_root_dir,
+            self.knowledge_raw_dir,
+            self.knowledge_wiki_dir,
+            self.knowledge_graph_dir,
+            self.knowledge_meta_dir,
         ]:
             directory.mkdir(parents=True, exist_ok=True)
 
