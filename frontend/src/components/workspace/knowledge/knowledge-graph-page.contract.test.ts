@@ -9,6 +9,7 @@ void test("knowledge graph page renders graph state and rebuild affordance", asy
   );
 
   assert.match(source, /graph/i);
+  assert.match(source, /useRebuildKnowledgeGraph/);
   assert.match(source, /rebuild|重建/);
   assert.match(source, /EXTRACTED|INFERRED|AMBIGUOUS/);
 });

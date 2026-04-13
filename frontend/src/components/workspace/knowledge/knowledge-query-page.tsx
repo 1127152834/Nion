@@ -1,6 +1,13 @@
 "use client";
 
+import { useState } from "react";
+
+import { useKnowledgeQuery } from "@/core/knowledge";
+
 export function KnowledgeQueryPage() {
+  const [question] = useState("roadmap");
+  const { result, isLoading, error } = useKnowledgeQuery(question);
+
   return (
     <main className="flex size-full min-h-0 flex-col gap-6 overflow-y-auto px-4 py-6 sm:px-6">
       <section className="rounded-lg border bg-background p-5">
@@ -14,7 +21,11 @@ export function KnowledgeQueryPage() {
         <div className="space-y-3">
           <div className="text-sm font-medium">query</div>
           <div className="rounded-md border px-3 py-2 text-sm text-muted-foreground">
-            page-based query result area
+            {isLoading
+              ? "loading query…"
+              : error
+                ? "query error"
+                : (result?.answer_markdown ?? "page-based query result area")}
           </div>
           <button className="rounded-md border px-3 py-2 text-sm">保存为 synthesis</button>
         </div>
