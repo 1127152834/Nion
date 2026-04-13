@@ -11,6 +11,6 @@ void test("identity settings page uses markdown preview plus whole-document edit
   assert.match(source, /IDENTITY\.md/);
   assert.match(source, /预览/);
   assert.match(source, /编辑/);
-  assert.match(source, /保存并生效/);
+  assert.match(source, /MarkdownDocumentEditor|保存并生效/);
   assert.doesNotMatch(source, /常用别名[\s\S]*保存[\s\S]*用户角色[\s\S]*保存/);
 });

@@ -237,6 +237,52 @@ def test_a2a_transport_stream_aggregates_sse_events_and_reuses_session():
     }
 
 
+def test_a2a_transport_stream_prefers_terminal_text_over_longer_partial():
+    from nion.orchestration.remote_transports.a2a import A2ATransport
+
+    class _FakeClient:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        def stream(self, method, url, *, json, headers=None):
+            del method, url, json, headers
+            return _FakeStreamResponse(
+                [
+                    'event: message',
+                    'data: {"jsonrpc":"2.0","result":{"id":"task-2","contextId":"ctx-2","status":{"state":"working","message":{"parts":[{"kind":"text","text":"this is a much longer partial answer"}]}}}}',
+                    "",
+                    'event: message',
+                    'data: {"jsonrpc":"2.0","result":{"id":"task-2","contextId":"ctx-2","status":{"state":"completed","message":{"parts":[{"kind":"text","text":"final"}]}}}}',
+                    "",
+                    "data: [DONE]",
+                    "",
+                ]
+            )
+
+    transport = A2ATransport(
+        agent_name="writer-agent",
+        agent_config=A2AAgentConfig(
+            base_url="https://agents.example.com/worker",
+            description="Writer",
+            streaming=True,
+        ),
+        agent_card_fetcher=lambda _url: {
+            "name": "writer-agent",
+            "url": "https://agents.example.com/rpc",
+            "preferredTransport": "JSONRPC",
+        },
+        client_factory=lambda **kwargs: _FakeClient(),
+        session_store=_MemorySessionStore(),
+    )
+
+    result = asyncio.run(transport.run("continue the draft", thread_id="thread-1"))
+
+    assert result == "final"
+
+
 def test_a2a_transport_polls_pending_task_until_completed():
     from nion.orchestration.remote_transports.a2a import A2ATransport
 

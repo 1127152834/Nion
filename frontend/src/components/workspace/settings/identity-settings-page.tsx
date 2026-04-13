@@ -2,7 +2,11 @@
 
 import { useEffect, useState } from "react";
 
-import { Textarea } from "@/components/ui/textarea";
+import {
+  DocumentModeToggle,
+  MarkdownDocumentEditor,
+  MarkdownDocumentView,
+} from "@/components/workspace/documents";
 import { SettingsSection } from "@/components/workspace/settings/settings-section";
 import {
   useIdentityDocument,
@@ -31,22 +35,7 @@ export function IdentitySettingsPage() {
           <div className="text-muted-foreground mb-2 text-xs font-medium uppercase tracking-[0.16em]">
             IDENTITY.md
           </div>
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              className="rounded-full border px-4 py-2 text-sm"
-              onClick={() => setMode("preview")}
-            >
-              预览
-            </button>
-            <button
-              type="button"
-              className="rounded-full border px-4 py-2 text-sm"
-              onClick={() => setMode("edit")}
-            >
-              编辑
-            </button>
-          </div>
+          <DocumentModeToggle mode={mode} onModeChange={setMode} />
         </div>
         {isLoading ? (
           <div className="rounded-xl border bg-background p-5 text-sm text-muted-foreground">
@@ -59,26 +48,20 @@ export function IdentitySettingsPage() {
           </div>
         ) : null}
         {mode === "preview" ? (
-          <div className="rounded-xl border bg-background p-5">
-            <div className="mb-3 text-sm font-medium">文档预览</div>
-            <pre className="text-sm leading-7 whitespace-pre-wrap">{document}</pre>
-          </div>
+          <MarkdownDocumentView
+            title="身份主档"
+            documentName="IDENTITY.md"
+            document={document}
+          />
         ) : (
-          <div className="rounded-xl border bg-background p-5">
-            <div className="mb-3 text-sm font-medium">编辑文档</div>
-            <Textarea
-              className="min-h-64"
-              value={draft}
-              onChange={(event) => setDraft(event.target.value)}
-            />
-            <button
-              type="button"
-              className="mt-3 rounded-full border px-4 py-2 text-sm"
-              onClick={() => void saveIdentityDocument.mutateAsync({ document: draft })}
-            >
-              保存并生效
-            </button>
-          </div>
+          <MarkdownDocumentEditor
+            title="编辑身份主档"
+            documentName="IDENTITY.md"
+            draft={draft}
+            onChange={setDraft}
+            onSave={() => void saveIdentityDocument.mutateAsync({ document: draft })}
+            isSaving={saveIdentityDocument.isPending}
+          />
         )}
       </div>
     </SettingsSection>

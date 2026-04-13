@@ -11,6 +11,6 @@ void test("soul settings page uses markdown preview plus whole-document edit", a
   assert.match(source, /SOUL\.md/);
   assert.match(source, /预览/);
   assert.match(source, /编辑/);
-  assert.match(source, /保存并生效/);
+  assert.match(source, /MarkdownDocumentEditor|保存并生效/);
   assert.doesNotMatch(source, /每块一个保存按钮/);
 });
