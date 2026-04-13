@@ -297,7 +297,7 @@ type KnowledgeRevisionRequest = {
 };
 ```
 
-人通过 revision request 影响知识页，Agent 读取 page、sources 和 instruction 后生成 diff preview。用户确认后由 Agent 落盘；用户放弃或 Agent 判定无法安全执行时将请求关闭，不引入 accept/reject 产品语义。
+人通过 revision request 影响知识页，Agent 读取 page、sources 和 instruction 后生成 diff preview。用户确认后由 Agent 落盘；用户放弃或 Agent 判定无法安全执行时将请求关闭，不引入仓库禁止的旧式决策状态词。
 
 ---
 
