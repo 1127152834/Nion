@@ -10,6 +10,7 @@ from nion.agents.middlewares.locale_aware_summarization import (
     LocaleAwareSummarizationMiddleware,
     build_summary_prompt_for_locale,
 )
+from nion.config.summarization_config import DEFAULT_SUMMARY_PROMPT
 
 
 class _FakeChatModel:
@@ -112,3 +113,67 @@ def test_locale_aware_before_model_defaults_to_en_us_locale() -> None:
     summary_message = result["messages"][1]
     assert summary_message.content == DEFAULT_SUMMARY_LOCALE
     assert summary_message.additional_kwargs["summary_locale"] == DEFAULT_SUMMARY_LOCALE
+
+
+def test_locale_aware_before_model_prefers_explicit_summary_prompt_over_locale_default() -> None:
+    middleware = LocaleAwareSummarizationMiddleware(
+        model=_FakeChatModel(),
+        trigger=("messages", 2),
+        keep=("messages", 1),
+        summary_prompt="CUSTOM {messages}",
+    )
+    messages = [
+        HumanMessage(content="你好", id="h-1"),
+        AIMessage(content="世界", id="ai-1"),
+        HumanMessage(content="保留", id="h-2"),
+    ]
+    captured: dict[str, str] = {}
+
+    middleware.token_counter = lambda _: 100
+
+    def _capture_prompt(messages_to_summarize, prompt):
+        captured["prompt"] = prompt
+        return "custom-summary"
+
+    middleware._create_summary_with_prompt = _capture_prompt
+
+    result = middleware.before_model(
+        {"messages": messages},
+        SimpleNamespace(context={"locale": "zh-CN"}),
+    )
+
+    assert result is not None
+    assert captured["prompt"] == "CUSTOM {messages}"
+    assert result["messages"][1].content == "custom-summary"
+
+
+def test_locale_aware_treats_default_english_prompt_as_locale_selectable_fallback() -> None:
+    middleware = LocaleAwareSummarizationMiddleware(
+        model=_FakeChatModel(),
+        trigger=("messages", 2),
+        keep=("messages", 1),
+        summary_prompt=DEFAULT_SUMMARY_PROMPT,
+    )
+    messages = [
+        HumanMessage(content="你好", id="h-1"),
+        AIMessage(content="世界", id="ai-1"),
+        HumanMessage(content="保留", id="h-2"),
+    ]
+    captured: dict[str, str] = {}
+
+    middleware.token_counter = lambda _: 100
+
+    def _capture_prompt(messages_to_summarize, prompt):
+        captured["prompt"] = prompt
+        return "locale-summary"
+
+    middleware._create_summary_with_prompt = _capture_prompt
+
+    result = middleware.before_model(
+        {"messages": messages},
+        SimpleNamespace(context={"locale": "zh-CN"}),
+    )
+
+    assert result is not None
+    assert "已确认决策" in captured["prompt"]
+    assert result["messages"][1].content == "locale-summary"

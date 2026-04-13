@@ -295,7 +295,6 @@ class NionClient:
             configurable.get("session_mode"),
             configurable.get("memory_read", True),
             configurable.get("memory_write"),
-            configurable.get("locale"),
         )
 
     def _ensure_agent(self, config: RunnableConfig):

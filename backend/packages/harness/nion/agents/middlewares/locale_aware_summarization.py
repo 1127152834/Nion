@@ -28,6 +28,16 @@ def build_summary_prompt_for_locale(locale: str | None) -> str:
 
 
 class LocaleAwareSummarizationMiddleware(SummarizationMiddleware):
+    def __init__(self, *args, summary_prompt: str = DEFAULT_SUMMARY_PROMPT, **kwargs):
+        self._configured_summary_prompt = summary_prompt
+        super().__init__(*args, summary_prompt=summary_prompt, **kwargs)
+
+    def _resolve_summary_prompt(self, locale: str | None) -> str:
+        prompt = self._configured_summary_prompt
+        if isinstance(prompt, str) and prompt and prompt != DEFAULT_SUMMARY_PROMPT:
+            return prompt
+        return build_summary_prompt_for_locale(locale)
+
     def _create_summary_with_prompt(self, messages_to_summarize, prompt: str) -> str:
         if not messages_to_summarize:
             return "No previous conversation history."
@@ -94,7 +104,7 @@ class LocaleAwareSummarizationMiddleware(SummarizationMiddleware):
             cutoff_index,
         )
         locale = self._resolve_runtime_locale(runtime)
-        prompt = build_summary_prompt_for_locale(locale)
+        prompt = self._resolve_summary_prompt(locale)
         summary = self._create_summary_with_prompt(messages_to_summarize, prompt)
         new_messages = self._build_new_messages_for_locale(summary, locale)
 
@@ -123,7 +133,7 @@ class LocaleAwareSummarizationMiddleware(SummarizationMiddleware):
             cutoff_index,
         )
         locale = self._resolve_runtime_locale(runtime)
-        prompt = build_summary_prompt_for_locale(locale)
+        prompt = self._resolve_summary_prompt(locale)
         summary = await self._acreate_summary_with_prompt(messages_to_summarize, prompt)
         new_messages = self._build_new_messages_for_locale(summary, locale)
 

@@ -6,6 +6,7 @@ import json
 import tempfile
 import zipfile
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -16,6 +17,9 @@ from app.gateway.routers.memory import MemoryConfigResponse, MemoryStatusRespons
 from app.gateway.routers.models import ModelResponse, ModelsListResponse
 from app.gateway.routers.skills import SkillInstallResponse, SkillResponse, SkillsListResponse
 from app.gateway.routers.uploads import UploadResponse
+from nion.agents.middlewares.locale_aware_summarization import (
+    LocaleAwareSummarizationMiddleware,
+)
 from nion.client import NionClient
 
 # ---------------------------------------------------------------------------
@@ -250,6 +254,15 @@ class TestStream:
         config = client._get_runnable_config("t1", locale="zh-CN")
 
         assert config["configurable"]["locale"] == "zh-CN"
+
+    def test_build_agent_config_key_ignores_locale(self, client):
+        config_a = client._get_runnable_config("t1", locale="zh-CN")
+        config_b = client._get_runnable_config("t1", locale="en-US")
+
+        assert (
+            client._build_agent_config_key(config_a["configurable"])
+            == client._build_agent_config_key(config_b["configurable"])
+        )
 
     def test_basic_message(self, client):
         """stream() emits messages-tuple + values + end for a simple AI reply."""
@@ -1743,6 +1756,44 @@ class TestScenarioEdgeCases:
                 },
             }
         ]
+
+    def test_stream_values_include_locale_aware_summary_metadata_end_to_end(self, client):
+        middleware = LocaleAwareSummarizationMiddleware(
+            model=SimpleNamespace(_llm_type="openai-chat"),
+            trigger=("messages", 2),
+            keep=("messages", 1),
+        )
+        messages = [
+            HumanMessage(content="你好", id="h-1"),
+            AIMessage(content="世界", id="ai-1"),
+            HumanMessage(content="保留", id="h-2"),
+        ]
+
+        middleware.token_counter = lambda _: 100
+        middleware._create_summary_with_prompt = lambda messages_to_summarize, prompt: "中文摘要"
+
+        summary_result = middleware.before_model(
+            {"messages": messages},
+            SimpleNamespace(context={"locale": "zh-CN"}),
+        )
+        assert summary_result is not None
+
+        agent = _make_agent_mock([{"messages": summary_result["messages"][1:], "title": "T"}])
+
+        with (
+            patch.object(client, "_ensure_agent"),
+            patch.object(client, "_agent", agent),
+        ):
+            events = list(client.stream("hi", thread_id="t-locale-summary", locale="zh-CN"))
+
+        values_events = [event for event in events if event.type == "values"]
+        assert values_events
+        summary_projection = values_events[-1].data["messages"][0]
+        assert summary_projection["type"] == "human"
+        assert summary_projection["content"] == "中文摘要"
+        assert summary_projection["additional_kwargs"]["internal_summary"] is True
+        assert summary_projection["additional_kwargs"]["summary_locale"] == "zh-CN"
+        assert summary_projection["additional_kwargs"]["summary_format_version"] == 1
 
     def test_concurrent_tool_calls_in_single_message(self, client):
         """Agent produces multiple tool_calls in one AIMessage — emitted as single messages-tuple."""
