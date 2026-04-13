@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   closeKnowledgeRevision,
   createKnowledgeRevision,
+  loadKnowledgeLint,
   loadKnowledgeQueue,
   queryKnowledge,
   rebuildKnowledgeGraph,
@@ -140,4 +141,27 @@ void test("closeKnowledgeRevision posts to the revision close endpoint", async (
 
   assert.match(seenUrl, /\/api\/knowledge\/revisions\/revision_1\/close$/);
   assert.equal(payload.status, "closed");
+});
+
+void test("loadKnowledgeLint calls the lint endpoint", async () => {
+  let seenUrl = "";
+
+  globalThis.fetch = (async (input: RequestInfo | URL) => {
+    seenUrl = String(input);
+    return new Response(
+      JSON.stringify({
+        orphan_pages: [],
+        broken_links: [],
+        stale_pages: [],
+        contradictions: [],
+        data_gaps: [],
+      }),
+      { status: 200, headers: { "Content-Type": "application/json" } },
+    );
+  }) as typeof fetch;
+
+  const payload = await loadKnowledgeLint();
+
+  assert.match(seenUrl, /\/api\/knowledge\/lint$/);
+  assert.ok(Array.isArray(payload.broken_links));
 });

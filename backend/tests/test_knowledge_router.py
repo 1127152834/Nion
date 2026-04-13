@@ -122,3 +122,28 @@ def test_knowledge_revision_endpoints_create_preview_and_close(monkeypatch, tmp_
         closed = client.post(f"/api/knowledge/revisions/{request_id}/close")
         assert closed.status_code == 200
         assert closed.json()["status"] == "closed"
+
+
+def test_knowledge_lint_endpoint_returns_lint_report(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+
+    from nion.knowledge.page_store import KnowledgePageStore
+
+    store = KnowledgePageStore(base_dir=tmp_path)
+    store.write_page(
+        page_id="concept:roadmap",
+        page_type="concept",
+        title="Roadmap",
+        body="See [[entity:missing-team]]",
+        sources=["source:notebook_note:note_1"],
+        compiled_from=[{"source_id": "source:notebook_note:note_1", "content_hash": "abc123"}],
+        last_compiled_at="2026-04-13T10:00:00Z",
+    )
+
+    with TestClient(create_app()) as client:
+        response = client.get("/api/knowledge/lint")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert "broken_links" in payload

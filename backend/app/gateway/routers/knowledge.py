@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from nion.knowledge.compile_jobs import KnowledgeCompileJobStore
 from nion.knowledge.models import KnowledgeCompileJob, KnowledgePage, KnowledgeSourceCandidate
 from nion.knowledge.graph_service import KnowledgeGraphService
+from nion.knowledge.lint_service import KnowledgeLintService
 from nion.knowledge.page_store import KnowledgePageStore
 from nion.knowledge.query_service import KnowledgeQueryResult, KnowledgeQueryService
 from nion.knowledge.revision_service import KnowledgeRevisionRequest, KnowledgeRevisionService
@@ -52,6 +53,12 @@ async def query_knowledge(question: str = Query(..., min_length=1)) -> Knowledge
 async def rebuild_knowledge_graph() -> dict[str, list[dict[str, object]]]:
     service = KnowledgeGraphService()
     return service.build_graph()
+
+
+@router.get("/lint")
+async def lint_knowledge() -> dict[str, list[dict[str, object]]]:
+    service = KnowledgeLintService()
+    return service.run()
 
 
 @router.post("/revisions", response_model=KnowledgeRevisionRequest)

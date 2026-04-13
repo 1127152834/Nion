@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   closeKnowledgeRevision,
   createKnowledgeRevision,
+  loadKnowledgeLint,
   loadKnowledgePage,
   loadKnowledgeQueue,
   queryKnowledge,
@@ -11,6 +12,7 @@ import {
 import { useMutation } from "@tanstack/react-query";
 import type {
   KnowledgeGraphPayload,
+  KnowledgeLintReport,
   KnowledgePage,
   KnowledgeQueryResult,
   KnowledgeRevisionRequest,
@@ -79,4 +81,17 @@ export function useCloseKnowledgeRevision() {
   return useMutation({
     mutationFn: async (requestId: string) => closeKnowledgeRevision(requestId),
   });
+}
+
+export function useKnowledgeLint() {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["knowledge", "lint"],
+    queryFn: () => loadKnowledgeLint(),
+    refetchOnWindowFocus: false,
+  });
+  return {
+    report: (data ?? null) as KnowledgeLintReport | null,
+    isLoading,
+    error,
+  };
 }

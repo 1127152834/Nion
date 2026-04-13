@@ -2,6 +2,7 @@ import { getBackendBaseURL } from "../config/index.ts";
 
 import type {
   KnowledgeGraphPayload,
+  KnowledgeLintReport,
   KnowledgePage,
   KnowledgeQueryResult,
   KnowledgeRevisionRequest,
@@ -91,6 +92,17 @@ function isKnowledgeRevisionRequest(value: unknown): value is KnowledgeRevisionR
     Array.isArray(value.optional_source_refs) &&
     typeof value.status === "string" &&
     typeof value.created_at === "string"
+  );
+}
+
+function isKnowledgeLintReport(value: unknown): value is KnowledgeLintReport {
+  return (
+    isObjectRecord(value) &&
+    Array.isArray(value.orphan_pages) &&
+    Array.isArray(value.broken_links) &&
+    Array.isArray(value.stale_pages) &&
+    Array.isArray(value.contradictions) &&
+    Array.isArray(value.data_gaps)
   );
 }
 
@@ -212,6 +224,23 @@ export async function closeKnowledgeRevision(
   const payload = (await readJson<unknown>(response)) as unknown;
   if (!isKnowledgeRevisionRequest(payload)) {
     throw new Error("Invalid knowledge revision payload returned from closeKnowledgeRevision");
+  }
+  return payload;
+}
+
+export async function loadKnowledgeLint(): Promise<KnowledgeLintReport> {
+  const response = await fetch(`${getBackendBaseURL()}/api/knowledge/lint`);
+  if (!response.ok) {
+    throw new Error(
+      resolveErrorMessage(
+        await response.text(),
+        `Failed to load knowledge lint (${response.status})`,
+      ),
+    );
+  }
+  const payload = (await readJson<unknown>(response)) as unknown;
+  if (!isKnowledgeLintReport(payload)) {
+    throw new Error("Invalid knowledge lint payload returned from loadKnowledgeLint");
   }
   return payload;
 }

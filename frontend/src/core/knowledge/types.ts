@@ -65,3 +65,11 @@ export interface KnowledgeRevisionRequest {
   status: "open" | "previewed" | "applied" | "closed";
   created_at: string;
 }
+
+export interface KnowledgeLintReport {
+  orphan_pages: Array<Record<string, unknown>>;
+  broken_links: Array<Record<string, unknown>>;
+  stale_pages: Array<Record<string, unknown>>;
+  contradictions: Array<Record<string, unknown>>;
+  data_gaps: Array<Record<string, unknown>>;
+}
