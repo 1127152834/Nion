@@ -62,6 +62,7 @@ def build_capability_objects(
     agent_count: int,
     memory_descriptor: dict[str, Any] | None = None,
     notebook_descriptor: dict[str, Any] | None = None,
+    knowledge_descriptor: dict[str, Any] | None = None,
     agent_descriptors: list[dict[str, Any]] | None = None,
     skill_descriptors: list[dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
@@ -96,6 +97,26 @@ def build_capability_objects(
             ],
             "details": notebook_descriptor or {},
             "usage": _usage("notebook"),
+        },
+        {
+            "id": "capability:knowledge",
+            "kind": "knowledge",
+            "ownership": "agent",
+            "label": "Knowledge Base",
+            "description": "Compiled knowledge pages, graph state, and query workflows",
+            "surface": "runtime",
+            "summary": "Agent-owned compiled knowledge distinct from notebook source material and runtime memory.",
+            "availability": _availability(),
+            "discoverability": _discoverability(),
+            "actions": [
+                _action("bridge:notebook-to-knowledge", "Send notebook content into the knowledge queue"),
+            ],
+            "details": knowledge_descriptor or {},
+            "usage": {
+                "use_when": "Use when the task is about compiled wiki knowledge, graph relationships, or knowledge-base query.",
+                "avoid_when": "Avoid treating notebook source material or runtime memory as the same surface.",
+                "boundary": "Knowledge Base is compiled, agent-owned knowledge. It is not Notebook source material and it is not runtime Memory.",
+            },
         },
     ]
 

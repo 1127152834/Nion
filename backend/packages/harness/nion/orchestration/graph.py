@@ -15,6 +15,7 @@ class OrchestrationState(TypedDict, total=False):
     mention_steps: list[dict[str, Any]]
     current_index: int
     child_results: list[dict[str, str]]
+    child_work_products: list[dict[str, str]]
     final_reply: str
 
 
@@ -82,6 +83,7 @@ def build_agent_orchestrator_graph(
             "mode": "delegated" if steps else "lead_only",
             "current_index": 0,
             "child_results": [],
+            "child_work_products": [],
         }
 
     def plan_agent_chain_node(state: OrchestrationState):
@@ -129,6 +131,13 @@ def build_agent_orchestrator_graph(
                     "result": latest_result,
                 },
             ],
+            "child_work_products": [
+                *state.get("child_work_products", []),
+                {
+                    "agent_name": step["agent_name"],
+                    "result": latest_result,
+                },
+            ],
             "current_index": current_index + 1,
         }
 
@@ -139,17 +148,11 @@ def build_agent_orchestrator_graph(
 
     def synthesize_node(state: OrchestrationState):
         if state.get("mode") == "lead_only":
-            return {"final_reply": "", "mode": "lead_only"}
-        child_results = [
-            (item["agent_name"], item["result"])
-            for item in state.get("child_results", [])
-            if isinstance(item, dict)
-            and isinstance(item.get("agent_name"), str)
-            and isinstance(item.get("result"), str)
-        ]
+            return {"final_reply": "", "mode": "lead_only", "child_work_products": []}
         return {
-            "final_reply": summary_fn(state["user_text"], child_results),
+            "final_reply": "",
             "mode": "delegated",
+            "child_work_products": state.get("child_work_products", []),
         }
 
     builder = StateGraph(OrchestrationState)

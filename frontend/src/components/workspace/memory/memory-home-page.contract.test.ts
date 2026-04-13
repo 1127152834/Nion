@@ -20,3 +20,13 @@ void test("memory home page only exposes user-facing memory content groups", asy
   assert.doesNotMatch(source, /如果有错误，直接在对话里告诉我/);
   assert.doesNotMatch(source, /如果这条记错了/);
 });
+
+void test("memory home page treats memory as assistant-maintained structured reading surface", async () => {
+  const source = await readFile(
+    new URL("./memory-home-page.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /由助手自动维护|来自 MEMORY\.md|长期记忆档案/);
+  assert.doesNotMatch(source, /导入|导出|新建事实|删除事实/);
+});

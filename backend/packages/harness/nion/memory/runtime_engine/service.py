@@ -9,6 +9,7 @@ from nion.memory.runtime_engine.soul_bundle import build_runtime_soul_bundle
 from nion.memory_os.clock import utcnow_z
 from nion.memory_os.context_pack import MemoryContextPack, MemoryContextPackItem
 from nion.memory_os.repository import MemoryOSRepository
+from nion.runtime_context.files.memory_file import MemoryDocumentStore
 from nion.user_identity.runtime import build_runtime_user_identity_summary
 
 
@@ -36,6 +37,7 @@ def build_runtime_memory_context(
         values_and_boundaries=soul_bundle.values_and_boundaries,
         relationship_stance=soul_bundle.relationship_stance,
         adaptive_overlay=soul_bundle.adaptive_overlay,
+        active_memory_document=_load_active_memory_document(base_dir),
         hot_memories=_collect_hot_memories(repository, plan=plan, base_dir=base_dir),
         relevant_procedures=_collect_relevant_procedures(repository, plan=plan),
         scoped_recall=_collect_scoped_recall(repository, thread_id=thread_id, plan=plan),
@@ -55,6 +57,7 @@ def runtime_memory_to_context_pack(result: RuntimeMemoryResult) -> MemoryContext
         ("Values and Boundaries", sections.values_and_boundaries),
         ("Relationship Stance", sections.relationship_stance),
         ("Adaptive Overlay", sections.adaptive_overlay),
+        ("Active Memory", sections.active_memory_document),
     ):
         if content:
             items.append(
@@ -91,15 +94,18 @@ def _collect_hot_memories(
 ) -> list[str]:
     limit = 2 if plan.depth == "deep" else 1
     if base_dir is not None:
-        vector_results = search_structured_memory(
-            base_dir=Path(base_dir),
-            repository=repository,
-            query=plan.query,
-            domain="user_model",
-            limit=limit,
-        )
-        if vector_results:
-            return vector_results
+        try:
+            vector_results = search_structured_memory(
+                base_dir=Path(base_dir),
+                repository=repository,
+                query=plan.query,
+                domain="user_model",
+                limit=limit,
+            )
+            if vector_results:
+                return vector_results
+        except Exception:
+            pass
     return _collect_matching_summaries(
         repository.list_memory_records(domain="user_model", status="active"),
         query=plan.query,
@@ -196,3 +202,10 @@ def _matches_query(haystack: str, *, tokens: list[str], query: str) -> bool:
     if any(token in haystack for token in tokens if len(token) >= 2):
         return True
     return False
+
+
+def _load_active_memory_document(base_dir: str | Path | None) -> str | None:
+    if base_dir is None:
+        return None
+    document = MemoryDocumentStore(base_dir).read().strip()
+    return document if document != "# Active Memory" else None

@@ -379,7 +379,8 @@ class A2ATransport(A2ADiscoveryTransport):
                 result = _extract_result(payload)
                 return _extract_text(result), _extract_session(result) or session
 
-            longest_text = ""
+            terminal_text = ""
+            latest_text = ""
             updated_session = session
             async for payload in self._iter_sse_payloads(response.aiter_lines()):
                 error = _extract_error(payload)
@@ -387,10 +388,13 @@ class A2ATransport(A2ADiscoveryTransport):
                     raise RuntimeError(error)
                 result = _extract_result(payload)
                 candidate = _extract_text(result)
-                if len(candidate) >= len(longest_text):
-                    longest_text = candidate
+                if candidate:
+                    latest_text = candidate
+                state = _extract_state(result)
+                if _is_terminal_state(state) and candidate:
+                    terminal_text = candidate
                 updated_session = _extract_session(result) or updated_session
-            return longest_text, updated_session
+            return terminal_text or latest_text, updated_session
 
     async def _poll_task(
         self,

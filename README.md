@@ -31,6 +31,8 @@
 - Soul 直写闭环：当前轮显式说出的长期说话方式、价值边界、关系基调会直接写入 stable soul，不再只停留在设置页或 onboarding tool
 - 稳定身份投影：`/api/memory` 的 `user_profile` 现在会投影用户姓名、互称、沟通偏好、角色、时区、互动边界、长期背景等稳定身份信息
 - 稳定设置写入合同：`/api/user-identity` 与 `/api/memory/soul` 已支持字段级即时写入，为设置页的卡片级保存提供后端基础
+- 文件原生重构方向：Memory / Identity / Soul 的下一阶段设计已收敛到 `SOUL.md` / `IDENTITY.md` / `MEMORY.md` 作为主档、数据库与向量索引作为投影与检索层，详见 `docs/superpowers/specs/2026-04-13-memory-identity-soul-ui-and-file-model-refactor-design.md`
+- 文件原生主链首批已落地：`/api/memory` 已切成只读产品面；`/api/identity/document` 与 `/api/soul/document` 已支持 whole-document Markdown 读写；聊天中的显式 Identity / Soul 修改也会同步回写 `IDENTITY.md` / `SOUL.md`
 - 互称规则归一化：即使用户在设置页分开保存“称呼你”和“我的自称”，系统也会自动生成稳定的互称规则，避免出现半配置状态
 - Memory OS：当前代码库已将 user model、prompt/continuity context、growth governance、retention、agent-owned automation ownership 全部纳入统一 Memory OS 主链
 - Soul System：主智能体使用 canonical soul artifact 与 compiled soul runtime，运行时不再依赖 `SOUL.md` fallback
@@ -39,6 +41,7 @@
 - token telemetry：聊天主流与子智能体流式执行会按 chunk 逐步标记 token source，避免跨 Python `Context` 恢复流时触发 telemetry 清理异常
 - 临时子会话：被调度 custom agent 的执行记录会以 parent thread 下的临时 child runs 形式存在，可检查但不进入正式 thread history / search
 - delegated runtime 收口：被调度 custom agent 默认关闭 MCP，并只保留最小化 builtin surface，避免继承主线程的 control-plane / mutation 工具面
+- 主智能体 speaking contract 已重新收口：delegated child agents 现在只产出 internal work products，最终用户回复重新回到主智能体 synthesis 路径；A2A streaming 也已改为优先终态文本，避免用更长的 partial 草稿覆盖最终答案
 - 远程协同边界：站内 local custom-agent orchestration 默认走 LangGraph；ACP 与 A2A 都可以作为真实 remote transport 使用
 
 ---
@@ -128,6 +131,21 @@ Program 03D-B 已把 desktop bridge incident workflow 补上：
 - `binding_resolution_error`、`permission_workflow_stuck` 仍然是后续阶段
 
 这些事件必须既可查询，又要有人能直接读懂。
+
+## 项目知识库
+
+当前项目知识库主工作区位于：
+
+- `/Users/zhangtiancheng/Documents/wiki`
+
+仓库内的阅读导航入口位于：
+
+- `docs/project-knowledge-map.md`
+
+约束：
+
+- 重大功能、路由、UI、状态真相源、残余清理变更，必须同步更新知识库页面
+- 不要把知识理解建立在过期 review 或旧路径 `~/wiki` 假设上
 
 ## 快速开始
 
@@ -297,6 +315,8 @@ make docker-start
 ## 测试文档
 
 仓库内按真实业务模块拆分的测试交接文档位于 `docs/test/`。
+
+项目级知识导航入口位于 `docs/project-knowledge-map.md`，适合在做架构梳理、大整改、Memory/Soul 相关改造前先读一遍。
 
 - 总览索引：`docs/test/README.md`
 - 模块文档：`docs/test/<模块目录>/README.md`

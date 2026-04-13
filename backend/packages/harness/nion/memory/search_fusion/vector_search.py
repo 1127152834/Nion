@@ -12,6 +12,12 @@ from nion.memory.embedding.vector_store import VectorStoreQuery
 from nion.memory.search_fusion.models import SearchRouteHit
 
 logger = logging.getLogger(__name__)
+VECTOR_SEARCH_TIMEOUT_SECONDS = 2.0
+
+
+def _local_model_ready(*, base_dir: Path, cache_key: str) -> bool:
+    model_dir = base_dir / "memory-os" / "indexes" / "vector" / "models" / cache_key
+    return model_dir.exists()
 
 
 def search_vector_memory(
@@ -23,6 +29,14 @@ def search_vector_memory(
 ) -> list[SearchRouteHit]:
     resolved_base_dir = Path(base_dir)
     settings = EmbeddingSettingsRepository(resolved_base_dir).load()
+    if (
+        settings.mode == "local_managed"
+        and settings.download_state != "ready"
+        and not _local_model_ready(base_dir=resolved_base_dir, cache_key=settings.local_model_key)
+    ):
+        logger.info("Vector search skipped because local embedding model is not ready")
+        return []
+
     try:
         provider = build_embedding_provider(base_dir=resolved_base_dir, settings=settings)
         query_vector = provider.embed([query])[0]
@@ -38,6 +52,12 @@ def search_vector_memory(
         )
     except httpx.HTTPError as exc:
         logger.warning("Vector search skipped because embedding provider request failed: %s", exc)
+        return []
+    except TimeoutError as exc:
+        logger.warning("Vector search skipped because embedding lookup timed out: %s", exc)
+        return []
+    except Exception as exc:
+        logger.warning("Vector search skipped because embedding lookup failed: %s", exc)
         return []
     except ModuleNotFoundError:
         return []

@@ -32,6 +32,8 @@ type NotebookEditorPaneCopy = {
   draftMetaLabel: string;
   edit: string;
   extractToMemory: string;
+  knowledgeQueueLabel: string;
+  knowledgeStatusLabel: string;
   history: string;
   move: string;
   noSelectionCta: string;
@@ -68,8 +70,10 @@ type NotebookEditorPaneProps = {
   onOpenDelete: () => void;
   onOpenExtractToMemory: () => void;
   onOpenHistory: () => void;
+  onOpenKnowledgeStatus: () => void;
   onOpenRename: () => void;
   onOpenMove: () => void;
+  onSendToKnowledge: () => void;
   onPrimaryCreate: () => void;
   onSaveDraft: () => void;
   onSelectionChange: (selection: NotebookSelection | null) => void;
@@ -95,8 +99,10 @@ export function NotebookEditorPane({
   onOpenDelete,
   onOpenExtractToMemory,
   onOpenHistory,
+  onOpenKnowledgeStatus,
   onOpenRename,
   onOpenMove,
+  onSendToKnowledge,
   onPrimaryCreate,
   onSaveDraft,
   onSelectionChange,
@@ -208,6 +214,12 @@ export function NotebookEditorPane({
                       </DropdownMenuItem>
                       <DropdownMenuItem onSelect={onOpenExtractToMemory}>
                         {copy.extractToMemory}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onSelect={onSendToKnowledge}>
+                        {copy.knowledgeQueueLabel}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onSelect={onOpenKnowledgeStatus}>
+                        {copy.knowledgeStatusLabel}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>

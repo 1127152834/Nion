@@ -46,6 +46,9 @@ def test_gateway_docs_and_router_surface_match() -> None:
 
     assert "/api/memory" in routes
     assert "/api/memory/growth" not in routes
+    assert "/api/memory/facts" not in routes
+    assert "/api/memory/import" not in routes
+    assert "/api/memory/export" not in routes
 
 
 def test_memory_route_returns_grouped_user_facing_payload(monkeypatch, tmp_path) -> None:
@@ -58,111 +61,6 @@ def test_memory_route_returns_grouped_user_facing_payload(monkeypatch, tmp_path)
 
     assert response.status_code == 200
     assert response.json() == _sample_user_facing_memory()
-
-
-def test_clear_memory_route_returns_cleared_memory() -> None:
-    app = FastAPI()
-    app.include_router(memory.router)
-
-    with TestClient(app) as client:
-        response = client.delete("/api/memory")
-
-    assert response.status_code == 200
-    assert response.json()["facts"] == []
-
-
-def test_delete_memory_fact_route_returns_updated_memory() -> None:
-    app = FastAPI()
-    app.include_router(memory.router)
-    with TestClient(app) as client:
-        create_response = client.post(
-            "/api/memory/facts",
-            json={
-                "content": "User likes Python",
-                "category": "preference",
-                "confidence": 0.9,
-            },
-        )
-        fact_id = create_response.json()["facts"][0]["id"]
-        response = client.delete(f"/api/memory/facts/{fact_id}")
-
-    assert response.status_code == 200
-    assert response.json()["facts"] == []
-
-
-def test_delete_memory_fact_route_returns_404_for_missing_fact() -> None:
-    app = FastAPI()
-    app.include_router(memory.router)
-    with TestClient(app) as client:
-        response = client.delete("/api/memory/facts/fact_missing")
-
-    assert response.status_code == 404
-    assert response.json()["detail"] == "Memory fact 'fact_missing' not found."
-
-
-def test_create_memory_fact_route_returns_updated_memory() -> None:
-    app = FastAPI()
-    app.include_router(memory.router)
-    with TestClient(app) as client:
-        response = client.post(
-            "/api/memory/facts",
-            json={
-                "content": "User likes structured memory",
-                "category": "preference",
-                "confidence": 0.8,
-            },
-        )
-
-    assert response.status_code == 200
-    assert response.json()["facts"][0]["content"] == "User likes structured memory"
-
-
-def test_patch_memory_fact_route_returns_updated_memory() -> None:
-    app = FastAPI()
-    app.include_router(memory.router)
-    with TestClient(app) as client:
-        create_response = client.post(
-            "/api/memory/facts",
-            json={
-                "content": "Original fact",
-                "category": "context",
-                "confidence": 0.9,
-            },
-        )
-        fact_id = create_response.json()["facts"][0]["id"]
-        response = client.patch(
-            f"/api/memory/facts/{fact_id}",
-            json={"content": "Updated fact"},
-        )
-
-    assert response.status_code == 200
-    assert response.json()["facts"][0]["content"] == "Updated fact"
-
-
-def test_export_memory_route_returns_current_memory() -> None:
-    app = FastAPI()
-    app.include_router(memory.router)
-    with TestClient(app) as client:
-        response = client.get("/api/memory/export")
-
-    assert response.status_code == 200
-    assert response.json()["version"] == "2.0"
-
-
-def test_import_memory_route_returns_imported_memory() -> None:
-    app = FastAPI()
-    app.include_router(memory.router)
-    imported_memory = _sample_memory()
-    imported_memory["lastUpdated"] = "2026-04-02T12:00:00Z"
-    imported_memory["user"]["workContext"]["summary"] = "负责财务汇报"
-    imported_memory["user"]["workContext"]["updatedAt"] = "2026-04-02T12:00:00Z"
-
-    with TestClient(app) as client:
-        response = client.post("/api/memory/import", json=imported_memory)
-
-    assert response.status_code == 200
-    assert response.json()["lastUpdated"].endswith("Z")
-    assert response.json()["user"]["workContext"]["summary"] == "负责财务汇报"
 
 
 def test_memory_router_status_has_no_runtime_block() -> None:
@@ -352,7 +250,7 @@ def test_memory_router_does_not_register_memory_os_or_maintenance_routes() -> No
     assert "/api/memory" in routes
     assert "/api/memory/config" in routes
     assert "/api/memory/status" in routes
-    assert "/api/memory/reload" in routes
+    assert "/api/memory/reload" not in routes
 
     assert "/api/memory-os/providers/families" not in routes
     assert "/api/autodream/run" not in routes

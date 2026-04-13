@@ -16,6 +16,8 @@ from nion.config.extensions_config import (
 from nion.capability_bridge_actions import build_capability_bridge_actions, execute_capability_bridge_action
 from nion.config.agents_config import list_agent_catalog
 from nion.memory_os.compat import get_memory_os_config
+from nion.knowledge.page_store import KnowledgePageStore
+from nion.knowledge.source_candidates import KnowledgeSourceCandidateStore
 from nion.notebook.service import NotebookService
 from nion.skills import load_skills
 from nion.system_capability_catalog import build_system_capability_catalog
@@ -129,6 +131,8 @@ def get_capability_catalog_tool() -> str:
     notebook = NotebookService()
     note_summaries = notebook.list_note_summaries()
     inbox_items = notebook.list_inbox_items()
+    knowledge_queue = KnowledgeSourceCandidateStore().refresh_from_notebook(notebook)
+    knowledge_pages = list(KnowledgePageStore()._paths.knowledge_wiki_dir.glob("*.md"))
     payload = build_system_capability_catalog(
         cli_tools_enabled=True,
         skill_count=len(skills),
@@ -143,6 +147,12 @@ def get_capability_catalog_tool() -> str:
             "note_count": len(note_summaries),
             "inbox_count": len(inbox_items),
             "assistant_available": True,
+        },
+        knowledge_descriptor={
+            "root_directory": str(notebook._paths.knowledge_root_dir),
+            "queue_count": len(knowledge_queue),
+            "page_count": len(knowledge_pages),
+            "graph_present": notebook._paths.knowledge_graph_dir.exists(),
         },
         agent_descriptors=[
             {

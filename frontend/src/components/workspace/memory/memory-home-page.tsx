@@ -72,6 +72,55 @@ function MemoryGroup(props: {
   );
 }
 
+function ActiveMemorySummary(props: {
+  memory: {
+    user_profile: Array<{ content: string }>;
+    long_term_background: Array<{ content: string }>;
+    fact_memories: Array<{ content: string }>;
+  } | null;
+}) {
+  const highlights = [
+    ...(props.memory?.user_profile ?? []),
+    ...(props.memory?.long_term_background ?? []),
+    ...(props.memory?.fact_memories ?? []),
+  ]
+    .map((item) => item.content.trim())
+    .filter(Boolean)
+    .slice(0, 4);
+
+  return (
+    <section className="rounded-2xl border bg-background px-6 py-6">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="space-y-2">
+          <p className="text-[11px] font-medium tracking-[0.16em] text-muted-foreground uppercase">
+            Active Memory
+          </p>
+          <h2 className="text-[1.5rem] font-semibold tracking-tight">来自 MEMORY.md</h2>
+          <p className="max-w-2xl text-sm text-muted-foreground">
+            这是由助手自动维护的活跃记忆区。它只保留当前最热、最常用、最该带进对话的内容。
+          </p>
+        </div>
+        <div className="rounded-full border px-4 py-2 text-xs text-muted-foreground">
+          当前阶段：只读
+        </div>
+      </div>
+      <div className="mt-5 grid gap-3 md:grid-cols-2">
+        {highlights.length > 0 ? (
+          highlights.map((item) => (
+            <div key={item} className="rounded-xl border border-border/70 bg-muted/10 px-4 py-4 text-sm">
+              {item}
+            </div>
+          ))
+        ) : (
+          <div className="rounded-xl border border-dashed px-4 py-6 text-sm text-muted-foreground">
+            当前还没有活跃记忆。
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 export function MemoryHomePage() {
   const { memory, isLoading, error } = useMemory();
 
@@ -84,6 +133,9 @@ export function MemoryHomePage() {
               Memory
             </p>
             <h1 className="text-[2rem] font-semibold tracking-tight">记忆</h1>
+            <p className="text-sm text-muted-foreground">
+              这是由助手自动维护的结构化阅读页，当前内容来自 MEMORY.md 与长期记忆档案。
+            </p>
           </div>
         </div>
         {!isLoading && !error ? <MemorySummaryCards memory={memory} /> : null}
@@ -100,6 +152,20 @@ export function MemoryHomePage() {
           {error instanceof Error ? error.message : "记忆加载失败"}
         </section>
       ) : null}
+
+      <ActiveMemorySummary memory={memory} />
+
+      <section className="space-y-3">
+        <div className="space-y-1">
+          <p className="text-[11px] font-medium tracking-[0.16em] text-muted-foreground uppercase">
+            Long-term Dossier
+          </p>
+          <h2 className="text-[1.35rem] font-semibold tracking-tight">长期记忆档案</h2>
+          <p className="text-sm text-muted-foreground">
+            长期记忆不会直接塞进 MEMORY.md，而是整理成更稳定的档案内容，方便按主题阅读。
+          </p>
+        </div>
+      </section>
 
       <div className="grid gap-4 xl:grid-cols-3">
         <MemoryGroup title="你的信息" items={memory?.user_profile ?? []} />

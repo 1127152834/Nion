@@ -1,6 +1,10 @@
 import { getBackendBaseURL } from "@/core/config";
 
 import type {
+  SoulDocumentResponse,
+  SoulDocumentUpdateRequest,
+} from "./document-types";
+import type {
   SoulSettingsPatchRequest,
   SoulSettingsMutationResult,
   SoulSettingsResponse,
@@ -72,4 +76,46 @@ export async function patchSoulSetting(
     field: payload.field as SoulSettingsMutationResult["field"],
     value: payload.value,
   };
+}
+
+function isSoulDocumentResponse(value: unknown): value is SoulDocumentResponse {
+  return isObjectRecord(value) && typeof value.document === "string";
+}
+
+export async function loadSoulDocument(): Promise<SoulDocumentResponse> {
+  const response = await fetch(`${getBackendBaseURL()}/api/soul/document`);
+  const payload = (await response.json().catch(() => null)) as unknown;
+
+  if (!response.ok) {
+    throw new Error(`Failed to load soul document (${response.status})`);
+  }
+
+  if (!isSoulDocumentResponse(payload)) {
+    throw new Error("Invalid soul document payload returned from loadSoulDocument");
+  }
+
+  return payload;
+}
+
+export async function saveSoulDocument(
+  request: SoulDocumentUpdateRequest,
+): Promise<SoulDocumentResponse> {
+  const response = await fetch(`${getBackendBaseURL()}/api/soul/document`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(request),
+  });
+  const payload = (await response.json().catch(() => null)) as unknown;
+
+  if (!response.ok) {
+    throw new Error(`Failed to save soul document (${response.status})`);
+  }
+
+  if (!isSoulDocumentResponse(payload)) {
+    throw new Error("Invalid soul document payload returned from saveSoulDocument");
+  }
+
+  return payload;
 }

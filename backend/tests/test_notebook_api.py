@@ -174,6 +174,16 @@ def test_notebook_notes_list_exposes_summary_and_metadata(monkeypatch, tmp_path)
         assert note["is_pinned"] is False
 
 
+def test_notebook_routes_do_not_expose_direct_knowledge_page_mutation(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+
+    with TestClient(create_app()) as client:
+        routes = {route.path for route in client.app.routes}
+
+    assert "/api/notebook/knowledge-pages" not in routes
+
+
 def test_notebook_inbox_lists_default_inbox_entries(monkeypatch, tmp_path):
     monkeypatch.setenv("NION_HOME", str(tmp_path))
     reset_paths()

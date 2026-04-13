@@ -11,6 +11,10 @@ import AutomationPage from "@/app/workspace/automation/page";
 import AutomationRemindersPage from "@/app/workspace/automation/reminders/page";
 import AutomationTasksPage from "@/app/workspace/automation/tasks/page";
 import BridgePage from "@/app/workspace/bridge/page";
+import WorkspaceKnowledgePage from "@/app/workspace/knowledge/page";
+import WorkspaceKnowledgeQueuePage from "@/app/workspace/knowledge/queue/page";
+import WorkspaceKnowledgeGraphPage from "@/app/workspace/knowledge/graph/page";
+import WorkspaceKnowledgeQueryPage from "@/app/workspace/knowledge/query/page";
 import WorkspaceMemoryPage from "@/app/workspace/memory/page";
 import NotebookPage from "@/app/workspace/notebook/page";
 import NotebookTrashPage from "@/app/workspace/notebook/trash/page";
@@ -132,6 +136,46 @@ export function DesktopRendererApp() {
                 element={
                   <WorkspaceRoute>
                     <DesktopAutomationTaskDetailRoute />
+                  </WorkspaceRoute>
+                }
+              />
+              <Route
+                path="/workspace/knowledge"
+                element={
+                  <WorkspaceRoute>
+                    <WorkspaceKnowledgePage />
+                  </WorkspaceRoute>
+                }
+              />
+              <Route
+                path="/workspace/knowledge/queue"
+                element={
+                  <WorkspaceRoute>
+                    <WorkspaceKnowledgeQueuePage />
+                  </WorkspaceRoute>
+                }
+              />
+              <Route
+                path="/workspace/knowledge/graph"
+                element={
+                  <WorkspaceRoute>
+                    <WorkspaceKnowledgeGraphPage />
+                  </WorkspaceRoute>
+                }
+              />
+              <Route
+                path="/workspace/knowledge/query"
+                element={
+                  <WorkspaceRoute>
+                    <WorkspaceKnowledgeQueryPage />
+                  </WorkspaceRoute>
+                }
+              />
+              <Route
+                path="/workspace/knowledge/pages/:pageId"
+                element={
+                  <WorkspaceRoute>
+                    <WorkspaceKnowledgePage />
                   </WorkspaceRoute>
                 }
               />

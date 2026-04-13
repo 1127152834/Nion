@@ -1,6 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { loadUserIdentity, patchUserIdentity } from "./api";
+import {
+  loadIdentityDocument,
+  loadUserIdentity,
+  patchUserIdentity,
+  saveIdentityDocument,
+} from "./api";
+import type {
+  IdentityDocumentResponse,
+  IdentityDocumentUpdateRequest,
+} from "./document-types";
 import type {
   UserIdentityPatchRequest,
   UserIdentityProfile,
@@ -40,6 +49,31 @@ export function usePatchUserIdentity() {
   return useMutation<UserIdentityProfile, Error, UserIdentityPatchRequest>({
     mutationFn: (request) => patchUserIdentity(request),
     onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["user-identity"] });
+    },
+  });
+}
+
+export function useIdentityDocument() {
+  const query = useQuery({
+    queryKey: ["identity-document"],
+    queryFn: () => loadIdentityDocument(),
+  });
+
+  return {
+    document: query.data?.document ?? "# Identity\n",
+    isLoading: query.isLoading,
+    error: query.error,
+  };
+}
+
+export function useSaveIdentityDocument() {
+  const queryClient = useQueryClient();
+
+  return useMutation<IdentityDocumentResponse, Error, IdentityDocumentUpdateRequest>({
+    mutationFn: (request) => saveIdentityDocument(request),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["identity-document"] });
       await queryClient.invalidateQueries({ queryKey: ["user-identity"] });
     },
   });

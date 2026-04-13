@@ -8,7 +8,10 @@ import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useI18n } from "@/core/i18n/hooks";
-import { pathOfNotebookTrash } from "@/core/navigation/desktop-routes";
+import {
+  pathOfKnowledgeQueue,
+  pathOfNotebookTrash,
+} from "@/core/navigation/desktop-routes";
 import {
   buildNotebookDirectoryOptions,
   buildNotebookTree,
@@ -18,6 +21,7 @@ import {
   type NotebookSelection,
   useCreateNotebookDirectory,
   useCreateNotebookNote,
+  useEnqueueNotebookSourceToKnowledge,
   useExtractNotebookMemory,
   useCancelNotebookRewrite,
   useDeleteNotebookDirectory,
@@ -151,6 +155,7 @@ export function NotebookPage() {
   const moveAnyNote = useMoveNotebookNoteAction();
   const moveNote = useMoveNotebookNote(selectedNoteId ?? "");
   const deleteNote = useDeleteNotebookNote(selectedNoteId ?? "");
+  const enqueueToKnowledge = useEnqueueNotebookSourceToKnowledge();
   const extractToMemory = useExtractNotebookMemory();
   const confirmNotebookRewrite = useConfirmNotebookRewrite(selectedNoteId ?? "");
   const cancelNotebookRewrite = useCancelNotebookRewrite(selectedNoteId ?? "");
@@ -267,6 +272,34 @@ export function NotebookPage() {
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err));
     }
+  }
+
+  function sourceIdFromInboxItem(item: NotebookInboxItem) {
+    if (item.entry_type === "note" && item.note_id) {
+      return `source:notebook_note:${item.note_id}`;
+    }
+    if (item.entry_type === "asset" && item.asset_id) {
+      return `source:notebook_asset:${item.asset_id}`;
+    }
+    return null;
+  }
+
+  async function handleSendInboxItemToKnowledge(item: NotebookInboxItem) {
+    const sourceId = sourceIdFromInboxItem(item);
+    if (!sourceId) {
+      toast.error("当前内容暂时无法送入知识队列");
+      return;
+    }
+    try {
+      await enqueueToKnowledge.mutateAsync(sourceId);
+      toast.success("已送入知识队列");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  function handleViewKnowledgeStatus() {
+    router.push(pathOfKnowledgeQueue());
   }
 
   const handleSave = useCallback(async () => {
@@ -714,6 +747,8 @@ export function NotebookPage() {
                     emptyDescription: copy.emptyDescription,
                     emptyTitle: copy.emptyTitle,
                     inboxLabel: copy.inboxLabel,
+                    knowledgeQueueLabel: "送入知识队列",
+                    knowledgeStatusLabel: "查看知识状态",
                     organizeLabel: "整理到目录",
                     recentTitle: copy.recentTitle,
                     selectFolderPlaceholder: copy.selectFolderPlaceholder,
@@ -732,6 +767,8 @@ export function NotebookPage() {
                       void handleMoveAssetToDirectory(item.asset_id, inboxMoveDirectory);
                     }
                   }}
+                  onSendToKnowledge={(item) => void handleSendInboxItemToKnowledge(item)}
+                  onViewKnowledgeStatus={() => handleViewKnowledgeStatus()}
                 />
               ) : null}
 
@@ -759,6 +796,8 @@ export function NotebookPage() {
                     selectNote: copy.selectNote,
                     draftMetaLabel: copy.draftMetaLabel,
                     extractToMemory: copy.extractToMemory,
+                    knowledgeQueueLabel: "送入知识队列",
+                    knowledgeStatusLabel: "查看知识状态",
                     untitledDraftTitle: copy.untitledDraftTitle,
                     unsaved: copy.unsaved,
                   }}
@@ -779,8 +818,25 @@ export function NotebookPage() {
                   onOpenDelete={() => setDeleteOpen(true)}
                   onOpenExtractToMemory={openExtractToMemoryDialog}
                   onOpenHistory={() => setContextTab("history")}
+                  onOpenKnowledgeStatus={handleViewKnowledgeStatus}
                   onOpenRename={() => setRenameOpen(true)}
                   onOpenMove={() => setMoveOpen(true)}
+                  onSendToKnowledge={() => {
+                    if (!selectedNoteId) {
+                      toast.error("请先选择一条笔记");
+                      return;
+                    }
+                    void handleSendInboxItemToKnowledge({
+                      inbox_id: `note:${selectedNoteId}`,
+                      entry_type: "note",
+                      title: note?.title ?? draftTitle,
+                      relative_path: note?.relative_path ?? "",
+                      created_at: note?.created_at ?? "",
+                      updated_at: note?.updated_at ?? "",
+                      note_id: selectedNoteId,
+                      tags: note?.tags ?? [],
+                    });
+                  }}
                   onPrimaryCreate={() => openDraftComposer()}
                   draftDirectory={draftSession?.directory ?? ""}
                   draftSourceLabel={

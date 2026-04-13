@@ -16,6 +16,7 @@ def test_runtime_memory_sections_empty_factory_returns_all_layers_cleared():
     assert sections.values_and_boundaries is None
     assert sections.relationship_stance is None
     assert sections.adaptive_overlay is None
+    assert sections.active_memory_document is None
     assert sections.hot_memories == []
     assert sections.relevant_procedures == []
     assert sections.scoped_recall == []
@@ -30,6 +31,7 @@ def test_runtime_memory_sections_include_expected_layers():
         values_and_boundaries="values",
         relationship_stance="stance",
         adaptive_overlay="overlay",
+        active_memory_document="memory-doc",
         hot_memories=["m1"],
         relevant_procedures=["p1"],
         scoped_recall=["r1"],
@@ -42,6 +44,7 @@ def test_runtime_memory_sections_include_expected_layers():
     assert sections.values_and_boundaries == "values"
     assert sections.relationship_stance == "stance"
     assert sections.adaptive_overlay == "overlay"
+    assert sections.active_memory_document == "memory-doc"
     assert sections.hot_memories == ["m1"]
     assert sections.relevant_procedures == ["p1"]
     assert sections.scoped_recall == ["r1"]
@@ -196,8 +199,10 @@ def test_build_runtime_memory_context_includes_user_identity_profile_even_withou
     tmp_path: Path,
 ):
     from nion.memory.runtime_engine.service import build_runtime_memory_context
+    from nion.runtime_context.files.memory_file import MemoryDocumentStore
 
     repo = MemoryOSRepository(tmp_path / "memory-os" / "index.sqlite3")
+    MemoryDocumentStore(tmp_path).write("# Active Memory\n\n- 先给结论\n")
     UserIdentityRepository(tmp_path).save(
         UserIdentityProfile(
             user_name="张天成",
@@ -220,6 +225,7 @@ def test_build_runtime_memory_context_includes_user_identity_profile_even_withou
     assert "用户姓名：张天成" in result.sections.user_identity_profile
     assert "称呼用户：大哥" in result.sections.user_identity_profile
     assert "助手自称：小老弟" in result.sections.user_identity_profile
+    assert result.sections.active_memory_document == "# Active Memory\n\n- 先给结论"
 
 
 def test_runtime_memory_to_context_pack_places_user_identity_before_soul_layers():
@@ -355,3 +361,44 @@ def test_build_runtime_memory_context_uses_vector_hits_for_hot_memories_when_lex
 
     assert result.sections.hot_memories == ["用户偏好直接表达，避免铺垫。"]
     assert result.sections.relevant_procedures == []
+
+
+def test_build_runtime_memory_context_degrades_when_vector_search_raises(
+    tmp_path: Path,
+    monkeypatch,
+):
+    from nion.memory.runtime_engine.service import build_runtime_memory_context
+
+    repo = MemoryOSRepository(tmp_path / "memory-os" / "index.sqlite3")
+    repo.save_memory_record(
+        {
+            "memory_id": "hot_02",
+            "domain": "user_model",
+            "subtype": "communication_preference",
+            "owner_type": "agent",
+            "scope": "user",
+            "memory_type": "semantic",
+            "subject_id": "user:default",
+            "status": "active",
+            "summary": "用户偏好直接表达，避免铺垫。",
+            "confidence": 0.92,
+            "created_at": "2026-04-05T00:00:00Z",
+            "updated_at": "2026-04-05T00:00:00Z",
+            "provenance": {"source_type": "test"},
+        }
+    )
+
+    monkeypatch.setattr(
+        "nion.memory.runtime_engine.service.search_structured_memory",
+        lambda **kwargs: (_ for _ in ()).throw(TimeoutError("embedding stalled")),
+    )
+
+    result = build_runtime_memory_context(
+        repository=repo,
+        query="直接表达偏好",
+        thread_id="thread-1",
+        memory_read=True,
+        base_dir=tmp_path,
+    )
+
+    assert isinstance(result.sections.hot_memories, list)

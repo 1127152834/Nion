@@ -1,194 +1,66 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
 import {
-  usePatchSoulSetting,
-  useSoulSettings,
-} from "@/core/soul-settings/hooks";
-import type { SoulSettingsField } from "@/core/soul-settings/types";
-
-import { useSettingsDialog } from "./settings-dialog-context";
-
-const SOUL_FIELDS: Array<{
-  key: SoulSettingsField;
-  title: string;
-  placeholder: string;
-}> = [
-  {
-    key: "core_identity",
-    title: "核心人格",
-    placeholder: "例如：长期陪伴、克制稳定、结论先行。",
-  },
-  {
-    key: "speech_style",
-    title: "说话方式",
-    placeholder: "例如：先给结论，再补上下文。",
-  },
-  {
-    key: "values_and_boundaries",
-    title: "价值观 / 边界",
-    placeholder: "例如：不代替用户做最终判断。",
-  },
-  {
-    key: "relationship_stance",
-    title: "关系基调",
-    placeholder: "例如：低刺激、少施压、稳定陪伴。",
-  },
-];
-
-const EMPTY_SOUL_VALUES: Record<SoulSettingsField, string> = {
-  core_identity: "目前还没有稳定的核心人格设置。",
-  speech_style: "目前还没有稳定的说话方式设置。",
-  values_and_boundaries: "目前还没有稳定的价值观与边界设置。",
-  relationship_stance: "目前还没有稳定的关系基调设置。",
-};
-
-function normalizeSoulValue(field: SoulSettingsField, value: string): string {
-  return value === EMPTY_SOUL_VALUES[field] ? "" : value;
-}
-
-function SoulFieldCard(props: {
-  field: SoulSettingsField;
-  title: string;
-  currentValue: string;
-  placeholder: string;
-  isPending: boolean;
-  onSave: (field: SoulSettingsField, value: string) => Promise<void>;
-}) {
-  const [draft, setDraft] = useState(props.currentValue);
-
-  useEffect(() => {
-    setDraft(props.currentValue);
-  }, [props.currentValue]);
-
-  const isDirty = draft !== props.currentValue;
-
-  return (
-    <Card>
-      <CardHeader className="space-y-3">
-        <div className="flex items-start justify-between gap-3">
-          <CardTitle>{props.title}</CardTitle>
-          <Badge variant={isDirty ? "secondary" : "outline"}>
-            {props.isPending ? "保存中" : isDirty ? "待保存" : "已同步"}
-          </Badge>
-        </div>
-        <p className="text-muted-foreground text-sm whitespace-pre-wrap">
-          {props.currentValue || "尚未设置"}
-        </p>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <Textarea
-          value={draft}
-          onChange={(event) => setDraft(event.target.value)}
-          placeholder={props.placeholder}
-          className="min-h-32"
-        />
-        <div className="flex items-center justify-between gap-3">
-          <p className="text-muted-foreground text-xs">保存后立即生效。</p>
-          <Button
-            type="button"
-            size="sm"
-            disabled={!isDirty || props.isPending}
-            onClick={() => void props.onSave(props.field, draft)}
-          >
-            {props.isPending ? "保存中" : "保存"}
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
+  DocumentModeToggle,
+  MarkdownDocumentEditor,
+  MarkdownDocumentView,
+} from "@/components/workspace/documents";
+import { SettingsSection } from "@/components/workspace/settings/settings-section";
+import { useSaveSoulDocument, useSoulDocument } from "@/core/soul-settings/hooks";
 
 export function SoulSettingsPage() {
-  const { settings, isLoading, error } = useSoulSettings();
-  const patchSoulSetting = usePatchSoulSetting();
-  const { goToSection } = useSettingsDialog();
+  const { document, isLoading, error } = useSoulDocument();
+  const saveSoulDocument = useSaveSoulDocument();
+  const [mode, setMode] = useState<"preview" | "edit">("preview");
+  const [draft, setDraft] = useState(document);
 
-  async function saveSoulField(field: SoulSettingsField, value: string) {
-    const label = SOUL_FIELDS.find((item) => item.key === field)?.title ?? "设定";
-
-    try {
-      await patchSoulSetting.mutateAsync({
-        field,
-        value: value.trim(),
-      });
-      toast.success(`${label}已更新`);
-    } catch (mutationError) {
-      toast.error(
-        mutationError instanceof Error
-          ? mutationError.message
-          : `${label}更新失败`,
-      );
+  useEffect(() => {
+    if (mode === "preview") {
+      setDraft(document);
     }
-  }
+  }, [document, mode]);
 
   return (
-    <main className="flex size-full min-h-0 flex-col gap-6 overflow-y-auto px-4 py-6 sm:px-6">
-      <header className="bg-background border px-6 py-5">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="space-y-2">
-            <p className="text-muted-foreground text-[11px] font-medium tracking-[0.16em] uppercase">
-              Settings &gt; Soul
-            </p>
-            <h1 className="text-[1.85rem] font-semibold tracking-tight">
-              Soul
-            </h1>
-            <p className="text-muted-foreground text-sm">
-              这里决定助手长期稳定的说话方式、价值边界和关系基调。
-            </p>
+    <SettingsSection
+      title="Soul"
+      description="SOUL.md 默认以预览模式展示，进入编辑模式后可直接修改整篇文档。"
+    >
+      <div className="space-y-4">
+        <div className="rounded-xl border bg-background p-5">
+          <div className="text-muted-foreground mb-2 text-xs font-medium uppercase tracking-[0.16em]">
+            SOUL.md
           </div>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => goToSection("identity")}
-          >
-            打开身份设置
-          </Button>
+          <DocumentModeToggle mode={mode} onModeChange={setMode} />
         </div>
-      </header>
-
-      {isLoading ? (
-        <section className="bg-background text-muted-foreground rounded-lg border px-5 py-4 text-sm">
-          正在加载 Soul 设置...
-        </section>
-      ) : null}
-
-      {error ? (
-        <section className="border-destructive/40 bg-destructive/5 text-destructive rounded-lg border px-5 py-4 text-sm">
-          {error instanceof Error ? error.message : "Soul 设置加载失败"}
-        </section>
-      ) : null}
-
-      <section className="space-y-4">
-        <div>
-          <h2 className="text-lg font-semibold tracking-tight">长期设定</h2>
-          <p className="text-muted-foreground text-sm">
-            改的是长期层，不需要一次写很长，抓住稳定特征就够了。
-          </p>
-        </div>
-        <div className="grid gap-4 xl:grid-cols-2">
-          {SOUL_FIELDS.map((field) => (
-            <SoulFieldCard
-              key={field.key}
-              field={field.key}
-              title={field.title}
-              currentValue={normalizeSoulValue(field.key, settings[field.key])}
-              placeholder={field.placeholder}
-              isPending={
-                patchSoulSetting.isPending &&
-                patchSoulSetting.variables?.field === field.key
-              }
-              onSave={saveSoulField}
-            />
-          ))}
-        </div>
-      </section>
-    </main>
+        {isLoading ? (
+          <div className="rounded-xl border bg-background p-5 text-sm text-muted-foreground">
+            正在加载 SOUL.md...
+          </div>
+        ) : null}
+        {error ? (
+          <div className="rounded-xl border bg-background p-5 text-sm text-destructive">
+            {error instanceof Error ? error.message : "SOUL.md 加载失败"}
+          </div>
+        ) : null}
+        {mode === "preview" ? (
+          <MarkdownDocumentView
+            title="灵魂主档"
+            documentName="SOUL.md"
+            document={document}
+          />
+        ) : (
+          <MarkdownDocumentEditor
+            title="编辑灵魂主档"
+            documentName="SOUL.md"
+            draft={draft}
+            onChange={setDraft}
+            onSave={() => void saveSoulDocument.mutateAsync({ document: draft })}
+            isSaving={saveSoulDocument.isPending}
+          />
+        )}
+      </div>
+    </SettingsSection>
   );
 }

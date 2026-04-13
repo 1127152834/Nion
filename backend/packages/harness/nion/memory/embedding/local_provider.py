@@ -50,6 +50,7 @@ class LocalManagedEmbeddingProvider:
             self._model = model_cls(
                 self._model_id,
                 cache_folder=str(self._model_dir),
+                local_files_only=True,
             )
             self._dimensions = resolve_sentence_embedding_dimensions(self._model)
             write_local_model_metadata(self._model_dir, dimensions=self._dimensions)

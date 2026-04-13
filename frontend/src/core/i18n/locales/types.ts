@@ -369,6 +369,7 @@ export interface Translations {
     automation: string;
     cliTools: string;
     notebook: string;
+    knowledge: string;
     memory: string;
   };
 
@@ -441,6 +442,15 @@ export interface Translations {
   };
 
   workspaceSurfaces: {
+    knowledge: {
+      eyebrow: string;
+      title: string;
+      description: string;
+      queueTitle: string;
+      queueDescription: string;
+      graphTitle: string;
+      graphDescription: string;
+    };
     memory: {
       eyebrow: string;
       title: string;
@@ -629,6 +639,7 @@ export interface Translations {
     openCommandPalette: string;
     toggleSidebar: string;
     openNotebook: string;
+    openKnowledge: string;
     openMemory: string;
   };
 

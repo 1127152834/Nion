@@ -13,6 +13,8 @@ from nion.memory.soul.console_service import patch_soul_setting_value
 from nion.memory_os.clock import utcnow_z
 from nion.memory_os.extractor import _human_evidence_documents
 from nion.memory_os.repository import MemoryOSRepository
+from nion.runtime_context.files.identity_file import IdentityDocumentStore
+from nion.runtime_context.files.soul_file import SoulDocumentStore
 from nion.user_identity.repository import UserIdentityRepository
 from nion.user_identity.service import UserIdentityService
 
@@ -32,6 +34,8 @@ class UserIdentityMiddleware(AgentMiddleware[AgentState]):
         self._paths = Paths(base_dir) if base_dir else get_paths()
         self._service = UserIdentityService(UserIdentityRepository(self._paths.base_dir))
         self._memory_repo = MemoryOSRepository(self._paths.memory_os_index_db_file)
+        self._identity_store = IdentityDocumentStore(self._paths.base_dir)
+        self._soul_store = SoulDocumentStore(self._paths.base_dir)
 
     def before_agent(self, state: AgentState, runtime: Runtime) -> dict | None:
         thread_id = runtime.context.get("thread_id") if runtime.context else None
@@ -47,7 +51,15 @@ class UserIdentityMiddleware(AgentMiddleware[AgentState]):
         )
         patch = self._build_identity_patch(proposals)
         if patch:
-            self._service.apply_patch(patch)
+            profile = self._service.apply_patch(patch)
+            self._identity_store.write(
+                "# Identity\n\n"
+                "## Core\n"
+                f"- User name: {profile.user_name}\n"
+                f"- Preferred address: {profile.preferred_address_for_user}\n"
+                f"- Assistant self name: {profile.assistant_self_name}\n"
+                f"- Mutual addressing: {profile.mutual_addressing_rule}\n"
+            )
         self._apply_soul_patch(proposals)
         return None
 
@@ -100,6 +112,7 @@ class UserIdentityMiddleware(AgentMiddleware[AgentState]):
 
     def _apply_soul_patch(self, proposals) -> None:
         created_at = utcnow_z()
+        updated_fields: dict[str, str] = {}
         for proposal in proposals:
             if proposal.proposed_kind == "soul_speech_style":
                 patch_soul_setting_value(
@@ -108,6 +121,7 @@ class UserIdentityMiddleware(AgentMiddleware[AgentState]):
                     value=proposal.candidate_payload["speech_style"],
                     created_at=created_at,
                 )
+                updated_fields["speech_style"] = proposal.candidate_payload["speech_style"]
             elif proposal.proposed_kind == "soul_values_and_boundaries":
                 patch_soul_setting_value(
                     self._memory_repo,
@@ -115,6 +129,7 @@ class UserIdentityMiddleware(AgentMiddleware[AgentState]):
                     value=proposal.candidate_payload["values_and_boundaries"],
                     created_at=created_at,
                 )
+                updated_fields["values_and_boundaries"] = proposal.candidate_payload["values_and_boundaries"]
             elif proposal.proposed_kind == "soul_relationship_stance":
                 patch_soul_setting_value(
                     self._memory_repo,
@@ -122,3 +137,17 @@ class UserIdentityMiddleware(AgentMiddleware[AgentState]):
                     value=proposal.candidate_payload["relationship_stance"],
                     created_at=created_at,
                 )
+                updated_fields["relationship_stance"] = proposal.candidate_payload["relationship_stance"]
+
+        if updated_fields:
+            core_identity = ""
+            current = self._soul_store.read()
+            if "## Core Identity" in current:
+                core_identity = current.split("## Core Identity", 1)[1].split("\n## ", 1)[0].strip()
+            self._soul_store.write(
+                "# Soul\n\n"
+                f"## Core Identity\n{core_identity}\n\n"
+                f"## Speech Style\n{updated_fields.get('speech_style', '')}\n\n"
+                f"## Values And Boundaries\n{updated_fields.get('values_and_boundaries', '')}\n\n"
+                f"## Relationship Stance\n{updated_fields.get('relationship_stance', '')}\n"
+            )

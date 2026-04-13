@@ -3,6 +3,7 @@
   "private": true,
   "packageManager": "pnpm@10.26.2",
   "scripts": {
+    "llm-wiki-agent:install": "python3 scripts/install-llm-wiki-agent.py",
     "desktop:install": "pnpm --dir desktop install",
     "desktop:build": "pnpm --dir desktop build",
     "desktop:test": "pnpm --dir desktop test",

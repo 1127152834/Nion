@@ -48,7 +48,10 @@ void test("recent chat list resolves the next thread after batch delete when the
   );
 
   assert.match(source, /resolveNextThreadId/);
-  assert.match(source, /router\.push\(pathOfThread\(nextThreadId,\s*\{\s*type:/);
+  assert.match(
+    source,
+    /router\.push\(pathOfThread\(nextThreadId,\s*\{\s*type:/,
+  );
 });
 
 void test("recent chat list groups conversations into bridge and general sections", async () => {
@@ -98,8 +101,33 @@ void test("recent chat list keeps selection controls in an overlay without chang
   );
 
   assert.match(source, /selectionControl/);
-  assert.match(source, /absolute right-3 top-1\/2/);
+  assert.match(source, /selectionControl[\s\S]*top-1\/2/);
+  assert.match(source, /selectionControl[\s\S]*right-3/);
   assert.match(source, /pl-0/);
+});
+
+void test("recent chat list owns the only scrollable region in the expanded sidebar", async () => {
+  const source = await readFile(
+    new URL("./recent-chat-list.tsx", import.meta.url),
+    "utf8",
+  );
+  const sidebarSource = await readFile(
+    new URL("./workspace-sidebar.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /SidebarGroup className="[^"]*min-h-0[^"]*flex-1[^"]*"/);
+  assert.match(
+    source,
+    /SidebarGroupContent className="[^"]*min-h-0[^"]*flex-1[^"]*"/,
+  );
+  assert.match(source, /data-sidebar-scroll-region="recent-chats"/);
+  assert.match(
+    source,
+    /<div[\s\S]*key=\{activeType\}[\s\S]*className="[^"]*overflow-y-auto[^"]*"[\s\S]*data-sidebar-scroll-region="recent-chats"/,
+  );
+  assert.match(sidebarSource, /data-sidebar-scroll-shell="fixed"/);
+  assert.match(sidebarSource, /overflow-hidden/);
 });
 
 void test("thread list items truncate long sidebar titles and reserve room for trailing actions", async () => {
@@ -112,10 +140,7 @@ void test("thread list items truncate long sidebar titles and reserve room for t
     source,
     /<button[\s\S]*type="button"[\s\S]*className="block min-w-0 w-full text-left"/,
   );
-  assert.match(
-    source,
-    /<Link href=\{href\} className="block min-w-0 w-full">/,
-  );
+  assert.match(source, /<Link href=\{href\} className="block min-w-0 w-full">/);
   assert.match(source, /overlaySelection && "pr-12"/);
   assert.match(source, /<div className="min-w-0 flex-1">/);
   assert.match(source, /className=\{`truncate font-medium/);

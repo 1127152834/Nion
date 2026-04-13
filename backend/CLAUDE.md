@@ -148,6 +148,8 @@ Soul product contract in this repository:
 - `/api/memory/soul/apply` remains available as the bulk update path while the product surface is moving away from draft/apply flows.
 - `adaptive_overlay` may still exist internally, but proposal / rollback / growth governance routes are not part of the product-facing API surface.
 - `relationship_soul` remains a derived soul layer, not a new relationship truth source.
+- 当前已确定下一阶段方向：`SOUL.md` / `IDENTITY.md` / `MEMORY.md` 将升级为文件原生主档，结构化存储与向量索引退到 projection / retrieval 层；详细指导见 `docs/superpowers/specs/2026-04-13-memory-identity-soul-ui-and-file-model-refactor-design.md`。
+- 当前已落地的第一批实现：`/api/memory` public surface 不再暴露事实增删改与导入导出；`/api/identity/document` 与 `/api/soul/document` 已成为 whole-document markdown routes；聊天中的显式 Identity / Soul 写入会同步回写 `IDENTITY.md` / `SOUL.md` 文件主档。
 
 Thread title handling:
 
@@ -206,9 +208,9 @@ Delegated custom-agent orchestration contract:
 - Mentioned/delegated custom agents run as temporary child runs under the parent thread.
 - Child runs must not be stored or searched as formal `ThreadRecord` entries.
 - Delegated custom-agent runtime uses the dedicated `delegated` surface: config-driven tool groups may be narrowed by caller permissions, builtin tools must not inherit workspace control-plane/mutation lanes, and MCP stays disabled by default.
-- Delegated turns must emit the same `messages-tuple -> values -> end` shape as normal thread runs and then reuse the common thread finishing path for persistence, CLI management state, project projection, and background title generation.
+- Delegated turns now produce `child_work_products` and replay them through the lead agent for final synthesis; the common finishing path still owns persistence, CLI management state, project projection, and background title generation.
 - Local custom-agent orchestration should prefer LangGraph state/subgraph/checkpointer primitives.
-- ACP and A2A are both runnable remote transports in this repository. A2A support now includes agent-card discovery, `message/send`, `message/stream`, and thread-scoped remote session continuity.
+- ACP and A2A are both runnable remote transports in this repository. A2A support now includes agent-card discovery, `message/send`, `message/stream`, thread-scoped remote session continuity, and terminal-state text preference over longer partial chunks.
 
 Bridge configuration direction:
 - Bridge credentials, enabled flags, verification state, and defaults are moving into Config Center / `config.db`

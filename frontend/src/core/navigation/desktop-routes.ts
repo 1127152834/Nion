@@ -32,6 +32,37 @@ export function pathOfNotebook(
   return withQuery("/workspace/notebook", extra);
 }
 
+export function pathOfKnowledge(
+  extra: Record<string, string | undefined> = {},
+) {
+  return withQuery("/workspace/knowledge", extra);
+}
+
+export function pathOfKnowledgeQueue(
+  extra: Record<string, string | undefined> = {},
+) {
+  return withQuery("/workspace/knowledge/queue", extra);
+}
+
+export function pathOfKnowledgeGraph(
+  extra: Record<string, string | undefined> = {},
+) {
+  return withQuery("/workspace/knowledge/graph", extra);
+}
+
+export function pathOfKnowledgeQuery(
+  extra: Record<string, string | undefined> = {},
+) {
+  return withQuery("/workspace/knowledge/query", extra);
+}
+
+export function pathOfKnowledgePage(
+  pageId: string,
+  extra: Record<string, string | undefined> = {},
+) {
+  return withQuery(`/workspace/knowledge/pages/${pageId}`, extra);
+}
+
 export function pathOfMemory() {
   return "/workspace/memory";
 }

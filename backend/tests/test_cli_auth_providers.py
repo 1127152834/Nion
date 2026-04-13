@@ -90,6 +90,133 @@ def test_codex_provider_skips_non_json_sse_frames(monkeypatch):
     assert model._parse_sse_data_line("data: not-json") is None
 
 
+def test_codex_provider_uses_configured_request_timeout(monkeypatch):
+    monkeypatch.setattr(
+        CodexChatModel,
+        "_load_codex_auth",
+        lambda self: CodexCliCredential(access_token="token", account_id="acct"),
+    )
+
+    seen_timeout: dict[str, object] = {}
+
+    class FakeStream:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def raise_for_status(self):
+            return None
+
+        def iter_lines(self):
+            return iter(
+                [
+                    'data: {"type":"response.completed","response":{"model":"gpt-5.4","output":[],"usage":{"input_tokens":1,"output_tokens":1,"total_tokens":2}}}',
+                ]
+            )
+
+    class FakeClient:
+        def __init__(self, *args, **kwargs):
+            seen_timeout["timeout"] = kwargs.get("timeout")
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def stream(self, *args, **kwargs):
+            return FakeStream()
+
+    monkeypatch.setattr("nion.models.openai_codex_provider.httpx.Client", FakeClient)
+
+    model = CodexChatModel(request_timeout=12.5)
+    model._stream_response(headers={}, payload={})
+
+    assert seen_timeout["timeout"] == 12.5
+
+
+def test_codex_provider_raises_timeout_error_when_upstream_stream_times_out(monkeypatch):
+    monkeypatch.setattr(
+        CodexChatModel,
+        "_load_codex_auth",
+        lambda self: CodexCliCredential(access_token="token", account_id="acct"),
+    )
+
+    class FakeClient:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def stream(self, *args, **kwargs):
+            raise TimeoutError("stream stalled")
+
+    monkeypatch.setattr("nion.models.openai_codex_provider.httpx.Client", FakeClient)
+
+    model = CodexChatModel(request_timeout=3.0)
+
+    with pytest.raises(RuntimeError, match="timed out after 3.0 seconds"):
+        model._stream_response(headers={}, payload={})
+
+
+def test_codex_provider_raises_timeout_error_when_stream_never_completes(monkeypatch):
+    monkeypatch.setattr(
+        CodexChatModel,
+        "_load_codex_auth",
+        lambda self: CodexCliCredential(access_token="token", account_id="acct"),
+    )
+
+    class FakeStream:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def raise_for_status(self):
+            return None
+
+        def iter_lines(self):
+            return iter(
+                [
+                    'data: {"type":"response.output_item.done","output_index":0,"item":{"type":"message","content":[{"type":"output_text","text":"partial"}]}}',
+                    'data: {"type":"response.output_item.done","output_index":1,"item":{"type":"reasoning","summary":[{"type":"summary_text","text":"thinking"}]}}',
+                ]
+            )
+
+    class FakeClient:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def stream(self, *args, **kwargs):
+            return FakeStream()
+
+    monotonic_values = iter([0.0, 1.0, 4.5])
+
+    monkeypatch.setattr("nion.models.openai_codex_provider.httpx.Client", FakeClient)
+    monkeypatch.setattr(
+        "nion.models.openai_codex_provider.time.monotonic",
+        lambda: next(monotonic_values),
+    )
+
+    model = CodexChatModel(request_timeout=3.0)
+
+    with pytest.raises(RuntimeError, match="timed out after 3.0 seconds"):
+        model._stream_response(headers={}, payload={})
+
+
 def test_codex_provider_marks_invalid_tool_call_arguments(monkeypatch):
     monkeypatch.setattr(
         CodexChatModel,

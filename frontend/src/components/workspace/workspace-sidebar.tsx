@@ -30,7 +30,10 @@ export function WorkspaceSidebar({
       <SidebarHeader className="py-0">
         <WorkspaceHeader />
       </SidebarHeader>
-      <SidebarContent>
+      <SidebarContent
+        className="overflow-hidden"
+        data-sidebar-scroll-shell="fixed"
+      >
         <Suspense fallback={null}>
           <WorkspaceSidebarPrimaryAction />
         </Suspense>

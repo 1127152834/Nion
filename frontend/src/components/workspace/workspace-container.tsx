@@ -13,6 +13,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { useI18n } from "@/core/i18n/hooks";
+import { useIsDesktopShell } from "@/core/runtime";
 import { cn } from "@/lib/utils";
 
 import { GithubIcon } from "./github-icon";
@@ -36,6 +37,7 @@ export function WorkspaceHeader({
   ...props
 }: React.ComponentProps<"header">) {
   const { t } = useI18n();
+  const isDesktopShell = useIsDesktopShell();
   const pathname = usePathname();
   const segments = useMemo(() => {
     const parts = pathname?.split("/") || [];
@@ -45,13 +47,23 @@ export function WorkspaceHeader({
   }, [pathname]);
   return (
     <header
+      data-desktop-drag-region={isDesktopShell ? "workspace-header" : undefined}
       className={cn(
         "top-0 right-0 left-0 z-20 flex h-16 shrink-0 items-center justify-between gap-2 border-b backdrop-blur-sm transition-[width,height] ease-out group-has-data-[collapsible=icon]/sidebar-wrapper:h-12",
+        isDesktopShell && "[-webkit-app-region:drag]",
         className,
       )}
       {...props}
     >
-      <div className="flex items-center gap-2 px-4">
+      <div
+        data-desktop-no-drag={
+          isDesktopShell ? "workspace-header-content" : undefined
+        }
+        className={cn(
+          "flex items-center gap-2 px-4",
+          isDesktopShell && "[-webkit-app-region:no-drag]",
+        )}
+      >
         <Breadcrumb>
           <BreadcrumbList>
             {segments?.[0] && (
@@ -90,7 +102,12 @@ export function WorkspaceHeader({
           </BreadcrumbList>
         </Breadcrumb>
       </div>
-      <div className="pr-4">
+      <div
+        data-desktop-no-drag={
+          isDesktopShell ? "workspace-header-actions" : undefined
+        }
+        className={cn("pr-4", isDesktopShell && "[-webkit-app-region:no-drag]")}
+      >
         <Tooltip content={t.workspace.visitGithub}>
           <a
             href="https://github.com/huanxi/nion"

@@ -1,6 +1,10 @@
 import { getBackendBaseURL } from "@/core/config";
 
 import type {
+  IdentityDocumentResponse,
+  IdentityDocumentUpdateRequest,
+} from "./document-types";
+import type {
   UserIdentityPatchRequest,
   UserIdentityProfile,
 } from "./types";
@@ -66,6 +70,48 @@ export async function patchUserIdentity(
     throw new Error(
       "Invalid user identity payload returned from patchUserIdentity",
     );
+  }
+
+  return payload;
+}
+
+function isIdentityDocumentResponse(value: unknown): value is IdentityDocumentResponse {
+  return isObjectRecord(value) && typeof value.document === "string";
+}
+
+export async function loadIdentityDocument(): Promise<IdentityDocumentResponse> {
+  const response = await fetch(`${getBackendBaseURL()}/api/identity/document`);
+  const payload = (await response.json().catch(() => null)) as unknown;
+
+  if (!response.ok) {
+    throw new Error(`Failed to load identity document (${response.status})`);
+  }
+
+  if (!isIdentityDocumentResponse(payload)) {
+    throw new Error("Invalid identity document payload returned from loadIdentityDocument");
+  }
+
+  return payload;
+}
+
+export async function saveIdentityDocument(
+  request: IdentityDocumentUpdateRequest,
+): Promise<IdentityDocumentResponse> {
+  const response = await fetch(`${getBackendBaseURL()}/api/identity/document`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(request),
+  });
+  const payload = (await response.json().catch(() => null)) as unknown;
+
+  if (!response.ok) {
+    throw new Error(`Failed to save identity document (${response.status})`);
+  }
+
+  if (!isIdentityDocumentResponse(payload)) {
+    throw new Error("Invalid identity document payload returned from saveIdentityDocument");
   }
 
   return payload;
