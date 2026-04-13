@@ -81,7 +81,12 @@ def test_orchestrator_graph_runs_agent_chain_sequentially_with_upstream_context(
     assert "搜索资料" in calls[0][1]
     assert "research-agent-done" in calls[1][1]
     assert "writer-agent-done" in calls[2][1]
-    assert "formatter-agent-done" in result["final_reply"]
+    assert result["final_reply"] == ""
+    assert result["child_work_products"] == [
+        {"agent_name": "research-agent", "result": "research-agent-done"},
+        {"agent_name": "writer-agent", "result": "writer-agent-done"},
+        {"agent_name": "formatter-agent", "result": "formatter-agent-done"},
+    ]
 
 
 def test_orchestrator_graph_does_not_leak_child_results_between_same_thread_invocations():
@@ -144,8 +149,12 @@ def test_orchestrator_graph_does_not_leak_child_results_between_same_thread_invo
         config=config,
     )
 
-    assert "research-agent-done" in first["final_reply"]
-    assert "writer-agent-done" in first["final_reply"]
-    assert "research-agent-done" not in second["final_reply"]
-    assert "writer-agent-done" not in second["final_reply"]
-    assert "formatter-agent-done" in second["final_reply"]
+    assert first["child_work_products"] == [
+        {"agent_name": "research-agent", "result": "research-agent-done"},
+        {"agent_name": "writer-agent", "result": "writer-agent-done"},
+    ]
+    assert second["child_work_products"] == [
+        {"agent_name": "formatter-agent", "result": "formatter-agent-done"},
+    ]
+    assert first["final_reply"] == ""
+    assert second["final_reply"] == ""

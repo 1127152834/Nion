@@ -63,7 +63,11 @@ class DelegatedAgentExecutor:
         caller_permissions: set[str] | None = None,
     ) -> Generator[StreamEvent, None, None]:
         agent_config = self._agent_resolver(agent_name)
-        effective_permissions = caller_permissions or set(agent_config.tool_groups or []) if agent_config else set()
+        effective_permissions = (
+            caller_permissions
+            if caller_permissions is not None
+            else (set(agent_config.tool_groups or []) if agent_config else set())
+        )
         profile = (
             self._profile_builder(
                 agent_config,
@@ -97,7 +101,7 @@ class DelegatedAgentExecutor:
             tool_groups_override = (
                 sorted(set(agent_config.tool_groups or []) & set(profile.effective_permissions))
                 if agent_config is not None and agent_config.tool_groups and profile.effective_permissions
-                else (agent_config.tool_groups if agent_config is not None else None)
+                else ([] if agent_config is not None and caller_permissions is not None else (agent_config.tool_groups if agent_config is not None else None))
             )
             overlay = (
                 profile.soul_overlay

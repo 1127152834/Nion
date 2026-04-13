@@ -167,36 +167,58 @@ class ThreadService:
             if mode == "values" and isinstance(data, dict):
                 graph_state = data
 
-        summary_text = str(graph_state.get("final_reply") or "") if graph_state else ""
-        summary_message = {
-            "type": "ai",
-            "content": summary_text,
-            "id": f"delegated:{datetime.now(UTC).timestamp()}",
-        }
-        human_message = {
-            "type": "human",
-            "content": message_text,
-        }
-        existing_messages = (
-            existing_record.values.messages if existing_record is not None else []
+        child_work_products = (
+            list(graph_state.get("child_work_products", []))
+            if graph_state is not None
+            else []
         )
-        existing_artifacts = (
-            existing_record.values.artifacts if existing_record is not None else []
-        )
-        existing_title = existing_record.values.title if existing_record is not None else "Untitled"
 
-        yield StreamEvent(type="messages-tuple", data=summary_message)
-        yield StreamEvent(
-            type="values",
-            data={
-                "title": existing_title,
-                "messages": [*existing_messages, human_message, summary_message],
-                "artifacts": existing_artifacts,
-            },
+        lead_context = {
+            **context,
+            "child_work_products": child_work_products,
+        }
+        notebook_context = _build_notebook_runtime_context(lead_context)
+        selected_cli_tools: list[str] = []
+        cli_tools_enabled = self._should_enable_cli_tools_for_request(
+            message_text,
+            thread_id=thread_id,
+            selected_cli_tools=selected_cli_tools,
         )
-        yield StreamEvent(
-            type="end",
-            data={"usage": {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0}},
+
+        yield from self._client.stream(
+            message_text,
+            thread_id=thread_id,
+            human_message_payload={
+                "type": "human",
+                "content": [{"type": "text", "text": message_text}],
+            },
+            model_name=lead_context.get("model_name"),
+            thinking_enabled=bool(lead_context.get("thinking_enabled", True)),
+            plan_mode=bool(lead_context.get("is_plan_mode", False)),
+            subagent_enabled=bool(lead_context.get("subagent_enabled", False)),
+            cli_tools_enabled=cli_tools_enabled,
+            requested_skills=lead_context.get("requested_skills", []),
+            selected_mcp_tools=lead_context.get("selected_mcp_tools", []),
+            selected_cli_tools=selected_cli_tools,
+            agent_name=lead_context.get("agent_name"),
+            recursion_limit=100,
+            surface=lead_context.get("surface", "workspace"),
+            notebook_context=notebook_context,
+            execution_mode=lead_context.get("execution_mode"),
+            host_workdir=lead_context.get("host_workdir"),
+            session_mode=lead_context.get("session_mode"),
+            memory_read=resolve_optional_bool(
+                lead_context.get("memory_read"),
+                default=True,
+            ),
+            memory_write=resolve_optional_bool(
+                lead_context.get("memory_write"),
+                default=lead_context.get("session_mode") != "temporary_chat",
+            ),
+            project_id=lead_context.get("project_id"),
+            project_phase=lead_context.get("project_phase"),
+            primary_plan_id=lead_context.get("primary_plan_id"),
+            child_work_products=child_work_products,
         )
 
     def _finalize_thread_run(
