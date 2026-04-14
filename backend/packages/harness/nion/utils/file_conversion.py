@@ -24,8 +24,12 @@ CONVERTIBLE_EXTENSIONS = {
 }
 
 DEFAULT_THREAD_OFFLOAD_THRESHOLD_BYTES = 5 * 1024 * 1024
+MAX_OUTLINE_ENTRIES = 50
 _MARKDOWN_HEADING_RE = re.compile(r"^(#{1,6})\s+(.+?)\s*$")
-_SPLIT_BOLD_HEADING_RE = re.compile(r"^\*\*((?:\d+\.)*\d+)\*\*\s+\*\*(.+?)\*\*\s*$")
+_SPLIT_BOLD_HEADING_RE = re.compile(
+    r"^\*\*((?:\d+\.)*\d+)\*\*\s+\*\*((?![\d\W]+\*\*$)[^*]+)\*\*\s*$",
+    re.UNICODE,
+)
 
 
 def _pymupdf_output_too_sparse(markdown_text: str) -> bool:
@@ -100,34 +104,38 @@ def extract_outline(md_path: Path) -> list[dict[str, int | str]]:
     `**1** **实验设置**`.
     """
     outline: list[dict[str, int | str]] = []
-    for line_number, raw_line in enumerate(md_path.read_text(encoding="utf-8").splitlines(), start=1):
-        line = raw_line.strip()
-        if not line:
-            continue
+    with md_path.open("r", encoding="utf-8") as handle:
+        for line_number, raw_line in enumerate(handle, start=1):
+            if len(outline) >= MAX_OUTLINE_ENTRIES:
+                break
 
-        markdown_match = _MARKDOWN_HEADING_RE.match(line)
-        if markdown_match is not None:
-            outline.append(
-                {
-                    "level": len(markdown_match.group(1)),
-                    "title": markdown_match.group(2).strip(),
-                    "line": line_number,
-                }
-            )
-            continue
+            line = raw_line.strip()
+            if not line:
+                continue
 
-        split_bold_match = _SPLIT_BOLD_HEADING_RE.match(line)
-        if split_bold_match is not None:
-            number = split_bold_match.group(1).strip()
-            title = split_bold_match.group(2).strip()
-            outline.append(
-                {
-                    "level": min(number.count(".") + 2, 6),
-                    "title": title,
-                    "number": number,
-                    "line": line_number,
-                }
-            )
+            markdown_match = _MARKDOWN_HEADING_RE.match(line)
+            if markdown_match is not None:
+                outline.append(
+                    {
+                        "level": len(markdown_match.group(1)),
+                        "title": markdown_match.group(2).strip(),
+                        "line": line_number,
+                    }
+                )
+                continue
+
+            split_bold_match = _SPLIT_BOLD_HEADING_RE.match(line)
+            if split_bold_match is not None:
+                number = split_bold_match.group(1).strip()
+                title = split_bold_match.group(2).strip()
+                outline.append(
+                    {
+                        "level": min(number.count(".") + 2, 6),
+                        "title": title,
+                        "number": number,
+                        "line": line_number,
+                    }
+                )
 
     return outline
 
