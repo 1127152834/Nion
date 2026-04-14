@@ -268,6 +268,54 @@ def test_codex_provider_marks_invalid_tool_call_arguments(monkeypatch):
     assert "Failed to parse tool arguments" in message.invalid_tool_calls[0]["error"]
 
 
+def test_codex_provider_preserves_streamed_output_when_completed_output_is_empty(monkeypatch):
+    monkeypatch.setattr(
+        CodexChatModel,
+        "_load_codex_auth",
+        lambda self: CodexCliCredential(access_token="token", account_id="acct"),
+    )
+
+    class FakeStream:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def raise_for_status(self):
+            return None
+
+        def iter_lines(self):
+            return iter(
+                [
+                    'data: {"type":"response.output_item.done","output_index":0,"item":{"type":"message","content":[{"type":"output_text","text":"hello world"}]}}',
+                    'data: {"type":"response.completed","response":{"model":"gpt-5.4","output":[],"usage":{"input_tokens":1,"output_tokens":2,"total_tokens":3}}}',
+                ]
+            )
+
+    class FakeClient:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def stream(self, *args, **kwargs):
+            return FakeStream()
+
+    monkeypatch.setattr("nion.models.openai_codex_provider.httpx.Client", FakeClient)
+
+    model = CodexChatModel()
+    response = model._stream_response(headers={}, payload={})
+
+    assert response["output"] == [
+        {"type": "message", "content": [{"type": "output_text", "text": "hello world"}]}
+    ]
+
+
 def test_codex_provider_parses_valid_tool_arguments(monkeypatch):
     monkeypatch.setattr(
         CodexChatModel,
