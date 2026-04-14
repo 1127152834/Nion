@@ -59,6 +59,18 @@
 | `6de9c7b4` channel retry / typing reliability | `当前无安全落点` | 无 | upstream 修补发生在 backend channel 层；NION 当前仓库已没有对应落点。 |
 | `092bf13f` / `82c3dbbc` Windows / startup fixes | `当前无安全落点` | 无 | 本轮未复现同类 failure，不应无依据改脚本。 |
 | `133ffe71` Ollama native thinking support | `当前无安全落点` | 无 | capability 方向成立，但 upstream 落点依赖 config/dependency 路线，不适合当前批次直接引入。 |
+| `79acc393` podcast generation failure handling | `当前无安全落点` | 无 | upstream 修补发生在 `skills/public/podcast-generation/scripts/generate.py`；NION 当前主链没有需要同步的 podcast 产品落点。 |
+| `8b0f3fe2` thread deletion local data cleanup | `已等价吸收` | 现有代码 | `threads/service.py` / `repository.py` 和 `test_threads_router.py` 已覆盖删除线程目录行为。 |
+| `b40b05f6` token usage per conversation turn | `已等价吸收` | 现有代码 | NION 已有 `messages/usage.ts`、`token-usage-indicator.tsx` 和相关测试。 |
+| `0431a67b` SubtaskCard task-only filter | `已等价吸收` | 现有代码 | `tool-calls.ts` 与 `tool-calls.test.ts` 已只返回 `task` tool call ids。 |
+| `48a19755` frontend i18n build fix | `当前无安全落点` | 无 | 该修补针对 upstream 当时的 i18n build 断点；NION 当前前端结构已不同。 |
+| `d0049ad9` frontend lint CI workflow | `明确不同步` | 无 | 旧 upstream CI 工作流不属于当前 NION 主链同步目标。 |
+| `c5ddc6a1` h3 lockfile bump | `当前无安全落点` | 无 | 仅改 `frontend/pnpm-lock.yaml`，且当前 worktree 已有无关 lockfile 脏改动，不能安全吸收。 |
+| `4b15f146` frontend check command and docs | `已等价吸收` | 现有代码 | `frontend/package.json` 已有 `check = pnpm lint && pnpm typecheck`。 |
+| `14a3fa52` analyze.py subprocess fix | `已等价吸收` | 现有代码 | `skills/public/data-analysis/scripts/analyze.py` 已经使用 `subprocess` 风格，不再用 `os.system` 作为主路径。 |
+| `6bf52674` follow symlinks when scanning custom skills | `已等价吸收` | 现有代码 | `backend/packages/harness/nion/skills/loader.py` 已使用 `os.walk(..., followlinks=True)`。 |
+| `a9940c39` sync wrapper for async MCP tools | `已等价吸收` | 现有代码 | `backend/packages/harness/nion/mcp/tools.py` 已有 sync wrapper 和对应测试。 |
+| `067b19af` Windows make dev/start compatibility | `当前无安全落点` | 无 | 当前未复现同类脚本故障，且 NION 本地启动链已与 upstream 分叉。 |
 
 ---
 
