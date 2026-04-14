@@ -89,6 +89,26 @@
 | `792c49e6` align config.example.yaml to GEMINI_API_KEY | `明确不同步` | 无 | `config.example.yaml` 路线不进入当前同步主链。 |
 | `d119214f` ACP harness integration mega-refactor | `当前无安全落点` | 无 | 这是一揽子架构级重切边界与 ACP 能力引入，不能在当前逐提交安全同步流里直接落地。 |
 | `080a03f3` summarization model alias resolution | `已锁定` | 现有代码 | NION 当前 summarization middleware 已通过 runtime model factory 解析配置别名，新增回归测试锁定。 |
+| `b8bc80d8` shared skill installer / upload manager extraction | `当前无安全落点` | 无 | upstream 的 harness/app split 重构已远超当前逐提交安全同步边界。 |
+| `ae6a791c` config.example.yaml update | `明确不同步` | 无 | `config.example.yaml` 路线不进入当前同步主链。 |
+| `a087fe7b` Gemini thinking/tool-call gateway fix | `当前无安全落点` | 无 | 需要单独 provider/gateway 差口对照，不应在当前批次凭标题落地。 |
+| `4d1a69a9` full backend/LangGraph base URL fix | `当前无安全落点` | 无 | 需要与当前 desktop/runtime base URL 策略做专项对照。 |
+| `c0a6b818` pnpm-workspace packages section | `明确不同步` | 无 | workspace packaging 不是当前主链同步目标。 |
+| `b3d3287b` requests dependency bump | `明确不同步` | 无 | 依赖升级不按逐提交业务同步流处理。 |
+| `b9583f72` Windows backend test compatibility | `当前无安全落点` | 无 | 当前未复现同类 backend Windows 测试故障。 |
+| `0d3cefaa` active artifact safe-download hardening | `已锁定` | 现有代码 | NION `artifacts.py` 已对 HTML/SVG 活跃内容强制 attachment，新增 SVG 回归测试锁定。 |
+| `227967df` hide model ID and show display_name only | `当前无安全落点` | 无 | 需要与当前 model admin/product surface 专项对照。 |
+| `d7bdb1a4` remove unused suggestion icon import | `明确不同步` | 无 | 杂项清理，不进入当前同步批次。 |
+| `f80d1743` security alerts to documents | `当前无安全落点` | 无 | 当前 NION 主链没有对应 documents 安全提示产品面。 |
+| `e1853df0` install.md agent setup guide | `明确不同步` | 无 | 文档项，不进入当前同步批次。 |
+| `c1379338` DuckDuckGo search implementation | `当前无安全落点` | 无 | 需要和当前 search/provider/runtime 体系专项对照。 |
+| `6b13f5c9` GitHub PAT rate-limit support | `当前无安全落点` | 无 | 需要与当前 GitHub 集成能力和凭据真源专项对照。 |
+| `8ae02357` Docker build-arg proxies/mirrors | `当前无安全落点` | 无 | 当前未复现同类 build gap。 |
+| `99965057` Docker service name guidance for channel URLs | `明确不同步` | 无 | docs/config 指南，不进入当前同步批次。 |
+| `a4e4bb21` LangSmith tracing docs | `明确不同步` | 无 | 文档项，不进入当前同步批次。 |
+| `43a19f96` task tool polling non-blocking fix | `当前无安全落点` | 无 | 需要和当前 `task_tool` / subagent executor 的 polling 机制做专项对照。 |
+| `47087007` no-images-viewed proper content format | `已等价吸收` | 现有代码 | 当前 runtime-context guards 与 image middleware 已有兼容内容格式保护。 |
+| `40a4acbb` aio sandbox upload permission relax | `当前无安全落点` | 无 | 需要与当前 aio sandbox/upload permission contract 做专项对照。 |
 
 ---
 

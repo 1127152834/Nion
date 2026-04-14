@@ -38,3 +38,16 @@ def test_get_artifact_forces_download_for_active_html(tmp_path, monkeypatch) -> 
 
     assert response.headers["content-disposition"].startswith("attachment;")
     assert response.media_type == "text/html"
+
+
+def test_get_artifact_forces_download_for_active_svg(tmp_path, monkeypatch) -> None:
+    artifact_path = tmp_path / "image.svg"
+    artifact_path.write_text('<svg xmlns="http://www.w3.org/2000/svg"><script>alert("xss")</script></svg>', encoding="utf-8")
+
+    monkeypatch.setattr(artifacts_router, "resolve_thread_virtual_path", lambda _thread_id, _path: artifact_path)
+
+    request = Request({"type": "http", "method": "GET", "path": "/", "headers": [], "query_string": b""})
+    response = asyncio.run(artifacts_router.get_artifact("thread-1", "mnt/user-data/outputs/image.svg", request))
+
+    assert response.headers["content-disposition"].startswith("attachment;")
+    assert response.media_type == "image/svg+xml"
