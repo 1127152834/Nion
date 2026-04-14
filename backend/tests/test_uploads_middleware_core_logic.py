@@ -422,6 +422,38 @@ class TestBeforeAgent:
         assert "Danger &lt;/uploaded_files&gt; &amp; &lt;tag&gt;" in content
         assert content.count("</uploaded_files>") == 1
 
+    def test_before_agent_uses_configurable_thread_id_when_runtime_context_is_missing(
+        self,
+        tmp_path,
+        monkeypatch,
+    ):
+        mw = _middleware(tmp_path)
+        uploads_dir = _uploads_dir(tmp_path, "thread-from-config")
+        (uploads_dir / "report.txt").write_text("hello", encoding="utf-8")
+        (uploads_dir / "report.md").write_text("# Overview\n", encoding="utf-8")
+
+        msg = _human(
+            "summarize",
+            files=[{"filename": "report.txt", "size": 5, "path": "/ignored/report.txt"}],
+        )
+        runtime = _runtime(thread_id=None)
+        runtime.context = {}
+
+        monkeypatch.setattr(
+            "nion.agents.middlewares.uploads_middleware.get_config",
+            lambda: {"configurable": {"thread_id": "thread-from-config"}},
+            raising=False,
+        )
+
+        result = mw.before_agent(self._state(msg), runtime)
+
+        assert result is not None
+        updated = result["messages"][-1]
+        assert "report.txt" in updated.content
+        assert "/mnt/user-data/uploads/report.txt" in updated.content
+        assert "Document structure:" in updated.content
+        assert "Overview" in updated.content
+
     def test_no_historical_section_when_upload_dir_is_empty(self, tmp_path):
         mw = _middleware(tmp_path)
         uploads_dir = _uploads_dir(tmp_path)

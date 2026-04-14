@@ -8,6 +8,7 @@ from typing import NotRequired, override
 from langchain.agents import AgentState
 from langchain.agents.middleware import AgentMiddleware
 from langchain_core.messages import HumanMessage
+from langgraph.config import get_config
 from langgraph.runtime import Runtime
 
 from nion.config.paths import Paths, get_paths
@@ -79,6 +80,21 @@ class UploadsMiddleware(AgentMiddleware[UploadsMiddlewareState]):
         }
         entry.update(self._extract_outline_or_preview(file_path))
         return entry
+
+    def _resolve_thread_id(self, runtime: Runtime) -> str | None:
+        """Resolve thread id from runtime context, then configurable fallback."""
+        thread_id = runtime.context.get("thread_id") if runtime.context else None
+        if thread_id:
+            return str(thread_id)
+
+        try:
+            config = get_config()
+        except RuntimeError:
+            return None
+
+        configurable = config.get("configurable", {}) if isinstance(config, dict) else {}
+        fallback = configurable.get("thread_id") if isinstance(configurable, dict) else None
+        return str(fallback) if fallback else None
 
     def _escape_uploaded_files_text(self, value: object) -> str:
         """Escape dynamic text rendered inside the uploaded_files XML-like block."""
@@ -215,7 +231,7 @@ class UploadsMiddleware(AgentMiddleware[UploadsMiddlewareState]):
             return None
 
         # Resolve uploads directory for existence checks
-        thread_id = runtime.context.get("thread_id") if runtime.context else None
+        thread_id = self._resolve_thread_id(runtime)
         uploads_dir = self._paths.sandbox_uploads_dir(thread_id) if thread_id else None
 
         # Get newly uploaded files from the current message's additional_kwargs.files
