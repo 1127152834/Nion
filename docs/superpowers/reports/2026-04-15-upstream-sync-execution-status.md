@@ -112,6 +112,10 @@
 | `43a19f96` task tool polling non-blocking fix | `当前无安全落点` | 无 | 需要和当前 `task_tool` / subagent executor 的 polling 机制做专项对照。 |
 | `47087007` no-images-viewed proper content format | `已等价吸收` | 现有代码 | 当前 runtime-context guards 与 image middleware 已有兼容内容格式保护。 |
 | `40a4acbb` aio sandbox upload permission relax | `当前无安全落点` | 无 | 需要与当前 aio sandbox/upload permission contract 做专项对照。 |
+| `8590249d` ACP env field for subprocess injection | `已等价吸收` | 现有代码 | 当前 `ACPAgentConfig.env` 和 ACP transport env 解析/注入已覆盖 upstream 语义。 |
+| `50f50d76` skill frontmatter validation tests | `已锁定` | 现有代码 | 已新增 `test_skills_validation.py` 锁定现有 validation 行为，不扩散到 install/router 行为。 |
+| `18b07941` SETUP relative links | `已同步` | 当前分支工作树 | `backend/docs/SETUP.md` 已修到当前真实路径。 |
+| `50db51d0` frontend format scripts | `当前无安全落点` | 无 | 当前 frontend 环境里 `prettier` 未可执行，不能在未补齐 toolchain 的情况下宣称完成该脚本接入。 |
 
 ---
 
