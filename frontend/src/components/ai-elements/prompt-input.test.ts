@@ -35,3 +35,14 @@ void test("prompt input clears text and attachments only after submit succeeds",
   assert.match(source, /if \(result instanceof Promise\) \{\s*result\s*\.then\(\(\) => \{\s*clearSubmittedState\(\);/s);
   assert.match(source, /\} else \{\s*clearSubmittedState\(\);/s);
 });
+
+void test("prompt input speech button keeps callbacks in a ref and does not recreate recognition on callback changes", async () => {
+  const source = await readFile(
+    new URL("./prompt-input.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /const callbacksRef = useRef\(\{\s*textareaRef,\s*onTranscriptionChange,\s*\}\);/s);
+  assert.match(source, /callbacksRef\.current = \{\s*textareaRef,\s*onTranscriptionChange,\s*\};/s);
+  assert.match(source, /useEffect\(\(\) => \{[\s\S]*SpeechRecognition[\s\S]*\}, \[\]\);/s);
+});
