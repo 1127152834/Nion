@@ -71,6 +71,23 @@
 | `6bf52674` follow symlinks when scanning custom skills | `已等价吸收` | 现有代码 | `backend/packages/harness/nion/skills/loader.py` 已使用 `os.walk(..., followlinks=True)`。 |
 | `a9940c39` sync wrapper for async MCP tools | `已等价吸收` | 现有代码 | `backend/packages/harness/nion/mcp/tools.py` 已有 sync wrapper 和对应测试。 |
 | `067b19af` Windows make dev/start compatibility | `当前无安全落点` | 无 | 当前未复现同类脚本故障，且 NION 本地启动链已与 upstream 分叉。 |
+| `77b8ef79` LoopDetectionMiddleware HumanMessage compat | `已等价吸收` | 现有代码 | NION 当前 `loop_detection_middleware.py` 已使用 `HumanMessage` 作为跨 provider 兼容注入。 |
+| `16ed797e` configurable log level and token usage tracking | `已等价吸收` | 现有代码 | token usage 路径已由 `b40b05f6` 相关实现覆盖，log level 不构成当前独立同步项。 |
+| `21febe1c` French README translation | `明确不同步` | 无 | 文档翻译不属于当前 upstream hardening 同步目标。 |
+| `f499f37e` Russian README translation | `明确不同步` | 无 | 文档翻译不属于当前 upstream hardening 同步目标。 |
+| `2eca58bd` null checks for runtime.context | `已等价吸收` | 现有代码 | NION 当前 middlewares/tools 已系统性处理 `runtime.context` 缺失场景。 |
+| `97ad67db` docs typo and grammar fixes | `明确不同步` | 无 | 文档修字不进入当前同步批次。 |
+| `afb0f66c` unit tests for skills parser | `已等价吸收` | 现有代码 | 当前 skills parser/validation 已存在对应测试面。 |
+| `ec46ae07` unit tests for SubagentLimitMiddleware | `已等价吸收` | 现有代码 | Subagent limit 中间件能力已存在，当前缺口不构成实现任务。 |
+| `12875664` docs domestic coding-plan link | `明确不同步` | 无 | 文档链接不进入当前同步批次。 |
+| `fdfe08d4` China region user configuration template | `明确不同步` | 无 | 配置模板不进入当前同步批次。 |
+| `adc51e54` stable ids for chat resizable panels | `已等价吸收` | 现有代码 | NION 已有 `panel-ids.ts` / `panel-ids.test.ts` 稳定 ID 路径。 |
+| `d7e51076` runtime.context null checks and langgraph constraint | `已等价吸收` | 现有代码 | null-check 部分已系统吸收；langgraph 版本约束不作为当前单点同步。 |
+| `afe325d3` container image pull syntax fix | `当前无安全落点` | 无 | 当前仓库没有对应执行面需要同步这条容器命令修补。 |
+| `1f0ae64e` tests for DanglingToolCallMiddleware | `已等价吸收` | 现有代码 | NION 已有 `DanglingToolCallMiddleware` 路径，但这一项只属于测试覆盖补充，不是独立产品同步点。 |
+| `ac97dc6d` tests for TodoMiddleware | `已等价吸收` | 现有代码 | NION 已有 `TodoMiddleware` 路径，这一项只属于测试覆盖补充。 |
+| `792c49e6` align config.example.yaml to GEMINI_API_KEY | `明确不同步` | 无 | `config.example.yaml` 路线不进入当前同步主链。 |
+| `d119214f` ACP harness integration mega-refactor | `当前无安全落点` | 无 | 这是一揽子架构级重切边界与 ACP 能力引入，不能在当前逐提交安全同步流里直接落地。 |
 
 ---
 
