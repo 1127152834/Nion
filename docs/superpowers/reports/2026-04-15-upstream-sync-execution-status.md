@@ -88,6 +88,7 @@
 | `ac97dc6d` tests for TodoMiddleware | `已等价吸收` | 现有代码 | NION 已有 `TodoMiddleware` 路径，这一项只属于测试覆盖补充。 |
 | `792c49e6` align config.example.yaml to GEMINI_API_KEY | `明确不同步` | 无 | `config.example.yaml` 路线不进入当前同步主链。 |
 | `d119214f` ACP harness integration mega-refactor | `当前无安全落点` | 无 | 这是一揽子架构级重切边界与 ACP 能力引入，不能在当前逐提交安全同步流里直接落地。 |
+| `080a03f3` summarization model alias resolution | `已锁定` | 现有代码 | NION 当前 summarization middleware 已通过 runtime model factory 解析配置别名，新增回归测试锁定。 |
 
 ---
 
