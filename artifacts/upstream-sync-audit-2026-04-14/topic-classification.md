@@ -16,15 +16,15 @@ Source commit list: `artifacts/upstream-sync-audit-2026-04-14/upstream-commits.t
 
 | Theme | Commit Count | Key Commits | Business Value | Impact | Adaptation | Conflict Tags | Default Action | Priority | Evidence Notes |
 | --- | ---: | --- | --- | --- | --- | --- | --- | --- | --- |
-| 安全与沙箱 | 0 |  | S | M | 2 |  | 部分同步 | P0 |  |
-| 线程与运行时稳定性 | 0 |  | S | M | 2 |  | 部分同步 | P0 |  |
-| 上传与文档处理 | 0 |  | S | M | 2 |  | 部分同步 | P0 |  |
-| 模型与 provider 能力 | 0 |  | A | H | 3 | CFG | 重写后同步 | P1 |  |
-| 前端交互与线程体验 | 0 |  | A | M | 2 |  | 部分同步 | P1 |  |
-| Memory / Soul / 长时上下文 | 0 |  | A | H | 3 | MEMORY | 重写后同步 | P1 |  |
-| Channel / Bridge / 第三方通道 | 0 |  | B | H | 3 | BRIDGE | 重写后同步 | P2 |  |
-| 开发 / 构建 / 跨平台工具链 | 0 |  | B | L | 1 |  | 直接同步 | P2 |  |
-| 文档 / 技能 / 社区扩展 | 0 |  | C | L | 1 | BRAND | 明确不同步 | P3 |  |
+| 安全与沙箱 | 1 | `92c7a20c` | S | H | 2 | DESKTOP | 已等价吸收，无需同步 | P1 | NION 已有本地 sandbox host-bash 门禁与同类安全消息，需仅核对测试覆盖差口。 |
+| 线程与运行时稳定性 | 2 | `89183ae7`, `6dbdd467` | S | H | 2-3 | DESKTOP | 已等价吸收 / 重写后同步 | P0 | 并发同线程 run 拒绝已吸收；stream END 保障需要按 NION streaming 架构重写验证。 |
+| 上传与文档处理 | 4 | `ddfc988b`, `5ff230ea`, `163121d3`, `46d0c329` | S | M | 2-3 | CFG | 已等价吸收 / 部分同步 | P0 | 上传转换与 outline 主链大体已吸收，但 thread_id fallback 与 regex/preview 局部硬化仍值得提取。 |
+| 模型与 provider 能力 | 5 | `0948c7a4`, `43ef3691`, `dd30e609`, `133ffe71`, `ac04f270` | A | H | 2-4 | CFG | 部分同步 / 已等价吸收 / 明确不同步 | P1 | vLLM 已吸收；Codex/Claude provider 局部修复值得核对；config-file 驱动的能力不直拉。 |
+| 前端交互与线程体验 | 5 | `866cf4ef`, `24805200`, `85b7ed3c`, `0eb6550c`, `2a150f5d` | A | M-H | 1-3 | DESKTOP | 已等价吸收 / 部分同步 / 明确不同步 | P1 | IME 和 `new` thread id 已吸收；thread-scoped model persistence 可局部比对；大范围 hydration/config 变更不直拉。 |
+| Memory / Soul / 长时上下文 | 5 | `1c542ab7`, `7eb3a150`, `9a557751`, `0cdecf7b`, `5664b9d4` | A | H | 3-4 | MEMORY | 已等价吸收 / 明确不同步 | P3 | upstream memory 产品模型与 NION 已批准合同冲突，只保留局部字段修复和兼容层参考。 |
+| Channel / Bridge / 第三方通道 | 5 | `c4d273a6`, `fa96acdf`, `19809800`, `6de9c7b4`, `18e34878` | B | H | 3-4 | BRIDGE, DESKTOP | 重写后同步 / 部分同步 / 已等价吸收 | P2 | NION 是 desktop-first bridge runtime，通道能力只能按当前 bridge 架构重写或抽 transport-level correctness。 |
+| 开发 / 构建 / 跨平台工具链 | 4 | `092bf13f`, `084dc7e7`, `82c3dbbc`, `4ceb18c6` | B | L-M | 1-3 | DESKTOP | 部分同步 / 明确不同步 | P2 | 工具链价值存在，但只在当前脚本/验证链出现同类失败时吸收。 |
+| 文档 / 技能 / 社区扩展 | 3 | `8bb14fa1`, `c1366cf5`, `5350b2fb` | C | L | 1-2 | BRAND | 明确不同步 | P3 | 与当前 upstream hardening 目标无关，保留为 backlog 而非同步批次。 |
 
 ## Commit Appendix Draft
 
