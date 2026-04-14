@@ -65,6 +65,24 @@ def test_claude_provider_rejects_non_positive_retry_attempts():
         ClaudeChatModel(model="claude-sonnet-4-6", retry_max_attempts=0)
 
 
+def test_claude_oauth_request_payload_injects_billing_header(monkeypatch):
+    monkeypatch.setenv("ANTHROPIC_AUTH_TOKEN", "sk-ant-oat01-test-token")
+    monkeypatch.setenv("ANTHROPIC_BILLING_HEADER", "nion-test-billing")
+
+    model = ClaudeChatModel(model="claude-sonnet-4-6", retry_max_attempts=1)
+    payload = model._get_request_payload([HumanMessage(content="hello")])
+
+    system = payload.get("system")
+    assert isinstance(system, list)
+    first_block = system[0]
+    assert first_block["type"] == "text"
+    assert "nion-test-billing" in first_block["text"]
+    metadata = payload.get("metadata")
+    assert isinstance(metadata, dict)
+    assert isinstance(metadata.get("user_id"), str)
+    assert metadata["user_id"]
+
+
 def test_codex_provider_skips_terminal_sse_markers(monkeypatch):
     monkeypatch.setattr(
         CodexChatModel,

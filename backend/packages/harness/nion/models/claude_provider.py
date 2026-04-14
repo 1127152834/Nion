@@ -15,6 +15,8 @@ Auto-loads credentials from explicit runtime handoff:
 """
 
 import logging
+import os
+import socket
 import time
 from typing import Any
 
@@ -26,6 +28,7 @@ logger = logging.getLogger(__name__)
 
 MAX_RETRIES = 3
 THINKING_BUDGET_RATIO = 0.8
+DEFAULT_OAUTH_BILLING_HEADER = "claude-code"
 
 
 class ClaudeChatModel(ChatAnthropic):
@@ -128,6 +131,9 @@ class ClaudeChatModel(ChatAnthropic):
         """Override to inject prompt caching and thinking budget."""
         payload = super()._get_request_payload(input_, stop=stop, **kwargs)
 
+        if self._is_oauth:
+            self._apply_oauth_billing(payload)
+
         if self.enable_prompt_caching:
             self._apply_prompt_caching(payload)
 
@@ -135,6 +141,34 @@ class ClaudeChatModel(ChatAnthropic):
             self._apply_thinking_budget(payload)
 
         return payload
+
+    def _apply_oauth_billing(self, payload: dict) -> None:
+        """Inject the billing header block required by Claude OAuth requests."""
+        billing_header = os.getenv("ANTHROPIC_BILLING_HEADER", DEFAULT_OAUTH_BILLING_HEADER)
+        billing_block = {"type": "text", "text": billing_header}
+
+        system = payload.get("system")
+        if isinstance(system, list):
+            filtered_system = [
+                block
+                for block in system
+                if not (
+                    isinstance(block, dict)
+                    and block.get("type") == "text"
+                    and block.get("text") == billing_header
+                )
+            ]
+            payload["system"] = [billing_block, *filtered_system]
+        elif isinstance(system, str) and system:
+            payload["system"] = [billing_block, {"type": "text", "text": system}]
+        else:
+            payload["system"] = [billing_block]
+
+        metadata = payload.get("metadata")
+        if not isinstance(metadata, dict):
+            metadata = {}
+        metadata.setdefault("user_id", f"nion-{socket.gethostname()}")
+        payload["metadata"] = metadata
 
     def _apply_prompt_caching(self, payload: dict) -> None:
         """Apply ephemeral cache_control to system and recent messages."""
