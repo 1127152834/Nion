@@ -4,8 +4,8 @@
 
 ### 0948c7a4 vs NION
 - NION evidence: `backend/packages/harness/nion/models/openai_codex_provider.py`, `backend/tests/test_model_factory.py`
-- Current state: NION already has Codex-specific reasoning mapping and streaming provider tests, but the exact `response.completed.output is empty` failure mode still needs a source-level diff check inside `openai_codex_provider.py`.
-- Initial action: `部分同步`
+- Current state: NION already merges streamed Codex output items back into the completed response when `response.output` is incomplete, which is the same core protection upstream added.
+- Initial action: `已等价吸收，无需同步`
 
 ### 43ef3691 vs NION
 - NION evidence: provider tree under `backend/packages/harness/nion/models/`
