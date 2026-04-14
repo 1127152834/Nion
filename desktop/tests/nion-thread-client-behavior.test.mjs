@@ -134,6 +134,38 @@ test("nion thread client streamMessage surfaces SSE error events", async () => {
   globalThis.fetch = originalFetch;
 });
 
+test("nion thread client handles split end event without losing final text", async () => {
+  const createNionThreadClient = await loadThreadClientFactory();
+  const originalFetch = globalThis.fetch;
+
+  globalThis.fetch = async () =>
+    new Response(
+      new ReadableStream({
+        start(controller) {
+          const encoder = new TextEncoder();
+          controller.enqueue(
+            encoder.encode(
+              'event: messages-tuple\ndata: {"type":"ai","content":"done"}\n\n',
+            ),
+          );
+          controller.enqueue(encoder.encode("event: en"));
+          controller.enqueue(encoder.encode("d\ndata: {}"));
+          controller.enqueue(encoder.encode("\n\n"));
+          controller.close();
+        },
+      }),
+      { status: 200, headers: { "Content-Type": "text/event-stream" } },
+    );
+
+  const client = createNionThreadClient("http://127.0.0.1:43115");
+  const result = await client.streamMessage("t-1", "hi");
+
+  assert.equal(result.finalText, "done");
+  assert.ok(result.events.some((event) => event.event === "end"));
+
+  globalThis.fetch = originalFetch;
+});
+
 test("nion thread client forwards client id on bridge permission resolve", async () => {
   const createNionThreadClient = await loadThreadClientFactory();
   const originalFetch = globalThis.fetch;
