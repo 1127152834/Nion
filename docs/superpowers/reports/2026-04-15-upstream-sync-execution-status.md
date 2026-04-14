@@ -89,6 +89,9 @@
 | `792c49e6` align config.example.yaml to GEMINI_API_KEY | `明确不同步` | 无 | `config.example.yaml` 路线不进入当前同步主链。 |
 | `d119214f` ACP harness integration mega-refactor | `当前无安全落点` | 无 | 这是一揽子架构级重切边界与 ACP 能力引入，不能在当前逐提交安全同步流里直接落地。 |
 | `080a03f3` summarization model alias resolution | `已锁定` | 现有代码 | NION 当前 summarization middleware 已通过 runtime model factory 解析配置别名，新增回归测试锁定。 |
+| `690d80f4` task_tool configurable thread_id fallback | `当前无安全落点` | 无 | 方向已被当前更通用的 runtime/thread fallback 模式覆盖，但未形成独立、必要的 NION task_tool 修补任务。 |
+| `520c0352` MemoryMiddleware configurable thread_id fallback | `已等价吸收` | 现有代码 | `memory_middleware.py` 已显式从 `configurable.thread_id` 回退。 |
+| `118485a7` lazy sandbox init configurable thread_id fallback | `已等价吸收` | 现有代码 | `sandbox.tools.ensure_sandbox_initialized()` 已显式从 `runtime.config.configurable.thread_id` 回退。 |
 | `b8bc80d8` shared skill installer / upload manager extraction | `当前无安全落点` | 无 | upstream 的 harness/app split 重构已远超当前逐提交安全同步边界。 |
 | `ae6a791c` config.example.yaml update | `明确不同步` | 无 | `config.example.yaml` 路线不进入当前同步主链。 |
 | `a087fe7b` Gemini thinking/tool-call gateway fix | `当前无安全落点` | 无 | 需要单独 provider/gateway 差口对照，不应在当前批次凭标题落地。 |
