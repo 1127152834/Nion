@@ -530,8 +530,8 @@ export const zhCN: Translations = {
     saveArtifact: "保存工作产物",
     saveArtifactDescription: "将当前工作产物复制到 Notebook。默认进入收件箱，你也可以改到指定目录。",
     saveArtifactSuccess: "{title} 已保存到笔记",
-    extractToMemory: "提炼为记忆",
-    extractToMemoryTitle: "提炼为记忆",
+    extractToMemory: "提炼到记忆",
+    extractToMemoryTitle: "提炼到记忆",
     extractToMemoryDescription:
       "这是一次显式提炼操作，不会自动写入记忆。你可以补充提示词，引导 AI 如何把当前笔记整理成适合长期保留的记忆事实。",
     extractToMemoryInstructionLabel: "提炼提示词",

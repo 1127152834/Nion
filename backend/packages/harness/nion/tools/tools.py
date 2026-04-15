@@ -28,6 +28,7 @@ from nion.tools.builtins import (
     get_incident_tool,
     get_recent_logs_tool,
     get_runtime_status_tool,
+    query_knowledge_base_tool,
     get_skill_diagnostics_tool,
     get_task_diagnostics_tool,
     get_thread_diagnostics_tool,
@@ -64,6 +65,7 @@ DELEGATED_SURFACE_ALLOWED_BUILTIN_TOOLS = frozenset(
 BASE_BUILTIN_TOOLS = [
     present_file_tool,
     ask_clarification_tool,
+    query_knowledge_base_tool,
     get_runtime_status_tool,
     get_capability_catalog_tool,
     get_capability_actions_tool,

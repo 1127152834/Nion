@@ -4,6 +4,7 @@ from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 
 from nion.knowledge.compile_jobs import KnowledgeCompileJobStore
+from nion.knowledge.ingest_service import KnowledgeIngestService
 from nion.knowledge.models import KnowledgeCompileJob, KnowledgePage, KnowledgeSourceCandidate
 from nion.knowledge.graph_service import KnowledgeGraphService
 from nion.knowledge.lint_service import KnowledgeLintService
@@ -11,6 +12,7 @@ from nion.knowledge.page_store import KnowledgePageStore
 from nion.knowledge.query_service import KnowledgeQueryResult, KnowledgeQueryService
 from nion.knowledge.revision_service import KnowledgeRevisionRequest, KnowledgeRevisionService
 from nion.knowledge.source_candidates import KnowledgeSourceCandidateStore
+from nion.memory_os.clock import utcnow_z
 from nion.notebook.service import NotebookService
 
 router = APIRouter(prefix="/api/knowledge", tags=["knowledge"])
@@ -45,7 +47,32 @@ async def approve_knowledge_queue(payload: KnowledgeQueueApprovalRequest) -> Kno
     for source_id in payload.source_ids:
         store.set_status(source_id, status="approved")
     job_store = KnowledgeCompileJobStore()
-    return job_store.create_job(source_ids=payload.source_ids, trigger_mode="queue_approval")
+    job = job_store.create_job(source_ids=payload.source_ids, trigger_mode="queue_approval")
+    started_at = utcnow_z()
+    job_store.update_job(
+        job.job_id,
+        status="running",
+        outputs=job.outputs,
+        started_at=started_at,
+    )
+    try:
+        outputs = KnowledgeIngestService().ingest_sources(payload.source_ids)
+        return job_store.update_job(
+            job.job_id,
+            status="succeeded",
+            outputs={**job.outputs, **outputs},
+            finished_at=utcnow_z(),
+        )
+    except Exception as exc:
+        for source_id in payload.source_ids:
+            store.set_status(source_id, status="failed", compile_error=str(exc))
+        return job_store.update_job(
+            job.job_id,
+            status="failed",
+            outputs=job.outputs,
+            finished_at=utcnow_z(),
+            error_summary=str(exc),
+        )
 
 
 @router.get("/query", response_model=KnowledgeQueryResult)

@@ -41,7 +41,8 @@ def test_knowledge_queue_approval_creates_compile_job(monkeypatch, tmp_path):
         )
 
     assert response.status_code == 200
-    assert response.json()["status"] == "pending"
+    assert response.json()["status"] == "succeeded"
+    assert response.json()["outputs"]["created_pages"]
 
 
 def test_knowledge_query_endpoint_returns_page_based_answer(monkeypatch, tmp_path):

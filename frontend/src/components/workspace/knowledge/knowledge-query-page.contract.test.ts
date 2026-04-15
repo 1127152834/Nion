@@ -11,6 +11,10 @@ void test("knowledge query page renders a page-based query workflow", async () =
   assert.match(source, /query/i);
   assert.match(source, /useKnowledgeQuery/);
   assert.match(source, /useSaveKnowledgeSynthesis/);
+  assert.match(source, /useState\(\"\"\)/);
+  assert.match(source, /onChange=\{/);
+  assert.match(source, /question/);
   assert.match(source, /synthesis|保存/);
+  assert.doesNotMatch(source, /useState\("roadmap"\)/);
   assert.doesNotMatch(source, /notebook/i);
 });

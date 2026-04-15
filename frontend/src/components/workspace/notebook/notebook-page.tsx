@@ -287,12 +287,12 @@ export function NotebookPage() {
   async function handleSendInboxItemToKnowledge(item: NotebookInboxItem) {
     const sourceId = sourceIdFromInboxItem(item);
     if (!sourceId) {
-      toast.error("当前内容暂时无法送入知识队列");
+      toast.error("当前内容暂时无法转为知识库");
       return;
     }
     try {
       await enqueueToKnowledge.mutateAsync(sourceId);
-      toast.success("已送入知识队列");
+      toast.success("已转为知识库，前往知识库状态页即可查看编译进度与结果");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err));
     }
@@ -747,8 +747,8 @@ export function NotebookPage() {
                     emptyDescription: copy.emptyDescription,
                     emptyTitle: copy.emptyTitle,
                     inboxLabel: copy.inboxLabel,
-                    knowledgeQueueLabel: "送入知识队列",
-                    knowledgeStatusLabel: "查看知识状态",
+                    knowledgeQueueLabel: "转为知识库",
+                    knowledgeStatusLabel: "查看知识库状态",
                     organizeLabel: "整理到目录",
                     recentTitle: copy.recentTitle,
                     selectFolderPlaceholder: copy.selectFolderPlaceholder,
@@ -796,8 +796,8 @@ export function NotebookPage() {
                     selectNote: copy.selectNote,
                     draftMetaLabel: copy.draftMetaLabel,
                     extractToMemory: copy.extractToMemory,
-                    knowledgeQueueLabel: "送入知识队列",
-                    knowledgeStatusLabel: "查看知识状态",
+                    knowledgeQueueLabel: "转为知识库",
+                    knowledgeStatusLabel: "查看知识库状态",
                     untitledDraftTitle: copy.untitledDraftTitle,
                     unsaved: copy.unsaved,
                   }}

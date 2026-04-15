@@ -3,6 +3,7 @@
 import {
   AlertCircle,
   CheckCircle2,
+  DatabaseZap,
   Edit3,
   Eye,
   FileText,
@@ -168,6 +169,23 @@ export function NotebookEditorPane({
                 </Button>
               ) : (
                 <div className="flex items-center gap-1 border-l border-[var(--notebook-border)] pl-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={onSendToKnowledge}
+                    className="h-8 rounded-full border-[var(--notebook-border)] bg-[var(--notebook-panel)] px-3 text-[0.78rem] font-medium text-[var(--notebook-ink)] shadow-none hover:bg-[var(--notebook-hover)]"
+                  >
+                    <DatabaseZap className="mr-1.5 size-3.5" />
+                    {copy.knowledgeQueueLabel}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={onOpenKnowledgeStatus}
+                    className="h-8 rounded-full border-[var(--notebook-border)] bg-[var(--notebook-panel)] px-3 text-[0.78rem] font-medium text-[var(--notebook-ink)] shadow-none hover:bg-[var(--notebook-hover)]"
+                  >
+                    {copy.knowledgeStatusLabel}
+                  </Button>
                   <button
                     type="button"
                     onClick={() => setPreviewMode((current) => !current)}
@@ -214,12 +232,6 @@ export function NotebookEditorPane({
                       </DropdownMenuItem>
                       <DropdownMenuItem onSelect={onOpenExtractToMemory}>
                         {copy.extractToMemory}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onSelect={onSendToKnowledge}>
-                        {copy.knowledgeQueueLabel}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onSelect={onOpenKnowledgeStatus}>
-                        {copy.knowledgeStatusLabel}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
