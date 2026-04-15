@@ -65,3 +65,19 @@ void test("chat thread page redirects host-mode setup to sandbox settings when n
   assert.match(source, /hostWorkdirMissingAction/);
   assert.doesNotMatch(source, /confirmText=\{t\.common\.ok\}/);
 });
+
+void test("runtime mode copy no longer claims that host mode works without a preconfigured host directory", async () => {
+  const enSource = await readFile(
+    new URL("../../../core/i18n/locales/en-US.ts", import.meta.url),
+    "utf8",
+  );
+  const zhSource = await readFile(
+    new URL("../../../core/i18n/locales/zh-CN.ts", import.meta.url),
+    "utf8",
+  );
+
+  assert.doesNotMatch(enSource, /does not require a directory up front/);
+  assert.match(enSource, /default host working directory configured in Settings > Sandbox/);
+  assert.doesNotMatch(zhSource, /不要求预先选目录/);
+  assert.match(zhSource, /设置 > 沙箱/);
+});

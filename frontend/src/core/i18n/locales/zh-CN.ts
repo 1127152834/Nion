@@ -240,7 +240,7 @@ export const zhCN: Translations = {
       sandboxTip:
         "在当前线程沙箱中执行，默认产物都留在该线程的工作目录里。",
       hostTip:
-        "允许后端主机执行。Web 端的 host mode 不要求预先选目录；除非显式绑定主机目录，否则产物仍默认写入线程沙箱。",
+        "允许后端主机执行。启用主机模式前，线程必须已经绑定主机目录，或先在 设置 > 沙箱 中配置默认主机工作目录。",
       hostBoundDirectory: "已绑定主机目录",
       hostWorkdirMissingTitle: "切换到主机模式前，必须先设置主机工作目录。",
       hostWorkdirMissingDescription:

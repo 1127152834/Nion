@@ -251,7 +251,7 @@ export const enUS: Translations = {
       sandboxTip:
         "Run inside the thread sandbox. Outputs stay under the thread workdir by default.",
       hostTip:
-        "Allow backend host execution. On web, host mode does not require a directory up front and still defaults to sandbox storage unless a host folder is explicitly bound.",
+        "Allow backend host execution. A thread must already have a bound host directory or a default host working directory configured in Settings > Sandbox before Host mode can be enabled.",
       hostBoundDirectory: "Bound host directory",
       hostWorkdirMissingTitle: "Host mode needs a host working directory first.",
       hostWorkdirMissingDescription:
