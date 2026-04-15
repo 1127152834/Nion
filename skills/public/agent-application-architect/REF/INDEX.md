@@ -27,6 +27,7 @@ Read these first for most requests:
 ### Plugins / Providers / Extensibility
 
 - [Plugin and Provider Architecture](./hermes-wiki/plugin-and-provider-architecture.md)
+- [Memory Provider Semantics Matrix](./hermes-wiki/memory-provider-semantics-matrix.md)
 
 ### Design Methods / Patterns / Tradeoffs
 
