@@ -42,3 +42,46 @@ def test_bridge_surface_uses_channel_policy_for_managed_tools():
     assert "bash" not in names
     assert "web_search" in names
     assert "ask_clarification" in names
+
+
+def test_bridge_surface_prefers_explicit_bridge_policy_over_channel_fallback():
+    config = SimpleNamespace(
+        surface_policy=SurfacePolicyConfig(
+            rules={
+                "bridge": SurfaceRule(
+                    allowed_groups=["bash"],
+                    denied_tools=["web_search"],
+                ),
+                "channel": SurfaceRule(
+                    allowed_groups=["web"],
+                    denied_tools=["bash"],
+                ),
+            }
+        )
+    )
+    catalog = {
+        "bash": ToolCatalogEntry(
+            name="bash",
+            group="bash",
+            source="app-config",
+            policy_managed=True,
+        ),
+        "web_search": ToolCatalogEntry(
+            name="web_search",
+            group="web",
+            source="app-config",
+            policy_managed=True,
+        ),
+    }
+    tools = [
+        SimpleNamespace(name="bash"),
+        SimpleNamespace(name="web_search"),
+        SimpleNamespace(name="ask_clarification"),
+    ]
+
+    filtered = _apply_surface_policy(config, "bridge", tools, catalog)
+    names = [tool.name for tool in filtered]
+
+    assert "bash" in names
+    assert "web_search" not in names
+    assert "ask_clarification" in names
