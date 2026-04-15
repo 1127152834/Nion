@@ -33,6 +33,7 @@ interface RetrievalModelSpec {
   displayName: string;
   sourceModelId: string;
   sourceFile: string;
+  assets: Array<{ role: "onnx" | "tokenizer" | "config"; sourceFile: string; required: boolean }>;
   fallbackSources?: Array<{ sourceModelId: string; sourceFile: string }>;
   approxSizeBytes: number;
   license: string;
@@ -49,6 +50,7 @@ interface RetrievalPackSpec {
 interface RetrievalModelRegistryItem {
   installed: boolean;
   file_path: string;
+  assets?: Record<string, string>;
   sha256: string;
   size_bytes: number;
   source: "modelscope" | "manual_import";
@@ -89,6 +91,11 @@ const MODEL_SPECS: Record<RetrievalModelId, RetrievalModelSpec> = {
     displayName: "Jina Embeddings v2 Base ZH (INT8)",
     sourceModelId: "jinaai/jina-embeddings-v2-base-zh",
     sourceFile: "onnx/model_quantized.onnx",
+    assets: [
+      { role: "onnx", sourceFile: "onnx/model_quantized.onnx", required: true },
+      { role: "tokenizer", sourceFile: "tokenizer.json", required: true },
+      { role: "config", sourceFile: "config.json", required: true }
+    ],
     approxSizeBytes: 154 * 1024 * 1024,
     license: "apache-2.0"
   },
@@ -98,6 +105,11 @@ const MODEL_SPECS: Record<RetrievalModelId, RetrievalModelSpec> = {
     displayName: "Jina Reranker v2 Base Multilingual (Quantized)",
     sourceModelId: "jinaai/jina-reranker-v2-base-multilingual",
     sourceFile: "onnx/model_quantized.onnx",
+    assets: [
+      { role: "onnx", sourceFile: "onnx/model_quantized.onnx", required: true },
+      { role: "tokenizer", sourceFile: "tokenizer.json", required: true },
+      { role: "config", sourceFile: "config.json", required: true }
+    ],
     fallbackSources: [
       {
         sourceModelId: "jinaai/jina-reranker-v2-base-multilingual",
@@ -113,6 +125,11 @@ const MODEL_SPECS: Record<RetrievalModelId, RetrievalModelSpec> = {
     displayName: "BGE Small EN v1.5 (ONNX)",
     sourceModelId: "BAAI/bge-small-en-v1.5",
     sourceFile: "onnx/model.onnx",
+    assets: [
+      { role: "onnx", sourceFile: "onnx/model.onnx", required: true },
+      { role: "tokenizer", sourceFile: "tokenizer.json", required: true },
+      { role: "config", sourceFile: "config.json", required: true }
+    ],
     approxSizeBytes: 127 * 1024 * 1024,
     license: "mit"
   },
@@ -122,6 +139,11 @@ const MODEL_SPECS: Record<RetrievalModelId, RetrievalModelSpec> = {
     displayName: "Jina Reranker v1 Tiny EN (INT8)",
     sourceModelId: "jinaai/jina-reranker-v1-tiny-en",
     sourceFile: "onnx/model_int8.onnx",
+    assets: [
+      { role: "onnx", sourceFile: "onnx/model_int8.onnx", required: true },
+      { role: "tokenizer", sourceFile: "tokenizer.json", required: true },
+      { role: "config", sourceFile: "config.json", required: true }
+    ],
     approxSizeBytes: 32 * 1024 * 1024,
     license: "apache-2.0"
   }
@@ -191,7 +213,7 @@ export class RetrievalModelManager {
     const registry = this.readRegistry();
     const models = Object.values(MODEL_SPECS).map((spec) => {
       const entry = registry.models[spec.modelId];
-      const ready = Boolean(entry?.installed && entry.file_path && existsSync(entry.file_path));
+      const ready = this.isModelReady(spec, entry);
       const packId = this.packIdOfModel(spec.modelId);
       return {
         model_id: spec.modelId,
@@ -199,6 +221,7 @@ export class RetrievalModelManager {
         display_name: spec.displayName,
         source_model_id: spec.sourceModelId,
         source_file: spec.sourceFile,
+        assets: spec.assets,
         approx_size_bytes: spec.approxSizeBytes,
         license: spec.license,
         installed: ready,
@@ -222,7 +245,7 @@ export class RetrievalModelManager {
       const models = pack.modelIds.map((modelId) => {
         const spec = MODEL_SPECS[modelId];
         const entry = registry.models[modelId];
-        const ready = Boolean(entry?.installed && entry.file_path && existsSync(entry.file_path));
+        const ready = this.isModelReady(spec, entry);
         if (ready) {
           installedCount += 1;
         }
@@ -232,6 +255,7 @@ export class RetrievalModelManager {
           display_name: spec.displayName,
           source_model_id: spec.sourceModelId,
           source_file: spec.sourceFile,
+          assets: spec.assets,
           approx_size_bytes: spec.approxSizeBytes,
           license: spec.license,
           installed: ready,
@@ -329,6 +353,7 @@ export class RetrievalModelManager {
     registry.models[normalizedModelId] = {
       installed: true,
       file_path: targetPath,
+      assets: { onnx: targetPath },
       sha256: this.computeSha256(targetPath),
       size_bytes: this.safeFileSize(targetPath),
       source: "manual_import",
@@ -424,10 +449,11 @@ export class RetrievalModelManager {
   ): Promise<void> {
     const t = this.getText();
     const spec = MODEL_SPECS[modelId];
-    const targetPath = this.resolveModelTargetPath(spec);
-    const partPath = `${targetPath}.part`;
-    mkdirSync(path.dirname(targetPath), { recursive: true });
-    rmSync(partPath, { force: true });
+    const assetTargets = this.resolveModelAssetTargets(spec);
+    for (const targetPath of Object.values(assetTargets)) {
+      mkdirSync(path.dirname(targetPath), { recursive: true });
+      rmSync(`${targetPath}.part`, { force: true });
+    }
 
     this.emitProgress({
       packId,
@@ -439,13 +465,98 @@ export class RetrievalModelManager {
       message: renderTemplate(t.progressStartTemplate, { displayName: spec.displayName })
     });
 
-    const response = await this.fetchModelWithFallback(spec, controller);
+    const completedAssets: Record<string, string> = {};
+    let lastSha256 = "";
+    let downloadedBytes = 0;
+    let totalBytes: number | null = null;
+
+    try {
+      for (const asset of spec.assets) {
+        const targetPath = assetTargets[asset.role];
+        const result = await this.downloadAsset(spec, asset.sourceFile, targetPath, controller, {
+          packId,
+          modelId,
+          family: spec.family,
+          displayName: spec.displayName,
+        });
+        completedAssets[asset.role] = targetPath;
+        lastSha256 = result.sha256;
+        downloadedBytes += result.downloadedBytes;
+        if (result.totalBytes !== null) {
+          totalBytes = (totalBytes ?? 0) + result.totalBytes;
+        }
+      }
+    } catch (error) {
+      this.emitProgress({
+        packId,
+        modelId,
+        family: spec.family,
+        status: controller.signal.aborted ? "cancelled" : "failed",
+        downloadedBytes,
+        totalBytes,
+        message: controller.signal.aborted
+          ? renderTemplate(t.progressCancelledTemplate, { displayName: spec.displayName })
+          : renderTemplate(t.progressFailedTemplate, { displayName: spec.displayName, error: String(error) }),
+      });
+      throw error;
+    }
+
+    this.emitProgress({
+      packId,
+      modelId,
+      family: spec.family,
+      status: "verifying",
+      downloadedBytes,
+      totalBytes,
+      message: renderTemplate(t.progressVerifiedTemplate, { displayName: spec.displayName })
+    });
+
+    renameSync(partPath, targetPath);
+    const registry = this.readRegistry();
+    registry.models[modelId] = {
+      installed: true,
+      file_path: assetTargets.onnx,
+      assets: completedAssets,
+      sha256: lastSha256,
+      size_bytes: this.safeFileSize(assetTargets.onnx),
+      source: "modelscope",
+      updated_at: new Date().toISOString(),
+      pack_id: packId
+    };
+    registry.updated_at = new Date().toISOString();
+    this.writeRegistry(registry);
+
+    this.emitProgress({
+      packId,
+      modelId,
+      family: spec.family,
+      status: "completed",
+      downloadedBytes,
+      totalBytes,
+      message: renderTemplate(t.progressCompletedTemplate, { displayName: spec.displayName })
+    });
+  }
+
+  private async downloadAsset(
+    spec: RetrievalModelSpec,
+    sourceFile: string,
+    targetPath: string,
+    controller: AbortController,
+    progress: {
+      packId: RetrievalPackId;
+      modelId: RetrievalModelId;
+      family: "embedding" | "rerank";
+      displayName: string;
+    }
+  ): Promise<{ sha256: string; downloadedBytes: number; totalBytes: number | null }> {
+    const response = await this.fetchModelWithFallback(spec, sourceFile, controller);
     const responseBody = response.body;
     if (!responseBody) {
       throw new Error("model download response body is empty");
     }
 
     const totalBytes = Number.parseInt(response.headers.get("content-length") ?? "0", 10) || null;
+    const partPath = `${targetPath}.part`;
     const writer = createWriteStream(partPath, { flags: "w" });
     const hash = createHash("sha256");
     const reader = responseBody.getReader();
@@ -467,77 +578,25 @@ export class RetrievalModelManager {
           await once(writer as WriteStream, "drain");
         }
         this.emitProgress({
-          packId,
-          modelId,
-          family: spec.family,
+          packId: progress.packId,
+          modelId: progress.modelId,
+          family: progress.family,
           status: "downloading",
           downloadedBytes,
           totalBytes,
-          message: renderTemplate(t.progressDownloadingTemplate, { displayName: spec.displayName })
+          message: renderTemplate(this.getText().progressDownloadingTemplate, {
+            displayName: progress.displayName,
+          }),
         });
       }
-    } catch (error) {
-      if (controller.signal.aborted) {
-        this.emitProgress({
-          packId,
-          modelId,
-          family: spec.family,
-          status: "cancelled",
-          downloadedBytes,
-          totalBytes,
-          message: renderTemplate(t.progressCancelledTemplate, { displayName: spec.displayName })
-        });
-      } else {
-        this.emitProgress({
-          packId,
-          modelId,
-          family: spec.family,
-          status: "failed",
-          downloadedBytes,
-          totalBytes,
-          message: renderTemplate(t.progressFailedTemplate, { displayName: spec.displayName, error: String(error) })
-        });
-      }
-      throw error;
     } finally {
       reader.releaseLock();
       await new Promise<void>((resolve) => writer.end(() => resolve()));
     }
 
     const sha256 = hash.digest("hex");
-    this.emitProgress({
-      packId,
-      modelId,
-      family: spec.family,
-      status: "verifying",
-      downloadedBytes,
-      totalBytes,
-      message: renderTemplate(t.progressVerifiedTemplate, { displayName: spec.displayName })
-    });
-
     renameSync(partPath, targetPath);
-    const registry = this.readRegistry();
-    registry.models[modelId] = {
-      installed: true,
-      file_path: targetPath,
-      sha256,
-      size_bytes: this.safeFileSize(targetPath),
-      source: "modelscope",
-      updated_at: new Date().toISOString(),
-      pack_id: packId
-    };
-    registry.updated_at = new Date().toISOString();
-    this.writeRegistry(registry);
-
-    this.emitProgress({
-      packId,
-      modelId,
-      family: spec.family,
-      status: "completed",
-      downloadedBytes,
-      totalBytes,
-      message: renderTemplate(t.progressCompletedTemplate, { displayName: spec.displayName })
-    });
+    return { sha256, downloadedBytes, totalBytes };
   }
 
   private normalizePackId(packId: string): RetrievalPackId {
@@ -571,14 +630,23 @@ export class RetrievalModelManager {
     return path.join(this.rootDir, "modelscope", modelFolder, normalizedFile);
   }
 
+  private resolveModelAssetTargets(spec: RetrievalModelSpec): Record<string, string> {
+    const modelFolder = spec.sourceModelId.replace("/", "__");
+    return Object.fromEntries(
+      spec.assets.map((asset) => [
+        asset.role,
+        path.join(this.rootDir, "modelscope", modelFolder, asset.sourceFile.replace(/\//g, "__")),
+      ]),
+    );
+  }
+
   private toModelScopeUrl(sourceModelId: string, sourceFile: string): string {
     return `https://modelscope.cn/models/${sourceModelId}/resolve/master/${sourceFile}`;
   }
 
-  private modelUrlCandidates(spec: RetrievalModelSpec): string[] {
+  private modelUrlCandidates(spec: RetrievalModelSpec, sourceFile: string): string[] {
     const sourcePairs = [
-      { sourceModelId: spec.sourceModelId, sourceFile: spec.sourceFile },
-      ...(spec.fallbackSources ?? [])
+      { sourceModelId: spec.sourceModelId, sourceFile },
     ];
     const hosts = ["modelscope.cn", "www.modelscope.cn"];
     const branches = ["master", "main"];
@@ -595,9 +663,10 @@ export class RetrievalModelManager {
 
   private async fetchModelWithFallback(
     spec: RetrievalModelSpec,
+    sourceFile: string,
     controller: AbortController
   ): Promise<Response> {
-    const candidates = this.modelUrlCandidates(spec);
+    const candidates = this.modelUrlCandidates(spec, sourceFile);
     let lastError = "";
     for (const url of candidates) {
       const response = await fetch(url, {

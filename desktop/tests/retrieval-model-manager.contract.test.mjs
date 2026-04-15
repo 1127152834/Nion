@@ -53,3 +53,16 @@ test("desktop main wires retrieval model IPC handlers", () => {
   assert.match(source, /DESKTOP_IPC_CHANNELS\.retrievalPackDownload/);
   assert.match(source, /retrievalModelDownloadProgress/);
 });
+
+test("desktop retrieval model manager tracks multi-asset local models", () => {
+  const source = fs.readFileSync(
+    new URL("../src/main/retrieval-model-manager.ts", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /assets:/);
+  assert.match(source, /role: "tokenizer"/);
+  assert.match(source, /role: "config"/);
+  assert.match(source, /resolveModelAssetTargets/);
+  assert.match(source, /downloadAsset/);
+});

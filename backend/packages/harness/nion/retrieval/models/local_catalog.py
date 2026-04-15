@@ -5,6 +5,13 @@ from typing import Literal
 
 
 @dataclass(frozen=True)
+class LocalModelAsset:
+    role: Literal["onnx", "tokenizer", "config"]
+    source_file: str
+    required: bool = True
+
+
+@dataclass(frozen=True)
 class LocalModelSpec:
     model_id: str
     family: Literal["embedding", "rerank"]
@@ -12,6 +19,7 @@ class LocalModelSpec:
     locale: str
     source_model_id: str
     source_file: str
+    assets: tuple[LocalModelAsset, ...]
     approx_size_bytes: int
     license: str
     dimension: int | None = None
@@ -25,6 +33,11 @@ LOCAL_MODEL_SPECS: tuple[LocalModelSpec, ...] = (
         locale="zh-CN",
         source_model_id="jinaai/jina-embeddings-v2-base-zh",
         source_file="onnx/model_quantized.onnx",
+        assets=(
+            LocalModelAsset(role="onnx", source_file="onnx/model_quantized.onnx"),
+            LocalModelAsset(role="tokenizer", source_file="tokenizer.json"),
+            LocalModelAsset(role="config", source_file="config.json"),
+        ),
         approx_size_bytes=154 * 1024 * 1024,
         license="apache-2.0",
         dimension=768,
@@ -36,6 +49,11 @@ LOCAL_MODEL_SPECS: tuple[LocalModelSpec, ...] = (
         locale="zh-CN",
         source_model_id="jinaai/jina-reranker-v2-base-multilingual",
         source_file="onnx/model_quantized.onnx",
+        assets=(
+            LocalModelAsset(role="onnx", source_file="onnx/model_quantized.onnx"),
+            LocalModelAsset(role="tokenizer", source_file="tokenizer.json"),
+            LocalModelAsset(role="config", source_file="config.json"),
+        ),
         approx_size_bytes=279_577_152,
         license="apache-2.0",
     ),
@@ -46,6 +64,11 @@ LOCAL_MODEL_SPECS: tuple[LocalModelSpec, ...] = (
         locale="en-US",
         source_model_id="BAAI/bge-small-en-v1.5",
         source_file="onnx/model.onnx",
+        assets=(
+            LocalModelAsset(role="onnx", source_file="onnx/model.onnx"),
+            LocalModelAsset(role="tokenizer", source_file="tokenizer.json"),
+            LocalModelAsset(role="config", source_file="config.json"),
+        ),
         approx_size_bytes=127 * 1024 * 1024,
         license="mit",
         dimension=384,
@@ -57,6 +80,11 @@ LOCAL_MODEL_SPECS: tuple[LocalModelSpec, ...] = (
         locale="en-US",
         source_model_id="jinaai/jina-reranker-v1-tiny-en",
         source_file="onnx/model_int8.onnx",
+        assets=(
+            LocalModelAsset(role="onnx", source_file="onnx/model_int8.onnx"),
+            LocalModelAsset(role="tokenizer", source_file="tokenizer.json"),
+            LocalModelAsset(role="config", source_file="config.json"),
+        ),
         approx_size_bytes=32 * 1024 * 1024,
         license="apache-2.0",
     ),

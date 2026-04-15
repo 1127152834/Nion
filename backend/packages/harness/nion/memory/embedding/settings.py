@@ -5,6 +5,12 @@ from pydantic import BaseModel, Field
 
 class EmbeddingSystemSettings(BaseModel):
     mode: str = "remote_managed"
+    local_model_id: str = ""
+    local_model_name: str = ""
+    local_dimensions: int = 0
+    local_onnx_path: str = ""
+    local_tokenizer_path: str = ""
+    local_config_path: str = ""
     remote_endpoint: str = ""
     remote_api_key: str = ""
     remote_model_name: str = "text-embedding-3-large"

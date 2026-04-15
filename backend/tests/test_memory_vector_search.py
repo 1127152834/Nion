@@ -228,6 +228,86 @@ def test_memory_embedding_index_service_reads_embedding_profile_from_retrieval_m
     }
 
 
+def test_memory_embedding_index_service_can_rebuild_with_complete_local_embedding_assets(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    repo = MemoryOSRepository(tmp_path / "memory-os" / "index.sqlite3")
+    repo.save_memory_record(
+        {
+            "memory_id": "mem:user:finance",
+            "domain": "user_model",
+            "subtype": "user_role",
+            "owner_type": "agent",
+            "scope": "user",
+            "memory_type": "semantic",
+            "subject_id": "user:default",
+            "status": "active",
+            "summary": "财务 BP",
+            "confidence": 0.9,
+            "created_at": "2026-04-11T00:00:00Z",
+            "updated_at": "2026-04-11T00:00:00Z",
+            "provenance": {"source_type": "test"},
+        }
+    )
+    model_root = tmp_path / "models" / "retrieval" / "modelscope" / "jinaai__jina-embeddings-v2-base-zh"
+    model_root.mkdir(parents=True)
+    onnx_path = model_root / "onnx__model_quantized.onnx"
+    tokenizer_path = model_root / "tokenizer.json"
+    config_path = model_root / "config.json"
+    onnx_path.write_text("fake-onnx", encoding="utf-8")
+    tokenizer_path.write_text("fake-tokenizer", encoding="utf-8")
+    config_path.write_text("{}", encoding="utf-8")
+    registry_path = tmp_path / "models" / "retrieval" / "registry.json"
+    registry_path.write_text(
+        """
+        {
+          "version": 1,
+          "updated_at": "2026-04-16T00:00:00Z",
+          "models": {
+            "zh-embedding-lite": {
+              "installed": true,
+              "file_path": "modelscope/jinaai__jina-embeddings-v2-base-zh/onnx__model_quantized.onnx",
+              "assets": {
+                "onnx": "modelscope/jinaai__jina-embeddings-v2-base-zh/onnx__model_quantized.onnx",
+                "tokenizer": "modelscope/jinaai__jina-embeddings-v2-base-zh/tokenizer.json",
+                "config": "modelscope/jinaai__jina-embeddings-v2-base-zh/config.json"
+              },
+              "sha256": "stub",
+              "size_bytes": 1,
+              "source": "manual_import",
+              "updated_at": "2026-04-16T00:00:00Z",
+              "pack_id": "zh"
+            }
+          }
+        }
+        """.strip(),
+        encoding="utf-8",
+    )
+    RetrievalModelsSettingsRepository(base_dir=tmp_path).save(
+        RetrievalModelsSettings.model_validate(
+            {
+                "active": {
+                    "embedding": {
+                        "provider": "local_onnx",
+                        "model_id": "zh-embedding-lite",
+                    }
+                }
+            }
+        )
+    )
+
+    monkeypatch.setattr(
+        "nion.memory.embedding.local_provider._load_local_embedding_runtime",
+        lambda bundle: _StubEmbeddingProvider(),
+    )
+
+    result = MemoryEmbeddingIndexService(base_dir=tmp_path, repository=repo).rebuild_full_index()
+
+    assert result["record_count"] == 1
+    assert result["manifest"]["provider_kind"] == "local_onnx"
+
+
 class _StubEmbeddingProvider:
     provider_id = "remote-default"
 

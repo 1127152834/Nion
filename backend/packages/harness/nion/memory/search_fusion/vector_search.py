@@ -10,6 +10,7 @@ from nion.memory.embedding.provider_factory import build_embedding_provider
 from nion.memory.embedding.settings import EmbeddingSystemSettings
 from nion.memory.embedding.vector_store import VectorStoreQuery
 from nion.memory.search_fusion.models import SearchRouteHit
+from nion.retrieval.models.local_catalog import LOCAL_MODEL_SPECS
 from nion.retrieval.models.settings_repository import RetrievalModelsSettingsRepository
 
 logger = logging.getLogger(__name__)
@@ -25,18 +26,7 @@ def search_vector_memory(
 ) -> list[SearchRouteHit]:
     resolved_base_dir = Path(base_dir)
     retrieval_settings = RetrievalModelsSettingsRepository(resolved_base_dir).load()
-    if retrieval_settings.active.embedding.provider != "openai_compatible":
-        logger.info(
-            "Vector search skipped because local embedding runtime is not restored yet; lexical fallback remains active."
-        )
-        return []
-    settings = EmbeddingSystemSettings(
-        mode="remote_managed",
-        remote_endpoint=retrieval_settings.active.embedding.endpoint,
-        remote_api_key=retrieval_settings.active.embedding.api_key,
-        remote_model_name=retrieval_settings.active.embedding.model_name,
-        remote_dimensions=retrieval_settings.active.embedding.dimensions,
-    )
+    settings = _runtime_settings_from_retrieval_profile(resolved_base_dir, retrieval_settings)
 
     try:
         provider = build_embedding_provider(base_dir=resolved_base_dir, settings=settings)
@@ -70,3 +60,40 @@ def search_vector_memory(
         )
         for hit in hits
     ]
+
+
+def _runtime_settings_from_retrieval_profile(base_dir: Path, retrieval_settings) -> EmbeddingSystemSettings:
+    embedding = retrieval_settings.active.embedding
+    if embedding.provider == "openai_compatible":
+        return EmbeddingSystemSettings(
+            mode="remote_managed",
+            remote_endpoint=embedding.endpoint,
+            remote_api_key=embedding.api_key,
+            remote_model_name=embedding.model_name,
+            remote_dimensions=embedding.dimensions,
+        )
+
+    spec = next(
+        (item for item in LOCAL_MODEL_SPECS if item.model_id == embedding.model_id and item.family == "embedding"),
+        None,
+    )
+    if spec is None:
+        raise ValueError(f"Unknown local embedding model: {embedding.model_id}")
+    model_root = base_dir / "models" / "retrieval" / "modelscope" / spec.source_model_id.replace("/", "__")
+    onnx_path = model_root / spec.source_file.replace("/", "__")
+    tokenizer_path = model_root / "tokenizer.json"
+    config_path = model_root / "config.json"
+    missing = [str(path) for path in (onnx_path, tokenizer_path, config_path) if not path.exists()]
+    if missing:
+        raise ValueError(
+            "Local embedding assets are incomplete; vector search falls back until tokenizer/config are restored."
+        )
+    return EmbeddingSystemSettings(
+        mode="local_onnx",
+        local_model_id=spec.model_id,
+        local_model_name=spec.source_model_id,
+        local_dimensions=spec.dimension or 0,
+        local_onnx_path=str(onnx_path),
+        local_tokenizer_path=str(tokenizer_path),
+        local_config_path=str(config_path),
+    )

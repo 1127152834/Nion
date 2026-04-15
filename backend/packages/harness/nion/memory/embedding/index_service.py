@@ -11,6 +11,7 @@ from nion.memory.embedding.settings_repository import EmbeddingSettingsRepositor
 from nion.memory.embedding.vector_store import VectorStoreIndexMetadata, VectorStoreRecord
 from nion.memory_os.clock import utcnow_z
 from nion.memory_os.repository import MemoryOSRepository
+from nion.retrieval.models.local_catalog import LOCAL_MODEL_SPECS
 from nion.retrieval.models.settings_repository import RetrievalModelsSettingsRepository
 
 STRUCTURED_VECTOR_DOMAINS = {"user_model", "relationship", "agent_self", "soul", "procedure"}
@@ -38,9 +39,24 @@ class MemoryEmbeddingIndexService:
 
     def _load_runtime_settings(self) -> EmbeddingSystemSettings:
         retrieval_settings = RetrievalModelsSettingsRepository(self._base_dir).load()
-        if retrieval_settings.active.embedding.provider != "openai_compatible":
-            raise ValueError("Local embedding runtime is not restored yet.")
         persisted = self._settings_repository.load()
+        if retrieval_settings.active.embedding.provider == "local_onnx":
+            bundle = _resolve_local_embedding_bundle(self._base_dir, retrieval_settings.active.embedding.model_id)
+            return EmbeddingSystemSettings(
+                mode="local_onnx",
+                local_model_id=bundle["model_id"],
+                local_model_name=bundle["model_name"],
+                local_dimensions=bundle["dimensions"],
+                local_onnx_path=bundle["onnx_path"],
+                local_tokenizer_path=bundle["tokenizer_path"],
+                local_config_path=bundle["config_path"],
+                distance_metric=persisted.distance_metric,
+                last_rebuild_at=persisted.last_rebuild_at,
+                health_state=persisted.health_state,
+                health_detail=persisted.health_detail,
+                active_fingerprint=persisted.active_fingerprint,
+                extra=persisted.extra,
+            )
         return EmbeddingSystemSettings(
             mode="remote_managed",
             remote_endpoint=retrieval_settings.active.embedding.endpoint,
@@ -123,3 +139,28 @@ class MemoryEmbeddingIndexService:
             json.dumps(manifest, ensure_ascii=False, indent=2),
             encoding="utf-8",
         )
+
+
+def _resolve_local_embedding_bundle(base_dir: Path, model_id: str | None) -> dict[str, Any]:
+    if not model_id:
+        raise ValueError("Local embedding model_id is required.")
+    spec = next((item for item in LOCAL_MODEL_SPECS if item.model_id == model_id and item.family == "embedding"), None)
+    if spec is None:
+        raise ValueError(f"Unknown local embedding model: {model_id}")
+    model_root = base_dir / "models" / "retrieval" / "modelscope" / spec.source_model_id.replace("/", "__")
+    onnx_path = model_root / spec.source_file.replace("/", "__")
+    tokenizer_path = model_root / "tokenizer.json"
+    config_path = model_root / "config.json"
+    missing = [str(path) for path in (onnx_path, tokenizer_path, config_path) if not path.exists()]
+    if missing:
+        raise ValueError(
+            "Local embedding assets are incomplete; tokenizer/config must be restored before Memory local indexing can run."
+        )
+    return {
+        "model_id": spec.model_id,
+        "model_name": spec.source_model_id,
+        "dimensions": spec.dimension or 0,
+        "onnx_path": str(onnx_path),
+        "tokenizer_path": str(tokenizer_path),
+        "config_path": str(config_path),
+    }

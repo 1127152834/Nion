@@ -9,6 +9,7 @@ from .models import EmbeddingModelFingerprint, VectorIndexSnapshot
 EmbeddingProviderKind = Literal[
     "remote_managed",
     "custom_compatible",
+    "local_onnx",
 ]
 
 
