@@ -32,6 +32,7 @@ import {
   asString,
   cloneConfig,
   type ConfigDraft,
+  toInputValue,
 } from "../shared";
 
 type ContextSizeType = "tokens" | "messages" | "fraction";
@@ -292,7 +293,7 @@ export function SummarizationSection({
                       ? "0.8"
                       : String(DEFAULT_SUMMARIZATION_TOKEN_LIMIT)
                   }
-                  value={asString(trigger.value)}
+                  value={toInputValue(trigger.value)}
                   onChange={(event) =>
                     updateTrigger(
                       index,
@@ -367,7 +368,7 @@ export function SummarizationSection({
                 type="number"
                 step={keepType === "fraction" ? "0.1" : "1"}
                 placeholder={keepType === "fraction" ? "0.2" : "12"}
-                value={asString(keep.value)}
+                value={toInputValue(keep.value)}
                 onChange={(event) =>
                   updateKeep(
                     "value",

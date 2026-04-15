@@ -68,10 +68,12 @@ import {
 } from "../../model-management/provider-connection";
 import {
   asArray,
+  asOptionalNumber,
   asBoolean,
   asString,
   cloneConfig,
   type ConfigDraft,
+  toInputValue,
 } from "../shared";
 
 const MODEL_PROVIDERS_KEY = "model_providers";
@@ -243,8 +245,8 @@ function inferProviderLabelFromUse(use: string, index: number): string {
 }
 
 function normalizeCatalogModel(item: Record<string, unknown>): ProviderCatalogModel {
-  const contextWindow = parseNumberInput(asString(item.context_window));
-  const maxOutputTokens = parseNumberInput(asString(item.max_output_tokens));
+  const contextWindow = asOptionalNumber(item.context_window);
+  const maxOutputTokens = asOptionalNumber(item.max_output_tokens);
   return {
     id: asString(item.id).trim(),
     name: asString(item.name).trim() || undefined,
@@ -645,14 +647,14 @@ function mergeModelMetadata(
 
   if (
     typeof metadata.max_output_tokens === "number"
-    && parseNumberInput(asString(current.max_tokens)) === undefined
+    && asOptionalNumber(current.max_tokens) === undefined
   ) {
     next.max_tokens = metadata.max_output_tokens;
   }
 
   if (
     typeof metadata.context_window === "number"
-    && parseNumberInput(asString(current.context_window)) === undefined
+    && asOptionalNumber(current.context_window) === undefined
   ) {
     next.context_window = metadata.context_window;
   }
@@ -1670,13 +1672,13 @@ export function ModelsSection({
       }
       if (
         typeof option.max_output_tokens === "number"
-        && parseNumberInput(asString(current.max_tokens)) === undefined
+        && asOptionalNumber(current.max_tokens) === undefined
       ) {
         nextModel.max_tokens = option.max_output_tokens;
       }
       if (
         typeof option.context_window === "number"
-        && parseNumberInput(asString(current.context_window)) === undefined
+        && asOptionalNumber(current.context_window) === undefined
       ) {
         nextModel.context_window = option.context_window;
       }
@@ -3161,7 +3163,7 @@ export function ModelsSection({
                 <Input
                   type="number"
                   placeholder="4096"
-                  value={asString(model.max_tokens)}
+                  value={toInputValue(model.max_tokens)}
                   onChange={(e) =>
                     updateOptionalNumberField(index, "max_tokens", e.target.value)
                   }
@@ -3173,7 +3175,7 @@ export function ModelsSection({
                 <Input
                   type="number"
                   placeholder="128000"
-                  value={asString(model.context_window)}
+                  value={toInputValue(model.context_window)}
                   onChange={(e) =>
                     updateOptionalNumberField(index, "context_window", e.target.value)
                   }
@@ -3186,7 +3188,7 @@ export function ModelsSection({
                   type="number"
                   step="0.1"
                   placeholder="0.7"
-                  value={asString(model.temperature)}
+                  value={toInputValue(model.temperature)}
                   onChange={(e) =>
                     updateOptionalNumberField(index, "temperature", e.target.value)
                   }

@@ -31,6 +31,7 @@ import {
   asString,
   cloneConfig,
   type ConfigDraft,
+  toInputValue,
 } from "../shared";
 
 function parseOptionalInteger(value: string): number | undefined {
@@ -163,7 +164,7 @@ export function TitleSection({
               <Input
                 type="number"
                 placeholder="6"
-                value={asString(title.max_words)}
+                value={toInputValue(title.max_words)}
                 onChange={(event) =>
                   updateTitle(
                     "max_words",
@@ -178,7 +179,7 @@ export function TitleSection({
               <Input
                 type="number"
                 placeholder="60"
-                value={asString(title.max_chars)}
+                value={toInputValue(title.max_chars)}
                 onChange={(event) =>
                   updateTitle(
                     "max_chars",

@@ -28,6 +28,7 @@ import {
   asString,
   cloneConfig,
   type ConfigDraft,
+  toInputValue,
 } from "../shared";
 
 function getSandboxMode(useValue: string): "local" | "aio" | "custom" {
@@ -300,7 +301,7 @@ export function SandboxSection({
                   <div className="text-xs font-medium">{copy.port}</div>
                   <Input
                     type="number"
-                    value={asString(sandbox.port)}
+                    value={toInputValue(sandbox.port)}
                     placeholder="8080"
                     onChange={(e) => updateSandboxNumber("port", e.target.value)}
                     disabled={disabled}
@@ -328,7 +329,7 @@ export function SandboxSection({
                   <div className="text-xs font-medium">{copy.idleTimeout}</div>
                   <Input
                     type="number"
-                    value={asString(sandbox.idle_timeout)}
+                    value={toInputValue(sandbox.idle_timeout)}
                     placeholder="600"
                     onChange={(e) =>
                       updateSandboxNumber("idle_timeout", e.target.value)

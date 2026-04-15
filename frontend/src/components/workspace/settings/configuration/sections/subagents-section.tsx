@@ -6,7 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useI18n } from "@/core/i18n/hooks";
 
-import { asObject, cloneConfig, type ConfigDraft } from "../shared";
+import {
+  asObject,
+  cloneConfig,
+  type ConfigDraft,
+  toInputValue,
+} from "../shared";
 
 function parsePositiveInt(value: string): number | undefined {
   if (!value.trim()) {
@@ -17,16 +22,6 @@ function parsePositiveInt(value: string): number | undefined {
     return undefined;
   }
   return Math.trunc(parsed);
-}
-
-function toInputValue(value: unknown): string {
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return String(Math.trunc(value));
-  }
-  if (typeof value === "string") {
-    return value;
-  }
-  return "";
 }
 
 export function SubagentsSection({

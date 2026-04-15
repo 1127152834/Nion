@@ -25,6 +25,26 @@ export function asString(value: unknown): string {
   return typeof value === "string" ? value : "";
 }
 
+export function toInputValue(value: unknown): string {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value);
+  }
+  return asString(value);
+}
+
+export function asOptionalNumber(value: unknown): number | undefined {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === "string" && value.trim() !== "") {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+  return undefined;
+}
+
 export function asNumber(value: unknown, fallback = 0): number {
   if (typeof value === "number" && Number.isFinite(value)) {
     return value;
