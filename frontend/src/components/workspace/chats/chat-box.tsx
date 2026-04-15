@@ -275,6 +275,7 @@ const ChatBox: React.FC<{ children: React.ReactNode; threadId: string }> = ({
                       className="max-w-(--container-width-sm) p-4 pt-12"
                       files={displayedFiles}
                       threadId={threadId}
+                      panelType={panelType}
                     />
                   </main>
                 </div>

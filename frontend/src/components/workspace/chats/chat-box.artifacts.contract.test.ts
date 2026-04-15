@@ -17,3 +17,9 @@ void test("working-directory panel auto-selects the first file so the preview pa
   assert.match(source, /workingDirectoryFiles\.length > 0/);
   assert.match(source, /selectArtifact\(workingDirectoryFiles\[0]!\)/);
 });
+
+void test("chat box passes the current panel type into the file list so working-directory clicks do not switch back to artifacts mode", async () => {
+  const source = await readFile(new URL("./chat-box.tsx", import.meta.url), "utf8");
+
+  assert.match(source, /<ArtifactFileList[\s\S]*panelType=\{panelType\}/);
+});

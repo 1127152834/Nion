@@ -17,7 +17,11 @@ export interface ArtifactsContextType {
 
   selectedArtifact: string | null;
   autoSelect: boolean;
-  select: (artifact: string, autoSelect?: boolean) => void;
+  select: (
+    artifact: string,
+    autoSelect?: boolean,
+    panelType?: ArtifactPanelType,
+  ) => void;
   deselect: () => void;
 
   open: boolean;
@@ -47,9 +51,13 @@ export function ArtifactsProvider({ children }: ArtifactsProviderProps) {
   const { setOpen: setSidebarOpen } = useSidebar();
 
   const select = useCallback(
-    (artifact: string, autoSelect = false) => {
+    (
+      artifact: string,
+      autoSelect = false,
+      nextPanelType: ArtifactPanelType = "artifacts",
+    ) => {
       setSelectedArtifact(artifact);
-      setPanelType("artifacts");
+      setPanelType(nextPanelType);
       if (env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY !== "true") {
         setSidebarOpen(false);
       }

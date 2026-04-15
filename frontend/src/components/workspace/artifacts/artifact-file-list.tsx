@@ -20,16 +20,18 @@ import {
 } from "@/core/utils/files";
 import { cn } from "@/lib/utils";
 
-import { useArtifacts } from "./context";
+import { type ArtifactPanelType, useArtifacts } from "./context";
 
 export function ArtifactFileList({
   className,
   files,
   threadId,
+  panelType = "artifacts",
 }: {
   className?: string;
   files: string[];
   threadId: string;
+  panelType?: ArtifactPanelType;
 }) {
   const { t } = useI18n();
   const { select: selectArtifact, setOpen } = useArtifacts();
@@ -37,10 +39,10 @@ export function ArtifactFileList({
 
   const handleClick = useCallback(
     (filepath: string) => {
-      selectArtifact(filepath);
+      selectArtifact(filepath, false, panelType);
       setOpen(true);
     },
-    [selectArtifact, setOpen],
+    [panelType, selectArtifact, setOpen],
   );
 
   const handleInstallSkill = useCallback(
