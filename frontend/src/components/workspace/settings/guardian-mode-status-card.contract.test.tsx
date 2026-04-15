@@ -8,7 +8,7 @@ void test("daemon settings page reframes daemon surface as guardian mode status"
     "utf8",
   );
 
-  assert.match(source, /GuardianModeStatusCard/);
+  assert.match(source, /<GuardianModeStatusCard status=\{guardianStatus\} \/>/);
   assert.match(source, /title="Guardian Mode"/);
   assert.match(
     source,
