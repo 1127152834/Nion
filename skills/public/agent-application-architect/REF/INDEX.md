@@ -22,6 +22,7 @@ Read these first for most requests:
 
 - [Runtime Architecture](./hermes-wiki/runtime-architecture.md)
 - [Service Runtime and Time Model](./hermes-wiki/service-runtime-and-time-model.md)
+- [Learning Loop and Self-Evolution](./hermes-wiki/learning-loop-and-self-evolution.md)
 
 ### Plugins / Providers / Extensibility
 

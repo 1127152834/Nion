@@ -34,6 +34,7 @@ Hermes 最值得学的不是某一个单点功能，而是下面这套一体化�
 - [evolution-and-failure-corpus.md](./evolution-and-failure-corpus.md)：Hermes 从 v0.6 到 v0.7 的架构收敛路径，以及关键失败模式语料
 - [cross-system-comparison.md](./cross-system-comparison.md)：Hermes、OpenClaw、Claude Skills、Codex 在 agent 设计范式上的异同
 - [expert-skill-review-framework.md](./expert-skill-review-framework.md)：未来专家 skill 应内置的反模式、审查问题和设计评估框架
+- [learning-loop-and-self-evolution.md](./learning-loop-and-self-evolution.md)：Hermes 的记忆分层、反思/蒸馏、自进化闭环，以及哪些能力已内置、哪些仍在外部演化管线
 - [openclaw-vs-hermes.md](./openclaw-vs-hermes.md)：和 OpenClaw 的对照，帮助明确 Hermes 的独特取舍
 
 ## 阅读顺序建议
@@ -53,8 +54,9 @@ Hermes 最值得学的不是某一个单点功能，而是下面这套一体化�
 11. `evolution-and-failure-corpus.md`
 12. `cross-system-comparison.md`
 13. `expert-skill-review-framework.md`
-14. `openclaw-vs-hermes.md`
-15. `research-log.md`
+14. `learning-loop-and-self-evolution.md`
+15. `openclaw-vs-hermes.md`
+16. `research-log.md`
 
 ## 维护原则
 
