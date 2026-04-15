@@ -847,6 +847,21 @@ export async function startDesktopMain(): Promise<void> {
   ipcMain.handle(DESKTOP_BRIDGE_IPC_CHANNELS.getStatus, () => {
     return bridgeManager.getStatus();
   });
+  ipcMain.handle(DESKTOP_BRIDGE_IPC_CHANNELS.bridgeRuntimeInfo, () => {
+    const status = bridgeManager.getStatus();
+    const activeBindings = bridgeBindingsStore
+      .listBindings()
+      .filter((binding) => binding.active).length;
+    const openIncidents = bridgeIncidentsStore.listIncidents({ status: "open" }).length;
+    return {
+      running: status.running,
+      autoStartEnabled: bridgeSettingsCache.bridge_auto_start === "true",
+      enabledPlatforms: status.enabledPlatforms,
+      activeBindings,
+      openIncidents,
+      startedAt: status.startedAt,
+    };
+  });
   ipcMain.handle(DESKTOP_BRIDGE_IPC_CHANNELS.listBindings, () => {
     return bridgeBindingsStore.listBindings();
   });

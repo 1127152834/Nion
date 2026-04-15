@@ -2,6 +2,7 @@ export const DESKTOP_BRIDGE_IPC_CHANNELS = {
   getSettings: "bridge:get-settings",
   saveSettings: "bridge:save-settings",
   getStatus: "bridge:get-status",
+  bridgeRuntimeInfo: "bridge:get-runtime-info",
   listBindings: "bridge:list-bindings",
   start: "bridge:start",
   stop: "bridge:stop",
@@ -32,6 +33,15 @@ export type DesktopBridgeStatus = {
   startedAt: string | null;
   enabledPlatforms: string[];
   adapters: DesktopBridgeAdapterStatus[];
+};
+
+export type DesktopBridgeRuntimeInfo = {
+  running: boolean;
+  autoStartEnabled: boolean;
+  enabledPlatforms: string[];
+  activeBindings: number;
+  openIncidents: number;
+  startedAt: string | null;
 };
 
 export type DesktopBridgeAdapterStatus = {
