@@ -184,6 +184,8 @@ Desktop daemon client contract:
 
 - Electron heartbeats must preserve a stable `client_id` across daemon replacement/restart.
 - `POST /api/daemon/clients/{client_id}/heartbeat` may receive `client_type`; when a session is missing after daemon replacement, it should recover that same `client_id` instead of forcing the desktop shell into repeated `404 client not found`.
+- `/api/daemon/runtime-info` must remain backward compatible for existing desktop consumers, but now also carries product-facing `guardian_mode` and `bridge_runtime` summary objects for Guardian Mode surfaces.
+- `guardian_mode.status` is a bounded contract (`standing_by` | `busy` | `offline`), not a free-form string.
 
 Runtime profile execution contract:
 
@@ -201,6 +203,13 @@ Runtime profile execution contract:
   bound directory, `read_file` / `ls` / `write_file` / `str_replace` / `glob` /
   `grep` may resolve either `/mnt/user-data/*` virtual paths or absolute paths
   inside that bound host directory, but must still reject paths outside it.
+- Bridge-triggered thread streams are part of the same runtime mainline. When a
+  bridge binding carries a normalized working directory, bridge runs must pass
+  `execution_mode=host` plus that normalized `host_workdir`; empty or whitespace
+  workdir values must fall back to `execution_mode=sandbox` and `host_workdir=None`.
+- `bridge` is now a first-class runtime surface name. If no explicit bridge
+  surface policy is configured, it must inherit the `channel` rule instead of
+  silently resolving to an unrestricted empty rule.
 
 Prompt assembly contract:
 
@@ -222,6 +231,10 @@ Delegated custom-agent orchestration contract:
 Bridge configuration direction:
 - Bridge credentials, enabled flags, verification state, and defaults are moving into Config Center / `config.db`
 - Bridge runtime state (bindings, offsets, incidents, observations, weixin account session data) remains desktop-local for now
+- Product framing rule: `/workspace/bridge` is no longer just “bridge bot settings”.
+  It is the unified remote-entry management surface for the same guardian-mode
+  computer, so page-level copy should describe shared computer/task/confirmation
+  semantics while leaving platform-specific sections intact.
 
 If a gateway route is added and the Electron renderer consumes it, update
 `app/daemon/app.py` too or the desktop shell will return 404 while the web/gateway

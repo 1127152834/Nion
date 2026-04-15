@@ -14,6 +14,24 @@
 - custom-agent orchestration
   - backend: child-run repository / router / delegation policy / mention parser / orchestrator graph / delegated thread routing
   - frontend: dedicated sidebar child-run panel / child-run inspector contract / main-thread delegation summary / recent-chat two-tab taxonomy / input-box `@` notebook-agent tabs
+- guardian mode / unified remote entry（当前尚未独立成册）
+  - backend:
+    - `/api/daemon/runtime-info` 需要同时覆盖旧字段兼容和 `guardian_mode` / `bridge_runtime` 新摘要合同
+    - `bridge` surface policy fallback 到 `channel`
+    - bridge 触发的 `/stream` 需要把 `execution_mode` / `host_workdir` 带入 runtime 主链
+  - desktop / frontend:
+    - `Settings > Daemon` 需要显示 guardian-mode 状态卡，且状态来自真实 runtime 信息而不是纯配置值
+    - guardian runtime helper 需要覆盖 bridge-only fallback、daemon override、daemon failure fallback、invalid status -> offline
+    - `/workspace/bridge` 需要保持平台 tabs 不变，同时以“统一远程入口” framing 页面级文案
+  - 代码级入口：
+    - `backend/tests/test_surface_policy_config.py`
+    - `backend/tests/test_bridge_surface_policy.py`
+    - `backend/tests/test_local_daemon_api.py`
+    - `backend/tests/test_guardian_mode_runtime_info.py`
+    - `desktop/tests/bridge-thread-client.contract.test.mjs`
+    - `frontend/src/core/threads/desktop-client.test.ts`
+    - `frontend/src/components/workspace/settings/guardian-mode-status-card.contract.test.ts`
+    - `frontend/src/components/workspace/bridge/bridge-layout-guardian-copy.contract.test.ts`
 
 维护约定：
 

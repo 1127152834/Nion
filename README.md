@@ -64,6 +64,11 @@
 - `make desktop-dev` 现在会在启动前自动强制停止旧的 Vite renderer、旧的 Electron 主进程，以及占用 `127.0.0.1:43115` 的本地 daemon，避免新一轮开发会话复用上一轮残留进程
 - `make desktop-start` 会直接启动已编译好的桌面端，不再重复编译
 - `nion daemon status` 与 `nion daemon stop` 提供本地 daemon 管理入口
+- Desktop 产品面现在开始把本地 daemon 明确收口为 `Guardian Mode / 值守模式`：用户面对的是“窗口关闭后仍持续在线的个人电脑”，而不是一个裸露的后台守护进程开关
+- `/api/daemon/runtime-info` 现在除保留原有 `allow_background_running` 外，还会返回 `guardian_mode` 与 `bridge_runtime` 摘要，供桌面产品面展示真实运行态而不是只显示配置值
+- bridge 线程现在会把 binding 的工作目录显式映射进 runtime 主链的 `execution_mode` / `host_workdir` 上下文；空字符串和纯空白目录会稳定回落到 `sandbox`，不再依赖字符串 truthiness
+- `bridge` surface 现在会显式继承 `channel` surface policy（若未单独配置 `bridge` 规则），避免 bridge run 静默绕过既有工具分组限制
+- `/workspace/bridge` 现在以“统一远程入口”而不是“若干 bridge bot 设置页”来 framing：所有已连接渠道都被表述为进入同一台电脑、同一组任务和同一个确认队列的入口
 
 ## Notebook
 
@@ -129,6 +134,12 @@ Program 03D-B 已把 desktop bridge incident workflow 补上：
 - recovery workflow 仍然是 suggestion-first，必须确认后才会执行 `bridge:run-action`
 - 当前 bridge 页面已经包含最小 self-heal panel，后续 richer diagnostics center 会在此基础上继续扩展
 - `binding_resolution_error`、`permission_workflow_stuck` 仍然是后续阶段
+
+当前还新增了首批 Guardian Mode / Remote Entry 合同收口：
+
+- `Settings > Daemon` 现在开始按 `Guardian Mode / 值守模式` 呈现，并显示基于运行态计算出的 `standing_by / busy / offline` 状态，而不是只显示 daemon 配置布尔值
+- guardian settings 通过桌面 runtime helper 汇总 desktop runtime bridge + `/api/daemon/runtime-info` 的结果，以一个 settings-facing contract 暴露给页面
+- 当前这个产品面仍然只做单用户、一台个人电脑；不覆盖团队、多用户或任意远程控机
 
 这些事件必须既可查询，又要有人能直接读懂。
 
