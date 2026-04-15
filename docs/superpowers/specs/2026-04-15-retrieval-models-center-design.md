@@ -6,6 +6,29 @@
 
 ---
 
+## Overrides / Supersedes
+
+本设计不是一个“并行提议”，而是对既有 retrieval 设置归属的显式修正。
+
+它覆盖以下旧结论中的 retrieval 归属部分：
+
+- [2026-04-13-memory-identity-soul-ui-and-file-model-refactor-design.md](/Users/zhangtiancheng/Documents/项目/agent/nion/docs/superpowers/specs/2026-04-13-memory-identity-soul-ui-and-file-model-refactor-design.md)
+  - 覆盖其中把 `索引 / embedding / retrieval 系统设置` 挂在 `Memory Settings` 下的结论
+- [2026-04-11-memory-soul-vector-closure-subproject-b-implementation-plan.md](/Users/zhangtiancheng/Documents/项目/agent/nion/docs/superpowers/plans/2026-04-11-memory-soul-vector-closure-subproject-b-implementation-plan.md)
+  - 覆盖其中把向量模型能力当作 Memory 私有配置面的落地方向
+
+本设计**不覆盖**以下既有边界：
+
+- `/workspace/memory` 仍然是 Memory 内容页，继续只展示“用户画像 / 长期背景 / 事实记忆”
+- `Settings > 记忆` 只是设置态状态页，不是 `/workspace/memory` 的替身
+- `Memory / Identity / Soul` 的 owner 边界仍服从 [2026-04-09-memory-soul-boundary-contracts-design.md](/Users/zhangtiancheng/Documents/项目/agent/nion/docs/superpowers/specs/2026-04-09-memory-soul-boundary-contracts-design.md)
+
+一句话：
+
+> 本设计修正的是“检索模型配置归属”，不是推翻 Memory 内容页边界。
+
+---
+
 ## 1. 为什么这轮必须重构
 
 当前系统把向量模型能力挂在 `Settings > 记忆` 下面，这个边界是错的。
@@ -59,7 +82,7 @@
 
 一句话：
 
-> Memory 页面只看状态，不再配模型。
+> `Settings > 记忆` 只看状态，不再配模型；`/workspace/memory` 继续是内容页，不做检索设置台。
 
 ### 2.4 本地向量模型重新允许，但不再挂在记忆页
 
@@ -156,9 +179,11 @@ Memory 不再单独拥有模型配置。
 
 同上。
 
-## 4.3 Memory 页面内部结构
+## 4.3 `Settings > 记忆` 状态页结构
 
-Memory 页面重构后只保留：
+这里说的是 `Settings > 记忆`，不是 `/workspace/memory`。
+
+`Settings > 记忆` 重构后只保留：
 
 1. 记忆检索增强状态
    - 基础长期记忆：可用 / 不可用
@@ -179,6 +204,23 @@ Memory 页面重构后只保留：
 - 模型切换器
 
 这些都迁走。
+
+### 4.4 `/workspace/memory` 内容页边界保持不变
+
+正式的 `/workspace/memory` 仍然只展示：
+
+- 用户画像
+- 长期背景
+- 事实记忆
+
+它不承担以下职责：
+
+- 检索模型配置
+- embedding / reranker provider 配置
+- 索引重建动作
+- 模型下载或启用
+
+这点必须保持硬边界，否则会重新撞回旧的 Memory 配置台模型。
 
 ---
 
@@ -220,6 +262,28 @@ Memory 页面重构后只保留：
 - 切换本地 / API
 
 这些都放在折叠区或高级区。
+
+## 5.2.1 运行环境 capability matrix
+
+普通用户主流程不能脱离机器条件和企业环境现实来定义。
+
+本轮设计明确以下 capability matrix：
+
+| 环境 | 本地模型默认策略 | API 模型默认策略 | 允许暴露的主操作 |
+|---|---|---|---|
+| 桌面个人环境，磁盘/联网正常 | 可作为推荐组合主路径 | 可作为高级路径 | `一键准备`、`测试检索`、`重建相关索引` |
+| 桌面企业环境，本地下载受限 | 不默认展示本地推荐主按钮 | 作为主路径 | `保存接口配置`、`测试连接`、`重建相关索引` |
+| Web / Browser-only 环境 | 不支持本地下载 | 作为唯一配置路径 | `保存接口配置`、`测试连接`、`重建相关索引` |
+| Runtime 未就绪 / skeleton 阶段 | 只展示状态，不开放承诺型动作 | 只展示状态，不开放承诺型动作 | `状态查看`、跳转说明 |
+
+约束：
+
+- 是否展示 `一键准备`，取决于 runtime capability，而不是只取决于产品想象。
+- 本地模型下载失败时，必须给出确定性回退：
+  - 如果 API 能力可用，引导改用 API
+  - 如果 API 也不可用，回退到非向量检索并明确说明“长期记忆仍可用，但语义增强未启用”
+
+这不是实现细节，而是产品合同。
 
 ## 5.3 本地模型交互
 
@@ -308,6 +372,36 @@ API 模式必须支持：
 - 模型测试能力
 - 消费者索引重建触发
 
+### 7.1.1 Retrieval Profile / Consumer Compatibility Contract
+
+本设计在 phase 1 明确采用 **single active retrieval profile**：
+
+- 全系统只有一套 active retrieval profile
+- 该 profile 至少包含：
+  - embedding fingerprint
+  - reranker fingerprint
+  - chunking policy version
+  - index schema version
+
+phase 1 规则：
+
+1. `Memory`、`Knowledge Base`、未来 `Notebook` 默认共享同一套 active retrieval profile
+2. 不允许 per-consumer model override
+3. 每个 consumer 维护自己的 index namespace，但都绑定同一个 retrieval profile fingerprint + schema version
+4. 当 active retrieval profile 变化时：
+   - 所有 consumer index 一律标记为 `stale`
+   - 查询可继续走非向量回退
+   - 只有完成对应 consumer rebuild 后，语义增强重新可用
+
+这意味着：
+
+- “统一重建相关索引”不是一句口号，而是“对所有 stale consumer 执行 rebuild job”
+- 如果未来要支持 per-consumer override，那是 phase 2 设计，不在本稿范围内
+
+一句话：
+
+> phase 1 先用一套全局 retrieval profile 换确定性；不要一开始就把 per-consumer 差异化做成烂摊子。
+
 ### 7.2 Memory 只保留消费接口
 
 Memory 只关心：
@@ -328,6 +422,8 @@ Knowledge Base 也不再独立配置向量模型。
 我建议最终 API 演进为：
 
 - `GET /api/retrieval-models/status`
+- `GET /api/retrieval-models/recommendation`
+- `GET /api/retrieval-models/assets`
 - `PATCH /api/retrieval-models/active`
 - `POST /api/retrieval-models/download`
 - `POST /api/retrieval-models/test-embedding`
@@ -335,10 +431,44 @@ Knowledge Base 也不再独立配置向量模型。
 - `POST /api/retrieval-models/rebuild-consumer-indexes`
 - `GET /api/retrieval-models/consumers`
 
+其中 `GET /api/retrieval-models/status` 至少要返回：
+
+- active retrieval profile
+- overall capability state
+- local / api availability
+- consumer rebuild state summary
+- current recommendation state
+
+不要只返回动作结果，不返回 UI 真正需要的 read model。
+
 而当前的 `/api/memory/settings` 应逐步瘦身为：
 
 - 只保留 memory 自己的消费状态投影
 - 或者最终不再承载检索模型配置动作
+
+### 8.1 旧 `/api/memory/settings` 迁移表
+
+| 旧面 | 新面 | 迁移说明 |
+|---|---|---|
+| `provider_mode.id` | `active_profile.embedding.mode` | 写入新 retrieval profile；旧接口进入只读兼容期 |
+| `remote_config.endpoint` | `providers.embedding.api_base` / `endpoint` | 迁移到 retrieval models provider 配置 |
+| `remote_config.api_key_configured` | `providers.embedding.api_key_masked` | secret 仍保存在同一 secret store，只改 owner surface |
+| `remote_config.model_name` | `providers.embedding.model` | 迁移到 retrieval provider |
+| `remote_dimensions` | `active_profile.embedding.dimensions` | 作为 profile capability 一部分 |
+| `POST /api/memory/settings/download` | `POST /api/retrieval-models/download` | 本地模型仍保留时迁移；若 phase 1 不开放，则改成 disabled/status-only |
+| `POST /api/memory/settings/rebuild` | `POST /api/retrieval-models/rebuild-consumer-indexes` | 重建从 memory 私动作改为 consumer-aware action |
+
+cutover 规则：
+
+1. 新 retrieval models surface 上线后，旧 `/api/memory/settings` 停止承载新的配置写入
+2. 旧接口进入 compat read-only 或 narrow projection 阶段
+3. 待 `Settings > 记忆` 和模型管理完成切换后，删除旧配置动作和旧页面测试
+
+secret 规则：
+
+- API key 不应在迁移过程中明文回写到普通配置 payload
+- 仍然走现有 secret store / masked readback 机制
+- 迁移时只迁 owner，不迁“展示成明文”的行为
 
 ---
 
@@ -349,10 +479,12 @@ Knowledge Base 也不再独立配置向量模型。
 ### 推荐方案：模型管理内新增“检索模型中心”
 
 1. 在 `Settings > 模型` 内新增 `检索模型` 子视图
-2. Memory 页面删除向量模型配置 UI，只保留状态和跳转
-3. 先把现有 memory settings 后端能力通过适配层挂到 retrieval models 页面
-4. 第二阶段再把后端从 `memory.embedding` 迁到 `retrieval` 命名空间
-5. 第三阶段让 Knowledge Base 接同一套能力
+2. `Settings > 记忆` 删除向量模型配置 UI，只保留状态和跳转
+3. 先定义 retrieval read model、capability gating 和 compat 迁移表
+4. 如果 runtime 仍不完整，则检索模型中心先以 status-only / beta 形态上线，不开放承诺型动作
+5. 待 runtime 能力齐全后，再开放 `一键准备 / 测试检索 / 重建相关索引`
+6. 第二阶段再把后端从 `memory.embedding` 迁到 `retrieval` 命名空间
+7. 第三阶段让 Knowledge Base 接同一套能力
 
 这是最稳的路线。
 
@@ -395,7 +527,8 @@ Knowledge Base 也不再独立配置向量模型。
 1. 向量模型能力属于模型管理，不属于记忆模块。
 2. 记忆和知识库都只是检索模型的消费者。
 3. `Settings > 记忆` 未来只保留状态和跳转，不再配置向量模型。
-4. 本地向量模型允许恢复，但只在 `检索模型中心` 中恢复。
-5. API 模型和本地模型都要支持，但普通用户只先看推荐组合。
-6. UI 要吸收 `Nion_old` 的检索模型逻辑，但必须符合当前 Nion 的视觉语言，不再做工程后台式页面。
-
+4. `/workspace/memory` 继续只做内容页，不承载检索状态面板。
+5. phase 1 采用 single active retrieval profile，不允许 per-consumer override。
+6. 本地向量模型允许恢复，但只在 `检索模型中心` 中恢复。
+7. API 模型和本地模型都要支持，但普通用户只先看推荐组合。
+8. UI 要吸收 `Nion_old` 的检索模型逻辑，但必须符合当前 Nion 的视觉语言，不再做工程后台式页面。
