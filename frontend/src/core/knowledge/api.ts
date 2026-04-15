@@ -57,6 +57,45 @@ const NOTEBOOK_KNOWLEDGE_COMPILE_STATES = new Set([
   "failed",
 ]);
 
+const KNOWLEDGE_COMPILE_JOB_STAGES = new Set([
+  "queued",
+  "snapshotting",
+  "extracting",
+  "writing_pages",
+  "rebuilding_graph",
+  "finalizing",
+]);
+
+const KNOWLEDGE_COMPILE_JOB_STATUSES = new Set([
+  "pending",
+  "running",
+  "succeeded",
+  "failed",
+  "partially_succeeded",
+]);
+
+const KNOWLEDGE_COMPILE_JOB_OUTPUT_KEYS = [
+  "created_pages",
+  "created_page_ids",
+  "updated_pages",
+  "stale_pages",
+  "archived_pages",
+] as const;
+
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === "string");
+}
+
+function isKnowledgeCompileJobOutputs(
+  value: unknown,
+): value is KnowledgeCompileJob["outputs"] {
+  return (
+    isObjectRecord(value) &&
+    Object.keys(value).length === KNOWLEDGE_COMPILE_JOB_OUTPUT_KEYS.length &&
+    KNOWLEDGE_COMPILE_JOB_OUTPUT_KEYS.every((key) => isStringArray(value[key]))
+  );
+}
+
 function isKnowledgeSourceCandidate(value: unknown): value is KnowledgeSourceCandidate {
   return (
     isObjectRecord(value) &&
@@ -134,13 +173,14 @@ function isKnowledgeCompileJob(value: unknown): value is KnowledgeCompileJob {
   return (
     isObjectRecord(value) &&
     typeof value.job_id === "string" &&
-    Array.isArray(value.source_ids) &&
-    typeof value.trigger_mode === "string" &&
+    isStringArray(value.source_ids) &&
+    (value.trigger_mode === "manual" || value.trigger_mode === "queue_approval") &&
     typeof value.stage === "string" &&
+    KNOWLEDGE_COMPILE_JOB_STAGES.has(value.stage) &&
     typeof value.status === "string" &&
-    Array.isArray(value.created_page_ids) &&
-    value.created_page_ids.every((item) => typeof item === "string") &&
-    isObjectRecord(value.outputs)
+    KNOWLEDGE_COMPILE_JOB_STATUSES.has(value.status) &&
+    isStringArray(value.created_page_ids) &&
+    isKnowledgeCompileJobOutputs(value.outputs)
   );
 }
 
@@ -223,7 +263,11 @@ export async function approveKnowledgeQueue(sourceIds: string[]): Promise<Knowle
       ),
     );
   }
-  return readJson(response);
+  const payload = (await readJson<unknown>(response)) as unknown;
+  if (!isKnowledgeCompileJob(payload)) {
+    throw new Error("Invalid knowledge compile job payload returned from approveKnowledgeQueue");
+  }
+  return payload;
 }
 
 export async function enqueueKnowledgeSource(sourceId: string): Promise<NotebookKnowledgeStatus> {

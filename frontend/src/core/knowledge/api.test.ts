@@ -141,6 +141,34 @@ void test("approveKnowledgeQueue posts source ids to the queue approval endpoint
   assert.equal(payload.status, "pending");
 });
 
+void test("approveKnowledgeQueue rejects invalid compile job payload", async () => {
+  globalThis.fetch = (async () => {
+    return new Response(
+      JSON.stringify({
+        job_id: "job_1",
+        source_ids: ["source:notebook_note:note_1"],
+        trigger_mode: "queue_approval",
+        stage: "queued",
+        status: "pending",
+        created_page_ids: ["sources:note_1"],
+        outputs: {
+          created_pages: [],
+          created_page_ids: "sources:note_1",
+          updated_pages: [],
+          stale_pages: [],
+          archived_pages: [],
+        },
+      }),
+      { status: 200, headers: { "Content-Type": "application/json" } },
+    );
+  }) as typeof fetch;
+
+  await assert.rejects(
+    () => approveKnowledgeQueue(["source:notebook_note:note_1"]),
+    /Invalid knowledge compile job payload returned from approveKnowledgeQueue/,
+  );
+});
+
 void test("loadKnowledgeJobs calls the jobs endpoint", async () => {
   let seenUrl = "";
 

@@ -207,8 +207,8 @@ def test_knowledge_source_status_resets_failed_history_after_reenqueue(monkeypat
             "created_pages": [],
             "created_page_ids": [],
             "updated_pages": [],
-            "contradiction_pages": [],
-            "graph_rebuilt": False,
+            "stale_pages": [],
+            "archived_pages": [],
         },
         error_summary="boom",
     )
