@@ -129,7 +129,15 @@
 - 关闭方式：设为 `0`
 - 语义：**remind the agent to consider saving memories**
 
-这说明它是一个 **提醒机制**，不是“强制把本轮经验写入 memory”的系统级闭环。
+而且从 `run_agent.py` 现在可以进一步确认，这个配置不是死文档：
+
+1. `AIAgent.__init__` 里会读取 `mem_config["nudge_interval"]`
+2. 每轮 `run_conversation()` 开始时，`_turns_since_memory` 会累加
+3. 达到阈值后置 `\_should_review_memory = True`
+4. 在本轮主任务完成后，触发 `_spawn_background_review(...)`
+5. 这个 background review agent 会用 `_MEMORY_REVIEW_PROMPT` 回看对话并决定是否调用 memory tool
+
+所以它已经是 **已接线的运行时提醒机制**，但依然不是“强制写 memory”的系统级闭环。
 
 ### `skills.creation_nudge_interval`
 
@@ -137,7 +145,18 @@
 - 关闭方式：设为 `0`
 - 语义：**remind the model to consider saving a skill**
 
-这同样说明它是 **policy-layer nudge**，不是 hard-coded 蒸馏器。
+而且它同样已经接到了运行时代码里：
+
+1. `AIAgent.__init__` 读取 `skills.creation_nudge_interval`
+2. agent loop 中每个 tool-calling iteration 会累加 `\_iters_since_skill`
+3. 当本轮结束时，如果达到阈值，就置 `\_should_review_skills = True`
+4. 随后同样走 `_spawn_background_review(...)`
+5. review agent 使用 `_SKILL_REVIEW_PROMPT` 或 `_COMBINED_REVIEW_PROMPT`，决定是否 `create` / `patch` skill
+
+所以 skill nudge 也不是空配置，而是 **已接线的 post-task review trigger**。
+
+但它依旧不是“任务一完成就一定自动蒸馏成 skill”。
+它只是让 agent 在合适时机多一次反思机会。
 
 所以到目前为止更准确的表述应该是：
 
@@ -366,12 +385,48 @@ README 和 prompt guidance 一直在推同一个动作：
 
 如果要说“彻底吃透”，还应该继续补：
 
-1. `cli-config.yaml.example` 里与 `memory_nudge`、`save_trajectories` 相关的配置语义
-2. memory provider 的具体实现差异，特别是 builtin 与 Honcho 在 recall / extraction 上的不同
-3. `skill_manager_tool.py` 的完整生成/patch 逻辑，判断“技能自改进”到底已经自动到什么程度
-4. `hermes-agent-self-evolution` 的 dataset builder、constraint validator、fitness metric，进一步把“验证固化”讲清楚
+1. builtin memory provider 的源码位置与行为文档，进一步和 Honcho / OpenViking 做精确对比
+2. Honcho `prefetch()`、`queue_prefetch()`、`sync_turn()`、`on_session_end()`、`on_pre_compress()` 的完整代码路径
+3. background review agent 的结果汇总与用户可见反馈是否还有隐藏条件
+4. `hermes-agent-self-evolution` 的真实反馈链路是否已经把 `LLMJudge` 正式接进主优化 metric
 5. 现有 issue 中关于 post-task reflection、durable feedback routing、structured memory 的提案状态，区分已经落地和仍在规划
-6. 主仓库里 `memory_nudge` / `skill nudge` 的注入位置和实际 wording，确认它们在 prompt 中具体如何出现
+
+## 10.5 Builtin vs External Memory Provider：目前已确认的真实差异
+
+这一点现在也可以说得更具体，不必只停留在“内建 vs 外挂”。
+
+### Builtin memory 的特点
+
+1. 核心载体是 `MEMORY.md` / `USER.md`
+2. session 起点做 frozen snapshot 注入
+3. mid-session 通过 memory tool 显式 add / replace / remove
+4. 更像 compact, curated, user-steered memory
+
+### Honcho / external provider 的特点
+
+从 `plugins/memory/honcho/__init__.py` 与 `MemoryProvider` interface 可确认：
+
+1. 有 `recall_mode`
+   - `context`
+   - `tools`
+   - `hybrid`
+2. 有 first-turn context baking
+3. 有 background prefetch / queue_prefetch
+4. 有 turn-level sync
+5. 有 session-end extraction
+6. 有 pre-compression extraction
+7. 可通过 tool schemas 暴露自己的 memory tools
+
+也就是说，external provider 不只是“另一种存储”，而是更像：
+
+> 一套带 recall policy、sync policy、extraction policy、tool exposure 的 memory subsystem。
+
+### 一个更准确的分层理解
+
+- Builtin memory：低复杂度、稳定、紧凑、默认 durable layer
+- External provider：高表达力、可检索、可总结、可注入、可扩展的 adaptive layer
+
+这也是为什么两者最好被看成互补层，而不是简单替代层。
 
 ## 11. 对 expert skill 的直接启发
 
