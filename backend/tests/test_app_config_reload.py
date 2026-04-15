@@ -7,6 +7,7 @@ import pytest
 from nion.config.app_config import ensure_latest_app_config, reload_app_config, reset_app_config
 from nion.config.config_repository import ConfigRepository
 from nion.config.extensions_config import reset_extensions_config
+from nion.sandbox.sandbox_provider import get_sandbox_provider, reset_sandbox_provider
 
 
 def _write_extensions_config(path) -> None:
@@ -68,5 +69,43 @@ def test_reload_app_config_rejects_legacy_config_path(tmp_path, monkeypatch):
         ):
             reload_app_config("/tmp/config.yaml")
     finally:
+        reset_app_config()
+        reset_extensions_config()
+
+
+def test_config_write_rebuilds_sandbox_provider_after_provider_change(tmp_path, monkeypatch):
+    db_path = tmp_path / "config.db"
+    extensions_path = tmp_path / "extensions_config.json"
+    _write_extensions_config(extensions_path)
+
+    monkeypatch.setenv("NION_CONFIG_DB_PATH", str(db_path))
+    monkeypatch.setenv("NION_EXTENSIONS_CONFIG_PATH", str(extensions_path))
+    reset_app_config()
+    reset_extensions_config()
+    reset_sandbox_provider()
+
+    try:
+        repository = ConfigRepository()
+        config, version, _ = repository.read()
+        config["sandbox"] = {
+            "use": "nion.community.aio_sandbox:AioSandboxProvider",
+            "base_url": "http://sandbox.example",
+        }
+        repository.write(config, version)
+
+        aio_provider = get_sandbox_provider()
+        assert aio_provider.__class__.__name__ == "AioSandboxProvider"
+
+        config, version, _ = repository.read()
+        config["sandbox"] = {
+            "use": "nion.sandbox.local:LocalSandboxProvider",
+        }
+        repository.write(config, version)
+
+        local_provider = get_sandbox_provider()
+        assert local_provider.__class__.__name__ == "LocalSandboxProvider"
+        assert local_provider is not aio_provider
+    finally:
+        reset_sandbox_provider()
         reset_app_config()
         reset_extensions_config()

@@ -15,6 +15,7 @@ from nion.config.app_config import (
 )
 from nion.config.config_store import VersionConflictError, create_config_store
 from nion.config.extensions_config import ExtensionsConfig
+from nion.sandbox.sandbox_provider import shutdown_sandbox_provider
 
 
 class ConfigValidationError(Exception):
@@ -98,6 +99,7 @@ class ConfigRepository:
             config_dict=config_dict, expected_version=expected_version
         )
         reload_app_config(process_name="gateway")
+        shutdown_sandbox_provider()
         return new_version, warnings
 
     def write(self, config_dict: dict[str, Any], expected_version: str) -> str:
