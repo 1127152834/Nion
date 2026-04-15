@@ -41,6 +41,8 @@ type ThreadStreamResult = {
 type ThreadStreamOptions = {
   modelName?: string;
   planMode?: boolean;
+  executionMode?: "host" | "sandbox";
+  hostWorkdir?: string | null;
   signal?: AbortSignal;
 };
 
@@ -221,6 +223,8 @@ export function createNionThreadClient(
           surface: "bridge",
           model_name: options?.modelName,
           is_plan_mode: options?.planMode ?? false,
+          execution_mode: options?.executionMode,
+          host_workdir: options?.hostWorkdir ?? undefined,
         },
         config: {},
       }),

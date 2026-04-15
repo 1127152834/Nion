@@ -951,6 +951,8 @@ export function createBridgeManager(options: {
         {
           modelName: binding.model || undefined,
           planMode: binding.mode === "plan",
+          executionMode: binding.workingDirectory ? "host" : "sandbox",
+          hostWorkdir: binding.workingDirectory || null,
           signal: taskAbort.signal,
         },
       );
