@@ -1,6 +1,7 @@
-from nion.config.paths import Paths
+from nion.config.paths import Paths, reset_paths
 from nion.knowledge.source_candidates import KnowledgeSourceCandidateStore
 from nion.knowledge.models import KnowledgeSourceCandidate
+from nion.notebook.history import NotebookHistoryService
 from nion.notebook.service import NotebookService
 
 
@@ -63,3 +64,21 @@ def test_candidate_refresh_marks_existing_compiled_entry_stale_when_hash_changes
     updated = next(item for item in second if item.source_id == candidate.source_id)
 
     assert updated.status == "stale"
+
+
+def test_candidate_registry_keeps_missing_sources_instead_of_deleting_rows(tmp_path, monkeypatch):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+    notebook = NotebookService(base_dir=tmp_path)
+    history = NotebookHistoryService(base_dir=tmp_path)
+    note = notebook.create_note(directory="", title="Roadmap", body="body")
+    store = KnowledgeSourceCandidateStore(base_dir=tmp_path)
+    store.refresh_from_notebook(notebook)
+
+    history.delete_note(note.note_id, actor_type="user")
+    result = store.reconcile_with_notebook(notebook)
+    candidate = store.get_candidate(f"source:notebook_note:{note.note_id}")
+
+    assert f"source:notebook_note:{note.note_id}" in result.source_missing_ids
+    assert candidate.status == "source_missing"
+    assert candidate.missing_detected_at is not None

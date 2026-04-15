@@ -7,11 +7,18 @@ from pydantic import BaseModel, Field
 
 from nion.knowledge.compile_jobs import KnowledgeCompileJobStore
 from nion.knowledge.ingest_service import KnowledgeIngestService
-from nion.knowledge.models import KnowledgeCompileJob, KnowledgePage, KnowledgeSourceCandidate
+from nion.knowledge.activity_store import KnowledgeActivityStore
+from nion.knowledge.models import (
+    KnowledgeCompileJob,
+    KnowledgePage,
+    KnowledgeSourceCandidate,
+    KnowledgeSourceReconciliationResult,
+)
 from nion.knowledge.graph_service import KnowledgeGraphService
 from nion.knowledge.lint_service import KnowledgeLintService
 from nion.knowledge.page_store import KnowledgePageStore
 from nion.knowledge.query_service import KnowledgeQueryResult, KnowledgeQueryService
+from nion.knowledge.reconciliation_service import ReconciliationService
 from nion.knowledge.revision_service import KnowledgeRevisionRequest, KnowledgeRevisionService
 from nion.knowledge.source_candidates import KnowledgeSourceCandidateStore
 from nion.memory_os.clock import utcnow_z
@@ -147,7 +154,8 @@ def _build_bridge_status(
         "compiled": "compiled",
         "failed": "failed",
         "stale": "stale",
-        "approved": "running",
+        "running": "running",
+        "source_missing": "source_missing",
     }.get(candidate.status, "queued")
 
     if candidate.status == "queued":
@@ -200,8 +208,14 @@ async def enqueue_knowledge_source(payload: KnowledgeSourceEnqueueRequest) -> No
             detail=f"Knowledge source candidate not found: {payload.source_id}",
         )
     if candidate.status != "compiled":
-        store.set_status(payload.source_id, status="queued", compile_error=None)
+        KnowledgeActivityStore().record_candidate_enqueued(source_id=payload.source_id)
     return _build_bridge_status(store, payload.source_id)
+
+
+@router.post("/reconcile", response_model=KnowledgeSourceReconciliationResult)
+async def reconcile_knowledge_sources() -> KnowledgeSourceReconciliationResult:
+    notebook = NotebookService()
+    return ReconciliationService().run(notebook)
 
 
 @router.get("/sources/{source_id}/status", response_model=NotebookKnowledgeStatus)
@@ -217,11 +231,11 @@ async def get_knowledge_jobs() -> KnowledgeJobListResponse:
 @router.post("/queue/approve", response_model=KnowledgeCompileJob)
 async def approve_knowledge_queue(payload: KnowledgeQueueApprovalRequest) -> KnowledgeCompileJob:
     store = KnowledgeSourceCandidateStore()
-    for source_id in payload.source_ids:
-        store.set_status(source_id, status="approved")
     job_store = KnowledgeCompileJobStore()
     job = job_store.create_job(source_ids=payload.source_ids, trigger_mode="queue_approval")
     started_at = utcnow_z()
+    for source_id in payload.source_ids:
+        store.set_status(source_id, status="running", last_job_id=job.job_id, compile_error=None)
     job_store.update_job(
         job.job_id,
         status="running",

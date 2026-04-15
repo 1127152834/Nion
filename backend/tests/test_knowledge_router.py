@@ -3,6 +3,7 @@ from fastapi.testclient import TestClient
 from app.daemon.app import create_app
 from nion.config.paths import reset_paths
 from nion.knowledge.source_candidates import KnowledgeSourceCandidateStore
+from nion.notebook.history import NotebookHistoryService
 from nion.notebook.service import NotebookService
 
 
@@ -179,6 +180,25 @@ def test_knowledge_source_status_resets_failed_history_after_reenqueue(monkeypat
     assert status_payload["compile_state"] == "idle"
     assert status_payload["error_summary"] is None
     assert status_payload["status"] == "queued"
+
+
+def test_knowledge_reconcile_endpoint_marks_deleted_source_missing(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+    notebook = NotebookService(base_dir=tmp_path)
+    history = NotebookHistoryService(base_dir=tmp_path)
+    note = notebook.create_note(directory="", title="Roadmap", body="body")
+
+    with TestClient(create_app()) as client:
+        client.post(
+            "/api/knowledge/sources/enqueue",
+            json={"source_id": f"source:notebook_note:{note.note_id}"},
+        )
+        history.delete_note(note.note_id, actor_type="user")
+        response = client.post("/api/knowledge/reconcile")
+
+    assert response.status_code == 200
+    assert f"source:notebook_note:{note.note_id}" in response.json()["source_missing_ids"]
 
 
 def test_knowledge_query_endpoint_returns_page_based_answer(monkeypatch, tmp_path):

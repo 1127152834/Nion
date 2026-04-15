@@ -12,11 +12,45 @@ class KnowledgeSourceCandidate(BaseModel):
     title: str
     summary: str
     content_hash: str
-    status: Literal["queued", "approved", "compiled", "failed", "stale", "ignored"]
+    status: Literal["queued", "running", "compiled", "failed", "stale", "ignored", "source_missing"]
+    enqueued_at: str | None = None
+    last_job_id: str | None = None
+    last_compiled_at: str | None = None
+    missing_detected_at: str | None = None
+    compile_error: str | None = None
     created_at: str
     updated_at: str
-    last_compiled_at: str | None = None
-    compile_error: str | None = None
+
+
+class KnowledgeActivityEvent(BaseModel):
+    event_id: str
+    event_type: Literal[
+        "candidate_enqueued",
+        "job_started",
+        "snapshot_completed",
+        "page_created",
+        "page_updated",
+        "page_archived",
+        "graph_rebuilt",
+        "job_failed",
+        "job_succeeded",
+        "candidate_became_stale",
+        "source_missing_detected",
+    ]
+    source_id: str | None = None
+    page_id: str | None = None
+    job_id: str | None = None
+    detail: str
+    created_at: str
+
+
+class KnowledgeSourceReconciliationResult(BaseModel):
+    checked_source_ids: list[str] = Field(default_factory=list)
+    source_missing_ids: list[str] = Field(default_factory=list)
+    restored_source_ids: list[str] = Field(default_factory=list)
+    archived_page_ids: list[str] = Field(default_factory=list)
+    reactivated_page_ids: list[str] = Field(default_factory=list)
+    detected_at: str
 
 
 class KnowledgePage(BaseModel):
