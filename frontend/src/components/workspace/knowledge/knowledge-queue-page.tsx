@@ -36,7 +36,15 @@ export function KnowledgeQueuePage() {
           {!isLoading && !error
             ? queue.map((item) => (
                 <div key={item.source_id} className="rounded-md border px-3 py-2">
-                  {item.title} · {item.status}
+                  <div className="font-medium text-foreground">{item.title}</div>
+                  <div className="mt-1 text-xs">
+                    status={item.status} · last_compiled_at={item.last_compiled_at ?? "n/a"}
+                  </div>
+                  {item.compile_error ? (
+                    <div className="mt-1 text-xs text-destructive">
+                      compile_error={item.compile_error}
+                    </div>
+                  ) : null}
                 </div>
               ))
             : null}

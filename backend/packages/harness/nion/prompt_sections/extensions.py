@@ -126,6 +126,7 @@ def get_system_capability_catalog_section(*, cli_tools_enabled: bool) -> str:
     lines.append("If the user then needs to know which bridge or activation actions are available between those capabilities, call `get_capability_actions` next.")
     lines.append("Compressed capability guidance:")
     lines.append("- Notebook is not memory.")
+    lines.append("- When the user asks about the compiled knowledge base, query wiki pages, or knowledge graph conclusions, use `query_knowledge_base` before falling back to notebook or memory summaries.")
     lines.append("- Skill is a workflow package.")
     lines.append("- MCP is not the default first choice.")
     lines.append("- Memory is for stable long-term facts, not scratch notes.")

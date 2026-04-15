@@ -7,6 +7,7 @@ import {
   createKnowledgeRevision,
   loadKnowledgeLint,
   loadKnowledgePage,
+  loadKnowledgePagesFromQueue,
   loadKnowledgeQueue,
   queryKnowledge,
   rebuildKnowledgeGraph,
@@ -51,6 +52,24 @@ export function useKnowledgePage(pageId: string | null) {
   });
   return {
     page: (data ?? null) as KnowledgePage | null,
+    isLoading,
+    error,
+  };
+}
+
+export function useKnowledgePages(queue: KnowledgeSourceCandidate[]) {
+  const compiledKey = queue
+    .filter((item) => item.status === "compiled")
+    .map((item) => `${item.source_id}:${item.content_hash}`)
+    .join("|");
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["knowledge", "pages", compiledKey],
+    queryFn: () => loadKnowledgePagesFromQueue(queue),
+    enabled: compiledKey.length > 0,
+    refetchOnWindowFocus: false,
+  });
+  return {
+    pages: (data ?? []) as KnowledgePage[],
     isLoading,
     error,
   };

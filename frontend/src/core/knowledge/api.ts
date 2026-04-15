@@ -158,6 +158,23 @@ export async function loadKnowledgePage(pageId: string): Promise<KnowledgePage> 
   return payload;
 }
 
+export async function loadKnowledgePagesFromQueue(
+  queue: KnowledgeSourceCandidate[],
+): Promise<KnowledgePage[]> {
+  const compiledCandidates = queue.filter((item) => item.status === "compiled");
+  const pages = await Promise.all(
+    compiledCandidates.map(async (item) => {
+      const pageId = `sources:${item.source_id.split(":").at(-1) ?? ""}`;
+      try {
+        return await loadKnowledgePage(pageId);
+      } catch {
+        return null;
+      }
+    }),
+  );
+  return pages.filter((page): page is KnowledgePage => page !== null);
+}
+
 export async function queryKnowledge(question: string): Promise<KnowledgeQueryResult> {
   const response = await fetch(
     `${getBackendBaseURL()}/api/knowledge/query?question=${encodeURIComponent(question)}`,
