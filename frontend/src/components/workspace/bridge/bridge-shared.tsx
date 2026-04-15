@@ -34,8 +34,14 @@ const zhCN = {
   "common.cancel": "取消",
   "common.delete": "删除",
 
-  "bridge.title": "远程桥接",
-  "bridge.description": "通过 Telegram、飞书等外部渠道控制 Claude",
+  "bridge.title": "统一远程入口",
+  "bridge.description": "把所有已连接渠道作为同一台 guardian-mode 电脑的统一远程入口来管理",
+  "bridge.summaryTitle": "所有渠道都通往同一个执行面",
+  "bridge.summaryDescription":
+    "无论从 Telegram、飞书、Discord、QQ 还是微信进入，最终连接的都是同一台电脑、同一组任务执行上下文，以及同一个确认队列。",
+  "bridge.summarySameComputer": "同一台电脑",
+  "bridge.summarySameTasks": "同一组任务",
+  "bridge.summarySameQueue": "同一个确认队列",
   "bridge.desktopOnly": "Bridge 仅在桌面应用中可用。",
   "bridge.activeHint": "桥接已激活。外部渠道可以向 Claude 发送任务。",
   "bridge.status": "桥接状态",
@@ -263,8 +269,15 @@ const enUS: Record<keyof typeof zhCN, string> = {
   "common.cancel": "Cancel",
   "common.delete": "Delete",
 
-  "bridge.title": "Remote Bridge",
-  "bridge.description": "Control Claude through external channels such as Telegram and Feishu",
+  "bridge.title": "Unified Remote Entry",
+  "bridge.description":
+    "Manage every connected channel as one remote entry surface into the same guardian-mode computer",
+  "bridge.summaryTitle": "One remote entry surface",
+  "bridge.summaryDescription":
+    "Telegram, Feishu, Discord, QQ, and WeChat all connect into the same computer, the same task execution context, and the same confirmation queue.",
+  "bridge.summarySameComputer": "Same computer",
+  "bridge.summarySameTasks": "Same tasks",
+  "bridge.summarySameQueue": "Same confirmation queue",
   "bridge.desktopOnly": "Bridge is only available in the desktop app.",
   "bridge.activeHint": "Bridge is active. External channels can send tasks to Claude.",
   "bridge.status": "Bridge Status",

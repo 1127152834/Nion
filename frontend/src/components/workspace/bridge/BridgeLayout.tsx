@@ -74,6 +74,28 @@ export function BridgeLayout() {
 
       <div className="flex-1 overflow-y-auto">
         <div className="mx-auto flex h-full w-full max-w-6xl flex-col px-6 py-6">
+          <div className="mb-6 rounded-2xl border border-border/60 bg-muted/30 p-5">
+            <div className="space-y-2">
+              <div className="text-sm font-semibold text-foreground">
+                {t("bridge.summaryTitle")}
+              </div>
+              <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
+                {t("bridge.summaryDescription")}
+              </p>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <span className="rounded-full border border-border/60 bg-background px-3 py-1 text-xs font-medium text-foreground">
+                {t("bridge.summarySameComputer")}
+              </span>
+              <span className="rounded-full border border-border/60 bg-background px-3 py-1 text-xs font-medium text-foreground">
+                {t("bridge.summarySameTasks")}
+              </span>
+              <span className="rounded-full border border-border/60 bg-background px-3 py-1 text-xs font-medium text-foreground">
+                {t("bridge.summarySameQueue")}
+              </span>
+            </div>
+          </div>
+
           <div className="flex min-h-0 flex-1 overflow-hidden rounded-2xl border border-border/60 bg-background">
             <nav className="flex w-52 shrink-0 flex-col gap-1 border-r border-border/50 p-3">
               {sidebarItems.map((item) => (
