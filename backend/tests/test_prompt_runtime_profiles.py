@@ -294,3 +294,4 @@ def test_apply_prompt_template_injects_user_selected_extensions_section(monkeypa
     assert "claude-to-nion" in selected_section.content
     assert "slack.search" in selected_section.content
     assert "docker" in selected_section.content
+    assert "use bash to invoke those exact binaries directly" in selected_section.content

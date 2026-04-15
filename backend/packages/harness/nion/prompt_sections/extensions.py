@@ -215,7 +215,15 @@ def build_user_selected_extensions_section(
         lines.append("When the task touches these workflows, prefer those exact MCP tools before broader fallback options.")
     if normalized_cli_tools:
         lines.append(f"Selected CLI tools: {', '.join(normalized_cli_tools)}.")
-        lines.append("When the task touches these workflows, prefer those exact CLI tools before other shells or generic alternatives.")
+        lines.append(
+            "When the task touches these workflows, prefer those exact CLI tools before other shells or generic alternatives."
+        )
+        lines.append(
+            "If bash is available in the current runtime, use bash to invoke those exact binaries directly instead of only mentioning or recommending them."
+        )
+        lines.append(
+            "Do not claim the CLI is unavailable unless bash/tool policy actually blocks shell execution in the current runtime."
+        )
     lines.append("Explain your actions as responses to this explicit user choice, not as incidental discovery.")
     lines.append("</user-selected-extensions>")
 
