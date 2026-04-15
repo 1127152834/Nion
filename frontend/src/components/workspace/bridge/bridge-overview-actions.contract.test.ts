@@ -2,9 +2,13 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-void test("bridge overview panel exposes diagnostics and restart actions", async () => {
+void test("bridge overview panel exposes diagnostics and start-bridge actions", async () => {
   const source = await readFile(
     new URL("./BridgeOverviewPanel.tsx", import.meta.url),
+    "utf8",
+  );
+  const sharedSource = await readFile(
+    new URL("./bridge-shared.tsx", import.meta.url),
     "utf8",
   );
 
@@ -14,4 +18,6 @@ void test("bridge overview panel exposes diagnostics and restart actions", async
   assert.match(source, /t\("bridge\.overviewRestartAction"\)/);
   assert.match(source, /client\.diagnose\(\{ source: "bridge_page" \}\)/);
   assert.match(source, /client\.start\(\)/);
+  assert.match(sharedSource, /"bridge\.overviewRestartAction": "Start bridge"/);
+  assert.match(sharedSource, /"bridge\.overviewRestartAction": "启动 Bridge"/);
 });

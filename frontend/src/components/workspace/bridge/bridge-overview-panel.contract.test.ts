@@ -40,6 +40,10 @@ void test("bridge overview panel summarizes runtime state, bindings, incidents, 
   assert.match(source, /getBridgeClient\(\)/);
   assert.match(source, /t\("bridge\.overviewDiagnoseAction"\)/);
   assert.match(source, /t\("bridge\.overviewRestartAction"\)/);
+  assert.doesNotMatch(source, /runAction/);
+  assert.doesNotMatch(source, /dismissIncident/);
+  assert.doesNotMatch(source, /startPlatform/);
+  assert.doesNotMatch(source, /stopPlatform/);
   assert.doesNotMatch(source, /runtimeInfo\?\.running \? t\("bridge\.overviewRunning"\) : t\("bridge\.overviewStopped"\)/);
 
   assert.match(sharedSource, /"bridge\.overviewTitle": "Bridge overview"/);
@@ -57,7 +61,7 @@ void test("bridge overview panel summarizes runtime state, bindings, incidents, 
   assert.match(sharedSource, /"bridge\.overviewHintNoPlatforms": "No platforms are enabled yet, so this remote entry surface is not reachable\."/);
   assert.match(sharedSource, /"bridge\.overviewHintReady": "No pending bridge risk is visible from the current runtime overview\."/);
   assert.match(sharedSource, /"bridge\.overviewDiagnoseAction": "Run diagnostics"/);
-  assert.match(sharedSource, /"bridge\.overviewRestartAction": "Restart bridge"/);
+  assert.match(sharedSource, /"bridge\.overviewRestartAction": "Start bridge"/);
   assert.match(sharedSource, /"bridge\.overviewTitle": "Bridge 概览"/);
   assert.match(sharedSource, /"bridge\.overviewRuntimeStatus": "运行状态"/);
   assert.match(sharedSource, /"bridge\.overviewActiveBindings": "活跃绑定"/);
@@ -73,7 +77,7 @@ void test("bridge overview panel summarizes runtime state, bindings, incidents, 
   assert.match(sharedSource, /"bridge\.overviewHintNoPlatforms": "当前没有启用任何渠道，这个远程入口仍不可达。"/);
   assert.match(sharedSource, /"bridge\.overviewHintReady": "按当前运行概览看，没有待处理的 Bridge 风险提示。"/);
   assert.match(sharedSource, /"bridge\.overviewDiagnoseAction": "运行诊断"/);
-  assert.match(sharedSource, /"bridge\.overviewRestartAction": "重启 Bridge"/);
+  assert.match(sharedSource, /"bridge\.overviewRestartAction": "启动 Bridge"/);
 });
 
 void test("bridge layout renders the overview panel before platform tabs", async () => {
