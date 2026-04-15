@@ -17,10 +17,28 @@ export function MemorySettingsPage() {
   return (
     <SettingsSection
       title={t.settings.memory.title}
-      description="当前只支持外部向量模型接口。配置好接口后，长期记忆才能使用语义检索。"
+      description="这里只看检索增强状态。检索模型的配置、测试和重建入口已经迁到模型管理中的检索模型。"
     >
       <div className="space-y-4">
         <MemoryEmbeddingPanel />
+
+        <section className="rounded-xl border bg-background/80 p-5 shadow-sm">
+          <div className="space-y-2">
+            <div className="text-sm font-medium">前往模型管理中的检索模型</div>
+            <div className="text-muted-foreground text-sm">
+              如果你要修改检索增强使用的 embedding 或 reranker，请直接去模型管理中的检索模型入口。
+            </div>
+            <div className="pt-1">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => goToSection("models")}
+              >
+                前往模型管理中的检索模型
+              </Button>
+            </div>
+          </div>
+        </section>
 
         <section className="rounded-xl border bg-background/80 p-5 shadow-sm">
           <div className="space-y-2">
@@ -32,51 +50,6 @@ export function MemorySettingsPage() {
               <Button asChild variant="outline">
                 <Link href={pathOfMemory()}>打开记忆</Link>
               </Button>
-            </div>
-          </div>
-        </section>
-
-        <section className="rounded-xl border bg-background/80 p-5 shadow-sm">
-          <div className="space-y-2">
-            <div className="text-sm font-medium">改你的长期信息</div>
-            <div className="text-muted-foreground text-sm">
-              像称呼、角色、时区、长期背景这类稳定信息，放在身份设置里更清楚。
-            </div>
-            <div className="pt-1">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => goToSection("identity")}
-              >
-                打开身份
-              </Button>
-            </div>
-          </div>
-        </section>
-
-        <section className="rounded-xl border bg-background/80 p-5 shadow-sm">
-          <div className="space-y-2">
-            <div className="text-sm font-medium">改助手的长期风格</div>
-            <div className="text-muted-foreground text-sm">
-              像说话方式、价值边界、关系基调这类长期风格，统一放在 Soul 设置里。
-            </div>
-            <div className="pt-1">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => goToSection("soul")}
-              >
-                打开 Soul
-              </Button>
-            </div>
-          </div>
-        </section>
-
-        <section className="rounded-xl bg-muted/20 p-5">
-          <div className="space-y-2">
-            <div className="text-sm font-medium">临时纠正怎么做</div>
-            <div className="text-muted-foreground text-sm">
-              如果只是这次记错了，或者不想继续沿用某个说法，直接在对话里告诉助手就可以，不需要来设置页翻找开关。
             </div>
           </div>
         </section>
