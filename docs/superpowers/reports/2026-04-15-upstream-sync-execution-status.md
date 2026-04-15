@@ -201,6 +201,26 @@
 | `72d4347a` guard None runtime.context in sandbox helpers | `已等价吸收` | 现有代码 | 当前 `ensure_sandbox_initialized()` / `sandbox_from_runtime()` 写回 context 前都已有 `runtime.context is not None` guard。 |
 | `e5416b53` multi-stage Docker build remove build-essential | `明确不同步` | 无 | Docker 镜像体积/供应链优化不属于当前逐提交业务同步面。 |
 | `d3b59a79` broken doc links | `当前无安全落点` | 无 | 当前文档仍混有 config.yaml/旧文件引用，需要和 NION 当前文档面一起专项收束，不在本批次零散迁移。 |
+| `3acdf79b` invalid HTML nesting and tabnabbing hardening | `已同步` | `b6b9256e` | 已移除 artifact 区域的 `<a><button/></a>` 嵌套，并为 blank-target 打开路径补齐 noopener/noreferrer 防护。 |
+| `c4da0e8c` move async SQLite mkdir off event loop | `当前无安全落点` | 无 | 当前批次未在 NION 侧复现 async checkpointer mkdir 阻塞问题，不凭上游标题改底层持久化路径。 |
+| `7643a46f` make skill prompt cache refresh nonblocking | `当前无安全落点` | 无 | 这条涉及 skill cache/lead prompt 的较大重构，需专项评估，暂不在当前批次吸收。 |
+| `f0dd8cb0` cooperative cancellation for subagent threads | `当前无安全落点` | 无 | upstream 线程取消是更大范围 subagent 执行合同调整，本批次暂不扩张到 cooperative cancellation 语义。 |
+| `f467e613` add BytePlus logo | `明确不同步` | 无 | 品牌/营销资源不属于当前 upstream 业务同步面。 |
+| `4004fb84` fix agent gallery after bootstrap creation | `当前无安全落点` | 无 | 这是 agent 创建产品流程修补，需要结合现有 NION bootstrap UX 专项评估，不在当前批次直接迁入。 |
+| `3b3e8e1b` strengthen SandboxAuditMiddleware patterns | `当前无安全落点` | 无 | 当前批次未引入 upstream SandboxAuditMiddleware 主链，本条也没有安全局部落点。 |
+| `ab41de29` keep chat thread ids in sync | `当前无安全落点` | 无 | 这条涉及前端线程启动/路由同步链，需专项复现现状问题后再判断，不凭标题迁移。 |
+| `1193ac64` unify local settings runtime state | `当前无安全落点` | 无 | upstream 这里是大范围 settings/store/layout 重构，不适合在当前批次拆散硬迁。 |
+| `c3170f22` loop detection stable-key hashing | `已等价吸收` | 现有代码 | 当前 loop detection 已按 stable key 和 read_file 区间桶化进行哈希，并有测试覆盖。 |
+| `d1baf721` frontend UI polish fixes | `明确不同步` | 无 | 杂项样式微调不属于当前 upstream 业务同步面。 |
+| `722a9c47` deployment sizing guidance docs | `明确不同步` | 无 | 文档说明项不进入当前业务同步主链。 |
+| `e5b14906` SubagentExecutor event loop conflict | `当前无安全落点` | 无 | 需先专项评估当前 subagent executor 在运行中 event loop 冲突的真实证据，再决定是否迁移。 |
+| `29817c3b` timezone-aware UTC in memory modules | `当前无安全落点` | 无 | upstream 落点在旧 memory modules；NION 当前 Memory OS 已有独立时间规范，不直接回流这条。 |
+| `ad6d934a` string-serialized clarification options | `当前无安全落点` | 无 | 需先对照当前 ClarificationMiddleware 合同与实际输入面，再决定是否吸收；本批次暂不凭标题改中间件。 |
+| `31a3c9a3` list_threads/get_thread client methods | `当前无安全落点` | 无 | 这是 client API surface 扩张，不属于当前 upstream correctness 同步主线。 |
+| `616caa92` duplicate reasoning_effort keyword handling | `当前无安全落点` | 无 | 需要针对当前 model factory 参数合成链做专项对照，本批次暂不凭标题修改模型构造器。 |
+| `60e0abfd` preserve agent context in thread history routes | `当前无安全落点` | 无 | 涉及前端 thread history/agent route 语义，不在当前批次凭标题推进。 |
+| `13664e99` nginx fails to start on hosts without IPv6 | `当前无安全落点` | 无 | 需要先对照当前 nginx bind/listen 策略与本地环境复现，不在本批次凭标题迁移。 |
+| `823f3af9` dev uv cache mounts on macOS | `明确不同步` | 无 | Docker/macOS 开发缓存优化不属于当前业务同步面。 |
 | `0ffe5a73` increase subagent max-turn limits | `明确不同步` | 无 | 上游调整的是 config/subagent 默认额度，不属于当前逐提交业务同步面，也缺少 NION 侧问题证据。 |
 | `9ca68ffa` preserve virtual path separator style | `已等价吸收` | 现有代码 | 当前 `_join_path_preserving_style()` / `_join_path_preserving_trailing_separator()` 已覆盖虚拟路径分隔符风格保持。 |
 | `8049785d` memory reinforcement detection and case-insensitive dedup | `当前无安全落点` | 无 | 这条落在旧 memory middleware/queue/updater 语义链，和当前 Memory OS 主链已明显错位，不做局部回流。 |
