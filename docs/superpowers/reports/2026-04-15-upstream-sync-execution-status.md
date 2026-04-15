@@ -181,3 +181,23 @@
 | `ef711a48` sync README table of contents | `明确不同步` | 无 | 文档目录同步不属于当前 upstream 业务同步面。 |
 | `76fad8b0` available_skills parameter to DeerFlowClient | `已等价吸收` | 现有代码 | NION 当前 prompt/runtime 已把 `available_skills` 与 `requested_skills` 作为显式参数贯通。 |
 | `48565664` ACP mcpServers payload | `当前无安全落点` | 无 | NION ACP 已改为 remote transport seam，当前 transport 没有 upstream `new_session(mcpServers=...)` 同构合同。 |
+| `9735d73b` avoid follow-up suggestion overlap | `当前无安全落点` | 无 | 该修补涉及输入框、消息列表和线程模型联动；当前批次暂不在未复现视觉回归的情况下扩张 UI 状态面。 |
+| `c6cdf200` built-in grep and glob tools | `已等价吸收` | 现有代码 | 当前 sandbox/tools 与 `test_sandbox_search_tools.py` 已包含内置 `grep` / `glob` 搜索能力。 |
+| `1694c616` read-only support for local sandbox path mappings | `当前无安全落点` | 无 | upstream 这条会扩张 local sandbox path mapping 合同与 mount 策略；当前批次不直接引入整套读写映射面。 |
+| `3d4f9a88` explicit save action for agent creation | `当前无安全落点` | 无 | 这会改造 agent 创建产品流程与 bootstrap 交互，超出当前逐提交安全同步的 correctness 范围。 |
+| `83039fa2` SystemMessage+HumanMessage follow-up generation | `已等价吸收` | 现有代码 | 当前 `/api/threads/{id}/suggestions` 已使用 `SystemMessage` + `HumanMessage`，并有路由测试锁定。 |
+| `a2aba239` replace offline link in lead agent prompt | `明确不同步` | 无 | 文案/链接替换不属于当前 upstream 业务同步面。 |
+| `db82b592` LoopDetectionMiddleware list-type AIMessage.content | `已等价吸收` | 现有代码 | 当前 loop detection 已使用 `_append_text_block()` 兼容 `list` / `str` / `None` 内容，并有测试覆盖。 |
+| `fb2d99fd` DEER_FLOW_* env vars for gateway docker service | `明确不同步` | 无 | 纯 DEER_FLOW 环境变量补丁，不进入当前 NION 配置主链。 |
+| `fd310582` open-source nginx compatible upstream config | `已同步` | `933aaf4d` | 已移除 nginx Plus-only `zone`/`resolve` 指令，并更新 contract test 锁定开源 nginx 兼容形态。 |
+| `bbd08663` uploaded docs guidance for grep/glob/read_file | `已等价吸收` | 现有代码 | 当前 `UploadsMiddleware` 已明确注入 file-first、`read_file` 与结构预览引导。 |
+| `4ceb18c6` use webpack for local frontend dev in serve.sh | `已等价吸收` | 现有代码 | 当前 `scripts/serve.sh` 已以 `pnpm run dev` 启动，而默认 frontend dev script 已是 `next dev --webpack`。 |
+| `6473d389` button hydration mismatch with undefined variant/size | `已同步` | `f7b30ceb` | 已仅在显式传值时渲染 `data-variant` / `data-size`，并用前端 contract test 锁定。 |
+| `144c9b24` block unsupported .app uploads | `已等价吸收` | 现有代码 | 当前 `file-validation.ts` 已阻止 `.app` bundle 上传，并有定向测试覆盖。 |
+| `1c0051c1` keep prompt attachments from breaking before upload | `已等价吸收` | 现有代码 | 当前 prompt input 已保留原始 `File` 句柄并有 `prompt-input-files` 测试锁定。 |
+| `2a150f5d` unblock concurrent threads and workspace hydration | `当前无安全落点` | 无 | 这是 upstream 跨 backend/frontend/config/docker 的一揽子稳定性补丁，不适合在当前批次拆散硬迁。 |
+| `5f8dac66` update uv.lock | `明确不同步` | 无 | lockfile-only 依赖更新不按逐提交业务同步流处理。 |
+| `a283d4a0` include soul field in GET /api/agents list | `已等价吸收` | 现有代码 | 当前 `list_agents()` 已以 `include_soul=True` 返回 agent 列表载荷。 |
+| `72d4347a` guard None runtime.context in sandbox helpers | `已等价吸收` | 现有代码 | 当前 `ensure_sandbox_initialized()` / `sandbox_from_runtime()` 写回 context 前都已有 `runtime.context is not None` guard。 |
+| `e5416b53` multi-stage Docker build remove build-essential | `明确不同步` | 无 | Docker 镜像体积/供应链优化不属于当前逐提交业务同步面。 |
+| `d3b59a79` broken doc links | `当前无安全落点` | 无 | 当前文档仍混有 config.yaml/旧文件引用，需要和 NION 当前文档面一起专项收束，不在本批次零散迁移。 |
