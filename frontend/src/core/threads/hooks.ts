@@ -294,24 +294,9 @@ export function useThreadStream({
     }
     setIsLoading(false);
     if (!sendInFlightRef.current) {
-      const [next, ...rest] = pendingQueuedMessagesRef.current;
-      pendingQueuedMessagesRef.current = rest;
-      setValues((current) => ({
-        ...current,
-        queued_messages: rest.map((item) => ({
-          text: item.message.text,
-          files: (item.message.files ?? []).map((file) => ({
-            filename: file.filename ?? "attachment",
-            size: 0,
-            status: "uploading",
-          })),
-        })),
-      }));
-      if (next) {
-        void sendMessage(next.threadId, next.message, next.extraContext);
-      }
+      flushNextQueuedMessage();
     }
-  }, [apiClient]);
+  }, [apiClient, flushNextQueuedMessage]);
 
   useEffect(() => {
     return () => {
@@ -582,6 +567,18 @@ export function useThreadStream({
       })),
     }));
   }, []);
+  const dispatchQueuedMessageRef = useRef<
+    ((message: PendingQueuedThreadMessage) => void) | null
+  >(null);
+
+  const flushNextQueuedMessage = useCallback(() => {
+    const [next, ...rest] = pendingQueuedMessagesRef.current;
+    pendingQueuedMessagesRef.current = rest;
+    syncQueuedMessagesState();
+    if (next) {
+      dispatchQueuedMessageRef.current?.(next);
+    }
+  }, [syncQueuedMessagesState]);
 
   // Clear optimistic when server messages arrive (count increases)
   useEffect(() => {
@@ -815,20 +812,17 @@ export function useThreadStream({
       } finally {
         sendInFlightRef.current = false;
         void queryClient.invalidateQueries({ queryKey: ["threads", "search"] });
-        const [next, ...rest] = pendingQueuedMessagesRef.current;
-        pendingQueuedMessagesRef.current = rest;
-        syncQueuedMessagesState();
-        if (next) {
-          void sendMessage(
-            next.threadId,
-            next.message,
-            next.extraContext,
-          );
-        }
+        flushNextQueuedMessage();
       }
     },
-    [thread, _handleOnStart, t.uploads.uploadingFiles, context, locale, queryClient, syncQueuedMessagesState],
+    [thread, _handleOnStart, t.uploads.uploadingFiles, context, locale, queryClient, flushNextQueuedMessage],
   );
+
+  useEffect(() => {
+    dispatchQueuedMessageRef.current = (queued) => {
+      void sendMessage(queued.threadId, queued.message, queued.extraContext);
+    };
+  }, [sendMessage]);
 
   // Merge thread with optimistic messages for display
   const mergedThread =
