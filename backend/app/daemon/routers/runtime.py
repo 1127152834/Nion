@@ -20,6 +20,17 @@ class RuntimeClientCounts(BaseModel):
     other: int = 0
 
 
+class GuardianModeRuntimeInfo(BaseModel):
+    enabled: bool
+    window_required: bool
+    status: str
+
+
+class BridgeRuntimeInfo(BaseModel):
+    available: bool
+    running: bool | None = None
+
+
 class DaemonRuntimeInfoResponse(BaseModel):
     mode: str
     host: str
@@ -30,6 +41,8 @@ class DaemonRuntimeInfoResponse(BaseModel):
     allow_background_running: bool
     shutdown_grace_period_seconds: int = Field(ge=1, le=10)
     clients: RuntimeClientCounts = Field(default_factory=RuntimeClientCounts)
+    guardian_mode: GuardianModeRuntimeInfo
+    bridge_runtime: BridgeRuntimeInfo
 
 
 def get_daemon_service(request: Request) -> LocalDaemonService:

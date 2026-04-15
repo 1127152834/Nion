@@ -64,6 +64,17 @@ class LocalDaemonService:
             "allow_background_running": self.allow_background_running,
             "shutdown_grace_period_seconds": self.shutdown_grace_period_seconds,
             "clients": counts,
+            "guardian_mode": {
+                "enabled": self.allow_background_running,
+                "window_required": False,
+                "status": "busy"
+                if self.has_active_runtime_work()
+                else "standing_by",
+            },
+            "bridge_runtime": {
+                "available": True,
+                "running": None,
+            },
         }
 
     def register_client(self, client_id: str, client_type: str) -> dict[str, Any]:

@@ -23,6 +23,23 @@ def test_local_daemon_exposes_runtime_and_threads_routes() -> None:
         assert recall.status_code == 200
 
 
+def test_local_daemon_runtime_info_exposes_guardian_runtime_summary() -> None:
+    with TestClient(create_app()) as client:
+        response = client.get("/api/daemon/runtime-info")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["guardian_mode"] == {
+        "enabled": False,
+        "window_required": False,
+        "status": "standing_by",
+    }
+    assert payload["bridge_runtime"] == {
+        "available": True,
+        "running": None,
+    }
+
+
 def test_local_daemon_keeps_memory_and_notebook_without_new_memory_surfaces() -> None:
     with TestClient(create_app()) as client:
         memory = client.get("/api/memory")
