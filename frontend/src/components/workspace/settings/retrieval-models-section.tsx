@@ -28,6 +28,7 @@ import {
   RetrievalEmbeddingCard,
   type RetrievalEmbeddingDraft,
 } from "./retrieval-embedding-card";
+import { RetrievalLocalPacksCard } from "./retrieval-local-packs-card";
 import { RetrievalRecommendedStackCard } from "./retrieval-recommended-stack-card";
 import {
   RetrievalRerankerCard,
@@ -111,6 +112,21 @@ export function RetrievalModelsSection() {
       ((desktopCatalog?.models as { models?: RetrievalLocalModelItem[] } | null)?.models ?? []).filter(
         (item) => item.family === "embedding",
       ),
+    [desktopCatalog],
+  );
+  const localPacks = useMemo(
+    () =>
+      (((desktopCatalog?.packs as { packs?: Array<Record<string, unknown>> } | null)?.packs ?? []).map(
+        (item) => ({
+          pack_id: String(item.pack_id ?? ""),
+          display_name: String(item.display_name ?? ""),
+          locale: String(item.locale ?? ""),
+          installed_count: Number(item.installed_count ?? 0),
+          total_count: Number(item.total_count ?? 0),
+          installed: Boolean(item.installed),
+          downloading: Boolean(item.downloading),
+        }),
+      )),
     [desktopCatalog],
   );
   const localRerankModels = useMemo<RetrievalLocalModelItem[]>(
@@ -229,6 +245,35 @@ export function RetrievalModelsSection() {
         </div>
       ) : status ? (
         <div className="space-y-4">
+          <RetrievalLocalPacksCard
+            packs={localPacks}
+            progressMessage={downloadProgress ? String(downloadProgress.message ?? "") : null}
+            busy={
+              desktopActions.downloadPack.isPending
+              || desktopActions.importPack.isPending
+            }
+            onDownloadPack={(packId) => {
+              desktopActions.downloadPack.mutate(packId, {
+                onSuccess: (result) => {
+                  toast[result.success ? "success" : "error"](result.message || "下载完成");
+                },
+                onError: (mutationError) => {
+                  toast.error(mutationError.message);
+                },
+              });
+            }}
+            onImportPack={(packId) => {
+              desktopActions.importPack.mutate(packId, {
+                onSuccess: (result) => {
+                  toast[result.success ? "success" : "error"](result.message || "导入完成");
+                },
+                onError: (mutationError) => {
+                  toast.error(mutationError.message);
+                },
+              });
+            }}
+          />
+
           <RetrievalRecommendedStackCard
             embeddingModel={status.active_profile.embedding.model_name}
             rerankerModel={status.active_profile.reranker.model_name}
@@ -368,11 +413,6 @@ export function RetrievalModelsSection() {
           />
 
           <RetrievalConsumersCard consumers={status.consumers} />
-          {downloadProgress ? (
-            <div className="text-muted-foreground text-sm">
-              当前下载：{String(downloadProgress.message ?? "")}
-            </div>
-          ) : null}
         </div>
       ) : null}
     </SettingsSection>

@@ -23,6 +23,7 @@ void test("retrieval models section assembles the Task 8 retrieval cards", async
   assert.match(source, /useDesktopRetrievalCatalog/);
   assert.match(source, /useDesktopRetrievalModelActions/);
   assert.match(source, /downloadPack|downloadModel/);
+  assert.match(source, /RetrievalLocalPacksCard/);
 });
 
 void test("retrieval model cards expose local and api modes", async () => {
