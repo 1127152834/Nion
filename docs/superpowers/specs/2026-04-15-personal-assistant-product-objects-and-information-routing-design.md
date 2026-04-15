@@ -20,6 +20,28 @@
 4. 让 Automation 从 job scheduler 收口成“助手持续承诺”。
 5. 让产品层用更少、更稳定的对象承载复杂 runtime 能力。
 
+### 1.1 文档优先级与废弃声明
+
+本文件是当前阶段关于以下主题的上位产品合同：
+
+- `Notebook / Knowledge / Memory`
+- `USER.md / IDENTITY.md / SOUL.md / MEMORY.md`
+- `Information Routing Contract`
+- `Automation` 作为个人助手持续承诺的产品语义
+
+当本文件与以下旧文档冲突时，以本文件为准：
+
+- `docs/superpowers/specs/2026-04-13-memory-identity-soul-ui-and-file-model-refactor-design.md`
+- `docs/superpowers/specs/2026-04-13-notebook-to-knowledge-base-design.md`
+- `docs/superpowers/specs/2026-04-15-nion-llm-wiki-knowledge-module-redesign.md`
+
+显式废弃的旧表述包括：
+
+1. 把 `IDENTITY.md` 视作用户身份主档。
+2. 把 `Knowledge` 视作可独立创建、可直接编辑的用户资产空间。
+3. 把 `Automation` 的主要产品语义定义为 job scheduler。
+4. 把 Notebook / Knowledge / Memory 当成三个平级长期内容空间。
+
 ---
 
 ## 2. 已确认的新产品定义
@@ -199,6 +221,42 @@ SOUL.md     = 我如何说话 / 如何判断 / 如何行动
 - `/api/identity/document` 管助手身份 `IDENTITY.md`
 - `/api/soul/document` 管助手行为 `SOUL.md`
 
+### 3.3 Compatibility / Migration Contract
+
+这次重构不能靠“从今天开始大家口头上都换个叫法”。必须提供明确迁移策略。
+
+#### 短期兼容阶段
+
+保留现有：
+
+- `UserIdentityProfile`
+- `/api/user-identity`
+- `/api/identity/document`
+- `/api/soul/document`
+
+但语义规则改为：
+
+- `UserIdentityProfile` 在代码层暂时保留，产品语义一律解释为 `User Profile`
+- `/api/user-identity` 继续作为结构化用户身份写接口
+- `/api/identity/document` 进入助手身份语义
+- `/api/soul/document` 继续承载助手行为语义
+
+#### 迁移阶段要求
+
+必须新增：
+
+1. `USER.md` 文件 owner
+2. user-facing / runtime-facing migration adapter
+3. 历史 identity 数据迁移脚本
+4. compat tests
+5. deprecation timeline
+
+#### 验收标准
+
+1. 没有任何新代码再把 `identity` 当成 user identity。
+2. 旧接口可继续工作，但其文案和 contract 已更新到新语义。
+3. runtime 注入时，`USER` 与 `IDENTITY` 的 owner 不再混淆。
+
 ---
 
 ## 4. 三类长期内容系统的最终命运
@@ -291,6 +349,179 @@ Memory 应成为 assistant long-term memory。
 }
 ```
 
+### 5.1.1 Route Decision 类型族
+
+上面的 envelope 不足以直接驱动后续写入。
+实际落地时必须使用 target-specific payload schema。
+
+建议采用 discriminated union：
+
+```ts
+type InformationRouteDecision =
+  | CurrentTurnOnlyRouteDecision
+  | UserRouteDecision
+  | IdentityRouteDecision
+  | SoulRouteDecision
+  | MemoryRouteDecision
+  | NotebookRouteDecision
+  | KnowledgeRouteDecision
+  | AutomationRouteDecision;
+```
+
+所有 route decision 的共有字段：
+
+```ts
+type BaseRouteDecision = {
+  target:
+    | "current_turn_only"
+    | "USER.md"
+    | "IDENTITY.md"
+    | "SOUL.md"
+    | "MEMORY.md"
+    | "Notebook"
+    | "Knowledge"
+    | "Automation";
+  confidence: number;
+  reason: string;
+  evidence: string;
+  source_turn_id?: string;
+  write_policy:
+    | "none"
+    | "direct_patch"
+    | "save_raw"
+    | "compile_candidate"
+    | "suggest_then_confirm";
+  confirmation_required: boolean;
+};
+```
+
+### 5.1.2 Target-specific payload schema
+
+#### USER.md
+
+```ts
+type UserRouteDecision = BaseRouteDecision & {
+  target: "USER.md";
+  payload: {
+    field_patches: Partial<{
+      user_name: string;
+      user_aliases: string[];
+      preferred_address_for_user: string;
+      assistant_self_name: string;
+      mutual_addressing_rule: string;
+      communication_style_preferences: string[];
+      user_role: string;
+      timezone: string;
+      interaction_boundaries: string[];
+      long_term_background_summary: string;
+    }>;
+  };
+};
+```
+
+#### IDENTITY.md
+
+```ts
+type IdentityRouteDecision = BaseRouteDecision & {
+  target: "IDENTITY.md";
+  payload: {
+    patch_mode: "section_patch" | "document_patch";
+    sections: Partial<{
+      core_identity: string;
+      mission: string;
+      relationship_role: string;
+      non_goals: string;
+    }>;
+  };
+};
+```
+
+#### SOUL.md
+
+```ts
+type SoulRouteDecision = BaseRouteDecision & {
+  target: "SOUL.md";
+  payload: {
+    patch_mode: "section_patch" | "document_patch";
+    sections: Partial<{
+      speech_style: string;
+      values_and_boundaries: string;
+      relationship_stance: string;
+      initiative_policy: string;
+      decision_style: string;
+    }>;
+  };
+};
+```
+
+#### MEMORY.md
+
+```ts
+type MemoryRouteDecision = BaseRouteDecision & {
+  target: "MEMORY.md";
+  payload: {
+    memory_kind:
+      | "user_fact"
+      | "user_preference"
+      | "project_fact"
+      | "interaction_fact"
+      | "task_lesson";
+    summary: string;
+    provenance_refs?: string[];
+  };
+};
+```
+
+#### Notebook
+
+```ts
+type NotebookRouteDecision = BaseRouteDecision & {
+  target: "Notebook";
+  payload: {
+    create_mode: "new_note" | "append_note" | "archive_asset";
+    title?: string;
+    directory?: string;
+    body?: string;
+    source_kind?: "chat" | "artifact" | "manual";
+  };
+};
+```
+
+#### Knowledge
+
+```ts
+type KnowledgeRouteDecision = BaseRouteDecision & {
+  target: "Knowledge";
+  payload: {
+    source_note_id?: string;
+    source_asset_id?: string;
+    compile_intent: "new_candidate" | "recompile" | "revision_request";
+    candidate_reason: string;
+  };
+};
+```
+
+#### Automation
+
+```ts
+type AutomationRouteDecision = BaseRouteDecision & {
+  target: "Automation";
+  payload: {
+    commitment_kind: "user_created" | "agent_suggested" | "agent_maintenance";
+    intent: string;
+    schedule: {
+      kind: "once" | "interval" | "cron";
+      value: string;
+      timezone?: string;
+    };
+    input_scopes: string[];
+    write_scopes: string[];
+    delivery_scopes: string[];
+    failure_policy: "notify_user" | "silent_retry" | "internal_only";
+  };
+};
+```
+
 ### 5.2 路由规则总表
 
 | 输入类型 | 目标 | 是否需要确认 | 说明 |
@@ -304,6 +535,46 @@ Memory 应成为 assistant long-term memory。
 | 用户原始材料、会议记录、草稿 | `Notebook` | 否，若用户要求保存 | 用户资产 |
 | 用户要求沉淀知识 | `Knowledge` from Notebook | 是 | 必须有 Notebook source |
 | 定时提醒、周期总结、长期跟进 | `Automation` | 是，除非用户明确命令 | 持续承诺 |
+
+### 5.3 USER 与 SOUL 的 precedence 规则
+
+当同一句输入既表达了用户偏好，又表达了助手行为要求时，允许双写，但 owner 不同：
+
+1. `USER.md` 记录“用户偏好来源”
+2. `SOUL.md` 记录“助手执行规则”
+3. runtime 行为以 `SOUL.md` 为准
+4. `MEMORY.md` 只记录相关事件或长期背景，不承载行为执行规则
+
+例如：
+
+> “我不喜欢废话，以后你直接点。”
+
+应拆成：
+
+- `USER.md`: 用户偏好直接、厌恶废话
+- `SOUL.md`: 回答先给结论、压缩客套
+
+### 5.4 Read Routing Contract
+
+除了写入路由，还必须显式定义读取优先级。
+建议按任务类型定义默认读取顺序：
+
+| 任务类型 | 默认读取优先级 |
+| --- | --- |
+| 用户身份问题 | `USER.md -> MEMORY.md` |
+| 助手身份问题 | `IDENTITY.md -> SOUL.md` |
+| 助手行为/风格问题 | `SOUL.md -> USER.md preference source` |
+| 当前关系/称谓问题 | `USER.md -> MEMORY.md` |
+| 用户历史事实问题 | `MEMORY.md -> session recall` |
+| 专业知识/沉淀知识问题 | `Knowledge -> Notebook (仅显式授权)` |
+| 当前笔记相关问题 | `current Notebook note -> Notebook search (显式)` |
+| 自动化任务运行 | `Automation input scopes -> USER/IDENTITY/SOUL/MEMORY/Knowledge/Notebook` |
+
+全局原则：
+
+1. 没有显式授权时，不默认全局读取 Notebook。
+2. Knowledge query 优先于 Notebook raw search，除非用户明确要求原文。
+3. `SOUL.md` 是行为执行权威，`USER.md` 是偏好来源，不可倒置。
 
 ---
 
@@ -499,6 +770,37 @@ Notebook note / asset
 - 不立即删除
 - 若无引用、无近期查询命中、用户确认，才可清理
 
+### 7.6 Knowledge Revision Request Contract
+
+Knowledge 不能直接编辑正文，但必须允许用户纠错。
+
+新增对象：
+
+```ts
+type KnowledgeRevisionRequest = {
+  request_id: string;
+  page_id: string;
+  source_note_id?: string;
+  source_asset_id?: string;
+  reason: string;
+  requested_action:
+    | "fix_source_then_recompile"
+    | "append_correction_note"
+    | "recompile"
+    | "archive_page";
+  created_at: string;
+  status: "pending" | "accepted" | "dismissed" | "completed";
+};
+```
+
+用户对 Knowledge 的纠错流程必须是：
+
+`page -> revision request -> source repair / correction note / recompile`
+
+而不是：
+
+`page -> direct body edit`
+
 ---
 
 ## 8. USER / IDENTITY / SOUL / MEMORY 写入合同
@@ -655,6 +957,47 @@ agent 发现重复需求后建议。
 - 默认低打扰
 - 必须可见、可暂停
 
+### 9.4 Assistant Commitment 权限矩阵
+
+每个持续任务都必须带有明确权限矩阵：
+
+| 字段 | 说明 |
+| --- | --- |
+| `input_scopes` | 可读取哪些信息源，例如 `["USER", "SOUL", "Knowledge"]` |
+| `write_scopes` | 可写哪些层，例如 `["internal_log"]`、`["AutomationStatus"]` |
+| `delivery_scopes` | 可向哪里投递，例如 `["thread"]`、`["bridge:telegram"]` |
+| `failure_policy` | 失败如何处理 |
+| `confirmation_policy` | 创建、升级权限、外发消息时是否需要确认 |
+
+建议默认矩阵：
+
+#### 用户创建任务
+
+- `input_scopes`: 显式选择
+- `write_scopes`: `current_thread`, `task_output`, 可选 `Notebook`
+- `delivery_scopes`: 用户选择
+- `failure_policy`: 默认 `notify_user`
+
+#### 助手建议任务
+
+- `input_scopes`: 由建议时明确列出
+- `write_scopes`: 默认不允许写 `USER / IDENTITY / SOUL / MEMORY`
+- `delivery_scopes`: 用户确认后启用
+- `failure_policy`: 默认 `notify_user`
+
+#### 助手自维护任务
+
+- `input_scopes`: `system_state`, `Memory`, `Knowledge metadata`
+- `write_scopes`: `internal_log`, `maintenance_state`
+- `delivery_scopes`: 默认无，仅在需要时摘要通知
+- `failure_policy`: `internal_only` 或低频提醒
+
+硬规则：
+
+1. agent-owned 自维护任务不得默认写 `USER.md / IDENTITY.md / SOUL.md`
+2. agent-owned 自维护任务不得默认外发高影响通知
+3. delivery success 与 execution success 必须分开记录
+
 ---
 
 ## 10. AI 行为链收口
@@ -775,12 +1118,14 @@ Memory 必须防止：
 - 不再把 user identity 称作 identity
 - 不再把 Knowledge 说成独立用户资产空间
 - 不再把 Automation 主要表述为 job scheduler
+- 明确本文件对旧 spec 的优先级与废弃语义清单
 
 ### Phase 1：建立 Information Router
 
 产物：
 
 - `InformationRouteDecision` 模型
+- target-specific payload schema
 - 确定性 route rules
 - route audit log
 - router tests
@@ -793,6 +1138,8 @@ Memory 必须防止：
 - 原始材料写 Notebook
 - 知识沉淀只产生 Knowledge candidate
 - 普通任务不写长期层
+- USER / SOUL precedence 可预测
+- read routing 有明确默认顺序
 
 ### Phase 2：修正文件原生主档
 
