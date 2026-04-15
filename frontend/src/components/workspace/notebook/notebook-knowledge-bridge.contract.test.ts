@@ -23,4 +23,7 @@ void test("notebook surfaces expose send-to-knowledge and knowledge-status actio
 
   assert.match(pageSource, /知识库编译状态/);
   assert.match(pageSource, /knowledgeCompileStatus/);
+  assert.match(pageSource, /打开生成页面/);
+  assert.match(pageSource, /重试编译/);
+  assert.match(pageSource, /createdPageIds/);
 });
