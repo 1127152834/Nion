@@ -6,6 +6,7 @@ import type {
   KnowledgeGraphPayload,
   KnowledgeLintReport,
   KnowledgePage,
+  KnowledgeCitation,
   KnowledgeCompileJobListResponse,
   NotebookKnowledgeStatus,
   KnowledgeQueryResult,
@@ -123,8 +124,24 @@ function isKnowledgePage(value: unknown): value is KnowledgePage {
     Array.isArray(value.sources) &&
     Array.isArray(value.compiled_from) &&
     typeof value.last_compiled_at === "string" &&
+    typeof value.page_state === "string" &&
+    ["active", "stale", "archived"].includes(value.page_state) &&
     typeof value.agent_owned === "boolean" &&
     typeof value.human_editable === "boolean"
+  );
+}
+
+function isKnowledgeCitation(value: unknown): value is KnowledgeCitation {
+  return (
+    isObjectRecord(value) &&
+    typeof value.page_id === "string" &&
+    typeof value.title === "string" &&
+    typeof value.page_type === "string" &&
+    ["source", "entity", "concept", "synthesis", "overview"].includes(value.page_type) &&
+    typeof value.page_state === "string" &&
+    ["active", "stale", "archived"].includes(value.page_state) &&
+    isStringArray(value.source_ids) &&
+    typeof value.score === "number"
   );
 }
 
@@ -132,8 +149,16 @@ function isKnowledgeQueryResult(value: unknown): value is KnowledgeQueryResult {
   return (
     isObjectRecord(value) &&
     typeof value.answer_markdown === "string" &&
-    Array.isArray(value.page_ids) &&
-    value.page_ids.every((item) => typeof item === "string")
+    Array.isArray(value.citations) &&
+    value.citations.every(isKnowledgeCitation) &&
+    Array.isArray(value.matched_page_ids) &&
+    value.matched_page_ids.every((item) => typeof item === "string") &&
+    typeof value.retrieval_policy === "string" &&
+    ["active_only", "active_with_stale_fallback", "explicit_archived_lookup"].includes(
+      value.retrieval_policy,
+    ) &&
+    Array.isArray(value.warnings) &&
+    value.warnings.every((item) => typeof item === "string")
   );
 }
 

@@ -364,7 +364,10 @@ def test_knowledge_query_endpoint_returns_page_based_answer(monkeypatch, tmp_pat
     assert response.status_code == 200
     payload = response.json()
     assert "Roadmap summary" in payload["answer_markdown"]
-    assert payload["page_ids"] == ["concept:roadmap"]
+    assert payload["matched_page_ids"] == ["concept:roadmap"]
+    assert payload["retrieval_policy"] == "active_only"
+    assert payload["warnings"] == []
+    assert payload["citations"][0]["page_state"] == "active"
 
 
 def test_knowledge_graph_rebuild_endpoint_returns_graph_payload(monkeypatch, tmp_path):

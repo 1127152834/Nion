@@ -64,6 +64,7 @@ class KnowledgePage(BaseModel):
     sources: list[str] = Field(default_factory=list)
     compiled_from: list[dict[str, Any]] = Field(default_factory=list)
     last_compiled_at: str
+    page_state: Literal["active", "stale", "archived"] = "active"
     agent_owned: bool = True
     human_editable: bool = False
 

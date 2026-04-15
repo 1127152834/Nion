@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 from nion.agents.lead_agent.prompt import apply_prompt_template
@@ -40,6 +41,28 @@ def test_query_knowledge_base_tool_reads_compiled_pages(tmp_path, monkeypatch) -
 
     assert "Roadmap summary" in payload
     assert "concept:roadmap" in payload
+
+
+def test_query_knowledge_tool_returns_citations_and_policy(tmp_path, monkeypatch) -> None:
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    import nion.config.paths as paths_module
+
+    paths_module._paths = None
+    KnowledgePageStore(base_dir=tmp_path).write_page(
+        page_id="concept:roadmap",
+        page_type="concept",
+        title="Roadmap",
+        body="Roadmap summary",
+        sources=["source:notebook_note:note_1"],
+        compiled_from=[{"source_id": "source:notebook_note:note_1", "content_hash": "abc123"}],
+        last_compiled_at="2026-04-15T10:00:00Z",
+        page_state="active",
+    )
+
+    payload = json.loads(query_knowledge_base_tool.invoke({"question": "roadmap"}))
+
+    assert payload["citations"][0]["page_state"] == "active"
+    assert payload["retrieval_policy"] == "active_only"
 
 
 def test_prompt_always_guides_knowledge_questions_to_query_tool() -> None:

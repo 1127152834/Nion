@@ -46,6 +46,7 @@ class KnowledgePageStore:
         sources: list[str],
         compiled_from: list[dict[str, str]],
         last_compiled_at: str,
+        page_state: str = "active",
     ) -> KnowledgePage:
         path = self._page_path(page_id, page_type)
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -56,6 +57,7 @@ class KnowledgePageStore:
             "sources": sources,
             "compiled_from": compiled_from,
             "last_compiled_at": last_compiled_at,
+            "page_state": page_state,
             "agent_owned": True,
             "human_editable": False,
         }
@@ -79,6 +81,7 @@ class KnowledgePageStore:
             sources=list(frontmatter.get("sources") or []),
             compiled_from=list(frontmatter.get("compiled_from") or []),
             last_compiled_at=str(frontmatter["last_compiled_at"]),
+            page_state=str(frontmatter.get("page_state", "active")),
             agent_owned=bool(frontmatter.get("agent_owned", True)),
             human_editable=bool(frontmatter.get("human_editable", False)),
         )

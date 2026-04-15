@@ -98,7 +98,19 @@ void test("queryKnowledge calls the knowledge query endpoint", async () => {
     return new Response(
       JSON.stringify({
         answer_markdown: "## Summary\nRoadmap summary",
-        page_ids: ["concept:roadmap"],
+        citations: [
+          {
+            page_id: "concept:roadmap",
+            title: "Roadmap",
+            page_type: "concept",
+            page_state: "active",
+            source_ids: ["source:notebook_note:note_1"],
+            score: 1,
+          },
+        ],
+        matched_page_ids: ["concept:roadmap"],
+        retrieval_policy: "active_only",
+        warnings: [],
       }),
       { status: 200, headers: { "Content-Type": "application/json" } },
     );
@@ -107,7 +119,9 @@ void test("queryKnowledge calls the knowledge query endpoint", async () => {
   const payload = await queryKnowledge("roadmap");
 
   assert.match(seenUrl, /\/api\/knowledge\/query\?question=roadmap$/);
-  assert.equal(payload.page_ids[0], "concept:roadmap");
+  assert.equal(payload.matched_page_ids[0], "concept:roadmap");
+  assert.equal(payload.citations[0]?.page_state, "active");
+  assert.equal(payload.retrieval_policy, "active_only");
 });
 
 void test("approveKnowledgeQueue posts source ids to the queue approval endpoint", async () => {
@@ -430,6 +444,7 @@ void test("saveKnowledgeSynthesis posts to the syntheses endpoint", async () => 
         sources: [],
         compiled_from: [],
         last_compiled_at: "2026-04-13T00:00:00Z",
+        page_state: "active",
         agent_owned: true,
         human_editable: false,
       }),

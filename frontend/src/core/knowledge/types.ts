@@ -33,6 +33,7 @@ export interface KnowledgePage {
   sources: string[];
   compiled_from: Array<Record<string, unknown>>;
   last_compiled_at: string;
+  page_state: "active" | "stale" | "archived";
   agent_owned: boolean;
   human_editable: boolean;
 }
@@ -103,9 +104,24 @@ export interface NotebookKnowledgeStatus {
   error_summary?: string;
 }
 
+export interface KnowledgeCitation {
+  page_id: string;
+  title: string;
+  page_type: "source" | "entity" | "concept" | "synthesis" | "overview";
+  page_state: "active" | "stale" | "archived";
+  source_ids: string[];
+  score: number;
+}
+
 export interface KnowledgeQueryResult {
   answer_markdown: string;
-  page_ids: string[];
+  citations: KnowledgeCitation[];
+  matched_page_ids: string[];
+  retrieval_policy:
+    | "active_only"
+    | "active_with_stale_fallback"
+    | "explicit_archived_lookup";
+  warnings: string[];
 }
 
 export interface KnowledgeGraphPayload {

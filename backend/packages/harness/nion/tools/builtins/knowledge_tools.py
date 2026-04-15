@@ -19,13 +19,16 @@ def query_knowledge_base_tool(question: str) -> str:
         question: Natural-language question to ask against compiled knowledge pages.
 
     Returns:
-        JSON string containing the compiled answer and matched page ids.
+        JSON string containing the compiled answer, citations, retrieval policy, and warnings.
     """
     result = KnowledgeQueryService().answer(question)
     return json.dumps(
         {
             "answer_markdown": result.answer_markdown,
-            "page_ids": result.page_ids,
+            "citations": result.citations,
+            "matched_page_ids": result.matched_page_ids,
+            "retrieval_policy": result.retrieval_policy,
+            "warnings": result.warnings,
         },
         ensure_ascii=False,
     )

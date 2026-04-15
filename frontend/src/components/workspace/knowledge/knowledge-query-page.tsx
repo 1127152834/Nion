@@ -4,6 +4,16 @@ import { useState } from "react";
 
 import { useKnowledgeQuery, useSaveKnowledgeSynthesis } from "@/core/knowledge";
 
+function stateBadgeClassName(pageState: "active" | "stale" | "archived") {
+  if (pageState === "active") {
+    return "border-emerald-500/30 bg-emerald-500/10 text-emerald-700";
+  }
+  if (pageState === "stale") {
+    return "border-amber-500/30 bg-amber-500/10 text-amber-700";
+  }
+  return "border-slate-500/30 bg-slate-500/10 text-slate-700";
+}
+
 export function KnowledgeQueryPage() {
   const [question, setQuestion] = useState("");
   const [submittedQuestion, setSubmittedQuestion] = useState<string | null>(null);
@@ -55,6 +65,48 @@ export function KnowledgeQueryPage() {
                 ? "query error"
                 : (result?.answer_markdown ?? "page-based query result area")}
           </div>
+          {result ? (
+            <div className="space-y-3 rounded-md border px-3 py-3 text-sm">
+              <div className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
+                retrieval_policy: {result.retrieval_policy}
+              </div>
+              {result.warnings.length > 0 ? (
+                <div className="space-y-1">
+                  <div className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
+                    warnings
+                  </div>
+                  <ul className="space-y-1 text-amber-700">
+                    {result.warnings.map((warning) => (
+                      <li key={warning}>{warning}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+              <div className="space-y-2">
+                <div className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
+                  citations
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {result.citations.map((citation) => (
+                    <div
+                      key={citation.page_id}
+                      className="rounded-md border px-3 py-2 text-xs text-foreground"
+                    >
+                      <div className="font-medium">{citation.title}</div>
+                      <div className="mt-1 flex flex-wrap gap-2">
+                        <span
+                          className={`rounded-full border px-2 py-0.5 ${stateBadgeClassName(citation.page_state)}`}
+                        >
+                          {citation.page_state}
+                        </span>
+                        <span>{citation.page_id}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : null}
           <button
             className="rounded-md border px-3 py-2 text-sm"
             onClick={() => {
