@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Request
 from pydantic import BaseModel, Field
 
-from app.daemon.service import LocalDaemonService
+from app.daemon.service import GuardianModeStatus, LocalDaemonService
 
 router = APIRouter(tags=["daemon"])
 
@@ -23,7 +23,7 @@ class RuntimeClientCounts(BaseModel):
 class GuardianModeRuntimeInfo(BaseModel):
     enabled: bool
     window_required: bool
-    status: str
+    status: GuardianModeStatus
 
 
 class BridgeRuntimeInfo(BaseModel):

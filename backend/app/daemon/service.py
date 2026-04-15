@@ -3,13 +3,15 @@ from __future__ import annotations
 import asyncio
 import os
 from collections.abc import Awaitable, Callable
-from typing import Any
+from typing import Any, Literal
 
 from nion.config import get_app_config
 from nion.telemetry.logger import make_event
 from nion.telemetry.store import TelemetryStore
 
 from .session_registry import SessionRegistry
+
+type GuardianModeStatus = Literal["standing_by", "busy", "offline"]
 
 
 class LocalDaemonService:
@@ -52,6 +54,9 @@ class LocalDaemonService:
     def health_url(self) -> str:
         return f"{self.base_url}/health"
 
+    def guardian_mode_status(self) -> GuardianModeStatus:
+        return "busy" if self.has_active_runtime_work() else "standing_by"
+
     def runtime_info(self) -> dict[str, Any]:
         counts = self.registry.snapshot()
         return {
@@ -67,9 +72,7 @@ class LocalDaemonService:
             "guardian_mode": {
                 "enabled": self.allow_background_running,
                 "window_required": False,
-                "status": "busy"
-                if self.has_active_runtime_work()
-                else "standing_by",
+                "status": self.guardian_mode_status(),
             },
             "bridge_runtime": {
                 "available": True,
