@@ -1226,6 +1226,14 @@ export const zhCN: Translations = {
         keepValue: "保留值",
         advanced: "高级设置",
       },
+      attachments: {
+        title: "附件",
+        subtitle: "配置聊天会话中附件数量和单文件大小的默认限制。",
+        maxFiles: "最大文件数",
+        maxFileSizeMb: "单文件最大大小（MB）",
+        currentMaxFiles: "当前默认值：{value} 个文件",
+        currentMaxFileSizeMb: "当前默认值：每个文件 {value} MB",
+      },
       subagents: {
         title: "子代理",
         subtitle: "管理默认和单代理超时策略。",

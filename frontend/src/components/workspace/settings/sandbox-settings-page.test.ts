@@ -46,3 +46,12 @@ void test("i18n types include host workdir runtime copy", async () => {
   assert.match(source, /hostWorkdirMissingTitle: string;/);
   assert.match(source, /hostWorkdirMissingDescription: string;/);
 });
+
+void test("session policy settings page includes the attachments section", async () => {
+  const source = await readFile(
+    new URL("./session-policy-settings-page.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /AttachmentsSection/);
+});

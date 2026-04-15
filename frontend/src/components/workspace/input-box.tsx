@@ -69,6 +69,7 @@ import {
 } from "@/core/automation/object-mentions";
 import { useCLIConfig } from "@/core/cli";
 import { getBackendBaseURL } from "@/core/config";
+import { useConfigCenter } from "@/core/config-center";
 import { useI18n } from "@/core/i18n/hooks";
 import { useMCPConfig } from "@/core/mcp/hooks";
 import { useModels } from "@/core/models/hooks";
@@ -152,6 +153,8 @@ type RecentMentionsState = {
 
 const RECENT_MENTION_LIMIT = 5;
 const MAX_INLINE_MENTION_SUMMARY_ITEMS = 3;
+const DEFAULT_ATTACHMENT_MAX_FILES = 9;
+const DEFAULT_ATTACHMENT_MAX_FILE_SIZE_MB = 20;
 
 function getNextAtMentionTab(current: AtMentionTab): AtMentionTab {
   return current === "notebook" ? "agent" : "notebook";
@@ -557,6 +560,7 @@ export function InputBox({
   onStop?: () => void;
 }) {
   const { t } = useI18n();
+  const { configData } = useConfigCenter();
   const searchParams = useSearchParams();
   const [modelDialogOpen, setModelDialogOpen] = useState(false);
   const { agents } = useAgents();
@@ -606,6 +610,36 @@ export function InputBox({
   const [pendingSuggestion, setPendingSuggestion] = useState<string | null>(
     null,
   );
+
+  const attachmentConfig = useMemo(() => {
+    const sessionPolicy =
+      configData?.config &&
+      typeof configData.config === "object" &&
+      "session_policy" in configData.config
+        ? (configData.config.session_policy as Record<string, unknown> | undefined)
+        : undefined;
+    const attachments =
+      sessionPolicy &&
+      typeof sessionPolicy === "object" &&
+      "attachments" in sessionPolicy
+        ? (sessionPolicy.attachments as Record<string, unknown> | undefined)
+        : undefined;
+
+    const maxFiles =
+      typeof attachments?.max_files === "number" && attachments.max_files > 0
+        ? Math.trunc(attachments.max_files)
+        : DEFAULT_ATTACHMENT_MAX_FILES;
+    const maxFileSizeBytes =
+      typeof attachments?.max_file_size_mb === "number" &&
+      attachments.max_file_size_mb > 0
+        ? Math.trunc(attachments.max_file_size_mb) * 1024 * 1024
+        : DEFAULT_ATTACHMENT_MAX_FILE_SIZE_MB * 1024 * 1024;
+
+    return {
+      maxFiles,
+      maxFileSizeBytes,
+    };
+  }, [configData?.config]);
 
   useEffect(() => {
     if (!initialValue || initialValueAppliedRef.current === initialValue) {
@@ -1481,6 +1515,8 @@ export function InputBox({
         )}
         disabled={disabled}
         globalDrop
+        maxFiles={attachmentConfig.maxFiles}
+        maxFileSize={attachmentConfig.maxFileSizeBytes}
         multiple
         onSubmit={handleSubmit}
         {...props}

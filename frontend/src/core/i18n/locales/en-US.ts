@@ -1281,6 +1281,15 @@ export const enUS: Translations = {
         keepValue: "Keep value",
         advanced: "Advanced",
       },
+      attachments: {
+        title: "Attachments",
+        subtitle:
+          "Configure default limits for attachment count and per-file size in chat sessions.",
+        maxFiles: "Maximum files",
+        maxFileSizeMb: "Maximum file size (MB)",
+        currentMaxFiles: "Current default: {value} files",
+        currentMaxFileSizeMb: "Current default: {value} MB per file",
+      },
       subagents: {
         title: "Subagents",
         subtitle: "Manage per-agent and default timeout policy.",

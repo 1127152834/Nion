@@ -5,6 +5,7 @@ import { useModels } from "@/core/models/hooks";
 
 import { ConfigValidationErrors } from "./config-validation-errors";
 import { ConfigSaveBar } from "./configuration/config-save-bar";
+import { AttachmentsSection } from "./configuration/sections/attachments-section";
 import { SubagentsSection } from "./configuration/sections/subagents-section";
 import { SuggestionsSection } from "./configuration/sections/suggestions-section";
 import { SummarizationSection } from "./configuration/sections/summarization-section";
@@ -47,6 +48,11 @@ export function SessionPolicySettingsPage() {
         </div>
       ) : (
         <div className="space-y-4">
+          <AttachmentsSection
+            config={draftConfig}
+            onChange={onConfigChange}
+            disabled={disabled}
+          />
           <SuggestionsSection
             config={draftConfig}
             onChange={onConfigChange}

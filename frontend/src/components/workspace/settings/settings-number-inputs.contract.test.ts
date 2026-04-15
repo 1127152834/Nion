@@ -28,6 +28,13 @@ void test("settings numeric inputs serialize persisted numeric values before ren
       ],
     },
     {
+      file: "attachments-section.tsx",
+      patterns: [
+        /toInputValue\(attachments\.max_files\)/,
+        /toInputValue\(attachments\.max_file_size_mb\)/,
+      ],
+    },
+    {
       file: "subagents-section.tsx",
       patterns: [
         /toInputValue\(item\.timeout_seconds\)/,

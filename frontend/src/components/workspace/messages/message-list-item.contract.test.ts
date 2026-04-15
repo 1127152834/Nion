@@ -23,6 +23,9 @@ void test("human messages render uploaded image files through the rich files lis
   assert.match(source, /<img[\s\S]*src=\{fileUrl\}/);
   assert.match(source, /const filesList =[\s\S]*RichFilesList/);
   assert.match(source, /{filesList}\s*{messageResponse &&/);
+  assert.match(source, /imageGridClassName/);
+  assert.match(source, /h-28 w-full object-cover/);
+  assert.doesNotMatch(source, /max-h-60 w-auto max-w-72/);
 });
 
 void test("human multimodal image_url content is converted into rich file previews even without additional_kwargs files", async () => {

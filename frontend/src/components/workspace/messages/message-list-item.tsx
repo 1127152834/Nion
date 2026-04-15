@@ -474,10 +474,21 @@ function RichFilesList({
   const nonImageFiles = files.filter(
     (file) => file.status !== "uploading" && !isImageFile(file.filename),
   );
+  const imageGridClassName =
+    imageFiles.length === 1
+      ? "grid-cols-1"
+      : imageFiles.length === 2
+        ? "grid-cols-2"
+        : "grid-cols-2 md:grid-cols-3";
   return (
     <div className="mb-2 flex flex-col items-end gap-2">
       {imageFiles.length > 0 ? (
-        <div className="flex flex-wrap justify-end gap-2">
+        <div
+          className={cn(
+            "grid w-full max-w-[min(28rem,80vw)] justify-end gap-2",
+            imageGridClassName,
+          )}
+        >
           {imageFiles.map((file, index) => (
             <RichFileCard
               key={`${file.filename}-${index}`}
@@ -558,14 +569,14 @@ function RichFileCard({
         <img
           src={fileUrl}
           alt={file.filename}
-          className="max-h-60 w-auto max-w-72 object-cover transition-transform group-hover:scale-105"
+          className="h-28 w-full object-cover transition-transform group-hover:scale-105 sm:h-36"
         />
       </a>
     );
   }
 
   return (
-    <div className="bg-background border-border/40 flex max-w-50 min-w-30 flex-col gap-1 rounded-lg border p-3 shadow-sm">
+    <div className="bg-background border-border/40 flex min-w-30 max-w-56 flex-col gap-1 rounded-lg border p-3 shadow-sm">
       <div className="flex items-start gap-2">
         <FileIcon className="text-muted-foreground mt-0.5 size-4 shrink-0" />
         <span

@@ -875,6 +875,31 @@ export interface Translations {
       title: string;
       description: string;
     };
+    configSections: {
+      saveBar: {
+        clean: string;
+        dirty: string;
+        discard: string;
+        save: string;
+        saving: string;
+      };
+      fieldTip?: Record<string, string>;
+      tools: {
+        title: string;
+        subtitle: string;
+        customInfoTemplate: string;
+        presetTitles: Record<string, string>;
+        presetDescriptions: Record<string, string>;
+      };
+      sandbox: Record<string, string>;
+      checkpointer: Record<string, string>;
+      title: Record<string, string>;
+      suggestions: Record<string, string>;
+      summarization: Record<string, string>;
+      subagents: Record<string, string>;
+      models: Record<string, string>;
+      attachments: Record<string, string>;
+    };
     tools: {
       title: string;
       description: string;
@@ -1003,30 +1028,6 @@ export interface Translations {
     validation: {
       rootLabel: string;
       validationFailed: string;
-    };
-    configSections: {
-      saveBar: {
-        clean: string;
-        dirty: string;
-        discard: string;
-        save: string;
-        saving: string;
-      };
-      fieldTip?: Record<string, string>;
-      tools: {
-        title: string;
-        subtitle: string;
-        customInfoTemplate: string;
-        presetTitles: Record<string, string>;
-        presetDescriptions: Record<string, string>;
-      };
-      sandbox: Record<string, string>;
-      checkpointer: Record<string, string>;
-      title: Record<string, string>;
-      suggestions: Record<string, string>;
-      summarization: Record<string, string>;
-      subagents: Record<string, string>;
-      models: Record<string, string>;
     };
     modelPage: {
       loadConfigFailed: string;
