@@ -201,6 +201,25 @@ function formatPermissionPrompt(permission: {
   return lines.join("\n").trim();
 }
 
+function resolveBridgeRuntimeProfile(
+  binding: Pick<BridgeBinding, "workingDirectory">,
+): { executionMode: "host" | "sandbox"; hostWorkdir: string | null } {
+  const hostWorkdir =
+    typeof binding.workingDirectory === "string" ? binding.workingDirectory.trim() : "";
+
+  if (!hostWorkdir) {
+    return {
+      executionMode: "sandbox",
+      hostWorkdir: null,
+    };
+  }
+
+  return {
+    executionMode: "host",
+    hostWorkdir,
+  };
+}
+
 export function createBridgeManager(options: {
   loadSettings: () => { settings: Record<string, string> };
   listBindings?: () => BridgeBinding[];
@@ -944,6 +963,7 @@ export function createBridgeManager(options: {
 
       const sanitized = sanitizeInput(inbound.text || (inbound.attachments?.length ? "Please inspect the uploaded files." : ""));
       await hydrateBridgeThreadState(binding.threadId, binding);
+      const runtimeProfile = resolveBridgeRuntimeProfile(binding);
       const result = await threadClient.streamMessage(
         binding.threadId,
         sanitized.text,
@@ -951,8 +971,8 @@ export function createBridgeManager(options: {
         {
           modelName: binding.model || undefined,
           planMode: binding.mode === "plan",
-          executionMode: binding.workingDirectory ? "host" : "sandbox",
-          hostWorkdir: binding.workingDirectory || null,
+          executionMode: runtimeProfile.executionMode,
+          hostWorkdir: runtimeProfile.hostWorkdir,
           signal: taskAbort.signal,
         },
       );
