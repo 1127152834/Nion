@@ -9,6 +9,7 @@ import yaml
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field
 
+from nion.config.app_config import AppConfig
 from nion.config.config_repository import (
     ConfigRepository,
     ConfigValidationError,
@@ -143,6 +144,10 @@ class SessionPolicyOptionsResponse(BaseModel):
     subagents: list[SessionPolicySubagentOption] = Field(default_factory=list)
 
 
+def _serialize_config_payload(config: dict[str, Any]) -> dict[str, Any]:
+    return AppConfig.model_validate(config).to_config_payload()
+
+
 def _build_schema() -> ConfigSchemaResponse:
     sections = {
         "appearance": ConfigSectionSchema(
@@ -244,6 +249,7 @@ def _resolve_config_payload(
 async def get_config(request: Request) -> ConfigReadResponse:
     repo = ConfigRepository()
     config, version, source_path = repo.read()
+    serialized_config = _serialize_config_payload(config)
     _record_config_event(
         request,
         level="info",
@@ -254,8 +260,8 @@ async def get_config(request: Request) -> ConfigReadResponse:
     return ConfigReadResponse(
         version=version,
         source_path=str(source_path),
-        yaml_text=_to_yaml_text(config),
-        config=config,
+        yaml_text=_to_yaml_text(serialized_config),
+        config=serialized_config,
     )
 
 
@@ -330,11 +336,12 @@ async def update_config(
         )
         warnings = [ConfigValidateWarningItem(**item) for item in warnings_raw]
         config, _, source_path = repo.read()
+        serialized_config = _serialize_config_payload(config)
         return ConfigUpdateResponse(
             version=new_version,
             source_path=str(source_path),
-            yaml_text=_to_yaml_text(config),
-            config=config,
+            yaml_text=_to_yaml_text(serialized_config),
+            config=serialized_config,
             warnings=warnings,
         )
     except VersionConflictError as exc:

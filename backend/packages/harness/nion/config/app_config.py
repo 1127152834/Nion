@@ -118,6 +118,10 @@ class AppConfig(BaseModel):
     model_config = ConfigDict(extra="allow", frozen=False)
     checkpointer: CheckpointerConfig | None = Field(default=None, description="Checkpointer configuration")
 
+    def to_config_payload(self) -> dict[str, Any]:
+        """Serialize the runtime config into the API/config-store contract shape."""
+        return self.model_dump(mode="json")
+
     @classmethod
     def _hydrate_auxiliary_configs(cls, config_data: dict[str, Any]) -> None:
         """Load singleton sub-configs from the config payload."""
