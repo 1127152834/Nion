@@ -91,6 +91,8 @@ export function buildDaemonCommand(options: BuildDaemonCommandOptions): DaemonCo
       cwd: path.join(options.appRoot, "backend"),
       env: {
         ...process.env,
+        NION_HOME:
+          process.env.NION_HOME ?? path.join(options.userDataPath, ".nion-data"),
         NION_DAEMON_ALLOW_BACKGROUND_RUNNING:
           process.env.NION_DAEMON_ALLOW_BACKGROUND_RUNNING ?? "1",
       },
@@ -107,6 +109,8 @@ export function buildDaemonCommand(options: BuildDaemonCommandOptions): DaemonCo
     cwd: environment.backendDir,
     env: {
       ...process.env,
+      NION_HOME:
+        process.env.NION_HOME ?? path.join(options.userDataPath, ".nion-data"),
     },
     urls: {
       base: environment.backendUrl,
