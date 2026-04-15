@@ -18,6 +18,25 @@ from .sandbox_info import SandboxInfo
 logger = logging.getLogger(__name__)
 
 
+def _format_container_mount(
+    runtime: str,
+    host_path: str,
+    container_path: str,
+    read_only: bool,
+) -> list[str]:
+    """Format bind mounts without confusing Docker on Windows drive paths."""
+    if runtime == "docker":
+        mount_spec = f"type=bind,src={host_path},dst={container_path}"
+        if read_only:
+            mount_spec += ",readonly"
+        return ["--mount", mount_spec]
+
+    mount_spec = f"{host_path}:{container_path}"
+    if read_only:
+        mount_spec += ":ro"
+    return ["-v", mount_spec]
+
+
 class LocalContainerBackend(SandboxBackend):
     """Backend that manages sandbox containers locally using Docker or Apple Container.
 
@@ -246,18 +265,26 @@ class LocalContainerBackend(SandboxBackend):
 
         # Config-level volume mounts
         for mount in self._config_mounts:
-            mount_spec = f"{mount.host_path}:{mount.container_path}"
-            if mount.read_only:
-                mount_spec += ":ro"
-            cmd.extend(["-v", mount_spec])
+            cmd.extend(
+                _format_container_mount(
+                    self._runtime,
+                    mount.host_path,
+                    mount.container_path,
+                    mount.read_only,
+                )
+            )
 
         # Extra mounts (thread-specific, skills, etc.)
         if extra_mounts:
             for host_path, container_path, read_only in extra_mounts:
-                mount_spec = f"{host_path}:{container_path}"
-                if read_only:
-                    mount_spec += ":ro"
-                cmd.extend(["-v", mount_spec])
+                cmd.extend(
+                    _format_container_mount(
+                        self._runtime,
+                        host_path,
+                        container_path,
+                        read_only,
+                    )
+                )
 
         cmd.append(self._image)
 
