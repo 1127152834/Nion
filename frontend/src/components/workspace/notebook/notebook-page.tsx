@@ -781,6 +781,17 @@ export function NotebookPage() {
                           ? `已生成 ${knowledgeCompileStatus.createdPages.length} 个知识页`
                           : knowledgeCompileStatus.errorSummary ?? "正在等待可见的编译结果"}
                       </div>
+                      <div className="mt-3 h-2 overflow-hidden rounded-full bg-[var(--notebook-border)]">
+                        <div
+                          className={`h-full rounded-full bg-[var(--notebook-brand)] transition-all ${
+                            knowledgeCompileStatus.status === "succeeded"
+                              ? "w-full"
+                              : knowledgeCompileStatus.status === "failed"
+                                ? "w-full bg-[var(--notebook-danger)]"
+                                : "w-2/3 animate-pulse"
+                          }`}
+                        />
+                      </div>
                     </div>
                     <div className="flex gap-2">
                       {knowledgeCompileStatus.createdPageIds[0] ? (

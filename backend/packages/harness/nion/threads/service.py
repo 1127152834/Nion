@@ -299,6 +299,18 @@ class ThreadService:
                     thread_id=thread_id,
                     selected_cli_tools=selected_cli_tools,
                 )
+                if should_force_knowledge_query_for_request(message_text):
+                    existing_overlay = str(context.get("additional_system_prompt") or "").strip()
+                    knowledge_overlay = (
+                        "Knowledge-base question detected. Before answering, "
+                        "you must call query_knowledge_base against compiled wiki pages "
+                        "unless the user explicitly asks you not to use the knowledge base."
+                    )
+                    context["additional_system_prompt"] = (
+                        f"{existing_overlay}\n\n{knowledge_overlay}".strip()
+                        if existing_overlay
+                        else knowledge_overlay
+                    )
                 event_stream = self._client.stream(
                     message_text,
                     thread_id=thread_id,
@@ -311,6 +323,7 @@ class ThreadService:
                     requested_skills=context.get("requested_skills", []),
                     selected_mcp_tools=context.get("selected_mcp_tools", []),
                     selected_cli_tools=selected_cli_tools,
+                    additional_system_prompt=context.get("additional_system_prompt"),
                     agent_name=context.get("agent_name"),
                     recursion_limit=config.get("recursion_limit", 100),
                     surface=context.get("surface", "workspace"),
@@ -530,6 +543,15 @@ _CLI_TOOLS_INTENT_PATTERNS = [
     r"(?:帮我装|帮我安装|帮我更新|帮我升级).{0,12}(?:CLI|工具)?",
 ]
 
+_KNOWLEDGE_QUERY_PATTERNS = [
+    r"知识库",
+    r"knowledge base",
+    r"knowledge graph",
+    r"知识图谱",
+    r"\bwiki\b",
+    r"compiled knowledge",
+]
+
 
 def should_enable_cli_tools_for_request(
     message_text: str,
@@ -546,6 +568,16 @@ def should_enable_cli_tools_for_request(
     return any(
         re.search(pattern, normalized, flags=re.IGNORECASE) is not None
         for pattern in _CLI_TOOLS_INTENT_PATTERNS
+    )
+
+
+def should_force_knowledge_query_for_request(message_text: str) -> bool:
+    normalized = message_text.strip()
+    if not normalized:
+        return False
+    return any(
+        re.search(pattern, normalized, flags=re.IGNORECASE) is not None
+        for pattern in _KNOWLEDGE_QUERY_PATTERNS
     )
 
 
