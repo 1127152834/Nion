@@ -37,6 +37,7 @@ import {
 import { MarkdownContent } from "./markdown-content";
 import { MessageGroup } from "./message-group";
 import { MessageListItem } from "./message-list-item";
+import { LocalActionsReviewCard } from "./local-actions-review-card";
 import { PermissionRequestCard } from "./permission-request-card";
 import { MessageListSkeleton } from "./skeleton";
 import { ToolActivitySummaryCard } from "./tool-activity-summary-card";
@@ -164,6 +165,16 @@ export function MessageList({
               pendingPermissionRequest &&
               message?.id === pendingPermissionRequest.toolMessageId
             ) {
+              if (pendingPermissionRequest.toolName === "local_actions_review") {
+                return (
+                  <LocalActionsReviewCard
+                    key={group.id}
+                    permissionRequest={pendingPermissionRequest}
+                    onDecision={onPermissionDecision}
+                    isResolving={isResolvingPermission}
+                  />
+                );
+              }
               return (
                 <PermissionRequestCard
                   key={group.id}

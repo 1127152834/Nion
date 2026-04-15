@@ -11,3 +11,13 @@ void test("desktop local-actions IPC exposes execute and history entrypoints", a
   assert.match(source, /localActionsExecute/);
   assert.match(source, /localActionsListHistory/);
 });
+
+void test("desktop main wires local-actions history IPC to the executor", async () => {
+  const source = await readFile(
+    new URL("../src/main/index.ts", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /localActionsExecutor\.executePlan/);
+  assert.match(source, /localActionsExecutor\.listHistory/);
+});

@@ -148,7 +148,7 @@ Program 03D-B 已把 desktop bridge incident workflow 补上：
 - slice 3 现在开始把 guardian settings 与 bridge overview 的运行态读取进一步统一到共享的 frontend runtime visibility contract：页面不再各自拥有 mount/focus/visibility 的刷新策略
 - `frontend/src/core/runtime/guardian-runtime.ts` 现在是 guardian / bridge runtime merge 与 fallback 的唯一 owner；`frontend/src/core/runtime/use-guardian-runtime.ts` 负责统一 refresh 触发
 - 当前这个产品面仍然只做单用户、一台个人电脑；不覆盖团队、多用户或任意远程控机
-- 受控本机动作主链首批已落地：daemon config 提供全局三档 `local_actions_permission_mode`，`/api/local-actions/plan` 会生成目标 / 动作计划 / 执行审计记录，`Settings > Daemon` 已提供对应权限开关；desktop main 当前只冻结了执行宿主 contract / stub，具体截图、整理文件等 OS 执行器仍是后续切片
+- 受控本机动作主链首批已落地：daemon config 提供全局三档 `local_actions_permission_mode`，`/api/local-actions/plan` 会生成目标 / 动作计划 / 执行审计记录，`Settings > Daemon` 已提供对应权限开关；desktop main 已支持首批白名单动作（当前窗口截图、全屏截图、整理下载目录）和本地执行历史，但仍不支持任意远程控机
 
 这些事件必须既可查询，又要有人能直接读懂。
 

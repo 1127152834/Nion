@@ -2,11 +2,13 @@
 
 import { Switch } from "@/components/ui/switch";
 import { useI18n } from "@/core/i18n/hooks";
+import { useLocalActionsHistory } from "@/core/local-actions";
 import { useGuardianRuntime } from "@/core/runtime/use-guardian-runtime";
 
 import { ConfigValidationErrors } from "./config-validation-errors";
 import { ConfigSaveBar } from "./configuration/config-save-bar";
 import { GuardianModeStatusCard } from "./guardian-mode-status-card";
+import { LocalActionsHistoryCard } from "./local-actions-history-card";
 import { LocalActionsPermissionCard } from "./local-actions-permission-card";
 import { SettingsSection } from "./settings-section";
 import { useConfigEditor } from "./use-config-editor";
@@ -25,6 +27,7 @@ export function DaemonSettingsPage() {
     onSave,
   } = useConfigEditor();
   const { snapshot, refresh } = useGuardianRuntime();
+  const localActionsHistory = useLocalActionsHistory();
 
   const daemon = ((draftConfig.daemon ?? {}) as Record<string, unknown>);
   const allowBackgroundRunning = Boolean(daemon.allow_background_running);
@@ -78,6 +81,11 @@ export function DaemonSettingsPage() {
             allowAll: t.settings.daemon.localActionsPermissionAllowAll,
           }}
         />
+        {!localActionsHistory.isLoading &&
+        !localActionsHistory.error &&
+        localActionsHistory.data?.items?.length ? (
+          <LocalActionsHistoryCard items={localActionsHistory.data.items} />
+        ) : null}
         <div className="flex items-center justify-between rounded-xl border bg-background/80 p-4 shadow-sm">
           <div className="space-y-1">
             <div className="text-sm font-medium">

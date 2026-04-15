@@ -78,7 +78,7 @@
   - 说明：
     - `daemon.local_actions_permission_mode` 是全局三档权限来源
     - `/api/local-actions/plan` 只负责目标、动作计划和执行审计记录
-    - desktop main 的 local-actions executor 当前是 host contract / stub，不是具体 OS 动作执行器
+    - desktop main 的 local-actions executor 当前已支持首批白名单动作与本地历史，但仍不是任意 OS 控制器
 
 维护约定：
 

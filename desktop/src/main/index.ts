@@ -470,7 +470,7 @@ export async function startDesktopMain(): Promise<void> {
     },
   );
   ipcMain.handle(DESKTOP_IPC_CHANNELS.localActionsListHistory, async () => {
-    return [];
+    return localActionsExecutor.listHistory();
   });
 
   const bridgeBindingsStore = createBridgeBindingsStore(

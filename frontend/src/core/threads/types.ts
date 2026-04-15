@@ -211,4 +211,6 @@ export type PendingPermissionRequest = {
   }>;
   reasonCode?: string;
   reasonMessage?: string;
+  reviewTitle?: string;
+  reviewSummary?: string;
 };

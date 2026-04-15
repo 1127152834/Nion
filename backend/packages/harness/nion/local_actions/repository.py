@@ -191,3 +191,23 @@ class LocalActionsRepository:
         if row is None:
             return None
         return self._deserialize(row["payload"], LocalActionExecutionRecord)
+
+    def list_recent_executions(
+        self,
+        *,
+        limit: int = 20,
+    ) -> list[LocalActionExecutionRecord]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT payload
+                FROM local_action_executions
+                ORDER BY started_at DESC, execution_id DESC
+                LIMIT ?
+                """,
+                (limit,),
+            ).fetchall()
+        return [
+            self._deserialize(row["payload"], LocalActionExecutionRecord)
+            for row in rows
+        ]

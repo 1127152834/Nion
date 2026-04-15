@@ -8,6 +8,8 @@ type PermissionRequestPayload = {
   options?: unknown;
   reason_code?: unknown;
   reason_message?: unknown;
+  review_title?: unknown;
+  review_summary?: unknown;
 };
 
 function normalizePermissionRequestPayload(
@@ -69,6 +71,18 @@ function normalizePermissionRequestPayload(
     typeof payload.reason_message === "string" && payload.reason_message.trim().length > 0
       ? payload.reason_message.trim()
       : undefined;
+  const reviewTitle =
+    toolName === "local_actions_review" &&
+    typeof payload.review_title === "string" &&
+    payload.review_title.trim().length > 0
+      ? payload.review_title.trim()
+      : undefined;
+  const reviewSummary =
+    toolName === "local_actions_review" &&
+    typeof payload.review_summary === "string" &&
+    payload.review_summary.trim().length > 0
+      ? payload.review_summary.trim()
+      : undefined;
 
   return {
     toolMessageId: message.id,
@@ -91,6 +105,8 @@ function normalizePermissionRequestPayload(
     options,
     ...(reasonCode ? { reasonCode } : {}),
     ...(reasonMessage ? { reasonMessage } : {}),
+    ...(reviewTitle ? { reviewTitle } : {}),
+    ...(reviewSummary ? { reviewSummary } : {}),
   };
 }
 

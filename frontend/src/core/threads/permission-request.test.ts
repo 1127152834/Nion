@@ -67,3 +67,37 @@ void test("derivePendingPermissionRequest keeps latest permission request when a
 
   assert.equal(pending?.requestId, "perm-1");
 });
+
+void test("derivePendingPermissionRequest keeps local-actions review metadata", () => {
+  const pending = derivePendingPermissionRequest([
+    {
+      type: "tool",
+      id: "tool-local-actions",
+      name: "permission_request",
+      tool_call_id: "call-local-actions",
+      content: "review needed",
+      additional_kwargs: {
+        permission_request: {
+          id: "perm-local-actions",
+          tool_name: "local_actions_review",
+          tool_input: {
+            goal_id: "goal-1",
+            plan_id: "plan-1",
+            execution_id: "exec-1",
+          },
+          reason_message: "Review the local action plan before execution.",
+          review_title: "Review local actions",
+          review_summary: "2 actions, 1 irreversible",
+          actions: [
+            { key: "allow", label: "Approve" },
+            { key: "deny", label: "Reject" },
+          ],
+        },
+      },
+    },
+  ]);
+
+  assert.equal(pending?.toolName, "local_actions_review");
+  assert.equal(pending?.reviewTitle, "Review local actions");
+  assert.equal(pending?.reviewSummary, "2 actions, 1 irreversible");
+});
