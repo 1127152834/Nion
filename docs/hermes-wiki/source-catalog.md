@@ -13,14 +13,24 @@
 | [Hermes Agent README](https://github.com/NousResearch/hermes-agent/blob/main/README.md) | 官方仓库 | 项目定位、核心能力矩阵、文档导航、OpenClaw 迁移、自我改进叙事 |
 | [Hermes 官网首页](https://hermes-agent.nousresearch.com/) | 官方站点 | 产品级定位摘要，强调 server-resident、persistent、skill-generating、cross-platform |
 | [Architecture](https://hermes-agent.nousresearch.com/docs/developer-guide/architecture) | 官方文档 | 总体架构、provider resolver、tool system、session persistence 等 |
+| [Architecture 源 markdown](https://github.com/NousResearch/hermes-agent/blob/main/website/docs/developer-guide/architecture.md) | 官方仓库文档源码 | 可直接读取的 developer guide 原文，规避官网抓取限制 |
+| [Agent Loop Internals 源 markdown](https://github.com/NousResearch/hermes-agent/blob/main/website/docs/developer-guide/agent-loop.md) | 官方仓库文档源码 | `AIAgent` 主循环、tool dispatch、budget、fallback、compression |
 | [Prompt Assembly](https://hermes-agent.nousresearch.com/docs/developer-guide/prompt-assembly) | 官方文档 | prompt 分层装配、缓存层次、session state 注入方式 |
+| [Prompt Assembly 源 markdown](https://github.com/NousResearch/hermes-agent/blob/main/website/docs/developer-guide/prompt-assembly.md) | 官方仓库文档源码 | cached layers、ephemeral layers、frozen snapshot、context file priority |
 | [Context Compression and Caching](https://hermes-agent.nousresearch.com/docs/developer-guide/context-compression-and-caching) | 官方文档 | 双层压缩、prompt caching、context engine 抽象 |
+| [Context Compression and Caching 源 markdown](https://github.com/NousResearch/hermes-agent/blob/main/website/docs/developer-guide/context-compression-and-caching.md) | 官方仓库文档源码 | dual compression、plugin context engine、algorithm 细节 |
+| [Tools Runtime 源 markdown](https://github.com/NousResearch/hermes-agent/blob/main/website/docs/developer-guide/tools-runtime.md) | 官方仓库文档源码 | registry、自注册、toolset、dispatch、agent-level tools |
+| [Session Storage 源 markdown](https://github.com/NousResearch/hermes-agent/blob/main/website/docs/developer-guide/session-storage.md) | 官方仓库文档源码 | SQLite、FTS5、lineage、WAL、写冲突处理 |
+| [Provider Runtime Resolution 源 markdown](https://github.com/NousResearch/hermes-agent/blob/main/website/docs/developer-guide/provider-runtime.md) | 官方仓库文档源码 | provider resolution、api mode、fallback、auxiliary routing |
 | [Memory](https://hermes-agent.nousresearch.com/docs/user-guide/features/memory) | 官方文档 | `MEMORY.md`、`USER.md`、持久记忆边界与用户建模 |
+| [Memory 源 markdown](https://github.com/NousResearch/hermes-agent/blob/main/website/docs/user-guide/features/memory.md) | 官方仓库文档源码 | frozen snapshot、capacity、security scan、session search |
 | [Personality](https://hermes-agent.nousresearch.com/docs/user-guide/features/personality) | 官方文档 | `SOUL.md` 的角色与人格层边界 |
 | [Skills](https://hermes-agent.nousresearch.com/docs/user-guide/features/skills) | 官方文档 | skills 作为 procedural memory 的使用和演化 |
+| [Skills 源 markdown](https://github.com/NousResearch/hermes-agent/blob/main/website/docs/user-guide/features/skills.md) | 官方仓库文档源码 | progressive disclosure、skill metadata、fallback activation |
 | [Context Files](https://hermes-agent.nousresearch.com/docs/user-guide/features/context-files) | 官方文档 | `AGENTS.md` / `SOUL.md` / workspace context 的加载边界 |
 | [Plugins](https://hermes-agent.nousresearch.com/docs/user-guide/features/plugins) | 官方文档 | general plugins、memory providers、context engines 三类插件 |
 | [Delegation](https://hermes-agent.nousresearch.com/docs/user-guide/features/delegation) | 官方文档 | subagent delegation、隔离会话、工具边界 |
+| [Delegation 源 markdown](https://github.com/NousResearch/hermes-agent/blob/main/website/docs/user-guide/features/delegation.md) | 官方仓库文档源码 | fresh context、blocked toolsets、depth limit、parallel children |
 | [Scheduled Tasks (Cron)](https://hermes-agent.nousresearch.com/docs/user-guide/features/cron) | 官方文档 | 自然语言调度、跨平台投递、无人值守任务 |
 | [Security](https://hermes-agent.nousresearch.com/docs/user-guide/security) | 官方文档 | prompt injection 防护、secret redaction、command approval、容器隔离 |
 | [RELEASE_v0.6.0](https://github.com/NousResearch/hermes-agent/blob/main/RELEASE_v0.6.0.md) | 官方发布说明 | profiles、MCP server mode、多平台 gateway、remote skills/secrets 等重大演进 |
@@ -34,6 +44,7 @@
 | --- | --- | --- |
 | Tavily 对 Hermes 官方文档页面的摘要 | 检索摘要 | 用于补足直接抓取受限页面的要点，例如 provider resolver、tool registry、session persistence |
 | Tavily 对官方 release/issue/discussion 的摘要 | 检索摘要 | 用于识别近期演进方向，如 profile isolation、security patch、compression death spiral 修复 |
+| Tavily 对 GitHub issue / release 的摘要 | 检索摘要 | 用于发现设计张力，例如 memory prefetch contamination、memory provider bridge 缺失 |
 
 ## C. 社区二手解读
 
@@ -46,6 +57,7 @@
 | [Hermes Agent Hands-On: Nous Research Personal AI Agent Review](https://www.heyuan110.com/posts/ai/2026-04-14-hermes-agent-guide/) | 博文 | 对 retrieve-on-demand 和记忆层次的实践视角 |
 | [Reddit: native frontend on top of Hermes Agent](https://www.reddit.com/r/SideProject/comments/1sdaojm/i_took_the_nousresearch_hermes_agent_and_built_a/) | Reddit | 补充社区如何理解 6-layer prompt、profiles、skills browser |
 | [Hermes Agent: The OpenClaw Alternative](https://nervegna.substack.com/p/hermes-agent-the-openclaw-alternative) | Substack | 对 Hermes 与 OpenClaw 位置差异的产品化概括 |
+| [Inside Hermes Agent: How a Self-Improving AI Agent Actually Works](https://mranand.substack.com/p/inside-hermes-agent-how-a-self-improving) | Substack | 对 gateway 与 agent loop 的产品化转述，可用于辅助验证叙事结构 |
 
 ## D. 相关对照资料
 

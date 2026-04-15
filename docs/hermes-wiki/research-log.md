@@ -111,3 +111,101 @@ Hermes 的重点不是“更强记忆”，而是“把 memory、skills、profil
 
 Hermes 的核心价值不在于“让模型多会做事一点”，而在于把 agent 设计成一个可以长期存在的软件系统：  
 能记、能检索、能压缩、能调度、能隔离、能治理、能跨入口持续服务用户。
+
+## 2026-04-15 第二轮源码级研究
+
+### 本轮目标
+
+把 Hermes 从“设计轮廓”推进到“源码级架构认识”，并且开始抽取将来构建 agent 应用专家 skill 所需的方法论。
+
+### 本轮新增材料
+
+1. 官方 developer guide 源 markdown：
+   - `architecture.md`
+   - `agent-loop.md`
+   - `prompt-assembly.md`
+   - `context-compression-and-caching.md`
+   - `tools-runtime.md`
+   - `session-storage.md`
+   - `provider-runtime.md`
+   - `delegation.md`
+   - `memory.md`
+2. 核心源码文件：
+   - `run_agent.py`
+   - `agent/prompt_builder.py`
+   - `agent/context_engine.py`
+   - `agent/context_compressor.py`
+   - `agent/memory_provider.py`
+   - `tools/memory_tool.py`
+   - `model_tools.py`
+   - `tools/registry.py`
+   - `hermes_state.py`
+   - `plugins/memory/honcho/__init__.py`
+3. issue / release 线索：
+   - memory prefetch contamination
+   - pluggable memory provider
+   - profile isolation
+   - compression death spiral
+
+### 本轮最重要的认识变化
+
+#### 1. Hermes 真正的中心是 runtime contract，不是 feature list
+
+以前的理解还是偏“功能架构图”。
+这轮看完源码与 developer guide 后更清楚了：Hermes 真正的骨架是几组 contract：
+
+1. `AIAgent`
+2. `ContextEngine`
+3. `MemoryProvider`
+4. `ToolRegistry`
+5. SessionDB / session lineage
+6. runtime provider resolution
+
+所以 Hermes 能持续演化，不是因为它 feature 多，而是因为这些 contract 比较清楚。
+
+#### 2. Hermes 很多设计选择，本质上是在为“稳定前缀”服务
+
+这轮最深的感受是：
+大量架构选择都指向同一个目标：
+
+- prompt 只在 session 起点构建
+- memory snapshot 冻结
+- skill 只注入 index
+- dynamic overlay 不进 cached system prompt
+- context files 有优先级、有截断、有安全扫描
+
+也就是说，Hermes 的很多设计不是孤立 best practice，而是围绕同一个 prefix/cache 哲学协同出来的。
+
+#### 3. 真正强的 agent 架构，必须把“设计张力”显式化
+
+memory prefetch contamination、compression death spiral、fallback auth bug、memory provider bridge 缺失，这些 bug 很有教育意义。
+它们说明 Hermes 真正难的地方不是“有没有这些能力”，而是：
+
+1. recall 放在哪一层注入
+2. compression 何时触发、如何失败
+3. memory provider 如何和 agent loop 正确耦合
+4. 多入口 runtime 怎么共享状态又不相互污染
+
+这也让我确认：未来那个专家 skill 必须讲 tradeoff，而不能只讲功能清单。
+
+### 本轮新增产物
+
+新增了三页：
+
+1. `source-code-architecture.md`
+2. `agent-design-patterns.md`
+3. `design-tensions-and-tradeoffs.md`
+
+它们分别回答：
+
+1. Hermes 的关键源码对象和骨干链路是什么
+2. 哪些模式可以迁移到别的 agent 应用
+3. 这些模式背后有哪些真实张力
+
+### 下一步研究方向
+
+下一轮最值得做的是三件事：
+
+1. 沿着官方 developer guide 继续拆 `gateway-internals`、`cron-internals`、`memory-provider-plugin`、`context-engine-plugin`
+2. 结合更多 issue / PR，把“架构演化史”整理出来
+3. 开始反推“agent 应用专家 skill”的知识架构，而不是等学完后再临时归纳

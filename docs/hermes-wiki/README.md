@@ -25,6 +25,9 @@ Hermes 最值得学的不是某一个单点功能，而是下面这套一体化�
 - [runtime-architecture.md](./runtime-architecture.md)：运行时结构、入口、会话、profiles、tool runtime、service 化
 - [prompt-memory-skills.md](./prompt-memory-skills.md)：prompt assembly、memory、skills、Honcho 与学习闭环
 - [compression-delegation-safety.md](./compression-delegation-safety.md)：上下文压缩、subagent delegation、cron、安全边界
+- [source-code-architecture.md](./source-code-architecture.md)：从源码与官方开发文档拆 AIAgent、prompt builder、SessionDB、tool registry 等骨干对象
+- [agent-design-patterns.md](./agent-design-patterns.md)：从 Hermes 提炼出的 agent 应用设计模式与可迁移方法论
+- [design-tensions-and-tradeoffs.md](./design-tensions-and-tradeoffs.md)：Hermes 暴露出来的架构张力、边界风险和设计取舍
 - [openclaw-vs-hermes.md](./openclaw-vs-hermes.md)：和 OpenClaw 的对照，帮助明确 Hermes 的独特取舍
 
 ## 阅读顺序建议
@@ -35,8 +38,11 @@ Hermes 最值得学的不是某一个单点功能，而是下面这套一体化�
 2. `runtime-architecture.md`
 3. `prompt-memory-skills.md`
 4. `compression-delegation-safety.md`
-5. `openclaw-vs-hermes.md`
-6. `research-log.md`
+5. `source-code-architecture.md`
+6. `agent-design-patterns.md`
+7. `design-tensions-and-tradeoffs.md`
+8. `openclaw-vs-hermes.md`
+9. `research-log.md`
 
 ## 维护原则
 
