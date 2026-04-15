@@ -1,0 +1,4 @@
+interface:
+  display_name: "Agent Application Architect"
+  short_description: "Design production-grade agent runtimes"
+  default_prompt: "Use $agent-application-architect to review and improve my agent application architecture."
