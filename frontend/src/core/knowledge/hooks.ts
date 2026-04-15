@@ -5,6 +5,7 @@ import {
   applyKnowledgeRevision,
   approveKnowledgeQueue,
   createKnowledgeRevision,
+  loadKnowledgeActivity,
   loadKnowledgeLint,
   loadKnowledgeJobs,
   loadKnowledgePage,
@@ -15,8 +16,9 @@ import {
   saveKnowledgeSynthesis,
   previewKnowledgeRevision,
 } from "./api";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type {
+  KnowledgeActivityEvent,
   KnowledgeGraphPayload,
   KnowledgeCompileJob,
   KnowledgeLintReport,
@@ -40,8 +42,16 @@ export function useKnowledgeQueue() {
 }
 
 export function useApproveKnowledgeQueue() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (sourceIds: string[]) => approveKnowledgeQueue(sourceIds),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["knowledge", "queue"] }),
+        queryClient.invalidateQueries({ queryKey: ["knowledge", "jobs"] }),
+        queryClient.invalidateQueries({ queryKey: ["knowledge", "activity"] }),
+      ]);
+    },
   });
 }
 
@@ -67,6 +77,19 @@ export function useKnowledgeJobs() {
   });
   return {
     jobs: (data?.jobs ?? []) as KnowledgeCompileJob[],
+    isLoading,
+    error,
+  };
+}
+
+export function useKnowledgeActivity() {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["knowledge", "activity"],
+    queryFn: () => loadKnowledgeActivity(),
+    refetchOnWindowFocus: false,
+  });
+  return {
+    events: (data?.events ?? []) as KnowledgeActivityEvent[],
     isLoading,
     error,
   };

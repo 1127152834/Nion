@@ -89,6 +89,21 @@ def test_knowledge_jobs_endpoint_returns_compile_history(monkeypatch, tmp_path):
     assert payload["jobs"][0]["status"] == "succeeded"
 
 
+def test_knowledge_jobs_expose_stage_and_page_deltas(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+    note = NotebookService(base_dir=tmp_path).create_note(directory="", title="Roadmap", body="body")
+
+    with TestClient(create_app()) as client:
+        client.post("/api/knowledge/sources/enqueue", json={"source_id": f"source:notebook_note:{note.note_id}"})
+        client.post("/api/knowledge/queue/approve", json={"source_ids": [f"source:notebook_note:{note.note_id}"]})
+        jobs = client.get("/api/knowledge/jobs")
+
+    assert jobs.status_code == 200
+    assert jobs.json()["jobs"][0]["stage"] == "finalizing"
+    assert "created_page_ids" in jobs.json()["jobs"][0]
+
+
 def test_knowledge_enqueue_endpoint_only_registers_candidate(monkeypatch, tmp_path):
     monkeypatch.setenv("NION_HOME", str(tmp_path))
     reset_paths()

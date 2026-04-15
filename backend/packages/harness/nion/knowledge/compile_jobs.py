@@ -29,6 +29,7 @@ class KnowledgeCompileJobStore:
                     job_id TEXT PRIMARY KEY,
                     source_ids_json TEXT NOT NULL,
                     trigger_mode TEXT NOT NULL,
+                    stage TEXT NOT NULL,
                     status TEXT NOT NULL,
                     started_at TEXT,
                     finished_at TEXT,
@@ -37,16 +38,30 @@ class KnowledgeCompileJobStore:
                 )
                 """
             )
+            columns = {
+                row["name"]
+                for row in conn.execute("PRAGMA table_info(knowledge_compile_jobs)").fetchall()
+            }
+            if "stage" not in columns:
+                conn.execute(
+                    """
+                    ALTER TABLE knowledge_compile_jobs
+                    ADD COLUMN stage TEXT NOT NULL DEFAULT 'queued'
+                    """
+                )
 
     def _row_to_job(self, row: sqlite3.Row) -> KnowledgeCompileJob:
+        outputs = dict(json.loads(row["outputs_json"]))
         return KnowledgeCompileJob(
             job_id=str(row["job_id"]),
             source_ids=list(json.loads(row["source_ids_json"])),
             trigger_mode=str(row["trigger_mode"]),
+            stage=str(row["stage"]),
             status=str(row["status"]),
             started_at=row["started_at"],
             finished_at=row["finished_at"],
-            outputs=dict(json.loads(row["outputs_json"])),
+            created_page_ids=list(outputs.get("created_page_ids", [])),
+            outputs=outputs,
             error_summary=row["error_summary"],
         )
 
@@ -56,17 +71,24 @@ class KnowledgeCompileJobStore:
             "created_pages": [],
             "created_page_ids": [],
             "updated_pages": [],
-            "contradiction_pages": [],
-            "graph_rebuilt": False,
+            "stale_pages": [],
+            "archived_pages": [],
         }
         with self._connect() as conn:
             conn.execute(
                 """
                 INSERT INTO knowledge_compile_jobs(
-                    job_id, source_ids_json, trigger_mode, status, outputs_json
-                ) VALUES (?, ?, ?, ?, ?)
+                    job_id, source_ids_json, trigger_mode, stage, status, outputs_json
+                ) VALUES (?, ?, ?, ?, ?, ?)
                 """,
-                (job_id, json.dumps(source_ids), trigger_mode, "pending", json.dumps(outputs)),
+                (
+                    job_id,
+                    json.dumps(source_ids),
+                    trigger_mode,
+                    "queued",
+                    "pending",
+                    json.dumps(outputs),
+                ),
             )
             row = conn.execute(
                 "SELECT * FROM knowledge_compile_jobs WHERE job_id = ?",
@@ -81,6 +103,7 @@ class KnowledgeCompileJobStore:
         *,
         status: str,
         outputs: dict[str, object],
+        stage: str | None = None,
         started_at: str | None = None,
         finished_at: str | None = None,
         error_summary: str | None = None,
@@ -89,12 +112,13 @@ class KnowledgeCompileJobStore:
             conn.execute(
                 """
                 UPDATE knowledge_compile_jobs
-                SET status = ?, outputs_json = ?, started_at = COALESCE(?, started_at),
+                SET status = ?, stage = COALESCE(?, stage), outputs_json = ?, started_at = COALESCE(?, started_at),
                     finished_at = COALESCE(?, finished_at), error_summary = ?
                 WHERE job_id = ?
                 """,
                 (
                     status,
+                    stage,
                     json.dumps(outputs),
                     started_at,
                     finished_at,

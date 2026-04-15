@@ -72,10 +72,19 @@ class KnowledgeCompileJob(BaseModel):
     job_id: str
     source_ids: list[str] = Field(default_factory=list)
     trigger_mode: Literal["manual", "queue_approval"]
+    stage: Literal[
+        "queued",
+        "snapshotting",
+        "extracting",
+        "writing_pages",
+        "rebuilding_graph",
+        "finalizing",
+    ] = "queued"
     status: Literal["pending", "running", "succeeded", "failed", "partially_succeeded"] = (
         "pending"
     )
     started_at: str | None = None
     finished_at: str | None = None
+    created_page_ids: list[str] = Field(default_factory=list)
     outputs: dict[str, Any] = Field(default_factory=dict)
     error_summary: str | None = None

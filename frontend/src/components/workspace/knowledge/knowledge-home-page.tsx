@@ -3,6 +3,7 @@
 import Link from "next/link";
 
 import {
+  useKnowledgeActivity,
   useKnowledgeJobs,
   useKnowledgeLint,
   useKnowledgePages,
@@ -10,10 +11,20 @@ import {
   useRebuildKnowledgeGraph,
 } from "@/core/knowledge";
 
+const ACTIVITY_LABELS: Record<string, string> = {
+  job_started: "job_started",
+  page_created: "page_created",
+  source_missing_detected: "source_missing_detected",
+  job_succeeded: "job_succeeded",
+  job_failed: "job_failed",
+  graph_rebuilt: "graph_rebuilt",
+};
+
 export function KnowledgeHomePage() {
   const { queue, isLoading: queueLoading } = useKnowledgeQueue();
   const { pages, isLoading: pagesLoading } = useKnowledgePages(queue);
   const { jobs, isLoading: jobsLoading } = useKnowledgeJobs();
+  const { events, isLoading: activityLoading } = useKnowledgeActivity();
   const { report } = useKnowledgeLint();
   const rebuild = useRebuildKnowledgeGraph();
   const compiledCount = queue.filter((item) => item.status === "compiled").length;
@@ -117,7 +128,31 @@ export function KnowledgeHomePage() {
           {!jobsLoading && jobs.length === 0 ? <div>no compile jobs yet</div> : null}
           {!jobsLoading && jobs.slice(0, 6).map((job) => (
             <div key={job.job_id} className="rounded-md border px-3 py-2">
-              {job.job_id} · {job.status} · created_pages={job.outputs.created_pages.length}
+              {job.job_id} · stage={job.stage} · status={job.status} · created_page_ids=
+              {job.created_page_ids.length}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="rounded-lg border bg-background p-5">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-[1.1rem] font-semibold tracking-tight">Activity feed</h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Visible activity feed for running, failed, and completed knowledge compilation.
+            </p>
+          </div>
+          <Link href="/workspace/knowledge/queue" className="rounded-md border px-3 py-2 text-sm">
+            inspect activity
+          </Link>
+        </div>
+        <div className="mt-4 space-y-2 text-sm text-muted-foreground">
+          {activityLoading ? <div>loading activity…</div> : null}
+          {!activityLoading && events.length === 0 ? <div>no activity yet</div> : null}
+          {!activityLoading && events.slice(0, 6).map((event) => (
+            <div key={event.event_id} className="rounded-md border px-3 py-2">
+              {ACTIVITY_LABELS[event.event_type] ?? event.event_type} · {event.job_id ?? event.source_id ?? "knowledge"} · {event.created_at}
             </div>
           ))}
         </div>

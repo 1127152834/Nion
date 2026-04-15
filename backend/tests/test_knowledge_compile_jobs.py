@@ -10,13 +10,16 @@ def test_compile_job_round_trips_outputs(tmp_path):
     updated = store.update_job(
         job.job_id,
         status="succeeded",
+        stage="finalizing",
         outputs={
             "created_pages": ["sources/roadmap.md"],
+            "created_page_ids": ["sources:note_1"],
             "updated_pages": ["overview.md"],
-            "contradiction_pages": [],
-            "graph_rebuilt": True,
+            "stale_pages": [],
+            "archived_pages": [],
         },
     )
 
     assert updated.status == "succeeded"
-    assert updated.outputs["graph_rebuilt"] is True
+    assert updated.stage == "finalizing"
+    assert updated.created_page_ids == ["sources:note_1"]

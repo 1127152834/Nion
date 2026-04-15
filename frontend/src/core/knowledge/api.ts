@@ -1,6 +1,8 @@
 import { getBackendBaseURL } from "../config/index.ts";
 
 import type {
+  KnowledgeActivityEvent,
+  KnowledgeActivityListResponse,
   KnowledgeGraphPayload,
   KnowledgeLintReport,
   KnowledgePage,
@@ -134,7 +136,10 @@ function isKnowledgeCompileJob(value: unknown): value is KnowledgeCompileJob {
     typeof value.job_id === "string" &&
     Array.isArray(value.source_ids) &&
     typeof value.trigger_mode === "string" &&
+    typeof value.stage === "string" &&
     typeof value.status === "string" &&
+    Array.isArray(value.created_page_ids) &&
+    value.created_page_ids.every((item) => typeof item === "string") &&
     isObjectRecord(value.outputs)
   );
 }
@@ -146,6 +151,26 @@ function isKnowledgeCompileJobListResponse(
     isObjectRecord(value) &&
     Array.isArray(value.jobs) &&
     value.jobs.every(isKnowledgeCompileJob)
+  );
+}
+
+function isKnowledgeActivityEvent(value: unknown): value is KnowledgeActivityEvent {
+  return (
+    isObjectRecord(value) &&
+    typeof value.event_id === "string" &&
+    typeof value.event_type === "string" &&
+    typeof value.detail === "string" &&
+    typeof value.created_at === "string"
+  );
+}
+
+function isKnowledgeActivityListResponse(
+  value: unknown,
+): value is KnowledgeActivityListResponse {
+  return (
+    isObjectRecord(value) &&
+    Array.isArray(value.events) &&
+    value.events.every(isKnowledgeActivityEvent)
   );
 }
 
@@ -256,6 +281,23 @@ export async function loadKnowledgeJobs(): Promise<KnowledgeCompileJobListRespon
   const payload = (await readJson<unknown>(response)) as unknown;
   if (!isKnowledgeCompileJobListResponse(payload)) {
     throw new Error("Invalid knowledge jobs payload returned from loadKnowledgeJobs");
+  }
+  return payload;
+}
+
+export async function loadKnowledgeActivity(): Promise<KnowledgeActivityListResponse> {
+  const response = await fetch(`${getBackendBaseURL()}/api/knowledge/activity`);
+  if (!response.ok) {
+    throw new Error(
+      resolveErrorMessage(
+        await response.text(),
+        `Failed to load knowledge activity (${response.status})`,
+      ),
+    );
+  }
+  const payload = (await readJson<unknown>(response)) as unknown;
+  if (!isKnowledgeActivityListResponse(payload)) {
+    throw new Error("Invalid knowledge activity payload returned from loadKnowledgeActivity");
   }
   return payload;
 }

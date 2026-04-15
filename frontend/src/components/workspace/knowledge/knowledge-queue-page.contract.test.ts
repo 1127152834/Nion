@@ -15,4 +15,6 @@ void test("knowledge queue page renders candidate state and approval affordance"
   assert.match(source, /编译|compile/i);
   assert.match(source, /last_compiled_at|compile_error/);
   assert.match(source, /stale|queued|compiled/);
+  assert.match(source, /activity/i);
+  assert.match(source, /stage|running|failed/);
 });

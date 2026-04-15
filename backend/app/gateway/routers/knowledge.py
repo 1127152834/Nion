@@ -11,6 +11,7 @@ from nion.knowledge.graph_service import KnowledgeGraphService
 from nion.knowledge.ingest_service import KnowledgeIngestService
 from nion.knowledge.lint_service import KnowledgeLintService
 from nion.knowledge.models import (
+    KnowledgeActivityEvent,
     KnowledgeCompileJob,
     KnowledgePage,
     KnowledgeSourceCandidate,
@@ -37,6 +38,10 @@ class KnowledgeSourceEnqueueRequest(BaseModel):
 
 class KnowledgeJobListResponse(BaseModel):
     jobs: list[KnowledgeCompileJob]
+
+
+class KnowledgeActivityListResponse(BaseModel):
+    events: list[KnowledgeActivityEvent]
 
 
 class NotebookKnowledgeStatus(BaseModel):
@@ -228,10 +233,16 @@ async def get_knowledge_jobs() -> KnowledgeJobListResponse:
     return KnowledgeJobListResponse(jobs=KnowledgeCompileJobStore().list_jobs())
 
 
+@router.get("/activity", response_model=KnowledgeActivityListResponse)
+async def get_knowledge_activity() -> KnowledgeActivityListResponse:
+    return KnowledgeActivityListResponse(events=KnowledgeActivityStore().list_events())
+
+
 @router.post("/queue/approve", response_model=KnowledgeCompileJob)
 async def approve_knowledge_queue(payload: KnowledgeQueueApprovalRequest) -> KnowledgeCompileJob:
     store = KnowledgeSourceCandidateStore()
     job_store = KnowledgeCompileJobStore()
+    activity_store = KnowledgeActivityStore()
     store.refresh_from_notebook(NotebookService())
     missing_source_ids = [
         source_id for source_id in payload.source_ids if _get_candidate_by_source_id(store, source_id) is None
@@ -243,29 +254,84 @@ async def approve_knowledge_queue(payload: KnowledgeQueueApprovalRequest) -> Kno
         )
     job = job_store.create_job(source_ids=payload.source_ids, trigger_mode="queue_approval")
     started_at = utcnow_z()
+    current_outputs = dict(job.outputs)
     for source_id in payload.source_ids:
         store.set_status(source_id, status="running", last_job_id=job.job_id, compile_error=None)
-    job_store.update_job(
-        job.job_id,
-        status="running",
-        outputs=job.outputs,
-        started_at=started_at,
-    )
-    try:
-        outputs = KnowledgeIngestService().ingest_sources(payload.source_ids)
+
+    def advance_job(
+        *,
+        stage: Literal[
+            "snapshotting",
+            "extracting",
+            "writing_pages",
+            "rebuilding_graph",
+            "finalizing",
+        ],
+        status: Literal["running", "succeeded", "failed"] = "running",
+        outputs_update: dict[str, object] | None = None,
+        finished_at: str | None = None,
+        error_summary: str | None = None,
+    ) -> KnowledgeCompileJob:
+        nonlocal current_outputs
+        if outputs_update is not None:
+            current_outputs = {**current_outputs, **outputs_update}
         return job_store.update_job(
             job.job_id,
+            status=status,
+            stage=stage,
+            outputs=current_outputs,
+            started_at=started_at,
+            finished_at=finished_at,
+            error_summary=error_summary,
+        )
+
+    advance_job(stage="snapshotting")
+    activity_store.record_event(
+        event_type="job_started",
+        job_id=job.job_id,
+        detail=f"job_started:{job.job_id}",
+    )
+    try:
+        advance_job(stage="extracting")
+        activity_store.record_event(
+            event_type="snapshot_completed",
+            job_id=job.job_id,
+            detail=f"snapshot_completed:{job.job_id}",
+        )
+        advance_job(stage="writing_pages")
+        outputs = KnowledgeIngestService().ingest_sources(
+            payload.source_ids,
+            activity_store=activity_store,
+            job_id=job.job_id,
+        )
+        advance_job(stage="rebuilding_graph", outputs_update=outputs)
+        activity_store.record_event(
+            event_type="graph_rebuilt",
+            job_id=job.job_id,
+            detail=f"graph_rebuilt:{job.job_id}",
+        )
+        advance_job(stage="finalizing")
+        activity_store.record_event(
+            event_type="job_succeeded",
+            job_id=job.job_id,
+            detail=f"job_succeeded:{job.job_id}",
+        )
+        return advance_job(
+            stage="finalizing",
             status="succeeded",
-            outputs={**job.outputs, **outputs},
             finished_at=utcnow_z(),
         )
     except Exception as exc:
         for source_id in payload.source_ids:
             store.set_status(source_id, status="failed", compile_error=str(exc))
-        return job_store.update_job(
-            job.job_id,
+        activity_store.record_event(
+            event_type="job_failed",
+            job_id=job.job_id,
+            detail=f"job_failed:{job.job_id}:{exc}",
+        )
+        return advance_job(
+            stage="finalizing" if current_outputs != job.outputs else "snapshotting",
             status="failed",
-            outputs=job.outputs,
             finished_at=utcnow_z(),
             error_summary=str(exc),
         )

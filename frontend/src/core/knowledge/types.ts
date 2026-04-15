@@ -34,21 +34,55 @@ export interface KnowledgeCompileJob {
   job_id: string;
   source_ids: string[];
   trigger_mode: "manual" | "queue_approval";
+  stage:
+    | "queued"
+    | "snapshotting"
+    | "extracting"
+    | "writing_pages"
+    | "rebuilding_graph"
+    | "finalizing";
   status: "pending" | "running" | "succeeded" | "failed" | "partially_succeeded";
   started_at?: string;
   finished_at?: string;
+  created_page_ids: string[];
   outputs: {
     created_pages: string[];
     created_page_ids: string[];
     updated_pages: string[];
-    contradiction_pages: string[];
-    graph_rebuilt: boolean;
+    stale_pages: string[];
+    archived_pages: string[];
   };
   error_summary?: string;
 }
 
 export interface KnowledgeCompileJobListResponse {
   jobs: KnowledgeCompileJob[];
+}
+
+export interface KnowledgeActivityEvent {
+  event_id: string;
+  event_type:
+    | "candidate_enqueued"
+    | "job_started"
+    | "snapshot_completed"
+    | "page_created"
+    | "page_updated"
+    | "page_archived"
+    | "graph_rebuilt"
+    | "job_failed"
+    | "job_succeeded"
+    | "candidate_became_stale"
+    | "source_missing_detected"
+    | "source_restored";
+  source_id?: string;
+  page_id?: string;
+  job_id?: string;
+  detail: string;
+  created_at: string;
+}
+
+export interface KnowledgeActivityListResponse {
+  events: KnowledgeActivityEvent[];
 }
 
 export interface NotebookKnowledgeStatus {

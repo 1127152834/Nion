@@ -13,7 +13,13 @@ class KnowledgeIngestService:
         self._candidate_store = KnowledgeSourceCandidateStore(base_dir=base_dir)
         self._page_store = KnowledgePageStore(base_dir=base_dir)
 
-    def ingest_sources(self, source_ids: list[str]) -> dict[str, list[str]]:
+    def ingest_sources(
+        self,
+        source_ids: list[str],
+        *,
+        activity_store: object | None = None,
+        job_id: str | None = None,
+    ) -> dict[str, list[str]]:
         notebook = NotebookService(base_dir=self._base_dir)
         candidates = {
             candidate.source_id: candidate
@@ -45,9 +51,18 @@ class KnowledgeIngestService:
             )
             created_pages.append(page.relative_path)
             created_page_ids.append(page.page_id)
+            if activity_store is not None and hasattr(activity_store, "record_event"):
+                activity_store.record_event(
+                    event_type="page_created",
+                    source_id=candidate.source_id,
+                    page_id=page.page_id,
+                    job_id=job_id,
+                    detail=f"page_created:{page.page_id}",
+                )
         return {
             "created_pages": created_pages,
             "created_page_ids": created_page_ids,
             "updated_pages": [],
-            "contradiction_pages": [],
+            "stale_pages": [],
+            "archived_pages": [],
         }
