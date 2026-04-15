@@ -69,6 +69,7 @@ Then branch:
 - Service surfaces: [service-runtime-and-time-model.md](./REF/hermes-wiki/service-runtime-and-time-model.md)
 - Plugins/providers: [plugin-and-provider-architecture.md](./REF/hermes-wiki/plugin-and-provider-architecture.md)
 - Learning/self-evolution: [learning-loop-and-self-evolution.md](./REF/hermes-wiki/learning-loop-and-self-evolution.md)
+- Memory provider comparison: [memory-provider-semantics-matrix.md](./REF/hermes-wiki/memory-provider-semantics-matrix.md)
 - Patterns: [agent-design-patterns.md](./REF/hermes-wiki/agent-design-patterns.md)
 - Tradeoffs: [design-tensions-and-tradeoffs.md](./REF/hermes-wiki/design-tensions-and-tradeoffs.md)
 - Failure corpus: [evolution-and-failure-corpus.md](./REF/hermes-wiki/evolution-and-failure-corpus.md)
@@ -107,6 +108,7 @@ When reviewing or designing an agent application, make sure the answer addresses
 9. Where do failures occur: auth, prompt, tool, delivery, memory, compression?
 10. What is the evolution path from current state to target architecture?
 11. Which learning loops are built in, which are policy-driven, and which rely on an external optimizer?
+12. If memory providers exist, what are their actual semantics: durable snapshot, adaptive recall layer, or session-commit extraction layer?
 
 ## Anti-Patterns To Catch
 
@@ -121,6 +123,7 @@ Look for these immediately:
 - Delivery assumed successful because execution produced text
 - Plugin systems with weak trust boundaries
 - Self-improvement claims that blur built-in behavior, policy nudges, and offline optimization pipelines
+- “Memory provider” discussed as a storage swap when the real difference is injection/extraction semantics
 
 See [expert-skill-review-framework.md](./REF/hermes-wiki/expert-skill-review-framework.md) and [design-tensions-and-tradeoffs.md](./REF/hermes-wiki/design-tensions-and-tradeoffs.md) for the detailed version.
 
