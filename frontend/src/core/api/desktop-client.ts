@@ -1,5 +1,7 @@
 "use client";
 
+import { mergeGuardianRuntime } from "../runtime/guardian-runtime.ts";
+
 import type {
   AgentThreadState,
   PermissionReplayPayload,
@@ -152,7 +154,7 @@ export async function getDesktopRuntimeInfo(): Promise<DesktopRuntimeInfo | null
   }
 
   try {
-    const runtimeInfo = await desktopBridge.getRuntimeInfo();
+    const runtimeInfo = (await desktopBridge.getRuntimeInfo()) as DesktopRuntimeInfoPayload;
     const baseUrl = runtimeInfo.baseUrl?.trim() ?? "";
     const desktopRuntimeInfo: DesktopRuntimeInfo = {
       mode: runtimeInfo.mode?.trim() || "local-daemon",
@@ -171,9 +173,24 @@ export async function getDesktopRuntimeInfo(): Promise<DesktopRuntimeInfo | null
         running: null,
       },
     };
+    const desktopOnlyGuardianRuntime = mergeGuardianRuntime({
+      desktopRuntime: desktopRuntimeInfo,
+      bridgeRuntime: null,
+      error: baseUrl ? null : "unavailable",
+    });
 
     if (!baseUrl) {
-      return desktopRuntimeInfo;
+      return {
+        ...desktopRuntimeInfo,
+        guardianMode: {
+          ...desktopRuntimeInfo.guardianMode,
+          status: desktopOnlyGuardianRuntime.guardianStatus,
+        },
+        bridgeRuntime: {
+          ...desktopRuntimeInfo.bridgeRuntime,
+          running: desktopOnlyGuardianRuntime.bridgeRunning,
+        },
+      };
     }
 
     try {
@@ -184,8 +201,7 @@ export async function getDesktopRuntimeInfo(): Promise<DesktopRuntimeInfo | null
 
       const daemonRuntimeInfo = (await response.json()) as DaemonRuntimeInfoPayload;
       const guardianStatus = daemonRuntimeInfo.guardian_mode?.status;
-
-      return {
+      const mergedDesktopRuntimeInfo: DesktopRuntimeInfo = {
         mode: daemonRuntimeInfo.mode?.trim() || desktopRuntimeInfo.mode,
         baseUrl: daemonRuntimeInfo.base_url?.trim() || desktopRuntimeInfo.baseUrl,
         healthUrl: daemonRuntimeInfo.health_url?.trim() || desktopRuntimeInfo.healthUrl,
@@ -220,8 +236,34 @@ export async function getDesktopRuntimeInfo(): Promise<DesktopRuntimeInfo | null
               : daemonRuntimeInfo.bridge_runtime.running,
         },
       };
+      const mergedGuardianRuntime = mergeGuardianRuntime({
+        desktopRuntime: mergedDesktopRuntimeInfo,
+        bridgeRuntime: null,
+      });
+
+      return {
+        ...mergedDesktopRuntimeInfo,
+        guardianMode: {
+          ...mergedDesktopRuntimeInfo.guardianMode,
+          status: mergedGuardianRuntime.guardianStatus,
+        },
+        bridgeRuntime: {
+          ...mergedDesktopRuntimeInfo.bridgeRuntime,
+          running: mergedGuardianRuntime.bridgeRunning,
+        },
+      };
     } catch {
-      return desktopRuntimeInfo;
+      return {
+        ...desktopRuntimeInfo,
+        guardianMode: {
+          ...desktopRuntimeInfo.guardianMode,
+          status: desktopOnlyGuardianRuntime.guardianStatus,
+        },
+        bridgeRuntime: {
+          ...desktopRuntimeInfo.bridgeRuntime,
+          running: desktopOnlyGuardianRuntime.bridgeRunning,
+        },
+      };
     }
   } catch {
     return null;
