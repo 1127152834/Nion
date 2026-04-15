@@ -256,6 +256,7 @@ export const enUS: Translations = {
       hostWorkdirMissingTitle: "Host mode needs a host working directory first.",
       hostWorkdirMissingDescription:
         "Set a default host working directory in Settings > Sandbox. Choosing OK will open that settings page.",
+      hostWorkdirMissingAction: "Go to settings",
       locked: "This runtime profile is locked.",
       lockedTip: "Once a host directory is bound, the profile cannot be rebound for this thread.",
       modeSaveFailed: "Failed to save runtime mode.",

@@ -245,6 +245,7 @@ export const zhCN: Translations = {
       hostWorkdirMissingTitle: "切换到主机模式前，必须先设置主机工作目录。",
       hostWorkdirMissingDescription:
         "请先到 设置 > 沙箱 中配置默认主机工作目录。点击“确定”后会打开该设置页。",
+      hostWorkdirMissingAction: "前往",
       locked: "当前运行时配置已锁定。",
       lockedTip: "线程一旦绑定主机目录，就不能改绑到其他目录。",
       modeSaveFailed: "保存运行时模式失败。",

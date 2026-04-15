@@ -429,6 +429,7 @@ export interface Translations {
       hostBoundDirectory: string;
       hostWorkdirMissingTitle: string;
       hostWorkdirMissingDescription: string;
+      hostWorkdirMissingAction: string;
       locked: string;
       lockedTip: string;
       modeSaveFailed: string;

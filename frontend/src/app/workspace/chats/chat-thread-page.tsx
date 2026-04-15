@@ -433,7 +433,7 @@ export default function ChatThreadPage() {
           title={t.workspace.runtimeMode.hostWorkdirMissingTitle}
           description={t.workspace.runtimeMode.hostWorkdirMissingDescription}
           cancelText={t.common.cancel}
-          confirmText={t.common.ok}
+          confirmText={t.workspace.runtimeMode.hostWorkdirMissingAction}
           onConfirm={() => {
             setHostWorkdirPromptOpen(false);
             openSandboxSettings();
