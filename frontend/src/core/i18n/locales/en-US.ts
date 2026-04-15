@@ -710,6 +710,12 @@ export const enUS: Translations = {
       guardianBackgroundLabel: "Keep guardian mode running in the background",
       guardianBackgroundHint:
         "When enabled, closing the desktop window keeps guardian mode alive so remote entry remains available.",
+      localActionsPermissionTitle: "Local actions permission",
+      localActionsPermissionDescription:
+        "Choose whether guardian mode can block, review, or automatically run controlled local actions on this computer.",
+      localActionsPermissionDisabled: "Disabled",
+      localActionsPermissionReviewRequired: "Review required",
+      localActionsPermissionAllowAll: "Allow all",
       guardianStatusTitle: "Guardian mode",
       guardianStatusLabels: {
         standingBy: "Standing by",

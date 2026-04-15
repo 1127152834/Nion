@@ -7,6 +7,7 @@ import { useGuardianRuntime } from "@/core/runtime/use-guardian-runtime";
 import { ConfigValidationErrors } from "./config-validation-errors";
 import { ConfigSaveBar } from "./configuration/config-save-bar";
 import { GuardianModeStatusCard } from "./guardian-mode-status-card";
+import { LocalActionsPermissionCard } from "./local-actions-permission-card";
 import { SettingsSection } from "./settings-section";
 import { useConfigEditor } from "./use-config-editor";
 
@@ -27,6 +28,12 @@ export function DaemonSettingsPage() {
 
   const daemon = ((draftConfig.daemon ?? {}) as Record<string, unknown>);
   const allowBackgroundRunning = Boolean(daemon.allow_background_running);
+  const localActionsPermissionMode =
+    (daemon.local_actions_permission_mode as
+      | "disabled"
+      | "review_required"
+      | "allow_all"
+      | undefined) ?? "review_required";
   const guardianStatusCopy = {
     title: t.settings.daemon.guardianStatusTitle,
     labels: {
@@ -50,6 +57,26 @@ export function DaemonSettingsPage() {
         <GuardianModeStatusCard
           copy={guardianStatusCopy}
           status={snapshot.guardianStatus}
+        />
+        <LocalActionsPermissionCard
+          value={localActionsPermissionMode}
+          onChange={(next) =>
+            onConfigChange({
+              ...draftConfig,
+              daemon: {
+                ...daemon,
+                local_actions_permission_mode: next,
+              },
+            })
+          }
+          copy={{
+            title: t.settings.daemon.localActionsPermissionTitle,
+            description: t.settings.daemon.localActionsPermissionDescription,
+            disabled: t.settings.daemon.localActionsPermissionDisabled,
+            reviewRequired:
+              t.settings.daemon.localActionsPermissionReviewRequired,
+            allowAll: t.settings.daemon.localActionsPermissionAllowAll,
+          }}
         />
         <div className="flex items-center justify-between rounded-xl border bg-background/80 p-4 shadow-sm">
           <div className="space-y-1">

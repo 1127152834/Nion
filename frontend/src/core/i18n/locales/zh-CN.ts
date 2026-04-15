@@ -681,6 +681,12 @@ export const zhCN: Translations = {
       guardianBackgroundLabel: "在后台保持值守模式运行",
       guardianBackgroundHint:
         "开启后，关闭桌面窗口仍会保留值守模式，让远程入口继续可用。",
+      localActionsPermissionTitle: "本机动作权限",
+      localActionsPermissionDescription:
+        "选择值守模式在这台电脑上对受控本机动作采取完全禁止、需要审核或全部允许。",
+      localActionsPermissionDisabled: "完全禁止",
+      localActionsPermissionReviewRequired: "需要审核",
+      localActionsPermissionAllowAll: "全部允许",
       guardianStatusTitle: "值守模式",
       guardianStatusLabels: {
         standingBy: "待命中",

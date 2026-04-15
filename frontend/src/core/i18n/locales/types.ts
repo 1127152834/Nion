@@ -712,6 +712,11 @@ export interface Translations {
       guardianDescription: string;
       guardianBackgroundLabel: string;
       guardianBackgroundHint: string;
+      localActionsPermissionTitle: string;
+      localActionsPermissionDescription: string;
+      localActionsPermissionDisabled: string;
+      localActionsPermissionReviewRequired: string;
+      localActionsPermissionAllowAll: string;
       guardianStatusTitle: string;
       guardianStatusLabels: {
         standingBy: string;
