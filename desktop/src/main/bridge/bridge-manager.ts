@@ -21,8 +21,18 @@ import {
   deliverBridgeMessage,
 } from "./delivery-layer.js";
 import { isDangerousInput, sanitizeInput } from "./security/validators.js";
+import type {
+  DesktopLocalActionExecutionResult,
+  DesktopLocalActionPlan,
+} from "../local-actions/executor.js";
 
 type BridgeThreadClient = ReturnType<typeof createNionThreadClient>;
+type BridgeLocalActionsExecutor = {
+  executePlan: (
+    plan: DesktopLocalActionPlan,
+  ) => Promise<DesktopLocalActionExecutionResult>;
+  listHistory: () => Promise<DesktopLocalActionExecutionResult[]>;
+};
 
 type BridgeToolCallState = {
   id: string;
@@ -281,6 +291,7 @@ export function createBridgeManager(options: {
   clientId?: string;
   adapters?: BaseBridgeAdapter[];
   threadClient?: BridgeThreadClient;
+  localActionsExecutor?: BridgeLocalActionsExecutor;
   offsetStore?: {
     getOffset: (key: string) => string;
     setOffset: (key: string, value: string) => void;
@@ -322,6 +333,7 @@ export function createBridgeManager(options: {
     createNionThreadClient(options.backendBaseUrl ?? "http://127.0.0.1:43115", {
       clientId: options.clientId,
     });
+  const localActionsExecutor = options.localActionsExecutor ?? null;
   const recordObservation = (observation: BridgeObservationInput) => {
     options.recordObservation?.(observation);
   };
@@ -833,6 +845,46 @@ export function createBridgeManager(options: {
           permissionRequestId,
           action,
         );
+        if (
+          (action === "allow" || action === "allow_session") &&
+          resolution.tool_name === "local_actions_review" &&
+          resolution.local_actions?.execution_id &&
+          Array.isArray(resolution.local_actions.actions) &&
+          localActionsExecutor
+        ) {
+          const localActionResult = await localActionsExecutor.executePlan({
+            actions: resolution.local_actions.actions.map((item) => ({
+              action_type: String(item.action_type ?? ""),
+              target: typeof item.target === "string" ? item.target : undefined,
+              parameters:
+                item.parameters && typeof item.parameters === "object"
+                  ? (item.parameters as Record<string, unknown>)
+                  : undefined,
+            })),
+          });
+          await threadClient.recordLocalActionResult(
+            binding.threadId,
+            resolution.local_actions.execution_id,
+            {
+              executed_actions: localActionResult.executed,
+            },
+          );
+          await deliverOutboundText(
+            adapter,
+            inbound,
+            binding,
+            `Local actions executed.\n${localActionResult.executed
+              .map(
+                (item) =>
+                  `- ${item.action_type}: ${item.status} — ${item.result_summary}`,
+              )
+              .join("\n")}`,
+          );
+          if (typeof inbound.updateId === "number") {
+            adapter.acknowledgeUpdate?.(inbound.updateId);
+          }
+          return;
+        }
         const replyText =
           action === "deny"
             ? "Permission denied."

@@ -189,3 +189,36 @@ test("nion thread client forwards client id on bridge permission resolve", async
 
   globalThis.fetch = originalFetch;
 });
+
+test("nion thread client exposes local-actions metadata from bridge permission resolve", async () => {
+  const createNionThreadClient = await loadThreadClientFactory();
+  const originalFetch = globalThis.fetch;
+
+  globalThis.fetch = async () =>
+    new Response(
+      JSON.stringify({
+        ok: true,
+        decision: "allow",
+        tool_name: "local_actions_review",
+        local_actions: {
+          execution_id: "exec-1",
+          plan_id: "plan-1",
+          actions: [
+            { action_type: "capture_active_window", target: "active_window" },
+          ],
+        },
+      }),
+      { status: 200, headers: { "Content-Type": "application/json" } },
+    );
+
+  const client = createNionThreadClient("http://127.0.0.1:43115", {
+    clientId: "desktop-client-1",
+  });
+  const result = await client.resolvePermission("t-1", "perm-1", "allow");
+
+  assert.equal(result.tool_name, "local_actions_review");
+  assert.equal(result.local_actions?.execution_id, "exec-1");
+  assert.equal(result.local_actions?.actions?.[0]?.action_type, "capture_active_window");
+
+  globalThis.fetch = originalFetch;
+});

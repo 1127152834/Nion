@@ -14,6 +14,11 @@ type ResolveBridgePermissionResult = {
   decision?: "allow" | "allow_session" | "deny";
   original_message_text?: string;
   tool_name?: string;
+  local_actions?: {
+    execution_id: string;
+    plan_id?: string;
+    actions: Array<Record<string, unknown>>;
+  };
   message?: string;
 };
 
@@ -276,11 +281,33 @@ export function createNionThreadClient(
     return (await response.json()) as ResolveBridgePermissionResult;
   };
 
+  const recordLocalActionResult = async (
+    _threadId: string,
+    executionId: string,
+    payload: { executed_actions: Array<Record<string, unknown>> },
+  ) => {
+    const response = await fetch(
+      `${baseUrl.replace(/\/$/, "")}/api/local-actions/executions/${executionId}/result`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      },
+    );
+    if (!response.ok) {
+      throw new Error(
+        `Local action result update failed with status ${response.status}`,
+      );
+    }
+    return response.json();
+  };
+
   return {
     searchThread,
     ensureThreadState,
     streamMessage,
     uploadFiles,
     resolvePermission,
+    recordLocalActionResult,
   };
 }

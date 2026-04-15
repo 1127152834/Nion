@@ -762,6 +762,96 @@ test("bridge manager renders local-actions review details for remote permission 
   assert.match(adapter.sent[0].text, /\/perm allow perm-local-actions-1/);
 });
 
+test("bridge manager auto-executes approved local-actions reviews and records the result", async () => {
+  const createBridgeManager = await loadBridgeManagerFactory();
+  const adapter = createStubAdapter("telegram");
+  adapter.enqueue({
+    platform: "telegram",
+    chatId: "chat-local-actions-approve",
+    userId: "user-1",
+    text: "",
+    callbackData: "perm:allow:perm-local-actions-1",
+    messageId: "callback-local-actions",
+    timestamp: Date.now(),
+    updateId: 100,
+  });
+
+  const executionRuns = [];
+  const executionResults = [];
+  const manager = createBridgeManager({
+    loadSettings: () => ({ settings: {} }),
+    adapters: [adapter],
+    listBindings: () => [
+      {
+        id: "binding-local-actions",
+        platform: "telegram",
+        chatId: "chat-local-actions-approve",
+        threadId: "thread-local-actions",
+        workingDirectory: "/tmp/project",
+        active: true,
+        createdAt: "",
+        updatedAt: "",
+      },
+    ],
+    upsertBinding: (binding) => ({
+      ...binding,
+      id: "binding-local-actions",
+      createdAt: "",
+      updatedAt: "",
+    }),
+    defaultWorkingDirectory: () => "/tmp/project",
+    threadClient: {
+      async resolvePermission() {
+        return {
+          ok: true,
+          decision: "allow",
+          tool_name: "local_actions_review",
+          local_actions: {
+            execution_id: "exec-1",
+            actions: [
+              { action_type: "capture_active_window", target: "active_window" },
+            ],
+          },
+        };
+      },
+      async recordLocalActionResult(threadId, executionId, payload) {
+        executionResults.push({ threadId, executionId, payload });
+        return { ok: true };
+      },
+      async streamMessage(threadId, text) {
+        return { threadId, finalText: text, events: [] };
+      },
+      async uploadFiles() {
+        return {};
+      },
+    },
+    localActionsExecutor: {
+      async executePlan(plan) {
+        executionRuns.push(plan);
+        return {
+          executed: [
+            {
+              action_type: "capture_active_window",
+              status: "succeeded",
+              result_summary: "Captured active window",
+            },
+          ],
+        };
+      },
+      async listHistory() {
+        return [];
+      },
+    },
+  });
+
+  const handled = await manager.processNextInboundMessage();
+  assert.equal(handled, true);
+  assert.equal(executionRuns.length, 1);
+  assert.equal(executionResults.length, 1);
+  assert.equal(executionResults[0].executionId, "exec-1");
+  assert.equal(adapter.acks[0], 100);
+});
+
 test("bridge manager /mode updates binding mode and applies it to the next stream", async () => {
   const createBridgeManager = await loadBridgeManagerFactory();
   const adapter = createStubAdapter("telegram");

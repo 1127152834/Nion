@@ -373,6 +373,19 @@ async def _resolve_permission_request(
                 "additional_kwargs": {},
             },
             "tool_name": latest.tool_name if latest else "",
+            **(
+                {
+                    "local_actions": {
+                        "execution_id": latest.tool_input.get("execution_id"),
+                        "plan_id": latest.tool_input.get("plan_id"),
+                        "actions": latest.tool_input.get("local_actions", []),
+                    }
+                }
+                if latest
+                and latest.tool_name == "local_actions_review"
+                and isinstance(latest.tool_input, dict)
+                else {}
+            ),
         },
         False,
     )
