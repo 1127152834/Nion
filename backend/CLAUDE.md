@@ -194,6 +194,9 @@ Runtime profile execution contract:
 - When local sandbox provider is active, `execution_mode=host` must enable host bash
   for both the lead agent and task/subagent execution paths; sandbox mode must keep
   the existing host-bash denial behavior.
+- Upload routing is independent from `execution_mode`. For `LocalSandboxProvider`,
+  thread uploads already live in host thread storage, so upload handling must skip
+  `sandbox.update_file("/mnt/user-data/...")` and return only virtual-path metadata.
 
 Prompt assembly contract:
 

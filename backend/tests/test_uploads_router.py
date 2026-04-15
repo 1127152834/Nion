@@ -1,11 +1,16 @@
 import asyncio
+import json
 from io import BytesIO
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from fastapi import UploadFile
+from fastapi.testclient import TestClient
 
+from app.gateway.app import create_app
 from app.gateway.routers import uploads
+from nion.config.app_config import reset_app_config
+from nion.config.extensions_config import reset_extensions_config
 
 
 def test_upload_files_writes_thread_storage_and_skips_local_sandbox_sync(tmp_path):
@@ -121,6 +126,12 @@ def test_upload_files_rejects_dotdot_and_dot_filenames(tmp_path):
     assert [f.name for f in thread_uploads_dir.iterdir()] == ["passwd"]
 
 
+def test_local_sandbox_provider_declares_thread_data_mounts():
+    from nion.sandbox.local.local_sandbox_provider import LocalSandboxProvider
+
+    assert LocalSandboxProvider.uses_thread_data_mounts is True
+
+
 def test_delete_uploaded_file_removes_generated_markdown_companion(tmp_path):
     thread_uploads_dir = tmp_path / "uploads"
     thread_uploads_dir.mkdir(parents=True)
@@ -146,3 +157,46 @@ def test_list_uploaded_files_percent_encodes_artifact_url(tmp_path):
     assert result["files"][0]["artifact_url"].endswith(
         "/api/threads/thread-aio/artifacts/mnt/user-data/uploads/hello%20world%3F.txt"
     )
+
+
+def _write_extensions_config(path: Path) -> None:
+    path.write_text(json.dumps({"mcpServers": {}, "skills": {}}), encoding="utf-8")
+
+
+def test_upload_files_in_host_mode_with_local_provider_writes_thread_storage_only(
+    monkeypatch, tmp_path: Path
+):
+    db_path = tmp_path / "config.db"
+    extensions_path = tmp_path / "extensions_config.json"
+    nion_home = tmp_path / ".nion-data"
+    _write_extensions_config(extensions_path)
+
+    monkeypatch.setenv("NION_CONFIG_DB_PATH", str(db_path))
+    monkeypatch.setenv("NION_EXTENSIONS_CONFIG_PATH", str(extensions_path))
+    monkeypatch.setenv("NION_HOME", str(nion_home))
+    reset_app_config()
+    reset_extensions_config()
+
+    try:
+        with TestClient(create_app()) as client:
+            update_response = client.put(
+                "/api/threads/thread-host/runtime-profile",
+                json={"execution_mode": "host", "host_workdir": None},
+            )
+            assert update_response.status_code == 200
+            assert update_response.json()["execution_mode"] == "host"
+
+            response = client.post(
+                "/api/threads/thread-host/uploads",
+                files={"files": ("image.png", b"png-bytes", "image/png")},
+            )
+            assert response.status_code == 200, response.text
+            payload = response.json()
+            assert payload["success"] is True
+            assert payload["files"][0]["virtual_path"] == "/mnt/user-data/uploads/image.png"
+
+            uploaded_path = nion_home / "threads" / "thread-host" / "user-data" / "uploads" / "image.png"
+            assert uploaded_path.read_bytes() == b"png-bytes"
+    finally:
+        reset_app_config()
+        reset_extensions_config()

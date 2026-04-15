@@ -8,6 +8,11 @@ _singleton: LocalSandbox | None = None
 
 
 class LocalSandboxProvider(SandboxProvider):
+    # Local sandbox tools operate directly on the thread-data host directory.
+    # Uploads are already written there, so syncing the same bytes to
+    # /mnt/user-data would make the host process try to create /mnt.
+    uses_thread_data_mounts = True
+
     def configure_path_mappings(self, sandbox: LocalSandbox, thread_data: dict | None) -> None:
         from nion.sandbox import tools as sandbox_tools
 

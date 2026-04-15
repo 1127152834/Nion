@@ -160,6 +160,7 @@ Per-thread isolated execution with virtual path translation:
 - **Abstract interface**: `execute_command`, `read_file`, `write_file`, `list_dir`
 - **Providers**: `LocalSandboxProvider` (filesystem) and `AioSandboxProvider` (Docker, in community/)
 - **Virtual paths**: `/mnt/user-data/{workspace,uploads,outputs}` → thread-specific physical directories
+- **Upload contract**: `LocalSandboxProvider` treats thread data directories as the source of truth. Upload routes must write into thread storage only and must not re-sync uploaded bytes back into `/mnt/user-data/*`; only remote/container providers should call `sandbox.update_file(...)`.
 - **Skills path**: `/mnt/skills` → `nion/skills/` directory
 - **Skills loading**: Recursively discovers nested `SKILL.md` files under `skills/{public,custom}` and preserves nested container paths
 - **Tools**: `bash`, `ls`, `read_file`, `write_file`, `str_replace`
