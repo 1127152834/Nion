@@ -6,6 +6,7 @@ import {
   SquareTerminalIcon,
   WrenchIcon,
 } from "lucide-react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import { memo, useMemo, type ImgHTMLAttributes } from "react";
 import rehypeKatex from "rehype-katex";
@@ -28,6 +29,7 @@ import { resolveArtifactURL } from "@/core/artifacts/utils";
 import { useI18n } from "@/core/i18n/hooks";
 import {
   extractContentFromMessage,
+  extractKnowledgePageIdsFromToolMessage,
   extractReasoningContentFromMessage,
   extractShortcutSelectionsFromMessage,
   parseUploadedFiles,
@@ -257,6 +259,26 @@ function MessageContent_({
       </div>
     ) : null;
 
+  const knowledgePageLinks = useMemo(() => {
+    const pageIds = extractKnowledgePageIdsFromToolMessage(message);
+    if (pageIds.length === 0) {
+      return null;
+    }
+    return (
+      <div className="mt-2 flex flex-wrap gap-2">
+        {pageIds.map((pageId) => (
+          <Link
+            key={pageId}
+            href={`/workspace/knowledge/pages/${encodeURIComponent(pageId)}`}
+            className="rounded-full border px-2.5 py-1 text-[11px] text-muted-foreground hover:bg-muted/40"
+          >
+            引用知识页: {pageId}
+          </Link>
+        ))}
+      </div>
+    );
+  }, [message]);
+
   // Uploading state: mock AI message shown while files upload
   if (message.additional_kwargs?.element === "task") {
     return (
@@ -325,6 +347,7 @@ function MessageContent_({
         className={cn("my-3", density === "compact" && "my-1.5")}
         components={components}
       />
+      {knowledgePageLinks}
     </AIElementMessageContent>
   );
 }

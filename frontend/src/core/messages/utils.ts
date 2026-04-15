@@ -429,6 +429,25 @@ export function findToolCallResult(toolCallId: string, messages: Message[]) {
   return undefined;
 }
 
+export function extractKnowledgePageIdsFromToolMessage(message: Message) {
+  if (message.type !== "tool" || message.name !== "query_knowledge_base") {
+    return [];
+  }
+  const content = extractTextFromMessage(message);
+  if (!content) {
+    return [];
+  }
+  try {
+    const payload = JSON.parse(content) as { page_ids?: unknown };
+    if (!Array.isArray(payload.page_ids)) {
+      return [];
+    }
+    return payload.page_ids.filter((item): item is string => typeof item === "string");
+  } catch {
+    return [];
+  }
+}
+
 /**
  * Represents a file stored in message additional_kwargs.files.
  * Used for optimistic UI (uploading state) and structured file metadata.

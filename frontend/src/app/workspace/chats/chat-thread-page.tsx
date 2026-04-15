@@ -25,6 +25,7 @@ import { TodoList } from "@/components/workspace/todo-list";
 import { TokenUsageIndicator } from "@/components/workspace/token-usage-indicator";
 import { Welcome } from "@/components/workspace/welcome";
 import { getAPIClient } from "@/core/api";
+import { useConfigCenter } from "@/core/config-center";
 import { loadThreadFilesTree } from "@/core/files";
 import { useI18n } from "@/core/i18n/hooks";
 import { useNotification } from "@/core/notification/hooks";
@@ -46,6 +47,23 @@ import { pathOfThread, textOfMessage } from "@/core/threads/utils";
 import { env } from "@/env";
 import { cn } from "@/lib/utils";
 
+function resolveDefaultHostWorkdir(config: Record<string, unknown> | null): string | null {
+  if (!config || typeof config !== "object") {
+    return null;
+  }
+  const runtime = (config as { runtime?: unknown }).runtime;
+  if (!runtime || typeof runtime !== "object") {
+    return null;
+  }
+  const value = (runtime as { default_host_workdir?: unknown })
+    .default_host_workdir;
+  if (typeof value !== "string") {
+    return null;
+  }
+  const trimmed = value.trim();
+  return trimmed || null;
+}
+
 export default function ChatThreadPage() {
   const { t, locale } = useI18n();
   const searchParams = useSearchParams();
@@ -66,6 +84,7 @@ export default function ChatThreadPage() {
   const [isResolvingPermission, setIsResolvingPermission] = useState(false);
   const [resolvedPermissionRequestIds, setResolvedPermissionRequestIds] =
     useState<string[]>([]);
+  const { configData } = useConfigCenter({ enabled: !isMock });
 
   useEffect(() => {
     if (isMock) {
@@ -201,6 +220,10 @@ export default function ChatThreadPage() {
     thread.messages,
     thread.values.resolved_permission_request_ids,
   ]);
+  const defaultHostWorkdir = useMemo(
+    () => resolveDefaultHostWorkdir(configData?.config ?? null),
+    [configData?.config],
+  );
 
   const handleSwitchMode = useCallback(
     async (mode: "sandbox" | "host") => {
@@ -214,9 +237,28 @@ export default function ChatThreadPage() {
 
       setRuntimeProfileSaving(true);
       try {
+        let nextHostWorkdir = runtimeProfile.host_workdir ?? null;
+        if (mode === "host" && !nextHostWorkdir) {
+          nextHostWorkdir = defaultHostWorkdir;
+        }
+        if (mode === "host" && !nextHostWorkdir) {
+          const confirmed =
+            typeof window !== "undefined" &&
+            window.confirm(
+              `${t.workspace.runtimeMode.hostWorkdirMissingTitle}\n\n${t.workspace.runtimeMode.hostWorkdirMissingDescription}`,
+            );
+          if (confirmed) {
+            window.dispatchEvent(
+              new CustomEvent("nion-open-settings", {
+                detail: { section: "sandbox" },
+              }),
+            );
+          }
+          return;
+        }
         const updated = await updateRuntimeProfile(threadId, {
           execution_mode: mode,
-          host_workdir: runtimeProfile.host_workdir ?? null,
+          host_workdir: nextHostWorkdir,
         });
         setRuntimeProfile(updated);
       } catch (error) {
@@ -229,8 +271,11 @@ export default function ChatThreadPage() {
       isMock,
       runtimeProfile.execution_mode,
       runtimeProfile.host_workdir,
+      defaultHostWorkdir,
       runtimeProfile.locked,
       threadId,
+      t.workspace.runtimeMode.hostWorkdirMissingDescription,
+      t.workspace.runtimeMode.hostWorkdirMissingTitle,
     ],
   );
 

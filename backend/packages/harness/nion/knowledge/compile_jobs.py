@@ -54,6 +54,7 @@ class KnowledgeCompileJobStore:
         job_id = f"job_{uuid4().hex}"
         outputs = {
             "created_pages": [],
+            "created_page_ids": [],
             "updated_pages": [],
             "contradiction_pages": [],
             "graph_rebuilt": False,

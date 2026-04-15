@@ -6,4 +6,6 @@ void test("human messages disable incomplete markdown parsing", async () => {
   const source = await readFile(new URL("./message-list-item.tsx", import.meta.url), "utf8");
 
   assert.match(source, /parseIncompleteMarkdown=\{false\}/);
+  assert.match(source, /extractKnowledgePageIdsFromToolMessage/);
+  assert.match(source, /引用知识页/);
 });

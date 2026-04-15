@@ -20,6 +20,7 @@ class KnowledgeIngestService:
             for candidate in self._candidate_store.refresh_from_notebook(notebook)
         }
         created_pages: list[str] = []
+        created_page_ids: list[str] = []
         for source_id in source_ids:
             candidate = candidates[source_id]
             body = f"## Summary\n{candidate.summary or candidate.title}\n"
@@ -43,8 +44,10 @@ class KnowledgeIngestService:
                 compiled_at=candidate.updated_at,
             )
             created_pages.append(page.relative_path)
+            created_page_ids.append(page.page_id)
         return {
             "created_pages": created_pages,
+            "created_page_ids": created_page_ids,
             "updated_pages": [],
             "contradiction_pages": [],
         }

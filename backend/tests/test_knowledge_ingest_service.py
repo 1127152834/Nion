@@ -14,3 +14,4 @@ def test_ingest_service_writes_source_page_for_notebook_candidate(tmp_path):
 
     assert result["created_pages"]
     assert any("sources/" in page for page in result["created_pages"])
+    assert result["created_page_ids"] == [f"sources:{note.note_id}"]

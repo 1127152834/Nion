@@ -46,3 +46,16 @@ void test("chat thread page exposes a desktop drag region while keeping toolbar 
   assert.match(source, /ExportTrigger/);
   assert.match(source, /SaveToNotebookTrigger/);
 });
+
+void test("chat thread page redirects host-mode setup to sandbox settings when no default host workdir is configured", async () => {
+  const source = await readFile(
+    new URL("./chat-thread-page.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /hostWorkdirMissingTitle/);
+  assert.match(source, /hostWorkdirMissingDescription/);
+  assert.match(source, /window\.confirm/);
+  assert.match(source, /new CustomEvent\("nion-open-settings"/);
+  assert.match(source, /detail: \{ section: "sandbox" \}/);
+});

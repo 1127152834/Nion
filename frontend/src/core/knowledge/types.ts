@@ -39,6 +39,7 @@ export interface KnowledgeCompileJob {
   finished_at?: string;
   outputs: {
     created_pages: string[];
+    created_page_ids: string[];
     updated_pages: string[];
     contradiction_pages: string[];
     graph_rebuilt: boolean;

@@ -78,6 +78,13 @@ void test("approveKnowledgeQueue posts source ids to the queue approval endpoint
         source_ids: ["source:notebook_note:note_1"],
         trigger_mode: "queue_approval",
         status: "pending",
+        outputs: {
+          created_pages: [],
+          created_page_ids: [],
+          updated_pages: [],
+          contradiction_pages: [],
+          graph_rebuilt: false,
+        },
       }),
       { status: 200, headers: { "Content-Type": "application/json" } },
     );
@@ -104,6 +111,7 @@ void test("loadKnowledgeJobs calls the jobs endpoint", async () => {
             status: "succeeded",
             outputs: {
               created_pages: ["wiki/sources/note_1.md"],
+              created_page_ids: ["sources:note_1"],
               updated_pages: [],
               contradiction_pages: [],
               graph_rebuilt: false,

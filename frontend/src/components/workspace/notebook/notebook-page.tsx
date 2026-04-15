@@ -93,6 +93,8 @@ type KnowledgeCompileStatus =
       jobId: string;
       status: string;
       createdPages: string[];
+      createdPageIds: string[];
+      sourceId?: string;
       errorSummary?: string;
     }
   | null;
@@ -306,6 +308,8 @@ export function NotebookPage() {
         jobId: job.job_id,
         status: job.status,
         createdPages: job.outputs.created_pages,
+        createdPageIds: job.outputs.created_page_ids,
+        sourceId,
         errorSummary: job.error_summary,
       });
       toast.success(
@@ -778,14 +782,56 @@ export function NotebookPage() {
                           : knowledgeCompileStatus.errorSummary ?? "正在等待可见的编译结果"}
                       </div>
                     </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={handleViewKnowledgeStatus}
-                      className="border-[var(--notebook-border)] bg-[var(--notebook-panel)] text-[var(--notebook-ink)]"
-                    >
-                      查看知识库状态
-                    </Button>
+                    <div className="flex gap-2">
+                      {knowledgeCompileStatus.createdPageIds[0] ? (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() =>
+                            router.push(
+                              `/workspace/knowledge/pages/${encodeURIComponent(
+                                knowledgeCompileStatus.createdPageIds[0]!,
+                              )}`,
+                            )
+                          }
+                          className="border-[var(--notebook-border)] bg-[var(--notebook-panel)] text-[var(--notebook-ink)]"
+                        >
+                          打开生成页面
+                        </Button>
+                      ) : null}
+                      {knowledgeCompileStatus.status === "failed" &&
+                      knowledgeCompileStatus.sourceId ? (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => {
+                            void enqueueToKnowledge
+                              .mutateAsync(knowledgeCompileStatus.sourceId!)
+                              .then((job) =>
+                                setKnowledgeCompileStatus({
+                                  jobId: job.job_id,
+                                  status: job.status,
+                                  createdPages: job.outputs.created_pages,
+                                  createdPageIds: job.outputs.created_page_ids,
+                                  sourceId: knowledgeCompileStatus.sourceId,
+                                  errorSummary: job.error_summary,
+                                }),
+                              );
+                          }}
+                          className="border-[var(--notebook-border)] bg-[var(--notebook-panel)] text-[var(--notebook-ink)]"
+                        >
+                          重试编译
+                        </Button>
+                      ) : null}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleViewKnowledgeStatus}
+                        className="border-[var(--notebook-border)] bg-[var(--notebook-panel)] text-[var(--notebook-ink)]"
+                      >
+                        查看知识库状态
+                      </Button>
+                    </div>
                   </div>
                 </section>
               ) : null}
