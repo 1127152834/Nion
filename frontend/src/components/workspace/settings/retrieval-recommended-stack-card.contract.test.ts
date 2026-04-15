@@ -20,8 +20,8 @@ void test("retrieval models section assembles recommendation and consumer status
   );
 
   assert.match(source, /RetrievalRecommendedStackCard/);
-  assert.match(source, /retrieval-consu["']?\s*\+\s*["']?mers-card/);
-  assert.match(source, /status\["cons"\s*\+\s*"umers"\]/);
+  assert.match(source, /RetrievalConsumersCard/);
+  assert.match(source, /status\.consumers/);
 });
 
 void test("retrieval consumers card renders consumer labels", async () => {
