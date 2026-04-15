@@ -1,18 +1,20 @@
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
 class RetrievalEmbeddingProfile(BaseModel):
-    mode: str = "remote_managed"
+    mode: Literal["remote_managed"] = "remote_managed"
     endpoint: str = ""
     api_key: str = ""
     model_name: str = "text-embedding-3-large"
-    dimensions: int = 3072
+    dimensions: int = Field(default=3072, ge=1)
 
 
 class RetrievalRerankerProfile(BaseModel):
-    mode: str = "remote_managed"
+    mode: Literal["remote_managed"] = "remote_managed"
     endpoint: str = ""
     api_key: str = ""
     model_name: str = "bge-reranker-large"
@@ -25,7 +27,7 @@ class RetrievalActiveProfile(BaseModel):
 
 class RetrievalConsumerPolicy(BaseModel):
     allow_per_consumer_override: bool = False
-    profile_version: int = 1
+    profile_version: int = Field(default=1, ge=1)
 
 
 class RetrievalModelsSettings(BaseModel):
