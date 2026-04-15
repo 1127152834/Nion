@@ -33,6 +33,7 @@ _DEFAULT_SKILLS_CONTAINER_PATH = "/mnt/skills"
 _ACP_WORKSPACE_VIRTUAL_PREFIX = "/mnt/acp-workspace"
 _DEFAULT_BASH_OUTPUT_MAX_CHARS = 20000
 _DEFAULT_READ_FILE_OUTPUT_MAX_CHARS = 50000
+_DEFAULT_LS_OUTPUT_MAX_CHARS = 20000
 
 
 def _get_skills_container_path() -> str:
@@ -879,8 +880,13 @@ def ls_tool(runtime: ToolRuntime[ContextT, ThreadState], description: str, path:
         if not children:
             return "(empty)"
         if is_local_sandbox(runtime):
-            return "\n".join(_mask_local_path(child, runtime) for child in children)
-        return "\n".join(children)
+            output = "\n".join(_mask_local_path(child, runtime) for child in children)
+        else:
+            output = "\n".join(children)
+        return _head_truncate_output(
+            output,
+            _get_sandbox_output_limit("ls_output_max_chars", _DEFAULT_LS_OUTPUT_MAX_CHARS),
+        )
     except SandboxError as e:
         return f"Error: {e}"
     except FileNotFoundError:
