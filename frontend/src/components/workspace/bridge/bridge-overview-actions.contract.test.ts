@@ -8,6 +8,10 @@ void test("bridge overview panel exposes diagnostics and restart actions", async
     "utf8",
   );
 
+  assert.match(source, /import \{ Button \} from "@\/components\/ui\/button";/);
+  assert.match(source, /<Button/);
+  assert.match(source, /t\("bridge\.overviewDiagnoseAction"\)/);
+  assert.match(source, /t\("bridge\.overviewRestartAction"\)/);
   assert.match(source, /client\.diagnose\(\{ source: "bridge_page" \}\)/);
   assert.match(source, /client\.start\(\)/);
 });
