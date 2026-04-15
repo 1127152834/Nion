@@ -14,6 +14,11 @@ export type LocalActionsHistoryItem = {
     approval_status: string;
     audit_summary: string;
     finished_at?: string | null;
+    executed_actions?: Array<{
+      action_type: string;
+      status: string;
+      result_summary: string;
+    }>;
   };
 };
 

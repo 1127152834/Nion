@@ -54,6 +54,27 @@ def test_service_allows_direct_execution_and_marks_goal_executing(tmp_path) -> N
     assert result.execution.has_irreversible_action is False
 
 
+def test_service_plans_low_risk_file_browse_and_open_actions(tmp_path) -> None:
+    repo = LocalActionsRepository(tmp_path / "local_actions.db")
+    service = LocalActionsService(repo=repo, permission_mode="allow_all")
+
+    list_result = service.plan_goal(
+        source_surface="bridge",
+        source_channel="telegram",
+        user_input="List my Downloads folder",
+    )
+    open_result = service.plan_goal(
+        source_surface="bridge",
+        source_channel="telegram",
+        user_input="Open my Downloads folder",
+    )
+
+    assert list_result.plan.actions[0].action_type == "list_directory"
+    assert list_result.plan.actions[0].risk_level == "low"
+    assert open_result.plan.actions[0].action_type == "open_directory"
+    assert open_result.execution.has_irreversible_action is False
+
+
 def test_service_records_execution_result_and_closes_goal(tmp_path) -> None:
     repo = LocalActionsRepository(tmp_path / "local_actions.db")
     service = LocalActionsService(repo=repo, permission_mode="allow_all")

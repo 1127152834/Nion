@@ -24,6 +24,8 @@ export type DesktopLocalActionExecutionResult = {
 type ExecutorDependencies = {
   captureFullScreen?: () => Promise<string>;
   captureActiveWindow?: () => Promise<string>;
+  listDirectory?: (target: string) => Promise<string[]>;
+  openPath?: (target: string) => Promise<void>;
   organizeDownloads?: () => Promise<{
     moved_count: number;
     trashed_count: number;
@@ -106,6 +108,14 @@ async function defaultOrganizeDownloads(): Promise<{
   };
 }
 
+async function defaultListDirectory(target: string): Promise<string[]> {
+  return readdir(target);
+}
+
+async function defaultOpenPath(target: string): Promise<void> {
+  await shell.openPath(target);
+}
+
 export class LocalActionsExecutor {
   private readonly history: DesktopLocalActionExecutionResult[] = [];
 
@@ -119,6 +129,10 @@ export class LocalActionsExecutor {
     summary: string;
   }>;
 
+  private readonly listDirectoryImpl: (target: string) => Promise<string[]>;
+
+  private readonly openPathImpl: (target: string) => Promise<void>;
+
   constructor(dependencies: ExecutorDependencies = {}) {
     this.captureFullScreenImpl =
       dependencies.captureFullScreen ?? defaultCaptureFullScreen;
@@ -126,6 +140,8 @@ export class LocalActionsExecutor {
       dependencies.captureActiveWindow ?? defaultCaptureActiveWindow;
     this.organizeDownloadsImpl =
       dependencies.organizeDownloads ?? defaultOrganizeDownloads;
+    this.listDirectoryImpl = dependencies.listDirectory ?? defaultListDirectory;
+    this.openPathImpl = dependencies.openPath ?? defaultOpenPath;
   }
 
   async executePlan(
@@ -185,6 +201,47 @@ export class LocalActionsExecutor {
             action_type: action.action_type,
             status: "failed",
             result_summary: "Failed to organize Downloads",
+            error_reason: error instanceof Error ? error.message : String(error),
+          });
+        }
+        continue;
+      }
+
+      if (action.action_type === "list_directory" && action.target) {
+        try {
+          const entries = await this.listDirectoryImpl(action.target);
+          executed.push({
+            action_type: action.action_type,
+            status: "succeeded",
+            result_summary: `Listed ${entries.length} item(s) in ${action.target}`,
+          });
+        } catch (error) {
+          executed.push({
+            action_type: action.action_type,
+            status: "failed",
+            result_summary: "Failed to list directory",
+            error_reason: error instanceof Error ? error.message : String(error),
+          });
+        }
+        continue;
+      }
+
+      if (
+        (action.action_type === "open_directory" || action.action_type === "open_file") &&
+        action.target
+      ) {
+        try {
+          await this.openPathImpl(action.target);
+          executed.push({
+            action_type: action.action_type,
+            status: "succeeded",
+            result_summary: `Opened ${action.target}`,
+          });
+        } catch (error) {
+          executed.push({
+            action_type: action.action_type,
+            status: "failed",
+            result_summary: `Failed to open ${action.target}`,
             error_reason: error instanceof Error ? error.message : String(error),
           });
         }

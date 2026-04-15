@@ -20,6 +20,7 @@ void test("local actions history card shows execution audit state", async () => 
 
   assert.match(source, /execution\.approval_status/);
   assert.match(source, /execution\.audit_summary/);
+  assert.match(source, /execution\.executed_actions/);
   assert.match(source, /goal\.user_input/);
   assert.match(source, /plan\.risk_level/);
 });

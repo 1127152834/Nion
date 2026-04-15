@@ -33,6 +33,21 @@ export function LocalActionsHistoryCard({
             <div className="text-muted-foreground mt-2 text-xs">
               {execution.audit_summary}
             </div>
+            {execution.executed_actions?.length ? (
+              <div className="mt-3 space-y-2">
+                {execution.executed_actions.map((action, index) => (
+                  <div
+                    key={`${execution.execution_id}-${action.action_type}-${index}`}
+                    className="rounded-lg border bg-background/60 px-3 py-2 text-xs"
+                  >
+                    <div className="font-medium">{action.action_type}</div>
+                    <div className="text-muted-foreground mt-1">
+                      {action.status} · {action.result_summary}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : null}
           </div>
         ))}
       </div>

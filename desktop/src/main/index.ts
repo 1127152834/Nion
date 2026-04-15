@@ -21,6 +21,7 @@ import { registerDesktopProtocol } from "./protocol.js";
 import { shouldKeepPrimaryInstance } from "./single-instance.js";
 import { createDesktopUpdater, registerUpdaterHandlers } from "./updater.js";
 import { LocalActionsExecutor } from "./local-actions/executor.js";
+import { RetrievalModelManager } from "./retrieval-model-manager.js";
 import { createMainWindow, focusMainWindow } from "./window.js";
 import { TerminalManager } from "./terminal-manager.js";
 import { DESKTOP_BRIDGE_IPC_CHANNELS } from "../shared/bridge-ipc.js";
@@ -33,6 +34,7 @@ let clientSession: ElectronClientSession | null = null;
 let runtimeInfo: import("../shared/ipc.js").DesktopRuntimeInfo | null = null;
 const terminalManager = new TerminalManager();
 const localActionsExecutor = new LocalActionsExecutor();
+let retrievalModelManager: RetrievalModelManager | null = null;
 
 const MASKED_SETTING_KEYS = new Set([
   "bridge_discord_bot_token",
@@ -471,6 +473,42 @@ export async function startDesktopMain(): Promise<void> {
   );
   ipcMain.handle(DESKTOP_IPC_CHANNELS.localActionsListHistory, async () => {
     return localActionsExecutor.listHistory();
+  });
+  retrievalModelManager = new RetrievalModelManager({
+    appDataDir: environment.userDataPath,
+    onProgress: (payload) => {
+      mainWindow?.webContents.send(DESKTOP_IPC_CHANNELS.retrievalModelDownloadProgress, payload);
+    },
+  });
+  ipcMain.handle(DESKTOP_IPC_CHANNELS.retrievalModelsList, async () => {
+    return retrievalModelManager?.listModels();
+  });
+  ipcMain.handle(DESKTOP_IPC_CHANNELS.retrievalPacksList, async () => {
+    return retrievalModelManager?.listPacks();
+  });
+  ipcMain.handle(DESKTOP_IPC_CHANNELS.retrievalModelDownload, async (_event, modelId: string) => {
+    return retrievalModelManager?.downloadModel(modelId);
+  });
+  ipcMain.handle(DESKTOP_IPC_CHANNELS.retrievalModelCancel, async (_event, modelId: string) => {
+    return retrievalModelManager?.cancelModel(modelId);
+  });
+  ipcMain.handle(DESKTOP_IPC_CHANNELS.retrievalModelRemove, async (_event, modelId: string) => {
+    return retrievalModelManager?.removeModel(modelId);
+  });
+  ipcMain.handle(DESKTOP_IPC_CHANNELS.retrievalModelImport, async (_event, modelId: string) => {
+    return retrievalModelManager?.importModel(modelId);
+  });
+  ipcMain.handle(DESKTOP_IPC_CHANNELS.retrievalPackDownload, async (_event, packId: string) => {
+    return retrievalModelManager?.downloadPack(packId);
+  });
+  ipcMain.handle(DESKTOP_IPC_CHANNELS.retrievalPackCancel, async (_event, packId: string) => {
+    return retrievalModelManager?.cancelPack(packId);
+  });
+  ipcMain.handle(DESKTOP_IPC_CHANNELS.retrievalPackRemove, async (_event, packId: string) => {
+    return retrievalModelManager?.removePack(packId);
+  });
+  ipcMain.handle(DESKTOP_IPC_CHANNELS.retrievalPackImport, async (_event, packId: string) => {
+    return retrievalModelManager?.importPack(packId);
   });
 
   const bridgeBindingsStore = createBridgeBindingsStore(

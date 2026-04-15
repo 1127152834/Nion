@@ -67,3 +67,35 @@ test("desktop local-actions executor keeps recent execution history", async () =
   assert.equal(history.length, 1);
   assert.equal(history[0]?.executed[0]?.action_type, "capture_active_window");
 });
+
+test("desktop local-actions executor supports low-risk file browse and open actions", async () => {
+  const { LocalActionsExecutor } = await loadModuleFunctions(
+    "../src/main/local-actions/executor.ts",
+    ["LocalActionsExecutor"],
+  );
+
+  const calls = [];
+  const executor = new LocalActionsExecutor({
+    listDirectory: async () => {
+      calls.push("list");
+      return ["a.txt", "b.txt"];
+    },
+    openPath: async (target) => {
+      calls.push(`open:${target}`);
+    },
+  });
+
+  const result = await executor.executePlan({
+    actions: [
+      { action_type: "list_directory", target: "/tmp" },
+      { action_type: "open_directory", target: "/tmp" },
+      { action_type: "open_file", target: "/tmp/a.txt" },
+    ],
+  });
+
+  assert.deepEqual(calls, ["list", "open:/tmp", "open:/tmp/a.txt"]);
+  assert.deepEqual(
+    result.executed.map((item) => item.status),
+    ["succeeded", "succeeded", "succeeded"],
+  );
+});

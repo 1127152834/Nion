@@ -3,6 +3,17 @@ export const DESKTOP_IPC_CHANNELS = {
   checkForUpdates: "desktop:check-for-updates",
   quitAndInstallUpdate: "desktop:quit-and-install-update",
   openFolder: "desktop:open-folder",
+  retrievalModelsList: "desktop:retrieval-models-list",
+  retrievalPacksList: "desktop:retrieval-packs-list",
+  retrievalModelDownload: "desktop:retrieval-model-download",
+  retrievalModelCancel: "desktop:retrieval-model-cancel",
+  retrievalModelRemove: "desktop:retrieval-model-remove",
+  retrievalModelImport: "desktop:retrieval-model-import",
+  retrievalPackDownload: "desktop:retrieval-pack-download",
+  retrievalPackCancel: "desktop:retrieval-pack-cancel",
+  retrievalPackRemove: "desktop:retrieval-pack-remove",
+  retrievalPackImport: "desktop:retrieval-pack-import",
+  retrievalModelDownloadProgress: "desktop:retrieval-model-download-progress",
   terminalCreate: "desktop:terminal-create",
   terminalWrite: "desktop:terminal-write",
   terminalResize: "desktop:terminal-resize",
@@ -31,6 +42,21 @@ export type DesktopUpdateResult = {
 export type DesktopOpenFolderResult = {
   canceled: boolean;
   filePaths: string[];
+};
+
+export type DesktopRetrievalActionResult = {
+  success: boolean;
+  message: string;
+};
+
+export type DesktopRetrievalModelDownloadProgress = {
+  packId: string;
+  modelId: string;
+  family: "embedding" | "rerank";
+  status: "started" | "downloading" | "verifying" | "completed" | "failed" | "cancelled";
+  downloadedBytes: number;
+  totalBytes: number | null;
+  message: string;
 };
 
 export type DesktopTerminalDataEvent = {
@@ -118,6 +144,21 @@ declare global {
           defaultPath?: string;
           title?: string;
         }) => Promise<DesktopOpenFolderResult>;
+      };
+      retrievalModels?: {
+        listRetrievalModels: () => Promise<Record<string, unknown>>;
+        listRetrievalPacks: () => Promise<Record<string, unknown>>;
+        downloadRetrievalModel: (modelId: string) => Promise<DesktopRetrievalActionResult>;
+        cancelRetrievalModel: (modelId: string) => Promise<DesktopRetrievalActionResult>;
+        removeRetrievalModel: (modelId: string) => Promise<DesktopRetrievalActionResult>;
+        importRetrievalModel: (modelId: string) => Promise<DesktopRetrievalActionResult>;
+        downloadRetrievalPack: (packId: string) => Promise<DesktopRetrievalActionResult>;
+        cancelRetrievalPack: (packId: string) => Promise<DesktopRetrievalActionResult>;
+        removeRetrievalPack: (packId: string) => Promise<DesktopRetrievalActionResult>;
+        importRetrievalPack: (packId: string) => Promise<DesktopRetrievalActionResult>;
+        onRetrievalModelDownloadProgress: (
+          callback: (payload: DesktopRetrievalModelDownloadProgress) => void,
+        ) => () => void;
       };
       terminal?: {
         create: (options: {

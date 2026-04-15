@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 import { Button } from "@/components/ui/button";
 import type { PendingPermissionRequest } from "@/core/threads";
 import { cn } from "@/lib/utils";
@@ -15,9 +17,13 @@ export function LocalActionsReviewCard({
   onDecision?: (decision: "allow" | "allow_session" | "deny") => void;
   isResolving?: boolean;
 }) {
+  const [showDetails, setShowDetails] = useState(false);
   const irreversibleCount = Number(
     permissionRequest.toolInput.irreversible_action_count ?? 0,
   );
+  const localActions = Array.isArray(permissionRequest.toolInput.local_actions)
+    ? permissionRequest.toolInput.local_actions
+    : [];
 
   return (
     <div
@@ -59,6 +65,44 @@ export function LocalActionsReviewCard({
           <div className="font-medium">{irreversibleCount}</div>
         </div>
       </div>
+      <div className="flex items-center justify-between">
+        <div className="text-muted-foreground text-xs">
+          {irreversibleCount > 0
+            ? `${irreversibleCount} irreversible action(s) must be reviewed`
+            : "No irreversible actions in this plan"}
+        </div>
+        <Button
+          type="button"
+          variant="ghost"
+          className="h-auto px-0 text-xs"
+          onClick={() => setShowDetails((current) => !current)}
+        >
+          View details
+        </Button>
+      </div>
+      {showDetails ? (
+        <div className="space-y-2 rounded-xl border bg-muted/20 px-3 py-3 text-sm">
+          {localActions.map((action, index) => {
+            const item = action as {
+              action_type?: string;
+              target?: string;
+              reversible?: boolean;
+              risk_level?: string;
+            };
+            return (
+              <div key={`${item.action_type ?? "action"}-${index}`} className="rounded-lg border px-3 py-2">
+                <div className="font-medium">{item.action_type ?? "unknown action"}</div>
+                <div className="text-muted-foreground mt-1 text-xs">
+                  Target: {item.target ?? "n/a"}
+                </div>
+                <div className="text-muted-foreground mt-1 text-xs">
+                  Risk: {item.risk_level ?? "unknown"} · irreversible: {item.reversible === false ? "yes" : "no"}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : null}
       <div className="flex flex-wrap gap-2">
         {permissionRequest.actions.map((action) => (
           <Button

@@ -32,7 +32,31 @@ def build_local_action_plan(
     )
     normalized_input = user_input.strip()
     lowered_input = normalized_input.lower()
-    if "download" in lowered_input:
+    if "list" in lowered_input and "download" in lowered_input:
+        action = LocalActionItem(
+            action_id=f"action_{uuid4().hex}",
+            action_type="list_directory",
+            target=str(Path.home() / "Downloads"),
+            parameters={"scope": "top_level"},
+            reversible=True,
+            risk_level="low",
+            status="pending",
+        )
+        summary = "List the top-level contents of the Downloads folder"
+        risk_level = "low"
+    elif "open" in lowered_input and "download" in lowered_input:
+        action = LocalActionItem(
+            action_id=f"action_{uuid4().hex}",
+            action_type="open_directory",
+            target=str(Path.home() / "Downloads"),
+            parameters={},
+            reversible=True,
+            risk_level="low",
+            status="pending",
+        )
+        summary = "Open the Downloads folder"
+        risk_level = "low"
+    elif "download" in lowered_input:
         action = LocalActionItem(
             action_id=f"action_{uuid4().hex}",
             action_type="organize_downloads",

@@ -16,6 +16,40 @@ export function registerPreloadBridge(): void {
       openFolder: (options?: { defaultPath?: string; title?: string }) =>
         ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.openFolder, options),
     },
+    retrievalModels: {
+      listRetrievalModels: () =>
+        ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.retrievalModelsList),
+      listRetrievalPacks: () =>
+        ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.retrievalPacksList),
+      downloadRetrievalModel: (modelId: string) =>
+        ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.retrievalModelDownload, modelId),
+      cancelRetrievalModel: (modelId: string) =>
+        ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.retrievalModelCancel, modelId),
+      removeRetrievalModel: (modelId: string) =>
+        ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.retrievalModelRemove, modelId),
+      importRetrievalModel: (modelId: string) =>
+        ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.retrievalModelImport, modelId),
+      downloadRetrievalPack: (packId: string) =>
+        ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.retrievalPackDownload, packId),
+      cancelRetrievalPack: (packId: string) =>
+        ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.retrievalPackCancel, packId),
+      removeRetrievalPack: (packId: string) =>
+        ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.retrievalPackRemove, packId),
+      importRetrievalPack: (packId: string) =>
+        ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.retrievalPackImport, packId),
+      onRetrievalModelDownloadProgress: (
+        callback: (payload: unknown) => void,
+      ) => {
+        const listener = (_event: unknown, payload: unknown) => callback(payload);
+        ipcRenderer.on(DESKTOP_IPC_CHANNELS.retrievalModelDownloadProgress, listener);
+        return () => {
+          ipcRenderer.removeListener(
+            DESKTOP_IPC_CHANNELS.retrievalModelDownloadProgress,
+            listener,
+          );
+        };
+      },
+    },
     terminal: {
       create: (options: { id: string; cwd: string; cols: number; rows: number }) =>
         ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.terminalCreate, options),
