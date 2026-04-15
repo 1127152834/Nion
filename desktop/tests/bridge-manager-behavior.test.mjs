@@ -688,6 +688,80 @@ test("bridge manager renders text permission commands for platforms without inli
   assert.equal(adapter.sent[0].inlineButtons, undefined);
 });
 
+test("bridge manager renders local-actions review details for remote permission prompts", async () => {
+  const createBridgeManager = await loadBridgeManagerFactory();
+  const adapter = createStubAdapter("qq");
+  adapter.enqueue({
+    platform: "qq",
+    chatId: "chat-local-actions",
+    userId: "user-1",
+    text: "帮我整理下载目录",
+    messageId: "msg-local-actions",
+    timestamp: Date.now(),
+  });
+
+  const manager = createBridgeManager({
+    loadSettings: () => ({ settings: {} }),
+    adapters: [adapter],
+    listBindings: () => [],
+    upsertBinding: (binding) => ({
+      ...binding,
+      id: "binding-local-actions",
+      createdAt: "",
+      updatedAt: "",
+    }),
+    defaultWorkingDirectory: () => "/tmp/project",
+    threadClient: {
+      async streamMessage(threadId) {
+        return {
+          threadId,
+          finalText: "",
+          events: [
+            {
+              event: "custom",
+              data: {
+                type: "permission_request",
+                id: "perm-local-actions-1",
+                tool_name: "local_actions_review",
+                tool_input: {
+                  goal_id: "goal-1",
+                  plan_id: "plan-1",
+                  execution_id: "exec-1",
+                  irreversible_action_count: 1,
+                  local_actions: [
+                    {
+                      action_type: "organize_downloads",
+                      target: "/Users/me/Downloads",
+                      reversible: false,
+                      risk_level: "high",
+                    },
+                  ],
+                },
+                reason_message: "Review the local action plan before execution.",
+                review_title: "Review local actions",
+                review_summary: "1 action, 1 irreversible",
+                options: ["Approve", "Reject"],
+              },
+            },
+          ],
+        };
+      },
+      async uploadFiles() {
+        return {};
+      },
+    },
+  });
+
+  const handled = await manager.processNextInboundMessage();
+  assert.equal(handled, true);
+  assert.equal(adapter.sent.length, 1);
+  assert.match(adapter.sent[0].text, /Review local actions/);
+  assert.match(adapter.sent[0].text, /1 action, 1 irreversible/);
+  assert.match(adapter.sent[0].text, /organize_downloads/);
+  assert.match(adapter.sent[0].text, /irreversible: yes/);
+  assert.match(adapter.sent[0].text, /\/perm allow perm-local-actions-1/);
+});
+
 test("bridge manager /mode updates binding mode and applies it to the next stream", async () => {
   const createBridgeManager = await loadBridgeManagerFactory();
   const adapter = createStubAdapter("telegram");

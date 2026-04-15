@@ -145,6 +145,10 @@ function extractPermissionRequest(events: Array<{ event: string; data: any }>) {
         : {},
       reason:
         typeof current.data.reason_message === "string" ? current.data.reason_message.trim() : "",
+      reviewTitle:
+        typeof current.data.review_title === "string" ? current.data.review_title.trim() : "",
+      reviewSummary:
+        typeof current.data.review_summary === "string" ? current.data.review_summary.trim() : "",
       options: Array.isArray(current.data.options)
         ? current.data.options.filter((item: unknown): item is string => typeof item === "string")
         : [],
@@ -178,8 +182,54 @@ function formatPermissionPrompt(permission: {
   toolName: string;
   toolInput: Record<string, unknown>;
   reason: string;
+  reviewTitle?: string;
+  reviewSummary?: string;
   supportsButtons?: boolean;
 }) {
+  if (permission.toolName === "local_actions_review") {
+    const localActions = Array.isArray(permission.toolInput.local_actions)
+      ? permission.toolInput.local_actions
+      : [];
+    const lines = [
+      `🧾 ${permission.reviewTitle || "Review local actions"}`,
+      "",
+    ];
+    if (permission.reason) {
+      lines.push(permission.reason, "");
+    }
+    if (permission.reviewSummary) {
+      lines.push(permission.reviewSummary, "");
+    }
+    lines.push(
+      `Plan: ${String(permission.toolInput.plan_id ?? "pending")}`,
+      `Execution: ${String(permission.toolInput.execution_id ?? "pending")}`,
+      `Irreversible actions: ${String(permission.toolInput.irreversible_action_count ?? 0)}`,
+    );
+    if (localActions.length > 0) {
+      lines.push("", "Actions:");
+      localActions.forEach((action, index) => {
+        const item = action && typeof action === "object" ? action : {};
+        lines.push(
+          `${index + 1}. ${String((item as { action_type?: unknown }).action_type ?? "unknown")}`,
+          `   target: ${String((item as { target?: unknown }).target ?? "n/a")}`,
+          `   risk: ${String((item as { risk_level?: unknown }).risk_level ?? "unknown")} · irreversible: ${
+            (item as { reversible?: unknown }).reversible === false ? "yes" : "no"
+          }`,
+        );
+      });
+    }
+    if (!permission.supportsButtons && permission.id) {
+      lines.push(
+        "",
+        "Reply with one of:",
+        `/perm allow ${permission.id}`,
+        `/perm allow_session ${permission.id}`,
+        `/perm deny ${permission.id}`,
+      );
+    }
+    return lines.join("\n").trim();
+  }
+
   const summary = JSON.stringify(permission.toolInput, null, 2);
   const lines = ["🔐 Permission Required", ""];
   if (permission.reason) {
