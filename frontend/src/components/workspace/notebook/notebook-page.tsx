@@ -291,8 +291,13 @@ export function NotebookPage() {
       return;
     }
     try {
-      await enqueueToKnowledge.mutateAsync(sourceId);
-      toast.success("已转为知识库，前往知识库状态页即可查看编译进度与结果");
+      const job = await enqueueToKnowledge.mutateAsync(sourceId);
+      toast.success(
+        job.status === "succeeded"
+          ? "已转为知识库，已生成编译结果，正在打开知识库状态页"
+          : `知识库编译任务已创建（${job.status}），正在打开知识库状态页`,
+      );
+      router.push(pathOfKnowledgeQueue());
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err));
     }

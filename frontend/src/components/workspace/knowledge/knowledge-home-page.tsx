@@ -2,11 +2,18 @@
 
 import Link from "next/link";
 
-import { useKnowledgeLint, useKnowledgePages, useKnowledgeQueue, useRebuildKnowledgeGraph } from "@/core/knowledge";
+import {
+  useKnowledgeJobs,
+  useKnowledgeLint,
+  useKnowledgePages,
+  useKnowledgeQueue,
+  useRebuildKnowledgeGraph,
+} from "@/core/knowledge";
 
 export function KnowledgeHomePage() {
   const { queue, isLoading: queueLoading } = useKnowledgeQueue();
   const { pages, isLoading: pagesLoading } = useKnowledgePages(queue);
+  const { jobs, isLoading: jobsLoading } = useKnowledgeJobs();
   const { report } = useKnowledgeLint();
   const rebuild = useRebuildKnowledgeGraph();
   const compiledCount = queue.filter((item) => item.status === "compiled").length;
@@ -89,6 +96,29 @@ export function KnowledgeHomePage() {
             >
               {page.title} · {page.relative_path}
             </Link>
+          ))}
+        </div>
+      </section>
+
+      <section className="rounded-lg border bg-background p-5">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-[1.1rem] font-semibold tracking-tight">Recent compile jobs</h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Visible job history for notebook-to-knowledge compilation.
+            </p>
+          </div>
+          <Link href="/workspace/knowledge/queue" className="rounded-md border px-3 py-2 text-sm">
+            inspect queue
+          </Link>
+        </div>
+        <div className="mt-4 space-y-2 text-sm text-muted-foreground">
+          {jobsLoading ? <div>loading jobs…</div> : null}
+          {!jobsLoading && jobs.length === 0 ? <div>no compile jobs yet</div> : null}
+          {!jobsLoading && jobs.slice(0, 6).map((job) => (
+            <div key={job.job_id} className="rounded-md border px-3 py-2">
+              {job.job_id} · {job.status} · created_pages={job.outputs.created_pages.length}
+            </div>
           ))}
         </div>
       </section>

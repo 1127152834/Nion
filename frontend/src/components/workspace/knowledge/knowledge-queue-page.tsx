@@ -1,9 +1,10 @@
 "use client";
 
-import { useApproveKnowledgeQueue, useKnowledgeQueue } from "@/core/knowledge";
+import { useApproveKnowledgeQueue, useKnowledgeJobs, useKnowledgeQueue } from "@/core/knowledge";
 
 export function KnowledgeQueuePage() {
   const { queue, isLoading, error } = useKnowledgeQueue();
+  const { jobs } = useKnowledgeJobs();
   const approve = useApproveKnowledgeQueue();
 
   return (
@@ -48,6 +49,23 @@ export function KnowledgeQueuePage() {
                 </div>
               ))
             : null}
+        </div>
+      </section>
+
+      <section className="rounded-lg border bg-background p-5">
+        <div className="space-y-1">
+          <h2 className="text-[1.1rem] font-semibold tracking-tight">compile jobs</h2>
+          <p className="text-sm text-muted-foreground">
+            Visible compile history for queued notebook sources.
+          </p>
+        </div>
+        <div className="mt-4 space-y-2 text-sm text-muted-foreground">
+          {jobs.length === 0 ? <div>no jobs yet</div> : null}
+          {jobs.map((job) => (
+            <div key={job.job_id} className="rounded-md border px-3 py-2">
+              {job.job_id} · {job.status} · created_pages={job.outputs.created_pages.length}
+            </div>
+          ))}
         </div>
       </section>
     </main>

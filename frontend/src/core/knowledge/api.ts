@@ -4,6 +4,7 @@ import type {
   KnowledgeGraphPayload,
   KnowledgeLintReport,
   KnowledgePage,
+  KnowledgeCompileJobListResponse,
   KnowledgeQueryResult,
   KnowledgeRevisionRequest,
   KnowledgeCompileJob,
@@ -107,6 +108,27 @@ function isKnowledgeLintReport(value: unknown): value is KnowledgeLintReport {
   );
 }
 
+function isKnowledgeCompileJob(value: unknown): value is KnowledgeCompileJob {
+  return (
+    isObjectRecord(value) &&
+    typeof value.job_id === "string" &&
+    Array.isArray(value.source_ids) &&
+    typeof value.trigger_mode === "string" &&
+    typeof value.status === "string" &&
+    isObjectRecord(value.outputs)
+  );
+}
+
+function isKnowledgeCompileJobListResponse(
+  value: unknown,
+): value is KnowledgeCompileJobListResponse {
+  return (
+    isObjectRecord(value) &&
+    Array.isArray(value.jobs) &&
+    value.jobs.every(isKnowledgeCompileJob)
+  );
+}
+
 export async function loadKnowledgeQueue(): Promise<KnowledgeSourceCandidate[]> {
   const response = await fetch(`${getBackendBaseURL()}/api/knowledge/queue`);
   if (!response.ok) {
@@ -139,6 +161,23 @@ export async function approveKnowledgeQueue(sourceIds: string[]): Promise<Knowle
     );
   }
   return readJson(response);
+}
+
+export async function loadKnowledgeJobs(): Promise<KnowledgeCompileJobListResponse> {
+  const response = await fetch(`${getBackendBaseURL()}/api/knowledge/jobs`);
+  if (!response.ok) {
+    throw new Error(
+      resolveErrorMessage(
+        await response.text(),
+        `Failed to load knowledge jobs (${response.status})`,
+      ),
+    );
+  }
+  const payload = (await readJson<unknown>(response)) as unknown;
+  if (!isKnowledgeCompileJobListResponse(payload)) {
+    throw new Error("Invalid knowledge jobs payload returned from loadKnowledgeJobs");
+  }
+  return payload;
 }
 
 export async function loadKnowledgePage(pageId: string): Promise<KnowledgePage> {

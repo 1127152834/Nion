@@ -6,6 +6,7 @@ import {
   approveKnowledgeQueue,
   closeKnowledgeRevision,
   createKnowledgeRevision,
+  loadKnowledgeJobs,
   loadKnowledgeLint,
   loadKnowledgeQueue,
   queryKnowledge,
@@ -86,6 +87,38 @@ void test("approveKnowledgeQueue posts source ids to the queue approval endpoint
 
   assert.match(seenBody, /source:notebook_note:note_1/);
   assert.equal(payload.status, "pending");
+});
+
+void test("loadKnowledgeJobs calls the jobs endpoint", async () => {
+  let seenUrl = "";
+
+  globalThis.fetch = (async (input: RequestInfo | URL) => {
+    seenUrl = String(input);
+    return new Response(
+      JSON.stringify({
+        jobs: [
+          {
+            job_id: "job_1",
+            source_ids: ["source:notebook_note:note_1"],
+            trigger_mode: "queue_approval",
+            status: "succeeded",
+            outputs: {
+              created_pages: ["wiki/sources/note_1.md"],
+              updated_pages: [],
+              contradiction_pages: [],
+              graph_rebuilt: false,
+            },
+          },
+        ],
+      }),
+      { status: 200, headers: { "Content-Type": "application/json" } },
+    );
+  }) as typeof fetch;
+
+  const payload = await loadKnowledgeJobs();
+
+  assert.match(seenUrl, /\/api\/knowledge\/jobs$/);
+  assert.equal(payload.jobs[0]?.job_id, "job_1");
 });
 
 void test("rebuildKnowledgeGraph posts to the graph rebuild endpoint", async () => {

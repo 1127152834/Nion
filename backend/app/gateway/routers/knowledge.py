@@ -22,6 +22,10 @@ class KnowledgeQueueApprovalRequest(BaseModel):
     source_ids: list[str]
 
 
+class KnowledgeJobListResponse(BaseModel):
+    jobs: list[KnowledgeCompileJob]
+
+
 class KnowledgeRevisionCreateRequest(BaseModel):
     page_id: str
     request_type: str
@@ -39,6 +43,11 @@ async def get_knowledge_queue() -> list[KnowledgeSourceCandidate]:
     notebook = NotebookService()
     store = KnowledgeSourceCandidateStore()
     return store.refresh_from_notebook(notebook)
+
+
+@router.get("/jobs", response_model=KnowledgeJobListResponse)
+async def get_knowledge_jobs() -> KnowledgeJobListResponse:
+    return KnowledgeJobListResponse(jobs=KnowledgeCompileJobStore().list_jobs())
 
 
 @router.post("/queue/approve", response_model=KnowledgeCompileJob)

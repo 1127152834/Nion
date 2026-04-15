@@ -6,6 +6,7 @@ import {
   approveKnowledgeQueue,
   createKnowledgeRevision,
   loadKnowledgeLint,
+  loadKnowledgeJobs,
   loadKnowledgePage,
   loadKnowledgePagesFromQueue,
   loadKnowledgeQueue,
@@ -17,6 +18,7 @@ import {
 import { useMutation } from "@tanstack/react-query";
 import type {
   KnowledgeGraphPayload,
+  KnowledgeCompileJob,
   KnowledgeLintReport,
   KnowledgePage,
   KnowledgeQueryResult,
@@ -52,6 +54,19 @@ export function useKnowledgePage(pageId: string | null) {
   });
   return {
     page: (data ?? null) as KnowledgePage | null,
+    isLoading,
+    error,
+  };
+}
+
+export function useKnowledgeJobs() {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["knowledge", "jobs"],
+    queryFn: () => loadKnowledgeJobs(),
+    refetchOnWindowFocus: false,
+  });
+  return {
+    jobs: (data?.jobs ?? []) as KnowledgeCompileJob[],
     isLoading,
     error,
   };

@@ -108,3 +108,10 @@ class KnowledgeCompileJobStore:
         if row is None:
             raise FileNotFoundError(f"Knowledge compile job not found: {job_id}")
         return self._row_to_job(row)
+
+    def list_jobs(self) -> list[KnowledgeCompileJob]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                "SELECT * FROM knowledge_compile_jobs ORDER BY rowid DESC"
+            ).fetchall()
+        return [self._row_to_job(row) for row in rows]

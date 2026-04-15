@@ -46,6 +46,10 @@ export interface KnowledgeCompileJob {
   error_summary?: string;
 }
 
+export interface KnowledgeCompileJobListResponse {
+  jobs: KnowledgeCompileJob[];
+}
+
 export interface KnowledgeQueryResult {
   answer_markdown: string;
   page_ids: string[];
