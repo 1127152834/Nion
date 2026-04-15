@@ -427,6 +427,8 @@ export interface Translations {
       sandboxTip: string;
       hostTip: string;
       hostBoundDirectory: string;
+      hostWorkdirMissingTitle: string;
+      hostWorkdirMissingDescription: string;
       locked: string;
       lockedTip: string;
       modeSaveFailed: string;

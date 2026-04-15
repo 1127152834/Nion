@@ -81,6 +81,9 @@ src/
 - `src/app/workspace/chats/[thread_id]/page.tsx` owns composer busy-state wiring.
 - `src/core/threads/hooks.ts` owns pre-submit upload state and thread submission.
 - `src/hooks/usePoseStream.ts` is a passive store selector; global WebSocket lifecycle stays in `App.tsx`.
+- Host-mode setup is split deliberately:
+  - `src/components/workspace/settings/configuration/sections/sandbox-section.tsx` owns the desktop-only default host workdir setting.
+  - `src/app/workspace/chats/chat-thread-page.tsx` owns the runtime-mode gate that refuses Host mode when no bound/default host workdir exists and redirects users into `Settings > Sandbox`.
 
 ## Resources
 

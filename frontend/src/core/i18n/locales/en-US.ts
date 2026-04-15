@@ -253,6 +253,9 @@ export const enUS: Translations = {
       hostTip:
         "Allow backend host execution. On web, host mode does not require a directory up front and still defaults to sandbox storage unless a host folder is explicitly bound.",
       hostBoundDirectory: "Bound host directory",
+      hostWorkdirMissingTitle: "Host mode needs a host working directory first.",
+      hostWorkdirMissingDescription:
+        "Set a default host working directory in Settings > Sandbox. Choosing OK will open that settings page.",
       locked: "This runtime profile is locked.",
       lockedTip: "Once a host directory is bound, the profile cannot be rebound for this thread.",
       modeSaveFailed: "Failed to save runtime mode.",
@@ -1169,6 +1172,12 @@ export const enUS: Translations = {
           "The current config still points at the AIO provider. Desktop settings no longer expose AIO because the desktop runtime must not depend on Docker, Kubernetes, or the provisioner. Switch to Local or Custom to save a desktop-compatible provider.",
         usePath: "Use path",
         usePathPlaceholder: "nion.community.custom:Provider",
+        hostWorkdir: "Default host working directory",
+        hostWorkdirHint:
+          "Used when a thread switches to Host mode without an existing bound directory. Leave empty to require an explicit setup step before Host mode can be enabled.",
+        hostWorkdirPath: "Directory path",
+        hostWorkdirPlaceholder: "/Users/you/projects/safe-host-workdir",
+        browseHostWorkdir: "Choose directory",
         advanced: "Advanced",
       },
       checkpointer: {

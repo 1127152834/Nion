@@ -19,6 +19,7 @@ import { ToolActivityTimeline } from "@/components/workspace/messages/tool-activ
 import { NewChatStage } from "@/components/workspace/new-chat-stage";
 import { RuntimeModeToggle } from "@/components/workspace/runtime-mode-toggle";
 import { SaveToNotebookTrigger } from "@/components/workspace/save-to-notebook-trigger";
+import { ConfirmActionDialog } from "@/components/workspace/settings/confirm-action-dialog";
 import { ThreadRequestErrorAlert } from "@/components/workspace/thread-request-error-alert";
 import { ThreadTitle } from "@/components/workspace/thread-title";
 import { TodoList } from "@/components/workspace/todo-list";
@@ -64,6 +65,17 @@ function resolveDefaultHostWorkdir(config: Record<string, unknown> | null): stri
   return trimmed || null;
 }
 
+function openSandboxSettings() {
+  if (typeof window === "undefined") {
+    return;
+  }
+  window.dispatchEvent(
+    new CustomEvent("nion-open-settings", {
+      detail: { section: "sandbox" },
+    }),
+  );
+}
+
 export default function ChatThreadPage() {
   const { t, locale } = useI18n();
   const searchParams = useSearchParams();
@@ -84,6 +96,7 @@ export default function ChatThreadPage() {
   const [isResolvingPermission, setIsResolvingPermission] = useState(false);
   const [resolvedPermissionRequestIds, setResolvedPermissionRequestIds] =
     useState<string[]>([]);
+  const [hostWorkdirPromptOpen, setHostWorkdirPromptOpen] = useState(false);
   const { configData } = useConfigCenter({ enabled: !isMock });
 
   useEffect(() => {
@@ -242,18 +255,7 @@ export default function ChatThreadPage() {
           nextHostWorkdir = defaultHostWorkdir;
         }
         if (mode === "host" && !nextHostWorkdir) {
-          const confirmed =
-            typeof window !== "undefined" &&
-            window.confirm(
-              `${t.workspace.runtimeMode.hostWorkdirMissingTitle}\n\n${t.workspace.runtimeMode.hostWorkdirMissingDescription}`,
-            );
-          if (confirmed) {
-            window.dispatchEvent(
-              new CustomEvent("nion-open-settings", {
-                detail: { section: "sandbox" },
-              }),
-            );
-          }
+          setHostWorkdirPromptOpen(true);
           return;
         }
         const updated = await updateRuntimeProfile(threadId, {
@@ -425,6 +427,18 @@ export default function ChatThreadPage() {
   return (
     <ThreadContext.Provider value={{ thread, isMock }}>
       <ChatBox threadId={threadId}>
+        <ConfirmActionDialog
+          open={hostWorkdirPromptOpen}
+          onOpenChange={setHostWorkdirPromptOpen}
+          title={t.workspace.runtimeMode.hostWorkdirMissingTitle}
+          description={t.workspace.runtimeMode.hostWorkdirMissingDescription}
+          cancelText={t.common.cancel}
+          confirmText={t.common.ok}
+          onConfirm={() => {
+            setHostWorkdirPromptOpen(false);
+            openSandboxSettings();
+          }}
+        />
         <div className="relative flex size-full min-h-0 flex-col">
           <header
             data-desktop-drag-region={

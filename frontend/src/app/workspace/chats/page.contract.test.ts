@@ -55,7 +55,9 @@ void test("chat thread page redirects host-mode setup to sandbox settings when n
 
   assert.match(source, /hostWorkdirMissingTitle/);
   assert.match(source, /hostWorkdirMissingDescription/);
-  assert.match(source, /window\.confirm/);
+  assert.match(source, /ConfirmActionDialog/);
+  assert.match(source, /hostWorkdirPromptOpen/);
+  assert.match(source, /function openSandboxSettings/);
   assert.match(source, /new CustomEvent\("nion-open-settings"/);
-  assert.match(source, /detail: \{ section: "sandbox" \}/);
+  assert.match(source, /openSandboxSettings\(\)/);
 });

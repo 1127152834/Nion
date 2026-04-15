@@ -23,3 +23,26 @@ void test("sandbox section hides the aio provider behind a desktop shell gate", 
   assert.match(source, /desktopUnsupportedTitle/);
   assert.match(source, /desktopUnsupportedHint/);
 });
+
+void test("sandbox section exposes a desktop-only host workdir setting with browse action", async () => {
+  const source = await readFile(
+    new URL("./configuration/sections/sandbox-section.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /hostWorkdir/);
+  assert.match(source, /hostWorkdirPlaceholder/);
+  assert.match(source, /browseHostWorkdir/);
+  assert.match(source, /isDesktopShell &&/);
+  assert.match(source, /browseWorkingDirectory/);
+});
+
+void test("i18n types include host workdir runtime copy", async () => {
+  const source = await readFile(
+    new URL("../../../core/i18n/locales/types.ts", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /hostWorkdirMissingTitle: string;/);
+  assert.match(source, /hostWorkdirMissingDescription: string;/);
+});

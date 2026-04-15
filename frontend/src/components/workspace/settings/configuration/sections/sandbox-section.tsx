@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { getBridgeClient } from "@/core/bridge/client";
 import { useI18n } from "@/core/i18n/hooks";
 import { cn } from "@/lib/utils";
 
@@ -45,6 +46,11 @@ function parseOptionalNumber(value: string): number | undefined {
   }
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function getHostWorkdirConfigValue(config: ConfigDraft): string {
+  const runtime = asObject(config.runtime);
+  return asString(runtime.default_host_workdir);
 }
 
 export function SandboxSection({
@@ -81,6 +87,7 @@ export function SandboxSection({
     locale === "zh-CN"
       ? (copy.strictModeTipZh ?? "")
       : (copy.strictModeTipEn ?? "");
+  const hostWorkdir = getHostWorkdirConfigValue(config);
 
   const updateSandbox = (key: string, value: unknown) => {
     const next = cloneConfig(config);
@@ -112,6 +119,29 @@ export function SandboxSection({
 
   const updateSandboxNumber = (key: string, raw: string) => {
     updateSandbox(key, parseOptionalNumber(raw));
+  };
+
+  const updateHostWorkdir = (value: string) => {
+    const next = cloneConfig(config);
+    const runtime = asObject(next.runtime);
+    if (!value.trim()) {
+      delete runtime.default_host_workdir;
+    } else {
+      runtime.default_host_workdir = value.trim();
+    }
+    next.runtime = runtime;
+    onChange(next);
+  };
+
+  const browseHostWorkdir = async () => {
+    const bridge = getBridgeClient();
+    if (!bridge) {
+      return;
+    }
+    const selected = await bridge.browseWorkingDirectory(hostWorkdir || undefined);
+    if (selected) {
+      updateHostWorkdir(selected);
+    }
   };
 
   const switchSandboxMode = (
@@ -317,6 +347,40 @@ export function SandboxSection({
           {copy.customConfiguredHint}
         </div>
       )}
+
+      {isDesktopShell ? (
+        <div className="rounded-md border bg-muted/30 p-3">
+          <div className="grid gap-3 md:grid-cols-[1fr_220px] md:items-start">
+            <div className="space-y-1">
+              <div className="text-sm font-medium">{copy.hostWorkdir}</div>
+              <div className="text-muted-foreground text-xs leading-relaxed">
+                {copy.hostWorkdirHint}
+              </div>
+            </div>
+            <div className="flex justify-end">
+              <button
+                type="button"
+                className="border-input bg-background hover:bg-accent hover:text-accent-foreground inline-flex h-9 items-center justify-center rounded-md border px-3 text-sm transition-colors"
+                onClick={() => {
+                  void browseHostWorkdir();
+                }}
+                disabled={disabled}
+              >
+                {copy.browseHostWorkdir}
+              </button>
+            </div>
+          </div>
+          <div className="mt-3 space-y-1.5">
+            <div className="text-xs font-medium">{copy.hostWorkdirPath}</div>
+            <Input
+              value={hostWorkdir}
+              placeholder={copy.hostWorkdirPlaceholder}
+              onChange={(e) => updateHostWorkdir(e.target.value)}
+              disabled={disabled}
+            />
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

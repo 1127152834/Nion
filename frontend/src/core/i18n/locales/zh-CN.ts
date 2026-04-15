@@ -242,6 +242,9 @@ export const zhCN: Translations = {
       hostTip:
         "允许后端主机执行。Web 端的 host mode 不要求预先选目录；除非显式绑定主机目录，否则产物仍默认写入线程沙箱。",
       hostBoundDirectory: "已绑定主机目录",
+      hostWorkdirMissingTitle: "切换到主机模式前，必须先设置主机工作目录。",
+      hostWorkdirMissingDescription:
+        "请先到 设置 > 沙箱 中配置默认主机工作目录。点击“确定”后会打开该设置页。",
       locked: "当前运行时配置已锁定。",
       lockedTip: "线程一旦绑定主机目录，就不能改绑到其他目录。",
       modeSaveFailed: "保存运行时模式失败。",
@@ -1121,6 +1124,12 @@ export const zhCN: Translations = {
           "当前配置仍然指向 AIO provider。桌面运行时不应依赖 Docker、Kubernetes 或 provisioner，所以桌面设置页不再暴露 AIO。请切换到 Local 或 Custom 后再保存为桌面兼容配置。",
         usePath: "Use 路径",
         usePathPlaceholder: "nion.community.custom:Provider",
+        hostWorkdir: "默认主机工作目录",
+        hostWorkdirHint:
+          "当线程切换到主机模式但尚未绑定目录时，默认使用这里的目录。留空则在切换主机模式前强制要求先完成设置。",
+        hostWorkdirPath: "目录路径",
+        hostWorkdirPlaceholder: "/Users/you/projects/safe-host-workdir",
+        browseHostWorkdir: "选择目录",
         advanced: "高级设置",
       },
       checkpointer: {
