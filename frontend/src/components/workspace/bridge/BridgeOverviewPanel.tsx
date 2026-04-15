@@ -1,6 +1,9 @@
 "use client";
 
-import type { BridgeRuntimeInfo } from "@/core/bridge/client";
+import { useState } from "react";
+
+import { Button } from "@/components/ui/button";
+import { getBridgeClient, type BridgeRuntimeInfo } from "@/core/bridge/client";
 
 import { useBridgeTranslation } from "./bridge-shared";
 
@@ -10,7 +13,36 @@ export function BridgeOverviewPanel({
   runtimeInfo: BridgeRuntimeInfo | null;
 }) {
   const { t } = useBridgeTranslation();
+  const client = getBridgeClient();
+  const [diagnosing, setDiagnosing] = useState(false);
+  const [restarting, setRestarting] = useState(false);
   let runtimeStatusLabel = t("bridge.overviewUnavailable");
+
+  const onDiagnose = async () => {
+    if (!client) {
+      return;
+    }
+
+    setDiagnosing(true);
+    try {
+      await client.diagnose({ source: "bridge_page" });
+    } finally {
+      setDiagnosing(false);
+    }
+  };
+
+  const onRestart = async () => {
+    if (!client) {
+      return;
+    }
+
+    setRestarting(true);
+    try {
+      await client.start();
+    } finally {
+      setRestarting(false);
+    }
+  };
 
   if (runtimeInfo) {
     runtimeStatusLabel = runtimeInfo.running ? t("bridge.overviewRunning") : t("bridge.overviewStopped");
@@ -50,10 +82,30 @@ export function BridgeOverviewPanel({
 
   return (
     <section className="mb-6 rounded-2xl border border-border/60 bg-background p-5">
-      <div className="mb-4">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-sm font-semibold text-foreground">
           {t("bridge.overviewTitle")}
         </h2>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() => void onDiagnose()}
+            disabled={!client || diagnosing}
+          >
+            {t("bridge.overviewDiagnoseAction")}
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() => void onRestart()}
+            disabled={!client || restarting}
+          >
+            {t("bridge.overviewRestartAction")}
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
