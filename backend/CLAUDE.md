@@ -185,6 +185,8 @@ Desktop daemon client contract:
 - `POST /api/daemon/clients/{client_id}/heartbeat` may receive `client_type`; when a session is missing after daemon replacement, it should recover that same `client_id` instead of forcing the desktop shell into repeated `404 client not found`.
 - `/api/daemon/runtime-info` must remain backward compatible for existing desktop consumers, but now also carries product-facing `guardian_mode` and `bridge_runtime` summary objects for Guardian Mode surfaces.
 - `guardian_mode.status` is a bounded contract (`standing_by` | `busy` | `offline`), not a free-form string.
+- Desktop bridge overview now has its own IPC contract: `DESKTOP_BRIDGE_IPC_CHANNELS.bridgeRuntimeInfo` / `bridge:get-runtime-info`.
+  This is the single snapshot surface for renderer-side remote-entry overview consumers and should stay sourced from one `getBridgeRuntimeInfo()` assembly boundary in desktop main.
 
 Runtime profile execution contract:
 
@@ -234,6 +236,13 @@ Bridge configuration direction:
   It is the unified remote-entry management surface for the same guardian-mode
   computer, so page-level copy should describe shared computer/task/confirmation
   semantics while leaving platform-specific sections intact.
+- `/workspace/bridge` overview now consumes `BridgeClient.getRuntimeInfo()` as its
+  primary runtime source. Do not regress to stitching overview state from
+  multiple independent calls (`getStatus`, `listBindings`, `listIncidents`) in
+  the page layer.
+- Overview-level diagnose/restart affordances belong in `BridgeOverviewPanel`;
+  do not spread those buttons into per-platform sections unless the accepted
+  slice boundary changes.
 
 If a gateway route is added and the Electron renderer consumes it, update
 `app/daemon/app.py` too or the desktop shell will return 404 while the web/gateway

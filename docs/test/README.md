@@ -23,15 +23,24 @@
     - `Settings > Daemon` 需要显示 guardian-mode 状态卡，且状态来自真实 runtime 信息而不是纯配置值
     - guardian runtime helper 需要覆盖 bridge-only fallback、daemon override、daemon failure fallback、invalid status -> offline
     - `/workspace/bridge` 需要保持平台 tabs 不变，同时以“统一远程入口” framing 页面级文案
+    - slice 2 额外要求：
+      - desktop IPC 需要暴露 `bridge:get-runtime-info` 统一 snapshot
+      - frontend bridge client 需要暴露 `BridgeRuntimeInfo` / `getRuntimeInfo()`
+      - bridge overview panel 需要显示运行态、活跃绑定、待处理事件、启用渠道与风险提示
+      - overview actions 需要只停留在 diagnose / restart 两个 overview-level affordance
   - 代码级入口：
     - `backend/tests/test_surface_policy_config.py`
     - `backend/tests/test_bridge_surface_policy.py`
     - `backend/tests/test_local_daemon_api.py`
     - `backend/tests/test_guardian_mode_runtime_info.py`
     - `desktop/tests/bridge-thread-client.contract.test.mjs`
+    - `desktop/tests/bridge-runtime-lifecycle.contract.test.mjs`
     - `frontend/src/core/threads/desktop-client.test.ts`
+    - `frontend/src/core/bridge/overview.test.ts`
     - `frontend/src/components/workspace/settings/guardian-mode-status-card.contract.test.ts`
     - `frontend/src/components/workspace/bridge/bridge-layout-guardian-copy.contract.test.ts`
+    - `frontend/src/components/workspace/bridge/bridge-overview-panel.contract.test.ts`
+    - `frontend/src/components/workspace/bridge/bridge-overview-actions.contract.test.ts`
 
 维护约定：
 

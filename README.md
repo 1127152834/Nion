@@ -69,6 +69,9 @@
 - bridge 线程现在会把 binding 的工作目录显式映射进 runtime 主链的 `execution_mode` / `host_workdir` 上下文；空字符串和纯空白目录会稳定回落到 `sandbox`，不再依赖字符串 truthiness
 - `bridge` surface 现在会显式继承 `channel` surface policy（若未单独配置 `bridge` 规则），避免 bridge run 静默绕过既有工具分组限制
 - `/workspace/bridge` 现在以“统一远程入口”而不是“若干 bridge bot 设置页”来 framing：所有已连接渠道都被表述为进入同一台电脑、同一组任务和同一个确认队列的入口
+- Desktop bridge 现在通过 `bridge:get-runtime-info` 暴露统一 runtime snapshot，renderer 不再需要自行拼接 `getStatus` / bindings / incidents 来理解远程入口状态
+- `/workspace/bridge` 现在在各平台配置之前显示 overview panel，汇总运行状态、活跃绑定、待处理事件、已启用渠道与只读风险提示
+- bridge overview 现在提供 overview 级别的诊断与重启入口；这些入口复用现有 bridge client 方法，不引入平台级动作或 incident resolution UI
 
 ## Notebook
 
@@ -138,6 +141,9 @@ Program 03D-B 已把 desktop bridge incident workflow 补上：
 当前还新增了首批 Guardian Mode / Remote Entry 合同收口：
 
 - `Settings > Daemon` 现在开始按 `Guardian Mode / 值守模式` 呈现，并显示基于运行态计算出的 `standing_by / busy / offline` 状态，而不是只显示 daemon 配置布尔值
+- `bridge:get-runtime-info` 是桌面 bridge overview 的单一 snapshot IPC 合同，字段包括运行态、自动启动、启用渠道数、活跃绑定数、待处理事件数与启动时间
+- `frontend/src/core/bridge/client.ts` 暴露 `BridgeRuntimeInfo` 与 `getRuntimeInfo()`，作为 `/workspace/bridge` overview 的唯一数据入口
+- bridge overview 的诊断/重启动作仍是 overview-level affordance，不等价于受控本机动作，也不进入 per-platform action 语义
 - guardian settings 通过桌面 runtime helper 汇总 desktop runtime bridge + `/api/daemon/runtime-info` 的结果，以一个 settings-facing contract 暴露给页面
 - 当前这个产品面仍然只做单用户、一台个人电脑；不覆盖团队、多用户或任意远程控机
 
