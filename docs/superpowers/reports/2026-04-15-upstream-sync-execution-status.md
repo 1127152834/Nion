@@ -201,3 +201,23 @@
 | `72d4347a` guard None runtime.context in sandbox helpers | `已等价吸收` | 现有代码 | 当前 `ensure_sandbox_initialized()` / `sandbox_from_runtime()` 写回 context 前都已有 `runtime.context is not None` guard。 |
 | `e5416b53` multi-stage Docker build remove build-essential | `明确不同步` | 无 | Docker 镜像体积/供应链优化不属于当前逐提交业务同步面。 |
 | `d3b59a79` broken doc links | `当前无安全落点` | 无 | 当前文档仍混有 config.yaml/旧文件引用，需要和 NION 当前文档面一起专项收束，不在本批次零散迁移。 |
+| `0ffe5a73` increase subagent max-turn limits | `明确不同步` | 无 | 上游调整的是 config/subagent 默认额度，不属于当前逐提交业务同步面，也缺少 NION 侧问题证据。 |
+| `9ca68ffa` preserve virtual path separator style | `已等价吸收` | 现有代码 | 当前 `_join_path_preserving_style()` / `_join_path_preserving_trailing_separator()` 已覆盖虚拟路径分隔符风格保持。 |
+| `8049785d` memory reinforcement detection and case-insensitive dedup | `当前无安全落点` | 无 | 这条落在旧 memory middleware/queue/updater 语义链，和当前 Memory OS 主链已明显错位，不做局部回流。 |
+| `28474c47` avoid command palette hydration mismatch on macOS | `当前无安全落点` | 无 | 需要基于当前 command palette 实际 hydration 证据再判断，本批次不凭标题动现有交互层。 |
+| `117fa9b0` normalize slack allowed user ids | `当前无安全落点` | 无 | NION 当前仓库没有 upstream Slack channel 主链实现，不存在安全局部落点。 |
+| `ca2fb95e` unified serve.sh with gateway mode support | `当前无安全落点` | 无 | 这是大范围启动脚本/部署流重构，不适合在当前批次整块吸收。 |
+| `993fb0ff` escape shell variables in production langgraph command | `当前无安全落点` | 无 | 仅针对 upstream Docker Compose 命令语法细节，当前未在 NION 侧复现同类告警。 |
+| `ed90a2ee` recover invalid .venv in docker dev startup | `当前无安全落点` | 无 | 该修补落在 upstream dev compose 启动链，当前批次不直接改动 Docker restart/venv 恢复流程。 |
+| `29575c32` expose custom events from client.stream() | `已等价吸收` | 现有代码 | 当前 `ThreadService.stream()` 已透传 `custom` 事件，`NionClient.stream()` 也会产出 clarification/permission/tool-activity 自定义事件。 |
+| `7c68dd4a` stream resume run | `当前无安全落点` | 无 | upstream 依赖其 runtime stream bridge / runs API 主链；NION 当前无同构可安全局部吸收的恢复链。 |
+| `ee064402` memory route default backend port | `当前无安全落点` | 无 | 当前仓库没有该 upstream `frontend/src/app/api/memory/route.ts` 路由落点，默认端口修补不适用。 |
+| `d7a3eff2` LANGGRAPH_ALLOW_BLOCKING docker command syntax | `当前无安全落点` | 无 | 仅 Docker Compose 参数语法修补，不进入当前逐提交业务同步主线。 |
+| `5fd2c581` ls_tool output truncation | `已同步` | `4283f286` | 已为 `ls_tool` 增加 head truncation，并用定向测试锁定上下文上限。 |
+| `55e78de6` wrap suggestion chips without overlapping input | `当前无安全落点` | 无 | 该修补是当前 UI 布局层联动问题，需要真实复现后再改，不在本批次凭标题推进。 |
+| `f5088ed7` artifact download action bounds | `当前无安全落点` | 无 | 属于前端局部布局微调，当前批次没有明确视觉回归证据。 |
+| `1ced6e97` preserve viewed image reducer metadata | `已等价吸收` | 现有代码 | 当前 `viewed_images` 已由 reducer `merge_viewed_images` 管理，工具与中间件链路保留相关元数据。 |
+| `055e4df0` SandboxAuditMiddleware input sanitization guard | `当前无安全落点` | 无 | 当前批次未引入 upstream SandboxAuditMiddleware，本条也没有单独安全落点。 |
+| `888f7bfb` skill self-evolution and skill_manage flow | `明确不同步` | 无 | 这会引入新的产品语义与治理流，不属于当前上游安全同步范围。 |
+| `88e53526` Feishu receive file | `当前无安全落点` | 无 | NION 当前仓库没有 upstream Feishu channel 实现主链，无法安全局部同步。 |
+| `2d068cc0` restore gateway env vars / langgraph empty arg docker fix | `当前无安全落点` | 无 | 纯 Docker/env 启动链修补，不进入当前逐提交业务同步主线。 |
