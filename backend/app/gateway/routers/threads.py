@@ -183,6 +183,14 @@ async def delete_thread(
     return Response(status_code=204)
 
 
+@router.post("/{thread_id}/cancel")
+async def cancel_thread_run(
+    thread_id: str,
+    service: ThreadService = Depends(get_thread_service),
+) -> dict[str, Any]:
+    return {"ok": service.cancel_active_run(thread_id)}
+
+
 @router.post("/{thread_id}/stream")
 async def stream_thread(
     thread_id: str,

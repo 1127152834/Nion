@@ -279,8 +279,16 @@ export function useThreadStream({
   const stop = useCallback(async () => {
     abortControllerRef.current?.abort();
     abortControllerRef.current = null;
+    const activeThreadId = threadIdRef.current;
+    if (activeThreadId) {
+      try {
+        await apiClient.cancelRun(activeThreadId);
+      } catch {
+        // Best-effort cancellation; local abort already stopped the client stream.
+      }
+    }
     setIsLoading(false);
-  }, []);
+  }, [apiClient]);
 
   const submit = useCallback(
     async (payload: ThreadSubmitPayload, options: ThreadSubmitOptions) => {

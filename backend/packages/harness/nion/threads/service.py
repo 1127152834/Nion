@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import re
 import threading
+import uuid
 from collections.abc import Generator
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 
-from nion.client import NionClient, StreamEvent
 from nion.agents.checkpointer import get_checkpointer
+from nion.client import NionClient, StreamEvent
 from nion.config.agents_config import AGENT_NAME_PATTERN, resolve_agent_config
 from nion.memory.evidence_capture.service import resolve_optional_bool
 from nion.notebook.service import NotebookNotFoundError, NotebookService
@@ -22,30 +24,58 @@ from .models import (
     ThreadStreamRequest,
 )
 from .repository import ThreadRepository
-from .title_policy import is_placeholder_thread_title, resolve_preferred_thread_title
 from .title_generation import generate_thread_title_in_background
+from .title_policy import is_placeholder_thread_title, resolve_preferred_thread_title
 
 
 class ThreadBusyError(RuntimeError):
     """Raised when a thread already has an active run in progress."""
 
 
-_active_thread_run_ids: set[str] = set()
+@dataclass(slots=True)
+class _ActiveThreadRun:
+    run_id: str
+    cancel_requested: bool = False
+
+
+_active_thread_runs: dict[str, _ActiveThreadRun] = {}
+_cancelled_thread_run_ids: set[str] = set()
 _active_thread_run_ids_lock = threading.Lock()
 
 
-def _claim_thread_run(thread_id: str) -> None:
+def _claim_thread_run(thread_id: str) -> str:
     with _active_thread_run_ids_lock:
-        if thread_id in _active_thread_run_ids:
+        active = _active_thread_runs.get(thread_id)
+        if active is not None and not active.cancel_requested:
             raise ThreadBusyError(
                 f"Thread '{thread_id}' already has an active run in progress."
             )
-        _active_thread_run_ids.add(thread_id)
+        run_id = uuid.uuid4().hex
+        _active_thread_runs[thread_id] = _ActiveThreadRun(run_id=run_id)
+        return run_id
 
 
-def _release_thread_run(thread_id: str) -> None:
+def _release_thread_run(thread_id: str, run_id: str) -> None:
     with _active_thread_run_ids_lock:
-        _active_thread_run_ids.discard(thread_id)
+        active = _active_thread_runs.get(thread_id)
+        if active is not None and active.run_id == run_id:
+            _active_thread_runs.pop(thread_id, None)
+        _cancelled_thread_run_ids.discard(run_id)
+
+
+def _request_thread_run_cancel(thread_id: str) -> bool:
+    with _active_thread_run_ids_lock:
+        active = _active_thread_runs.pop(thread_id, None)
+        if active is None:
+            return False
+        active.cancel_requested = True
+        _cancelled_thread_run_ids.add(active.run_id)
+        return True
+
+
+def _is_thread_run_cancelled(run_id: str) -> bool:
+    with _active_thread_run_ids_lock:
+        return run_id in _cancelled_thread_run_ids
 
 
 class ThreadService:
@@ -268,7 +298,7 @@ class ThreadService:
         thread_id: str,
         request: ThreadStreamRequest,
     ) -> Generator[StreamEvent, None, None]:
-        _claim_thread_run(thread_id)
+        run_id = _claim_thread_run(thread_id)
         human_payload = _extract_human_message_payload(request.messages)
         message_text = _extract_message_text(request.messages)
         context = dict(request.context)
@@ -346,6 +376,8 @@ class ThreadService:
                 )
 
             for event in event_stream:
+                if _is_thread_run_cancelled(run_id):
+                    return
                 if event.type == "values":
                     incoming_title = event.data.get("title")
                     resolved_title = resolve_preferred_thread_title(
@@ -361,7 +393,7 @@ class ThreadService:
                     event.data["title"] = latest_values["title"]
                 yield event
 
-            if latest_values is not None:
+            if latest_values is not None and not _is_thread_run_cancelled(run_id):
                 self._finalize_thread_run(
                     thread_id=thread_id,
                     latest_values=latest_values,
@@ -370,7 +402,10 @@ class ThreadService:
                     context=context,
                 )
         finally:
-            _release_thread_run(thread_id)
+            _release_thread_run(thread_id, run_id)
+
+    def cancel_active_run(self, thread_id: str) -> bool:
+        return _request_thread_run_cancel(thread_id)
 
     def _queue_title_generation(
         self,

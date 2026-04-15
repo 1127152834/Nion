@@ -28,8 +28,36 @@ void test("desktop thread client exposes search/getState/update/delete/stream/re
   assert.equal(typeof client.getState, "function");
   assert.equal(typeof client.updateState, "function");
   assert.equal(typeof client.deleteThread, "function");
+  assert.equal(typeof client.cancelRun, "function");
   assert.equal(typeof client.streamRun, "function");
   assert.equal(typeof client.resolvePermission, "function");
+});
+
+void test("desktop thread client posts cancel requests to the thread cancel endpoint", async () => {
+  const originalFetch = globalThis.fetch;
+  let requestedUrl = "";
+  let requestedMethod = "";
+
+  globalThis.fetch = async (input, init) => {
+    requestedUrl = String(input);
+    requestedMethod = String(init?.method ?? "GET");
+    return new Response(JSON.stringify({ ok: true }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  };
+
+  const client = createDesktopThreadClient({
+    getBaseURL: () => "http://127.0.0.1:43115/api/threads",
+  });
+
+  const result = await client.cancelRun("thread-1");
+
+  assert.equal(requestedUrl, "http://127.0.0.1:43115/api/threads/thread-1/cancel");
+  assert.equal(requestedMethod, "POST");
+  assert.deepEqual(result, { ok: true });
+
+  globalThis.fetch = originalFetch;
 });
 
 void test("desktop thread client forwards custom SSE events to handlers", async () => {

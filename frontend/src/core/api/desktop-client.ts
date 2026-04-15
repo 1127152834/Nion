@@ -96,6 +96,7 @@ export type DesktopThreadClient = {
     payload: { values: Record<string, unknown> },
   ): Promise<DesktopThreadRecord>;
   deleteThread(threadId: string): Promise<void>;
+  cancelRun(threadId: string): Promise<{ ok: boolean }>;
   streamRun(
     threadId: string,
     payload: ThreadSubmitPayload,
@@ -507,6 +508,13 @@ export function createDesktopThreadClient(
       if (!response.ok) {
         throw new Error(`Delete failed with status ${response.status}`);
       }
+    },
+
+    async cancelRun(threadId: string) {
+      const baseUrl = await resolveThreadsBaseURL(false, options?.getBaseURL);
+      return requestJSON<{ ok: boolean }>(`${baseUrl}/${threadId}/cancel`, {
+        method: "POST",
+      });
     },
 
     async streamRun(

@@ -295,7 +295,9 @@ def test_thread_service_stream_rejects_concurrent_same_thread_runs():
 
     from nion.threads import service as thread_service_module
 
-    thread_service_module._active_thread_run_ids.add("thread-1")
+    thread_service_module._active_thread_runs["thread-1"] = thread_service_module._ActiveThreadRun(
+        run_id="run-1"
+    )
     try:
         try:
             list(service.stream("thread-1", request))
@@ -304,7 +306,7 @@ def test_thread_service_stream_rejects_concurrent_same_thread_runs():
         else:
             raise AssertionError("Expected ThreadBusyError")
     finally:
-        thread_service_module._active_thread_run_ids.discard("thread-1")
+        thread_service_module._active_thread_runs.pop("thread-1", None)
 
 
 def test_threads_stream_surfaces_thread_busy_as_sse_error_event() -> None:
@@ -328,3 +330,24 @@ def test_threads_stream_surfaces_thread_busy_as_sse_error_event() -> None:
     assert response.status_code == 200
     assert 'event: error' in response.text
     assert "already has an active run in progress" in response.text
+
+
+def test_cancel_thread_run_route_releases_active_run_lock() -> None:
+    app = create_daemon_app()
+    service = ThreadService(repository=MagicMock(), client=MagicMock())
+    app.dependency_overrides[threads.get_thread_service] = lambda: service
+
+    from nion.threads import service as thread_service_module
+
+    run_id = thread_service_module._claim_thread_run("thread-cancel")
+    try:
+        with TestClient(app) as client:
+            response = client.post("/api/threads/thread-cancel/cancel")
+
+        assert response.status_code == 200
+        assert response.json() == {"ok": True}
+        replacement_run_id = thread_service_module._claim_thread_run("thread-cancel")
+        assert replacement_run_id != run_id
+        thread_service_module._release_thread_run("thread-cancel", replacement_run_id)
+    finally:
+        thread_service_module._release_thread_run("thread-cancel", run_id)
