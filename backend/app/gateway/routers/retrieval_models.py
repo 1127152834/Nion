@@ -10,4 +10,12 @@ router = APIRouter(prefix="/api/retrieval-models", tags=["memory"])
 
 @router.get("/status")
 async def get_retrieval_models_status() -> dict[str, object]:
-    return build_retrieval_models_status(base_dir=get_paths().base_dir)
+    payload = build_retrieval_models_status(base_dir=get_paths().base_dir)
+    payload["capability"] = {
+        "local_prepare_enabled": False,
+        "remote_config_enabled": True,
+        "test_enabled": False,
+        "rebuild_enabled": False,
+        "status_only": True,
+    }
+    return payload

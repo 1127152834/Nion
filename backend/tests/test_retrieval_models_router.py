@@ -18,7 +18,15 @@ def test_retrieval_models_router_exposes_status(
         response = client.get("/api/retrieval-models/status")
 
     assert response.status_code == 200
-    assert response.json()["active_profile"]["embedding"]["mode"] == "remote_managed"
+    payload = response.json()
+    assert payload["active_profile"]["embedding"]["mode"] == "remote_managed"
+    assert payload["capability"] == {
+        "local_prepare_enabled": False,
+        "remote_config_enabled": True,
+        "test_enabled": False,
+        "rebuild_enabled": False,
+        "status_only": True,
+    }
 
 
 def test_retrieval_models_router_exposes_status_on_daemon_surface(
@@ -32,4 +40,7 @@ def test_retrieval_models_router_exposes_status_on_daemon_surface(
         response = client.get("/api/retrieval-models/status")
 
     assert response.status_code == 200
-    assert response.json()["active_profile"]["embedding"]["mode"] == "remote_managed"
+    payload = response.json()
+    assert payload["active_profile"]["embedding"]["mode"] == "remote_managed"
+    assert payload["capability"]["remote_config_enabled"] is True
+    assert payload["capability"]["status_only"] is True
