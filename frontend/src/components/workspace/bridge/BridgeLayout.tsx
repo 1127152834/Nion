@@ -1,12 +1,14 @@
 "use client";
 
-import { useCallback, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 
 import { Button } from "@/components/ui/button";
+import { type BridgeRuntimeInfo, getBridgeClient } from "@/core/bridge/client";
 import { cn } from "@/lib/utils";
 
 import { WorkspacePageHeader } from "../workspace-page-header";
 
+import { BridgeOverviewPanel } from "./BridgeOverviewPanel";
 import {
   ChatsCircle,
   ChatTeardrop,
@@ -56,8 +58,32 @@ export function BridgeLayout() {
     () => "telegram" as Section,
   );
   const [overrideSection, setOverrideSection] = useState<Section | null>(null);
+  const [runtimeInfo, setRuntimeInfo] = useState<BridgeRuntimeInfo | null>(null);
   const activeSection = overrideSection ?? hashSection;
   const { t } = useBridgeTranslation();
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadRuntimeInfo = async () => {
+      try {
+        const nextRuntimeInfo = await getBridgeClient()?.getRuntimeInfo();
+        if (!cancelled) {
+          setRuntimeInfo(nextRuntimeInfo ?? null);
+        }
+      } catch {
+        if (!cancelled) {
+          setRuntimeInfo(null);
+        }
+      }
+    };
+
+    void loadRuntimeInfo();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleSectionChange = useCallback((section: Section) => {
     setOverrideSection(section);
@@ -95,6 +121,8 @@ export function BridgeLayout() {
               </span>
             </div>
           </div>
+
+          <BridgeOverviewPanel runtimeInfo={runtimeInfo} />
 
           <div className="flex min-h-0 flex-1 overflow-hidden rounded-2xl border border-border/60 bg-background">
             <nav className="flex w-52 shrink-0 flex-col gap-1 border-r border-border/50 p-3">
