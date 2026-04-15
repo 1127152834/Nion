@@ -21,7 +21,7 @@ void test("desktop bridge wrapper forwards runtime overview calls", async () => 
   assert.match(source, /getRuntimeInfo: \(\) =>/);
   assert.match(
     source,
-    /if \(!bridge\.getRuntimeInfo\) \{\s*throw new Error\("Desktop bridge runtime overview API is unavailable"\);\s*\}/,
+    /if \(!bridge\.getRuntimeInfo\) \{\s*return Promise\.reject\(new Error\("Bridge runtime info is unavailable"\)\);\s*\}/,
   );
   assert.match(source, /return bridge\.getRuntimeInfo\(\);/);
 });

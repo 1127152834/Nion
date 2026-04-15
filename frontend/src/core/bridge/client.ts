@@ -302,7 +302,7 @@ export function getBridgeClient(): BridgeClient | null {
     saveSettings: (updates) => bridge.saveSettings(updates),
     getRuntimeInfo: () => {
       if (!bridge.getRuntimeInfo) {
-        throw new Error("Desktop bridge runtime overview API is unavailable");
+        return Promise.reject(new Error("Bridge runtime info is unavailable"));
       }
 
       return bridge.getRuntimeInfo();
