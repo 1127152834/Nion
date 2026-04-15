@@ -40,6 +40,12 @@ type ThreadListSearchParams = ThreadClientSearchParams & {
   scope?: "general" | "notebook_assistant" | "all";
 };
 
+type PendingQueuedMessage = {
+  threadId: string;
+  message: PromptInputMessage;
+  extraContext?: Record<string, unknown>;
+};
+
 export type ThreadStreamOptions = {
   threadId?: string | null | undefined;
   context: Omit<
@@ -546,6 +552,8 @@ export function useThreadStream({
   const [optimisticMessages, setOptimisticMessages] = useState<Message[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const sendInFlightRef = useRef(false);
+  const pendingQueuedMessageRef = useRef<PendingQueuedMessage | null>(null);
+  const drainingQueuedMessageRef = useRef(false);
   // Track message count before sending so we know when server has responded
   const prevMsgCountRef = useRef(thread.messages.length);
 
@@ -566,6 +574,19 @@ export function useThreadStream({
       extraContext?: Record<string, unknown>,
     ) => {
       if (sendInFlightRef.current) {
+        pendingQueuedMessageRef.current = {
+          threadId,
+          message,
+          extraContext,
+        };
+        if (!drainingQueuedMessageRef.current) {
+          drainingQueuedMessageRef.current = true;
+          try {
+            await stop();
+          } finally {
+            drainingQueuedMessageRef.current = false;
+          }
+        }
         return;
       }
       sendInFlightRef.current = true;
@@ -767,9 +788,18 @@ export function useThreadStream({
       } finally {
         sendInFlightRef.current = false;
         void queryClient.invalidateQueries({ queryKey: ["threads", "search"] });
+        const pending = pendingQueuedMessageRef.current;
+        if (pending) {
+          pendingQueuedMessageRef.current = null;
+          void sendMessage(
+            pending.threadId,
+            pending.message,
+            pending.extraContext,
+          );
+        }
       }
     },
-    [thread, _handleOnStart, t.uploads.uploadingFiles, context, locale, queryClient],
+    [thread, _handleOnStart, t.uploads.uploadingFiles, context, locale, queryClient, stop],
   );
 
   // Merge thread with optimistic messages for display
