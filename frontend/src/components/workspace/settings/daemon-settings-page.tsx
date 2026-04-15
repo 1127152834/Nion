@@ -1,17 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-
 import { Switch } from "@/components/ui/switch";
-import { getDesktopRuntimeInfo } from "@/core/api/desktop-client";
 import { useI18n } from "@/core/i18n/hooks";
+import { useGuardianRuntime } from "@/core/runtime/use-guardian-runtime";
 
 import { ConfigValidationErrors } from "./config-validation-errors";
 import { ConfigSaveBar } from "./configuration/config-save-bar";
-import {
-  GuardianModeStatusCard,
-  type GuardianModeStatus,
-} from "./guardian-mode-status-card";
+import { GuardianModeStatusCard } from "./guardian-mode-status-card";
 import { SettingsSection } from "./settings-section";
 import { useConfigEditor } from "./use-config-editor";
 
@@ -28,7 +23,7 @@ export function DaemonSettingsPage() {
     onDiscard,
     onSave,
   } = useConfigEditor();
-  const [guardianStatus, setGuardianStatus] = useState<GuardianModeStatus>("offline");
+  const { snapshot, refresh } = useGuardianRuntime();
 
   const daemon = ((draftConfig.daemon ?? {}) as Record<string, unknown>);
   const allowBackgroundRunning = Boolean(daemon.allow_background_running);
@@ -46,36 +41,16 @@ export function DaemonSettingsPage() {
     },
   } satisfies Parameters<typeof GuardianModeStatusCard>[0]["copy"];
 
-  const loadGuardianStatus = useCallback(async () => {
-    const runtimeInfo = await getDesktopRuntimeInfo();
-    setGuardianStatus(runtimeInfo?.guardianMode.status ?? "offline");
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function syncGuardianStatus() {
-      const runtimeInfo = await getDesktopRuntimeInfo();
-      if (cancelled) {
-        return;
-      }
-      setGuardianStatus(runtimeInfo?.guardianMode.status ?? "offline");
-    }
-
-    void syncGuardianStatus();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [loadGuardianStatus]);
-
   return (
     <SettingsSection
       title={t.settings.daemon.guardianTitle}
       description={t.settings.daemon.guardianDescription}
     >
       <div className="space-y-4">
-        <GuardianModeStatusCard copy={guardianStatusCopy} status={guardianStatus} />
+        <GuardianModeStatusCard
+          copy={guardianStatusCopy}
+          status={snapshot.guardianStatus}
+        />
         <div className="flex items-center justify-between rounded-xl border bg-background/80 p-4 shadow-sm">
           <div className="space-y-1">
             <div className="text-sm font-medium">
@@ -111,7 +86,7 @@ export function DaemonSettingsPage() {
         onSave={() => {
           void onSave().then((saved) => {
             if (saved) {
-              void loadGuardianStatus();
+              void refresh();
             }
           });
         }}

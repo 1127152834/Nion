@@ -10,16 +10,23 @@ void test("daemon settings page reframes daemon surface as guardian mode status"
 
   assert.match(
     source,
-    /<GuardianModeStatusCard copy=\{guardianStatusCopy\} status=\{guardianStatus\} \/>/,
+    /const \{ snapshot, refresh \} = useGuardianRuntime\(\);/,
+  );
+  assert.match(
+    source,
+    /<GuardianModeStatusCard[\s\S]*copy=\{guardianStatusCopy\}[\s\S]*status=\{snapshot\.guardianStatus\}[\s\S]*\/>/,
   );
   assert.match(source, /title=\{t\.settings\.daemon\.guardianTitle\}/);
   assert.match(source, /description=\{t\.settings\.daemon\.guardianDescription\}/);
   assert.match(source, /t\.settings\.daemon\.guardianBackgroundLabel/);
   assert.match(source, /t\.settings\.daemon\.guardianBackgroundHint/);
-  assert.match(source, /getDesktopRuntimeInfo\(/);
-  assert.match(source, /runtimeInfo\?\.guardianMode\.status/);
-  assert.match(source, /if \(saved\) {\s*void loadGuardianStatus\(\);/);
-  assert.doesNotMatch(source, /const guardianStatus = allowBackgroundRunning/);
+  assert.match(source, /if \(saved\) {\s*void refresh\(\);/);
+  assert.match(source, /useGuardianRuntime/);
+  assert.doesNotMatch(source, /getDesktopRuntimeInfo\(/);
+  assert.doesNotMatch(source, /runtimeInfo\?\.guardianMode\.status/);
+  assert.doesNotMatch(source, /const \[guardianStatus, setGuardianStatus\]/);
+  assert.doesNotMatch(source, /loadGuardianStatus/);
+  assert.doesNotMatch(source, /useEffect\(/);
   assert.doesNotMatch(source, /fetch\(`\$\{baseUrl\}\/api\/daemon\/runtime-info`\)/);
 });
 
@@ -46,7 +53,7 @@ void test("desktop runtime helper merges bridge runtime info with daemon guardia
 
   assert.match(source, /desktopBridge\?\.getRuntimeInfo/);
   assert.match(source, /fetch\(`\$\{baseUrl\}\/api\/daemon\/runtime-info`\)/);
-  assert.match(source, /guardianMode:/);
-  assert.match(source, /bridgeRuntime:/);
-  assert.match(source, /guardian_mode\?\.\s*status/);
+  assert.match(source, /resolveGuardianDesktopRuntime/);
+  assert.match(source, /daemonRuntime: daemonRuntimeInfo/);
+  assert.match(source, /bridgeRuntime: null/);
 });
