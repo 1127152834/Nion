@@ -34,7 +34,6 @@ class ThreadValues(BaseModel):
     owner_client_id: str | None = None
     cli_management: ThreadCliManagementState = Field(default_factory=ThreadCliManagementState)
     resolved_permission_request_ids: list[str] = Field(default_factory=list)
-    queued_messages: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class ThreadRecord(BaseModel):

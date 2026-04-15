@@ -51,7 +51,6 @@ Current memory state:
 - `/api/memory` is a compatibility-shaped Memory OS surface, not a legacy `memory.json` backend
 - `Notebook` remains a separate knowledge-base / second-brain domain
 - Knowledge query contracts currently expose both `matched_page_ids` and compatibility alias `page_ids` from `query_knowledge_base`; streamed knowledge metadata is attached only to the assistant answer immediately associated with that tool result. `/api/knowledge/query?include_archived=true` may return archived citations and warns when archived pages are included.
-- Knowledge graph layout persistence is now defensive at the storage boundary: `KnowledgeGraphService` sanitizes `layout.json` field-by-field before the router response model sees it, and the frontend graph canvas saves a full `node_positions` draft instead of patching a stale single-node snapshot.
 - provider-based memory, AutoDream, self-maintenance, heartbeat-driven memory maintenance, compaction, and rebuild are not part of the current runtime
 - structured memory vector retrieval is best-effort at runtime; if the embedding provider request fails, the search path must fall back to lexical matching instead of aborting the chat submit flow
 - openai-compatible chat providers default to a 30-second request timeout unless the model config explicitly overrides it, so bad upstream/provider bindings fail with an error instead of leaving the desktop chat spinner active forever

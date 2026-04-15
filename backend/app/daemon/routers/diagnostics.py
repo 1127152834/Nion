@@ -34,13 +34,6 @@ def _fallback_daemon_diagnostic(service: LocalDaemonService) -> DiagnosticRespon
     )
 
 
-def _thread_running_details(service: LocalDaemonService, thread_id: str) -> dict:
-    return {
-        "thread_id": thread_id,
-        "is_running": service.has_active_thread_stream(thread_id),
-    }
-
-
 def _extract_tool_activity_timeline(events) -> list[dict]:
     timeline: list[dict] = []
     for event in reversed(events):
@@ -80,12 +73,10 @@ async def get_thread_diagnostics(thread_id: str, request: Request) -> Diagnostic
     store = _get_store(service)
     try:
         snapshot = store.get_snapshot("thread", thread_id)
-        details = dict(snapshot.details)
-        details.update(_thread_running_details(service, thread_id))
         return DiagnosticResponse(
             status=snapshot.status,
             summary=snapshot.summary,
-            details=details,
+            details=snapshot.details,
         )
     except LookupError:
         events = store.list_events(limit=20, thread_id=thread_id)
@@ -93,20 +84,17 @@ async def get_thread_diagnostics(thread_id: str, request: Request) -> Diagnostic
             return DiagnosticResponse(
                 status="healthy",
                 summary=f"No diagnostics found for thread '{thread_id}'",
-                details=_thread_running_details(service, thread_id),
+                details={"thread_id": thread_id},
             )
         latest = events[0]
-        details = _thread_running_details(service, thread_id)
-        details.update(
-            {
-                "event_type": latest.event_type,
-                "tool_activity_timeline": _extract_tool_activity_timeline(events),
-            }
-        )
         return DiagnosticResponse(
             status="error" if latest.level == "error" else "healthy",
             summary=latest.message,
-            details=details,
+            details={
+                "thread_id": thread_id,
+                "event_type": latest.event_type,
+                "tool_activity_timeline": _extract_tool_activity_timeline(events),
+            },
         )
 
 

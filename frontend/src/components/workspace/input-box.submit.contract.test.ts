@@ -66,26 +66,3 @@ void test("input box no longer drops submit attempts during streaming and instea
   assert.match(source, /messageQueueQueued/);
   assert.match(source, /messageQueueAttachmentOnly/);
 });
-
-void test("input box renders productized queue actions and status labels", async () => {
-  const source = await readFile(new URL("./input-box.tsx", import.meta.url), "utf8");
-
-  assert.match(source, /QueueSection/);
-  assert.match(source, /QueueItemAction/);
-  assert.match(source, /thread\.removeQueuedMessage\(item\.id\)/);
-  assert.match(source, /thread\.promoteQueuedMessage\(item\.id\)/);
-  assert.match(source, /messageQueueStatusActive/);
-  assert.match(source, /messageQueueStatusQueued/);
-  assert.match(source, /messageQueueSendNext/);
-  assert.match(source, /messageQueueRemove/);
-});
-
-void test("input box renders queued attachment thumbnails and file pills", async () => {
-  const source = await readFile(new URL("./input-box.tsx", import.meta.url), "utf8");
-
-  assert.match(source, /function QueuedAttachmentPreview/);
-  assert.match(source, /QueueItemImage/);
-  assert.match(source, /QueueItemFile/);
-  assert.match(source, /resolveArtifactURL\(file\.path, threadId\)/);
-  assert.match(source, /file\.mediaType\?\.startsWith\("image\/"\)/);
-});
