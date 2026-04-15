@@ -852,6 +852,66 @@ test("bridge manager auto-executes approved local-actions reviews and records th
   assert.equal(adapter.acks[0], 100);
 });
 
+test("bridge manager returns explicit rejection text for local-actions reviews", async () => {
+  const createBridgeManager = await loadBridgeManagerFactory();
+  const adapter = createStubAdapter("telegram");
+  adapter.enqueue({
+    platform: "telegram",
+    chatId: "chat-local-actions-deny",
+    userId: "user-1",
+    text: "",
+    callbackData: "perm:deny:perm-local-actions-deny",
+    messageId: "callback-local-actions-deny",
+    timestamp: Date.now(),
+    updateId: 101,
+  });
+
+  const manager = createBridgeManager({
+    loadSettings: () => ({ settings: {} }),
+    adapters: [adapter],
+    listBindings: () => [
+      {
+        id: "binding-local-actions-deny",
+        platform: "telegram",
+        chatId: "chat-local-actions-deny",
+        threadId: "thread-local-actions-deny",
+        workingDirectory: "/tmp/project",
+        active: true,
+        createdAt: "",
+        updatedAt: "",
+      },
+    ],
+    upsertBinding: (binding) => ({
+      ...binding,
+      id: "binding-local-actions-deny",
+      createdAt: "",
+      updatedAt: "",
+    }),
+    defaultWorkingDirectory: () => "/tmp/project",
+    threadClient: {
+      async resolvePermission() {
+        return {
+          ok: true,
+          decision: "deny",
+          tool_name: "local_actions_review",
+        };
+      },
+      async streamMessage(threadId, text) {
+        return { threadId, finalText: text, events: [] };
+      },
+      async uploadFiles() {
+        return {};
+      },
+    },
+  });
+
+  const handled = await manager.processNextInboundMessage();
+  assert.equal(handled, true);
+  assert.match(adapter.sent[0].text, /Local actions were not executed/);
+  assert.match(adapter.sent[0].text, /review was rejected/);
+  assert.equal(adapter.acks[0], 101);
+});
+
 test("bridge manager /mode updates binding mode and applies it to the next stream", async () => {
   const createBridgeManager = await loadBridgeManagerFactory();
   const adapter = createStubAdapter("telegram");

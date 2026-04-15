@@ -846,6 +846,21 @@ export function createBridgeManager(options: {
           action,
         );
         if (
+          action === "deny" &&
+          resolution.tool_name === "local_actions_review"
+        ) {
+          await deliverOutboundText(
+            adapter,
+            inbound,
+            binding,
+            "Local actions were not executed because the review was rejected.",
+          );
+          if (typeof inbound.updateId === "number") {
+            adapter.acknowledgeUpdate?.(inbound.updateId);
+          }
+          return;
+        }
+        if (
           (action === "allow" || action === "allow_session") &&
           resolution.tool_name === "local_actions_review" &&
           resolution.local_actions?.execution_id &&
