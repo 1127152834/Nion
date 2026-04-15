@@ -46,6 +46,8 @@ export function registerPreloadBridge(): void {
       getSettings: () => ipcRenderer.invoke(DESKTOP_BRIDGE_IPC_CHANNELS.getSettings),
       saveSettings: (updates: Record<string, string>) =>
         ipcRenderer.invoke(DESKTOP_BRIDGE_IPC_CHANNELS.saveSettings, updates),
+      getRuntimeInfo: () =>
+        ipcRenderer.invoke(DESKTOP_BRIDGE_IPC_CHANNELS.bridgeRuntimeInfo),
       getStatus: () => ipcRenderer.invoke(DESKTOP_BRIDGE_IPC_CHANNELS.getStatus),
       listBindings: () => ipcRenderer.invoke(DESKTOP_BRIDGE_IPC_CHANNELS.listBindings),
       listIncidents: (filters?: Record<string, unknown>) =>

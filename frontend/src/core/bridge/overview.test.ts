@@ -21,7 +21,19 @@ void test("desktop bridge wrapper forwards runtime overview calls", async () => 
   assert.match(source, /getRuntimeInfo: \(\) =>/);
   assert.match(
     source,
-    /if \(!bridge\.getRuntimeInfo\) \{\s*return Promise\.reject\(new Error\("Bridge runtime info is unavailable"\)\);\s*\}/,
+    /if \(!bridge\.getRuntimeInfo\) \{\s*return Promise\.reject\(/,
   );
+  assert.match(source, /Bridge runtime info is unavailable/);
   assert.match(source, /return bridge\.getRuntimeInfo\(\);/);
+});
+
+void test("desktop preload exposes bridge runtime overview over the bridge IPC channel", async () => {
+  const source = await readFile(
+    new URL("../../../../desktop/src/preload/index.ts", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /bridge:\s*\{/);
+  assert.match(source, /getRuntimeInfo:\s*\(\)\s*=>/);
+  assert.match(source, /DESKTOP_BRIDGE_IPC_CHANNELS\.bridgeRuntimeInfo/);
 });
