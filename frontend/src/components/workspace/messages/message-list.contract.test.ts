@@ -12,3 +12,9 @@ void test("message list renders internal summaries as a compact toggle with expa
   assert.match(source, /type="button"/);
   assert.match(source, /MarkdownContent/);
 });
+
+void test("message list forwards threadId into each message item so uploads and image artifacts can resolve URLs", async () => {
+  const source = await readFile(new URL("./message-list.tsx", import.meta.url), "utf8");
+
+  assert.match(source, /<MessageListItem[\s\S]*threadId=\{threadId\}/);
+});

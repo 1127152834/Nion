@@ -90,6 +90,7 @@ export function MessageList({
                   message={msg}
                   isLoading={thread.isLoading}
                   density={density}
+                  threadId={threadId}
                 />
               );
             });

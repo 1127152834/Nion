@@ -7,7 +7,6 @@ import {
   WrenchIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
 import { memo, useMemo, type ImgHTMLAttributes } from "react";
 import rehypeKatex from "rehype-katex";
 
@@ -59,11 +58,13 @@ export function MessageListItem({
   message,
   isLoading,
   density = "default",
+  threadId,
 }: {
   className?: string;
   message: Message;
   isLoading?: boolean;
   density?: "default" | "compact";
+  threadId: string;
 }) {
   const isHuman = message.type === "human";
   return (
@@ -86,6 +87,7 @@ export function MessageListItem({
         message={message}
         isLoading={isLoading}
         density={density}
+        threadId={threadId}
       />
       {!isLoading && (
         <MessageToolbar
@@ -145,22 +147,23 @@ function MessageContent_({
   message,
   isLoading = false,
   density = "default",
+  threadId,
 }: {
   className?: string;
   message: Message;
   isLoading?: boolean;
   density?: "default" | "compact";
+  threadId: string;
 }) {
   const rehypePlugins = useRehypeSplitWordsIntoSpans(isLoading);
   const isHuman = message.type === "human";
-  const { thread_id } = useParams<{ thread_id: string }>();
   const components = useMemo(
     () => ({
       img: (props: ImgHTMLAttributes<HTMLImageElement>) => (
-        <MessageImage {...props} threadId={thread_id} maxWidth="90%" />
+        <MessageImage {...props} threadId={threadId} maxWidth="90%" />
       ),
     }),
-    [thread_id],
+    [threadId],
   );
 
   const rawContent = extractContentFromMessage(message);
@@ -186,8 +189,8 @@ function MessageContent_({
   }, [rawContent, isHuman]);
 
   const filesList =
-    files && files.length > 0 && thread_id ? (
-      <RichFilesList files={files} threadId={thread_id} />
+    files && files.length > 0 ? (
+      <RichFilesList files={files} threadId={threadId} />
     ) : null;
   const shortcutSelections = extractShortcutSelectionsFromMessage(message);
 

@@ -14,8 +14,10 @@ void test("human messages disable incomplete markdown parsing", async () => {
 void test("human messages render uploaded image files through the rich files list", async () => {
   const source = await readFile(new URL("./message-list-item.tsx", import.meta.url), "utf8");
 
+  assert.doesNotMatch(source, /useParams<\{ thread_id: string \}>/);
+  assert.match(source, /threadId: string;/);
   assert.match(source, /const files = message\.additional_kwargs\?\.files;/);
-  assert.match(source, /<RichFilesList files=\{files\} threadId=\{thread_id\} \/>/);
+  assert.match(source, /<RichFilesList files=\{files\} threadId=\{threadId\} \/>/);
   assert.match(source, /const imageFiles = files\.filter/);
   assert.match(source, /isImageFile\(file\.filename\)/);
   assert.match(source, /<img[\s\S]*src=\{fileUrl\}/);
