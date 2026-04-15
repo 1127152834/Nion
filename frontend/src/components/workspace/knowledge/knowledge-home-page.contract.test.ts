@@ -22,3 +22,13 @@ void test("knowledge home page centers overview queue and graph status instead o
   assert.match(source, /stage=\{activeJob\.stage\}/);
   assert.doesNotMatch(source, /Textarea|draftBody|onDraftBodyChange/);
 });
+
+void test("knowledge home page can point users to retrieval models when semantic retrieval is unavailable", async () => {
+  const source = await readFile(
+    new URL("./knowledge-home-page.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /语义检索增强/);
+  assert.match(source, /前往模型管理中的检索模型完成配置/);
+});

@@ -45,6 +45,13 @@ export function KnowledgeHomePage() {
         </p>
       </section>
 
+      <section className="rounded-lg border bg-muted/20 p-5">
+        <h2 className="text-[1.1rem] font-semibold tracking-tight">语义检索增强</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          前往模型管理中的检索模型完成配置。
+        </p>
+      </section>
+
       <section className="grid gap-4 md:grid-cols-4">
         <div className="rounded-lg border bg-background p-5">
           <div className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Queue</div>
