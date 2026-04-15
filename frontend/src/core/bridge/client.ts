@@ -14,6 +14,15 @@ export type BridgeStatus = {
   }>;
 };
 
+export type BridgeRuntimeInfo = {
+  running: boolean;
+  autoStartEnabled: boolean;
+  enabledPlatforms: string[];
+  activeBindings: number;
+  openIncidents: number;
+  startedAt: string | null;
+};
+
 export type BridgeBinding = {
   id: string;
   platform: string;
@@ -164,6 +173,7 @@ export type WeixinBridgeMutationResult = {
 export type BridgeClient = {
   getSettings(): Promise<Record<string, string>>;
   saveSettings(updates: Record<string, string>): Promise<void>;
+  getRuntimeInfo(): Promise<BridgeRuntimeInfo>;
   getStatus(): Promise<BridgeStatus>;
   listBindings(): Promise<BridgeBinding[]>;
   listIncidents(filters?: BridgeIncidentFilters): Promise<BridgeIncidentRecord[]>;
@@ -216,6 +226,7 @@ function resolveDesktopBridge() {
               bridge?: {
                 getSettings: () => Promise<Record<string, string>>;
                 saveSettings: (updates: Record<string, string>) => Promise<void>;
+                getRuntimeInfo?: () => Promise<BridgeRuntimeInfo>;
                 getStatus: () => Promise<BridgeStatus>;
                 listBindings: () => Promise<BridgeBinding[]>;
                 listIncidents: (filters?: BridgeIncidentFilters) => Promise<BridgeIncidentRecord[]>;
@@ -289,6 +300,13 @@ export function getBridgeClient(): BridgeClient | null {
   cachedBridgeClient = {
     getSettings: () => bridge.getSettings(),
     saveSettings: (updates) => bridge.saveSettings(updates),
+    getRuntimeInfo: () => {
+      if (!bridge.getRuntimeInfo) {
+        throw new Error("Desktop bridge runtime overview API is unavailable");
+      }
+
+      return bridge.getRuntimeInfo();
+    },
     getStatus: () => bridge.getStatus(),
     listBindings: () => bridge.listBindings(),
     listIncidents: (filters) => bridge.listIncidents(filters),
