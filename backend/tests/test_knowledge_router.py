@@ -45,6 +45,25 @@ def test_knowledge_queue_approval_creates_compile_job(monkeypatch, tmp_path):
     assert response.json()["outputs"]["created_pages"]
 
 
+def test_knowledge_jobs_endpoint_returns_compile_history(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+    NotebookService(base_dir=tmp_path).create_note(directory="", title="Inbox Note", body="body")
+
+    with TestClient(create_app()) as client:
+        queue = client.get("/api/knowledge/queue").json()
+        client.post(
+            "/api/knowledge/queue/approve",
+            json={"source_ids": [queue[0]["source_id"]]},
+        )
+        jobs = client.get("/api/knowledge/jobs")
+
+    assert jobs.status_code == 200
+    payload = jobs.json()
+    assert payload["jobs"]
+    assert payload["jobs"][0]["status"] == "succeeded"
+
+
 def test_knowledge_query_endpoint_returns_page_based_answer(monkeypatch, tmp_path):
     monkeypatch.setenv("NION_HOME", str(tmp_path))
     reset_paths()
