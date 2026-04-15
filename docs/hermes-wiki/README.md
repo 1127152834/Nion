@@ -31,6 +31,9 @@ Hermes 最值得学的不是某一个单点功能，而是下面这套一体化�
 - [service-runtime-and-time-model.md](./service-runtime-and-time-model.md)：gateway、cron、多入口服务化、时间驱动任务与会话连续性
 - [plugin-and-provider-architecture.md](./plugin-and-provider-architecture.md)：general plugins、memory providers、context engines、provider runtime、auxiliary routing
 - [expert-skill-blueprint.md](./expert-skill-blueprint.md)：面向未来“agent 应用专家 skill”的知识模块草案
+- [evolution-and-failure-corpus.md](./evolution-and-failure-corpus.md)：Hermes 从 v0.6 到 v0.7 的架构收敛路径，以及关键失败模式语料
+- [cross-system-comparison.md](./cross-system-comparison.md)：Hermes、OpenClaw、Claude Skills、Codex 在 agent 设计范式上的异同
+- [expert-skill-review-framework.md](./expert-skill-review-framework.md)：未来专家 skill 应内置的反模式、审查问题和设计评估框架
 - [openclaw-vs-hermes.md](./openclaw-vs-hermes.md)：和 OpenClaw 的对照，帮助明确 Hermes 的独特取舍
 
 ## 阅读顺序建议
@@ -47,8 +50,11 @@ Hermes 最值得学的不是某一个单点功能，而是下面这套一体化�
 8. `service-runtime-and-time-model.md`
 9. `plugin-and-provider-architecture.md`
 10. `expert-skill-blueprint.md`
-11. `openclaw-vs-hermes.md`
-12. `research-log.md`
+11. `evolution-and-failure-corpus.md`
+12. `cross-system-comparison.md`
+13. `expert-skill-review-framework.md`
+14. `openclaw-vs-hermes.md`
+15. `research-log.md`
 
 ## 维护原则
 

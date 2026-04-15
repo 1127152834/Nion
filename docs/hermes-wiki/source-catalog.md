@@ -42,6 +42,9 @@
 | [Security](https://hermes-agent.nousresearch.com/docs/user-guide/security) | 官方文档 | prompt injection 防护、secret redaction、command approval、容器隔离 |
 | [RELEASE_v0.6.0](https://github.com/NousResearch/hermes-agent/blob/main/RELEASE_v0.6.0.md) | 官方发布说明 | profiles、MCP server mode、多平台 gateway、remote skills/secrets 等重大演进 |
 | [RELEASE_v0.7.0](https://github.com/NousResearch/hermes-agent/blob/main/RELEASE_v0.7.0.md) | 官方发布说明 | pluggable memory、API server continuity、security hardening、gateway hardening |
+| [OpenAI Codex README](https://github.com/openai/codex/blob/main/README.md) | 官方仓库 | 本地 coding agent 的官方定位，可用于与 Hermes 做 runtime 层对照 |
+| [OpenAI Codex CLI 文档](https://developers.openai.com/codex/cli) | 官方文档 | Codex 的本地 agent surface、features、subagents、config 路径 |
+| [Anthropic Claude Skills Cookbook README](https://github.com/anthropics/claude-cookbooks/blob/main/skills/README.md) | 官方仓库 | skills 的 progressive disclosure 与 capability packaging 公开材料 |
 
 ## B. 官方索引 / 搜索摘要
 
@@ -53,6 +56,7 @@
 | Tavily 对官方 release/issue/discussion 的摘要 | 检索摘要 | 用于识别近期演进方向，如 profile isolation、security patch、compression death spiral 修复 |
 | Tavily 对 GitHub issue / release 的摘要 | 检索摘要 | 用于发现设计张力，例如 memory prefetch contamination、memory provider bridge 缺失 |
 | Tavily 对 gateway / cron / approval / fallback 相关 issue 的摘要 | 检索摘要 | 用于构建设计失败模式语料：消息覆盖、审批误拦截、cron 交付静默失败、auth 层短路等 |
+| Tavily 对 Claude Skills / Codex / Claude Code 相关文章摘要 | 检索摘要 | 用于提炼跨系统对照中的共同模式与差异，而不是停留在产品功能比较 |
 
 ## C. 社区二手解读
 
@@ -75,6 +79,7 @@
 | --- | --- | --- |
 | [OpenClaw / Hermes Memory & Soul 学习记录](../reviews/2026-04-10-openclaw-hermes-memory-soul-learning.md) | 仓库内研究笔记 | 现有 Memory / Soul 对照基础 |
 | [OpenClaw 相关文章镜像](https://www.woshipm.com/ai/6357377.html) | 二手镜像 | 用于对照 OpenClaw 在 memory、skills、gateway、subagent 上的叙事 |
+| [Anthropic Skills progressive disclosure 相关文章摘要](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents) | 官方/相关文章 | 用于理解 skills 范式与上下文工程的共通性 |
 
 ## 当前证据风险
 

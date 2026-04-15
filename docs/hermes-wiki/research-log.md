@@ -324,3 +324,84 @@ Hermes 不是简单做成“都能插件化”，而是很明确地把可变性�
 1. 继续整理演化史
 2. 引入跨系统对照
 3. 再做一次知识架构收束
+
+## 2026-04-15 第四轮演化史与跨系统对照研究
+
+### 本轮目标
+
+把 Hermes 从“一个值得学习的项目”继续推进成“一个可被转译为通用 agent 架构教材的案例”。
+这轮重点不再是补单一模块，而是：
+
+1. 看 Hermes 是怎么演化到今天的
+2. 看哪些思想是 Hermes 独有，哪些是更普遍的 agent 范式
+3. 把这些内容转成未来 expert skill 的审查框架
+
+### 本轮新增材料
+
+#### Hermes 自身演化材料
+
+1. `RELEASE_v0.6.0.md`
+2. `RELEASE_v0.7.0.md`
+3. gateway / cron / approval / fallback / memory provider 相关 issue 摘要
+
+#### 跨系统对照材料
+
+1. Anthropic skills cookbook README
+2. OpenAI Codex README 与开发者文档摘要
+3. OpenClaw 二手架构资料与既有内部学习笔记
+4. Claude Code / prompt caching 公开文章摘要
+
+### 本轮最重要的认识变化
+
+#### 1. Hermes 的演化主线已经很清楚
+
+从 `v0.6.0` 到 `v0.7.0`，它的收敛路径大致是：
+
+1. 多实例、多入口、可部署
+2. 然后是 provider / gateway / profile / session 统一
+3. 再然后开始对 memory、compression、安全、delivery、approval 做 resilience hardening
+
+这说明 Hermes 的设计哲学不是先有完美蓝图，而是先把 runtime 做成真的长期系统，再被生产现实逼着把 contract 做硬。
+
+#### 2. Claude Skills / Codex / OpenClaw / Hermes 分别代表不同层次
+
+现在我越来越确定，它们不是简单竞品，而是分别代表：
+
+1. **Claude Skills**：capability packaging / progressive disclosure
+2. **Codex / Claude Code**：task runtime / local execution / cache-friendly orchestration
+3. **Hermes / OpenClaw**：persistent service runtime / memory / service surface / long-lived governance
+
+这个分层一旦想清楚，未来 expert skill 的定位就更明确了：
+不能只偏任何一边，必须把三层范式组合起来。
+
+#### 3. 真正强的 expert skill 必须内置失败模式语料
+
+以前我觉得 expert skill 主要是知识框架。
+现在更明确了：不够。
+
+它还必须显式内置：
+
+1. 反模式
+2. 失效模式
+3. 设计评估问题
+
+否则它只能输出“看起来合理”的建议，无法防止用户把系统做成 demo 级空壳。
+
+### 本轮新增产物
+
+新增三页：
+
+1. `evolution-and-failure-corpus.md`
+2. `cross-system-comparison.md`
+3. `expert-skill-review-framework.md`
+
+这三页分别负责：
+
+1. 让 Hermes 不只是静态结构，而是有演化史和失败语料
+2. 让专家 skill 不会变成“Hermes 复读机”
+3. 让未来的 skill 具备审查和诊断能力，而不只是说明能力
+
+### 当前判断
+
+到这一轮为止，我已经不只是“继续补知识”，而是在把这些知识重组为一个未来可执行的专家系统骨架。
+还没到正式创建 skill，但已经非常接近“可以进入 skill 设计前夜”的阶段。
