@@ -43,7 +43,7 @@ class LocalSandbox(Sandbox):
         """Detect available shell executable with fallback.
 
         Returns the first available shell in order of preference:
-        /bin/zsh → /bin/bash → /bin/sh → first `sh` found on PATH.
+        /bin/zsh → /bin/bash → /bin/sh → `sh` on PATH → Windows shells.
         Raises a RuntimeError if no suitable shell is found.
         """
         for shell in ("/bin/zsh", "/bin/bash", "/bin/sh"):
@@ -52,7 +52,14 @@ class LocalSandbox(Sandbox):
         shell_from_path = shutil.which("sh")
         if shell_from_path is not None:
             return shell_from_path
-        raise RuntimeError("No suitable shell executable found. Tried /bin/zsh, /bin/bash, /bin/sh, and `sh` on PATH.")
+        for shell_name in ("pwsh", "powershell", "cmd"):
+            shell_from_path = shutil.which(shell_name)
+            if shell_from_path is not None:
+                return shell_from_path
+        raise RuntimeError(
+            "No suitable shell executable found. Tried /bin/zsh, /bin/bash, /bin/sh, `sh` on PATH, "
+            "and Windows shells (`pwsh`, `powershell`, `cmd`)."
+        )
 
     def execute_command(self, command: str) -> str:
         result = subprocess.run(

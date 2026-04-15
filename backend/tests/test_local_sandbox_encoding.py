@@ -1,4 +1,5 @@
 import builtins
+import os
 
 import nion.sandbox.local.local_sandbox as local_sandbox
 from nion.sandbox.local.local_sandbox import LocalSandbox
@@ -31,3 +32,26 @@ def test_write_file_uses_utf8_on_windows_locale(tmp_path, monkeypatch):
     LocalSandbox("t").write_file(str(path), text)
 
     assert path.read_text(encoding="utf-8") == text
+
+
+def test_get_shell_prefers_windows_shells_when_posix_shells_are_missing(monkeypatch):
+    def fake_isfile(path: str) -> bool:
+        return path in {"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"}
+
+    def fake_access(path: str, mode: int) -> bool:
+        return path in {"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"}
+
+    def fake_which(name: str) -> str | None:
+        if name == "pwsh":
+            return "C:\\Program Files\\PowerShell\\7\\pwsh.exe"
+        if name == "powershell":
+            return "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"
+        if name == "cmd":
+            return "C:\\Windows\\System32\\cmd.exe"
+        return None
+
+    monkeypatch.setattr(local_sandbox.os.path, "isfile", fake_isfile)
+    monkeypatch.setattr(local_sandbox.os, "access", fake_access)
+    monkeypatch.setattr(local_sandbox.shutil, "which", fake_which)
+
+    assert LocalSandbox._get_shell() == "C:\\Program Files\\PowerShell\\7\\pwsh.exe"
