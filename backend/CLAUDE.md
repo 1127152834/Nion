@@ -147,7 +147,6 @@ Soul product contract in this repository:
 - `/api/memory/soul/apply` remains available as the bulk update path while the product surface is moving away from draft/apply flows.
 - `adaptive_overlay` may still exist internally, but proposal / rollback / growth governance routes are not part of the product-facing API surface.
 - `relationship_soul` remains a derived soul layer, not a new relationship truth source.
-- Knowledge Task 3 compile visibility contract: `/api/knowledge/jobs` should always expose normalized staged delta outputs (`created_pages`, `created_page_ids`, `updated_pages`, `stale_pages`, `archived_pages`) even if older stored rows were partial, because the frontend polling surface depends on a stable page-delta shape during visible staged progress.
 - 当前已确定下一阶段方向：`SOUL.md` / `IDENTITY.md` / `MEMORY.md` 将升级为文件原生主档，结构化存储与向量索引退到 projection / retrieval 层；详细指导见 `docs/superpowers/specs/2026-04-13-memory-identity-soul-ui-and-file-model-refactor-design.md`。
 - 当前已落地的第一批实现：`/api/memory` public surface 不再暴露事实增删改与导入导出；`/api/identity/document` 与 `/api/soul/document` 已成为 whole-document markdown routes；聊天中的显式 Identity / Soul 写入会同步回写 `IDENTITY.md` / `SOUL.md` 文件主档。
 

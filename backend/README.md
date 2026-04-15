@@ -53,7 +53,6 @@ Current memory state:
 - provider-based memory, AutoDream, self-maintenance, heartbeat-driven memory maintenance, compaction, and rebuild are not part of the current runtime
 - structured memory vector retrieval is best-effort at runtime; if the embedding provider request fails, the search path must fall back to lexical matching instead of aborting the chat submit flow
 - openai-compatible chat providers default to a 30-second request timeout unless the model config explicitly overrides it, so bad upstream/provider bindings fail with an error instead of leaving the desktop chat spinner active forever
-- Knowledge compile job persistence now normalizes staged output deltas (`created_pages`, `created_page_ids`, `updated_pages`, `stale_pages`, `archived_pages`) at the store boundary so `/api/knowledge/jobs` always returns the full Task 3 page-delta contract
 
 ---
 
