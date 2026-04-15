@@ -118,6 +118,32 @@
 
 这些点连起来，说明 Hermes 已经不只是“会把对话存起来”，而是给了外部 provider 很多机会去从事件边界上抽取信息。
 
+## 3.5 `memory_nudge` 和 `skill creation nudge` 的真实语义
+
+这一点之前很容易被说得太重。
+从 `cli-config.yaml.example` 可以确认，当前主仓库里至少明确暴露了两类 nudge 配置：
+
+### `memory.nudge_interval`
+
+- 定义：每 N 个 user turns 提醒 agent 考虑保存 memory
+- 关闭方式：设为 `0`
+- 语义：**remind the agent to consider saving memories**
+
+这说明它是一个 **提醒机制**，不是“强制把本轮经验写入 memory”的系统级闭环。
+
+### `skills.creation_nudge_interval`
+
+- 定义：每 N 个 tool-calling iterations 提醒模型考虑保存 skill
+- 关闭方式：设为 `0`
+- 语义：**remind the model to consider saving a skill**
+
+这同样说明它是 **policy-layer nudge**，不是 hard-coded 蒸馏器。
+
+所以到目前为止更准确的表述应该是：
+
+> Hermes 主 runtime 已经内置了“提醒去学习”的机制，
+> 但不是“强制自动把经验固化”的机制。
+
 ## 4. 但要诚实：主仓库里很多“反思闭环”仍然是 best effort，不是 hard-coded pipeline
 
 从 README 和 prompt guidance 能看到：
@@ -195,6 +221,34 @@ README 和 prompt guidance 一直在推同一个动作：
 
 这样的 end-to-end 自动蒸馏流水线。
 
+## 6.5 `skill_manage` 现在已经是 procedural memory 的真实写接口
+
+从 `tools/skill_manager_tool.py` 可以更具体地确认，这不是概念层的存在，而是真实的主接口。
+
+它支持：
+
+1. `create`
+2. `patch`
+3. `edit`
+4. `delete`
+5. `write_file`
+6. `remove_file`
+
+而且它的 schema 描述已经明确把 skill 定义成：
+
+> procedural memory — reusable approaches for recurring task types
+
+并写明适用场景：
+
+- complex task succeeded
+- errors overcome
+- user-corrected approach worked
+- non-trivial workflow discovered
+- or user asks you to remember a procedure
+
+这说明 Hermes 在“如何把经验写成可复用资产”这一步上，其实已经提供了相当完整的基础设施。
+缺的不是写接口，而是更强的自动触发与自动验证闭环。
+
 ## 7. 轨迹保存是一个很重要但容易被忽视的桥梁层
 
 `trajectory.py` 与 `batch_runner.py` 很关键。
@@ -216,6 +270,29 @@ README 和 prompt guidance 一直在推同一个动作：
 
 这意味着 Hermes 已经具备把执行转成监督/评估数据的能力。
 这正是“扫描日志 → 提取信号 → 生成资产”的前半段基础设施。
+
+## 7.5 Trajectory 到自进化的接口边界
+
+当前主仓库里：
+
+- `AIAgent` 可以 `save_trajectories`
+- `trajectory.py` 负责 JSONL 落盘
+- `batch_runner.py` 会额外记录 `tool_stats`、`tool_error_counts`、`reasoning_stats`
+
+而在 `hermes-agent-self-evolution` 里：
+
+- `dataset_builder.py` 用 synthetic / sessiondb / golden 三种方式构造评估集
+- `skill_module.py` 把 skill 文本包装成 DSPy module
+- `constraints.py` 做 size / growth / structure / test-suite gate
+- `fitness.py` 做评分与反馈
+
+所以这条接口边界可以概括为：
+
+1. Hermes 主仓库负责 **产生轨迹与运行数据**
+2. 自进化仓库负责 **把轨迹和历史转成评估样本**
+3. 自进化仓库负责 **生成候选变体并做验证固化**
+
+这再次说明，自进化当前是“外挂优化器”，不是“主循环默认子程序”。
 
 ## 8. 真正系统级的自进化，已经被拆到 `hermes-agent-self-evolution`
 
@@ -269,6 +346,7 @@ README 和 prompt guidance 一直在推同一个动作：
 2. 什么时候保存 skill
 3. 什么时候更新已有 skill
 4. 什么时候调用 `session_search`
+5. 什么时候响应 memory / skill nudges
 
 ### 在独立自进化仓库中正在系统化
 
@@ -277,6 +355,12 @@ README 和 prompt guidance 一直在推同一个动作：
 3. 提出 candidate mutations
 4. 验证约束与指标
 5. PR 化固化
+
+并且这套外部优化器已经明确具备：
+
+6. size / growth / caching compatibility gate
+7. synthetic / sessiondb / golden 三种 eval dataset 来源
+8. 反思式优化（GEPA）与 fallback optimizer 的分层
 
 ## 10. 这轮研究后，我认为还要补的内容
 
@@ -287,6 +371,7 @@ README 和 prompt guidance 一直在推同一个动作：
 3. `skill_manager_tool.py` 的完整生成/patch 逻辑，判断“技能自改进”到底已经自动到什么程度
 4. `hermes-agent-self-evolution` 的 dataset builder、constraint validator、fitness metric，进一步把“验证固化”讲清楚
 5. 现有 issue 中关于 post-task reflection、durable feedback routing、structured memory 的提案状态，区分已经落地和仍在规划
+6. 主仓库里 `memory_nudge` / `skill nudge` 的注入位置和实际 wording，确认它们在 prompt 中具体如何出现
 
 ## 11. 对 expert skill 的直接启发
 
