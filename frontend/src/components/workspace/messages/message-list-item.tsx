@@ -265,14 +265,14 @@ function MessageContent_({
       return null;
     }
     return (
-      <div className="mt-2 flex flex-wrap gap-2">
+      <div className="knowledge-sources mt-2 flex flex-wrap gap-2">
         {pageIds.map((pageId) => (
           <Link
             key={pageId}
             href={`/workspace/knowledge/pages/${encodeURIComponent(pageId)}`}
             className="rounded-full border px-2.5 py-1 text-[11px] text-muted-foreground hover:bg-muted/40"
           >
-            引用知识页: {pageId}
+            知识来源: {pageId}
           </Link>
         ))}
       </div>

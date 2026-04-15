@@ -604,6 +604,7 @@ class NionClient:
         new_turn_messages: list[dict[str, Any]] = []
         initial_turn_candidate_messages: list[dict[str, Any]] = []
         latest_values_messages: list[Any] = []
+        latest_knowledge_page_ids: list[str] = []
         values_chunk_count = 0
 
         def flush_tool_batch() -> list[StreamEvent]:
@@ -743,6 +744,10 @@ class NionClient:
                                 "content": text,
                                 "id": msg_id,
                             }
+                            if latest_knowledge_page_ids:
+                                event_data["additional_kwargs"] = {
+                                    "knowledge_sources": latest_knowledge_page_ids,
+                                }
                             if usage:
                                 event_data["usage_metadata"] = {
                                     "input_tokens": usage.get("input_tokens", 0) or 0,
@@ -758,6 +763,16 @@ class NionClient:
 
                     elif isinstance(msg, ToolMessage):
                         additional_kwargs = getattr(msg, "additional_kwargs", None) or {}
+                        if getattr(msg, "name", None) == "query_knowledge_base":
+                            try:
+                                tool_payload = json.loads(self._extract_text(msg.content) or "{}")
+                                page_ids = tool_payload.get("page_ids")
+                                if isinstance(page_ids, list):
+                                    latest_knowledge_page_ids = [
+                                        item for item in page_ids if isinstance(item, str)
+                                    ]
+                            except json.JSONDecodeError:
+                                latest_knowledge_page_ids = []
                         payload: dict[str, Any] = {
                             "type": "tool",
                             "content": self._extract_text(msg.content),

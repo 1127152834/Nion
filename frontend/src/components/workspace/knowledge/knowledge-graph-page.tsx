@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { useRebuildKnowledgeGraph } from "@/core/knowledge";
 
@@ -10,15 +10,39 @@ export function KnowledgeGraphPage() {
   const edges = rebuild.data?.edges ?? [];
   const [activeNodeId, setActiveNodeId] = useState<string | null>(null);
   const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null);
+  const [storedPositions, setStoredPositions] = useState<Record<string, { left: string; top: string }>>({});
+  const graphClusters = useMemo(() => {
+    const clusters = new Map<string, string[]>();
+    for (const node of nodes) {
+      const id = String(node.id ?? "");
+      const prefix = id.includes(":") ? id.split(":")[0]! : "misc";
+      clusters.set(prefix, [...(clusters.get(prefix) ?? []), id]);
+    }
+    return Array.from(clusters.entries());
+  }, [nodes]);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("knowledge-graph-layout");
+      if (!raw) {
+        return;
+      }
+      const parsed = JSON.parse(raw) as Record<string, { left: string; top: string }>;
+      setStoredPositions(parsed);
+    } catch {
+      // ignore corrupted local layout cache
+    }
+  }, []);
+
   const positionedNodes = useMemo(
     () =>
       nodes.map((node, index) => ({
         id: String(node.id ?? index),
         label: String(node.label ?? node.id ?? ""),
-        left: `${12 + (index % 3) * 30}%`,
-        top: `${16 + Math.floor(index / 3) * 24}%`,
+        left: storedPositions[String(node.id ?? index)]?.left ?? `${12 + (index % 3) * 30}%`,
+        top: storedPositions[String(node.id ?? index)]?.top ?? `${16 + Math.floor(index / 3) * 24}%`,
       })),
-    [nodes],
+    [nodes, storedPositions],
   );
   const activeNeighbors = useMemo(() => {
     if (!activeNodeId) {
@@ -37,6 +61,14 @@ export function KnowledgeGraphPage() {
     }
     return refs;
   }, [activeNodeId, edges]);
+
+  function persistNodePosition(nodeId: string, left: string, top: string) {
+    setStoredPositions((current) => {
+      const next = { ...current, [nodeId]: { left, top } };
+      localStorage.setItem("knowledge-graph-layout", JSON.stringify(next));
+      return next;
+    });
+  }
 
   return (
     <main className="flex size-full min-h-0 flex-col gap-6 overflow-y-auto px-4 py-6 sm:px-6">
@@ -65,6 +97,13 @@ export function KnowledgeGraphPage() {
         <div className="mt-4 text-sm text-muted-foreground">
           {rebuild.isPending ? "rebuilding…" : null}
           {rebuild.data ? `nodes: ${nodes.length}, edges: ${edges.length}` : null}
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2 text-xs text-muted-foreground">
+          {graphClusters.map(([cluster, ids]) => (
+            <div key={cluster} className="rounded-full border px-2.5 py-1">
+              cluster={cluster} · {ids.length}
+            </div>
+          ))}
         </div>
         <div className="knowledge-graph-canvas relative mt-4 min-h-[24rem] overflow-hidden rounded-xl border bg-muted/20">
           <svg className="pointer-events-none absolute inset-0 size-full">
@@ -105,7 +144,16 @@ export function KnowledgeGraphPage() {
               key={node.id}
               draggable
               onDragStart={() => setDraggingNodeId(node.id)}
-              onDragEnd={() => setDraggingNodeId(null)}
+              onDragEnd={(event) => {
+                setDraggingNodeId(null);
+                const rect = event.currentTarget.parentElement?.getBoundingClientRect();
+                if (!rect) {
+                  return;
+                }
+                const left = `${((event.clientX - rect.left) / rect.width) * 100}%`;
+                const top = `${((event.clientY - rect.top) / rect.height) * 100}%`;
+                persistNodePosition(node.id, left, top);
+              }}
               onMouseEnter={() => setActiveNodeId(node.id)}
               onMouseLeave={() => setActiveNodeId((current) => (current === node.id ? null : current))}
               className={`absolute cursor-grab rounded-full border bg-background px-4 py-2 text-sm shadow-sm transition-all ${

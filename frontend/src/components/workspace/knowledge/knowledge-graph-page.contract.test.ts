@@ -17,6 +17,10 @@ void test("knowledge graph page renders graph state and rebuild affordance", asy
   assert.match(source, /<svg/);
   assert.match(source, /draggable/);
   assert.match(source, /activeNodeId/);
+  assert.match(source, /localStorage/);
+  assert.match(source, /cluster|聚类/);
+  assert.match(source, /knowledge-graph-layout/);
+  assert.match(source, /persistNodePosition/);
   assert.match(source, /left:/);
   assert.match(source, /top:/);
 });

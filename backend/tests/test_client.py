@@ -368,6 +368,50 @@ class TestStream:
         assert len(_ai_events(events)) >= 1
         assert events[-1].type == "end"
 
+    def test_knowledge_tool_result_attaches_page_ids_to_final_answer(self, client):
+        ai_lookup = AIMessage(
+            content="",
+            id="ai-knowledge-tool-call",
+            tool_calls=[
+                {
+                    "name": "query_knowledge_base",
+                    "args": {"question": "roadmap"},
+                    "id": "tc-knowledge",
+                }
+            ],
+        )
+        tool_result = ToolMessage(
+            content='{"answer_markdown":"Roadmap summary","page_ids":["concept:roadmap"]}',
+            id="tm-knowledge",
+            tool_call_id="tc-knowledge",
+            name="query_knowledge_base",
+        )
+        ai_final = AIMessage(content="Roadmap summary", id="ai-knowledge-final")
+        chunks = [
+            {"messages": [HumanMessage(content="知识库 roadmap", id="h-1"), ai_lookup]},
+            {"messages": [HumanMessage(content="知识库 roadmap", id="h-1"), ai_lookup, tool_result]},
+            {"messages": [HumanMessage(content="知识库 roadmap", id="h-1"), ai_lookup, tool_result, ai_final]},
+        ]
+        agent = _make_agent_mock(chunks)
+
+        with (
+            patch.object(client, "_ensure_agent"),
+            patch.object(client, "_agent", agent),
+        ):
+            events = list(client.stream("知识库 roadmap", thread_id="t-knowledge"))
+
+        final_events = [
+            event
+            for event in events
+            if event.type == "messages-tuple"
+            and event.data.get("type") == "ai"
+            and event.data.get("content") == "Roadmap summary"
+        ]
+        assert final_events
+        assert final_events[-1].data["additional_kwargs"]["knowledge_sources"] == [
+            "concept:roadmap"
+        ]
+
     def test_values_event_with_title(self, client):
         """stream() emits values event containing title when present in state."""
         ai = AIMessage(content="ok", id="ai-1")

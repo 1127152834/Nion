@@ -430,6 +430,10 @@ export function findToolCallResult(toolCallId: string, messages: Message[]) {
 }
 
 export function extractKnowledgePageIdsFromToolMessage(message: Message) {
+  const knowledgeSources = message.additional_kwargs?.knowledge_sources;
+  if (Array.isArray(knowledgeSources)) {
+    return knowledgeSources.filter((item): item is string => typeof item === "string");
+  }
   if (message.type !== "tool" || message.name !== "query_knowledge_base") {
     return [];
   }

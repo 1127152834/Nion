@@ -7,5 +7,6 @@ void test("human messages disable incomplete markdown parsing", async () => {
 
   assert.match(source, /parseIncompleteMarkdown=\{false\}/);
   assert.match(source, /extractKnowledgePageIdsFromToolMessage/);
-  assert.match(source, /引用知识页/);
+  assert.match(source, /引用知识页|知识来源/);
+  assert.match(source, /knowledge_sources|知识来源/);
 });
