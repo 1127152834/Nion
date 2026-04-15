@@ -439,6 +439,54 @@ class NionClient:
         return {"type": "unknown", "content": str(msg), "id": getattr(msg, "id", None)}
 
     @staticmethod
+    def _attach_assistant_knowledge(
+        serialized_message: dict[str, Any],
+        *,
+        knowledge_attachment: dict[str, Any] | None,
+        knowledge_page_ids: list[str],
+    ) -> dict[str, Any]:
+        if serialized_message.get("type") != "ai" or not serialized_message.get("content"):
+            return serialized_message
+
+        additional_kwargs = serialized_message.get("additional_kwargs")
+        merged_additional_kwargs = dict(additional_kwargs) if isinstance(additional_kwargs, dict) else {}
+
+        if knowledge_attachment:
+            merged_additional_kwargs["knowledge"] = knowledge_attachment
+        elif knowledge_page_ids:
+            merged_additional_kwargs["knowledge_sources"] = knowledge_page_ids
+
+        if not merged_additional_kwargs:
+            return serialized_message
+
+        return {
+            **serialized_message,
+            "additional_kwargs": merged_additional_kwargs,
+        }
+
+    @staticmethod
+    def _serialize_values_messages(
+        messages: list[Any],
+        *,
+        knowledge_attachment: dict[str, Any] | None,
+        knowledge_page_ids: list[str],
+    ) -> list[dict[str, Any]]:
+        serialized_messages = [NionClient._serialize_message(message) for message in messages]
+        if not serialized_messages:
+            return serialized_messages
+
+        last_message = serialized_messages[-1]
+        if last_message.get("type") != "ai" or not last_message.get("content"):
+            return serialized_messages
+
+        serialized_messages[-1] = NionClient._attach_assistant_knowledge(
+            last_message,
+            knowledge_attachment=knowledge_attachment,
+            knowledge_page_ids=knowledge_page_ids,
+        )
+        return serialized_messages
+
+    @staticmethod
     def _extract_text(content) -> str:
         """Extract plain text from AIMessage content (str or list of blocks).
 
@@ -481,13 +529,24 @@ class NionClient:
         return str(content)
 
     @staticmethod
-    def _collect_latest_human_ai_messages(messages: list[Any]) -> list[dict[str, Any]]:
+    def _collect_latest_human_ai_messages(
+        messages: list[Any],
+        *,
+        knowledge_attachment: dict[str, Any] | None = None,
+        knowledge_page_ids: list[str] | None = None,
+    ) -> list[dict[str, Any]]:
         latest_exchange: list[dict[str, Any]] = []
         for msg in reversed(messages):
             if not isinstance(msg, HumanMessage | AIMessage):
                 continue
             serialized_message = NionClient._serialize_message(msg)
             if serialized_message.get("type") == "ai" and serialized_message.get("content"):
+                if not latest_exchange:
+                    serialized_message = NionClient._attach_assistant_knowledge(
+                        serialized_message,
+                        knowledge_attachment=knowledge_attachment,
+                        knowledge_page_ids=knowledge_page_ids or [],
+                    )
                 latest_exchange.append(serialized_message)
                 continue
             if serialized_message.get("type") == "human" and serialized_message.get("content"):
@@ -686,8 +745,14 @@ class NionClient:
                 latest_values_messages = messages
                 values_chunk_count += 1
 
-                for msg in messages:
+                for index, msg in enumerate(messages):
                     serialized_message = self._serialize_message(msg)
+                    if index == len(messages) - 1:
+                        serialized_message = self._attach_assistant_knowledge(
+                            serialized_message,
+                            knowledge_attachment=latest_knowledge_attachment,
+                            knowledge_page_ids=latest_knowledge_page_ids,
+                        )
                     signature = json.dumps(
                         serialized_message,
                         sort_keys=True,
@@ -741,20 +806,11 @@ class NionClient:
                             if msg_id:
                                 cumulative_ai_content[msg_id] = text
                             event_data: dict[str, Any] = {
-                                "type": "ai",
-                                "content": text,
-                                "id": msg_id,
+                                key: value
+                                for key, value in serialized_message.items()
+                                if key in {"type", "content", "id", "additional_kwargs"}
                             }
-                            if latest_knowledge_attachment:
-                                event_data["additional_kwargs"] = {
-                                    **event_data.get("additional_kwargs", {}),
-                                    "knowledge": latest_knowledge_attachment,
-                                }
-                            elif latest_knowledge_page_ids:
-                                event_data["additional_kwargs"] = {
-                                    **event_data.get("additional_kwargs", {}),
-                                    "knowledge_sources": latest_knowledge_page_ids,
-                                }
+                            event_data["content"] = text
                             if usage:
                                 event_data["usage_metadata"] = {
                                     "input_tokens": usage.get("input_tokens", 0) or 0,
@@ -837,7 +893,11 @@ class NionClient:
                     data={
                         "title": chunk.get("title"),
                         "messages": [
-                            *[self._serialize_message(m) for m in messages],
+                            *self._serialize_values_messages(
+                                messages,
+                                knowledge_attachment=latest_knowledge_attachment,
+                                knowledge_page_ids=latest_knowledge_page_ids,
+                            ),
                             *tool_activity_messages,
                         ],
                         "artifacts": chunk.get("artifacts", []),
@@ -850,7 +910,11 @@ class NionClient:
                 if values_chunk_count == 1 and not initial_turn_candidate_messages:
                     initial_turn_candidate_messages = self._collect_latest_human_ai_messages(messages)
 
-            final_turn_messages = self._collect_latest_human_ai_messages(latest_values_messages)
+            final_turn_messages = self._collect_latest_human_ai_messages(
+                latest_values_messages,
+                knowledge_attachment=latest_knowledge_attachment,
+                knowledge_page_ids=latest_knowledge_page_ids,
+            )
             if final_turn_messages:
                 new_turn_messages = final_turn_messages
             elif not new_turn_messages:

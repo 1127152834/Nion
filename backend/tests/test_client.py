@@ -413,6 +413,19 @@ class TestStream:
         ]
         assert final_events[-1].data["additional_kwargs"]["knowledge"]["citations"][0]["page_id"] == "concept:roadmap"
 
+        values_events = [event for event in events if event.type == "values"]
+        assert values_events
+        assistant_messages = [
+            message
+            for message in values_events[-1].data["messages"]
+            if message.get("type") == "ai" and message.get("content") == "Roadmap summary"
+        ]
+        assert assistant_messages
+        assert assistant_messages[-1]["additional_kwargs"]["knowledge"]["matched_page_ids"] == [
+            "concept:roadmap"
+        ]
+        assert assistant_messages[-1]["additional_kwargs"]["knowledge"]["citations"][0]["page_id"] == "concept:roadmap"
+
     def test_values_event_with_title(self, client):
         """stream() emits values event containing title when present in state."""
         ai = AIMessage(content="ok", id="ai-1")
