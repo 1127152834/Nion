@@ -283,7 +283,7 @@
 | `c91785dd` strip <think> tags from title flow | `当前无安全落点` | 无 | 需与当前 title middleware/title model链路专项对照，本批次暂不凭标题改标题生成。 |
 | `9cf7153b` Windows pnpm version detection in check script | `当前无安全落点` | 无 | 当前未复现同类 Windows 检查脚本故障，不应无依据改动。 |
 | `c43a45ea` bump pillow indirect dependency | `明确不同步` | 无 | 依赖升级不按逐提交业务同步流处理。 |
-| `55bc09ac` uploads for mounted sandbox providers | `当前无安全落点` | 无 | 需要对照当前 mounted provider 合同与 thread-data mounts 能力，本批次暂不单点迁移。 |
+| `55bc09ac` uploads for mounted sandbox providers | `已同步` | `30ca3967` | 已识别 `uses_thread_data_mounts` provider，避免对已挂载线程数据的 provider 冗余 acquire/sync。 |
 | `07fc25d2` async memory updater LLM calls | `当前无安全落点` | 无 | upstream 落点仍在旧 memory updater 主链，和当前 Memory OS 主链错位。 |
 | `e4f896e9` todo middleware premature exit guard | `已同步` | `f5dcc535` | 已为 TodoMiddleware 增加 after_model completion reminder 与 jump_to=model 保护。 |
 | `4ba3167f` flush memory before summarization | `当前无安全落点` | 无 | upstream 依赖旧 memory queue/summarization hook 重构，不在当前批次直接引入。 |
