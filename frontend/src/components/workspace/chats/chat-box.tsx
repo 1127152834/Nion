@@ -168,6 +168,21 @@ const ChatBox: React.FC<{ children: React.ReactNode; threadId: string }> = ({
     selectedArtifact,
   ]);
 
+  useEffect(() => {
+    if (
+      panelType === "working-directory" &&
+      !selectedArtifact &&
+      workingDirectoryFiles.length > 0
+    ) {
+      selectArtifact(workingDirectoryFiles[0]!);
+    }
+  }, [
+    panelType,
+    selectArtifact,
+    selectedArtifact,
+    workingDirectoryFiles,
+  ]);
+
   const displayedFiles =
     panelType === "working-directory"
       ? workingDirectoryFiles

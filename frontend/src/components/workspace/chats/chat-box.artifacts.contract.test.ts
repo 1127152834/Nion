@@ -8,3 +8,12 @@ void test("chat box browses thread user-data root and outputs for artifact/runti
   assert.match(source, /root: "\/mnt\/user-data"/);
   assert.match(source, /root: "\/mnt\/user-data\/outputs"/);
 });
+
+void test("working-directory panel auto-selects the first file so the preview pane does not stay empty", async () => {
+  const source = await readFile(new URL("./chat-box.tsx", import.meta.url), "utf8");
+
+  assert.match(source, /panelType === "working-directory"/);
+  assert.match(source, /!selectedArtifact/);
+  assert.match(source, /workingDirectoryFiles\.length > 0/);
+  assert.match(source, /selectArtifact\(workingDirectoryFiles\[0]!\)/);
+});
