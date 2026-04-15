@@ -13,4 +13,7 @@ void test("knowledge graph page renders graph state and rebuild affordance", asy
   assert.match(source, /rebuild|重建/);
   assert.match(source, /EXTRACTED|INFERRED|AMBIGUOUS/);
   assert.match(source, /nodes|edges/);
+  assert.match(source, /knowledge-graph-canvas/);
+  assert.match(source, /left:/);
+  assert.match(source, /top:/);
 });

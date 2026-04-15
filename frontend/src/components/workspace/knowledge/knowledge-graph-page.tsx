@@ -6,6 +6,12 @@ export function KnowledgeGraphPage() {
   const rebuild = useRebuildKnowledgeGraph();
   const nodes = rebuild.data?.nodes ?? [];
   const edges = rebuild.data?.edges ?? [];
+  const positionedNodes = nodes.map((node, index) => ({
+    id: String(node.id ?? index),
+    label: String(node.label ?? node.id ?? ""),
+    left: `${12 + (index % 3) * 30}%`,
+    top: `${16 + Math.floor(index / 3) * 24}%`,
+  }));
 
   return (
     <main className="flex size-full min-h-0 flex-col gap-6 overflow-y-auto px-4 py-6 sm:px-6">
@@ -34,6 +40,22 @@ export function KnowledgeGraphPage() {
         <div className="mt-4 text-sm text-muted-foreground">
           {rebuild.isPending ? "rebuilding…" : null}
           {rebuild.data ? `nodes: ${nodes.length}, edges: ${edges.length}` : null}
+        </div>
+        <div className="knowledge-graph-canvas relative mt-4 min-h-[22rem] rounded-xl border bg-muted/20">
+          {positionedNodes.length === 0 ? (
+            <div className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground">
+              no nodes
+            </div>
+          ) : null}
+          {positionedNodes.map((node) => (
+            <div
+              key={node.id}
+              className="absolute rounded-full border bg-background px-4 py-2 text-sm shadow-sm"
+              style={{ left: node.left, top: node.top }}
+            >
+              {node.label}
+            </div>
+          ))}
         </div>
         <div className="mt-4 grid gap-4 lg:grid-cols-2">
           <div className="rounded-md border px-3 py-3 text-sm text-muted-foreground">

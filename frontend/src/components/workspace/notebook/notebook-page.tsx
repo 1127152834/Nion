@@ -88,6 +88,15 @@ type NotebookConversationStartInput = {
   previewContent?: string;
 };
 
+type KnowledgeCompileStatus =
+  | {
+      jobId: string;
+      status: string;
+      createdPages: string[];
+      errorSummary?: string;
+    }
+  | null;
+
 export function NotebookPage() {
   const { t } = useI18n();
   const copy = t.notebookPage;
@@ -116,6 +125,7 @@ export function NotebookPage() {
   const [moveOpen, setMoveOpen] = useState(false);
   const [extractMemoryOpen, setExtractMemoryOpen] = useState(false);
   const [extractMemoryInstruction, setExtractMemoryInstruction] = useState("");
+  const [knowledgeCompileStatus, setKnowledgeCompileStatus] = useState<KnowledgeCompileStatus>(null);
   const [moveDirectory, setMoveDirectory] = useState("");
   const [inboxMoveDirectory, setInboxMoveDirectory] = useState("inbox");
   const [draftSession, setDraftSession] = useState<DraftSession | null>(null);
@@ -292,6 +302,12 @@ export function NotebookPage() {
     }
     try {
       const job = await enqueueToKnowledge.mutateAsync(sourceId);
+      setKnowledgeCompileStatus({
+        jobId: job.job_id,
+        status: job.status,
+        createdPages: job.outputs.created_pages,
+        errorSummary: job.error_summary,
+      });
       toast.success(
         job.status === "succeeded"
           ? "已转为知识库，已生成编译结果，正在打开知识库状态页"
@@ -746,6 +762,34 @@ export function NotebookPage() {
             />
 
             <div className="flex min-h-0 min-w-0 flex-col gap-4">
+              {knowledgeCompileStatus ? (
+                <section className="rounded-2xl border border-[var(--notebook-border)] bg-[var(--notebook-panel)] px-4 py-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <div className="text-xs uppercase tracking-[0.14em] text-[var(--notebook-soft-text)]">
+                        知识库编译状态
+                      </div>
+                      <div className="mt-2 text-sm font-medium text-[var(--notebook-ink)]">
+                        job={knowledgeCompileStatus.jobId} · {knowledgeCompileStatus.status}
+                      </div>
+                      <div className="mt-2 text-xs text-[var(--notebook-soft-text)]">
+                        {knowledgeCompileStatus.createdPages.length > 0
+                          ? `已生成 ${knowledgeCompileStatus.createdPages.length} 个知识页`
+                          : knowledgeCompileStatus.errorSummary ?? "正在等待可见的编译结果"}
+                      </div>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleViewKnowledgeStatus}
+                      className="border-[var(--notebook-border)] bg-[var(--notebook-panel)] text-[var(--notebook-ink)]"
+                    >
+                      查看知识库状态
+                    </Button>
+                  </div>
+                </section>
+              ) : null}
+
               {!selectedNoteId && !selectedAssetId && !isDraft ? (
                 <NotebookInboxPanel
                   copy={{

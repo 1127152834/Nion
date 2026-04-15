@@ -11,9 +11,16 @@ void test("notebook surfaces expose send-to-knowledge and knowledge-status actio
     new URL("./notebook-editor-pane.tsx", import.meta.url),
     "utf8",
   );
+  const pageSource = await readFile(
+    new URL("./notebook-page.tsx", import.meta.url),
+    "utf8",
+  );
 
   for (const source of [inboxSource, editorSource]) {
     assert.match(source, /知识队列|Knowledge/);
     assert.doesNotMatch(source, /overview\.md|graph\.json|sources\//);
   }
+
+  assert.match(pageSource, /知识库编译状态/);
+  assert.match(pageSource, /knowledgeCompileStatus/);
 });

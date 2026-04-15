@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from nion.agents.lead_agent.prompt import apply_prompt_template
 from nion.knowledge.page_store import KnowledgePageStore
 from nion.tools.builtins.knowledge_tools import query_knowledge_base_tool
 
@@ -37,3 +38,10 @@ def test_query_knowledge_base_tool_reads_compiled_pages(tmp_path, monkeypatch) -
 
     assert "Roadmap summary" in payload
     assert "concept:roadmap" in payload
+
+
+def test_prompt_always_guides_knowledge_questions_to_query_tool() -> None:
+    prompt = apply_prompt_template(cli_tools_enabled=False)
+
+    assert "query_knowledge_base" in prompt
+    assert "compiled knowledge base" in prompt

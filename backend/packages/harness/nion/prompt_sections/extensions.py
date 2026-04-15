@@ -108,7 +108,9 @@ def get_mcp_instructions_prompt_section() -> str:
 
 
 def get_system_capability_catalog_section(*, cli_tools_enabled: bool) -> str:
-    capabilities: list[str] = []
+    capabilities: list[str] = [
+        "- Knowledge base query: use query_knowledge_base for compiled wiki knowledge and graph-derived answers.",
+    ]
     if cli_tools_enabled:
         capabilities.append("- CLI tool management: install, register, remove, inspect, and update local CLI tools.")
 
