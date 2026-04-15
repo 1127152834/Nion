@@ -9,7 +9,14 @@ export interface KnowledgeSourceCandidate {
   title: string;
   summary: string;
   content_hash: string;
-  status: "queued" | "approved" | "compiled" | "failed" | "stale" | "ignored";
+  status:
+    | "queued"
+    | "running"
+    | "compiled"
+    | "failed"
+    | "stale"
+    | "ignored"
+    | "source_missing";
   created_at: string;
   updated_at: string;
   last_compiled_at?: string;

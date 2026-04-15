@@ -83,6 +83,7 @@ Delegated custom-agent UI contract:
 
 - **Server Components by default**, `"use client"` only for interactive components
 - **Thread hooks** (`useThreadStream`, `useSubmitThread`, `useThreads`) are the primary API interface
+- **Knowledge compile visibility** lives in `src/core/knowledge/hooks.ts`: queue/jobs/activity polling must be driven centrally from the hooks layer when approve is pending or jobs are still pending/running, and queue/home pages should consume the derived running-stage state instead of re-implementing polling heuristics locally
 - **LangGraph client** is a singleton obtained via `getAPIClient()` in `core/api/`
 - **Environment validation** uses `@t3-oss/env-nextjs` with Zod schemas (`src/env.js`). Skip with `SKIP_ENV_VALIDATION=1`
 - **Thread titles** treat `"Untitled"` as a placeholder only; stream snapshots must not overwrite an existing manual or generated title back to that placeholder

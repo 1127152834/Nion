@@ -51,7 +51,7 @@ class KnowledgeCompileJobStore:
                 )
 
     def _row_to_job(self, row: sqlite3.Row) -> KnowledgeCompileJob:
-        outputs = dict(json.loads(row["outputs_json"]))
+        outputs = self._normalize_outputs(dict(json.loads(row["outputs_json"])))
         return KnowledgeCompileJob(
             job_id=str(row["job_id"]),
             source_ids=list(json.loads(row["source_ids_json"])),
@@ -65,15 +65,29 @@ class KnowledgeCompileJobStore:
             error_summary=row["error_summary"],
         )
 
+    @staticmethod
+    def _normalize_outputs(outputs: dict[str, object]) -> dict[str, object]:
+        normalized = dict(outputs)
+        for key in (
+            "created_pages",
+            "created_page_ids",
+            "updated_pages",
+            "stale_pages",
+            "archived_pages",
+        ):
+            value = normalized.get(key, [])
+            normalized[key] = list(value) if isinstance(value, list) else []
+        return normalized
+
     def create_job(self, *, source_ids: list[str], trigger_mode: str) -> KnowledgeCompileJob:
         job_id = f"job_{uuid4().hex}"
-        outputs = {
+        outputs = self._normalize_outputs({
             "created_pages": [],
             "created_page_ids": [],
             "updated_pages": [],
             "stale_pages": [],
             "archived_pages": [],
-        }
+        })
         with self._connect() as conn:
             conn.execute(
                 """
@@ -108,6 +122,7 @@ class KnowledgeCompileJobStore:
         finished_at: str | None = None,
         error_summary: str | None = None,
     ) -> KnowledgeCompileJob:
+        normalized_outputs = self._normalize_outputs(outputs)
         with self._connect() as conn:
             conn.execute(
                 """
@@ -119,7 +134,7 @@ class KnowledgeCompileJobStore:
                 (
                     status,
                     stage,
-                    json.dumps(outputs),
+                    json.dumps(normalized_outputs),
                     started_at,
                     finished_at,
                     error_summary,

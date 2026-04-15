@@ -17,5 +17,8 @@ void test("knowledge home page centers overview queue and graph status instead o
   assert.match(source, /activity/i);
   assert.match(source, /job_started|page_created|source_missing_detected|activity feed/i);
   assert.match(source, /compile_state|stage|running|failed/);
+  assert.match(source, /activeJob/);
+  assert.match(source, /polling|refreshing/i);
+  assert.match(source, /stage=\{activeJob\.stage\}/);
   assert.doesNotMatch(source, /Textarea|draftBody|onDraftBodyChange/);
 });

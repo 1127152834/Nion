@@ -47,6 +47,49 @@ void test("loadKnowledgeQueue calls the knowledge queue endpoint", async () => {
   assert.equal(payload[0]?.source_kind, "notebook_note");
 });
 
+void test("loadKnowledgeQueue accepts running and source_missing candidate statuses", async () => {
+  globalThis.fetch = (async () => {
+    return new Response(
+      JSON.stringify([
+        {
+          source_id: "source:notebook_note:note_1",
+          source_kind: "notebook_note",
+          notebook_ref: {
+            note_id: "note_1",
+            relative_path: "收件箱/roadmap.md",
+          },
+          title: "Roadmap",
+          summary: "body",
+          content_hash: "abc123",
+          status: "running",
+          created_at: "2026-04-13T00:00:00Z",
+          updated_at: "2026-04-13T00:00:00Z",
+        },
+        {
+          source_id: "source:notebook_note:missing",
+          source_kind: "notebook_note",
+          notebook_ref: {
+            note_id: "missing",
+            relative_path: "收件箱/missing.md",
+          },
+          title: "Missing",
+          summary: "body",
+          content_hash: "def456",
+          status: "source_missing",
+          created_at: "2026-04-13T00:00:00Z",
+          updated_at: "2026-04-13T00:00:00Z",
+        },
+      ]),
+      { status: 200, headers: { "Content-Type": "application/json" } },
+    );
+  }) as typeof fetch;
+
+  const payload = await loadKnowledgeQueue();
+
+  assert.equal(payload[0]?.status, "running");
+  assert.equal(payload[1]?.status, "source_missing");
+});
+
 void test("queryKnowledge calls the knowledge query endpoint", async () => {
   let seenUrl = "";
 

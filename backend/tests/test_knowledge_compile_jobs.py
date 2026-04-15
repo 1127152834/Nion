@@ -23,3 +23,8 @@ def test_compile_job_round_trips_outputs(tmp_path):
     assert updated.status == "succeeded"
     assert updated.stage == "finalizing"
     assert updated.created_page_ids == ["sources:note_1"]
+    assert updated.outputs["created_pages"] == ["sources/roadmap.md"]
+    assert updated.outputs["created_page_ids"] == ["sources:note_1"]
+    assert updated.outputs["updated_pages"] == ["overview.md"]
+    assert updated.outputs["stale_pages"] == []
+    assert updated.outputs["archived_pages"] == []

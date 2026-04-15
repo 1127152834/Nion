@@ -146,6 +146,7 @@ src/
 - The settings dialog now includes an **Agent Integrations** page for ACP adapters and a **Memory** storage selector that maps UI-safe modes onto Config Center state
 - The desktop Remote Bridge now gates each platform behind a persisted verification state: users must verify the connection before enabling a channel, and each re-enable automatically re-verifies the platform
 - Bridge configuration is now migrating toward Config Center / `config.db` as the shared source of truth, while bridge runtime state remains desktop-local
+- Knowledge Queue / Home 在存在 pending/running compile job 或 approve mutation 期间会以短轮询刷新 queue/jobs/activity，确保 staged progress 与 activity feed 在 Task 3 范围内可见，而不是只在最终态统一刷新
 
 ## License
 

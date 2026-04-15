@@ -100,8 +100,14 @@ def test_knowledge_jobs_expose_stage_and_page_deltas(monkeypatch, tmp_path):
         jobs = client.get("/api/knowledge/jobs")
 
     assert jobs.status_code == 200
-    assert jobs.json()["jobs"][0]["stage"] == "finalizing"
-    assert "created_page_ids" in jobs.json()["jobs"][0]
+    job = jobs.json()["jobs"][0]
+    assert job["stage"] == "finalizing"
+    assert job["created_page_ids"] == [f"sources:{note.note_id}"]
+    assert job["outputs"]["created_pages"]
+    assert job["outputs"]["created_page_ids"] == [f"sources:{note.note_id}"]
+    assert "updated_pages" in job["outputs"]
+    assert "stale_pages" in job["outputs"]
+    assert "archived_pages" in job["outputs"]
 
 
 def test_knowledge_enqueue_endpoint_only_registers_candidate(monkeypatch, tmp_path):

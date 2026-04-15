@@ -17,4 +17,18 @@ void test("knowledge queue page renders candidate state and approval affordance"
   assert.match(source, /stale|queued|compiled/);
   assert.match(source, /activity/i);
   assert.match(source, /stage|running|failed/);
+  assert.match(source, /approve\.isPending/);
+  assert.match(source, /activeJob/);
+  assert.match(source, /stage=\{activeJob\.stage\}/);
+  assert.match(source, /polling|refreshing/i);
+});
+
+void test("knowledge queue hooks enable polling while approval or compile work is active", async () => {
+  const source = await readFile(new URL("../../../core/knowledge/hooks.ts", import.meta.url), "utf8");
+
+  assert.match(source, /KNOWLEDGE_PROGRESS_REFETCH_INTERVAL_MS\s*=\s*1[0-5]00/);
+  assert.match(source, /refetchInterval:\s*\(query\)\s*=>/);
+  assert.match(source, /hasActiveKnowledgeJob/);
+  assert.match(source, /useIsMutating/);
+  assert.match(source, /mutationKey:\s*\["knowledge",\s*"approve"\]/);
 });

@@ -21,14 +21,20 @@ const ACTIVITY_LABELS: Record<string, string> = {
 };
 
 export function KnowledgeHomePage() {
-  const { queue, isLoading: queueLoading } = useKnowledgeQueue();
+  const { queue, isLoading: queueLoading, isPolling: queuePolling } = useKnowledgeQueue();
   const { pages, isLoading: pagesLoading } = useKnowledgePages(queue);
-  const { jobs, isLoading: jobsLoading } = useKnowledgeJobs();
+  const {
+    jobs,
+    activeJob,
+    isLoading: jobsLoading,
+    isPolling: jobsPolling,
+  } = useKnowledgeJobs();
   const { events, isLoading: activityLoading } = useKnowledgeActivity();
   const { report } = useKnowledgeLint();
   const rebuild = useRebuildKnowledgeGraph();
   const compiledCount = queue.filter((item) => item.status === "compiled").length;
   const staleCount = queue.filter((item) => item.status === "stale").length;
+  const isPolling = queuePolling || jobsPolling;
 
   return (
     <main className="flex size-full min-h-0 flex-col gap-6 overflow-y-auto px-4 py-6 sm:px-6">
@@ -65,6 +71,29 @@ export function KnowledgeHomePage() {
       <section className="rounded-lg border bg-background p-5">
         <div className="flex items-start justify-between gap-4">
           <div>
+            <h2 className="text-[1.1rem] font-semibold tracking-tight">Live compile status</h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Queue/Home 保持 polling，让 running stage 和 activity feed 在 approve 期间可见。
+            </p>
+          </div>
+          <div className="rounded-full border px-3 py-1 text-xs text-muted-foreground">
+            {isPolling ? "refreshing staged progress" : "idle"}
+          </div>
+        </div>
+        <div className="mt-4 rounded-md border px-3 py-3 text-sm text-muted-foreground">
+          {activeJob ? (
+            <div>
+              activeJob={activeJob.job_id} · stage={activeJob.stage} · status={activeJob.status}
+            </div>
+          ) : (
+            <div>no active compile job</div>
+          )}
+        </div>
+      </section>
+
+      <section className="rounded-lg border bg-background p-5">
+        <div className="flex items-start justify-between gap-4">
+          <div>
             <h2 className="text-[1.1rem] font-semibold tracking-tight">Queue</h2>
             <p className="mt-2 text-sm text-muted-foreground">
               Queue summary for notebook-derived source candidates. 它告诉你哪些内容还没编译、哪些已经变成 wiki pages。
@@ -76,6 +105,7 @@ export function KnowledgeHomePage() {
         </div>
         <div className="mt-4 space-y-2 text-sm text-muted-foreground">
           {queueLoading ? <div>loading queue…</div> : null}
+          {!queueLoading && queuePolling ? <div>polling queue progress…</div> : null}
           {!queueLoading && queue.slice(0, 6).map((item) => (
             <div key={item.source_id} className="rounded-md border px-3 py-2">
               {item.title} · {item.status} · {item.last_compiled_at ?? "not compiled yet"}
