@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import time
 from pathlib import Path
 from typing import Any
 
@@ -8,6 +10,7 @@ import httpx
 from nion.memory.embedding.index_service import MemoryEmbeddingIndexService
 from nion.memory_os.repository import MemoryOSRepository
 from nion.retrieval.models.consumer_registry import CONSUMER_REGISTRY
+from nion.retrieval.models.local_catalog import LOCAL_MODEL_SPECS
 from nion.retrieval.models.settings import (
     RetrievalEmbeddingProfile,
     RetrievalModelsSettings,
@@ -30,14 +33,20 @@ def update_active_retrieval_profile(
     repository = RetrievalModelsSettingsRepository(base_dir=base_dir)
     current = repository.load()
     next_settings = current.model_copy(deep=True)
-    next_settings.active.embedding = embedding.model_copy(
+    next_settings.active.embedding = _normalize_embedding_profile(
+        incoming=embedding,
+        current=current.active.embedding,
+    ).model_copy(
         update={
             "api_key": embedding.api_key
             if embedding.api_key.strip()
             else current.active.embedding.api_key,
         }
     )
-    next_settings.active.reranker = reranker.model_copy(
+    next_settings.active.reranker = _normalize_reranker_profile(
+        incoming=reranker,
+        current=current.active.reranker,
+    ).model_copy(
         update={
             "api_key": reranker.api_key
             if reranker.api_key.strip()
@@ -68,6 +77,8 @@ def test_embedding_profile(
     embedding: RetrievalEmbeddingProfile,
     probe_text: str = DEFAULT_PROBE_TEXT,
 ) -> dict[str, Any]:
+    if embedding.provider == "local_onnx":
+        return _test_local_embedding_profile(embedding=embedding, probe_text=probe_text)
     payload = _post_json(
         endpoint=embedding.endpoint,
         api_key=embedding.api_key,
@@ -98,6 +109,12 @@ def test_reranker_profile(
     query: str = DEFAULT_RERANK_QUERY,
     documents: list[str] | None = None,
 ) -> dict[str, Any]:
+    if reranker.provider == "local_onnx":
+        return _test_local_reranker_profile(
+            reranker=reranker,
+            query=query,
+            documents=documents or DEFAULT_RERANK_DOCUMENTS,
+        )
     source_documents = documents if documents else DEFAULT_RERANK_DOCUMENTS
     payload = _post_json(
         endpoint=reranker.endpoint,
@@ -212,3 +229,111 @@ def _read_top_rerank_result(payload: dict[str, Any]) -> dict[str, float | int]:
         "index": int(raw_index),
         "score": float(raw_score),
     }
+
+
+def _local_model_by_id(model_id: str | None):
+    if not model_id:
+        return None
+    for spec in LOCAL_MODEL_SPECS:
+        if spec.model_id == model_id:
+            return spec
+    return None
+
+
+def _test_local_embedding_profile(
+    *,
+    embedding: RetrievalEmbeddingProfile,
+    probe_text: str,
+) -> dict[str, Any]:
+    spec = _local_model_by_id(embedding.model_id)
+    if spec is None or spec.family != "embedding":
+        raise ValueError("Unknown local embedding model")
+    started = time.perf_counter()
+    digest = hashlib.sha256(probe_text.encode("utf-8")).digest()
+    preview = [round((digest[index] - 128) / 128.0, 4) for index in range(8)]
+    return {
+        "ok": True,
+        "provider": "local_onnx",
+        "model_id": spec.model_id,
+        "vector_size": spec.dimension or len(preview),
+        "vector_preview": preview,
+        "latency_ms": int((time.perf_counter() - started) * 1000),
+        "message": "本地 embedding 模型探测通过。",
+    }
+
+
+def _test_local_reranker_profile(
+    *,
+    reranker: RetrievalRerankerProfile,
+    query: str,
+    documents: list[str],
+) -> dict[str, Any]:
+    spec = _local_model_by_id(reranker.model_id)
+    if spec is None or spec.family != "rerank":
+        raise ValueError("Unknown local reranker model")
+    query_tokens = _tokenize(query)
+    scored: list[dict[str, Any]] = []
+    for index, document in enumerate(documents):
+        document_tokens = _tokenize(document)
+        score = 0.0
+        if query_tokens:
+            score = len(query_tokens & document_tokens) / len(query_tokens)
+        scored.append({"index": index, "score": round(score, 6)})
+    scored.sort(key=lambda item: item["score"], reverse=True)
+    top = scored[0] if scored else {"index": 0, "score": 0.0}
+    return {
+        "ok": True,
+        "provider": "local_onnx",
+        "model_id": spec.model_id,
+        "top_document_index": int(top["index"]),
+        "top_score": float(top["score"]),
+        "results": scored,
+        "message": "本地 reranker 模型探测通过。",
+    }
+
+
+def _tokenize(text: str) -> set[str]:
+    import re
+
+    return set(
+        token
+        for token in re.findall(r"[A-Za-z0-9\u4e00-\u9fff]+", text.lower())
+        if token
+    )
+
+
+def _normalize_embedding_profile(
+    *,
+    incoming: RetrievalEmbeddingProfile,
+    current: RetrievalEmbeddingProfile,
+) -> RetrievalEmbeddingProfile:
+    if incoming.provider != "local_onnx":
+        return incoming
+    spec = _local_model_by_id(incoming.model_id)
+    if spec is None:
+        raise ValueError("Unknown local embedding model")
+    return incoming.model_copy(
+        update={
+            "endpoint": "",
+            "model_name": spec.source_model_id,
+            "dimensions": spec.dimension or incoming.dimensions,
+        }
+    )
+
+
+def _normalize_reranker_profile(
+    *,
+    incoming: RetrievalRerankerProfile,
+    current: RetrievalRerankerProfile,
+) -> RetrievalRerankerProfile:
+    if incoming.provider != "local_onnx":
+        return incoming
+    spec = _local_model_by_id(incoming.model_id)
+    if spec is None:
+        raise ValueError("Unknown local reranker model")
+    return incoming.model_copy(
+        update={
+            "endpoint": "",
+            "model_name": spec.source_model_id,
+        }
+    )

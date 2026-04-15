@@ -60,9 +60,7 @@ async def put_active_retrieval_profile(
 async def post_test_embedding(request: TestEmbeddingRequest) -> dict[str, Any]:
     try:
         return test_embedding_profile(
-            embedding=RetrievalEmbeddingProfile.model_validate(
-                request.model_dump(exclude={"probe_text"})
-            ),
+            embedding=RetrievalEmbeddingProfile.model_validate(request.model_dump(exclude={"probe_text"})),
             probe_text=request.probe_text,
         )
     except (httpx.HTTPError, ValueError) as exc:
@@ -73,9 +71,7 @@ async def post_test_embedding(request: TestEmbeddingRequest) -> dict[str, Any]:
 async def post_test_reranker(request: TestRerankerRequest) -> dict[str, Any]:
     try:
         return test_reranker_profile(
-            reranker=RetrievalRerankerProfile.model_validate(
-                request.model_dump(exclude={"query", "documents"})
-            ),
+            reranker=RetrievalRerankerProfile.model_validate(request.model_dump(exclude={"query", "documents"})),
             query=request.query,
             documents=request.documents,
         )

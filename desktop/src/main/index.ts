@@ -746,6 +746,7 @@ export async function startDesktopMain(): Promise<void> {
     defaultWorkingDirectory: () => "",
     backendBaseUrl: runtimeInfo.baseUrl,
     clientId: runtimeInfo.clientId ?? undefined,
+    localActionsExecutor,
     offsetStore: bridgeOffsetStore,
     weixinStore: weixinBridgeStore,
     recordObservation: (observation) => bridgeObservationsStore.appendObservation(observation),

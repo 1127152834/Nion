@@ -33,6 +33,8 @@ def _serialize_active_profile(settings: RetrievalModelsSettings) -> dict[str, An
 
     embedding["api_key_configured"] = bool(str(embedding.pop("api_key", "")).strip())
     reranker["api_key_configured"] = bool(str(reranker.pop("api_key", "")).strip())
+    embedding["display_name"] = _local_display_name(embedding.get("model_id"))
+    reranker["display_name"] = _local_display_name(reranker.get("model_id"))
 
     return {
         "embedding": embedding,
@@ -57,3 +59,12 @@ def _serialize_local_models() -> dict[str, list[dict[str, Any]]]:
             }
         )
     return payload
+
+
+def _local_display_name(model_id: object) -> str | None:
+    if not isinstance(model_id, str) or not model_id:
+        return None
+    for spec in LOCAL_MODEL_SPECS:
+        if spec.model_id == model_id:
+            return spec.display_name
+    return None

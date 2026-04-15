@@ -127,6 +127,45 @@ def test_retrieval_models_router_updates_active_profile(
     assert saved.active.reranker.api_key == "rerank-secret"
 
 
+def test_retrieval_models_router_updates_local_active_profile_without_remote_fields(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+
+    with TestClient(create_gateway_app()) as client:
+        response = client.put(
+            "/api/retrieval-models/active",
+            json={
+                "embedding": {
+                    "provider": "local_onnx",
+                    "model_id": "zh-embedding-lite",
+                    "endpoint": "",
+                    "api_key": "",
+                    "model_name": "",
+                    "dimensions": 768,
+                },
+                "reranker": {
+                    "provider": "local_onnx",
+                    "model_id": "zh-rerank-lite",
+                    "endpoint": "",
+                    "api_key": "",
+                    "model_name": "",
+                },
+            },
+        )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["active_profile"]["embedding"]["provider"] == "local_onnx"
+    assert payload["active_profile"]["embedding"]["model_id"] == "zh-embedding-lite"
+    assert payload["active_profile"]["embedding"]["display_name"] == "Jina Embeddings v2 Base ZH (INT8)"
+    assert payload["active_profile"]["reranker"]["provider"] == "local_onnx"
+    assert payload["active_profile"]["reranker"]["model_id"] == "zh-rerank-lite"
+    assert payload["active_profile"]["reranker"]["display_name"] == "Jina Reranker v2 Base Multilingual (Quantized)"
+
+
 def test_retrieval_models_router_keeps_existing_api_keys_when_new_payload_leaves_them_blank(
     monkeypatch,
     tmp_path,
@@ -205,6 +244,35 @@ def test_retrieval_models_router_tests_embedding_provider(
     }
 
 
+def test_retrieval_models_router_supports_local_embedding_probe(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+
+    with TestClient(create_gateway_app()) as client:
+        response = client.post(
+            "/api/retrieval-models/test/embedding",
+            json={
+                "provider": "local_onnx",
+                "model_id": "zh-embedding-lite",
+                "endpoint": "",
+                "api_key": "",
+                "model_name": "",
+                "dimensions": 768,
+                "probe_text": "hello retrieval",
+            },
+        )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["provider"] == "local_onnx"
+    assert payload["model_id"] == "zh-embedding-lite"
+    assert payload["vector_size"] == 768
+    assert payload["message"] == "本地 embedding 模型探测通过。"
+
+
 def test_retrieval_models_router_tests_reranker_provider(
     monkeypatch,
     tmp_path,
@@ -247,6 +315,35 @@ def test_retrieval_models_router_tests_reranker_provider(
         "top_score": 0.92,
         "message": "Reranker 测试通过。",
     }
+
+
+def test_retrieval_models_router_supports_local_reranker_probe(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+
+    with TestClient(create_gateway_app()) as client:
+        response = client.post(
+            "/api/retrieval-models/test/reranker",
+            json={
+                "provider": "local_onnx",
+                "model_id": "zh-rerank-lite",
+                "endpoint": "",
+                "api_key": "",
+                "model_name": "",
+                "query": "budget policy",
+                "documents": ["finance", "policy"],
+            },
+        )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["provider"] == "local_onnx"
+    assert payload["model_id"] == "zh-rerank-lite"
+    assert payload["top_document_index"] in {0, 1}
+    assert payload["message"] == "本地 reranker 模型探测通过。"
 
 
 def test_retrieval_models_router_rebuilds_consumer_indexes(
