@@ -128,6 +128,22 @@ Notebook 中只增加两类知识相关能力：
 - 行级/详情级动作：`转为知识库`
 - 行级/详情级动作：`查看知识状态`
 
+这里的 `转为知识库` 是用户语言，不是内部执行语义。
+
+它在系统内部只表示：
+
+- 把当前 raw 注册为 Knowledge source candidate
+- 进入 Knowledge queue
+- 生成 enqueue activity
+
+它不表示：
+
+- 立即启动 compile job
+- 同步生成知识页
+- 绕过 Queue / Activity 审批与可见过程
+
+也就是说，Notebook 负责 `enqueue`，Knowledge Queue / Activity 负责 `approve + compile + reveal progress`。
+
 Notebook 内可显示一个轻量内联进度面板，但它只回答：
 
 - 这个 raw 是否已进入知识库
@@ -196,6 +212,7 @@ Query 页是用户面向已编译知识库发问的正式入口。
 - 结果附稳定 citations / source badges
 - 支持保存为 synthesis
 - 支持展示命中的 Knowledge pages，而不是只显示工具消息
+- 默认按 `page_state` 做过滤与降权，而不是把历史页与当前页混在一起
 
 ### 5.6 Graph Workbench
 
@@ -283,6 +300,7 @@ type KnowledgeCitation = {
   page_id: string;
   title: string;
   page_type: "source" | "entity" | "concept" | "synthesis" | "overview";
+  page_state: "active" | "stale" | "archived";
   source_ids: string[];
   score: number;
 };
@@ -291,8 +309,42 @@ type KnowledgeQueryResult = {
   answer_markdown: string;
   citations: KnowledgeCitation[];
   matched_page_ids: string[];
+  retrieval_policy:
+    | "active_only"
+    | "active_with_stale_fallback"
+    | "explicit_archived_lookup";
+  warnings: string[];
 };
 ```
+
+默认 query 策略：
+
+1. `active` 页面正常参与召回与回答。
+2. `stale` 页面默认降权；仅在没有足够 `active` 命中，或用户明确接受“可能过期但仍可参考”的知识时才可进入回答。
+3. `archived` 页面默认不参与普通回答；仅在用户明确查询历史、删除前内容、归档知识或审计轨迹时才可命中。
+4. 一旦回答使用了 `stale` 或 `archived` 页面，最终回答必须带显式 warning，而不是静默混入正文。
+
+assistant 最终消息合同：
+
+```ts
+type AssistantKnowledgeAttachment = {
+  citations: KnowledgeCitation[];
+  matched_page_ids: string[];
+  retrieval_policy:
+    | "active_only"
+    | "active_with_stale_fallback"
+    | "explicit_archived_lookup";
+  warnings: string[];
+  rendered_from_final_answer: true;
+};
+```
+
+要求：
+
+- 归一化后的 citation metadata 必须写入最终 assistant message 的 `additional_kwargs.knowledge`
+- 前端优先从最终 assistant message 读取 citations
+- tool message 里的 `page_ids` 只作为迁移期 fallback，不再作为长期主合同
+- streaming 过程中允许暂存 tool result，但在最终回答落地时必须合并成稳定的 assistant-level metadata
 
 前端展示要求：
 
@@ -300,6 +352,7 @@ type KnowledgeQueryResult = {
 - 使用稳定 badge，而不是仅依赖工具消息链接
 - badge 点击直接打开对应 Knowledge page
 - 如果回答同时混入公共知识与 Knowledge 知识，Knowledge 来源仍要独立展示
+- `stale` 与 `archived` badge 需要可见状态样式，且回答区同步出现 warning
 
 ### 6.6 “今天又投喂了什么知识”如何让 Agent 知道
 
@@ -384,13 +437,21 @@ type KnowledgeSourceCandidate = {
     | "stale"
     | "ignored"
     | "source_missing";
+  enqueued_at?: string;
   last_job_id?: string;
   last_compiled_at?: string;
+  missing_detected_at?: string;
   compile_error?: string;
   created_at: string;
   updated_at: string;
 };
 ```
+
+补充约束：
+
+- candidate store 必须保留“曾经进入过 Knowledge 的 source registry”，不能只反映当前仍存在的 Notebook 项
+- `source_missing` 是 registry 上的持久状态，不因为原文消失就把 candidate 记录一并抹掉
+- candidate 是 Notebook 与 Knowledge 的桥接主键，不允许靠页面扫描反推
 
 ### 7.3 Compile Job
 
@@ -442,7 +503,38 @@ type KnowledgeActivityEvent = {
 };
 ```
 
-### 7.5 Knowledge Page Frontmatter
+### 7.5 Source Reconciliation Contract
+
+Knowledge 必须有正式的 `source reconciliation` 机制来处理 raw 删除、恢复和漂移，而不是只靠“重新扫描现存笔记”。
+
+```ts
+type KnowledgeSourceReconciliationResult = {
+  checked_source_ids: string[];
+  source_missing_ids: string[];
+  restored_source_ids: string[];
+  archived_page_ids: string[];
+  reactivated_page_ids: string[];
+  detected_at: string;
+};
+```
+
+触发来源：
+
+1. Notebook note / asset 的删除动作完成后，立即触发一次 reconciliation。
+2. Notebook restore 动作完成后，立即触发一次 reconciliation。
+3. Knowledge Queue / Activity 页提供显式 `reconcile now` 入口，作为修复与审计手段。
+4. workspace 启动时可做一次轻量 drift check，但这不是自动后台编译。
+
+处理规则：
+
+- reconciliation 基于持久化 candidate registry 与当前 Notebook inventory 做对比
+- 若 source 从 inventory 中消失，则 candidate 变 `source_missing`
+- 若 source 重新出现，则 candidate 恢复为 `stale` 或 `compiled`，取决于 content hash 是否漂移
+- 与该 source 关联的 page 在 source_missing 时标记 `archived`
+- 恢复后若 hash 未变，可恢复为 `active`；若 hash 已变，恢复为 `stale`
+- 每次 reconciliation 都必须写 activity event，保证用户与 Agent 都能看见生命周期变化
+
+### 7.6 Knowledge Page Frontmatter
 
 知识页必须是结构化 Markdown，而不是裸文件。
 
@@ -471,7 +563,7 @@ human_editable: false
 - 必须有 `agent_owned`
 - 不允许直接人工改正文作为正式编辑路径
 
-### 7.6 Graph Layout Contract
+### 7.7 Graph Layout Contract
 
 Graph 的交互布局需要持久化，而不是每次重开重新随机摆放。
 
@@ -485,7 +577,7 @@ type KnowledgeGraphLayout = {
 };
 ```
 
-### 7.7 Notebook 与 Knowledge 的桥接合同
+### 7.8 Notebook 与 Knowledge 的桥接合同
 
 Notebook 不暴露完整知识页数据，只暴露轻量状态：
 
@@ -494,6 +586,8 @@ type NotebookKnowledgeStatus = {
   has_knowledge: boolean;
   tag_label: "知识库";
   status: "queued" | "running" | "compiled" | "failed" | "stale" | "source_missing";
+  enqueue_state: "not_enqueued" | "enqueued";
+  compile_state: "idle" | "pending" | "running" | "succeeded" | "failed";
   last_job_id?: string;
   created_page_ids: string[];
   error_summary?: string;
@@ -502,17 +596,26 @@ type NotebookKnowledgeStatus = {
 
 Notebook UI 只消费这个摘要合同。
 
-### 7.8 建议 API 面
+约束：
+
+- Notebook `转为知识库` 只调用 enqueue 合同，不直接调用 compile/approve 合同
+- Notebook 通过 source_id 查询轻量状态，不自行拼装 compile 进度
+- Queue / Activity 是 compile job 的主视图，Notebook 只做 bridge
+
+### 7.9 建议 API 面
 
 后端建议形成以下正式面：
 
 ```text
 GET    /api/knowledge/home
+POST   /api/knowledge/sources/enqueue
+GET    /api/knowledge/sources/{source_id}/status
 GET    /api/knowledge/queue
 POST   /api/knowledge/queue/approve
 GET    /api/knowledge/jobs
 GET    /api/knowledge/jobs/{job_id}
 GET    /api/knowledge/activity
+POST   /api/knowledge/reconcile
 GET    /api/knowledge/pages
 GET    /api/knowledge/pages/{page_id}
 GET    /api/knowledge/query
@@ -526,7 +629,14 @@ POST   /api/knowledge/revisions/{request_id}/apply
 POST   /api/knowledge/revisions/{request_id}/close
 ```
 
-### 7.9 生命周期规则
+执行语义：
+
+- `POST /api/knowledge/sources/enqueue`：只把 raw 注册进 queue，不启动 compile
+- `POST /api/knowledge/queue/approve`：从 queue 中批准一个或多个 source 并创建 compile job
+- `GET /api/knowledge/sources/{source_id}/status`：给 Notebook bridge 返回轻量状态
+- `POST /api/knowledge/reconcile`：执行 source registry 与 Notebook inventory 的对账
+
+### 7.10 生命周期规则
 
 #### 原文修改
 
@@ -541,6 +651,14 @@ POST   /api/knowledge/revisions/{request_id}/close
 - 相关 page 标记 `page_state=archived`
 - 页面正文保留，但显示 `source missing` 横幅
 - 仍可通过旧引用或查询历史追踪到它，直到满足清理条件
+- 删除检测不是隐式推断，而是通过 `source reconciliation` 正式落账
+
+#### 原文恢复
+
+- reconciliation 检测到 source 重新出现
+- 若 content hash 未变，candidate 与 page 可恢复为 `active`
+- 若 content hash 已变，candidate 与 page 进入 `stale`
+- 该恢复事件必须写入 activity，并让 Notebook/Knowledge 状态同步更新
 
 #### 彻底清理
 
@@ -568,6 +686,7 @@ POST   /api/knowledge/revisions/{request_id}/close
 - 前后端合同测试冻结
 - 明确 `query_knowledge_base` 的返回合同
 - 明确 Notebook 标签与状态摘要合同
+- 明确 assistant final message 的 citation metadata 合同
 
 ### Phase 1：编译主链与可见过程
 
@@ -577,7 +696,10 @@ POST   /api/knowledge/revisions/{request_id}/close
 
 必须完成：
 
+- source enqueue API
+- source status-by-source API
 - source candidate store
+- source reconciliation
 - compile jobs
 - activity feed
 - Notebook 内联进度面板
@@ -594,6 +716,7 @@ POST   /api/knowledge/revisions/{request_id}/close
 
 - page tree / reader
 - query page
+- active / stale / archived retrieval policy
 - stable citations / source badges
 - synthesis 保存链路
 - archived / stale page 呈现
@@ -610,6 +733,7 @@ POST   /api/knowledge/revisions/{request_id}/close
 - tool planner 权重调整
 - recent knowledge activity digest
 - assistant final answer 中的 citations 展示
+- final assistant message citation metadata 落地
 
 ### Phase 4：完整图谱工作台
 
@@ -659,7 +783,7 @@ POST   /api/knowledge/revisions/{request_id}/close
 以下内容在不违反本 spec 的前提下，可由实施阶段自主决定，不需要重新上升为产品决策：
 
 1. `Knowledge Home` 中 `Queue` 与 `Activity` 是分卡片还是分子标签。
-2. Graph 具体使用哪种前端布局/聚类库，只要满足真正布局、拖拽、聚类和持久化合同。
+2. Graph 具体使用哪种前端布局/聚类库，只要满足真正布局、拖拽、聚类和持久化合同；默认优先复用现有依赖或原生实现，若确需新增依赖，必须单独记录决策并审查。
 3. Query ranking 的具体算法和权重，只要保持“compiled pages first”和稳定 citations。
 4. Notebook 内联进度面板采用 badge、inline card 或 collapsible panel，只要不把 Notebook 变成 Knowledge 主页面。
 5. `activity digest` 在运行时上下文中的注入格式，只要它不是 Memory 条目，并且能稳定提示最近知识变更。
@@ -681,12 +805,13 @@ POST   /api/knowledge/revisions/{request_id}/close
 当以下条件同时成立时，Knowledge 模块才算真正成立：
 
 1. 用户能在 Notebook 中明确看到某条 raw 是否已进入 Knowledge。
-2. “转为知识库”存在真实、可见、可失败、可重试的过程。
-3. 用户能在独立 Knowledge 页面里看到 page tree、page reader、query、activity 和 graph。
-4. 原文修改后会变 `stale`，原文删除后会进入 `archived / source missing`，不会悄悄消失。
-5. 普通聊天里的 Agent 在相关问题上能稳定优先调用 `query_knowledge_base`。
-6. assistant 最终回答里能稳定显示引用了哪些 Knowledge pages。
-7. Knowledge、Notebook、Memory 三者职责不再混淆。
+2. Notebook 中的 `转为知识库` 只负责 enqueue，不会直接伪装成同步编译完成。
+3. Queue / Activity 中存在真实、可见、可失败、可重试的编译过程。
+4. 用户能在独立 Knowledge 页面里看到 page tree、page reader、query、activity 和 graph。
+5. 原文修改后会变 `stale`，原文删除后会进入 `archived / source missing`，恢复后会经 reconciliation 正式更新，不会悄悄消失。
+6. 普通聊天里的 Agent 在相关问题上能稳定优先调用 `query_knowledge_base`，且不会把 `archived` 页面静默当成当前知识。
+7. assistant 最终回答里能稳定显示引用了哪些 Knowledge pages，并从最终 assistant message 读取 citation metadata，而不是依赖 tool-message 解析。
+8. Knowledge、Notebook、Memory 三者职责不再混淆。
 
 ---
 
