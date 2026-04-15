@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import asyncio
 import json
+from unittest import mock
 
 import pytest
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -81,6 +83,54 @@ def test_claude_oauth_request_payload_injects_billing_header(monkeypatch):
     assert isinstance(metadata, dict)
     assert isinstance(metadata.get("user_id"), str)
     assert metadata["user_id"]
+
+
+def test_claude_oauth_sync_create_strips_cache_control(monkeypatch):
+    monkeypatch.setenv("ANTHROPIC_AUTH_TOKEN", "sk-ant-oat01-test-token")
+
+    model = ClaudeChatModel(model="claude-sonnet-4-6", retry_max_attempts=1)
+    payload = {
+        "system": [{"type": "text", "text": "sys", "cache_control": {"type": "ephemeral"}}],
+        "messages": [
+            {
+                "role": "user",
+                "content": [{"type": "text", "text": "hi", "cache_control": {"type": "ephemeral"}}],
+            }
+        ],
+        "tools": [{"name": "demo", "input_schema": {"type": "object"}, "cache_control": {"type": "ephemeral"}}],
+    }
+
+    with mock.patch.object(model._client.messages, "create", return_value=object()) as create:
+        model._create(payload)
+
+    sent_payload = create.call_args.kwargs
+    assert "cache_control" not in sent_payload["system"][0]
+    assert "cache_control" not in sent_payload["messages"][0]["content"][0]
+    assert "cache_control" not in sent_payload["tools"][0]
+
+
+def test_claude_oauth_async_create_strips_cache_control(monkeypatch):
+    monkeypatch.setenv("ANTHROPIC_AUTH_TOKEN", "sk-ant-oat01-test-token")
+
+    model = ClaudeChatModel(model="claude-sonnet-4-6", retry_max_attempts=1)
+    payload = {
+        "system": [{"type": "text", "text": "sys", "cache_control": {"type": "ephemeral"}}],
+        "messages": [
+            {
+                "role": "user",
+                "content": [{"type": "text", "text": "hi", "cache_control": {"type": "ephemeral"}}],
+            }
+        ],
+        "tools": [{"name": "demo", "input_schema": {"type": "object"}, "cache_control": {"type": "ephemeral"}}],
+    }
+
+    with mock.patch.object(model._async_client.messages, "create", new=mock.AsyncMock(return_value=object())) as create:
+        asyncio.run(model._acreate(payload))
+
+    sent_payload = create.call_args.kwargs
+    assert "cache_control" not in sent_payload["system"][0]
+    assert "cache_control" not in sent_payload["messages"][0]["content"][0]
+    assert "cache_control" not in sent_payload["tools"][0]
 
 
 def test_codex_provider_skips_terminal_sse_markers(monkeypatch):
