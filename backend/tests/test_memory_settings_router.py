@@ -6,53 +6,37 @@ from app.gateway.app import create_app
 from nion.config.paths import reset_paths
 
 
-def test_memory_settings_router_supports_remote_patch_and_rebuild(
+def test_memory_settings_router_returns_projection_only(
     monkeypatch,
     tmp_path,
 ) -> None:
     monkeypatch.setenv("NION_HOME", str(tmp_path))
     reset_paths()
 
-    monkeypatch.setattr(
-        "app.gateway.routers.memory_settings.MemoryEmbeddingIndexService",
-        _StubIndexService,
-    )
-
     with TestClient(create_app()) as client:
-        patch = client.patch(
-            "/api/memory/settings",
-            json={
-                "mode": "remote_managed",
-                "remote_endpoint": "https://api.example.com/v1/embeddings",
-                "remote_api_key": "secret",
-                "remote_model_name": "text-embedding-3-large",
-                "remote_dimensions": 3072,
-            },
-        )
-        download = client.post("/api/memory/settings/download")
-        rebuild = client.post("/api/memory/settings/rebuild")
-        read_back = client.get("/api/memory/settings")
+        response = client.get("/api/memory/settings")
 
-    assert patch.status_code == 200
-    assert patch.json()["provider_mode"]["id"] == "remote_managed"
-    assert patch.json()["provider_mode"]["label"] == "外部接口"
-    assert patch.json()["remote_config"] == {
-        "endpoint": "https://api.example.com/v1/embeddings",
-        "api_key_configured": True,
-        "model_name": "text-embedding-3-large",
-        "dimensions": 3072,
+    assert response.status_code == 200
+    assert response.json() == {
+        "retrieval_status": {
+            "vector_enabled": True,
+            "reranker_enabled": True,
+            "detail": "检索模型配置已迁移到模型管理中的检索模型中心。",
+        },
+        "index_health": {
+            "state": "unknown",
+            "detail": "索引健康状态来自 retrieval models consumer projection。",
+            "record_count": 0,
+            "last_rebuild_at": None,
+        },
+        "jump_target": {
+            "section": "models",
+            "child_view": "retrieval",
+        },
     }
-    assert download.status_code == 409
-    assert "只支持外部向量模型接口" in download.json()["detail"]
-    assert rebuild.status_code == 200
-    assert rebuild.json()["job"]["state"] == "completed"
-    assert rebuild.json()["job"]["record_count"] == 3
-    assert read_back.status_code == 200
-    assert read_back.json()["index_health"]["record_count"] == 3
-    assert read_back.json()["download_status"]["progress"]["percent"] >= 0
 
 
-def test_memory_settings_router_rejects_local_mode_patch(
+def test_memory_settings_router_rejects_patch_and_redirects_to_retrieval_models_center(
     monkeypatch,
     tmp_path,
 ) -> None:
@@ -62,13 +46,14 @@ def test_memory_settings_router_rejects_local_mode_patch(
     with TestClient(create_app()) as client:
         response = client.patch(
             "/api/memory/settings",
-            json={"mode": "local_managed"},
+            json={"remote_model_name": "text-embedding-3-large"},
         )
 
-    assert response.status_code == 422
+    assert response.status_code == 409
+    assert "检索模型中心" in response.json()["detail"]
 
 
-def test_memory_settings_router_requires_remote_config_before_rebuild(
+def test_memory_settings_router_rejects_download_and_rebuild_actions(
     monkeypatch,
     tmp_path,
 ) -> None:
@@ -76,35 +61,10 @@ def test_memory_settings_router_requires_remote_config_before_rebuild(
     reset_paths()
 
     with TestClient(create_app()) as client:
-        response = client.post("/api/memory/settings/rebuild")
+        download = client.post("/api/memory/settings/download")
+        rebuild = client.post("/api/memory/settings/rebuild")
 
-    assert response.status_code == 409
-    assert "请先配置外部向量模型接口" in response.json()["detail"]
-
-
-class _StubIndexService:
-    def __init__(self, *, base_dir, repository, settings) -> None:
-        self._base_dir = base_dir
-
-    def rebuild_full_index(self):
-        manifest_path = self._base_dir / "memory-os" / "indexes" / "vector" / "manifest.json"
-        manifest_path.parent.mkdir(parents=True, exist_ok=True)
-        manifest = {
-            "provider": {
-                "provider_key": "remote_managed:remote-default",
-                "model_key": "text-embedding-3-large",
-                "fingerprint": "fp-remote",
-                "dimensions": 3072,
-                "distance_metric": "cosine",
-                "revision": "2026-04-11",
-            },
-            "provider_kind": "remote_managed",
-            "provider_id": "remote-default",
-            "record_count": 3,
-            "rebuilt_at": "2026-04-11T00:00:00Z",
-        }
-        manifest_path.write_text(__import__("json").dumps(manifest), encoding="utf-8")
-        return {
-            "record_count": 3,
-            "manifest": manifest,
-        }
+    assert download.status_code == 409
+    assert "检索模型中心" in download.json()["detail"]
+    assert rebuild.status_code == 409
+    assert "检索模型中心" in rebuild.json()["detail"]
