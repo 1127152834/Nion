@@ -1,3 +1,5 @@
+import sqlite3
+
 from nion.config.paths import Paths, reset_paths
 from nion.knowledge.models import KnowledgeSourceCandidate
 from nion.knowledge.source_candidates import KnowledgeSourceCandidateStore
@@ -127,3 +129,54 @@ def test_reconcile_restores_source_missing_candidate_after_refresh_left_it_missi
     assert result.restored_source_ids == [source_id]
     assert candidate.status in {"queued", "compiled", "stale"}
     assert candidate.status != "source_missing"
+
+
+def test_candidate_store_migrates_legacy_approved_status_to_queued(tmp_path, monkeypatch):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+    notebook = NotebookService(base_dir=tmp_path)
+    note = notebook.create_note(directory="", title="Legacy", body="body")
+    source_id = f"source:notebook_note:{note.note_id}"
+
+    store = KnowledgeSourceCandidateStore(base_dir=tmp_path)
+    store.refresh_from_notebook(notebook)
+    db_path = tmp_path / "knowledge" / ".nion" / "source_candidates.sqlite3"
+
+    with sqlite3.connect(db_path) as conn:
+        conn.execute(
+            "UPDATE knowledge_source_candidates SET status = 'approved' WHERE source_id = ?",
+            (source_id,),
+        )
+
+    reopened_store = KnowledgeSourceCandidateStore(base_dir=tmp_path)
+    candidate = reopened_store.get_candidate(source_id)
+
+    assert candidate.status == "queued"
+    with sqlite3.connect(db_path) as conn:
+        normalized_status = conn.execute(
+            "SELECT status FROM knowledge_source_candidates WHERE source_id = ?",
+            (source_id,),
+        ).fetchone()[0]
+    assert normalized_status == "queued"
+
+
+def test_record_enqueue_keeps_running_candidate_running(tmp_path, monkeypatch):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+    notebook = NotebookService(base_dir=tmp_path)
+    note = notebook.create_note(directory="", title="Inbox Note", body="body")
+    source_id = f"source:notebook_note:{note.note_id}"
+
+    store = KnowledgeSourceCandidateStore(base_dir=tmp_path)
+    store.refresh_from_notebook(notebook)
+    store.set_status(source_id, status="running", last_job_id="job_existing")
+
+    updated = store.record_enqueue(
+        source_id,
+        enqueued_at="2026-04-15T12:00:00Z",
+        job_id="job_existing",
+    )
+
+    assert updated.status == "running"
+    assert updated.last_job_id == "job_existing"
+    assert updated.enqueued_at == "2026-04-15T12:00:00Z"

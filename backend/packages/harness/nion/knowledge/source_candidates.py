@@ -19,6 +19,10 @@ def _hash_file(path: str) -> str:
 
 
 class KnowledgeSourceCandidateStore:
+    _LEGACY_STATUS_MIGRATIONS = {
+        "approved": "queued",
+    }
+
     def __init__(self, base_dir: str | Path | None = None) -> None:
         self._paths = get_knowledge_paths(base_dir=base_dir)
         self._paths.ensure_knowledge_dirs()
@@ -78,6 +82,15 @@ class KnowledgeSourceCandidateStore:
             ):
                 if ddl[0] not in columns:
                     conn.execute(ddl[1])
+            for legacy_status, normalized_status in self._LEGACY_STATUS_MIGRATIONS.items():
+                conn.execute(
+                    """
+                    UPDATE knowledge_source_candidates
+                    SET status = ?
+                    WHERE status = ?
+                    """,
+                    (normalized_status, legacy_status),
+                )
 
     def _row_to_candidate(self, row: sqlite3.Row) -> KnowledgeSourceCandidate:
         return KnowledgeSourceCandidate(
@@ -406,6 +419,7 @@ class KnowledgeSourceCandidateStore:
                 SET enqueued_at = ?, last_job_id = COALESCE(?, last_job_id),
                     updated_at = ?, status = CASE
                         WHEN status = 'compiled' THEN status
+                        WHEN status = 'running' THEN status
                         WHEN status = 'source_missing' THEN status
                         ELSE 'queued'
                     END,

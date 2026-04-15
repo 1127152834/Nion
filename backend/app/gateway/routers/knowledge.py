@@ -5,17 +5,17 @@ from typing import Literal
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from nion.knowledge.compile_jobs import KnowledgeCompileJobStore
-from nion.knowledge.ingest_service import KnowledgeIngestService
 from nion.knowledge.activity_store import KnowledgeActivityStore
+from nion.knowledge.compile_jobs import KnowledgeCompileJobStore
+from nion.knowledge.graph_service import KnowledgeGraphService
+from nion.knowledge.ingest_service import KnowledgeIngestService
+from nion.knowledge.lint_service import KnowledgeLintService
 from nion.knowledge.models import (
     KnowledgeCompileJob,
     KnowledgePage,
     KnowledgeSourceCandidate,
     KnowledgeSourceReconciliationResult,
 )
-from nion.knowledge.graph_service import KnowledgeGraphService
-from nion.knowledge.lint_service import KnowledgeLintService
 from nion.knowledge.page_store import KnowledgePageStore
 from nion.knowledge.query_service import KnowledgeQueryResult, KnowledgeQueryService
 from nion.knowledge.reconciliation_service import ReconciliationService
@@ -232,6 +232,15 @@ async def get_knowledge_jobs() -> KnowledgeJobListResponse:
 async def approve_knowledge_queue(payload: KnowledgeQueueApprovalRequest) -> KnowledgeCompileJob:
     store = KnowledgeSourceCandidateStore()
     job_store = KnowledgeCompileJobStore()
+    store.refresh_from_notebook(NotebookService())
+    missing_source_ids = [
+        source_id for source_id in payload.source_ids if _get_candidate_by_source_id(store, source_id) is None
+    ]
+    if missing_source_ids:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Knowledge source candidate not found: {missing_source_ids[0]}",
+        )
     job = job_store.create_job(source_ids=payload.source_ids, trigger_mode="queue_approval")
     started_at = utcnow_z()
     for source_id in payload.source_ids:

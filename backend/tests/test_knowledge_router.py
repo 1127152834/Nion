@@ -3,6 +3,7 @@ from fastapi.testclient import TestClient
 from app.daemon.app import create_app
 from nion.config.paths import reset_paths
 from nion.knowledge.activity_store import KnowledgeActivityStore
+from nion.knowledge.compile_jobs import KnowledgeCompileJobStore
 from nion.knowledge.source_candidates import KnowledgeSourceCandidateStore
 from nion.notebook.history import NotebookHistoryService
 from nion.notebook.service import NotebookService
@@ -46,6 +47,27 @@ def test_knowledge_queue_approval_creates_compile_job(monkeypatch, tmp_path):
     assert response.status_code == 200
     assert response.json()["status"] == "succeeded"
     assert response.json()["outputs"]["created_pages"]
+
+
+def test_knowledge_queue_approval_with_invalid_source_id_does_not_leave_pending_job(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+    note = NotebookService(base_dir=tmp_path).create_note(directory="", title="Inbox Note", body="body")
+    valid_source_id = f"source:notebook_note:{note.note_id}"
+    invalid_source_id = "source:notebook_note:missing"
+
+    with TestClient(create_app()) as client:
+        response = client.post(
+            "/api/knowledge/queue/approve",
+            json={"source_ids": [valid_source_id, invalid_source_id]},
+        )
+
+    jobs = KnowledgeCompileJobStore(base_dir=tmp_path).list_jobs()
+    candidate = KnowledgeSourceCandidateStore(base_dir=tmp_path).get_candidate(valid_source_id)
+
+    assert response.status_code == 404
+    assert jobs == []
+    assert candidate.status == "queued"
 
 
 def test_knowledge_jobs_endpoint_returns_compile_history(monkeypatch, tmp_path):
@@ -181,6 +203,38 @@ def test_knowledge_source_status_resets_failed_history_after_reenqueue(monkeypat
     assert status_payload["compile_state"] == "idle"
     assert status_payload["error_summary"] is None
     assert status_payload["status"] == "queued"
+
+
+def test_knowledge_source_status_keeps_running_after_reenqueue(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+    note = NotebookService(base_dir=tmp_path).create_note(directory="", title="Inbox Note", body="body")
+    source_id = f"source:notebook_note:{note.note_id}"
+    store = KnowledgeSourceCandidateStore(base_dir=tmp_path)
+    store.refresh_from_notebook(NotebookService(base_dir=tmp_path))
+
+    job_store = KnowledgeCompileJobStore(base_dir=tmp_path)
+    job = job_store.create_job(source_ids=[source_id], trigger_mode="queue_approval")
+    store.set_status(source_id, status="running", last_job_id=job.job_id, compile_error=None)
+    job_store.update_job(
+        job.job_id,
+        status="running",
+        outputs=job.outputs,
+        started_at="2026-04-15T12:00:00Z",
+    )
+
+    with TestClient(create_app()) as client:
+        reenqueued = client.post("/api/knowledge/sources/enqueue", json={"source_id": source_id})
+        status = client.get(f"/api/knowledge/sources/{source_id}/status")
+
+    reenqueued_payload = reenqueued.json()
+    status_payload = status.json()
+    assert reenqueued_payload["status"] == "running"
+    assert reenqueued_payload["compile_state"] == "running"
+    assert reenqueued_payload["last_job_id"] == job.job_id
+    assert status_payload["status"] == "running"
+    assert status_payload["compile_state"] == "running"
+    assert status_payload["last_job_id"] == job.job_id
 
 
 def test_knowledge_reconcile_endpoint_marks_deleted_source_missing(monkeypatch, tmp_path):
