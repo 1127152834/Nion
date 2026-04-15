@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.gateway.config import get_gateway_config
+from app.gateway.routers import retrieval_models
 from app.runtime.app_factory import create_runtime_app
 from nion.config.app_config import get_app_config
 from nion.memory_os.compat import finalize_legacy_cutover
@@ -46,7 +47,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 
 def create_app() -> FastAPI:
-    return create_runtime_app(
+    app = create_runtime_app(
         mode="web",
         title="Nion API Gateway",
         description="""
@@ -160,6 +161,8 @@ This gateway provides custom endpoints for models, MCP configuration, skills, an
             },
         ],
     )
+    app.include_router(retrieval_models.router)
+    return app
 
 
 # Create app instance for uvicorn

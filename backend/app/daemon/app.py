@@ -8,6 +8,7 @@ from typing import Any
 from fastapi import FastAPI
 
 from app.daemon.routers import channels, clients, control, diagnostics, incidents, logs, runtime
+from app.gateway.routers import retrieval_models
 from app.daemon.service import LocalDaemonService
 from app.runtime.app_factory import create_runtime_app
 from nion.config.paths import get_paths
@@ -56,7 +57,7 @@ def create_app(
     *,
     shutdown_callback: Any = None,
 ) -> FastAPI:
-    return create_runtime_app(
+    app = create_runtime_app(
         mode="desktop",
         title="Nion Local Daemon",
         description="Single local runtime for the Nion desktop client.",
@@ -64,3 +65,5 @@ def create_app(
         lifespan=lifespan,
         shutdown_callback=shutdown_callback,
     )
+    app.include_router(retrieval_models.router)
+    return app
