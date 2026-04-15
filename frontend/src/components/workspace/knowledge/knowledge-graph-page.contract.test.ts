@@ -14,13 +14,8 @@ void test("knowledge graph page renders graph state and rebuild affordance", asy
   assert.match(source, /EXTRACTED|INFERRED|AMBIGUOUS/);
   assert.match(source, /nodes|edges/);
   assert.match(source, /knowledge-graph-canvas/);
-  assert.match(source, /<svg/);
-  assert.match(source, /draggable/);
-  assert.match(source, /activeNodeId/);
-  assert.match(source, /localStorage/);
   assert.match(source, /cluster|聚类/);
-  assert.match(source, /knowledge-graph-layout/);
-  assert.match(source, /persistNodePosition/);
-  assert.match(source, /left:/);
-  assert.match(source, /top:/);
+  assert.match(source, /@xyflow\/react|ReactFlow/);
+  assert.match(source, /loadKnowledgeGraphLayout|saveKnowledgeGraphLayout|graph\/layout/);
+  assert.doesNotMatch(source, /localStorage\.getItem\("knowledge-graph-layout"\)/);
 });

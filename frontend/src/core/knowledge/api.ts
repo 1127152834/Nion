@@ -3,6 +3,7 @@ import { getBackendBaseURL } from "../config/index.ts";
 import type {
   KnowledgeActivityEvent,
   KnowledgeActivityListResponse,
+  KnowledgeGraphLayout,
   KnowledgeGraphPayload,
   KnowledgeLintReport,
   KnowledgePage,
@@ -166,7 +167,32 @@ function isKnowledgeGraphPayload(value: unknown): value is KnowledgeGraphPayload
   return (
     isObjectRecord(value) &&
     Array.isArray(value.nodes) &&
-    Array.isArray(value.edges)
+    Array.isArray(value.edges) &&
+    isKnowledgeGraphLayout(value.layout)
+  );
+}
+
+function isKnowledgeGraphNodePosition(
+  value: unknown,
+): value is KnowledgeGraphLayout["node_positions"][string] {
+  return (
+    isObjectRecord(value) &&
+    typeof value.x === "number" &&
+    Number.isFinite(value.x) &&
+    typeof value.y === "number" &&
+    Number.isFinite(value.y)
+  );
+}
+
+function isKnowledgeGraphLayout(value: unknown): value is KnowledgeGraphLayout {
+  return (
+    isObjectRecord(value) &&
+    value.version === 1 &&
+    isObjectRecord(value.node_positions) &&
+    Object.values(value.node_positions).every(isKnowledgeGraphNodePosition) &&
+    isStringArray(value.collapsed_clusters) &&
+    isStringArray(value.highlighted_node_ids) &&
+    typeof value.updated_at === "string"
   );
 }
 
@@ -439,6 +465,48 @@ export async function rebuildKnowledgeGraph(): Promise<KnowledgeGraphPayload> {
   const payload = (await readJson<unknown>(response)) as unknown;
   if (!isKnowledgeGraphPayload(payload)) {
     throw new Error("Invalid knowledge graph payload returned from rebuildKnowledgeGraph");
+  }
+  return payload;
+}
+
+export async function loadKnowledgeGraphLayout(): Promise<KnowledgeGraphPayload> {
+  const response = await fetch(`${getBackendBaseURL()}/api/knowledge/graph`);
+  if (!response.ok) {
+    throw new Error(
+      resolveErrorMessage(
+        await response.text(),
+        `Failed to load knowledge graph (${response.status})`,
+      ),
+    );
+  }
+  const payload = (await readJson<unknown>(response)) as unknown;
+  if (!isKnowledgeGraphPayload(payload)) {
+    throw new Error("Invalid knowledge graph payload returned from loadKnowledgeGraphLayout");
+  }
+  return payload;
+}
+
+export async function saveKnowledgeGraphLayout(
+  layout: KnowledgeGraphLayout,
+): Promise<KnowledgeGraphLayout> {
+  const response = await fetch(`${getBackendBaseURL()}/api/knowledge/graph/layout`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(layout),
+  });
+  if (!response.ok) {
+    throw new Error(
+      resolveErrorMessage(
+        await response.text(),
+        `Failed to save knowledge graph layout (${response.status})`,
+      ),
+    );
+  }
+  const payload = (await readJson<unknown>(response)) as unknown;
+  if (!isKnowledgeGraphLayout(payload)) {
+    throw new Error(
+      "Invalid knowledge graph layout payload returned from saveKnowledgeGraphLayout",
+    );
   }
   return payload;
 }

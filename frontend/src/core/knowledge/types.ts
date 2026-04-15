@@ -127,6 +127,15 @@ export interface KnowledgeQueryResult {
 export interface KnowledgeGraphPayload {
   nodes: Array<Record<string, unknown>>;
   edges: Array<Record<string, unknown>>;
+  layout: KnowledgeGraphLayout;
+}
+
+export interface KnowledgeGraphLayout {
+  version: 1;
+  node_positions: Record<string, { x: number; y: number }>;
+  collapsed_clusters: string[];
+  highlighted_node_ids: string[];
+  updated_at: string;
 }
 
 export interface KnowledgeRevisionRequest {

@@ -437,6 +437,26 @@ def test_knowledge_graph_rebuild_endpoint_returns_graph_payload(monkeypatch, tmp
     assert "edges" in payload
 
 
+def test_graph_layout_endpoint_persists_layout(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+
+    with TestClient(create_app()) as client:
+        response = client.put(
+            "/api/knowledge/graph/layout",
+            json={
+                "version": 1,
+                "node_positions": {"concept:roadmap": {"x": 10, "y": 20}},
+                "collapsed_clusters": [],
+                "highlighted_node_ids": [],
+                "updated_at": "2026-04-15T00:00:00Z",
+            },
+        )
+
+    assert response.status_code == 200
+    assert response.json()["node_positions"]["concept:roadmap"]["x"] == 10
+
+
 def test_knowledge_revision_endpoints_create_preview_and_close(monkeypatch, tmp_path):
     monkeypatch.setenv("NION_HOME", str(tmp_path))
     reset_paths()

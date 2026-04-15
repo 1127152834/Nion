@@ -6,12 +6,14 @@ import {
   approveKnowledgeQueue,
   closeKnowledgeRevision,
   createKnowledgeRevision,
+  loadKnowledgeGraphLayout,
   loadKnowledgeJobs,
   loadKnowledgeLint,
   loadKnowledgeQueue,
   queryKnowledge,
   reconcileKnowledgeSources,
   rebuildKnowledgeGraph,
+  saveKnowledgeGraphLayout,
   saveKnowledgeSynthesis,
   previewKnowledgeRevision,
 } from "./api.ts";
@@ -219,6 +221,72 @@ void test("loadKnowledgeJobs calls the jobs endpoint", async () => {
   assert.equal(payload.jobs[0]?.job_id, "job_1");
 });
 
+void test("loadKnowledgeGraphLayout reads graph payload with persisted layout", async () => {
+  let seenUrl = "";
+
+  globalThis.fetch = (async (input: RequestInfo | URL) => {
+    seenUrl = String(input);
+    return new Response(
+      JSON.stringify({
+        nodes: [{ id: "concept:roadmap", label: "Roadmap" }],
+        edges: [],
+        layout: {
+          version: 1,
+          node_positions: {
+            "concept:roadmap": { x: 120, y: 80 },
+          },
+          collapsed_clusters: [],
+          highlighted_node_ids: [],
+          updated_at: "2026-04-15T00:00:00Z",
+        },
+      }),
+      { status: 200, headers: { "Content-Type": "application/json" } },
+    );
+  }) as typeof fetch;
+
+  const payload = await loadKnowledgeGraphLayout();
+
+  assert.match(seenUrl, /\/api\/knowledge\/graph$/);
+  assert.equal(payload.layout.version, 1);
+  assert.equal(payload.layout.node_positions["concept:roadmap"]?.x, 120);
+});
+
+void test("saveKnowledgeGraphLayout persists layout to the backend", async () => {
+  let seenUrl = "";
+  let seenBody = "";
+
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    seenUrl = String(input);
+    seenBody = String(init?.body ?? "");
+    return new Response(
+      JSON.stringify({
+        version: 1,
+        node_positions: {
+          "concept:roadmap": { x: 10, y: 20 },
+        },
+        collapsed_clusters: [],
+        highlighted_node_ids: [],
+        updated_at: "2026-04-15T00:00:00Z",
+      }),
+      { status: 200, headers: { "Content-Type": "application/json" } },
+    );
+  }) as typeof fetch;
+
+  const payload = await saveKnowledgeGraphLayout({
+    version: 1,
+    node_positions: {
+      "concept:roadmap": { x: 10, y: 20 },
+    },
+    collapsed_clusters: [],
+    highlighted_node_ids: [],
+    updated_at: "2026-04-15T00:00:00Z",
+  });
+
+  assert.match(seenUrl, /\/api\/knowledge\/graph\/layout$/);
+  assert.match(seenBody, /concept:roadmap/);
+  assert.equal(payload.node_positions["concept:roadmap"]?.y, 20);
+});
+
 void test("enqueueKnowledgeSource posts to the enqueue endpoint", async () => {
   let seenUrl = "";
   let seenBody = "";
@@ -309,6 +377,13 @@ void test("rebuildKnowledgeGraph posts to the graph rebuild endpoint", async () 
       JSON.stringify({
         nodes: [{ id: "concept:roadmap", label: "Roadmap" }],
         edges: [{ from: "concept:roadmap", to: "entity:alpha-team", edge_type: "EXTRACTED" }],
+        layout: {
+          version: 1,
+          node_positions: {},
+          collapsed_clusters: [],
+          highlighted_node_ids: [],
+          updated_at: "2026-04-15T00:00:00Z",
+        },
       }),
       { status: 200, headers: { "Content-Type": "application/json" } },
     );

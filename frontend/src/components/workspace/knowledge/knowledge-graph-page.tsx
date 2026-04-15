@@ -1,72 +1,112 @@
 "use client";
 
+import {
+  applyNodeChanges,
+  Background,
+  Controls,
+  MiniMap,
+  ReactFlow,
+  type Edge,
+  type Node,
+  type NodeChange,
+} from "@xyflow/react";
 import { useEffect, useMemo, useState } from "react";
+import "@xyflow/react/dist/style.css";
 
-import { useRebuildKnowledgeGraph } from "@/core/knowledge";
+import {
+  useKnowledgeGraph,
+  useRebuildKnowledgeGraph,
+  useSaveKnowledgeGraphLayout,
+  type KnowledgeGraphLayout,
+} from "@/core/knowledge";
+
+const NODE_WIDTH = 180;
+const NODE_HEIGHT = 44;
+
+function defaultNodePosition(index: number) {
+  return {
+    x: 120 + (index % 4) * 240,
+    y: 100 + Math.floor(index / 4) * 160,
+  };
+}
+
+function getNodeCluster(nodeId: string) {
+  return nodeId.includes(":") ? nodeId.split(":")[0]! : "misc";
+}
 
 export function KnowledgeGraphPage() {
+  const { graph, isLoading, error } = useKnowledgeGraph();
   const rebuild = useRebuildKnowledgeGraph();
-  const nodes = rebuild.data?.nodes ?? [];
-  const edges = rebuild.data?.edges ?? [];
-  const [activeNodeId, setActiveNodeId] = useState<string | null>(null);
-  const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null);
-  const [storedPositions, setStoredPositions] = useState<Record<string, { left: string; top: string }>>({});
+  const saveKnowledgeGraphLayoutState = useSaveKnowledgeGraphLayout();
+  const nodes = graph?.nodes ?? [];
+  const edges = graph?.edges ?? [];
+  const layout = graph?.layout ?? null;
+  const [flowNodes, setFlowNodes] = useState<Array<Node<{ label: string }>>>([]);
   const graphClusters = useMemo(() => {
     const clusters = new Map<string, string[]>();
     for (const node of nodes) {
       const id = String(node.id ?? "");
-      const prefix = id.includes(":") ? id.split(":")[0]! : "misc";
+      const prefix = getNodeCluster(id);
       clusters.set(prefix, [...(clusters.get(prefix) ?? []), id]);
     }
     return Array.from(clusters.entries());
   }, [nodes]);
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem("knowledge-graph-layout");
-      if (!raw) {
-        return;
-      }
-      const parsed = JSON.parse(raw) as Record<string, { left: string; top: string }>;
-      setStoredPositions(parsed);
-    } catch {
-      // ignore corrupted local layout cache
-    }
-  }, []);
-
-  const positionedNodes = useMemo(
-    () =>
+    setFlowNodes(
       nodes.map((node, index) => ({
         id: String(node.id ?? index),
-        label: String(node.label ?? node.id ?? ""),
-        left: storedPositions[String(node.id ?? index)]?.left ?? `${12 + (index % 3) * 30}%`,
-        top: storedPositions[String(node.id ?? index)]?.top ?? `${16 + Math.floor(index / 3) * 24}%`,
+        type: "default",
+        position:
+          layout?.node_positions[String(node.id ?? index)] ?? defaultNodePosition(index),
+        data: { label: String(node.label ?? node.id ?? "") },
+        style: {
+          minWidth: NODE_WIDTH,
+          minHeight: NODE_HEIGHT,
+          borderRadius: 999,
+          borderColor: "hsl(var(--border))",
+          background: "hsl(var(--background))",
+          boxShadow: "0 10px 30px rgba(15, 23, 42, 0.08)",
+        },
       })),
-    [nodes, storedPositions],
-  );
-  const activeNeighbors = useMemo(() => {
-    if (!activeNodeId) {
-      return new Set<string>();
-    }
-    const refs = new Set<string>([activeNodeId]);
-    for (const edge of edges) {
-      const from = String(edge.from ?? "");
-      const to = String(edge.to ?? "");
-      if (from === activeNodeId) {
-        refs.add(to);
-      }
-      if (to === activeNodeId) {
-        refs.add(from);
-      }
-    }
-    return refs;
-  }, [activeNodeId, edges]);
+    );
+  }, [layout?.node_positions, nodes]);
 
-  function persistNodePosition(nodeId: string, left: string, top: string) {
-    setStoredPositions((current) => {
-      const next = { ...current, [nodeId]: { left, top } };
-      localStorage.setItem("knowledge-graph-layout", JSON.stringify(next));
-      return next;
+  const flowEdges = useMemo<Array<Edge>>(
+    () =>
+      edges.map((edge, index) => ({
+        id: `${String(edge.from ?? "")}:${String(edge.to ?? "")}:${index}`,
+        source: String(edge.from ?? ""),
+        target: String(edge.to ?? ""),
+        label: String(edge.edge_type ?? ""),
+        animated: String(edge.edge_type ?? "") === "INFERRED",
+        style: { strokeWidth: 1.4 },
+      })),
+    [edges],
+  );
+
+  function handleNodesChange(changes: NodeChange[]) {
+    setFlowNodes((current) => applyNodeChanges(changes, current));
+  }
+
+  function persistNodePosition(node: Node) {
+    const baseLayout: KnowledgeGraphLayout = layout ?? {
+      version: 1,
+      node_positions: {},
+      collapsed_clusters: [],
+      highlighted_node_ids: [],
+      updated_at: new Date().toISOString(),
+    };
+    saveKnowledgeGraphLayoutState.mutate({
+      ...baseLayout,
+      node_positions: {
+        ...baseLayout.node_positions,
+        [node.id]: {
+          x: node.position.x,
+          y: node.position.y,
+        },
+      },
+      updated_at: new Date().toISOString(),
     });
   }
 
@@ -95,8 +135,11 @@ export function KnowledgeGraphPage() {
           </button>
         </div>
         <div className="mt-4 text-sm text-muted-foreground">
+          {isLoading ? "loading graph…" : null}
           {rebuild.isPending ? "rebuilding…" : null}
-          {rebuild.data ? `nodes: ${nodes.length}, edges: ${edges.length}` : null}
+          {error ? "failed to load graph" : null}
+          {graph ? `nodes: ${nodes.length}, edges: ${edges.length}` : null}
+          {saveKnowledgeGraphLayoutState.isPending ? " · saving layout…" : null}
         </div>
         <div className="mt-4 flex flex-wrap gap-2 text-xs text-muted-foreground">
           {graphClusters.map(([cluster, ids]) => (
@@ -106,68 +149,24 @@ export function KnowledgeGraphPage() {
           ))}
         </div>
         <div className="knowledge-graph-canvas relative mt-4 min-h-[24rem] overflow-hidden rounded-xl border bg-muted/20">
-          <svg className="pointer-events-none absolute inset-0 size-full">
-            {edges.map((edge, index) => {
-              const from = positionedNodes.find((node) => node.id === String(edge.from ?? ""));
-              const to = positionedNodes.find((node) => node.id === String(edge.to ?? ""));
-              if (!from || !to) {
-                return null;
-              }
-              const fromX = Number.parseFloat(from.left) + 8;
-              const fromY = Number.parseFloat(from.top) + 4;
-              const toX = Number.parseFloat(to.left) + 8;
-              const toY = Number.parseFloat(to.top) + 4;
-              const highlighted =
-                activeNodeId &&
-                (String(edge.from ?? "") === activeNodeId ||
-                  String(edge.to ?? "") === activeNodeId);
-              return (
-                <line
-                  key={`${String(edge.from ?? "")}:${String(edge.to ?? "")}:${index}`}
-                  x1={`${fromX}%`}
-                  y1={`${fromY}%`}
-                  x2={`${toX}%`}
-                  y2={`${toY}%`}
-                  stroke={highlighted ? "currentColor" : "rgba(100,116,139,0.35)"}
-                  strokeWidth={highlighted ? 2.5 : 1.2}
-                />
-              );
-            })}
-          </svg>
-          {positionedNodes.length === 0 ? (
+          {flowNodes.length === 0 ? (
             <div className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground">
               no nodes
             </div>
           ) : null}
-          {positionedNodes.map((node) => (
-            <div
-              key={node.id}
-              draggable
-              onDragStart={() => setDraggingNodeId(node.id)}
-              onDragEnd={(event) => {
-                setDraggingNodeId(null);
-                const rect = event.currentTarget.parentElement?.getBoundingClientRect();
-                if (!rect) {
-                  return;
-                }
-                const left = `${((event.clientX - rect.left) / rect.width) * 100}%`;
-                const top = `${((event.clientY - rect.top) / rect.height) * 100}%`;
-                persistNodePosition(node.id, left, top);
-              }}
-              onMouseEnter={() => setActiveNodeId(node.id)}
-              onMouseLeave={() => setActiveNodeId((current) => (current === node.id ? null : current))}
-              className={`absolute cursor-grab rounded-full border bg-background px-4 py-2 text-sm shadow-sm transition-all ${
-                activeNodeId === node.id
-                  ? "z-10 scale-105 border-foreground"
-                  : activeNeighbors.size === 0 || activeNeighbors.has(node.id)
-                    ? "opacity-100"
-                    : "opacity-35"
-              } ${draggingNodeId === node.id ? "cursor-grabbing shadow-lg" : ""}`}
-              style={{ left: node.left, top: node.top }}
-            >
-              {node.label}
-            </div>
-          ))}
+          <ReactFlow
+            nodes={flowNodes}
+            edges={flowEdges}
+            onNodesChange={handleNodesChange}
+            onNodeDragStop={(_event, node) => persistNodePosition(node)}
+            fitView
+            minZoom={0.2}
+            maxZoom={1.6}
+          >
+            <Background />
+            <MiniMap pannable zoomable />
+            <Controls />
+          </ReactFlow>
         </div>
         <div className="mt-4 grid gap-4 lg:grid-cols-2">
           <div className="rounded-md border px-3 py-3 text-sm text-muted-foreground">

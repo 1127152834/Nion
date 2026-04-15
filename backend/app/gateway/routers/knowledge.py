@@ -67,6 +67,25 @@ class KnowledgeSynthesisCreateRequest(BaseModel):
     answer_markdown: str
 
 
+class KnowledgeGraphNodePosition(BaseModel):
+    x: float
+    y: float
+
+
+class KnowledgeGraphLayoutPayload(BaseModel):
+    version: Literal[1]
+    node_positions: dict[str, KnowledgeGraphNodePosition] = Field(default_factory=dict)
+    collapsed_clusters: list[str] = Field(default_factory=list)
+    highlighted_node_ids: list[str] = Field(default_factory=list)
+    updated_at: str
+
+
+class KnowledgeGraphPayload(BaseModel):
+    nodes: list[dict[str, object]]
+    edges: list[dict[str, object]]
+    layout: KnowledgeGraphLayoutPayload
+
+
 def _get_candidate_by_source_id(
     store: KnowledgeSourceCandidateStore,
     source_id: str,
@@ -347,9 +366,25 @@ async def query_knowledge(
 
 
 @router.post("/graph/rebuild")
-async def rebuild_knowledge_graph() -> dict[str, list[dict[str, object]]]:
+async def rebuild_knowledge_graph() -> KnowledgeGraphPayload:
     service = KnowledgeGraphService()
-    return service.build_graph()
+    return KnowledgeGraphPayload.model_validate(service.load_graph())
+
+
+@router.get("/graph", response_model=KnowledgeGraphPayload)
+async def get_knowledge_graph() -> KnowledgeGraphPayload:
+    service = KnowledgeGraphService()
+    return KnowledgeGraphPayload.model_validate(service.load_graph())
+
+
+@router.put("/graph/layout", response_model=KnowledgeGraphLayoutPayload)
+async def save_knowledge_graph_layout(
+    payload: KnowledgeGraphLayoutPayload,
+) -> KnowledgeGraphLayoutPayload:
+    service = KnowledgeGraphService()
+    return KnowledgeGraphLayoutPayload.model_validate(
+        service.save_layout(payload.model_dump(mode="json")),
+    )
 
 
 @router.get("/lint")

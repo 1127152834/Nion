@@ -10,6 +10,7 @@ import {
   applyKnowledgeRevision,
   approveKnowledgeQueue,
   createKnowledgeRevision,
+  loadKnowledgeGraphLayout,
   loadKnowledgeActivity,
   loadKnowledgeLint,
   loadKnowledgeJobs,
@@ -19,11 +20,14 @@ import {
   queryKnowledge,
   reconcileKnowledgeSources,
   rebuildKnowledgeGraph,
+  saveKnowledgeGraphLayout,
   saveKnowledgeSynthesis,
   previewKnowledgeRevision,
 } from "./api";
 import type {
   KnowledgeActivityEvent,
+  KnowledgeGraphLayout,
+  KnowledgeGraphPayload,
   KnowledgeCompileJobListResponse,
   KnowledgeCompileJob,
   KnowledgeLintReport,
@@ -199,8 +203,43 @@ export function useKnowledgeQuery(question: string | null) {
 }
 
 export function useRebuildKnowledgeGraph() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async () => rebuildKnowledgeGraph(),
+    onSuccess: async (payload) => {
+      queryClient.setQueryData(["knowledge", "graph"], payload);
+    },
+  });
+}
+
+export function useKnowledgeGraph() {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["knowledge", "graph"],
+    queryFn: () => loadKnowledgeGraphLayout(),
+    refetchOnWindowFocus: false,
+  });
+  return {
+    graph: (data ?? null) as KnowledgeGraphPayload | null,
+    isLoading,
+    error,
+  };
+}
+
+export function useSaveKnowledgeGraphLayout() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (layout: KnowledgeGraphLayout) => saveKnowledgeGraphLayout(layout),
+    onSuccess: async (layout) => {
+      queryClient.setQueryData<KnowledgeGraphPayload | undefined>(
+        ["knowledge", "graph"],
+        (current) => {
+          if (!current) {
+            return current;
+          }
+          return { ...current, layout };
+        },
+      );
+    },
   });
 }
 
