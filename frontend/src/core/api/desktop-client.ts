@@ -48,6 +48,10 @@ export type NotebookAssistantSessionBootstrapRecord<
 type DesktopRuntimeInfoPayload = {
   baseUrl?: string | null;
   clientId?: string | null;
+  mode?: string | null;
+  healthUrl?: string | null;
+  workingDirectory?: string | null;
+  allowBackgroundRunning?: boolean | null;
 };
 
 type DesktopBridgeWindow = Window & {
@@ -91,6 +95,15 @@ export type DesktopThreadClient = {
   ): Promise<NotebookAssistantSessionBootstrapRecord<TState>>;
 };
 
+export type DesktopRuntimeInfo = {
+  mode: string;
+  baseUrl: string;
+  healthUrl: string;
+  workingDirectory: string | null;
+  clientId: string | null;
+  allowBackgroundRunning: boolean;
+};
+
 function getDesktopWindow(): DesktopBridgeWindow | null {
   if (typeof window === "undefined") {
     return null;
@@ -101,6 +114,30 @@ function getDesktopWindow(): DesktopBridgeWindow | null {
 
 function getDesktopBridge() {
   return getDesktopWindow()?.nionDesktop;
+}
+
+export async function getDesktopRuntimeInfo(): Promise<DesktopRuntimeInfo | null> {
+  const desktopBridge = getDesktopBridge();
+
+  if (!desktopBridge?.getRuntimeInfo) {
+    return null;
+  }
+
+  try {
+    const runtimeInfo = await desktopBridge.getRuntimeInfo();
+    const baseUrl = runtimeInfo.baseUrl?.trim() ?? "";
+
+    return {
+      mode: runtimeInfo.mode?.trim() || "local-daemon",
+      baseUrl,
+      healthUrl: runtimeInfo.healthUrl?.trim() || (baseUrl ? `${baseUrl}/health` : ""),
+      workingDirectory: runtimeInfo.workingDirectory?.trim() || null,
+      clientId: runtimeInfo.clientId?.trim() || null,
+      allowBackgroundRunning: runtimeInfo.allowBackgroundRunning === true,
+    };
+  } catch {
+    return null;
+  }
 }
 
 function getDesktopBackendBaseURL(): string {
