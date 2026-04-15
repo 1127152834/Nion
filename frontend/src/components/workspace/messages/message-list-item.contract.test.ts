@@ -43,3 +43,12 @@ void test("knowledge citations are read from assistant additional_kwargs metadat
   assert.match(source, /additional_kwargs\?\.knowledge/);
   assert.doesNotMatch(source, /JSON\.parse\(content\).*page_ids/);
 });
+
+void test("knowledge extraction keeps compatibility fallbacks behind the new metadata path", async () => {
+  const source = await readFile(new URL("../../../core/messages/utils.ts", import.meta.url), "utf8");
+
+  assert.match(source, /const attachment = message\.additional_kwargs\?\.knowledge;/);
+  assert.match(source, /const fallbackPageIds = message\.additional_kwargs\?\.knowledge_sources;/);
+  assert.match(source, /message\.type === "tool"/);
+  assert.match(source, /toolPayload\.page_ids/);
+});

@@ -426,6 +426,98 @@ class TestStream:
         ]
         assert assistant_messages[-1]["additional_kwargs"]["knowledge"]["citations"][0]["page_id"] == "concept:roadmap"
 
+    def test_knowledge_attachment_does_not_leak_to_later_assistant_messages(self, client):
+        ai_lookup = AIMessage(
+            content="",
+            id="ai-knowledge-tool-call",
+            tool_calls=[
+                {
+                    "name": "query_knowledge_base",
+                    "args": {"question": "roadmap"},
+                    "id": "tc-knowledge",
+                }
+            ],
+        )
+        tool_result = ToolMessage(
+            content='{"answer_markdown":"Roadmap summary","page_ids":["concept:roadmap"],"matched_page_ids":["concept:roadmap"],"citations":[{"page_id":"concept:roadmap","snippet":"Roadmap summary"}],"retrieval_policy":"knowledge-first","warnings":[]}',
+            id="tm-knowledge",
+            tool_call_id="tc-knowledge",
+            name="query_knowledge_base",
+        )
+        ai_knowledge = AIMessage(content="Roadmap summary", id="ai-knowledge-final")
+        ai_plain = AIMessage(content="补充说明", id="ai-plain-follow-up")
+        chunks = [
+            {"messages": [HumanMessage(content="知识库 roadmap", id="h-1"), ai_lookup]},
+            {"messages": [HumanMessage(content="知识库 roadmap", id="h-1"), ai_lookup, tool_result]},
+            {
+                "messages": [
+                    HumanMessage(content="知识库 roadmap", id="h-1"),
+                    ai_lookup,
+                    tool_result,
+                    ai_knowledge,
+                ]
+            },
+            {
+                "messages": [
+                    HumanMessage(content="知识库 roadmap", id="h-1"),
+                    ai_lookup,
+                    tool_result,
+                    ai_knowledge,
+                    ai_plain,
+                ]
+            },
+        ]
+        agent = _make_agent_mock(chunks)
+
+        with (
+            patch.object(client, "_ensure_agent"),
+            patch.object(client, "_agent", agent),
+        ):
+            events = list(client.stream("知识库 roadmap", thread_id="t-knowledge-follow-up"))
+
+        knowledge_ai_events = [
+            event
+            for event in events
+            if event.type == "messages-tuple"
+            and event.data.get("type") == "ai"
+            and event.data.get("content") == "Roadmap summary"
+        ]
+        assert knowledge_ai_events
+        assert knowledge_ai_events[-1].data["additional_kwargs"]["knowledge"]["matched_page_ids"] == [
+            "concept:roadmap"
+        ]
+
+        plain_ai_events = [
+            event
+            for event in events
+            if event.type == "messages-tuple"
+            and event.data.get("type") == "ai"
+            and event.data.get("content") == "补充说明"
+        ]
+        assert plain_ai_events
+        assert plain_ai_events[-1].data.get("additional_kwargs") is None
+
+        values_events = [event for event in events if event.type == "values"]
+        assert values_events
+        final_messages = values_events[-1].data["messages"]
+        roadmap_messages = [
+            message
+            for message in final_messages
+            if message.get("type") == "ai" and message.get("content") == "Roadmap summary"
+        ]
+        assert roadmap_messages
+        assert roadmap_messages[-1]["additional_kwargs"]["knowledge"]["matched_page_ids"] == [
+            "concept:roadmap"
+        ]
+
+        plain_messages = [
+            message
+            for message in final_messages
+            if message.get("type") == "ai" and message.get("content") == "补充说明"
+        ]
+        assert plain_messages
+        assert plain_messages[-1].get("additional_kwargs") is None
+
     def test_values_event_with_title(self, client):
         """stream() emits values event containing title when present in state."""
         ai = AIMessage(content="ok", id="ai-1")

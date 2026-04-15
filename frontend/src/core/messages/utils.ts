@@ -437,11 +437,67 @@ export interface KnowledgeAttachmentInMessage {
   rendered_from_final_answer?: unknown;
 }
 
+function normalizeKnowledgeAttachmentCandidate(candidate: unknown) {
+  return candidate && typeof candidate === "object"
+    ? (candidate as KnowledgeAttachmentInMessage)
+    : null;
+}
+
+function fallbackKnowledgeAttachmentFromPageIds(pageIds: unknown) {
+  return Array.isArray(pageIds)
+    ? ({
+        matched_page_ids: pageIds,
+      } satisfies KnowledgeAttachmentInMessage)
+    : null;
+}
+
+function fallbackKnowledgeAttachmentFromLegacyToolPayload(message: Message) {
+  if (message.type !== "tool" || typeof message.content !== "string") {
+    return null;
+  }
+
+  try {
+    const toolPayload = JSON.parse(message.content) as {
+      page_ids?: unknown;
+      matched_page_ids?: unknown;
+      citations?: unknown;
+      retrieval_policy?: unknown;
+      warnings?: unknown;
+    };
+
+    const legacyPageIds = Array.isArray(toolPayload.matched_page_ids)
+      ? toolPayload.matched_page_ids
+      : toolPayload.page_ids;
+    if (!Array.isArray(legacyPageIds)) {
+      return null;
+    }
+
+    return {
+      matched_page_ids: legacyPageIds,
+      citations: Array.isArray(toolPayload.citations) ? toolPayload.citations : undefined,
+      retrieval_policy: toolPayload.retrieval_policy,
+      warnings: Array.isArray(toolPayload.warnings) ? toolPayload.warnings : undefined,
+    } satisfies KnowledgeAttachmentInMessage;
+  } catch {
+    return null;
+  }
+}
+
 export function extractKnowledgeAttachment(message: Message) {
   const attachment = message.additional_kwargs?.knowledge;
-  return attachment && typeof attachment === "object"
-    ? (attachment as KnowledgeAttachmentInMessage)
-    : null;
+  const normalizedAttachment = normalizeKnowledgeAttachmentCandidate(attachment);
+  if (normalizedAttachment) {
+    return normalizedAttachment;
+  }
+
+  const fallbackPageIds = message.additional_kwargs?.knowledge_sources;
+  const legacyAdditionalKwargsAttachment =
+    fallbackKnowledgeAttachmentFromPageIds(fallbackPageIds);
+  if (legacyAdditionalKwargsAttachment) {
+    return legacyAdditionalKwargsAttachment;
+  }
+
+  return fallbackKnowledgeAttachmentFromLegacyToolPayload(message);
 }
 
 /**

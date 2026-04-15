@@ -465,25 +465,87 @@ class NionClient:
         }
 
     @staticmethod
+    def _take_pending_knowledge_for_assistant(
+        serialized_message: dict[str, Any],
+        *,
+        pending_knowledge_attachment: dict[str, Any] | None,
+        pending_knowledge_page_ids: list[str],
+        bound_knowledge_attachment: dict[str, Any] | None,
+        bound_knowledge_page_ids: list[str],
+        bound_knowledge_message_key: str | None,
+    ) -> tuple[
+        dict[str, Any],
+        dict[str, Any] | None,
+        list[str],
+        dict[str, Any] | None,
+        list[str],
+        str | None,
+    ]:
+        if serialized_message.get("type") != "ai" or not serialized_message.get("content"):
+            return (
+                serialized_message,
+                pending_knowledge_attachment,
+                pending_knowledge_page_ids,
+                bound_knowledge_attachment,
+                bound_knowledge_page_ids,
+                bound_knowledge_message_key,
+            )
+
+        message_key = NionClient._message_dedup_key(serialized_message)
+        if (
+            bound_knowledge_message_key is None
+            and (pending_knowledge_attachment or pending_knowledge_page_ids)
+        ):
+            bound_knowledge_message_key = message_key
+            bound_knowledge_attachment = pending_knowledge_attachment
+            bound_knowledge_page_ids = pending_knowledge_page_ids
+            pending_knowledge_attachment = None
+            pending_knowledge_page_ids = []
+
+        if (
+            bound_knowledge_message_key
+            and bound_knowledge_message_key == message_key
+            and (bound_knowledge_attachment or bound_knowledge_page_ids)
+        ):
+            serialized_message = NionClient._attach_assistant_knowledge(
+                serialized_message,
+                knowledge_attachment=bound_knowledge_attachment,
+                knowledge_page_ids=bound_knowledge_page_ids,
+            )
+
+        return (
+            serialized_message,
+            pending_knowledge_attachment,
+            pending_knowledge_page_ids,
+            bound_knowledge_attachment,
+            bound_knowledge_page_ids,
+            bound_knowledge_message_key,
+        )
+
+    @staticmethod
     def _serialize_values_messages(
         messages: list[Any],
         *,
         knowledge_attachment: dict[str, Any] | None,
         knowledge_page_ids: list[str],
+        knowledge_message_key: str | None,
     ) -> list[dict[str, Any]]:
         serialized_messages = [NionClient._serialize_message(message) for message in messages]
         if not serialized_messages:
             return serialized_messages
 
-        last_message = serialized_messages[-1]
-        if last_message.get("type") != "ai" or not last_message.get("content"):
+        if not knowledge_message_key:
             return serialized_messages
 
-        serialized_messages[-1] = NionClient._attach_assistant_knowledge(
-            last_message,
-            knowledge_attachment=knowledge_attachment,
-            knowledge_page_ids=knowledge_page_ids,
-        )
+        for index, serialized_message in enumerate(serialized_messages):
+            if NionClient._message_dedup_key(serialized_message) != knowledge_message_key:
+                continue
+            serialized_messages[index] = NionClient._attach_assistant_knowledge(
+                serialized_message,
+                knowledge_attachment=knowledge_attachment,
+                knowledge_page_ids=knowledge_page_ids,
+            )
+            break
         return serialized_messages
 
     @staticmethod
@@ -534,6 +596,7 @@ class NionClient:
         *,
         knowledge_attachment: dict[str, Any] | None = None,
         knowledge_page_ids: list[str] | None = None,
+        knowledge_message_key: str | None = None,
     ) -> list[dict[str, Any]]:
         latest_exchange: list[dict[str, Any]] = []
         for msg in reversed(messages):
@@ -541,7 +604,10 @@ class NionClient:
                 continue
             serialized_message = NionClient._serialize_message(msg)
             if serialized_message.get("type") == "ai" and serialized_message.get("content"):
-                if not latest_exchange:
+                if (
+                    knowledge_message_key
+                    and NionClient._message_dedup_key(serialized_message) == knowledge_message_key
+                ):
                     serialized_message = NionClient._attach_assistant_knowledge(
                         serialized_message,
                         knowledge_attachment=knowledge_attachment,
@@ -663,8 +729,11 @@ class NionClient:
         new_turn_messages: list[dict[str, Any]] = []
         initial_turn_candidate_messages: list[dict[str, Any]] = []
         latest_values_messages: list[Any] = []
-        latest_knowledge_page_ids: list[str] = []
-        latest_knowledge_attachment: dict[str, Any] | None = None
+        pending_knowledge_page_ids: list[str] = []
+        pending_knowledge_attachment: dict[str, Any] | None = None
+        bound_knowledge_page_ids: list[str] = []
+        bound_knowledge_attachment: dict[str, Any] | None = None
+        bound_knowledge_message_key: str | None = None
         values_chunk_count = 0
 
         def flush_tool_batch() -> list[StreamEvent]:
@@ -748,10 +817,20 @@ class NionClient:
                 for index, msg in enumerate(messages):
                     serialized_message = self._serialize_message(msg)
                     if index == len(messages) - 1:
-                        serialized_message = self._attach_assistant_knowledge(
+                        (
                             serialized_message,
-                            knowledge_attachment=latest_knowledge_attachment,
-                            knowledge_page_ids=latest_knowledge_page_ids,
+                            pending_knowledge_attachment,
+                            pending_knowledge_page_ids,
+                            bound_knowledge_attachment,
+                            bound_knowledge_page_ids,
+                            bound_knowledge_message_key,
+                        ) = self._take_pending_knowledge_for_assistant(
+                            serialized_message,
+                            pending_knowledge_attachment=pending_knowledge_attachment,
+                            pending_knowledge_page_ids=pending_knowledge_page_ids,
+                            bound_knowledge_attachment=bound_knowledge_attachment,
+                            bound_knowledge_page_ids=bound_knowledge_page_ids,
+                            bound_knowledge_message_key=bound_knowledge_message_key,
                         )
                     signature = json.dumps(
                         serialized_message,
@@ -831,10 +910,10 @@ class NionClient:
                                 tool_payload = json.loads(self._extract_text(msg.content) or "{}")
                                 page_ids = tool_payload.get("page_ids")
                                 if isinstance(page_ids, list):
-                                    latest_knowledge_page_ids = [
+                                    pending_knowledge_page_ids = [
                                         item for item in page_ids if isinstance(item, str)
                                     ]
-                                latest_knowledge_attachment = {
+                                pending_knowledge_attachment = {
                                     "citations": tool_payload.get("citations", []),
                                     "matched_page_ids": tool_payload.get("matched_page_ids", []),
                                     "retrieval_policy": tool_payload.get("retrieval_policy"),
@@ -842,8 +921,8 @@ class NionClient:
                                     "rendered_from_final_answer": True,
                                 }
                             except json.JSONDecodeError:
-                                latest_knowledge_page_ids = []
-                                latest_knowledge_attachment = None
+                                pending_knowledge_page_ids = []
+                                pending_knowledge_attachment = None
                         payload: dict[str, Any] = {
                             "type": "tool",
                             "content": self._extract_text(msg.content),
@@ -888,16 +967,18 @@ class NionClient:
 
                 yield from flush_tool_batch()
 
+                serialized_values_messages = self._serialize_values_messages(
+                    messages,
+                    knowledge_attachment=bound_knowledge_attachment,
+                    knowledge_page_ids=bound_knowledge_page_ids,
+                    knowledge_message_key=bound_knowledge_message_key,
+                )
                 yield StreamEvent(
                     type="values",
                     data={
                         "title": chunk.get("title"),
                         "messages": [
-                            *self._serialize_values_messages(
-                                messages,
-                                knowledge_attachment=latest_knowledge_attachment,
-                                knowledge_page_ids=latest_knowledge_page_ids,
-                            ),
+                            *serialized_values_messages,
                             *tool_activity_messages,
                         ],
                         "artifacts": chunk.get("artifacts", []),
@@ -908,12 +989,18 @@ class NionClient:
                 )
 
                 if values_chunk_count == 1 and not initial_turn_candidate_messages:
-                    initial_turn_candidate_messages = self._collect_latest_human_ai_messages(messages)
+                    initial_turn_candidate_messages = self._collect_latest_human_ai_messages(
+                        messages,
+                        knowledge_attachment=bound_knowledge_attachment,
+                        knowledge_page_ids=bound_knowledge_page_ids,
+                        knowledge_message_key=bound_knowledge_message_key,
+                    )
 
             final_turn_messages = self._collect_latest_human_ai_messages(
                 latest_values_messages,
-                knowledge_attachment=latest_knowledge_attachment,
-                knowledge_page_ids=latest_knowledge_page_ids,
+                knowledge_attachment=bound_knowledge_attachment,
+                knowledge_page_ids=bound_knowledge_page_ids,
+                knowledge_message_key=bound_knowledge_message_key,
             )
             if final_turn_messages:
                 new_turn_messages = final_turn_messages
