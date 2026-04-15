@@ -24,10 +24,7 @@ test("desktop main serves one bridge runtime snapshot handler", () => {
     "utf8",
   );
 
-  assert.match(
-    source,
-    /ipcMain\.handle\(DESKTOP_BRIDGE_IPC_CHANNELS\.bridgeRuntimeInfo,\s*\(\)\s*=>\s*\{/,
-  );
+  assert.match(source, /const getBridgeRuntimeInfo = \(\) => \{/);
   assert.match(source, /const status = bridgeManager\.getStatus\(\);/);
   assert.match(
     source,
@@ -43,6 +40,10 @@ test("desktop main serves one bridge runtime snapshot handler", () => {
   assert.match(source, /activeBindings,/);
   assert.match(source, /openIncidents,/);
   assert.match(source, /startedAt:\s*status\.startedAt,/);
+  assert.match(
+    source,
+    /ipcMain\.handle\(\s*DESKTOP_BRIDGE_IPC_CHANNELS\.bridgeRuntimeInfo,\s*\(\)\s*=>\s*\{\s*return getBridgeRuntimeInfo\(\);\s*\}\s*\);/,
+  );
 
   const matches = source.match(/ipcMain\.handle\(DESKTOP_BRIDGE_IPC_CHANNELS\.bridgeRuntimeInfo/g) ?? [];
   assert.equal(matches.length, 1);

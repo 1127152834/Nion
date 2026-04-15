@@ -847,7 +847,7 @@ export async function startDesktopMain(): Promise<void> {
   ipcMain.handle(DESKTOP_BRIDGE_IPC_CHANNELS.getStatus, () => {
     return bridgeManager.getStatus();
   });
-  ipcMain.handle(DESKTOP_BRIDGE_IPC_CHANNELS.bridgeRuntimeInfo, () => {
+  const getBridgeRuntimeInfo = () => {
     const status = bridgeManager.getStatus();
     const activeBindings = bridgeBindingsStore
       .listBindings()
@@ -861,6 +861,9 @@ export async function startDesktopMain(): Promise<void> {
       openIncidents,
       startedAt: status.startedAt,
     };
+  });
+  ipcMain.handle(DESKTOP_BRIDGE_IPC_CHANNELS.bridgeRuntimeInfo, () => {
+    return getBridgeRuntimeInfo();
   });
   ipcMain.handle(DESKTOP_BRIDGE_IPC_CHANNELS.listBindings, () => {
     return bridgeBindingsStore.listBindings();
