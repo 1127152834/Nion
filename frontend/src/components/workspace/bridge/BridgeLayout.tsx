@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import { useCallback, useState, useSyncExternalStore } from "react";
 
 import { Button } from "@/components/ui/button";
-import { type BridgeRuntimeInfo, getBridgeClient } from "@/core/bridge/client";
+import type { BridgeRuntimeInfo } from "@/core/bridge/client";
+import { useGuardianRuntime } from "@/core/runtime/use-guardian-runtime";
 import { cn } from "@/lib/utils";
 
 import { WorkspacePageHeader } from "../workspace-page-header";
@@ -58,40 +59,20 @@ export function BridgeLayout() {
     () => "telegram" as Section,
   );
   const [overrideSection, setOverrideSection] = useState<Section | null>(null);
-  const [runtimeInfo, setRuntimeInfo] = useState<BridgeRuntimeInfo | null>(null);
+  const { snapshot } = useGuardianRuntime();
   const activeSection = overrideSection ?? hashSection;
   const { t } = useBridgeTranslation();
-  const refreshRuntimeInfo = useCallback(async () => {
-    try {
-      const nextRuntimeInfo = await getBridgeClient()?.getRuntimeInfo();
-      setRuntimeInfo(nextRuntimeInfo ?? null);
-    } catch {
-      setRuntimeInfo(null);
-    }
-  }, []);
-
-  useEffect(() => {
-    const loadRuntimeInfo = () => {
-      void refreshRuntimeInfo();
-    };
-    const handleWindowFocus = () => {
-      void loadRuntimeInfo();
-    };
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
-        void loadRuntimeInfo();
-      }
-    };
-
-    void loadRuntimeInfo();
-    window.addEventListener("focus", handleWindowFocus);
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-
-    return () => {
-      window.removeEventListener("focus", handleWindowFocus);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
-  }, [refreshRuntimeInfo]);
+  const runtimeInfo =
+    snapshot.loadState === "ready" && snapshot.bridgeRunning !== null
+      ? ({
+          running: snapshot.bridgeRunning,
+          autoStartEnabled: snapshot.bridgeAutoStartEnabled === true,
+          enabledPlatforms: Array.from({ length: snapshot.enabledPlatforms ?? 0 }, () => ""),
+          activeBindings: snapshot.activeBindings ?? 0,
+          openIncidents: snapshot.openIncidents ?? 0,
+          startedAt: snapshot.startedAt,
+        } satisfies BridgeRuntimeInfo)
+      : null;
 
   const handleSectionChange = useCallback((section: Section) => {
     setOverrideSection(section);

@@ -84,12 +84,15 @@ void test("bridge layout renders the overview panel before platform tabs", async
   const source = await readFile(new URL("./BridgeLayout.tsx", import.meta.url), "utf8");
 
   assert.match(source, /import \{ BridgeOverviewPanel \} from "\.\/BridgeOverviewPanel";/);
-  assert.match(source, /const \[runtimeInfo, setRuntimeInfo\] = useState<BridgeRuntimeInfo \| null>\(null\);/);
-  assert.match(source, /getBridgeClient\(\)\?\.getRuntimeInfo\(\)/);
+  assert.match(source, /import \{ useGuardianRuntime \} from "@\/core\/runtime\/use-guardian-runtime";/);
+  assert.match(source, /const \{ snapshot \} = useGuardianRuntime\(\);/);
+  assert.match(source, /const runtimeInfo =\s*snapshot\.loadState === "ready" && snapshot\.bridgeRunning !== null/);
   assert.match(source, /<BridgeOverviewPanel runtimeInfo=\{runtimeInfo\} \/>/);
-  assert.match(source, /window\.addEventListener\("focus", handleWindowFocus\)/);
-  assert.match(source, /document\.addEventListener\("visibilitychange", handleVisibilityChange\)/);
-  assert.match(source, /if \(document\.visibilityState === "visible"\)/);
+  assert.doesNotMatch(source, /const \[runtimeInfo, setRuntimeInfo\] = useState<BridgeRuntimeInfo \| null>\(null\);/);
+  assert.doesNotMatch(source, /getBridgeClient\(\)\?\.getRuntimeInfo\(\)/);
+  assert.doesNotMatch(source, /window\.addEventListener\("focus", handleWindowFocus\)/);
+  assert.doesNotMatch(source, /document\.addEventListener\("visibilitychange", handleVisibilityChange\)/);
+  assert.doesNotMatch(source, /if \(document\.visibilityState === "visible"\)/);
 
   const overviewIndex = source.indexOf("<BridgeOverviewPanel runtimeInfo={runtimeInfo} />");
   const tabsIndex = source.indexOf('<div className="flex min-h-0 flex-1 overflow-hidden rounded-2xl border border-border/60 bg-background">');
