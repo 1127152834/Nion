@@ -5,36 +5,38 @@ import { useCallback, useEffect, useState } from "react";
 import { getDesktopRuntimeInfo } from "../api/desktop-client.ts";
 import { getBridgeClient } from "../bridge/client.ts";
 import {
+  createGuardianRuntimeSnapshot,
   type GuardianRuntimeSnapshot,
-  mergeGuardianRuntime,
+  resolveGuardianRuntimeSnapshot,
 } from "./guardian-runtime.ts";
 
 export function useGuardianRuntime() {
-  const [snapshot, setSnapshot] = useState<GuardianRuntimeSnapshot>(() => ({
-    loadState: "loading",
-    guardianStatus: "offline",
-    bridgeRunning: null,
-    bridgeAutoStartEnabled: null,
-    enabledPlatforms: null,
-    activeBindings: null,
-    openIncidents: null,
-    startedAt: null,
-  }));
+  const [snapshot, setSnapshot] = useState<GuardianRuntimeSnapshot>(() =>
+    createGuardianRuntimeSnapshot("loading"),
+  );
 
   const refresh = useCallback(async () => {
     try {
       const desktopRuntime = await getDesktopRuntimeInfo();
-      const bridgeRuntime = await getBridgeClient()?.getRuntimeInfo().catch(() => null);
+      let bridgeRuntime = null;
+      let bridgeRuntimeError = false;
+
+      try {
+        bridgeRuntime = await getBridgeClient()?.getRuntimeInfo();
+      } catch {
+        bridgeRuntimeError = true;
+      }
 
       setSnapshot(
-        mergeGuardianRuntime({
+        resolveGuardianRuntimeSnapshot({
           desktopRuntime,
           bridgeRuntime: bridgeRuntime ?? null,
+          bridgeRuntimeError,
         }),
       );
     } catch {
       setSnapshot(
-        mergeGuardianRuntime({
+        resolveGuardianRuntimeSnapshot({
           desktopRuntime: null,
           bridgeRuntime: null,
           error: "error",

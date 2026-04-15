@@ -7,7 +7,9 @@ void test("guardian runtime module defines one shared visibility model and merge
 
   assert.match(source, /export type GuardianRuntimeSnapshot =/);
   assert.match(source, /export type GuardianRuntimeLoadState =/);
+  assert.match(source, /export function createGuardianRuntimeSnapshot/);
   assert.match(source, /export function mergeGuardianRuntime/);
+  assert.match(source, /export function resolveGuardianRuntimeSnapshot/);
   assert.match(source, /export function resolveGuardianDesktopRuntime/);
 });
 
@@ -53,6 +55,44 @@ void test("guardian runtime merge returns error snapshot when refresh fails", as
       loadState: "error",
       guardianStatus: "offline",
       bridgeRunning: null,
+      bridgeAutoStartEnabled: null,
+      enabledPlatforms: null,
+      activeBindings: null,
+      openIncidents: null,
+      startedAt: null,
+    },
+  );
+});
+
+void test("guardian runtime resolver keeps desktop snapshot ready when bridge fetch fails", async () => {
+  const { resolveGuardianRuntimeSnapshot } = await import("./guardian-runtime.ts");
+
+  assert.deepEqual(
+    resolveGuardianRuntimeSnapshot({
+      desktopRuntime: {
+        mode: "local-daemon",
+        baseUrl: "http://127.0.0.1:43115",
+        healthUrl: "http://127.0.0.1:43115/health",
+        workingDirectory: "/desktop",
+        clientId: "desktop-client-resolver",
+        allowBackgroundRunning: true,
+        guardianMode: {
+          enabled: true,
+          windowRequired: false,
+          status: "standing_by",
+        },
+        bridgeRuntime: {
+          available: true,
+          running: false,
+        },
+      },
+      bridgeRuntime: null,
+      bridgeRuntimeError: true,
+    }),
+    {
+      loadState: "ready",
+      guardianStatus: "standing_by",
+      bridgeRunning: false,
       bridgeAutoStartEnabled: null,
       enabledPlatforms: null,
       activeBindings: null,

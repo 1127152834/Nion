@@ -62,7 +62,7 @@ export type NormalizedGuardianDesktopRuntime = {
 
 type GuardianRuntimeErrorState = "unavailable" | "error" | null | undefined;
 
-function createGuardianRuntimeSnapshot(
+export function createGuardianRuntimeSnapshot(
   loadState: GuardianRuntimeLoadState,
 ): GuardianRuntimeSnapshot {
   return {
@@ -204,4 +204,28 @@ export function mergeGuardianRuntime(input: {
     openIncidents: input.bridgeRuntime?.openIncidents ?? null,
     startedAt: input.bridgeRuntime?.startedAt ?? null,
   };
+}
+
+export function resolveGuardianRuntimeSnapshot(input: {
+  desktopRuntime: GuardianRuntimeDesktopInput | NormalizedGuardianDesktopRuntime | null;
+  daemonRuntime?: GuardianRuntimeDaemonInput | null;
+  bridgeRuntime: BridgeRuntimeInfo | null;
+  bridgeRuntimeError?: boolean;
+  error?: GuardianRuntimeErrorState;
+}): GuardianRuntimeSnapshot {
+  if (input.bridgeRuntimeError === true && !input.desktopRuntime) {
+    return mergeGuardianRuntime({
+      desktopRuntime: null,
+      daemonRuntime: input.daemonRuntime ?? null,
+      bridgeRuntime: null,
+      error: input.error ?? "unavailable",
+    });
+  }
+
+  return mergeGuardianRuntime({
+    desktopRuntime: input.desktopRuntime,
+    daemonRuntime: input.daemonRuntime ?? null,
+    bridgeRuntime: input.bridgeRuntime,
+    error: input.error,
+  });
 }
