@@ -1,6 +1,9 @@
 "use client";
 
-import { mergeGuardianRuntime } from "../runtime/guardian-runtime.ts";
+import {
+  mergeGuardianRuntime,
+  normalizeGuardianDesktopRuntime,
+} from "../runtime/guardian-runtime.ts";
 
 import type {
   AgentThreadState,
@@ -134,6 +137,23 @@ export type DesktopRuntimeInfo = {
 
 export type DesktopGuardianModeStatus = "standing_by" | "busy" | "offline";
 
+function applyGuardianRuntimeSnapshot(
+  desktopRuntimeInfo: DesktopRuntimeInfo,
+  runtimeSnapshot: ReturnType<typeof mergeGuardianRuntime>,
+): DesktopRuntimeInfo {
+  return {
+    ...desktopRuntimeInfo,
+    guardianMode: {
+      ...desktopRuntimeInfo.guardianMode,
+      status: runtimeSnapshot.guardianStatus,
+    },
+    bridgeRuntime: {
+      ...desktopRuntimeInfo.bridgeRuntime,
+      running: runtimeSnapshot.bridgeRunning,
+    },
+  };
+}
+
 function getDesktopWindow(): DesktopBridgeWindow | null {
   if (typeof window === "undefined") {
     return null;
@@ -156,41 +176,18 @@ export async function getDesktopRuntimeInfo(): Promise<DesktopRuntimeInfo | null
   try {
     const runtimeInfo = (await desktopBridge.getRuntimeInfo()) as DesktopRuntimeInfoPayload;
     const baseUrl = runtimeInfo.baseUrl?.trim() ?? "";
-    const desktopRuntimeInfo: DesktopRuntimeInfo = {
-      mode: runtimeInfo.mode?.trim() || "local-daemon",
-      baseUrl,
-      healthUrl: runtimeInfo.healthUrl?.trim() || (baseUrl ? `${baseUrl}/health` : ""),
-      workingDirectory: runtimeInfo.workingDirectory?.trim() || null,
-      clientId: runtimeInfo.clientId?.trim() || null,
-      allowBackgroundRunning: runtimeInfo.allowBackgroundRunning === true,
-      guardianMode: {
-        enabled: runtimeInfo.allowBackgroundRunning === true,
-        windowRequired: false,
-        status: "offline",
-      },
-      bridgeRuntime: {
-        available: Boolean(baseUrl),
-        running: null,
-      },
-    };
-    const desktopOnlyGuardianRuntime = mergeGuardianRuntime({
-      desktopRuntime: desktopRuntimeInfo,
-      bridgeRuntime: null,
-      error: baseUrl ? null : "unavailable",
-    });
 
     if (!baseUrl) {
-      return {
-        ...desktopRuntimeInfo,
-        guardianMode: {
-          ...desktopRuntimeInfo.guardianMode,
-          status: desktopOnlyGuardianRuntime.guardianStatus,
-        },
-        bridgeRuntime: {
-          ...desktopRuntimeInfo.bridgeRuntime,
-          running: desktopOnlyGuardianRuntime.bridgeRunning,
-        },
-      };
+      const desktopRuntimeInfo = normalizeGuardianDesktopRuntime({
+        desktopRuntime: runtimeInfo,
+      });
+      const mergedGuardianRuntime = mergeGuardianRuntime({
+        desktopRuntime: runtimeInfo,
+        daemonRuntime: null,
+        bridgeRuntime: null,
+        error: "unavailable",
+      });
+      return applyGuardianRuntimeSnapshot(desktopRuntimeInfo, mergedGuardianRuntime);
     }
 
     try {
@@ -200,70 +197,27 @@ export async function getDesktopRuntimeInfo(): Promise<DesktopRuntimeInfo | null
       }
 
       const daemonRuntimeInfo = (await response.json()) as DaemonRuntimeInfoPayload;
-      const guardianStatus = daemonRuntimeInfo.guardian_mode?.status;
-      const mergedDesktopRuntimeInfo: DesktopRuntimeInfo = {
-        mode: daemonRuntimeInfo.mode?.trim() || desktopRuntimeInfo.mode,
-        baseUrl: daemonRuntimeInfo.base_url?.trim() || desktopRuntimeInfo.baseUrl,
-        healthUrl: daemonRuntimeInfo.health_url?.trim() || desktopRuntimeInfo.healthUrl,
-        workingDirectory:
-          daemonRuntimeInfo.working_directory?.trim() || desktopRuntimeInfo.workingDirectory,
-        clientId: desktopRuntimeInfo.clientId,
-        allowBackgroundRunning:
-          daemonRuntimeInfo.allow_background_running === true ||
-          (daemonRuntimeInfo.allow_background_running == null &&
-            desktopRuntimeInfo.allowBackgroundRunning),
-        guardianMode: {
-          enabled:
-            daemonRuntimeInfo.guardian_mode?.enabled === true ||
-            (daemonRuntimeInfo.guardian_mode?.enabled == null &&
-              desktopRuntimeInfo.guardianMode.enabled),
-          windowRequired: daemonRuntimeInfo.guardian_mode?.window_required === true,
-          status:
-            guardianStatus === "standing_by" ||
-            guardianStatus === "busy" ||
-            guardianStatus === "offline"
-              ? guardianStatus
-              : "offline",
-        },
-        bridgeRuntime: {
-          available:
-            daemonRuntimeInfo.bridge_runtime?.available === true ||
-            (daemonRuntimeInfo.bridge_runtime?.available == null &&
-              desktopRuntimeInfo.bridgeRuntime.available),
-          running:
-            daemonRuntimeInfo.bridge_runtime?.running === undefined
-              ? desktopRuntimeInfo.bridgeRuntime.running
-              : daemonRuntimeInfo.bridge_runtime.running,
-        },
-      };
+      const mergedDesktopRuntimeInfo = normalizeGuardianDesktopRuntime({
+        desktopRuntime: runtimeInfo,
+        daemonRuntime: daemonRuntimeInfo,
+      });
       const mergedGuardianRuntime = mergeGuardianRuntime({
-        desktopRuntime: mergedDesktopRuntimeInfo,
+        desktopRuntime: runtimeInfo,
+        daemonRuntime: daemonRuntimeInfo,
         bridgeRuntime: null,
       });
 
-      return {
-        ...mergedDesktopRuntimeInfo,
-        guardianMode: {
-          ...mergedDesktopRuntimeInfo.guardianMode,
-          status: mergedGuardianRuntime.guardianStatus,
-        },
-        bridgeRuntime: {
-          ...mergedDesktopRuntimeInfo.bridgeRuntime,
-          running: mergedGuardianRuntime.bridgeRunning,
-        },
-      };
+      return applyGuardianRuntimeSnapshot(mergedDesktopRuntimeInfo, mergedGuardianRuntime);
     } catch {
-      return {
-        ...desktopRuntimeInfo,
-        guardianMode: {
-          ...desktopRuntimeInfo.guardianMode,
-          status: desktopOnlyGuardianRuntime.guardianStatus,
-        },
-        bridgeRuntime: {
-          ...desktopRuntimeInfo.bridgeRuntime,
-          running: desktopOnlyGuardianRuntime.bridgeRunning,
-        },
-      };
+      const desktopRuntimeInfo = normalizeGuardianDesktopRuntime({
+        desktopRuntime: runtimeInfo,
+      });
+      const mergedGuardianRuntime = mergeGuardianRuntime({
+        desktopRuntime: runtimeInfo,
+        daemonRuntime: null,
+        bridgeRuntime: null,
+      });
+      return applyGuardianRuntimeSnapshot(desktopRuntimeInfo, mergedGuardianRuntime);
     }
   } catch {
     return null;

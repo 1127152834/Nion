@@ -10,6 +10,14 @@ void test("guardian runtime module defines one shared visibility model and merge
   assert.match(source, /export function mergeGuardianRuntime/);
 });
 
+void test("desktop client delegates guardian status legality fold to shared runtime merge", async () => {
+  const source = await readFile(new URL("../api/desktop-client.ts", import.meta.url), "utf8");
+
+  assert.doesNotMatch(source, /guardianStatus === "standing_by"/);
+  assert.doesNotMatch(source, /guardianStatus === "busy"/);
+  assert.doesNotMatch(source, /guardianStatus === "offline"/);
+});
+
 void test("guardian runtime merge returns unavailable when no runtime is reachable", async () => {
   const { mergeGuardianRuntime } = await import("./guardian-runtime.ts");
 
@@ -93,6 +101,64 @@ void test("guardian runtime merge prefers bridge overview and desktop guardian s
       activeBindings: 3,
       openIncidents: 1,
       startedAt: "2026-04-15T08:00:00.000Z",
+    },
+  );
+});
+
+void test("guardian runtime merge resolves desktop-only raw runtime input", async () => {
+  const { mergeGuardianRuntime } = await import("./guardian-runtime.ts");
+
+  assert.deepEqual(
+    mergeGuardianRuntime({
+      desktopRuntime: {
+        baseUrl: " http://127.0.0.1:43115 ",
+        clientId: "desktop-client-raw",
+        mode: " local-daemon ",
+        healthUrl: "",
+        workingDirectory: " /desktop ",
+        allowBackgroundRunning: true,
+      },
+      daemonRuntime: null,
+      bridgeRuntime: null,
+    }),
+    {
+      loadState: "ready",
+      guardianStatus: "offline",
+      bridgeRunning: null,
+      bridgeAutoStartEnabled: null,
+      enabledPlatforms: null,
+      activeBindings: null,
+      openIncidents: null,
+      startedAt: null,
+    },
+  );
+});
+
+void test("guardian runtime merge resolves bridge-only overview input", async () => {
+  const { mergeGuardianRuntime } = await import("./guardian-runtime.ts");
+
+  assert.deepEqual(
+    mergeGuardianRuntime({
+      desktopRuntime: null,
+      daemonRuntime: null,
+      bridgeRuntime: {
+        running: true,
+        autoStartEnabled: false,
+        enabledPlatforms: ["telegram"],
+        activeBindings: 1,
+        openIncidents: 0,
+        startedAt: "2026-04-15T09:00:00.000Z",
+      },
+    }),
+    {
+      loadState: "ready",
+      guardianStatus: "offline",
+      bridgeRunning: true,
+      bridgeAutoStartEnabled: false,
+      enabledPlatforms: 1,
+      activeBindings: 1,
+      openIncidents: 0,
+      startedAt: "2026-04-15T09:00:00.000Z",
     },
   );
 });
