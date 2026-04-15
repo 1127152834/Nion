@@ -28,7 +28,7 @@ import { resolveArtifactURL } from "@/core/artifacts/utils";
 import { useI18n } from "@/core/i18n/hooks";
 import {
   extractContentFromMessage,
-  extractKnowledgePageIdsFromToolMessage,
+  extractKnowledgeAttachment,
   extractReasoningContentFromMessage,
   extractShortcutSelectionsFromMessage,
   parseUploadedFiles,
@@ -82,20 +82,19 @@ function imageFilesFromMultimodalContent(message: Message): FileInMessage[] {
   if (!Array.isArray(message.content)) {
     return [];
   }
-  return message.content
-    .map((part, index) => {
+  return message.content.reduce<FileInMessage[]>((files, part, index) => {
       const imageUrl = imageUrlFromContentPart(part);
       if (!imageUrl) {
-        return null;
+        return files;
       }
-      return {
+      files.push({
         filename: `image-${index + 1}.png`,
         size: 0,
         path: imageUrl,
         status: "uploaded" as const,
-      };
-    })
-    .filter((file): file is FileInMessage => file !== null);
+      });
+      return files;
+    }, []);
 }
 
 export function MessageListItem({
@@ -311,8 +310,23 @@ function MessageContent_({
       </div>
     ) : null;
 
+  const knowledgeAttachmentSource = message.additional_kwargs?.knowledge;
+  const knowledgeAttachment =
+    knowledgeAttachmentSource && typeof knowledgeAttachmentSource === "object"
+      ? extractKnowledgeAttachment(message)
+      : null;
+  const knowledgeWarnings = useMemo(() => {
+    const warnings = knowledgeAttachment?.warnings;
+    return Array.isArray(warnings)
+      ? warnings.filter((warning): warning is string => typeof warning === "string" && warning.length > 0)
+      : [];
+  }, [knowledgeAttachment]);
   const knowledgePageLinks = useMemo(() => {
-    const pageIds = extractKnowledgePageIdsFromToolMessage(message);
+    const pageIds = Array.isArray(knowledgeAttachment?.matched_page_ids)
+      ? knowledgeAttachment.matched_page_ids.filter(
+          (pageId): pageId is string => typeof pageId === "string",
+        )
+      : [];
     if (pageIds.length === 0) {
       return null;
     }
@@ -329,7 +343,20 @@ function MessageContent_({
         ))}
       </div>
     );
-  }, [message]);
+  }, [knowledgeAttachment]);
+  const knowledgeWarningDisplay =
+    knowledgeWarnings.length > 0 ? (
+      <div className="mt-2 flex flex-col gap-1">
+        {knowledgeWarnings.map((warning) => (
+          <div
+            key={warning}
+            className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900"
+          >
+            {warning}
+          </div>
+        ))}
+      </div>
+    ) : null;
 
   // Uploading state: mock AI message shown while files upload
   if (message.additional_kwargs?.element === "task") {
@@ -400,6 +427,7 @@ function MessageContent_({
         components={components}
       />
       {knowledgePageLinks}
+      {knowledgeWarningDisplay}
     </AIElementMessageContent>
   );
 }

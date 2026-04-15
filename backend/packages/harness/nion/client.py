@@ -605,6 +605,7 @@ class NionClient:
         initial_turn_candidate_messages: list[dict[str, Any]] = []
         latest_values_messages: list[Any] = []
         latest_knowledge_page_ids: list[str] = []
+        latest_knowledge_attachment: dict[str, Any] | None = None
         values_chunk_count = 0
 
         def flush_tool_batch() -> list[StreamEvent]:
@@ -744,8 +745,14 @@ class NionClient:
                                 "content": text,
                                 "id": msg_id,
                             }
-                            if latest_knowledge_page_ids:
+                            if latest_knowledge_attachment:
                                 event_data["additional_kwargs"] = {
+                                    **event_data.get("additional_kwargs", {}),
+                                    "knowledge": latest_knowledge_attachment,
+                                }
+                            elif latest_knowledge_page_ids:
+                                event_data["additional_kwargs"] = {
+                                    **event_data.get("additional_kwargs", {}),
                                     "knowledge_sources": latest_knowledge_page_ids,
                                 }
                             if usage:
@@ -771,8 +778,16 @@ class NionClient:
                                     latest_knowledge_page_ids = [
                                         item for item in page_ids if isinstance(item, str)
                                     ]
+                                latest_knowledge_attachment = {
+                                    "citations": tool_payload.get("citations", []),
+                                    "matched_page_ids": tool_payload.get("matched_page_ids", []),
+                                    "retrieval_policy": tool_payload.get("retrieval_policy"),
+                                    "warnings": tool_payload.get("warnings", []),
+                                    "rendered_from_final_answer": True,
+                                }
                             except json.JSONDecodeError:
                                 latest_knowledge_page_ids = []
+                                latest_knowledge_attachment = None
                         payload: dict[str, Any] = {
                             "type": "tool",
                             "content": self._extract_text(msg.content),

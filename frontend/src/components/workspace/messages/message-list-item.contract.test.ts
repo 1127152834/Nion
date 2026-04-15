@@ -6,9 +6,9 @@ void test("human messages disable incomplete markdown parsing", async () => {
   const source = await readFile(new URL("./message-list-item.tsx", import.meta.url), "utf8");
 
   assert.match(source, /parseIncompleteMarkdown=\{false\}/);
-  assert.match(source, /extractKnowledgePageIdsFromToolMessage/);
+  assert.match(source, /extractKnowledgeAttachment/);
   assert.match(source, /引用知识页|知识来源/);
-  assert.match(source, /knowledge_sources|知识来源/);
+  assert.match(source, /additional_kwargs\?\.knowledge|知识来源/);
 });
 
 void test("human messages render uploaded image files through the rich files list", async () => {
@@ -35,4 +35,11 @@ void test("human multimodal image_url content is converted into rich file previe
   assert.match(source, /candidate\.type !== "image_url"/);
   assert.match(source, /const multimodalImageFiles = imageFilesFromMultimodalContent\(message\);/);
   assert.match(source, /if \(multimodalImageFiles\.length > 0\) \{\s*return multimodalImageFiles;/s);
+});
+
+void test("knowledge citations are read from assistant additional_kwargs metadata", async () => {
+  const source = await readFile(new URL("./message-list-item.tsx", import.meta.url), "utf8");
+
+  assert.match(source, /additional_kwargs\?\.knowledge/);
+  assert.doesNotMatch(source, /JSON\.parse\(content\).*page_ids/);
 });

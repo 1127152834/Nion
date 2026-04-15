@@ -429,27 +429,19 @@ export function findToolCallResult(toolCallId: string, messages: Message[]) {
   return undefined;
 }
 
-export function extractKnowledgePageIdsFromToolMessage(message: Message) {
-  const knowledgeSources = message.additional_kwargs?.knowledge_sources;
-  if (Array.isArray(knowledgeSources)) {
-    return knowledgeSources.filter((item): item is string => typeof item === "string");
-  }
-  if (message.type !== "tool" || message.name !== "query_knowledge_base") {
-    return [];
-  }
-  const content = extractTextFromMessage(message);
-  if (!content) {
-    return [];
-  }
-  try {
-    const payload = JSON.parse(content) as { page_ids?: unknown };
-    if (!Array.isArray(payload.page_ids)) {
-      return [];
-    }
-    return payload.page_ids.filter((item): item is string => typeof item === "string");
-  } catch {
-    return [];
-  }
+export interface KnowledgeAttachmentInMessage {
+  citations?: unknown[];
+  matched_page_ids?: unknown[];
+  retrieval_policy?: unknown;
+  warnings?: unknown[];
+  rendered_from_final_answer?: unknown;
+}
+
+export function extractKnowledgeAttachment(message: Message) {
+  const attachment = message.additional_kwargs?.knowledge;
+  return attachment && typeof attachment === "object"
+    ? (attachment as KnowledgeAttachmentInMessage)
+    : null;
 }
 
 /**

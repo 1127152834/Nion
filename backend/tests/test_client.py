@@ -381,7 +381,7 @@ class TestStream:
             ],
         )
         tool_result = ToolMessage(
-            content='{"answer_markdown":"Roadmap summary","page_ids":["concept:roadmap"]}',
+            content='{"answer_markdown":"Roadmap summary","page_ids":["concept:roadmap"],"matched_page_ids":["concept:roadmap"],"citations":[{"page_id":"concept:roadmap","snippet":"Roadmap summary"}],"retrieval_policy":"knowledge-first","warnings":[]}',
             id="tm-knowledge",
             tool_call_id="tc-knowledge",
             name="query_knowledge_base",
@@ -408,9 +408,10 @@ class TestStream:
             and event.data.get("content") == "Roadmap summary"
         ]
         assert final_events
-        assert final_events[-1].data["additional_kwargs"]["knowledge_sources"] == [
+        assert final_events[-1].data["additional_kwargs"]["knowledge"]["matched_page_ids"] == [
             "concept:roadmap"
         ]
+        assert final_events[-1].data["additional_kwargs"]["knowledge"]["citations"][0]["page_id"] == "concept:roadmap"
 
     def test_values_event_with_title(self, client):
         """stream() emits values event containing title when present in state."""

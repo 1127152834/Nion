@@ -19,7 +19,8 @@ def query_knowledge_base_tool(question: str) -> str:
         question: Natural-language question to ask against compiled knowledge pages.
 
     Returns:
-        JSON string containing the compiled answer, citations, retrieval policy, and warnings.
+        JSON string containing the compiled answer, assistant-attachment metadata,
+        and the legacy page_ids compatibility alias.
     """
     result = KnowledgeQueryService().answer(question)
     return json.dumps(
