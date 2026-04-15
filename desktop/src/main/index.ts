@@ -861,7 +861,7 @@ export async function startDesktopMain(): Promise<void> {
       openIncidents,
       startedAt: status.startedAt,
     };
-  });
+  };
   ipcMain.handle(DESKTOP_BRIDGE_IPC_CHANNELS.bridgeRuntimeInfo, () => {
     return getBridgeRuntimeInfo();
   });
