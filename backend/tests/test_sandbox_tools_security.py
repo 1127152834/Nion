@@ -10,6 +10,7 @@ from nion.sandbox.tools import (
     VIRTUAL_PATH_PREFIX,
     _apply_cwd_prefix,
     _head_truncate_output,
+    _host_runtime_path,
     _is_acp_workspace_path,
     _is_skills_path,
     _middle_truncate_output,
@@ -625,6 +626,117 @@ def test_bash_tool_allows_local_host_bash_in_host_mode_even_when_global_flag_is_
 
     assert result == "/tmp/nion-host\n"
     sandbox.execute_command.assert_called_once_with("pwd")
+
+
+def test_host_runtime_path_maps_virtual_paths_into_bound_host_directory() -> None:
+    runtime = SimpleNamespace(
+        state={"sandbox": {"sandbox_id": "local"}, "thread_data": _THREAD_DATA},
+        context={
+            "thread_id": "thread-1",
+            "execution_mode": "host",
+            "host_workdir": "/tmp/nion-host",
+        },
+    )
+
+    assert Path(_host_runtime_path(runtime, "/mnt/user-data/workspace/app.py")).resolve() == Path(
+        "/tmp/nion-host/app.py"
+    ).resolve()
+    assert Path(_host_runtime_path(runtime, "/mnt/user-data/uploads/image.png")).resolve() == Path(
+        "/tmp/nion-host/image.png"
+    ).resolve()
+
+
+def test_host_runtime_path_allows_absolute_host_path_inside_bound_directory() -> None:
+    runtime = SimpleNamespace(
+        state={"sandbox": {"sandbox_id": "local"}, "thread_data": _THREAD_DATA},
+        context={
+            "thread_id": "thread-1",
+            "execution_mode": "host",
+            "host_workdir": "/tmp/nion-host",
+        },
+    )
+
+    assert Path(_host_runtime_path(runtime, "/tmp/nion-host/src/main.py")).resolve() == Path(
+        "/tmp/nion-host/src/main.py"
+    ).resolve()
+
+
+def test_host_runtime_path_rejects_absolute_host_path_outside_bound_directory() -> None:
+    runtime = SimpleNamespace(
+        state={"sandbox": {"sandbox_id": "local"}, "thread_data": _THREAD_DATA},
+        context={
+            "thread_id": "thread-1",
+            "execution_mode": "host",
+            "host_workdir": "/tmp/nion-host",
+        },
+    )
+
+    with pytest.raises(PermissionError, match="outside bound host directory"):
+        _host_runtime_path(runtime, "/Users/example/Desktop/secret.txt")
+
+
+def test_read_file_tool_reads_bound_host_file_in_host_mode(tmp_path: Path) -> None:
+    host_dir = tmp_path / "host"
+    host_dir.mkdir()
+    target = host_dir / "notes.txt"
+    target.write_text("hello host mode", encoding="utf-8")
+
+    runtime = SimpleNamespace(
+        state={"sandbox": {"sandbox_id": "local"}, "thread_data": _THREAD_DATA},
+        context={
+            "thread_id": "thread-1",
+            "execution_mode": "host",
+            "host_workdir": str(host_dir),
+        },
+    )
+    sandbox = MagicMock()
+    sandbox.read_file.side_effect = lambda path: Path(path).read_text(encoding="utf-8")
+
+    with (
+        patch("nion.sandbox.tools.ensure_sandbox_initialized", return_value=sandbox),
+        patch("nion.sandbox.tools.ensure_thread_directories_exist"),
+        patch("nion.sandbox.tools._configure_local_sandbox_path_mappings"),
+    ):
+        result = __import__("nion.sandbox.tools", fromlist=["read_file_tool"]).read_file_tool.func(
+            runtime=runtime,
+            description="read host file",
+            path=str(target),
+        )
+
+    assert result == "hello host mode"
+    sandbox.read_file.assert_called_once_with(str(target))
+
+
+def test_write_file_tool_writes_bound_host_file_in_host_mode(tmp_path: Path) -> None:
+    host_dir = tmp_path / "host"
+    host_dir.mkdir()
+    target = host_dir / "notes.txt"
+
+    runtime = SimpleNamespace(
+        state={"sandbox": {"sandbox_id": "local"}, "thread_data": _THREAD_DATA},
+        context={
+            "thread_id": "thread-1",
+            "execution_mode": "host",
+            "host_workdir": str(host_dir),
+        },
+    )
+    sandbox = MagicMock()
+    sandbox.write_file.side_effect = lambda path, content, append=False: Path(path).write_text(content, encoding="utf-8")
+
+    with (
+        patch("nion.sandbox.tools.ensure_sandbox_initialized", return_value=sandbox),
+        patch("nion.sandbox.tools.ensure_thread_directories_exist"),
+        patch("nion.sandbox.tools._configure_local_sandbox_path_mappings"),
+    ):
+        result = __import__("nion.sandbox.tools", fromlist=["write_file_tool"]).write_file_tool.func(
+            runtime=runtime,
+            description="write host file",
+            path=str(target),
+            content="written in host mode",
+        )
+
+    assert result == "OK"
+    assert target.read_text(encoding="utf-8") == "written in host mode"
 
 
 def test_local_sandbox_write_file_blocks_read_only_mapped_path(tmp_path: Path) -> None:

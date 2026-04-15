@@ -197,6 +197,10 @@ Runtime profile execution contract:
 - Upload routing is independent from `execution_mode`. For `LocalSandboxProvider`,
   thread uploads already live in host thread storage, so upload handling must skip
   `sandbox.update_file("/mnt/user-data/...")` and return only virtual-path metadata.
+- Local file tools must honor `host_workdir` consistently. In host mode with a
+  bound directory, `read_file` / `ls` / `write_file` / `str_replace` / `glob` /
+  `grep` may resolve either `/mnt/user-data/*` virtual paths or absolute paths
+  inside that bound host directory, but must still reject paths outside it.
 
 Prompt assembly contract:
 

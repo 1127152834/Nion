@@ -662,6 +662,44 @@ def _host_runtime_thread_data(
     }
 
 
+def _host_runtime_path(runtime: ToolRuntime[ContextT, ThreadState] | None, path: str) -> str:
+    """Resolve a tool path when local execution is bound to a host directory.
+
+    Host mode without a bound directory still uses the thread sandbox storage.
+    Once a host directory is bound, tools may address either the virtual
+    /mnt/user-data namespace or absolute paths inside that bound directory.
+    """
+    if not _is_host_execution_mode(runtime):
+        return path
+
+    runtime_context = (runtime.context or {}) if runtime is not None else {}
+    host_workdir = runtime_context.get("host_workdir")
+    if not isinstance(host_workdir, str) or not host_workdir.strip():
+        return path
+
+    root = Path(host_workdir.strip()).expanduser().resolve()
+    _reject_path_traversal(path)
+
+    if path == VIRTUAL_PATH_PREFIX or path.startswith(f"{VIRTUAL_PATH_PREFIX}/"):
+        stripped = path.lstrip("/")
+        prefix = VIRTUAL_PATH_PREFIX.lstrip("/")
+        relative = stripped[len(prefix):].lstrip("/")
+        if relative:
+            parts = relative.split("/", 1)
+            if parts[0] in {"workdir", "workspace", "uploads", "outputs"}:
+                relative = parts[1] if len(parts) > 1 else ""
+        target = (root / relative).resolve() if relative else root
+    else:
+        target = Path(path).expanduser().resolve()
+
+    try:
+        target.relative_to(root)
+    except ValueError as exc:
+        raise PermissionError(f"Host mode path is outside bound host directory: {path}") from exc
+
+    return str(target)
+
+
 def get_thread_data(runtime: ToolRuntime[ContextT, ThreadState] | None) -> ThreadDataState | None:
     """Extract thread_data from runtime state."""
     if runtime is None:
@@ -874,8 +912,11 @@ def ls_tool(runtime: ToolRuntime[ContextT, ThreadState], description: str, path:
         _configure_local_sandbox_path_mappings(sandbox, runtime)
         requested_path = path
         if is_local_sandbox(runtime):
-            thread_data = get_thread_data(runtime)
-            path = _resolve_local_read_path(path, thread_data)
+            if _is_host_execution_mode(runtime):
+                path = _host_runtime_path(runtime, path)
+            else:
+                thread_data = get_thread_data(runtime)
+                path = _resolve_local_read_path(path, thread_data)
         children = sandbox.list_dir(path)
         if not children:
             return "(empty)"
@@ -919,8 +960,11 @@ def read_file_tool(
         _configure_local_sandbox_path_mappings(sandbox, runtime)
         requested_path = path
         if is_local_sandbox(runtime):
-            thread_data = get_thread_data(runtime)
-            path = _resolve_local_read_path(path, thread_data)
+            if _is_host_execution_mode(runtime):
+                path = _host_runtime_path(runtime, path)
+            else:
+                thread_data = get_thread_data(runtime)
+                path = _resolve_local_read_path(path, thread_data)
         content = sandbox.read_file(path)
         if not content:
             return "(empty)"
@@ -963,9 +1007,12 @@ def write_file_tool(
         _configure_local_sandbox_path_mappings(sandbox, runtime)
         requested_path = path
         if is_local_sandbox(runtime):
-            thread_data = get_thread_data(runtime)
-            validate_local_tool_path(path, thread_data)
-            path = _resolve_and_validate_user_data_path(path, thread_data)
+            if _is_host_execution_mode(runtime):
+                path = _host_runtime_path(runtime, path)
+            else:
+                thread_data = get_thread_data(runtime)
+                validate_local_tool_path(path, thread_data)
+                path = _resolve_and_validate_user_data_path(path, thread_data)
         sandbox.write_file(path, content, append)
         return "OK"
     except SandboxError as e:
@@ -1005,9 +1052,12 @@ def str_replace_tool(
         _configure_local_sandbox_path_mappings(sandbox, runtime)
         requested_path = path
         if is_local_sandbox(runtime):
-            thread_data = get_thread_data(runtime)
-            validate_local_tool_path(path, thread_data)
-            path = _resolve_and_validate_user_data_path(path, thread_data)
+            if _is_host_execution_mode(runtime):
+                path = _host_runtime_path(runtime, path)
+            else:
+                thread_data = get_thread_data(runtime)
+                validate_local_tool_path(path, thread_data)
+                path = _resolve_and_validate_user_data_path(path, thread_data)
         content = sandbox.read_file(path)
         if not content:
             return "OK"
@@ -1044,7 +1094,11 @@ def glob_tool(runtime: ToolRuntime[ContextT, ThreadState], description: str, pat
         _configure_local_sandbox_path_mappings(sandbox, runtime)
         requested_path = path
         if is_local_sandbox(runtime):
-            path = _resolve_local_read_path(path, get_thread_data(runtime))
+            path = (
+                _host_runtime_path(runtime, path)
+                if _is_host_execution_mode(runtime)
+                else _resolve_local_read_path(path, get_thread_data(runtime))
+            )
         if not hasattr(sandbox, "glob"):
             raise SandboxRuntimeError("Sandbox does not support glob search")
         matches = sandbox.glob(path, pattern)
@@ -1078,7 +1132,11 @@ def grep_tool(runtime: ToolRuntime[ContextT, ThreadState], description: str, pat
         _configure_local_sandbox_path_mappings(sandbox, runtime)
         requested_path = path
         if is_local_sandbox(runtime):
-            path = _resolve_local_read_path(path, get_thread_data(runtime))
+            path = (
+                _host_runtime_path(runtime, path)
+                if _is_host_execution_mode(runtime)
+                else _resolve_local_read_path(path, get_thread_data(runtime))
+            )
         if not hasattr(sandbox, "grep"):
             raise SandboxRuntimeError("Sandbox does not support grep search")
         matches = sandbox.grep(path, query)
