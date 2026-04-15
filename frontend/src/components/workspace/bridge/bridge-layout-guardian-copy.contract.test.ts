@@ -27,6 +27,25 @@ void test("bridge layout frames the page as a unified remote entry surface for t
   assert.match(sharedSource, /"bridge\.summarySameComputer": "Same computer"/);
   assert.match(sharedSource, /"bridge\.summarySameTasks": "Same tasks"/);
   assert.match(sharedSource, /"bridge\.summarySameQueue": "Same confirmation queue"/);
+  assert.match(sharedSource, /"bridge\.title": "统一远程入口"/);
+  assert.match(
+    sharedSource,
+    /"bridge\.description":\s*"把所有已连接渠道作为同一台 guardian-mode 电脑的统一远程入口来管理"/,
+  );
+  assert.match(sharedSource, /"bridge\.summaryTitle": "所有渠道都通往同一个执行面"/);
+  assert.match(
+    sharedSource,
+    /"bridge\.summaryDescription":\s*"无论从 Telegram、飞书、Discord、QQ 还是微信进入，最终连接的都是同一台电脑、同一组任务执行上下文，以及同一个确认队列。"/,
+  );
+  assert.match(sharedSource, /"bridge\.summarySameComputer": "同一台电脑"/);
+  assert.match(sharedSource, /"bridge\.summarySameTasks": "同一组任务"/);
+  assert.match(sharedSource, /"bridge\.summarySameQueue": "同一个确认队列"/);
+
+  assert.match(layoutSource, /<TelegramBridgeSection \/>/);
+  assert.match(layoutSource, /<FeishuBridgeSection \/>/);
+  assert.match(layoutSource, /<DiscordBridgeSection \/>/);
+  assert.match(layoutSource, /<QqBridgeSection \/>/);
+  assert.match(layoutSource, /<WeixinBridgeSection \/>/);
 
   assert.doesNotMatch(sharedSource, /"bridge\.title": "Remote Bridge"/);
   assert.doesNotMatch(
