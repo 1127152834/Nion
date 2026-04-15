@@ -1,4 +1,9 @@
-import type { Message, PendingPermissionRequest } from "./types";
+import type {
+  LocalActionPlanApprovalRequest,
+  Message,
+  PendingPermissionRequest,
+  ToolPermissionApprovalRequest,
+} from "./types";
 
 type PermissionRequestPayload = {
   id?: unknown;
@@ -10,6 +15,9 @@ type PermissionRequestPayload = {
   reason_message?: unknown;
   review_title?: unknown;
   review_summary?: unknown;
+  approval_kind?: unknown;
+  tool_permission_result?: unknown;
+  local_action_result?: unknown;
 };
 
 function normalizePermissionRequestPayload(
@@ -29,6 +37,11 @@ function normalizePermissionRequestPayload(
     typeof payload.id === "string" && payload.id.trim().length > 0
       ? payload.id.trim()
       : "";
+  const approvalKind =
+    payload.approval_kind === "tool_permission" ||
+    payload.approval_kind === "local_action_plan"
+      ? payload.approval_kind
+      : undefined;
   const toolName =
     typeof payload.tool_name === "string" && payload.tool_name.trim().length > 0
       ? payload.tool_name.trim()
@@ -59,7 +72,11 @@ function normalizePermissionRequestPayload(
     ? payload.options.filter((option): option is string => typeof option === "string")
     : [];
 
-  if (!requestId || !toolName || (actions.length === 0 && options.length === 0)) {
+  if (
+    !requestId ||
+    (!approvalKind && !toolName) ||
+    (actions.length === 0 && options.length === 0)
+  ) {
     return null;
   }
 
@@ -72,42 +89,99 @@ function normalizePermissionRequestPayload(
       ? payload.reason_message.trim()
       : undefined;
   const reviewTitle =
-    toolName === "local_actions_review" &&
+    approvalKind === "local_action_plan" &&
     typeof payload.review_title === "string" &&
     payload.review_title.trim().length > 0
       ? payload.review_title.trim()
       : undefined;
   const reviewSummary =
-    toolName === "local_actions_review" &&
+    approvalKind === "local_action_plan" &&
     typeof payload.review_summary === "string" &&
     payload.review_summary.trim().length > 0
       ? payload.review_summary.trim()
       : undefined;
+  const normalizedActions =
+    actions.length > 0
+      ? actions
+      : options.map((option) => ({
+          key:
+            option === "Allow Session"
+              ? "allow_session"
+              : option === "Deny"
+                ? "deny"
+                : "allow",
+          label: option,
+        }));
 
+  const normalizedApprovalKind = approvalKind ?? "tool_permission";
+
+  if (normalizedApprovalKind === "local_action_plan") {
+    const localActionResult =
+      payload.local_action_result &&
+      typeof payload.local_action_result === "object"
+        ? (payload.local_action_result as Record<string, unknown>)
+        : toolInput;
+    return {
+      approvalKind: "local_action_plan",
+      toolMessageId: message.id,
+      toolCallId: message.tool_call_id,
+      requestId,
+      toolName,
+      toolInput,
+      actions: normalizedActions,
+      options,
+      ...(reasonCode ? { reasonCode } : {}),
+      ...(reasonMessage ? { reasonMessage } : {}),
+      ...(reviewTitle ? { reviewTitle } : {}),
+      ...(reviewSummary ? { reviewSummary } : {}),
+      localActionPlan: {
+        executionId: String(localActionResult.execution_id ?? ""),
+        planId:
+          typeof localActionResult.plan_id === "string"
+            ? localActionResult.plan_id
+            : undefined,
+        irreversibleActionCount:
+          typeof localActionResult.irreversible_action_count === "number"
+            ? localActionResult.irreversible_action_count
+            : undefined,
+        actions: Array.isArray(localActionResult.actions)
+          ? (localActionResult.actions as Array<Record<string, unknown>>)
+          : [],
+      },
+    } satisfies LocalActionPlanApprovalRequest;
+  }
+
+  const toolPermissionResult =
+    payload.tool_permission_result &&
+    typeof payload.tool_permission_result === "object"
+      ? (payload.tool_permission_result as Record<string, unknown>)
+      : {
+          tool_name: toolName,
+          tool_input: toolInput,
+        };
   return {
+    approvalKind: "tool_permission",
     toolMessageId: message.id,
     toolCallId: message.tool_call_id,
     requestId,
     toolName,
     toolInput,
-    actions:
-      actions.length > 0
-        ? actions
-        : options.map((option) => ({
-            key:
-              option === "Allow Session"
-                ? "allow_session"
-                : option === "Deny"
-                  ? "deny"
-                  : "allow",
-            label: option,
-          })),
+    actions: normalizedActions,
     options,
     ...(reasonCode ? { reasonCode } : {}),
     ...(reasonMessage ? { reasonMessage } : {}),
-    ...(reviewTitle ? { reviewTitle } : {}),
-    ...(reviewSummary ? { reviewSummary } : {}),
-  };
+    toolPermission: {
+      toolName:
+        typeof toolPermissionResult.tool_name === "string"
+          ? toolPermissionResult.tool_name
+          : toolName,
+      toolInput:
+        toolPermissionResult.tool_input &&
+        typeof toolPermissionResult.tool_input === "object"
+          ? (toolPermissionResult.tool_input as Record<string, unknown>)
+          : toolInput,
+    },
+  } satisfies ToolPermissionApprovalRequest;
 }
 
 export function derivePendingPermissionRequest(

@@ -79,11 +79,11 @@ void test("derivePendingPermissionRequest keeps local-actions review metadata", 
       additional_kwargs: {
         permission_request: {
           id: "perm-local-actions",
-          tool_name: "local_actions_review",
-          tool_input: {
-            goal_id: "goal-1",
-            plan_id: "plan-1",
+          approval_kind: "local_action_plan",
+          local_action_result: {
             execution_id: "exec-1",
+            plan_id: "plan-1",
+            actions: [],
           },
           reason_message: "Review the local action plan before execution.",
           review_title: "Review local actions",
@@ -97,7 +97,64 @@ void test("derivePendingPermissionRequest keeps local-actions review metadata", 
     },
   ]);
 
-  assert.equal(pending?.toolName, "local_actions_review");
+  assert.equal(pending?.approvalKind, "local_action_plan");
   assert.equal(pending?.reviewTitle, "Review local actions");
   assert.equal(pending?.reviewSummary, "2 actions, 1 irreversible");
+});
+
+void test("derivePendingPermissionRequest returns tool_permission approval kind", () => {
+  const pending = derivePendingPermissionRequest([
+    {
+      type: "tool",
+      id: "tool-approval",
+      name: "permission_request",
+      content: "permission needed",
+      additional_kwargs: {
+        permission_request: {
+          id: "perm-tool",
+          approval_kind: "tool_permission",
+          tool_name: "bash",
+          tool_input: { command: "echo hi" },
+          tool_permission_result: {
+            tool_name: "bash",
+            tool_input: { command: "echo hi" },
+          },
+          actions: [{ key: "allow", label: "Allow" }],
+        },
+      },
+    },
+  ]);
+
+  assert.equal(pending?.approvalKind, "tool_permission");
+  assert.equal(pending?.toolPermission.toolName, "bash");
+});
+
+void test("derivePendingPermissionRequest returns local_action_plan approval kind", () => {
+  const pending = derivePendingPermissionRequest([
+    {
+      type: "tool",
+      id: "tool-local",
+      name: "permission_request",
+      content: "review local actions",
+      additional_kwargs: {
+        permission_request: {
+          id: "perm-local",
+          approval_kind: "local_action_plan",
+          reason_message: "Review before execution.",
+          local_action_result: {
+            execution_id: "exec-1",
+            plan_id: "plan-1",
+            actions: [{ action_type: "capture_active_window", target: "active_window" }],
+          },
+          actions: [
+            { key: "allow", label: "Approve" },
+            { key: "deny", label: "Reject" },
+          ],
+        },
+      },
+    },
+  ]);
+
+  assert.equal(pending?.approvalKind, "local_action_plan");
+  assert.equal(pending?.localActionPlan.executionId, "exec-1");
 });

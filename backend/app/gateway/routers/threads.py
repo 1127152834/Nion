@@ -333,7 +333,9 @@ async def _resolve_permission_request(
     ):
         state_update["owner_client_id"] = client_id
     repository.update_state(thread_id, state_update)
-    if latest and latest.tool_name.startswith("codepilot_cli_tools_"):
+    if latest and latest.approval_kind == "tool_permission" and isinstance(
+        latest.tool_name, str
+    ) and latest.tool_name.startswith("codepilot_cli_tools_"):
         record = repository.get_thread(thread_id)
         if record is not None:
             cli_management = record.values.cli_management.model_dump()
@@ -366,6 +368,7 @@ async def _resolve_permission_request(
             "ok": True,
             "decision": decision,
             "consumed": consumed,
+            "approval_kind": latest.approval_kind if latest else "tool_permission",
             "original_message_text": latest.original_message_text if latest else "",
             "replay_payload": latest.replay_payload if latest else {
                 "text": "",
@@ -375,15 +378,30 @@ async def _resolve_permission_request(
             "tool_name": latest.tool_name if latest else "",
             **(
                 {
-                    "local_actions": {
-                        "execution_id": latest.tool_input.get("execution_id"),
-                        "plan_id": latest.tool_input.get("plan_id"),
-                        "actions": latest.tool_input.get("local_actions", []),
+                    "tool_permission_result": {
+                        "tool_name": latest.tool_name,
+                        "tool_input": latest.tool_input or {},
                     }
                 }
+                if latest and latest.approval_kind == "tool_permission"
+                else {}
+            ),
+            **(
+                {
+                    "local_action_result": {
+                        "execution_id": latest.local_action_payload.get("execution_id"),
+                        "plan_id": latest.local_action_payload.get("plan_id"),
+                        "actions": latest.local_action_payload.get("actions", []),
+                    },
+                    "local_actions": {
+                        "execution_id": latest.local_action_payload.get("execution_id"),
+                        "plan_id": latest.local_action_payload.get("plan_id"),
+                        "actions": latest.local_action_payload.get("actions", []),
+                    },
+                }
                 if latest
-                and latest.tool_name == "local_actions_review"
-                and isinstance(latest.tool_input, dict)
+                and latest.approval_kind == "local_action_plan"
+                and isinstance(latest.local_action_payload, dict)
                 else {}
             ),
         },

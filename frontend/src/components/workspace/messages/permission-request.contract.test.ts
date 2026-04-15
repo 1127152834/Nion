@@ -11,6 +11,9 @@ void test("message list exposes permission request handling alongside clarificat
   assert.match(source, /PermissionRequestCard/);
   assert.match(source, /pendingPermissionRequest/);
   assert.match(source, /onPermissionDecision/);
+  assert.match(source, /pendingPermissionRequest\.approvalKind === "local_action_plan"/);
+  assert.match(source, /pendingPermissionRequest\.approvalKind === "tool_permission"/);
+  assert.doesNotMatch(source, /pendingPermissionRequest\.toolName === "local_actions_review"/);
 });
 
 void test("chat thread page derives and wires pending permission request state", async () => {

@@ -149,6 +149,7 @@ Program 03D-B 已把 desktop bridge incident workflow 补上：
 - `frontend/src/core/runtime/guardian-runtime.ts` 现在是 guardian / bridge runtime merge 与 fallback 的唯一 owner；`frontend/src/core/runtime/use-guardian-runtime.ts` 负责统一 refresh 触发
 - 当前这个产品面仍然只做单用户、一台个人电脑；不覆盖团队、多用户或任意远程控机
 - 受控本机动作主链首批已落地：daemon config 提供全局三档 `local_actions_permission_mode`，`/api/local-actions/plan` 会生成目标 / 动作计划 / 执行审计记录，`Settings > Daemon` 已提供对应权限开关；desktop main 已支持首批白名单动作（当前窗口截图、全屏截图、整理下载目录）和本地执行历史，但仍不支持任意远程控机
+- 审批主线现在正在从单一 `permission_request` 兼容壳收口到 typed approval request domain：通用工具审批和本机动作计划审批会共享同一条 thread approval 主线，但以 `tool_permission` / `local_action_plan` 两种 kind 明确分型
 
 这些事件必须既可查询，又要有人能直接读懂。
 
@@ -289,7 +290,7 @@ NION_STATIC_EXPORT=1 pnpm --dir frontend build
 - `Settings > 检索模型`
   - 统一承载向量模型与重排序模型能力
   - 现已支持 `本地模型 / API` 双模式骨架；桌面端可列举本地模型、下载模型包、导入模型并订阅下载进度
-  - 当前本地模式已支持下载、导入、选择与本地 probe；真正的本地语义索引执行仍待 tokenizer/config 资产一起接回
+  - 当前本地模式已支持下载、导入、选择与本地 probe；当 `ONNX + tokenizer + config` 资产完整时，Memory 可走本地 onnxruntime 语义索引执行链
   - `Memory` 与 `Knowledge Base` 作为共享消费者，不再各自维护一套模型配置
 - `/workspace/automation/*`
   - 已开始区分 `user-owned` 与 `agent-owned` automation

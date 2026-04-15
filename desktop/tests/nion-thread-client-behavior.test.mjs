@@ -199,8 +199,8 @@ test("nion thread client exposes local-actions metadata from bridge permission r
       JSON.stringify({
         ok: true,
         decision: "allow",
-        tool_name: "local_actions_review",
-        local_actions: {
+        approval_kind: "local_action_plan",
+        local_action_result: {
           execution_id: "exec-1",
           plan_id: "plan-1",
           actions: [
@@ -216,9 +216,9 @@ test("nion thread client exposes local-actions metadata from bridge permission r
   });
   const result = await client.resolvePermission("t-1", "perm-1", "allow");
 
-  assert.equal(result.tool_name, "local_actions_review");
-  assert.equal(result.local_actions?.execution_id, "exec-1");
-  assert.equal(result.local_actions?.actions?.[0]?.action_type, "capture_active_window");
+  assert.equal(result.approval_kind, "local_action_plan");
+  assert.equal(result.local_action_result?.execution_id, "exec-1");
+  assert.equal(result.local_action_result?.actions?.[0]?.action_type, "capture_active_window");
 
   globalThis.fetch = originalFetch;
 });

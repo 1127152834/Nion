@@ -29,7 +29,7 @@
     - 检索模型能力 owner 已迁入 `Settings > 检索模型`
     - 页面已恢复 `本地模型 / API` 双模式骨架
     - desktop preload / IPC 已暴露 retrieval model manager 合同
-    - 本地模式当前支持下载/导入/选择/探测；Memory 本地语义索引执行仍待 tokenizer/config 资产恢复
+    - 本地模式当前支持下载/导入/选择/探测；当 `ONNX + tokenizer + config` 资产完整时，Memory 本地语义索引执行可用
     - `Settings > 记忆` 只保留状态投影
     - `Knowledge Base` 已接入 retrieval consumer 提示
 - custom-agent orchestration
@@ -75,13 +75,17 @@
     - `backend/tests/test_local_actions_policy.py`
     - `backend/tests/test_local_actions_service.py`
     - `backend/tests/test_local_actions_router.py`
+    - `backend/tests/test_thread_permission_router.py`
   - desktop:
     - `desktop/tests/local-actions-ipc.contract.test.mjs`
     - `desktop/tests/local-actions-executor.contract.test.mjs`
+    - `desktop/tests/nion-thread-client-behavior.test.mjs`
+    - `desktop/tests/bridge-manager-behavior.test.mjs`
   - 说明：
     - `daemon.local_actions_permission_mode` 是全局三档权限来源
     - `/api/local-actions/plan` 只负责目标、动作计划和执行审计记录
     - desktop main 的 local-actions executor 当前已支持首批白名单动作与本地历史，但仍不是任意 OS 控制器
+    - 本机动作审批和通用工具审批现在共用 thread approval 主线，并以 `approval_kind` 分型
 
 维护约定：
 

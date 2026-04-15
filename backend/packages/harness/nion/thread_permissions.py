@@ -2,29 +2,20 @@ from __future__ import annotations
 
 import json
 import uuid
-from dataclasses import asdict, dataclass
+from dataclasses import asdict
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any
 
+from nion.approval_requests import (
+    ApprovalRequestKind,
+    ThreadApprovalRequestRecord,
+    normalize_approval_kind,
+)
 from nion.config.paths import get_paths
 
-
-PermissionDecision = Literal["allow", "allow_session", "deny"]
-
-
-@dataclass
-class ThreadPermissionRequestRecord:
-    id: str
-    thread_id: str
-    tool_name: str
-    tool_input: dict[str, Any]
-    original_message_text: str
-    replay_payload: dict[str, Any]
-    status: str
-    created_at: str
-    resolved_at: str | None = None
-    consumed: bool = False
+PermissionDecision = str
+ThreadPermissionRequestRecord = ThreadApprovalRequestRecord
 
 
 def _now_iso() -> str:
@@ -49,68 +40,113 @@ def _write_store(store: dict[str, Any]) -> None:
 
 
 def _normalize_tool_input(tool_input: dict[str, Any]) -> str:
-    return json.dumps(tool_input, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+    return json.dumps(
+        tool_input,
+        sort_keys=True,
+        ensure_ascii=False,
+        separators=(",", ":"),
+    )
 
 
-def create_thread_permission_request(
+def _build_default_replay_payload(original_message_text: str) -> dict[str, Any]:
+    return {
+        "text": original_message_text,
+        "files": [],
+        "additional_kwargs": {},
+    }
+
+
+def _normalize_request_item(item: dict[str, Any]) -> dict[str, Any]:
+    tool_name = item.get("tool_name")
+    approval_kind = normalize_approval_kind(
+        item.get("approval_kind"),
+        tool_name=tool_name if isinstance(tool_name, str) else None,
+    )
+    normalized = dict(item)
+    normalized["approval_kind"] = approval_kind
+    normalized.setdefault(
+        "replay_payload",
+        _build_default_replay_payload(str(normalized.get("original_message_text", ""))),
+    )
+    normalized.setdefault("tool_name", None)
+    normalized.setdefault("tool_input", None)
+    normalized.setdefault("local_action_payload", None)
+    normalized.setdefault("resolved_at", None)
+    normalized.setdefault("consumed", False)
+    return normalized
+
+
+def create_thread_approval_request(
     *,
     thread_id: str,
-    tool_name: str,
-    tool_input: dict[str, Any],
+    approval_kind: ApprovalRequestKind,
     original_message_text: str,
+    tool_name: str | None = None,
+    tool_input: dict[str, Any] | None = None,
+    local_action_payload: dict[str, Any] | None = None,
     replay_payload: dict[str, Any] | None = None,
-) -> ThreadPermissionRequestRecord:
+) -> ThreadApprovalRequestRecord:
     store = _read_store()
-    record = ThreadPermissionRequestRecord(
-        id=f"perm_{uuid.uuid4().hex}",
+    record = ThreadApprovalRequestRecord(
+        id=f"approval_{uuid.uuid4().hex}",
         thread_id=thread_id,
-        tool_name=tool_name,
-        tool_input=tool_input,
+        approval_kind=approval_kind,
         original_message_text=original_message_text,
         replay_payload=replay_payload
-        or {
-            "text": original_message_text,
-            "files": [],
-            "additional_kwargs": {},
-        },
+        or _build_default_replay_payload(original_message_text),
         status="pending",
         created_at=_now_iso(),
+        tool_name=tool_name,
+        tool_input=tool_input,
+        local_action_payload=local_action_payload,
     )
     store["requests"].append(asdict(record))
     _write_store(store)
     return record
 
 
-def resolve_thread_permission_request(
+def resolve_thread_approval_request(
     *,
     thread_id: str,
-    permission_request_id: str,
+    approval_request_id: str,
     decision: PermissionDecision,
-) -> ThreadPermissionRequestRecord | None:
+) -> ThreadApprovalRequestRecord | None:
     store = _read_store()
     for item in store["requests"]:
-        if item["id"] != permission_request_id or item["thread_id"] != thread_id:
+        if item.get("id") != approval_request_id or item.get("thread_id") != thread_id:
             continue
-        if item["status"] != "pending":
-            return ThreadPermissionRequestRecord(**item)
 
-        item["status"] = decision
-        item["resolved_at"] = _now_iso()
+        normalized = _normalize_request_item(item)
+        approval_kind = normalized["approval_kind"]
+        if normalized["status"] != "pending":
+            return ThreadApprovalRequestRecord(**normalized)
 
-        if decision == "allow_session":
+        normalized_decision = (
+            "allow"
+            if approval_kind == "local_action_plan" and decision == "allow_session"
+            else decision
+        )
+        normalized["status"] = normalized_decision
+        normalized["resolved_at"] = _now_iso()
+
+        if approval_kind == "tool_permission" and normalized_decision == "allow_session":
             store["thread_profiles"][thread_id] = "full_access"
-        elif decision == "allow":
+        elif approval_kind == "tool_permission" and normalized_decision == "allow":
             store["pending_allows"].append(
                 {
                     "thread_id": thread_id,
-                    "tool_name": item["tool_name"],
-                    "tool_input_signature": _normalize_tool_input(item["tool_input"]),
-                    "permission_request_id": permission_request_id,
+                    "tool_name": normalized.get("tool_name"),
+                    "tool_input_signature": _normalize_tool_input(
+                        normalized.get("tool_input") or {}
+                    ),
+                    "permission_request_id": approval_request_id,
                 }
             )
 
+        item.clear()
+        item.update(normalized)
         _write_store(store)
-        return ThreadPermissionRequestRecord(**item)
+        return ThreadApprovalRequestRecord(**normalized)
     return None
 
 
@@ -121,31 +157,30 @@ def consume_thread_permission_once(
 ) -> bool:
     store = _read_store()
     for item in store["requests"]:
-        if item["id"] != permission_request_id or item["thread_id"] != thread_id:
+        if item.get("id") != permission_request_id or item.get("thread_id") != thread_id:
             continue
-        if item.get("consumed") is True:
+        normalized = _normalize_request_item(item)
+        if normalized.get("consumed") is True:
             return False
-        item["consumed"] = True
+        normalized["consumed"] = True
+        item.clear()
+        item.update(normalized)
         _write_store(store)
         return True
     return False
 
 
-def get_thread_permission_request(
+def get_thread_approval_request(
     *,
     thread_id: str,
-    permission_request_id: str,
-) -> ThreadPermissionRequestRecord | None:
+    approval_request_id: str,
+) -> ThreadApprovalRequestRecord | None:
     store = _read_store()
     for item in store["requests"]:
-        if item["id"] == permission_request_id and item["thread_id"] == thread_id:
-            if "replay_payload" not in item:
-                item["replay_payload"] = {
-                    "text": item.get("original_message_text", ""),
-                    "files": [],
-                    "additional_kwargs": {},
-                }
-            return ThreadPermissionRequestRecord(**item)
+        if item.get("id") != approval_request_id or item.get("thread_id") != thread_id:
+            continue
+        normalized = _normalize_request_item(item)
+        return ThreadApprovalRequestRecord(**normalized)
     return None
 
 
@@ -174,3 +209,45 @@ def consume_thread_pending_allow(
             _write_store(store)
             return True
     return False
+
+
+def create_thread_permission_request(
+    *,
+    thread_id: str,
+    tool_name: str,
+    tool_input: dict[str, Any],
+    original_message_text: str,
+    replay_payload: dict[str, Any] | None = None,
+) -> ThreadPermissionRequestRecord:
+    return create_thread_approval_request(
+        thread_id=thread_id,
+        approval_kind="tool_permission",
+        tool_name=tool_name,
+        tool_input=tool_input,
+        original_message_text=original_message_text,
+        replay_payload=replay_payload,
+    )
+
+
+def resolve_thread_permission_request(
+    *,
+    thread_id: str,
+    permission_request_id: str,
+    decision: PermissionDecision,
+) -> ThreadPermissionRequestRecord | None:
+    return resolve_thread_approval_request(
+        thread_id=thread_id,
+        approval_request_id=permission_request_id,
+        decision=decision,
+    )
+
+
+def get_thread_permission_request(
+    *,
+    thread_id: str,
+    permission_request_id: str,
+) -> ThreadPermissionRequestRecord | None:
+    return get_thread_approval_request(
+        thread_id=thread_id,
+        approval_request_id=permission_request_id,
+    )

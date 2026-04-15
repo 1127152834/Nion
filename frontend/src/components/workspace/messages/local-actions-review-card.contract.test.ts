@@ -19,7 +19,7 @@ void test("local-actions review card exposes details and irreversible actions", 
 
   assert.match(source, /showDetails/);
   assert.match(source, /View details/);
-  assert.match(source, /local_actions/);
+  assert.match(source, /permissionRequest\.localActionPlan/);
   assert.match(source, /irreversible/);
   assert.match(source, /action_type/);
 });
@@ -30,7 +30,16 @@ void test("permission request normalization preserves local-actions review metad
     "utf8",
   );
 
-  assert.match(source, /local_actions_review/);
+  assert.match(source, /approval_kind/);
   assert.match(source, /reviewTitle/);
   assert.match(source, /reviewSummary/);
+});
+
+void test("local-actions review no longer depends on tool_name fallback", async () => {
+  const source = await readFile(
+    new URL("../../../core/threads/permission-request.ts", import.meta.url),
+    "utf8",
+  );
+
+  assert.doesNotMatch(source, /toolName === "local_actions_review"/);
 });

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
@@ -21,6 +23,7 @@ class LocalActionsPlanResponse(BaseModel):
     goal: dict
     plan: dict
     execution: dict
+    approval_request: dict | None = None
 
 
 class LocalActionsHistoryResponse(BaseModel):
@@ -38,10 +41,37 @@ def get_local_actions_service() -> LocalActionsService:
 
 
 def _serialize_result(result: LocalActionsPlanningResult) -> LocalActionsPlanResponse:
+    irreversible_count = sum(1 for action in result.plan.actions if not action.reversible)
+    actions = [action.model_dump(mode="json") for action in result.plan.actions]
+    approval_request: dict[str, Any] | None = None
+    if result.execution.approval_status == "pending":
+        approval_request = {
+            "id": f"approval_{result.execution.execution_id}",
+            "approval_kind": "local_action_plan",
+            "local_action_result": {
+                "goal_id": result.goal.goal_id,
+                "plan_id": result.plan.plan_id,
+                "execution_id": result.execution.execution_id,
+                "summary": result.plan.summary,
+                "risk_level": result.plan.risk_level,
+                "irreversible_action_count": irreversible_count,
+                "actions": actions,
+            },
+            "local_action_payload": {
+                "goal_id": result.goal.goal_id,
+                "plan_id": result.plan.plan_id,
+                "execution_id": result.execution.execution_id,
+                "summary": result.plan.summary,
+                "risk_level": result.plan.risk_level,
+                "irreversible_action_count": irreversible_count,
+                "actions": actions,
+            },
+        }
     return LocalActionsPlanResponse(
         goal=result.goal.model_dump(mode="json"),
         plan=result.plan.model_dump(mode="json"),
         execution=result.execution.model_dump(mode="json"),
+        approval_request=approval_request,
     )
 
 

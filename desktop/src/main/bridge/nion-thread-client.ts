@@ -12,8 +12,18 @@ type ThreadUploadAttachment = {
 type ResolveBridgePermissionResult = {
   ok: boolean;
   decision?: "allow" | "allow_session" | "deny";
+  approval_kind?: "tool_permission" | "local_action_plan";
   original_message_text?: string;
   tool_name?: string;
+  tool_permission_result?: {
+    tool_name: string;
+    tool_input: Record<string, unknown>;
+  };
+  local_action_result?: {
+    execution_id: string;
+    plan_id?: string;
+    actions: Array<Record<string, unknown>>;
+  };
   local_actions?: {
     execution_id: string;
     plan_id?: string;

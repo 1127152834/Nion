@@ -342,6 +342,16 @@ class TestGuardrailMiddleware:
             {"key": "allow_session", "label": "Allow Session"},
             {"key": "deny", "label": "Deny"},
         ]
+        assert (
+            tool_message.additional_kwargs["permission_request"]["approval_kind"]
+            == "tool_permission"
+        )
+        assert tool_message.additional_kwargs["permission_request"][
+            "tool_permission_result"
+        ] == {
+            "tool_name": "codepilot_cli_tools_install",
+            "tool_input": {"command": "brew install stripe/stripe-cli/stripe"},
+        }
 
     def test_cli_permission_request_marks_thread_state_awaiting_permission(
         self,

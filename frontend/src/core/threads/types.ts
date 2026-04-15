@@ -168,19 +168,49 @@ export interface AgentThreadContext extends Record<string, unknown> {
   >;
 }
 
-export type PendingPermissionRequest = {
+type ApprovalAction = {
+  key: "allow" | "allow_session" | "deny";
+  label: string;
+};
+
+export type ToolPermissionApprovalRequest = {
+  approvalKind: "tool_permission";
   toolMessageId?: string;
   toolCallId?: string;
   requestId: string;
+  options: string[];
+  actions: ApprovalAction[];
+  reasonCode?: string;
+  reasonMessage?: string;
   toolName: string;
   toolInput: Record<string, unknown>;
+  toolPermission: {
+    toolName: string;
+    toolInput: Record<string, unknown>;
+  };
+};
+
+export type LocalActionPlanApprovalRequest = {
+  approvalKind: "local_action_plan";
+  toolMessageId?: string;
+  toolCallId?: string;
+  requestId: string;
   options: string[];
-  actions: Array<{
-    key: "allow" | "allow_session" | "deny";
-    label: string;
-  }>;
+  actions: ApprovalAction[];
   reasonCode?: string;
   reasonMessage?: string;
   reviewTitle?: string;
   reviewSummary?: string;
+  toolName: string;
+  toolInput: Record<string, unknown>;
+  localActionPlan: {
+    executionId: string;
+    planId?: string;
+    irreversibleActionCount?: number;
+    actions: Array<Record<string, unknown>>;
+  };
 };
+
+export type PendingPermissionRequest =
+  | ToolPermissionApprovalRequest
+  | LocalActionPlanApprovalRequest;

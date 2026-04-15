@@ -165,9 +165,19 @@ export function MessageList({
               pendingPermissionRequest &&
               message?.id === pendingPermissionRequest.toolMessageId
             ) {
-              if (pendingPermissionRequest.toolName === "local_actions_review") {
+              if (pendingPermissionRequest.approvalKind === "local_action_plan") {
                 return (
                   <LocalActionsReviewCard
+                    key={group.id}
+                    permissionRequest={pendingPermissionRequest}
+                    onDecision={onPermissionDecision}
+                    isResolving={isResolvingPermission}
+                  />
+                );
+              }
+              if (pendingPermissionRequest.approvalKind === "tool_permission") {
+                return (
+                  <PermissionRequestCard
                     key={group.id}
                     permissionRequest={pendingPermissionRequest}
                     onDecision={onPermissionDecision}
@@ -178,7 +188,7 @@ export function MessageList({
               return (
                 <PermissionRequestCard
                   key={group.id}
-                  permissionRequest={pendingPermissionRequest}
+                  permissionRequest={pendingPermissionRequest as never}
                   onDecision={onPermissionDecision}
                   isResolving={isResolvingPermission}
                 />

@@ -149,6 +149,11 @@ function extractPermissionRequest(events: Array<{ event: string; data: any }>) {
     }
     return {
       id: typeof current.data.id === "string" ? current.data.id : "",
+      approvalKind:
+        current.data.approval_kind === "tool_permission" ||
+        current.data.approval_kind === "local_action_plan"
+          ? current.data.approval_kind
+          : undefined,
       toolName: typeof current.data.tool_name === "string" ? current.data.tool_name : "",
       toolInput: current.data.tool_input && typeof current.data.tool_input === "object"
         ? current.data.tool_input
@@ -191,12 +196,13 @@ function formatPermissionPrompt(permission: {
   id?: string;
   toolName: string;
   toolInput: Record<string, unknown>;
+  approvalKind?: "tool_permission" | "local_action_plan";
   reason: string;
   reviewTitle?: string;
   reviewSummary?: string;
   supportsButtons?: boolean;
 }) {
-  if (permission.toolName === "local_actions_review") {
+  if (permission.approvalKind === "local_action_plan") {
     const localActions = Array.isArray(permission.toolInput.local_actions)
       ? permission.toolInput.local_actions
       : [];
@@ -845,9 +851,11 @@ export function createBridgeManager(options: {
           permissionRequestId,
           action,
         );
+        const localActionApproval =
+          resolution.local_action_result ?? resolution.local_actions;
         if (
           action === "deny" &&
-          resolution.tool_name === "local_actions_review"
+          resolution.approval_kind === "local_action_plan"
         ) {
           await deliverOutboundText(
             adapter,
@@ -862,13 +870,13 @@ export function createBridgeManager(options: {
         }
         if (
           (action === "allow" || action === "allow_session") &&
-          resolution.tool_name === "local_actions_review" &&
-          resolution.local_actions?.execution_id &&
-          Array.isArray(resolution.local_actions.actions) &&
+          resolution.approval_kind === "local_action_plan" &&
+          localActionApproval?.execution_id &&
+          Array.isArray(localActionApproval.actions) &&
           localActionsExecutor
         ) {
-          const localActionResult = await localActionsExecutor.executePlan({
-            actions: resolution.local_actions.actions.map((item) => ({
+          const executionResult = await localActionsExecutor.executePlan({
+            actions: localActionApproval.actions.map((item) => ({
               action_type: String(item.action_type ?? ""),
               target: typeof item.target === "string" ? item.target : undefined,
               parameters:
@@ -879,16 +887,16 @@ export function createBridgeManager(options: {
           });
           await threadClient.recordLocalActionResult(
             binding.threadId,
-            resolution.local_actions.execution_id,
+            localActionApproval.execution_id,
             {
-              executed_actions: localActionResult.executed,
+              executed_actions: executionResult.executed,
             },
           );
           await deliverOutboundText(
             adapter,
             inbound,
             binding,
-            `Local actions executed.\n${localActionResult.executed
+            `Local actions executed.\n${executionResult.executed
               .map(
                 (item) =>
                   `- ${item.action_type}: ${item.status} — ${item.result_summary}`,

@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import type { PendingPermissionRequest } from "@/core/threads";
+import type { LocalActionPlanApprovalRequest } from "@/core/threads";
 import { cn } from "@/lib/utils";
 
 export function LocalActionsReviewCard({
@@ -12,18 +12,16 @@ export function LocalActionsReviewCard({
   onDecision,
   isResolving = false,
 }: {
-  permissionRequest: PendingPermissionRequest;
+  permissionRequest: LocalActionPlanApprovalRequest;
   className?: string;
   onDecision?: (decision: "allow" | "allow_session" | "deny") => void;
   isResolving?: boolean;
 }) {
   const [showDetails, setShowDetails] = useState(false);
   const irreversibleCount = Number(
-    permissionRequest.toolInput.irreversible_action_count ?? 0,
+    permissionRequest.localActionPlan.irreversibleActionCount ?? 0,
   );
-  const localActions = Array.isArray(permissionRequest.toolInput.local_actions)
-    ? permissionRequest.toolInput.local_actions
-    : [];
+  const localActions = permissionRequest.localActionPlan.actions;
 
   return (
     <div
@@ -51,13 +49,13 @@ export function LocalActionsReviewCard({
         <div className="rounded-xl border bg-muted/20 px-3 py-2">
           <div className="text-muted-foreground text-xs">Plan</div>
           <div className="font-medium">
-            {String(permissionRequest.toolInput.plan_id ?? "pending")}
+            {String(permissionRequest.localActionPlan.planId ?? "pending")}
           </div>
         </div>
         <div className="rounded-xl border bg-muted/20 px-3 py-2">
           <div className="text-muted-foreground text-xs">Execution</div>
           <div className="font-medium">
-            {String(permissionRequest.toolInput.execution_id ?? "pending")}
+            {String(permissionRequest.localActionPlan.executionId ?? "pending")}
           </div>
         </div>
         <div className="rounded-xl border bg-muted/20 px-3 py-2">

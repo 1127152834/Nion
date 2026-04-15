@@ -722,6 +722,7 @@ test("bridge manager renders local-actions review details for remote permission 
               data: {
                 type: "permission_request",
                 id: "perm-local-actions-1",
+                approval_kind: "local_action_plan",
                 tool_name: "local_actions_review",
                 tool_input: {
                   goal_id: "goal-1",
@@ -805,8 +806,8 @@ test("bridge manager auto-executes approved local-actions reviews and records th
         return {
           ok: true,
           decision: "allow",
-          tool_name: "local_actions_review",
-          local_actions: {
+          approval_kind: "local_action_plan",
+          local_action_result: {
             execution_id: "exec-1",
             actions: [
               { action_type: "capture_active_window", target: "active_window" },
@@ -893,7 +894,7 @@ test("bridge manager returns explicit rejection text for local-actions reviews",
         return {
           ok: true,
           decision: "deny",
-          tool_name: "local_actions_review",
+          approval_kind: "local_action_plan",
         };
       },
       async streamMessage(threadId, text) {
@@ -910,6 +911,16 @@ test("bridge manager returns explicit rejection text for local-actions reviews",
   assert.match(adapter.sent[0].text, /Local actions were not executed/);
   assert.match(adapter.sent[0].text, /review was rejected/);
   assert.equal(adapter.acks[0], 101);
+});
+
+test("bridge manager no longer dispatches local actions by tool_name fallback", async () => {
+  const source = await readFile(
+    new URL("../src/main/bridge/bridge-manager.ts", import.meta.url),
+    "utf8",
+  );
+
+  assert.doesNotMatch(source, /tool_name === "local_actions_review"/);
+  assert.doesNotMatch(source, /toolName === "local_actions_review"/);
 });
 
 test("bridge manager /mode updates binding mode and applies it to the next stream", async () => {

@@ -17,6 +17,7 @@ from nion.guardrails.provider import GuardrailDecision, GuardrailProvider, Guard
 from nion.hooks import HookEvent, dispatch_tool_call_in_runtime_hook
 from nion.thread_permissions import (
     consume_thread_pending_allow,
+    create_thread_approval_request,
     create_thread_permission_request,
     get_thread_permission_profile,
 )
@@ -142,8 +143,9 @@ class GuardrailMiddleware(AgentMiddleware[AgentState]):
         tool_input = request.tool_call.get("args", {}) or {}
         original_message_text = self._extract_latest_human_message(request)
         replay_payload = self._extract_latest_human_replay_payload(request)
-        permission_request = create_thread_permission_request(
+        permission_request = create_thread_approval_request(
             thread_id=thread_id,
+            approval_kind="tool_permission",
             tool_name=tool_name,
             tool_input=tool_input,
             original_message_text=original_message_text,
@@ -203,8 +205,13 @@ class GuardrailMiddleware(AgentMiddleware[AgentState]):
             additional_kwargs={
                 "permission_request": {
                     "id": permission_request.id,
+                    "approval_kind": "tool_permission",
                     "tool_name": tool_name,
                     "tool_input": tool_input,
+                    "tool_permission_result": {
+                        "tool_name": tool_name,
+                        "tool_input": tool_input,
+                    },
                     "actions": [
                         {"key": "allow", "label": "Allow"},
                         {"key": "allow_session", "label": "Allow Session"},

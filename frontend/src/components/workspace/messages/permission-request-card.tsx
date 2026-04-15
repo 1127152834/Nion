@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/core/i18n/hooks";
-import type { PendingPermissionRequest } from "@/core/threads";
+import type { ToolPermissionApprovalRequest } from "@/core/threads";
 import { cn } from "@/lib/utils";
 
 export function PermissionRequestCard({
@@ -13,7 +13,7 @@ export function PermissionRequestCard({
   onDecision,
   isResolving = false,
 }: {
-  permissionRequest: PendingPermissionRequest;
+  permissionRequest: ToolPermissionApprovalRequest;
   className?: string;
   onDecision?: (decision: "allow" | "allow_session" | "deny") => void;
   isResolving?: boolean;
@@ -41,10 +41,10 @@ export function PermissionRequestCard({
           {permissionRequest.reasonMessage ?? "Permission required to continue."}
         </p>
         <p className="text-muted-foreground text-sm leading-6">
-          {permissionRequest.toolName}
+          {permissionRequest.toolPermission.toolName}
         </p>
         <pre className="bg-muted/40 text-muted-foreground overflow-x-auto rounded-xl p-3 text-xs leading-5 whitespace-pre-wrap">
-          {JSON.stringify(permissionRequest.toolInput, null, 2)}
+          {JSON.stringify(permissionRequest.toolPermission.toolInput, null, 2)}
         </pre>
       </div>
 

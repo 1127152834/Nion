@@ -140,7 +140,7 @@ Soul product contract in this repository:
 - Product-facing retrieval model ownership lives under `Settings > Retrieval Models`, backed by `/api/retrieval-models/*`.
 - `Settings > Retrieval Models` now carries a dual-mode contract: `local_onnx` for desktop-local model selection and `openai_compatible` / `rerank_api` for remote providers.
 - Desktop-local retrieval downloads are an Electron surface concern. Backend status may expose local catalog and active local selections before local embedding runtime is fully restored; do not fake successful local execution.
-- Current local staged state: download/import/select/probe are available, but Memory local semantic indexing is still blocked until tokenizer/config artifacts are restored alongside the ONNX weights.
+- Current local staged state: download/import/select/probe are available, and Memory local semantic indexing may run only when ONNX, tokenizer, and config artifacts are all present; incomplete bundles must still fail explicitly.
 - `/api/memory/settings` is a compatibility projection for Memory retrieval state only; it must not regain ownership of embedding / reranker configuration actions.
 - `Memory` and `Knowledge Base` are retrieval model consumers. They share the phase-1 active retrieval profile instead of maintaining independent model settings.
 - `query_knowledge_base` tool payload must keep `page_ids` as a compatibility alias of `matched_page_ids` until the final assistant metadata/message rendering path stops reading the old field.
@@ -193,6 +193,7 @@ Desktop daemon client contract:
 - `/api/daemon/runtime-info` must remain backward compatible for existing desktop consumers, but now also carries product-facing `guardian_mode` and `bridge_runtime` summary objects for Guardian Mode surfaces.
 - `guardian_mode.status` is a bounded contract (`standing_by` | `busy` | `offline`), not a free-form string.
 - `/api/local-actions/plan` is the controlled local-actions planning surface. It must create a structured goal / plan / execution audit tuple and honor `daemon.local_actions_permission_mode`; concrete OS execution stays behind the desktop main host contract, not arbitrary command passthrough.
+- Thread approval is a shared domain, not a daemon-only surface. The primary approval contract is moving to explicit `approval_kind` typing (`tool_permission` vs `local_action_plan`); do not keep growing product semantics behind `tool_name == "local_actions_review"` fallbacks.
 - Desktop bridge overview now has its own IPC contract: `DESKTOP_BRIDGE_IPC_CHANNELS.bridgeRuntimeInfo` / `bridge:get-runtime-info`.
   This is the single snapshot surface for renderer-side remote-entry overview consumers and should stay sourced from one `getBridgeRuntimeInfo()` assembly boundary in desktop main.
 - Frontend runtime visibility rule: settings and bridge overview must build on the

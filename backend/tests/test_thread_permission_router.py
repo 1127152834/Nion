@@ -3,7 +3,10 @@ from __future__ import annotations
 from fastapi.testclient import TestClient
 
 from app.gateway.app import create_app
-from nion.thread_permissions import create_thread_permission_request
+from nion.thread_permissions import (
+    create_thread_approval_request,
+    create_thread_permission_request,
+)
 from nion.threads.repository import ThreadRepository
 
 
@@ -65,6 +68,11 @@ def test_workspace_permission_resolve_route_retries_original_message(tmp_path, m
     updated = repository.get_thread("thread-1")
     assert updated is not None
     assert updated.values.resolved_permission_request_ids == [request.id]
+    assert response.json()["approval_kind"] == "tool_permission"
+    assert response.json()["tool_permission_result"] == {
+        "tool_name": "codepilot_cli_tools_install",
+        "tool_input": {"command": "brew install stripe/stripe-cli/stripe"},
+    }
 
 
 def test_bridge_permission_resolve_returns_local_actions_execution_metadata(
@@ -86,13 +94,13 @@ def test_bridge_permission_resolve_returns_local_actions_execution_metadata(
         },
     )
 
-    request = create_thread_permission_request(
+    request = create_thread_approval_request(
         thread_id="thread-local-actions",
-        tool_name="local_actions_review",
-        tool_input={
+        approval_kind="local_action_plan",
+        local_action_payload={
             "execution_id": "exec-1",
             "plan_id": "plan-1",
-            "local_actions": [
+            "actions": [
                 {
                     "action_type": "capture_active_window",
                     "target": "active_window",
@@ -111,8 +119,9 @@ def test_bridge_permission_resolve_returns_local_actions_execution_metadata(
     assert response.status_code == 200
     payload = response.json()
     assert payload["ok"] is True
-    assert payload["tool_name"] == "local_actions_review"
-    assert payload["local_actions"] == {
+    assert payload["decision"] == "allow"
+    assert payload["approval_kind"] == "local_action_plan"
+    assert payload["local_action_result"] == {
         "execution_id": "exec-1",
         "plan_id": "plan-1",
         "actions": [
@@ -122,6 +131,7 @@ def test_bridge_permission_resolve_returns_local_actions_execution_metadata(
             }
         ],
     }
+    assert payload["local_actions"] == payload["local_action_result"]
 
 
 def test_workspace_permission_second_allow_is_not_retried(tmp_path, monkeypatch):
