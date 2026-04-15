@@ -54,6 +54,23 @@ type DesktopRuntimeInfoPayload = {
   allowBackgroundRunning?: boolean | null;
 };
 
+type DaemonRuntimeInfoPayload = {
+  mode?: string | null;
+  base_url?: string | null;
+  health_url?: string | null;
+  working_directory?: string | null;
+  allow_background_running?: boolean | null;
+  guardian_mode?: {
+    enabled?: boolean | null;
+    window_required?: boolean | null;
+    status?: DesktopGuardianModeStatus | null;
+  };
+  bridge_runtime?: {
+    available?: boolean | null;
+    running?: boolean | null;
+  };
+};
+
 type DesktopBridgeWindow = Window & {
   __NION_BACKEND_BASE_URL__?: string;
   nionDesktop?: {
@@ -102,7 +119,18 @@ export type DesktopRuntimeInfo = {
   workingDirectory: string | null;
   clientId: string | null;
   allowBackgroundRunning: boolean;
+  guardianMode: {
+    enabled: boolean;
+    windowRequired: boolean;
+    status: DesktopGuardianModeStatus;
+  };
+  bridgeRuntime: {
+    available: boolean;
+    running: boolean | null;
+  };
 };
+
+export type DesktopGuardianModeStatus = "standing_by" | "busy" | "offline";
 
 function getDesktopWindow(): DesktopBridgeWindow | null {
   if (typeof window === "undefined") {
@@ -126,15 +154,75 @@ export async function getDesktopRuntimeInfo(): Promise<DesktopRuntimeInfo | null
   try {
     const runtimeInfo = await desktopBridge.getRuntimeInfo();
     const baseUrl = runtimeInfo.baseUrl?.trim() ?? "";
-
-    return {
+    const desktopRuntimeInfo: DesktopRuntimeInfo = {
       mode: runtimeInfo.mode?.trim() || "local-daemon",
       baseUrl,
       healthUrl: runtimeInfo.healthUrl?.trim() || (baseUrl ? `${baseUrl}/health` : ""),
       workingDirectory: runtimeInfo.workingDirectory?.trim() || null,
       clientId: runtimeInfo.clientId?.trim() || null,
       allowBackgroundRunning: runtimeInfo.allowBackgroundRunning === true,
+      guardianMode: {
+        enabled: runtimeInfo.allowBackgroundRunning === true,
+        windowRequired: false,
+        status: "offline",
+      },
+      bridgeRuntime: {
+        available: Boolean(baseUrl),
+        running: null,
+      },
     };
+
+    if (!baseUrl) {
+      return desktopRuntimeInfo;
+    }
+
+    try {
+      const response = await fetch(`${baseUrl}/api/daemon/runtime-info`);
+      if (!response.ok) {
+        throw new Error(`Failed to load daemon runtime info (${response.status})`);
+      }
+
+      const daemonRuntimeInfo = (await response.json()) as DaemonRuntimeInfoPayload;
+      const guardianStatus = daemonRuntimeInfo.guardian_mode?.status;
+
+      return {
+        mode: daemonRuntimeInfo.mode?.trim() || desktopRuntimeInfo.mode,
+        baseUrl: daemonRuntimeInfo.base_url?.trim() || desktopRuntimeInfo.baseUrl,
+        healthUrl: daemonRuntimeInfo.health_url?.trim() || desktopRuntimeInfo.healthUrl,
+        workingDirectory:
+          daemonRuntimeInfo.working_directory?.trim() || desktopRuntimeInfo.workingDirectory,
+        clientId: desktopRuntimeInfo.clientId,
+        allowBackgroundRunning:
+          daemonRuntimeInfo.allow_background_running === true ||
+          (daemonRuntimeInfo.allow_background_running == null &&
+            desktopRuntimeInfo.allowBackgroundRunning),
+        guardianMode: {
+          enabled:
+            daemonRuntimeInfo.guardian_mode?.enabled === true ||
+            (daemonRuntimeInfo.guardian_mode?.enabled == null &&
+              desktopRuntimeInfo.guardianMode.enabled),
+          windowRequired: daemonRuntimeInfo.guardian_mode?.window_required === true,
+          status:
+            guardianStatus === "standing_by" ||
+            guardianStatus === "busy" ||
+            guardianStatus === "offline"
+              ? guardianStatus
+              : "offline",
+        },
+        bridgeRuntime: {
+          available:
+            daemonRuntimeInfo.bridge_runtime?.available === true ||
+            (daemonRuntimeInfo.bridge_runtime?.available == null &&
+              desktopRuntimeInfo.bridgeRuntime.available),
+          running:
+            daemonRuntimeInfo.bridge_runtime?.running === undefined
+              ? desktopRuntimeInfo.bridgeRuntime.running
+              : daemonRuntimeInfo.bridge_runtime.running,
+        },
+      };
+    } catch {
+      return desktopRuntimeInfo;
+    }
   } catch {
     return null;
   }

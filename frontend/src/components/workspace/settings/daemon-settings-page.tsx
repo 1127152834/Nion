@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 
 import { Switch } from "@/components/ui/switch";
 import { getDesktopRuntimeInfo } from "@/core/api/desktop-client";
-import { useI18n } from "@/core/i18n/hooks";
 
 import { ConfigValidationErrors } from "./config-validation-errors";
 import { ConfigSaveBar } from "./configuration/config-save-bar";
@@ -15,14 +14,7 @@ import {
 import { SettingsSection } from "./settings-section";
 import { useConfigEditor } from "./use-config-editor";
 
-type DaemonRuntimeInfoResponse = {
-  guardian_mode?: {
-    status?: GuardianModeStatus;
-  };
-};
-
 export function DaemonSettingsPage() {
-  const { t } = useI18n();
   const {
     draftConfig,
     validationErrors,
@@ -44,34 +36,8 @@ export function DaemonSettingsPage() {
 
     async function loadGuardianStatus() {
       const runtimeInfo = await getDesktopRuntimeInfo();
-      const baseUrl = runtimeInfo?.baseUrl?.trim();
-
-      if (!baseUrl) {
-        if (!cancelled) {
-          setGuardianStatus("offline");
-        }
-        return;
-      }
-
-      try {
-        const response = await fetch(`${baseUrl}/api/daemon/runtime-info`);
-        if (!response.ok) {
-          throw new Error(`Failed to load daemon runtime info (${response.status})`);
-        }
-        const payload = (await response.json()) as DaemonRuntimeInfoResponse;
-        const nextStatus = payload.guardian_mode?.status;
-
-        if (!cancelled) {
-          setGuardianStatus(
-            nextStatus === "standing_by" || nextStatus === "busy" || nextStatus === "offline"
-              ? nextStatus
-              : "offline",
-          );
-        }
-      } catch {
-        if (!cancelled) {
-          setGuardianStatus("offline");
-        }
+      if (!cancelled) {
+        setGuardianStatus(runtimeInfo?.guardianMode.status ?? "offline");
       }
     }
 
@@ -84,18 +50,18 @@ export function DaemonSettingsPage() {
 
   return (
     <SettingsSection
-      title={t.settings.daemon.title}
-      description={t.settings.daemon.description}
+      title="Guardian Mode"
+      description="Keep the desktop runtime available for remote entry and show its current guardian status."
     >
       <div className="space-y-4">
         <GuardianModeStatusCard status={guardianStatus} />
         <div className="flex items-center justify-between rounded-xl border bg-background/80 p-4 shadow-sm">
           <div className="space-y-1">
             <div className="text-sm font-medium">
-              {t.settings.daemon.allowBackgroundRunningLabel}
+              Keep guardian mode running in the background
             </div>
             <div className="text-muted-foreground text-sm">
-              {t.settings.daemon.allowBackgroundRunningHint}
+              When enabled, closing the desktop window keeps guardian mode alive so remote entry remains available.
             </div>
           </div>
           <Switch
