@@ -26,6 +26,7 @@ import { TodoList } from "@/components/workspace/todo-list";
 import { TokenUsageIndicator } from "@/components/workspace/token-usage-indicator";
 import { Welcome } from "@/components/workspace/welcome";
 import { getAPIClient } from "@/core/api";
+import { loadConfig } from "@/core/config-center";
 import { useConfigCenter } from "@/core/config-center";
 import { loadThreadFilesTree } from "@/core/files";
 import { useI18n } from "@/core/i18n/hooks";
@@ -74,6 +75,11 @@ function openSandboxSettings() {
       detail: { section: "sandbox" },
     }),
   );
+}
+
+async function fetchDefaultHostWorkdirFallback(): Promise<string | null> {
+  const config = await loadConfig();
+  return resolveDefaultHostWorkdir(config.config);
 }
 
 export default function ChatThreadPage() {
@@ -253,6 +259,9 @@ export default function ChatThreadPage() {
         let nextHostWorkdir = runtimeProfile.host_workdir ?? null;
         if (mode === "host" && !nextHostWorkdir) {
           nextHostWorkdir = defaultHostWorkdir;
+        }
+        if (mode === "host" && !nextHostWorkdir) {
+          nextHostWorkdir = await fetchDefaultHostWorkdirFallback();
         }
         if (mode === "host" && !nextHostWorkdir) {
           setHostWorkdirPromptOpen(true);
