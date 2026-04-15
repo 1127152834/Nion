@@ -145,6 +145,8 @@ Program 03D-B 已把 desktop bridge incident workflow 补上：
 - `frontend/src/core/bridge/client.ts` 暴露 `BridgeRuntimeInfo` 与 `getRuntimeInfo()`，作为 `/workspace/bridge` overview 的唯一数据入口
 - bridge overview 的诊断/重启动作仍是 overview-level affordance，不等价于受控本机动作，也不进入 per-platform action 语义
 - guardian settings 通过桌面 runtime helper 汇总 desktop runtime bridge + `/api/daemon/runtime-info` 的结果，以一个 settings-facing contract 暴露给页面
+- slice 3 现在开始把 guardian settings 与 bridge overview 的运行态读取进一步统一到共享的 frontend runtime visibility contract：页面不再各自拥有 mount/focus/visibility 的刷新策略
+- `frontend/src/core/runtime/guardian-runtime.ts` 现在是 guardian / bridge runtime merge 与 fallback 的唯一 owner；`frontend/src/core/runtime/use-guardian-runtime.ts` 负责统一 refresh 触发
 - 当前这个产品面仍然只做单用户、一台个人电脑；不覆盖团队、多用户或任意远程控机
 
 这些事件必须既可查询，又要有人能直接读懂。

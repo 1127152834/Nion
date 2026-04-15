@@ -28,6 +28,10 @@
       - frontend bridge client 需要暴露 `BridgeRuntimeInfo` / `getRuntimeInfo()`
       - bridge overview panel 需要显示运行态、活跃绑定、待处理事件、启用渠道与风险提示
       - overview actions 需要只停留在 diagnose / restart 两个 overview-level affordance
+    - slice 3 额外要求：
+      - `guardian-runtime.ts` 需要成为 guardian / bridge runtime merge 与 fallback 的唯一 owner
+      - `use-guardian-runtime.ts` 需要成为共享 refresh owner（mount / focus / visibility / manual）
+      - `Settings > Daemon` 与 `/workspace/bridge` 后续都应消费 shared runtime hook，而不是页面本地 runtime loader
   - 代码级入口：
     - `backend/tests/test_surface_policy_config.py`
     - `backend/tests/test_bridge_surface_policy.py`
@@ -37,6 +41,8 @@
     - `desktop/tests/bridge-runtime-lifecycle.contract.test.mjs`
     - `frontend/src/core/threads/desktop-client.test.ts`
     - `frontend/src/core/bridge/overview.test.ts`
+    - `frontend/src/core/runtime/guardian-runtime.test.ts`
+    - `frontend/src/core/runtime/use-guardian-runtime.contract.test.ts`
     - `frontend/src/components/workspace/settings/guardian-mode-status-card.contract.test.ts`
     - `frontend/src/components/workspace/bridge/bridge-layout-guardian-copy.contract.test.ts`
     - `frontend/src/components/workspace/bridge/bridge-overview-panel.contract.test.ts`

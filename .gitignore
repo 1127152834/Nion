@@ -43,6 +43,8 @@ docs/*
 !docs/test/**
 !docs/reviews/
 !docs/reviews/**
+!docs/hermes-wiki/
+!docs/hermes-wiki/**
 !docs/superpowers/
 !docs/superpowers/specs/
 !docs/superpowers/specs/**

@@ -187,6 +187,9 @@ Desktop daemon client contract:
 - `guardian_mode.status` is a bounded contract (`standing_by` | `busy` | `offline`), not a free-form string.
 - Desktop bridge overview now has its own IPC contract: `DESKTOP_BRIDGE_IPC_CHANNELS.bridgeRuntimeInfo` / `bridge:get-runtime-info`.
   This is the single snapshot surface for renderer-side remote-entry overview consumers and should stay sourced from one `getBridgeRuntimeInfo()` assembly boundary in desktop main.
+- Frontend runtime visibility rule: settings and bridge overview must build on the
+  shared guardian runtime contract/hook layer instead of each page re-fetching
+  and re-merging runtime state independently.
 
 Runtime profile execution contract:
 
@@ -243,6 +246,9 @@ Bridge configuration direction:
 - Overview-level diagnose/restart affordances belong in `BridgeOverviewPanel`;
   do not spread those buttons into per-platform sections unless the accepted
   slice boundary changes.
+- `useGuardianRuntime()` is the frontend owner for mount/focus/visibility/manual
+  refresh semantics. Do not reintroduce page-local `focus` or `visibilitychange`
+  listeners once a surface has migrated to that hook.
 
 If a gateway route is added and the Electron renderer consumes it, update
 `app/daemon/app.py` too or the desktop shell will return 404 while the web/gateway
