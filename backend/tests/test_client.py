@@ -381,7 +381,7 @@ class TestStream:
             ],
         )
         tool_result = ToolMessage(
-            content='{"answer_markdown":"Roadmap summary","page_ids":["concept:roadmap"],"matched_page_ids":["concept:roadmap"],"citations":[{"page_id":"concept:roadmap","snippet":"Roadmap summary"}],"retrieval_policy":"knowledge-first","warnings":[]}',
+            content='{"answer_markdown":"Roadmap summary","page_ids":["concept:roadmap"],"matched_page_ids":["concept:roadmap"],"citations":[{"page_id":"concept:roadmap","snippet":"Roadmap summary"}],"retrieval_policy":"active_only","warnings":[]}',
             id="tm-knowledge",
             tool_call_id="tc-knowledge",
             name="query_knowledge_base",
@@ -439,7 +439,7 @@ class TestStream:
             ],
         )
         tool_result = ToolMessage(
-            content='{"answer_markdown":"Roadmap summary","page_ids":["concept:roadmap"],"matched_page_ids":["concept:roadmap"],"citations":[{"page_id":"concept:roadmap","snippet":"Roadmap summary"}],"retrieval_policy":"knowledge-first","warnings":[]}',
+            content='{"answer_markdown":"Roadmap summary","page_ids":["concept:roadmap"],"matched_page_ids":["concept:roadmap"],"citations":[{"page_id":"concept:roadmap","snippet":"Roadmap summary"}],"retrieval_policy":"active_only","warnings":[]}',
             id="tm-knowledge",
             tool_call_id="tc-knowledge",
             name="query_knowledge_base",
