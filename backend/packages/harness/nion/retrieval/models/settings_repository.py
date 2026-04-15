@@ -8,6 +8,10 @@ from pydantic import ValidationError
 from nion.retrieval.models.settings import RetrievalModelsSettings
 
 
+class RetrievalModelsSettingsLoadError(RuntimeError):
+    pass
+
+
 class RetrievalModelsSettingsRepository:
     def __init__(self, base_dir: str | Path) -> None:
         self._base_dir = Path(base_dir)
@@ -23,8 +27,10 @@ class RetrievalModelsSettingsRepository:
             return RetrievalModelsSettings.model_validate(
                 json.loads(self._path.read_text(encoding="utf-8"))
             )
-        except (json.JSONDecodeError, ValidationError):
-            return RetrievalModelsSettings()
+        except (json.JSONDecodeError, ValidationError) as exc:
+            raise RetrievalModelsSettingsLoadError(
+                f"Failed to load retrieval models settings from {self._path}"
+            ) from exc
 
     def save(self, settings: RetrievalModelsSettings) -> RetrievalModelsSettings:
         self._path.parent.mkdir(parents=True, exist_ok=True)
