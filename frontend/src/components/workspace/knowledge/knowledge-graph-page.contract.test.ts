@@ -17,5 +17,10 @@ void test("knowledge graph page renders graph state and rebuild affordance", asy
   assert.match(source, /cluster|聚类/);
   assert.match(source, /@xyflow\/react|ReactFlow/);
   assert.match(source, /loadKnowledgeGraphLayout|saveKnowledgeGraphLayout|graph\/layout/);
+  assert.match(source, /layoutDraft/);
+  assert.match(source, /setLayoutDraft/);
+  assert.match(source, /node_positions:\s*buildNodePositionsFromFlowNodes/);
+  assert.match(source, /buildNodePositionsFromFlowNodes\(/);
+  assert.doesNotMatch(source, /const baseLayout: KnowledgeGraphLayout = layout \?\?/);
   assert.doesNotMatch(source, /localStorage\.getItem\("knowledge-graph-layout"\)/);
 });

@@ -120,6 +120,9 @@ class LocalDaemonService:
     def has_active_runtime_work(self) -> bool:
         return bool(self._active_thread_streams)
 
+    def has_active_thread_stream(self, thread_id: str) -> bool:
+        return thread_id in self._active_thread_streams
+
     def record_thread_event(
         self,
         *,

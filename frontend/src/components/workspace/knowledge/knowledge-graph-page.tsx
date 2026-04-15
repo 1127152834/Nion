@@ -23,6 +23,90 @@ import {
 const NODE_WIDTH = 180;
 const NODE_HEIGHT = 44;
 
+function createEmptyLayoutDraft(): KnowledgeGraphLayout {
+  return {
+    version: 1,
+    node_positions: {},
+    collapsed_clusters: [],
+    highlighted_node_ids: [],
+    updated_at: new Date().toISOString(),
+  };
+}
+
+function cloneLayoutDraft(layout: KnowledgeGraphLayout | null): KnowledgeGraphLayout {
+  if (!layout) {
+    return createEmptyLayoutDraft();
+  }
+  return {
+    version: 1,
+    node_positions: { ...layout.node_positions },
+    collapsed_clusters: [...layout.collapsed_clusters],
+    highlighted_node_ids: [...layout.highlighted_node_ids],
+    updated_at: layout.updated_at,
+  };
+}
+
+function buildNodePositionsFromFlowNodes(
+  nodes: Array<Node<{ label: string }>>,
+): KnowledgeGraphLayout["node_positions"] {
+  return Object.fromEntries(
+    nodes.map((node) => [
+      node.id,
+      {
+        x: node.position.x,
+        y: node.position.y,
+      },
+    ]),
+  );
+}
+
+function mergeDraggedNodeIntoFlowNodes(
+  nodes: Array<Node<{ label: string }>>,
+  draggedNode: Node,
+): Array<Node<{ label: string }>> {
+  let found = false;
+  const mergedNodes = nodes.map((node) => {
+    if (node.id !== draggedNode.id) {
+      return node;
+    }
+    found = true;
+    return {
+      ...node,
+      position: {
+        x: draggedNode.position.x,
+        y: draggedNode.position.y,
+      },
+    };
+  });
+  if (found) {
+    return mergedNodes;
+  }
+  return [
+    ...mergedNodes,
+    {
+      id: draggedNode.id,
+      type: draggedNode.type ?? "default",
+      position: {
+        x: draggedNode.position.x,
+        y: draggedNode.position.y,
+      },
+      data: { label: String(draggedNode.data?.label ?? draggedNode.id) },
+    },
+  ];
+}
+
+function getLayoutUpdatedAtMs(layout: KnowledgeGraphLayout) {
+  const timestamp = Date.parse(layout.updated_at);
+  return Number.isFinite(timestamp) ? timestamp : 0;
+}
+
+function isNewerOrEqualLayout(
+  nextLayout: KnowledgeGraphLayout,
+  currentLayout: KnowledgeGraphLayout,
+) {
+  return getLayoutUpdatedAtMs(nextLayout) >= getLayoutUpdatedAtMs(currentLayout);
+}
+
 function defaultNodePosition(index: number) {
   return {
     x: 120 + (index % 4) * 240,
@@ -42,6 +126,9 @@ export function KnowledgeGraphPage() {
   const edges = graph?.edges ?? [];
   const layout = graph?.layout ?? null;
   const [flowNodes, setFlowNodes] = useState<Array<Node<{ label: string }>>>([]);
+  const [layoutDraft, setLayoutDraft] = useState<KnowledgeGraphLayout>(() =>
+    cloneLayoutDraft(layout),
+  );
   const graphClusters = useMemo(() => {
     const clusters = new Map<string, string[]>();
     for (const node of nodes) {
@@ -53,12 +140,21 @@ export function KnowledgeGraphPage() {
   }, [nodes]);
 
   useEffect(() => {
+    setLayoutDraft((currentLayoutDraft) => {
+      const nextLayoutDraft = cloneLayoutDraft(layout);
+      return isNewerOrEqualLayout(nextLayoutDraft, currentLayoutDraft)
+        ? nextLayoutDraft
+        : currentLayoutDraft;
+    });
+  }, [layout]);
+
+  useEffect(() => {
     setFlowNodes(
       nodes.map((node, index) => ({
         id: String(node.id ?? index),
         type: "default",
         position:
-          layout?.node_positions[String(node.id ?? index)] ?? defaultNodePosition(index),
+          layoutDraft.node_positions[String(node.id ?? index)] ?? defaultNodePosition(index),
         data: { label: String(node.label ?? node.id ?? "") },
         style: {
           minWidth: NODE_WIDTH,
@@ -70,7 +166,7 @@ export function KnowledgeGraphPage() {
         },
       })),
     );
-  }, [layout?.node_positions, nodes]);
+  }, [layoutDraft.node_positions, nodes]);
 
   const flowEdges = useMemo<Array<Edge>>(
     () =>
@@ -90,23 +186,20 @@ export function KnowledgeGraphPage() {
   }
 
   function persistNodePosition(node: Node) {
-    const baseLayout: KnowledgeGraphLayout = layout ?? {
-      version: 1,
-      node_positions: {},
-      collapsed_clusters: [],
-      highlighted_node_ids: [],
+    const mergedFlowNodes = mergeDraggedNodeIntoFlowNodes(flowNodes, node);
+    const nextLayoutDraft: KnowledgeGraphLayout = {
+      ...layoutDraft,
+      node_positions: buildNodePositionsFromFlowNodes(mergedFlowNodes),
       updated_at: new Date().toISOString(),
     };
-    saveKnowledgeGraphLayoutState.mutate({
-      ...baseLayout,
-      node_positions: {
-        ...baseLayout.node_positions,
-        [node.id]: {
-          x: node.position.x,
-          y: node.position.y,
-        },
+    setFlowNodes(mergedFlowNodes);
+    setLayoutDraft(nextLayoutDraft);
+    saveKnowledgeGraphLayoutState.mutate(nextLayoutDraft, {
+      onSuccess: (savedLayout) => {
+        setLayoutDraft((currentLayoutDraft) =>
+          isNewerOrEqualLayout(savedLayout, currentLayoutDraft) ? savedLayout : currentLayoutDraft,
+        );
       },
-      updated_at: new Date().toISOString(),
     });
   }
 

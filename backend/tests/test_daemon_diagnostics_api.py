@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 
 from app.daemon.app import create_app
+from app.daemon.service import LocalDaemonService
 from nion.config.paths import get_paths
 from nion.telemetry.models import DiagnosticSnapshot
 from nion.telemetry.store import TelemetryStore
@@ -38,3 +39,23 @@ def test_daemon_task_diagnostics_returns_task_snapshot(tmp_path, monkeypatch) ->
     payload = response.json()
     assert payload["status"] == "error"
     assert payload["details"]["task_id"] == "task-123"
+
+
+def test_thread_diagnostics_reports_running_state_when_thread_stream_is_active() -> None:
+    app = create_app()
+    with TestClient(app) as client:
+        service = app.state.daemon_service
+        assert isinstance(service, LocalDaemonService)
+        service.record_thread_event(
+            level="info",
+            event_type="thread_stream_started",
+            thread_id="thread-queue",
+            message="Thread stream started",
+            details={},
+        )
+        response = client.get("/api/daemon/diagnostics/threads/thread-queue")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["details"]["thread_id"] == "thread-queue"
+    assert payload["details"]["is_running"] is True

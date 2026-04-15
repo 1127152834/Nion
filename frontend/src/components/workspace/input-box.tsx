@@ -80,6 +80,7 @@ import type { Skill } from "@/core/skills/type";
 import type { AgentThreadContext } from "@/core/threads";
 import type { PendingClarification } from "@/core/threads";
 import type { QueuedThreadMessage } from "@/core/threads";
+import { resolveArtifactURL } from "@/core/artifacts/utils";
 import { textOfMessage } from "@/core/threads/utils";
 import {
   hasInlineMention,
@@ -88,6 +89,21 @@ import {
 } from "@/core/utils/inline-mentions";
 import { cn } from "@/lib/utils";
 
+import {
+  QueueItem,
+  QueueItemAction,
+  QueueItemActions,
+  QueueItemAttachment,
+  QueueItemContent,
+  QueueItemDescription,
+  QueueItemFile,
+  QueueItemImage,
+  QueueList,
+  QueueSection,
+  QueueSectionContent,
+  QueueSectionLabel,
+  QueueSectionTrigger,
+} from "../ai-elements/queue";
 import {
   ModelSelector,
   ModelSelectorContent,
@@ -169,6 +185,25 @@ function basename(path: string): string {
   const normalized = normalizePath(path).replace(/\/$/, "");
   const parts = normalized.split("/").filter(Boolean);
   return parts[parts.length - 1] ?? normalized;
+}
+
+function QueuedAttachmentPreview({
+  file,
+  threadId,
+}: {
+  file: QueuedThreadMessage["files"][number];
+  threadId: string;
+}) {
+  const previewUrl =
+    typeof file.path === "string" && file.path.length > 0
+      ? resolveArtifactURL(file.path, threadId)
+      : file.artifactUrl;
+
+  if (previewUrl && file.mediaType?.startsWith("image/")) {
+    return <QueueItemImage src={previewUrl} alt={file.filename} />;
+  }
+
+  return <QueueItemFile>{file.filename}</QueueItemFile>;
 }
 
 function buildPathMentionOptions(paths: string[]): MentionOption[] {
@@ -1498,34 +1533,75 @@ export function InputBox({
   return (
     <div ref={promptRootRef} className="relative">
       {queuedMessages.length > 0 ? (
-        <div className="mb-2 rounded-2xl border border-border/60 bg-background/80 px-3 py-2 text-xs shadow-sm backdrop-blur-sm">
-          <div className="mb-1 font-medium text-muted-foreground">
-            {t.inputBox.messageQueueQueued.replace(
-              "{count}",
-              String(queuedMessages.length),
-            )}
-          </div>
-          <div className="flex flex-col gap-1">
-            {queuedMessages.slice(0, 3).map((item, index) => (
-              <div
-                key={`${index}-${item.text}`}
-                className="flex items-center justify-between gap-2 rounded-lg bg-muted/50 px-2 py-1"
-              >
-                <span className="min-w-0 truncate text-foreground/80">
-                  {item.text || t.inputBox.messageQueueAttachmentOnly}
-                </span>
-                {item.files.length > 0 ? (
-                  <span className="shrink-0 text-muted-foreground">
-                    {t.inputBox.messageQueueFiles.replace(
-                      "{count}",
-                      String(item.files.length),
-                    )}
-                  </span>
-                ) : null}
-              </div>
-            ))}
-          </div>
-        </div>
+        <QueueSection className="mb-2 rounded-2xl border border-border/60 bg-background/80 px-2 py-2 shadow-sm backdrop-blur-sm">
+          <QueueSectionTrigger className="rounded-xl bg-transparent px-2 py-1.5 hover:bg-muted/50">
+            <QueueSectionLabel
+              label={t.inputBox.messageQueueTitle}
+              count={queuedMessages.length}
+            />
+            <span className="text-xs text-muted-foreground">
+              {t.inputBox.messageQueueQueued.replace(
+                "{count}",
+                String(queuedMessages.length),
+              )}
+            </span>
+          </QueueSectionTrigger>
+          <QueueSectionContent>
+            <QueueList className="mt-1">
+              {queuedMessages.map((item) => (
+                <QueueItem key={item.id} className="rounded-xl px-2 py-2">
+                  <div className="flex items-start gap-2">
+                    <QueueItemContent className="text-sm text-foreground">
+                      {item.text || t.inputBox.messageQueueAttachmentOnly}
+                    </QueueItemContent>
+                    <span className="rounded-full border border-border/70 px-2 py-0.5 text-[11px] text-muted-foreground">
+                      {item.status === "active"
+                        ? t.inputBox.messageQueueStatusActive
+                        : t.inputBox.messageQueueStatusQueued}
+                    </span>
+                    <QueueItemActions className="ml-auto shrink-0">
+                      {item.status !== "active" ? (
+                        <QueueItemAction
+                          onClick={() => void thread.promoteQueuedMessage(item.id)}
+                          aria-label={t.inputBox.messageQueueSendNext}
+                          title={t.inputBox.messageQueueSendNext}
+                        >
+                          <ZapIcon className="size-3.5" />
+                        </QueueItemAction>
+                      ) : null}
+                      <QueueItemAction
+                        onClick={() => void thread.removeQueuedMessage(item.id)}
+                        aria-label={t.inputBox.messageQueueRemove}
+                        title={t.inputBox.messageQueueRemove}
+                      >
+                        <XIcon className="size-3.5" />
+                      </QueueItemAction>
+                    </QueueItemActions>
+                  </div>
+                  {item.files.length > 0 ? (
+                    <QueueItemDescription className="ml-0">
+                      {t.inputBox.messageQueueFiles.replace(
+                        "{count}",
+                        String(item.files.length),
+                      )}
+                    </QueueItemDescription>
+                  ) : null}
+                  {item.files.length > 0 ? (
+                    <QueueItemAttachment>
+                      {item.files.map((file) => (
+                        <QueuedAttachmentPreview
+                          key={`${item.id}-${file.filename}-${file.path ?? file.artifactUrl ?? "file"}`}
+                          file={file}
+                          threadId={item.threadId}
+                        />
+                      ))}
+                    </QueueItemAttachment>
+                  ) : null}
+                </QueueItem>
+              ))}
+            </QueueList>
+          </QueueSectionContent>
+        </QueueSection>
       ) : null}
       {pendingClarification ? (
         <div className="mb-2 flex items-center gap-2 rounded-2xl border border-border/60 bg-background/75 px-4 py-2 text-sm backdrop-blur-sm">

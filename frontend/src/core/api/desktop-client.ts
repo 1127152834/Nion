@@ -42,6 +42,12 @@ export type DesktopThreadRecord<TState extends Record<string, unknown> = AgentTh
   values: TState;
 };
 
+export type DesktopDiagnosticResponse = {
+  status: string;
+  summary: string;
+  details: Record<string, unknown>;
+};
+
 export type NotebookAssistantSessionBootstrapRecord<
   TState extends Record<string, unknown> = AgentThreadState,
 > = DesktopThreadRecord<TState> & {
@@ -91,6 +97,7 @@ export type DesktopThreadClient = {
   getState<TState extends Record<string, unknown> = AgentThreadState>(
     threadId: string,
   ): Promise<DesktopThreadRecord<TState>>;
+  getThreadDiagnostics(threadId: string): Promise<DesktopDiagnosticResponse>;
   updateState(
     threadId: string,
     payload: { values: Record<string, unknown> },
@@ -454,6 +461,24 @@ export function createDesktopThreadClient(
         `${baseUrl}/${threadId}/state`,
       );
       return normalizeThreadRecord<TState>(result, threadId);
+    },
+
+    async getThreadDiagnostics(threadId: string) {
+      if (isMock) {
+        return {
+          status: "healthy",
+          summary: `No diagnostics found for thread '${threadId}'`,
+          details: {
+            thread_id: threadId,
+            is_running: false,
+          },
+        } satisfies DesktopDiagnosticResponse;
+      }
+
+      const baseUrl = await getDesktopBackendBaseURLAsync();
+      return requestJSON<DesktopDiagnosticResponse>(
+        `${baseUrl}/api/daemon/diagnostics/threads/${threadId}`,
+      );
     },
 
     async updateState(threadId: string, payload: { values: Record<string, unknown> }) {

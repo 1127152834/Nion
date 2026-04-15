@@ -143,6 +143,7 @@ Soul product contract in this repository:
 - `query_knowledge_base` tool payload must keep `page_ids` as a compatibility alias of `matched_page_ids` until the final assistant metadata/message rendering path stops reading the old field.
 - Streamed knowledge metadata is one-shot per tool result: bind it to the immediately associated final assistant answer, keep that same message annotated across `messages-tuple`, `values`, and final-turn projections, and do not let later plain assistant messages inherit it.
 - `GET /api/knowledge/query` accepts `include_archived=true`; explicit archived lookups may return archived citations alongside active results and must emit a warning when any archived page is selected.
+- Knowledge graph layout reads must sanitize persisted `layout.json` field-by-field inside `KnowledgeGraphService` so malformed node positions, list fields, or timestamps fall back to safe defaults before FastAPI response-model validation.
 - Structured memory retrieval must treat vector search as best-effort. Remote embedding HTTP failures must degrade to lexical fallback instead of aborting the main chat submit path.
 - OpenAI-compatible chat models must carry a finite request timeout at runtime. If config does not set `timeout` / `request_timeout`, the model factory should apply the default 30-second timeout so upstream stalls surface as normal thread-stream errors instead of indefinite loading.
 - `/api/memory/soul` returns the stable settings-shaped payload used by `Settings > Soul`.

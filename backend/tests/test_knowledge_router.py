@@ -1,9 +1,11 @@
 from fastapi.testclient import TestClient
+import json
 
 from app.daemon.app import create_app
 from nion.config.paths import reset_paths
 from nion.knowledge.activity_store import KnowledgeActivityStore
 from nion.knowledge.compile_jobs import KnowledgeCompileJobStore
+from nion.knowledge.paths import get_knowledge_paths
 from nion.knowledge.source_candidates import KnowledgeSourceCandidateStore
 from nion.notebook.history import NotebookHistoryService
 from nion.notebook.service import NotebookService
@@ -455,6 +457,62 @@ def test_graph_layout_endpoint_persists_layout(monkeypatch, tmp_path):
 
     assert response.status_code == 200
     assert response.json()["node_positions"]["concept:roadmap"]["x"] == 10
+
+
+def test_graph_endpoint_sanitizes_corrupted_layout_payload(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+    paths = get_knowledge_paths(base_dir=tmp_path)
+    paths.knowledge_graph_dir.mkdir(parents=True, exist_ok=True)
+    paths.knowledge_wiki_dir.mkdir(parents=True, exist_ok=True)
+    paths.knowledge_wiki_dir.joinpath("concept__roadmap.md").write_text(
+        "---\n"
+        'page_id: "concept:roadmap"\n'
+        'page_type: "concept"\n'
+        'title: "Roadmap"\n'
+        "sources:\n"
+        '  - "source:notebook_note:note_1"\n'
+        "compiled_from:\n"
+        '  - source_id: "source:notebook_note:note_1"\n'
+        '    content_hash: "abc123"\n'
+        'last_compiled_at: "2026-04-13T10:00:00Z"\n'
+        'page_state: "active"\n'
+        'agent_owned: true\n'
+        'human_editable: true\n'
+        "---\n"
+        "Roadmap body\n",
+        encoding="utf-8",
+    )
+    paths.knowledge_graph_dir.joinpath("layout.json").write_text(
+        json.dumps(
+            {
+                "version": 99,
+                "node_positions": {
+                    "concept:roadmap": {"x": 12.5, "y": "oops"},
+                    "concept:broken": {"x": float("inf"), "y": 30},
+                    "concept:missing": {"x": 10},
+                    "concept:extra": "bad",
+                },
+                "collapsed_clusters": ["concept", 42, None],
+                "highlighted_node_ids": "concept:roadmap",
+                "updated_at": {"bad": "value"},
+            },
+            allow_nan=True,
+        ),
+        encoding="utf-8",
+    )
+
+    with TestClient(create_app()) as client:
+        response = client.get("/api/knowledge/graph")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["nodes"][0]["id"] == "concept:roadmap"
+    assert payload["layout"]["version"] == 1
+    assert payload["layout"]["node_positions"] == {}
+    assert payload["layout"]["collapsed_clusters"] == ["concept"]
+    assert payload["layout"]["highlighted_node_ids"] == []
+    assert isinstance(payload["layout"]["updated_at"], str)
 
 
 def test_knowledge_revision_endpoints_create_preview_and_close(monkeypatch, tmp_path):

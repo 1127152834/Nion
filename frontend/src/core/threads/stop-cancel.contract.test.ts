@@ -20,10 +20,30 @@ void test("thread hooks also cancel active runs during cleanup and thread switch
 void test("thread send queues the latest follow-up message instead of dropping it while a stream is active", async () => {
   const source = await readFile(new URL("./hooks.ts", import.meta.url), "utf8");
 
-  assert.match(source, /type PendingQueuedThreadMessage = QueuedThreadMessage & \{/);
-  assert.match(source, /pendingQueuedMessagesRef/);
+  assert.match(source, /type PendingQueuedThreadMessage = \{/);
+  assert.match(source, /const \[queuedMessages, setQueuedMessages] = useState<PendingQueuedThreadMessage\[]>\(\[\]\)/);
   assert.match(source, /if \(sendInFlightRef\.current\) \{/);
-  assert.match(source, /pendingQueuedMessagesRef\.current = \[/);
-  assert.match(source, /const \[next, \.\.\.rest] = pendingQueuedMessagesRef\.current;/);
-  assert.match(source, /void sendMessage\(\s*next\.threadId,\s*next\.message,\s*next\.extraContext,/s);
+  assert.match(source, /await applyQueuedMessages\(threadId,\s*\[\.\.\.queuedMessagesRef\.current,\s*queuedMessage\]\)/s);
+  assert.match(source, /const nextQueuedMessage = queuedMessagesRef\.current\[0] ?? null;/);
+  assert.match(source, /removeQueuedMessage,\s*promoteQueuedMessage,\s*flushNextQueuedMessage/s);
+  assert.match(source, /while \(nextQueuedMessage\)/);
+});
+
+void test("thread queue persists into thread state and exposes queue controls on the stream object", async () => {
+  const source = await readFile(new URL("./hooks.ts", import.meta.url), "utf8");
+
+  assert.match(source, /apiClient\.updateState\(threadId,\s*\{\s*values:\s*\{\s*queued_messages:/s);
+  assert.match(source, /queuedMessages:\s*queuedMessages\.map\(serializeQueuedMessage\)/);
+  assert.match(source, /removeQueuedMessage:\s*\(messageId: string\) => Promise<void>/);
+  assert.match(source, /promoteQueuedMessage:\s*\(messageId: string\) => Promise<void>/);
+  assert.match(source, /queuedMessagesRef\.current = hydratedQueuedMessages;/);
+});
+
+void test("thread queue uploads attachments before enqueue so refreshed queues remain sendable", async () => {
+  const source = await readFile(new URL("./hooks.ts", import.meta.url), "utf8");
+
+  assert.match(source, /const \{ queuedFiles, filesForSubmit } = await prepareFilesForMessage\(/);
+  assert.match(source, /artifactUrl: info\.artifact_url/);
+  assert.match(source, /mediaType: sourceFiles\[index]\?\.mediaType/);
+  assert.match(source, /message:\s*\{\s*\.\.\.message,\s*text,\s*files: \[\],/s);
 });

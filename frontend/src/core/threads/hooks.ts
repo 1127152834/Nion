@@ -12,6 +12,7 @@ import type { FileInMessage } from "../messages/utils";
 import { useUpdateSubtask } from "../tasks/context";
 import type { UploadedFileInfo } from "../uploads";
 import { getFilesForUpload, uploadFiles } from "../uploads";
+import { uuid } from "../utils/uuid";
 
 import { removeThreadFromSearchCache } from "./cache";
 import { getThreadRequestErrorCopy, getThreadRequestErrorMessage } from "./error-copy";
@@ -27,7 +28,9 @@ import type {
   AgentThreadState,
   BaseStream,
   Message,
+  QueuedThreadMessageFile,
   QueuedThreadMessage,
+  ThreadSubmitResult,
   ThreadSubmitOptions,
   ThreadSubmitPayload,
 } from "./types";
@@ -41,8 +44,16 @@ type ThreadListSearchParams = ThreadClientSearchParams & {
   scope?: "general" | "notebook_assistant" | "all";
 };
 
-type PendingQueuedThreadMessage = QueuedThreadMessage & {
+type PendingQueuedThreadMessage = {
+  id: string;
+  threadId: string;
+  text: string;
+  status: "active" | "queued";
+  createdAt: string;
+  files: QueuedThreadMessageFile[];
   message: PromptInputMessage;
+  filesForSubmit: FileInMessage[];
+  extraContext?: Record<string, unknown>;
 };
 
 export type ThreadStreamOptions = {
@@ -109,6 +120,149 @@ function insertThreadSearchCacheEntry(
   };
 
   return [placeholder, ...existing];
+}
+
+function normalizeQueuedMessageFile(file: unknown): QueuedThreadMessageFile | null {
+  if (!file || typeof file !== "object") {
+    return null;
+  }
+  const candidate = file as Record<string, unknown>;
+  const filename =
+    typeof candidate.filename === "string" && candidate.filename.trim()
+      ? candidate.filename
+      : "attachment";
+  return {
+    filename,
+    size: typeof candidate.size === "number" ? candidate.size : undefined,
+    path: typeof candidate.path === "string" ? candidate.path : undefined,
+    artifactUrl:
+      typeof candidate.artifactUrl === "string"
+        ? candidate.artifactUrl
+        : typeof candidate.artifact_url === "string"
+          ? candidate.artifact_url
+          : undefined,
+    mediaType:
+      typeof candidate.mediaType === "string"
+        ? candidate.mediaType
+        : typeof candidate.media_type === "string"
+          ? candidate.media_type
+          : undefined,
+    status: candidate.status === "uploading" ? "uploading" : "uploaded",
+  };
+}
+
+function filesForSubmitFromQueuedFiles(
+  files: QueuedThreadMessageFile[],
+): FileInMessage[] {
+  return files
+    .filter((file) => typeof file.path === "string" && file.path.length > 0)
+    .map((file) => ({
+      filename: file.filename,
+      size: file.size ?? 0,
+      path: file.path,
+      status: "uploaded" as const,
+    }));
+}
+
+function queuedMessageToPromptMessage(
+  message: QueuedThreadMessage,
+): PromptInputMessage {
+  return {
+    text: message.message?.text ?? message.text,
+    files: [],
+    implicitMentions: message.message?.implicitMentions,
+    shortcutSelections: message.message?.shortcutSelections,
+  };
+}
+
+function hydrateQueuedMessage(
+  message: unknown,
+  threadId: string,
+): PendingQueuedThreadMessage | null {
+  if (!message || typeof message !== "object") {
+    return null;
+  }
+  const candidate = message as Partial<QueuedThreadMessage> & {
+    files?: unknown;
+  };
+  const text =
+    typeof candidate.text === "string"
+      ? candidate.text
+      : typeof candidate.message?.text === "string"
+        ? candidate.message.text
+        : "";
+  const files = Array.isArray(candidate.files)
+    ? candidate.files
+        .map((file) => normalizeQueuedMessageFile(file))
+        .filter((file): file is QueuedThreadMessageFile => file !== null)
+    : [];
+  const queuedMessage: QueuedThreadMessage = {
+    id: typeof candidate.id === "string" ? candidate.id : uuid(),
+    threadId:
+      typeof candidate.threadId === "string" ? candidate.threadId : threadId,
+    text,
+    status: candidate.status === "active" ? "active" : "queued",
+    createdAt:
+      typeof candidate.createdAt === "string"
+        ? candidate.createdAt
+        : new Date().toISOString(),
+    files,
+    message: candidate.message,
+    extraContext:
+      candidate.extraContext && typeof candidate.extraContext === "object"
+        ? candidate.extraContext
+        : undefined,
+  };
+  return {
+    ...queuedMessage,
+    message: queuedMessageToPromptMessage(queuedMessage),
+    filesForSubmit: filesForSubmitFromQueuedFiles(files),
+  };
+}
+
+function serializeQueuedMessage(
+  message: PendingQueuedThreadMessage,
+): QueuedThreadMessage {
+  return {
+    id: message.id,
+    threadId: message.threadId,
+    text: message.text,
+    status: message.status,
+    createdAt: message.createdAt,
+    files: message.files,
+    message: {
+      text: message.message.text,
+      files: [],
+      implicitMentions: message.message.implicitMentions,
+      shortcutSelections: message.message.shortcutSelections,
+    },
+    extraContext: message.extraContext,
+  };
+}
+
+function uploadedFilesToQueueFiles(
+  uploadedFiles: UploadedFileInfo[],
+  sourceFiles: PromptInputMessage["files"],
+): QueuedThreadMessageFile[] {
+  return uploadedFiles.map((info, index) => ({
+    filename: info.filename,
+    size: Number(info.size) || 0,
+    path: info.virtual_path,
+    artifactUrl: info.artifact_url,
+    mediaType: sourceFiles[index]?.mediaType,
+    status: "uploaded" as const,
+  }));
+}
+
+function waitingQueuedMessages(
+  messages: PendingQueuedThreadMessage[],
+): PendingQueuedThreadMessage[] {
+  return messages
+    .filter((message) => message.status !== "active")
+    .map((message) => ({
+      ...message,
+      status: "queued" as const,
+    }));
 }
 
 export function useThreadStream({
@@ -181,9 +335,11 @@ export function useThreadStream({
   const [error, setError] = useState<unknown>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isThreadLoading, setIsThreadLoading] = useState(false);
+  const [queuedMessages, setQueuedMessages] = useState<PendingQueuedThreadMessage[]>([]);
   const abortControllerRef = useRef<AbortController | null>(null);
   const valuesRef = useRef(values);
   const messagesRef = useRef(messages);
+  const queuedMessagesRef = useRef<PendingQueuedThreadMessage[]>([]);
 
   useEffect(() => {
     valuesRef.current = values;
@@ -192,6 +348,10 @@ export function useThreadStream({
   useEffect(() => {
     messagesRef.current = messages;
   }, [messages]);
+
+  useEffect(() => {
+    queuedMessagesRef.current = queuedMessages;
+  }, [queuedMessages]);
 
   const updateThreadSearchCache = useCallback(
     (updater: (thread: AgentThread) => AgentThread) => {
@@ -225,11 +385,51 @@ export function useThreadStream({
     [queryClient],
   );
 
+  const persistQueuedMessages = useCallback(
+    async (
+      targetThreadId: string,
+      nextQueuedMessages: PendingQueuedThreadMessage[],
+    ) => {
+      await apiClient.updateState(targetThreadId, {
+        values: {
+          queued_messages: nextQueuedMessages.map(serializeQueuedMessage),
+        },
+      });
+      updateThreadSearchCache((thread) => ({
+        ...thread,
+        updated_at: new Date().toISOString(),
+        values: {
+          ...thread.values,
+          queued_messages: nextQueuedMessages.map(serializeQueuedMessage),
+        },
+      }));
+    },
+    [apiClient, updateThreadSearchCache],
+  );
+
+  const applyQueuedMessages = useCallback(
+    async (
+      targetThreadId: string,
+      nextQueuedMessages: PendingQueuedThreadMessage[],
+    ) => {
+      queuedMessagesRef.current = nextQueuedMessages;
+      setQueuedMessages(nextQueuedMessages);
+      setValues((current) => ({
+        ...current,
+        queued_messages: nextQueuedMessages.map(serializeQueuedMessage),
+      }));
+      await persistQueuedMessages(targetThreadId, nextQueuedMessages);
+    },
+    [persistQueuedMessages],
+  );
+
   useEffect(() => {
     const currentThreadId = onStreamThreadId;
     if (!currentThreadId) {
       setMessages([]);
       setValues(EMPTY_THREAD_STATE);
+      setQueuedMessages([]);
+      queuedMessagesRef.current = [];
       setError(null);
       setIsThreadLoading(false);
       loadedStateThreadIdRef.current = null;
@@ -262,8 +462,15 @@ export function useThreadStream({
           ...(state.values ?? {}),
           messages: mergedMessages,
         };
+        const hydratedQueuedMessages = Array.isArray(state.values?.queued_messages)
+          ? state.values.queued_messages
+              .map((item) => hydrateQueuedMessage(item, currentThreadId))
+              .filter((item): item is PendingQueuedThreadMessage => item !== null)
+          : [];
         setValues(nextValues);
         setMessages(mergedMessages);
+        queuedMessagesRef.current = hydratedQueuedMessages;
+        setQueuedMessages(hydratedQueuedMessages);
       })
       .catch((loadError) => {
         if (!cancelled) {
@@ -280,23 +487,6 @@ export function useThreadStream({
       cancelled = true;
     };
   }, [apiClient, isActiveStreamThread, onStreamThreadId]);
-
-  const stop = useCallback(async () => {
-    abortControllerRef.current?.abort();
-    abortControllerRef.current = null;
-    const activeThreadId = threadIdRef.current;
-    if (activeThreadId) {
-      try {
-        await apiClient.cancelRun(activeThreadId);
-      } catch {
-        // Best-effort cancellation; local abort already stopped the client stream.
-      }
-    }
-    setIsLoading(false);
-    if (!sendInFlightRef.current) {
-      flushNextQueuedMessage();
-    }
-  }, [apiClient, flushNextQueuedMessage]);
 
   useEffect(() => {
     return () => {
@@ -316,7 +506,10 @@ export function useThreadStream({
   }, [apiClient, onStreamThreadId]);
 
   const submit = useCallback(
-    async (payload: ThreadSubmitPayload, options: ThreadSubmitOptions) => {
+    async (
+      payload: ThreadSubmitPayload,
+      options: ThreadSubmitOptions,
+    ): Promise<ThreadSubmitResult> => {
       const abortController = new AbortController();
       abortControllerRef.current = abortController;
       setError(null);
@@ -507,21 +700,24 @@ export function useThreadStream({
             }
           },
         });
+        return "completed";
       } catch (streamError) {
-        if (!abortController.signal.aborted) {
-          setError(streamError);
-          setOptimisticMessages([]);
-          const errorCopy = getThreadRequestErrorCopy(
-            streamError,
-            t.workspace.requestError,
-          );
-          toast.error(errorCopy?.title ?? "Request failed.", {
-            description:
-              errorCopy?.description ??
-              getThreadRequestErrorMessage(streamError) ??
-              "Request failed.",
-          });
+        if (abortController.signal.aborted) {
+          return "aborted";
         }
+        setError(streamError);
+        setOptimisticMessages([]);
+        const errorCopy = getThreadRequestErrorCopy(
+          streamError,
+          t.workspace.requestError,
+        );
+        toast.error(errorCopy?.title ?? "Request failed.", {
+          description:
+            errorCopy?.description ??
+            getThreadRequestErrorMessage(streamError) ??
+            "Request failed.",
+        });
+        throw streamError;
       } finally {
         if (abortControllerRef.current === abortController) {
           abortControllerRef.current = null;
@@ -533,122 +729,180 @@ export function useThreadStream({
     [apiClient, handleStreamStart, insertThreadSearchCache, isActiveStreamThread, queryClient, t.workspace.requestError, updateSubtask, updateThreadSearchCache],
   );
 
-  const thread: BaseStream<AgentThreadState> = useMemo(
-    () => ({
-      threadId: onStreamThreadId ?? null,
-      messages,
-      values: {
-        ...values,
-        messages,
-      },
-      error,
-      isLoading,
-      isThreadLoading,
-      stop,
-      submit,
-    }),
-    [error, isLoading, isThreadLoading, messages, onStreamThreadId, stop, submit, values],
-  );
-
   // Optimistic messages shown before the server stream responds
   const [optimisticMessages, setOptimisticMessages] = useState<Message[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const sendInFlightRef = useRef(false);
-  const pendingQueuedMessagesRef = useRef<PendingQueuedThreadMessage[]>([]);
+  const activeQueuedMessageIdRef = useRef<string | null>(null);
   // Track message count before sending so we know when server has responded
-  const prevMsgCountRef = useRef(thread.messages.length);
-
-  const syncQueuedMessagesState = useCallback(() => {
-    setValues((current) => ({
-      ...current,
-      queued_messages: pendingQueuedMessagesRef.current.map((item) => ({
-        text: item.text,
-        files: item.files,
-      })),
-    }));
-  }, []);
-  const dispatchQueuedMessageRef = useRef<
-    ((message: PendingQueuedThreadMessage) => void) | null
-  >(null);
-
-  const flushNextQueuedMessage = useCallback(() => {
-    const [next, ...rest] = pendingQueuedMessagesRef.current;
-    pendingQueuedMessagesRef.current = rest;
-    syncQueuedMessagesState();
-    if (next) {
-      dispatchQueuedMessageRef.current?.(next);
-    }
-  }, [syncQueuedMessagesState]);
+  const prevMsgCountRef = useRef(messages.length);
 
   // Clear optimistic when server messages arrive (count increases)
   useEffect(() => {
     if (
       optimisticMessages.length > 0 &&
-      thread.messages.length > prevMsgCountRef.current
+      messages.length > prevMsgCountRef.current
     ) {
       setOptimisticMessages([]);
     }
-  }, [thread.messages.length, optimisticMessages.length]);
+  }, [messages.length, optimisticMessages.length]);
 
-  const sendMessage = useCallback(
-    async (
-      threadId: string,
+  const buildThreadContext = useCallback(
+    (
+      targetThreadId: string,
       message: PromptInputMessage,
       extraContext?: Record<string, unknown>,
     ) => {
-      if (sendInFlightRef.current) {
-        pendingQueuedMessagesRef.current = [
-          ...pendingQueuedMessagesRef.current,
-          {
-            threadId,
-            text: message.text,
-            message,
-            files: (message.files ?? []).map((file) => ({
-              filename: file.filename ?? "attachment",
-              size: 0,
-            })),
-            extraContext,
-          },
-        ];
-        syncQueuedMessagesState();
+      const shortcutSelections = message.shortcutSelections;
+      const implicitMentions = message.implicitMentions;
+      return {
+        ...extraContext,
+        ...context,
+        locale: context.locale ?? locale,
+        requested_skills: shortcutSelections?.skills ?? [],
+        selected_contexts: shortcutSelections?.contexts ?? [],
+        selected_mcp_tools: shortcutSelections?.mcpTools ?? [],
+        selected_cli_tools: shortcutSelections?.cliTools ?? [],
+        implicit_mentions: implicitMentions ?? [],
+        thinking_enabled: context.mode !== "flash",
+        is_plan_mode: context.mode === "pro" || context.mode === "ultra",
+        subagent_enabled: context.mode === "ultra",
+        reasoning_effort:
+          context.reasoning_effort ??
+          (context.mode === "ultra"
+            ? "high"
+            : context.mode === "pro"
+              ? "medium"
+              : context.mode === "thinking"
+                ? "low"
+                : undefined),
+        thread_id: targetThreadId,
+      };
+    },
+    [context, locale],
+  );
+
+  const prepareFilesForMessage = useCallback(
+    async (
+      targetThreadId: string,
+      message: PromptInputMessage,
+    ): Promise<{
+      queuedFiles: QueuedThreadMessageFile[];
+      filesForSubmit: FileInMessage[];
+    }> => {
+      if (!message.files || message.files.length === 0) {
+        return {
+          queuedFiles: [],
+          filesForSubmit: [],
+        };
+      }
+
+      setIsUploading(true);
+      try {
+        const { files, missingCount: failedConversions } =
+          getFilesForUpload(message.files);
+
+        if (failedConversions > 0) {
+          throw new Error(
+            `Failed to prepare ${failedConversions} attachment(s) for upload. Please retry.`,
+          );
+        }
+
+        if (files.length === 0) {
+          return {
+            queuedFiles: [],
+            filesForSubmit: [],
+          };
+        }
+
+        const uploadResponse = await uploadFiles(targetThreadId, files);
+        const queuedFiles = uploadedFilesToQueueFiles(
+          uploadResponse.files,
+          message.files,
+        );
+        return {
+          queuedFiles,
+          filesForSubmit: filesForSubmitFromQueuedFiles(queuedFiles),
+        };
+      } finally {
+        setIsUploading(false);
+      }
+    },
+    [],
+  );
+
+  const removeQueuedMessage = useCallback(
+    async (messageId: string) => {
+      const targetThreadId = threadIdRef.current;
+      if (!targetThreadId) {
         return;
       }
-      sendInFlightRef.current = true;
-
-      const text = message.text.trim();
-
-      // Capture current count before showing optimistic messages
-      prevMsgCountRef.current = thread.messages.length;
-
-      // Build optimistic files list with uploading status
-      const optimisticFiles: FileInMessage[] = (message.files ?? []).map(
-        (f) => ({
-          filename: f.filename ?? "",
-          size: 0,
-          status: "uploading" as const,
-        }),
+      const nextQueuedMessages = queuedMessagesRef.current.filter(
+        (item) => item.id !== messageId,
       );
+      await applyQueuedMessages(targetThreadId, nextQueuedMessages);
+    },
+    [applyQueuedMessages],
+  );
 
-      // Create optimistic human message (shown immediately)
+  const promoteQueuedMessage = useCallback(
+    async (messageId: string) => {
+      const targetThreadId = threadIdRef.current;
+      if (!targetThreadId) {
+        return;
+      }
+      const nextQueuedMessages = [...queuedMessagesRef.current];
+      const targetIndex = nextQueuedMessages.findIndex(
+        (item) => item.id === messageId,
+      );
+      if (targetIndex <= 0) {
+        return;
+      }
+      const [selected] = nextQueuedMessages.splice(targetIndex, 1);
+      nextQueuedMessages.unshift(selected!);
+      await applyQueuedMessages(targetThreadId, nextQueuedMessages);
+    },
+    [applyQueuedMessages],
+  );
+
+  const flushNextQueuedMessage = useCallback(async () => {
+    const targetThreadId = threadIdRef.current;
+    if (!targetThreadId) {
+      return null;
+    }
+    const waitingMessages = waitingQueuedMessages(queuedMessagesRef.current);
+    const nextQueuedMessage = waitingMessages[0] ?? null;
+    if (!nextQueuedMessage) {
+      await applyQueuedMessages(targetThreadId, []);
+      return null;
+    }
+    const remainingQueuedMessages = waitingMessages.slice(1);
+    await applyQueuedMessages(targetThreadId, remainingQueuedMessages);
+    return {
+      ...nextQueuedMessage,
+      status: "active" as const,
+    };
+  }, [applyQueuedMessages]);
+
+  const runQueuedMessage = useCallback(
+    async (queuedMessage: PendingQueuedThreadMessage) => {
+      sendInFlightRef.current = true;
+      activeQueuedMessageIdRef.current = queuedMessage.id;
+
+      const text = queuedMessage.text.trim();
+      prevMsgCountRef.current = messagesRef.current.length;
+
       const optimisticHumanMsg: Message = {
         type: "human",
         id: `opt-human-${Date.now()}`,
         content: text ? [{ type: "text", text }] : "",
         additional_kwargs:
-          optimisticFiles.length > 0 ? { files: optimisticFiles } : {},
+          queuedMessage.filesForSubmit.length > 0
+            ? { files: queuedMessage.filesForSubmit }
+            : {},
       };
 
-      const newOptimistic: Message[] = [optimisticHumanMsg];
-      if (optimisticFiles.length > 0) {
-        // Mock AI message while files are being uploaded
-        newOptimistic.push({
-          type: "ai",
-          id: `opt-ai-${Date.now()}`,
-          content: t.uploads.uploadingFiles,
-          additional_kwargs: { element: "task" },
-        });
-      }
-      setOptimisticMessages(newOptimistic);
+      setOptimisticMessages([optimisticHumanMsg]);
       queryClient.setQueriesData(
         {
           queryKey: ["threads", "search"],
@@ -656,7 +910,7 @@ export function useThreadStream({
         },
         (oldData: Array<AgentThread> | undefined) =>
           oldData?.map((threadEntry) =>
-            threadEntry.thread_id === threadId
+            threadEntry.thread_id === queuedMessage.threadId
               ? {
                   ...threadEntry,
                   updated_at: new Date().toISOString(),
@@ -672,93 +926,26 @@ export function useThreadStream({
           ),
       );
 
-      _handleOnStart(threadId);
+      _handleOnStart(queuedMessage.threadId);
 
-      let uploadedFileInfo: UploadedFileInfo[] = [];
+      const messageAdditionalKwargs: Record<string, unknown> = {};
+      if (queuedMessage.filesForSubmit.length > 0) {
+        messageAdditionalKwargs.files = queuedMessage.filesForSubmit;
+      }
+      if (queuedMessage.message.shortcutSelections) {
+        messageAdditionalKwargs.shortcut_selections =
+          queuedMessage.message.shortcutSelections;
+      }
+      if (
+        queuedMessage.message.implicitMentions &&
+        queuedMessage.message.implicitMentions.length > 0
+      ) {
+        messageAdditionalKwargs.implicit_mentions =
+          queuedMessage.message.implicitMentions;
+      }
 
       try {
-        // Upload files first if any
-        if (message.files && message.files.length > 0) {
-          setIsUploading(true);
-          try {
-            const { files, missingCount: failedConversions } =
-              getFilesForUpload(message.files);
-
-            if (failedConversions > 0) {
-              throw new Error(
-                `Failed to prepare ${failedConversions} attachment(s) for upload. Please retry.`,
-              );
-            }
-
-            if (!threadId) {
-              throw new Error("Thread is not ready for file upload.");
-            }
-
-            if (files.length > 0) {
-              const uploadResponse = await uploadFiles(threadId, files);
-              uploadedFileInfo = uploadResponse.files;
-
-              // Update optimistic human message with uploaded status + paths
-              const uploadedFiles: FileInMessage[] = uploadedFileInfo.map(
-                (info) => ({
-                  filename: info.filename,
-                  size: info.size,
-                  path: info.virtual_path,
-                  status: "uploaded" as const,
-                }),
-              );
-              setOptimisticMessages((messages) => {
-                if (messages.length > 1 && messages[0]) {
-                  const humanMessage: Message = messages[0];
-                  return [
-                    {
-                      ...humanMessage,
-                      additional_kwargs: { files: uploadedFiles },
-                    },
-                    ...messages.slice(1),
-                  ];
-                }
-                return messages;
-              });
-            }
-          } catch (error) {
-            console.error("Failed to upload files:", error);
-            const errorMessage =
-              error instanceof Error
-                ? error.message
-                : "Failed to upload files.";
-            toast.error(errorMessage);
-            setOptimisticMessages([]);
-            throw error;
-          } finally {
-            setIsUploading(false);
-          }
-        }
-
-        // Build files metadata for submission (included in additional_kwargs)
-        const filesForSubmit: FileInMessage[] = uploadedFileInfo.map(
-          (info) => ({
-            filename: info.filename,
-            size: info.size,
-            path: info.virtual_path,
-            status: "uploaded" as const,
-          }),
-        );
-
-        const shortcutSelections = message.shortcutSelections;
-        const implicitMentions = message.implicitMentions;
-        const messageAdditionalKwargs: Record<string, unknown> = {};
-        if (filesForSubmit.length > 0) {
-          messageAdditionalKwargs.files = filesForSubmit;
-        }
-        if (shortcutSelections) {
-          messageAdditionalKwargs.shortcut_selections = shortcutSelections;
-        }
-        if (implicitMentions && implicitMentions.length > 0) {
-          messageAdditionalKwargs.implicit_mentions = implicitMentions;
-        }
-
-        await thread.submit(
+        const submitResult = await submit(
           {
             messages: [
               {
@@ -774,55 +961,163 @@ export function useThreadStream({
             ],
           },
           {
-            threadId,
+            threadId: queuedMessage.threadId,
             streamSubgraphs: true,
             streamResumable: true,
             config: {
               recursion_limit: 1000,
             },
-            context: {
-              ...extraContext,
-              ...context,
-              locale: context.locale ?? locale,
-              requested_skills: shortcutSelections?.skills ?? [],
-              selected_contexts: shortcutSelections?.contexts ?? [],
-              selected_mcp_tools: shortcutSelections?.mcpTools ?? [],
-              selected_cli_tools: shortcutSelections?.cliTools ?? [],
-              implicit_mentions: implicitMentions ?? [],
-              thinking_enabled: context.mode !== "flash",
-              is_plan_mode: context.mode === "pro" || context.mode === "ultra",
-              subagent_enabled: context.mode === "ultra",
-              reasoning_effort:
-                context.reasoning_effort ??
-                (context.mode === "ultra"
-                  ? "high"
-                  : context.mode === "pro"
-                    ? "medium"
-                    : context.mode === "thinking"
-                      ? "low"
-                      : undefined),
-              thread_id: threadId,
-            },
+            context: buildThreadContext(
+              queuedMessage.threadId,
+              queuedMessage.message,
+              queuedMessage.extraContext,
+            ),
           },
         );
+        return submitResult;
       } catch (error) {
         setOptimisticMessages([]);
-        setIsUploading(false);
         throw error;
       } finally {
-        sendInFlightRef.current = false;
+        if (activeQueuedMessageIdRef.current === queuedMessage.id) {
+          sendInFlightRef.current = false;
+          activeQueuedMessageIdRef.current = null;
+        }
         void queryClient.invalidateQueries({ queryKey: ["threads", "search"] });
-        flushNextQueuedMessage();
       }
     },
-    [thread, _handleOnStart, t.uploads.uploadingFiles, context, locale, queryClient, flushNextQueuedMessage],
+    [buildThreadContext, queryClient, submit, _handleOnStart],
   );
 
-  useEffect(() => {
-    dispatchQueuedMessageRef.current = (queued) => {
-      void sendMessage(queued.threadId, queued.message, queued.extraContext);
-    };
-  }, [sendMessage]);
+  const drainQueuedMessages = useCallback(
+    async (targetThreadId: string) => {
+      let nextQueuedMessage = await flushNextQueuedMessage();
+      while (nextQueuedMessage) {
+        await applyQueuedMessages(targetThreadId, [
+          nextQueuedMessage,
+          ...waitingQueuedMessages(queuedMessagesRef.current),
+        ]);
+        const nextResult = await runQueuedMessage(nextQueuedMessage);
+        if (nextResult !== "completed") {
+          await applyQueuedMessages(
+            targetThreadId,
+            waitingQueuedMessages(queuedMessagesRef.current),
+          );
+          break;
+        }
+        nextQueuedMessage = await flushNextQueuedMessage();
+      }
+    },
+    [applyQueuedMessages, flushNextQueuedMessage, runQueuedMessage],
+  );
+
+  const sendMessage = useCallback(
+    async (
+      threadId: string,
+      message: PromptInputMessage,
+      extraContext?: Record<string, unknown>,
+    ) => {
+      const text = message.text.trim();
+      const { queuedFiles, filesForSubmit } = await prepareFilesForMessage(
+        threadId,
+        message,
+      );
+      const queuedMessage: PendingQueuedThreadMessage = {
+        id: uuid(),
+        threadId,
+        text,
+        status: sendInFlightRef.current ? "queued" : "active",
+        createdAt: new Date().toISOString(),
+        files: queuedFiles,
+        message: {
+          ...message,
+          text,
+          files: [],
+        },
+        filesForSubmit,
+        extraContext,
+      };
+
+      if (sendInFlightRef.current) {
+        await applyQueuedMessages(threadId, [...queuedMessagesRef.current, queuedMessage]);
+        return;
+      }
+
+      await applyQueuedMessages(threadId, [queuedMessage]);
+      const submitResult = await runQueuedMessage(queuedMessage);
+
+      if (submitResult !== "completed") {
+        await applyQueuedMessages(
+          threadId,
+          waitingQueuedMessages(queuedMessagesRef.current),
+        );
+        return;
+      }
+      await drainQueuedMessages(threadId);
+    },
+    [applyQueuedMessages, drainQueuedMessages, prepareFilesForMessage, runQueuedMessage],
+  );
+
+  const stop = useCallback(async () => {
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = null;
+    const activeThreadId = threadIdRef.current;
+    const activeQueuedMessageId = activeQueuedMessageIdRef.current;
+    if (activeThreadId) {
+      try {
+        await apiClient.cancelRun(activeThreadId);
+      } catch {
+        // Best-effort cancellation; local abort already stopped the client stream.
+      }
+    }
+    setIsLoading(false);
+    sendInFlightRef.current = false;
+    activeQueuedMessageIdRef.current = null;
+    if (activeThreadId && activeQueuedMessageId) {
+      await applyQueuedMessages(
+        activeThreadId,
+        waitingQueuedMessages(queuedMessagesRef.current).filter(
+          (message) => message.id !== activeQueuedMessageId,
+        ),
+      );
+    }
+    if (activeThreadId) {
+      await drainQueuedMessages(activeThreadId);
+    }
+  }, [apiClient, applyQueuedMessages, drainQueuedMessages]);
+
+  const thread: BaseStream<AgentThreadState> = useMemo(
+    () => ({
+      threadId: onStreamThreadId ?? null,
+      messages,
+      values: {
+        ...values,
+        messages,
+        queued_messages: queuedMessages.map(serializeQueuedMessage),
+      },
+      queuedMessages: queuedMessages.map(serializeQueuedMessage),
+      error,
+      isLoading,
+      isThreadLoading,
+      stop,
+      submit,
+      removeQueuedMessage,
+      promoteQueuedMessage,
+    }),
+    [
+      error,
+      isLoading,
+      isThreadLoading,
+      messages,
+      onStreamThreadId,
+      promoteQueuedMessage,
+      queuedMessages,
+      removeQueuedMessage,
+      stop,
+      submit,
+      values,
+    ],
+  );
 
   // Merge thread with optimistic messages for display
   const mergedThread =

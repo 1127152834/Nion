@@ -73,26 +73,48 @@ export interface AgentThreadState extends Record<string, unknown> {
     message_count: number;
     summary: string;
   }>;
-  queued_messages?: Array<{
-    text: string;
-    files: Array<{
-      filename: string;
-      path?: string;
-      size?: number;
-      status?: string;
-    }>;
-  }>;
+  queued_messages?: QueuedThreadMessage[];
 }
 
+export type QueuedThreadMessageFile = {
+  filename: string;
+  size?: number;
+  path?: string;
+  artifactUrl?: string;
+  mediaType?: string;
+  status?: "uploading" | "uploaded";
+};
+
 export type QueuedThreadMessage = {
+  id: string;
   threadId: string;
   text: string;
-  files: Array<{
-    filename: string;
-    size?: number;
-    path?: string;
-    status?: string;
-  }>;
+  status: "active" | "queued";
+  createdAt: string;
+  files: QueuedThreadMessageFile[];
+  message?: {
+    text: string;
+    files: Array<{
+      filename?: string;
+      url?: string;
+      mediaType?: string;
+      type?: string;
+    }>;
+    implicitMentions?: Array<
+      | {
+          kind: "context" | "skill" | "mcp" | "cli";
+          value: string;
+          mention: string;
+        }
+      | ObjectMention
+    >;
+    shortcutSelections?: {
+      contexts?: Array<{ value: string; kind: "file" | "directory" }>;
+      skills?: string[];
+      mcpTools?: string[];
+      cliTools?: string[];
+    };
+  };
   extraContext?: Record<string, unknown>;
 };
 
@@ -130,6 +152,8 @@ export interface ThreadSubmitOptions {
   context?: Record<string, unknown>;
 }
 
+export type ThreadSubmitResult = "completed" | "aborted";
+
 export interface BaseStream<TState extends Record<string, unknown>> {
   threadId?: string | null;
   messages: Message[];
@@ -137,8 +161,14 @@ export interface BaseStream<TState extends Record<string, unknown>> {
   error: unknown;
   isLoading: boolean;
   isThreadLoading: boolean;
+  queuedMessages: QueuedThreadMessage[];
   stop(): Promise<void>;
-  submit(payload: ThreadSubmitPayload, options: ThreadSubmitOptions): Promise<void>;
+  submit(
+    payload: ThreadSubmitPayload,
+    options: ThreadSubmitOptions,
+  ): Promise<ThreadSubmitResult>;
+  removeQueuedMessage(messageId: string): Promise<void>;
+  promoteQueuedMessage(messageId: string): Promise<void>;
 }
 
 export interface AgentThread extends Thread<AgentThreadState> {}
