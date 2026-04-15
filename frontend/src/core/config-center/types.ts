@@ -79,6 +79,16 @@ export interface ConfigRuntimeStatusResponse {
   warnings?: string[];
 }
 
+export interface SessionPolicySubagentOption {
+  name: string;
+  description: string;
+  timeout_seconds: number;
+}
+
+export interface SessionPolicyOptionsResponse {
+  subagents: SessionPolicySubagentOption[];
+}
+
 export interface ApiErrorDetail {
   message?: string;
   current_version?: string;
@@ -96,4 +106,3 @@ export class ConfigCenterApiError extends Error {
     this.name = "ConfigCenterApiError";
   }
 }
-

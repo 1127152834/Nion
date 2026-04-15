@@ -5,6 +5,7 @@ import type {
   ConfigReadResponse,
   ConfigRuntimeStatusResponse,
   ConfigSchemaResponse,
+  SessionPolicyOptionsResponse,
   ConfigUpdateRequest,
   ConfigUpdateResponse,
   ConfigValidateRequest,
@@ -46,6 +47,13 @@ export async function loadConfigRuntimeStatus(): Promise<ConfigRuntimeStatusResp
   return parseOrThrow<ConfigRuntimeStatusResponse>(response);
 }
 
+export async function loadSessionPolicyOptions(): Promise<SessionPolicyOptionsResponse> {
+  const response = await fetch(
+    `${getBackendBaseURL()}/api/config/session-policy/options`,
+  );
+  return parseOrThrow<SessionPolicyOptionsResponse>(response);
+}
+
 export async function validateConfig(
   payload: ConfigValidateRequest,
 ): Promise<ConfigValidateResponse> {
@@ -71,4 +79,3 @@ export async function updateConfig(
   });
   return parseOrThrow<ConfigUpdateResponse>(response);
 }
-

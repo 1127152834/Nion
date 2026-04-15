@@ -1236,13 +1236,15 @@ export const zhCN: Translations = {
       },
       subagents: {
         title: "子代理",
-        subtitle: "管理默认和单代理超时策略。",
-        hint: "只有被列出的代理才会得到显式超时覆盖。",
+        subtitle: "管理主助理内建子代理类型的默认与单项超时策略。",
+        hint: "只有被列出的内建子代理类型才会得到显式超时覆盖；自定义智能体不在此处配置。",
         empty: "暂无子代理配置",
         add: "添加子代理",
         remove: "移除",
-        perAgent: "单代理超时（秒）",
+        perAgent: "子代理类型超时（秒）",
         defaultTimeout: "默认超时（秒）",
+        unavailableSubagent: "当前不可用",
+        optionsLoadError: "无法加载可用子代理列表。",
       },
       models: {
         providersTitle: "Providers",

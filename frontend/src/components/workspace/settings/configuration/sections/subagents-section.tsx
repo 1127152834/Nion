@@ -4,6 +4,14 @@ import { PlusIcon, Trash2Icon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useSessionPolicyOptions } from "@/core/config-center";
 import { useI18n } from "@/core/i18n/hooks";
 
 import {
@@ -12,6 +20,12 @@ import {
   type ConfigDraft,
   toInputValue,
 } from "../shared";
+
+type SubagentEntry = {
+  name: string;
+  timeout: string;
+  available: boolean;
+};
 
 function parsePositiveInt(value: string): number | undefined {
   if (!value.trim()) {
@@ -40,15 +54,29 @@ export function SubagentsSection({
     };
   };
   const copy = settingsLike.configSections?.subagents ?? {};
+  const {
+    data: sessionPolicyOptions,
+    isLoading: optionsLoading,
+    error: optionsError,
+  } = useSessionPolicyOptions();
+  const subagentOptions = sessionPolicyOptions?.subagents ?? [];
+  const visibleNames = subagentOptions.map((item) => item.name);
+  const visibleNameSet = new Set(visibleNames);
 
   const subagents = asObject(config.subagents);
   const agents = asObject(subagents.agents);
-  const entries: Array<[string, string]> = Object.entries(agents).map(
+  const entries: SubagentEntry[] = Object.entries(agents).map(
     ([name, value]) => {
       const item = asObject(value);
-      return [name, toInputValue(item.timeout_seconds)];
+      return {
+        name,
+        timeout: toInputValue(item.timeout_seconds),
+        available: visibleNameSet.has(name),
+      };
     },
   );
+  const usedNames = new Set(entries.map((entry) => entry.name));
+  const availableToAdd = visibleNames.filter((name) => !usedNames.has(name));
 
   const updateSubagents = (nextSubagents: Record<string, unknown>) => {
     const next = cloneConfig(config);
@@ -71,11 +99,11 @@ export function SubagentsSection({
     updateSubagents(nextSubagents);
   };
 
-  const persistEntries = (nextEntries: Array<[string, string]>) => {
+  const persistEntries = (nextEntries: Array<{ name: string; timeout: string }>) => {
     const normalizedAgents: Record<string, { timeout_seconds: number }> = {};
-    for (const [rawName, rawTimeout] of nextEntries) {
-      const name = rawName.trim();
-      const timeout = parsePositiveInt(rawTimeout);
+    for (const entry of nextEntries) {
+      const name = entry.name.trim();
+      const timeout = parsePositiveInt(entry.timeout);
       if (!name || timeout === undefined) {
         continue;
       }
@@ -92,32 +120,42 @@ export function SubagentsSection({
   };
 
   const updateEntryName = (index: number, nextName: string) => {
-    const nextEntries = [...entries];
-    const timeout = nextEntries[index]?.[1] ?? "";
-    nextEntries[index] = [nextName, timeout];
-    persistEntries(nextEntries);
+    persistEntries(
+      entries.map((entry, idx) =>
+        idx === index
+          ? { name: nextName, timeout: entry.timeout }
+          : { name: entry.name, timeout: entry.timeout },
+      ),
+    );
   };
 
   const updateEntryTimeout = (index: number, nextTimeout: string) => {
-    const nextEntries = [...entries];
-    const name = nextEntries[index]?.[0] ?? "";
-    nextEntries[index] = [name, nextTimeout];
-    persistEntries(nextEntries);
+    persistEntries(
+      entries.map((entry, idx) =>
+        idx === index
+          ? { name: entry.name, timeout: nextTimeout }
+          : { name: entry.name, timeout: entry.timeout },
+      ),
+    );
   };
 
   const removeEntry = (index: number) => {
-    persistEntries(entries.filter((_, idx) => idx !== index));
+    persistEntries(
+      entries
+        .filter((_, idx) => idx !== index)
+        .map((entry) => ({ name: entry.name, timeout: entry.timeout })),
+    );
   };
 
   const addEntry = () => {
-    const usedNames = new Set(entries.map(([name]) => name.trim()));
-    let name = "general-purpose";
-    let suffix = 2;
-    while (usedNames.has(name)) {
-      name = `general-purpose-${suffix}`;
-      suffix += 1;
+    const name = availableToAdd[0];
+    if (!name) {
+      return;
     }
-    persistEntries([...entries, [name, "900"]]);
+    persistEntries([
+      ...entries.map((entry) => ({ name: entry.name, timeout: entry.timeout })),
+      [name, "900"],
+    ]);
   };
 
   return (
@@ -147,12 +185,17 @@ export function SubagentsSection({
             size="sm"
             variant="outline"
             onClick={addEntry}
-            disabled={disabled}
+            disabled={disabled || optionsLoading || availableToAdd.length === 0}
           >
             <PlusIcon className="size-4" />
             {copy.add}
           </Button>
         </div>
+        {optionsError ? (
+          <div className="text-destructive text-xs">
+            {copy.optionsLoadError}
+          </div>
+        ) : null}
 
         {entries.length === 0 ? (
           <div className="text-muted-foreground rounded-md border border-dashed px-3 py-4 text-sm">
@@ -160,41 +203,73 @@ export function SubagentsSection({
           </div>
         ) : (
           <div className="space-y-2">
-            {entries.map(([name, timeout], index) => (
-              <div
-                key={`${name}-${index}`}
-                className="grid gap-2 md:grid-cols-[minmax(0,240px)_minmax(0,1fr)_auto]"
-              >
-                <Input
-                  value={name}
-                  placeholder="general-purpose"
-                  onChange={(event) =>
-                    updateEntryName(index, event.target.value)
-                  }
-                  disabled={disabled}
-                />
-                <Input
-                  type="number"
-                  min={1}
-                  value={timeout}
-                  placeholder="900"
-                  onChange={(event) =>
-                    updateEntryTimeout(index, event.target.value)
-                  }
-                  disabled={disabled}
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => removeEntry(index)}
-                  disabled={disabled}
-                  aria-label={copy.remove}
+            {entries.map(({ name, timeout, available }, index) => {
+              const selectOptions = available
+                ? subagentOptions
+                : [
+                    ...subagentOptions,
+                    {
+                      name,
+                      description: copy.unavailableSubagent ?? "Unavailable",
+                      timeout_seconds: 0,
+                    },
+                  ];
+              return (
+                <div
+                  key={`${name}-${index}`}
+                  className="grid gap-2 md:grid-cols-[minmax(0,240px)_minmax(0,1fr)_auto]"
                 >
-                  <Trash2Icon className="size-4" />
-                </Button>
-              </div>
-            ))}
+                  <Select
+                    value={name}
+                    disabled={disabled}
+                    onValueChange={(value) => updateEntryName(index, value)}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {selectOptions.map((option) => {
+                        const optionUsed =
+                          option.name !== name && usedNames.has(option.name);
+                        const optionAvailable = visibleNameSet.has(option.name);
+                        return (
+                          <SelectItem
+                            key={option.name}
+                            value={option.name}
+                            disabled={optionUsed}
+                          >
+                            {option.name}
+                            {!optionAvailable
+                              ? ` (${copy.unavailableSubagent})`
+                              : ""}
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={timeout}
+                    placeholder="900"
+                    onChange={(event) =>
+                      updateEntryTimeout(index, event.target.value)
+                    }
+                    disabled={disabled}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeEntry(index)}
+                    disabled={disabled}
+                    aria-label={copy.remove}
+                  >
+                    <Trash2Icon className="size-4" />
+                  </Button>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

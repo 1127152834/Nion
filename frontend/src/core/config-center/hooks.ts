@@ -4,11 +4,13 @@ import {
   loadConfig,
   loadConfigRuntimeStatus,
   loadConfigSchema,
+  loadSessionPolicyOptions,
   updateConfig,
   validateConfig,
 } from "./api";
 import type {
   ConfigRuntimeStatusResponse,
+  SessionPolicyOptionsResponse,
   ConfigUpdateRequest,
   ConfigUpdateResponse,
   ConfigValidateRequest,
@@ -72,3 +74,12 @@ export function useConfigRuntimeStatus({
   });
 }
 
+export function useSessionPolicyOptions({
+  enabled = true,
+}: { enabled?: boolean } = {}) {
+  return useQuery<SessionPolicyOptionsResponse>({
+    queryKey: ["configCenter", "sessionPolicyOptions"],
+    queryFn: () => loadSessionPolicyOptions(),
+    enabled,
+  });
+}

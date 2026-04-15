@@ -72,7 +72,7 @@ FastAPI application on port 8001 with health check at `GET /health`.
 
 | Router | Endpoints |
 |--------|-----------|
-| **Config** (`/api/config`) | `GET /`; `GET /schema`; `POST /validate`; `PUT /`; `GET /runtime-status` |
+| **Config** (`/api/config`) | `GET /`; `GET /schema`; `GET /session-policy/options`; `POST /validate`; `PUT /`; `GET /runtime-status` |
 | **Runtime Profile** (`/api/threads/{id}/runtime-profile`) | thread-scoped sandbox/host execution mode |
 | **Files** (`/api/threads/{id}/files`) | thread workdir tree |
 | **CLI** (`/api/cli/catalog`) | runtime-visible CLI catalog |

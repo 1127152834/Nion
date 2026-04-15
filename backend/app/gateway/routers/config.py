@@ -15,6 +15,7 @@ from nion.config.config_repository import (
     VersionConflictError,
 )
 from nion.config.paths import get_paths
+from nion.subagents.registry import list_subagents
 from nion.telemetry.logger import make_event
 from nion.telemetry.store import TelemetryStore
 
@@ -130,6 +131,16 @@ class ConfigRuntimeStatusResponse(BaseModel):
     is_in_sync: bool = False
     warnings: list[str] = Field(default_factory=list)
     model_config = ConfigDict(extra="allow")
+
+
+class SessionPolicySubagentOption(BaseModel):
+    name: str
+    description: str
+    timeout_seconds: int
+
+
+class SessionPolicyOptionsResponse(BaseModel):
+    subagents: list[SessionPolicySubagentOption] = Field(default_factory=list)
 
 
 def _build_schema() -> ConfigSchemaResponse:
@@ -251,6 +262,23 @@ async def get_config(request: Request) -> ConfigReadResponse:
 @router.get("/config/schema", response_model=ConfigSchemaResponse)
 async def get_config_schema() -> ConfigSchemaResponse:
     return _build_schema()
+
+
+@router.get(
+    "/config/session-policy/options",
+    response_model=SessionPolicyOptionsResponse,
+)
+async def get_session_policy_options() -> SessionPolicyOptionsResponse:
+    return SessionPolicyOptionsResponse(
+        subagents=[
+            SessionPolicySubagentOption(
+                name=config.name,
+                description=config.description,
+                timeout_seconds=config.timeout_seconds,
+            )
+            for config in list_subagents()
+        ]
+    )
 
 
 @router.post("/config/validate", response_model=ConfigValidateResponse)

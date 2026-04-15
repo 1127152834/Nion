@@ -896,7 +896,10 @@ export interface Translations {
       title: Record<string, string>;
       suggestions: Record<string, string>;
       summarization: Record<string, string>;
-      subagents: Record<string, string>;
+      subagents: Record<string, string> & {
+        optionsLoadError: string;
+        unavailableSubagent: string;
+      };
       models: Record<string, string>;
       attachments: Record<string, string>;
     };

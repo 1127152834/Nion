@@ -204,6 +204,7 @@ FastAPI application providing REST endpoints for frontend integration:
 |-------|---------|
 | `GET /api/config` | Read config-center state |
 | `GET /api/config/schema` | Read config-center section schema |
+| `GET /api/config/session-policy/options` | Read visible subagent-registry options for session policy settings |
 | `POST /api/config/validate` | Validate config payload |
 | `PUT /api/config` | Persist config with version conflict detection |
 | `GET /api/config/runtime-status` | Inspect store/runtime version alignment |

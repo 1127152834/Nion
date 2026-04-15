@@ -1292,13 +1292,15 @@ export const enUS: Translations = {
       },
       subagents: {
         title: "Subagents",
-        subtitle: "Manage per-agent and default timeout policy.",
-        hint: "Only listed agents receive explicit timeout overrides.",
+        subtitle: "Manage default and per-type timeout policy for built-in lead-agent subagents.",
+        hint: "Only listed built-in subagent types receive explicit timeout overrides; custom agents are configured elsewhere.",
         empty: "No subagents configured",
         add: "Add subagent",
         remove: "Remove",
-        perAgent: "Per-agent timeout (seconds)",
+        perAgent: "Subagent type timeout (seconds)",
         defaultTimeout: "Default timeout (seconds)",
+        unavailableSubagent: "currently unavailable",
+        optionsLoadError: "Could not load available subagents.",
       },
       models: {
         providersTitle: "Providers",

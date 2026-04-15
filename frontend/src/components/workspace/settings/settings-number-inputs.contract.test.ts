@@ -60,3 +60,26 @@ void test("settings numeric inputs serialize persisted numeric values before ren
     }
   }
 });
+
+void test("subagent settings choose names from session-policy registry options", async () => {
+  const source = await readFile(
+    new URL("./configuration/sections/subagents-section.tsx", import.meta.url),
+    "utf8",
+  );
+  const configCenterApi = await readFile(
+    new URL("../../../core/config-center/api.ts", import.meta.url),
+    "utf8",
+  );
+  const configCenterHooks = await readFile(
+    new URL("../../../core/config-center/hooks.ts", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(configCenterApi, /loadSessionPolicyOptions/);
+  assert.match(configCenterApi, /\/api\/config\/session-policy\/options/);
+  assert.match(configCenterHooks, /useSessionPolicyOptions/);
+  assert.match(source, /useSessionPolicyOptions\(\)/);
+  assert.match(source, /SelectItem/);
+  assert.match(source, /unavailable/);
+  assert.doesNotMatch(source, /<Input\s+value=\{name\}/);
+});
