@@ -135,3 +135,9 @@
 | `70e9f2dd` add format step to contributing workflow | `当前无安全落点` | 无 | 当前 frontend format 命令链未闭环，先写入贡献文档会让仓库文档与真实工具链失真。 |
 | `6091ba83` provider timeout/max_retries examples in config.example | `明确不同步` | 无 | `config.example.yaml` 路线已退出主链；NION 的 provider/runtime 配置由设置面与 Config Center 承担。 |
 | `8b6c333a` README_zh security wording | `明确不同步` | 无 | 当前仓库没有 upstream `README_zh.md` 文档面，不应为了这条重新引入 DeerFlow 中文 README。 |
+| `580920ef` Git Bash wrapper for Windows local startup | `当前无安全落点` | 无 | 当前批次没有 Windows 启动失败证据，且 NION 本地启动链已与 upstream 分叉，不应先行加入额外 wrapper。 |
+| `d475de79` broken backend doc links | `已同步` | `d274e996` | 已按 NION 当前目录结构修复 TitleMiddleware 与 provisioner 文档断链，不引入 upstream demo 输出路径改写。 |
+| `fc7de7ff` manual add/edit memory facts | `明确不同步` | 无 | 这条会把旧 memory facts 手工编辑产品面重新引回主链，违反当前 Memory OS / Soul 已批准边界。 |
+| `5ceb19f6` Claude OAuth cache_control hardening | `已同步` | `0b7e92b9` | 已在 Claude OAuth sync/async create 路径去除 `cache_control` 标记，并用定向 provider 测试锁定。 |
+| `9aa3ff7c` SandboxAuditMiddleware for bash auditing | `当前无安全落点` | 无 | 方向有价值，但这会新增一层命令审计产品/治理面；当前批次先不在缺少既有事故证据的情况下扩张 runtime middleware 合同。 |
+| `c5034c03` exclude sandbox dirs from gateway hot-reload watcher | `当前无安全落点` | 无 | 需要先确认当前 `scripts/serve.sh` 真有同类误触发 reload 故障，再决定是否吸收；本轮暂不凭 upstream 标题直接改 dev 脚本。 |
