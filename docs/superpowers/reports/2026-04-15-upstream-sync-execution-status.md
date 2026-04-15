@@ -112,35 +112,26 @@
 | `43a19f96` task tool polling non-blocking fix | `当前无安全落点` | 无 | 需要和当前 `task_tool` / subagent executor 的 polling 机制做专项对照。 |
 | `47087007` no-images-viewed proper content format | `已等价吸收` | 现有代码 | 当前 runtime-context guards 与 image middleware 已有兼容内容格式保护。 |
 | `40a4acbb` aio sandbox upload permission relax | `当前无安全落点` | 无 | 需要与当前 aio sandbox/upload permission contract 做专项对照。 |
+| `68c9e09a` Windows shell fallback for local sandbox | `已同步` | `026f3714` | 已为 LocalSandbox 增加 Windows shell fallback，并通过定向测试验证。 |
+| `75c4757f` nginx runtime DNS re-resolution | `已同步` | `ec5ad02b` | Docker nginx upstream 已增加 `zone` + `resolve` 并用 contract test 锁定。 |
+| `cdb2a3a0` anchor relative paths to thread workspace in local mode | `已等价吸收` | 现有代码 | 当前 `sandbox.tools` 已有 `_apply_cwd_prefix()` 并在 `bash_tool` 中调用。 |
+| `9e5ba74e` allow MCP filesystem server paths in local bash commands | `已等价吸收` | 现有代码 | 当前 `validate_local_bash_command_paths()` 已允许 `_get_mcp_allowed_paths()` 返回的 host path。 |
 | `8590249d` ACP env field for subprocess injection | `已等价吸收` | 现有代码 | 当前 `ACPAgentConfig.env` 和 ACP transport env 解析/注入已覆盖 upstream 语义。 |
-| `50f50d76` skill frontmatter validation tests | `已锁定` | 现有代码 | 已新增 `test_skills_validation.py` 锁定现有 validation 行为，不扩散到 install/router 行为。 |
-| `18b07941` SETUP relative links | `已同步` | 当前分支工作树 | `backend/docs/SETUP.md` 已修到当前真实路径。 |
+| `50f50d76` skill frontmatter validation tests | `已锁定` | `0c53e971` | 已新增 `test_skills_validation.py` 锁定现有 validation 行为，不扩散到 install/router 行为。 |
+| `18b07941` SETUP relative links | `已同步` | `0c53e971` | `backend/docs/SETUP.md` 已修到当前真实路径。 |
 | `50db51d0` frontend format scripts | `当前无安全落点` | 无 | 当前 frontend 环境里 `prettier` 未可执行，不能在未补齐 toolchain 的情况下宣称完成该脚本接入。 |
-
----
-
-## 3. 本轮产出
-
-本轮最终形成的执行提交为：
-
-1. `7b611083` uploads fallback
-2. `f27088b4` outline parser hardening
-3. `929d6a2c` Claude OAuth billing header
-4. `02902e5e` stream end rule lock
-5. `88287e57` equivalent-absorption lock tests
-
-这些提交已经把本轮能安全自动处理的 key commits 处理完了。
-
----
-
-## 4. 结论
-
-对于已进入审计决策面的 key commits，本轮状态已经闭环：
-
-- 该同步的，已经同步
-- 不该改实现但该锁规则的，已经锁定
-- 早已吸收的，已经用代码/测试确认
-- 不该合并的，已经明确关闭
-- 当前无安全落点的，已经停止继续推进
-
-这意味着当前分支不再存在“应该继续自动处理但还没处理”的剩余项。
+| `6bf23ba0` cross-language README links | `当前无安全落点` | 无 | NION 当前没有 upstream 多语言 README 体系，不应为了这条重新引入 DeerFlow 文档面。 |
+| `9a4e8f43` better-auth README note | `明确不同步` | 无 | 当前 `frontend` 仍未启用 upstream 所述 better-auth server/session helpers，同步会制造错误文档状态。 |
+| `03b144f9` replace bare print() with logging across harness | `已同步` | `2a9d6f04` | 已把 harness runtime 层 bare `print()` 收束到 logger，并用源码契约测试锁定。 |
+| `ca20b486` CI action version alignment | `明确不同步` | 无 | 仅涉及 upstream lint workflow 版本升级；NION 当前 CI 结构不同，不属于业务同步面。 |
+| `d22cab86` SSR-safe backend base origin resolution | `已等价吸收` | 现有代码 | `frontend/src/core/config/index.ts` 已有 `window` guard，并优先走 desktop-aware base URL。 |
+| `49f2e38f` prevent SpeechRecognition instance leaks | `已同步` | `ed8b1bb0` | 已在 `PromptInputSpeechButton` 引入稳定 callback 引用并用源码契约测试锁定生命周期。 |
+| `9caea026` separate mock and default LangGraph clients | `已等价吸收` | 现有代码 | `api-client.ts` 已使用 `_singleton` / `_mockSingleton` 分离 mock 与默认 client。 |
+| `c2dd8937` IM channel backend URLs in Docker | `当前无安全落点` | 无 | upstream 修补依赖 backend channel service 与 `config.yaml` 通道 URL；NION 当前是 desktop-first bridge 路线。 |
+| `481494b9` custom middleware injection for embedded client | `当前无安全落点` | 无 | 这条会扩张 `NionClient` 的公开 SDK surface；当前仓库没有稳定的自定义 middleware 注入合同，也没有业务主链需求。 |
+| `06a623f9` create_deerflow_agent SDK entry point | `当前无安全落点` | 无 | upstream 新增整套 harness SDK factory surface；NION 当前没有对等稳定入口，不应在逐提交同步流里直接引入。 |
+| `084dc7e7` formatting checks for backend and frontend | `当前无安全落点` | 无 | upstream 这条同时依赖 lint workflow、frontend format scripts 和大范围格式化；当前 `pnpm -C frontend exec prettier` 不可执行，不能安全落地。 |
+| `25df82cb` style sweep and prettierignore update | `当前无安全落点` | 无 | 当前仓库没有对应 `factory.py` / `.prettierignore` 落点，且该提交主体是大范围格式化噪音。 |
+| `70e9f2dd` add format step to contributing workflow | `当前无安全落点` | 无 | 当前 frontend format 命令链未闭环，先写入贡献文档会让仓库文档与真实工具链失真。 |
+| `6091ba83` provider timeout/max_retries examples in config.example | `明确不同步` | 无 | `config.example.yaml` 路线已退出主链；NION 的 provider/runtime 配置由设置面与 Config Center 承担。 |
+| `8b6c333a` README_zh security wording | `明确不同步` | 无 | 当前仓库没有 upstream `README_zh.md` 文档面，不应为了这条重新引入 DeerFlow 中文 README。 |
