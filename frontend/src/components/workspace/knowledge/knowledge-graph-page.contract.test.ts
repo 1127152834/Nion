@@ -8,7 +8,9 @@ void test("knowledge graph page renders graph state and rebuild affordance", asy
     "utf8",
   );
 
-  assert.match(source, /graph/i);
+  assert.match(source, /useI18n/);
+  assert.match(source, /t\.knowledgePage\.graph/);
+  assert.match(source, /copy\.title/);
   assert.match(source, /useRebuildKnowledgeGraph/);
   assert.match(source, /rebuild|重建/);
   assert.match(source, /EXTRACTED|INFERRED|AMBIGUOUS/);
@@ -21,6 +23,10 @@ void test("knowledge graph page renders graph state and rebuild affordance", asy
   assert.match(source, /setLayoutDraft/);
   assert.match(source, /node_positions:\s*buildNodePositionsFromFlowNodes/);
   assert.match(source, /buildNodePositionsFromFlowNodes\(/);
+  assert.match(source, /copy\.nodeCount/);
+  assert.match(source, /copy\.clusterCount/);
+  assert.doesNotMatch(source, /useEffect\(\(\)\s*=>\s*\{\s*setFlowNodes\(/s);
+  assert.doesNotMatch(source, /setFlowNodes\(/);
   assert.doesNotMatch(source, /const baseLayout: KnowledgeGraphLayout = layout \?\?/);
   assert.doesNotMatch(source, /localStorage\.getItem\("knowledge-graph-layout"\)/);
 });

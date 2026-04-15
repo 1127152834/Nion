@@ -310,11 +310,164 @@ export const enUS: Translations = {
     },
   },
 
+  knowledgePage: {
+    homeTitle: "Knowledge Base",
+    homeDescription:
+      "Notebook is the raw layer. This page shows compiled knowledge pages, query, and graph state.",
+    semanticRetrievalTitle: "Semantic retrieval",
+    semanticRetrievalDescription: "Configure retrieval models before enabling semantic retrieval.",
+    queue: "Queue",
+    compiled: "Compiled",
+    stale: "Stale",
+    activity: "Activity",
+    lint: "Lint",
+    sourceCandidates: "source candidates",
+    compiledPages: "compiled pages",
+    needRecompilation: "need recompilation",
+    sourceMissing: "source missing",
+    brokenLinks: "broken links",
+    queueActivityStatus: "Queue + Activity status",
+    queueActivityDescription:
+      "Queue/Home keeps polling so running stages, Activity, and reconciliation stay visible during approval.",
+    reconcileNow: "reconcile now",
+    reconciling: "reconciling...",
+    refreshingStagedProgress: "refreshing staged progress",
+    idle: "idle",
+    noActiveCompileJob: "no active compile job",
+    sourceMissingCandidates: "source_missing candidates",
+    staleCandidates: "stale candidates",
+    archivedPages: "archived pages",
+    reconcileHint: "reconcile keeps queue, pages, and activity aligned",
+    queueSummaryTitle: "Queue",
+    queueSummaryDescription:
+      "Queue summary for notebook-derived sources: queued, stale, source_missing, and compiled pages.",
+    openQueue: "open queue",
+    loadingQueue: "loading queue...",
+    pollingQueueProgress: "polling queue progress...",
+    compiledPagesTitle: "Compiled pages",
+    compiledPagesDescription:
+      "Recently compiled pages from notebook sources, including active and archived outputs.",
+    queryPages: "query pages",
+    loadingCompiledPages: "loading compiled pages...",
+    noCompiledPages: "no compiled pages yet",
+    notCompiledYet: "not compiled yet",
+    recentCompileJobs: "Recent compile jobs",
+    recentCompileJobsDescription: "Visible job history for notebook-to-knowledge queue activity.",
+    inspectQueue: "inspect queue",
+    loadingJobs: "loading jobs...",
+    noCompileJobs: "no compile jobs yet",
+    activityFeed: "Activity feed",
+    activityFeedDescription:
+      "Visible activity feed for running, failed, completed, and source_missing transitions.",
+    inspectActivity: "inspect activity",
+    loadingActivity: "loading activity...",
+    noActivity: "no activity yet",
+    approving: "approving...",
+    queueError: "queue error",
+    queueCandidateSummary: (status, lastCompiledAt) =>
+      `status=${status} · last compiled at=${lastCompiledAt}`,
+    jobSummary: (jobId, stage, status) =>
+      `active job=${jobId} · stage=${stage} · status=${status}`,
+    jobHistorySummary: (jobId, stage, status, createdPageCount) =>
+      `${jobId} · stage=${stage} · status=${status} · created pages=${createdPageCount}`,
+    activityEventSummary: (eventLabel, subject, createdAt) =>
+      `${eventLabel} · ${subject} · ${createdAt}`,
+    orphanPages: "orphan pages",
+    pageStateLabel: (pageState) => {
+      if (pageState === "active") return "active";
+      if (pageState === "stale") return "stale";
+      return "archived";
+    },
+    retrievalPolicyLabel: (policy) => {
+      if (policy === "active_only") return "active only";
+      if (policy === "active_with_stale_fallback") return "active with stale fallback";
+      return "explicit archived lookup";
+    },
+    activityEventLabel: (eventType) => {
+      switch (eventType) {
+        case "candidate_enqueued":
+          return "candidate enqueued";
+        case "job_started":
+          return "job started";
+        case "snapshot_completed":
+          return "snapshot completed";
+        case "page_created":
+          return "page created";
+        case "page_updated":
+          return "page updated";
+        case "page_archived":
+          return "page archived";
+        case "graph_rebuilt":
+          return "graph rebuilt";
+        case "job_failed":
+          return "job failed";
+        case "job_succeeded":
+          return "job succeeded";
+        case "candidate_became_stale":
+          return "candidate became stale";
+        case "source_missing_detected":
+          return "source missing detected";
+        case "source_restored":
+          return "source restored";
+        default:
+          return eventType;
+      }
+    },
+    graph: {
+      title: "Knowledge Graph",
+      description: "Inspect graph state and rebuild the current graph artifacts.",
+      stateTitle: "Graph state",
+      stateDescription: "EXTRACTED / INFERRED / AMBIGUOUS edge types appear here.",
+      rebuild: "Rebuild graph",
+      loading: "loading graph...",
+      rebuilding: "rebuilding...",
+      failed: "failed to load graph",
+      savingLayout: "saving layout...",
+      noNodes: "no nodes",
+      nodes: "nodes",
+      edges: "edges",
+      noEdges: "no edges",
+      clusterCount: (cluster, count) => `cluster=${cluster} · ${count}`,
+      nodeCount: (nodes, edges) => `nodes: ${nodes}, edges: ${edges}`,
+      edgeSummary: (from, to, edgeType) => `${from} → ${to} · ${edgeType}`,
+    },
+    query: {
+      title: "Knowledge Query",
+      description: "Query compiled pages and save useful answers as synthesis pages.",
+      label: "query",
+      placeholder: "Ask the knowledge base...",
+      submit: "query",
+      empty: "Enter a question to query compiled pages.",
+      loading: "loading query...",
+      error: "query error",
+      resultPlaceholder: "page-based query result area",
+      warnings: "warnings",
+      citations: "citations",
+      saveSynthesis: "Save as synthesis",
+    },
+    page: {
+      empty: "No knowledge page selected.",
+      loading: "Loading knowledge page...",
+      loadErrorFallback: "Knowledge page failed to load",
+      compiled: "compiled",
+      revisionRequest: "revision request",
+      lastCompiledAt: "last compiled at",
+      sources: "sources",
+    },
+    revision: {
+      title: "revision request",
+      description: "Create a revision request instead of editing the compiled page directly.",
+      requestTypes: "fix_fact / add_context / merge_pages / split_page / rename_page",
+      submit: "submit revision",
+    },
+  },
+
   // Conversation
   conversation: {
     noMessages: "No messages yet",
     startConversation: "Start a conversation to see messages here",
     compressedSummary: "Auto-compressed",
+    knowledgeSourcesLabel: (pageId) => `Knowledge source: ${pageId}`,
   },
 
   // Chats
@@ -662,6 +815,7 @@ export const enUS: Translations = {
     sections: {
       appearance: "Appearance",
       models: "Models",
+      retrievalModels: "Retrieval Models",
       sessionPolicy: "Session Policy",
       memory: "Memory",
       identity: "Identity",
@@ -902,6 +1056,11 @@ export const enUS: Translations = {
       title: "Models",
       description:
         "Configure providers and runnable models, then expose the saved default model to chat.",
+    },
+    retrievalModels: {
+      title: "Retrieval Models",
+      description:
+        "Configure the embedding and reranker stack used by memory and knowledge retrieval, and inspect which surfaces consume it.",
     },
     sessionPolicy: {
       title: "Session Policy",

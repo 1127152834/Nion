@@ -168,7 +168,7 @@ export interface AgentThreadContext extends Record<string, unknown> {
   >;
 }
 
-type ApprovalAction = {
+export type ApprovalAction = {
   key: "allow" | "allow_session" | "deny";
   label: string;
 };

@@ -8,20 +8,25 @@ void test("knowledge queue page renders candidate state and approval affordance"
     "utf8",
   );
 
-  assert.match(source, /queue/i);
+  assert.match(source, /useI18n/);
+  assert.match(source, /t\.knowledgePage/);
+  assert.match(source, /copy\.queueSummaryTitle/);
   assert.match(source, /Queue|Activity|activity/i);
   assert.match(source, /useKnowledgeQueue/);
   assert.match(source, /useApproveKnowledgeQueue/);
   assert.match(source, /approve|批准/);
-  assert.match(source, /queue activity|activity feed|running/i);
+  assert.match(source, /copy\.queueActivityDescription|copy\.activityFeedDescription/);
   assert.match(source, /last_compiled_at|compile_error/);
   assert.match(source, /stale|queued|compiled/);
   assert.match(source, /activity/i);
   assert.match(source, /stage|running|failed/);
   assert.match(source, /approve\.isPending/);
   assert.match(source, /activeJob/);
-  assert.match(source, /stage=\{activeJob\.stage\}/);
-  assert.match(source, /polling|refreshing/i);
+  assert.match(source, /copy\.approving/);
+  assert.match(source, /copy\.queueError/);
+  assert.match(source, /copy\.jobSummary/);
+  assert.match(source, /copy\.queueCandidateSummary/);
+  assert.match(source, /copy\.activityEventSummary/);
 });
 
 void test("knowledge queue hooks enable polling while approval or compile work is active", async () => {

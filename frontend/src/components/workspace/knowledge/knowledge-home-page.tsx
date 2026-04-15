@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 
+import type { KnowledgeActivityEvent, KnowledgeCompileJob, KnowledgeSourceCandidate } from "@/core/knowledge";
+import { useI18n } from "@/core/i18n/hooks";
 import {
   useKnowledgeActivity,
   useKnowledgeJobs,
@@ -12,16 +14,9 @@ import {
   useRebuildKnowledgeGraph,
 } from "@/core/knowledge";
 
-const ACTIVITY_LABELS: Record<string, string> = {
-  job_started: "job_started",
-  page_created: "page_created",
-  source_missing_detected: "source_missing_detected",
-  job_succeeded: "job_succeeded",
-  job_failed: "job_failed",
-  graph_rebuilt: "graph_rebuilt",
-};
-
 export function KnowledgeHomePage() {
+  const { t } = useI18n();
+  const copy = t.knowledgePage;
   const { queue, isLoading: queueLoading, isPolling: queuePolling } = useKnowledgeQueue();
   const { pages, isLoading: pagesLoading } = useKnowledgePages(queue);
   const {
@@ -39,60 +34,66 @@ export function KnowledgeHomePage() {
   const sourceMissingCount = queue.filter((item) => item.status === "source_missing").length;
   const archivedCount = pages.filter((page) => page.page_state === "archived").length;
   const isPolling = queuePolling || jobsPolling;
+  const formatCandidateSummary = (candidate: KnowledgeSourceCandidate) =>
+    copy.queueCandidateSummary(candidate.status, candidate.last_compiled_at ?? copy.notCompiledYet);
+  const formatJobSummary = (job: KnowledgeCompileJob) =>
+    copy.jobSummary(job.job_id, job.stage, job.status);
+  const formatJobHistorySummary = (job: KnowledgeCompileJob) =>
+    copy.jobHistorySummary(job.job_id, job.stage, job.status, job.created_page_ids.length);
+  const formatActivitySummary = (event: KnowledgeActivityEvent) =>
+    copy.activityEventSummary(
+      copy.activityEventLabel(event.event_type),
+      event.job_id ?? event.source_id ?? "knowledge",
+      event.created_at,
+    );
 
   return (
     <main className="flex size-full min-h-0 flex-col gap-6 overflow-y-auto px-4 py-6 sm:px-6">
       <section className="rounded-lg border bg-background p-5">
-        <h1 className="text-[1.5rem] font-semibold tracking-tight">Knowledge Base</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Overview for the compiled knowledge surface. Notebook 是原料层，这里才是编译后的知识页、知识查询和图谱状态。
-        </p>
+        <h1 className="text-[1.5rem] font-semibold tracking-tight">{copy.homeTitle}</h1>
+        <p className="mt-2 text-sm text-muted-foreground">{copy.homeDescription}</p>
       </section>
 
       <section className="rounded-lg border bg-muted/20 p-5">
-        <h2 className="text-[1.1rem] font-semibold tracking-tight">语义检索增强</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          前往检索模型完成配置。
-        </p>
+        <h2 className="text-[1.1rem] font-semibold tracking-tight">{copy.semanticRetrievalTitle}</h2>
+        <p className="mt-2 text-sm text-muted-foreground">{copy.semanticRetrievalDescription}</p>
       </section>
 
       <section className="grid gap-4 md:grid-cols-5">
         <div className="rounded-lg border bg-background p-5">
-          <div className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Queue</div>
+          <div className="text-xs uppercase tracking-[0.14em] text-muted-foreground">{copy.queue}</div>
           <div className="mt-3 text-3xl font-semibold">{queue.length}</div>
-          <div className="mt-2 text-sm text-muted-foreground">source candidates</div>
+          <div className="mt-2 text-sm text-muted-foreground">{copy.sourceCandidates}</div>
         </div>
         <div className="rounded-lg border bg-background p-5">
-          <div className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Compiled</div>
+          <div className="text-xs uppercase tracking-[0.14em] text-muted-foreground">{copy.compiled}</div>
           <div className="mt-3 text-3xl font-semibold">{compiledCount}</div>
-          <div className="mt-2 text-sm text-muted-foreground">compiled pages</div>
+          <div className="mt-2 text-sm text-muted-foreground">{copy.compiledPages}</div>
         </div>
         <div className="rounded-lg border bg-background p-5">
-          <div className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Stale</div>
+          <div className="text-xs uppercase tracking-[0.14em] text-muted-foreground">{copy.stale}</div>
           <div className="mt-3 text-3xl font-semibold">{staleCount}</div>
-          <div className="mt-2 text-sm text-muted-foreground">need recompilation</div>
+          <div className="mt-2 text-sm text-muted-foreground">{copy.needRecompilation}</div>
         </div>
         <div className="rounded-lg border bg-background p-5">
-          <div className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Activity</div>
+          <div className="text-xs uppercase tracking-[0.14em] text-muted-foreground">{copy.activity}</div>
           <div className="mt-3 text-3xl font-semibold">{sourceMissingCount}</div>
           <div className="mt-2 text-sm text-muted-foreground">
-            {queue.filter((item) => item.status === "source_missing").length} source missing
+            {queue.filter((item) => item.status === "source_missing").length} {copy.sourceMissing}
           </div>
         </div>
         <div className="rounded-lg border bg-background p-5">
-          <div className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Lint</div>
+          <div className="text-xs uppercase tracking-[0.14em] text-muted-foreground">{copy.lint}</div>
           <div className="mt-3 text-3xl font-semibold">{report?.broken_links.length ?? 0}</div>
-          <div className="mt-2 text-sm text-muted-foreground">broken links</div>
+          <div className="mt-2 text-sm text-muted-foreground">{copy.brokenLinks}</div>
         </div>
       </section>
 
       <section className="rounded-lg border bg-background p-5">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-[1.1rem] font-semibold tracking-tight">Queue + Activity status</h2>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Queue/Home 保持 polling，让 running stage、Activity 和对账入口在 approve 期间可见。
-            </p>
+            <h2 className="text-[1.1rem] font-semibold tracking-tight">{copy.queueActivityStatus}</h2>
+            <p className="mt-2 text-sm text-muted-foreground">{copy.queueActivityDescription}</p>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -100,48 +101,44 @@ export function KnowledgeHomePage() {
               disabled={reconcile.isPending}
               onClick={() => reconcile.mutate()}
             >
-              {reconcile.isPending ? "reconciling…" : "reconcile now"}
+              {reconcile.isPending ? copy.reconciling : copy.reconcileNow}
             </button>
             <div className="rounded-full border px-3 py-1 text-xs text-muted-foreground">
-              {isPolling ? "refreshing staged progress" : "idle"}
+              {isPolling ? copy.refreshingStagedProgress : copy.idle}
             </div>
           </div>
         </div>
         <div className="mt-4 rounded-md border px-3 py-3 text-sm text-muted-foreground">
           {activeJob ? (
-            <div>
-              activeJob={activeJob.job_id} · stage={activeJob.stage} · status={activeJob.status}
-            </div>
+            <div>{formatJobSummary(activeJob)}</div>
           ) : (
-            <div>no active compile job</div>
+            <div>{copy.noActiveCompileJob}</div>
           )}
         </div>
         <div className="mt-3 flex flex-wrap gap-3 text-xs text-muted-foreground">
-          <span>{sourceMissingCount} source_missing candidates</span>
-          <span>{staleCount} stale candidates</span>
-          <span>{archivedCount} archived pages</span>
-          <span>reconcile / 对账 keeps queue, pages, and activity aligned</span>
+          <span>{sourceMissingCount} {copy.sourceMissingCandidates}</span>
+          <span>{staleCount} {copy.staleCandidates}</span>
+          <span>{archivedCount} {copy.archivedPages}</span>
+          <span>{copy.reconcileHint}</span>
         </div>
       </section>
 
       <section className="rounded-lg border bg-background p-5">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-[1.1rem] font-semibold tracking-tight">Queue</h2>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Queue summary for notebook-derived source candidates. 它告诉你哪些内容还在队列、哪些 stale、哪些 source_missing，以及哪些已经变成 wiki pages。
-            </p>
+            <h2 className="text-[1.1rem] font-semibold tracking-tight">{copy.queueSummaryTitle}</h2>
+            <p className="mt-2 text-sm text-muted-foreground">{copy.queueSummaryDescription}</p>
           </div>
           <Link href="/workspace/knowledge/queue" className="rounded-md border px-3 py-2 text-sm">
-            open queue
+            {copy.openQueue}
           </Link>
         </div>
         <div className="mt-4 space-y-2 text-sm text-muted-foreground">
-          {queueLoading ? <div>loading queue…</div> : null}
-          {!queueLoading && queuePolling ? <div>polling queue progress…</div> : null}
+          {queueLoading ? <div>{copy.loadingQueue}</div> : null}
+          {!queueLoading && queuePolling ? <div>{copy.pollingQueueProgress}</div> : null}
           {!queueLoading && queue.slice(0, 6).map((item) => (
             <div key={item.source_id} className="rounded-md border px-3 py-2">
-              {item.title} · {item.status} · {item.last_compiled_at ?? "not compiled yet"}
+              {item.title} · {formatCandidateSummary(item)}
             </div>
           ))}
         </div>
@@ -150,18 +147,16 @@ export function KnowledgeHomePage() {
       <section className="rounded-lg border bg-background p-5">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-[1.1rem] font-semibold tracking-tight">Compiled pages</h2>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Recently compiled pages from notebook sources, including active and archived outputs.
-            </p>
+            <h2 className="text-[1.1rem] font-semibold tracking-tight">{copy.compiledPagesTitle}</h2>
+            <p className="mt-2 text-sm text-muted-foreground">{copy.compiledPagesDescription}</p>
           </div>
           <Link href="/workspace/knowledge/query" className="rounded-md border px-3 py-2 text-sm">
-            query pages
+            {copy.queryPages}
           </Link>
         </div>
         <div className="mt-4 space-y-2 text-sm text-muted-foreground">
-          {pagesLoading ? <div>loading compiled pages…</div> : null}
-          {!pagesLoading && pages.length === 0 ? <div>no compiled pages yet</div> : null}
+          {pagesLoading ? <div>{copy.loadingCompiledPages}</div> : null}
+          {!pagesLoading && pages.length === 0 ? <div>{copy.noCompiledPages}</div> : null}
           {!pagesLoading && pages.map((page) => (
             <Link
               key={page.page_id}
@@ -177,22 +172,19 @@ export function KnowledgeHomePage() {
       <section className="rounded-lg border bg-background p-5">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-[1.1rem] font-semibold tracking-tight">Recent compile jobs</h2>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Visible job history for notebook-to-knowledge queue activity.
-            </p>
+            <h2 className="text-[1.1rem] font-semibold tracking-tight">{copy.recentCompileJobs}</h2>
+            <p className="mt-2 text-sm text-muted-foreground">{copy.recentCompileJobsDescription}</p>
           </div>
           <Link href="/workspace/knowledge/queue" className="rounded-md border px-3 py-2 text-sm">
-            inspect queue
+            {copy.inspectQueue}
           </Link>
         </div>
         <div className="mt-4 space-y-2 text-sm text-muted-foreground">
-          {jobsLoading ? <div>loading jobs…</div> : null}
-          {!jobsLoading && jobs.length === 0 ? <div>no compile jobs yet</div> : null}
+          {jobsLoading ? <div>{copy.loadingJobs}</div> : null}
+          {!jobsLoading && jobs.length === 0 ? <div>{copy.noCompileJobs}</div> : null}
           {!jobsLoading && jobs.slice(0, 6).map((job) => (
             <div key={job.job_id} className="rounded-md border px-3 py-2">
-              {job.job_id} · stage={job.stage} · status={job.status} · created_page_ids=
-              {job.created_page_ids.length}
+              {formatJobHistorySummary(job)}
             </div>
           ))}
         </div>
@@ -201,21 +193,19 @@ export function KnowledgeHomePage() {
       <section className="rounded-lg border bg-background p-5">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-[1.1rem] font-semibold tracking-tight">Activity feed</h2>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Visible activity feed for running, failed, completed, and source_missing transitions across Queue / Activity.
-            </p>
+            <h2 className="text-[1.1rem] font-semibold tracking-tight">{copy.activityFeed}</h2>
+            <p className="mt-2 text-sm text-muted-foreground">{copy.activityFeedDescription}</p>
           </div>
           <Link href="/workspace/knowledge/queue" className="rounded-md border px-3 py-2 text-sm">
-            inspect activity
+            {copy.inspectActivity}
           </Link>
         </div>
         <div className="mt-4 space-y-2 text-sm text-muted-foreground">
-          {activityLoading ? <div>loading activity…</div> : null}
-          {!activityLoading && events.length === 0 ? <div>no activity yet</div> : null}
+          {activityLoading ? <div>{copy.loadingActivity}</div> : null}
+          {!activityLoading && events.length === 0 ? <div>{copy.noActivity}</div> : null}
           {!activityLoading && events.slice(0, 6).map((event) => (
             <div key={event.event_id} className="rounded-md border px-3 py-2">
-              {ACTIVITY_LABELS[event.event_type] ?? event.event_type} · {event.job_id ?? event.source_id ?? "knowledge"} · {event.created_at}
+              {formatActivitySummary(event)}
             </div>
           ))}
         </div>
@@ -224,27 +214,25 @@ export function KnowledgeHomePage() {
       <section className="rounded-lg border bg-background p-5">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-[1.1rem] font-semibold tracking-tight">Graph</h2>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Graph status and latest rebuild information.
-            </p>
+            <h2 className="text-[1.1rem] font-semibold tracking-tight">{copy.graph.title}</h2>
+            <p className="mt-2 text-sm text-muted-foreground">{copy.graph.description}</p>
           </div>
           <div className="flex gap-2">
             <Link href="/workspace/knowledge/graph" className="rounded-md border px-3 py-2 text-sm">
-              open graph
+              {copy.graph.title}
             </Link>
             <button
               className="rounded-md border px-3 py-2 text-sm"
               onClick={() => rebuild.mutate()}
             >
-              rebuild graph
+              {copy.graph.rebuild}
             </button>
           </div>
         </div>
         <div className="mt-3 flex items-center gap-3 text-sm text-muted-foreground">
-          <span>{report?.broken_links.length ?? 0} broken links</span>
-          <span>{report?.orphan_pages.length ?? 0} orphan pages</span>
-          <span>{rebuild.isPending ? "rebuilding…" : "graph ready"}</span>
+          <span>{report?.broken_links.length ?? 0} {copy.brokenLinks}</span>
+          <span>{report?.orphan_pages.length ?? 0} {copy.orphanPages}</span>
+          <span>{rebuild.isPending ? copy.graph.rebuilding : copy.graph.stateTitle}</span>
         </div>
       </section>
     </main>

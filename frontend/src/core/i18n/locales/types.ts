@@ -473,11 +473,139 @@ export interface Translations {
     };
   };
 
+  knowledgePage: {
+    homeTitle: string;
+    homeDescription: string;
+    semanticRetrievalTitle: string;
+    semanticRetrievalDescription: string;
+    queue: string;
+    compiled: string;
+    stale: string;
+    activity: string;
+    lint: string;
+    sourceCandidates: string;
+    compiledPages: string;
+    needRecompilation: string;
+    sourceMissing: string;
+    brokenLinks: string;
+    queueActivityStatus: string;
+    queueActivityDescription: string;
+    reconcileNow: string;
+    reconciling: string;
+    refreshingStagedProgress: string;
+    idle: string;
+    noActiveCompileJob: string;
+    sourceMissingCandidates: string;
+    staleCandidates: string;
+    archivedPages: string;
+    reconcileHint: string;
+    queueSummaryTitle: string;
+    queueSummaryDescription: string;
+    openQueue: string;
+    loadingQueue: string;
+    pollingQueueProgress: string;
+    compiledPagesTitle: string;
+    compiledPagesDescription: string;
+    queryPages: string;
+    loadingCompiledPages: string;
+    noCompiledPages: string;
+    notCompiledYet: string;
+    recentCompileJobs: string;
+    recentCompileJobsDescription: string;
+    inspectQueue: string;
+    loadingJobs: string;
+    noCompileJobs: string;
+    activityFeed: string;
+    activityFeedDescription: string;
+    inspectActivity: string;
+    loadingActivity: string;
+    noActivity: string;
+    approving: string;
+    queueError: string;
+    queueCandidateSummary: (
+      status: string,
+      lastCompiledAt: string,
+    ) => string;
+    jobSummary: (
+      jobId: string,
+      stage: string,
+      status: string,
+    ) => string;
+    jobHistorySummary: (
+      jobId: string,
+      stage: string,
+      status: string,
+      createdPageCount: number,
+    ) => string;
+    activityEventSummary: (
+      eventLabel: string,
+      subject: string,
+      createdAt: string,
+    ) => string;
+    orphanPages: string;
+    pageStateLabel: (pageState: "active" | "stale" | "archived") => string;
+    retrievalPolicyLabel: (
+      policy:
+        | "active_only"
+        | "active_with_stale_fallback"
+        | "explicit_archived_lookup",
+    ) => string;
+    activityEventLabel: (eventType: string) => string;
+    graph: {
+      title: string;
+      description: string;
+      stateTitle: string;
+      stateDescription: string;
+      rebuild: string;
+      loading: string;
+      rebuilding: string;
+      failed: string;
+      savingLayout: string;
+      noNodes: string;
+      nodes: string;
+      edges: string;
+      noEdges: string;
+      clusterCount: (cluster: string, count: number) => string;
+      nodeCount: (nodes: number, edges: number) => string;
+      edgeSummary: (from: string, to: string, edgeType: string) => string;
+    };
+    query: {
+      title: string;
+      description: string;
+      label: string;
+      placeholder: string;
+      submit: string;
+      empty: string;
+      loading: string;
+      error: string;
+      resultPlaceholder: string;
+      warnings: string;
+      citations: string;
+      saveSynthesis: string;
+    };
+    page: {
+      empty: string;
+      loading: string;
+      loadErrorFallback: string;
+      compiled: string;
+      revisionRequest: string;
+      lastCompiledAt: string;
+      sources: string;
+    };
+    revision: {
+      title: string;
+      description: string;
+      requestTypes: string;
+      submit: string;
+    };
+  };
+
   // Conversation
   conversation: {
     noMessages: string;
     startConversation: string;
     compressedSummary: string;
+    knowledgeSourcesLabel: (pageId: string) => string;
   };
 
   // Chats
@@ -670,6 +798,7 @@ export interface Translations {
     sections: {
       appearance: string;
       models: string;
+      retrievalModels: string;
       sessionPolicy: string;
       memory: string;
       identity: string;
@@ -881,6 +1010,10 @@ export interface Translations {
       languageDescription: string;
     };
     models: {
+      title: string;
+      description: string;
+    };
+    retrievalModels: {
       title: string;
       description: string;
     };

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { useI18n } from "@/core/i18n/hooks";
 import { useKnowledgeQuery, useSaveKnowledgeSynthesis } from "@/core/knowledge";
 
 function stateBadgeClassName(pageState: "active" | "stale" | "archived") {
@@ -15,6 +16,9 @@ function stateBadgeClassName(pageState: "active" | "stale" | "archived") {
 }
 
 export function KnowledgeQueryPage() {
+  const { t } = useI18n();
+  const copy = t.knowledgePage.query;
+  const knowledgeCopy = t.knowledgePage;
   const [question, setQuestion] = useState("");
   const [submittedQuestion, setSubmittedQuestion] = useState<string | null>(null);
   const { result, isLoading, error } = useKnowledgeQuery(submittedQuestion);
@@ -24,17 +28,13 @@ export function KnowledgeQueryPage() {
   return (
     <main className="flex size-full min-h-0 flex-col gap-6 overflow-y-auto px-4 py-6 sm:px-6">
       <section className="rounded-lg border bg-background p-5">
-        <h1 className="text-[1.5rem] font-semibold tracking-tight">Knowledge Query</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Query compiled pages and save useful answers as synthesis pages.
-        </p>
+        <h1 className="text-[1.5rem] font-semibold tracking-tight">{copy.title}</h1>
+        <p className="mt-2 text-sm text-muted-foreground">{copy.description}</p>
       </section>
 
       <section className="rounded-lg border bg-background p-5">
         <div className="space-y-3">
-          <label className="block text-sm font-medium" htmlFor="knowledge-question">
-            query
-          </label>
+          <label className="block text-sm font-medium" htmlFor="knowledge-question">{copy.label}</label>
           <div className="flex gap-2">
             <input
               id="knowledge-question"
@@ -45,7 +45,7 @@ export function KnowledgeQueryPage() {
                   setSubmittedQuestion(question.trim());
                 }
               }}
-              placeholder="Ask the knowledge base..."
+              placeholder={copy.placeholder}
               className="min-h-10 flex-1 rounded-md border bg-background px-3 py-2 text-sm"
             />
             <button
@@ -53,27 +53,27 @@ export function KnowledgeQueryPage() {
               disabled={!canSubmit}
               onClick={() => setSubmittedQuestion(question.trim())}
             >
-              query
+              {copy.submit}
             </button>
           </div>
           <div className="rounded-md border px-3 py-2 text-sm text-muted-foreground">
             {!submittedQuestion
-              ? "Enter a question to query compiled pages."
+              ? copy.empty
               : isLoading
-              ? "loading query…"
+              ? copy.loading
               : error
-                ? "query error"
-                : (result?.answer_markdown ?? "page-based query result area")}
+                ? copy.error
+                : (result?.answer_markdown ?? copy.resultPlaceholder)}
           </div>
           {result ? (
             <div className="space-y-3 rounded-md border px-3 py-3 text-sm">
               <div className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
-                retrieval_policy: {result.retrieval_policy}
+                {knowledgeCopy.retrievalPolicyLabel(result.retrieval_policy)}
               </div>
               {result.warnings.length > 0 ? (
                 <div className="space-y-1">
                   <div className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
-                    warnings
+                    {copy.warnings}
                   </div>
                   <ul className="space-y-1 text-amber-700">
                     {result.warnings.map((warning) => (
@@ -84,7 +84,7 @@ export function KnowledgeQueryPage() {
               ) : null}
               <div className="space-y-2">
                 <div className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
-                  citations
+                  {copy.citations}
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {result.citations.map((citation) => (
@@ -97,7 +97,7 @@ export function KnowledgeQueryPage() {
                         <span
                           className={`rounded-full border px-2 py-0.5 ${stateBadgeClassName(citation.page_state)}`}
                         >
-                          {citation.page_state}
+                          {knowledgeCopy.pageStateLabel(citation.page_state)}
                         </span>
                         <span>{citation.page_id}</span>
                       </div>
@@ -118,7 +118,7 @@ export function KnowledgeQueryPage() {
               }
             }}
           >
-            保存为 synthesis
+            {copy.saveSynthesis}
           </button>
         </div>
       </section>

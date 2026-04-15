@@ -487,17 +487,19 @@ export function extractKnowledgeAttachment(message: Message) {
   const attachment = message.additional_kwargs?.knowledge;
   const normalizedAttachment = normalizeKnowledgeAttachmentCandidate(attachment);
   if (normalizedAttachment) {
-    return normalizedAttachment;
+    return normalizedAttachment as KnowledgeAttachmentInMessage;
   }
 
   const fallbackPageIds = message.additional_kwargs?.knowledge_sources;
   const legacyAdditionalKwargsAttachment =
     fallbackKnowledgeAttachmentFromPageIds(fallbackPageIds);
   if (legacyAdditionalKwargsAttachment) {
-    return legacyAdditionalKwargsAttachment;
+    return legacyAdditionalKwargsAttachment as KnowledgeAttachmentInMessage;
   }
 
-  return fallbackKnowledgeAttachmentFromLegacyToolPayload(message);
+  return fallbackKnowledgeAttachmentFromLegacyToolPayload(message) as
+    | KnowledgeAttachmentInMessage
+    | null;
 }
 
 /**

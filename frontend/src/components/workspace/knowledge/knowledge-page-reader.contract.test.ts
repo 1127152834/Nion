@@ -8,8 +8,10 @@ void test("knowledge page reader is read-only and source-traceable", async () =>
     "utf8",
   );
 
-  assert.match(source, /sources/i);
-  assert.match(source, /compiled/i);
-  assert.match(source, /revision/i);
+  assert.match(source, /useI18n/);
+  assert.match(source, /t\.knowledgePage\.page/);
+  assert.match(source, /copy\.sources/);
+  assert.match(source, /copy\.compiled/);
+  assert.match(source, /copy\.revisionRequest/);
   assert.doesNotMatch(source, /Textarea|contentEditable|onChange=\{/);
 });

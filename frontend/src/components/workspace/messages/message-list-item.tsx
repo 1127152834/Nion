@@ -199,6 +199,7 @@ function MessageContent_({
   density?: "default" | "compact";
   threadId: string;
 }) {
+  const { t } = useI18n();
   const rehypePlugins = useRehypeSplitWordsIntoSpans(isLoading);
   const isHuman = message.type === "human";
   const components = useMemo(
@@ -334,7 +335,7 @@ function MessageContent_({
             href={`/workspace/knowledge/pages/${encodeURIComponent(pageId)}`}
             className="rounded-full border px-2.5 py-1 text-[11px] text-muted-foreground hover:bg-muted/40"
           >
-            知识来源: {pageId}
+            {t.conversation.knowledgeSourcesLabel(pageId)}
           </Link>
         ))}
       </div>

@@ -13,6 +13,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import "@xyflow/react/dist/style.css";
 
+import { useI18n } from "@/core/i18n/hooks";
 import {
   useKnowledgeGraph,
   useRebuildKnowledgeGraph,
@@ -47,7 +48,7 @@ function cloneLayoutDraft(layout: KnowledgeGraphLayout | null): KnowledgeGraphLa
 }
 
 function buildNodePositionsFromFlowNodes(
-  nodes: Array<Node<{ label: string }>>,
+  nodes: Array<Node>,
 ): KnowledgeGraphLayout["node_positions"] {
   return Object.fromEntries(
     nodes.map((node) => [
@@ -119,13 +120,14 @@ function getNodeCluster(nodeId: string) {
 }
 
 export function KnowledgeGraphPage() {
+  const { t } = useI18n();
+  const copy = t.knowledgePage.graph;
   const { graph, isLoading, error } = useKnowledgeGraph();
   const rebuild = useRebuildKnowledgeGraph();
   const saveKnowledgeGraphLayoutState = useSaveKnowledgeGraphLayout();
   const nodes = graph?.nodes ?? [];
   const edges = graph?.edges ?? [];
   const layout = graph?.layout ?? null;
-  const [flowNodes, setFlowNodes] = useState<Array<Node<{ label: string }>>>([]);
   const [layoutDraft, setLayoutDraft] = useState<KnowledgeGraphLayout>(() =>
     cloneLayoutDraft(layout),
   );
@@ -148,8 +150,8 @@ export function KnowledgeGraphPage() {
     });
   }, [layout]);
 
-  useEffect(() => {
-    setFlowNodes(
+  const flowNodes = useMemo<Array<Node<{ label: string }>>>(
+    () =>
       nodes.map((node, index) => ({
         id: String(node.id ?? index),
         type: "default",
@@ -165,8 +167,8 @@ export function KnowledgeGraphPage() {
           boxShadow: "0 10px 30px rgba(15, 23, 42, 0.08)",
         },
       })),
-    );
-  }, [layoutDraft.node_positions, nodes]);
+    [layoutDraft.node_positions, nodes],
+  );
 
   const flowEdges = useMemo<Array<Edge>>(
     () =>
@@ -181,8 +183,13 @@ export function KnowledgeGraphPage() {
     [edges],
   );
 
-  function handleNodesChange(changes: NodeChange[]) {
-    setFlowNodes((current) => applyNodeChanges(changes, current));
+function handleNodesChange(changes: NodeChange[]) {
+    const nextFlowNodes = applyNodeChanges(changes, flowNodes);
+    setLayoutDraft((currentLayoutDraft) => ({
+      ...currentLayoutDraft,
+      node_positions: buildNodePositionsFromFlowNodes(nextFlowNodes),
+      updated_at: currentLayoutDraft.updated_at,
+    }));
   }
 
   function persistNodePosition(node: Node) {
@@ -192,7 +199,6 @@ export function KnowledgeGraphPage() {
       node_positions: buildNodePositionsFromFlowNodes(mergedFlowNodes),
       updated_at: new Date().toISOString(),
     };
-    setFlowNodes(mergedFlowNodes);
     setLayoutDraft(nextLayoutDraft);
     saveKnowledgeGraphLayoutState.mutate(nextLayoutDraft, {
       onSuccess: (savedLayout) => {
@@ -206,45 +212,41 @@ export function KnowledgeGraphPage() {
   return (
     <main className="flex size-full min-h-0 flex-col gap-6 overflow-y-auto px-4 py-6 sm:px-6">
       <section className="rounded-lg border bg-background p-5">
-        <h1 className="text-[1.5rem] font-semibold tracking-tight">Knowledge Graph</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Inspect graph state and rebuild the current graph artifacts.
-        </p>
+        <h1 className="text-[1.5rem] font-semibold tracking-tight">{copy.title}</h1>
+        <p className="mt-2 text-sm text-muted-foreground">{copy.description}</p>
       </section>
 
       <section className="rounded-lg border bg-background p-5">
         <div className="flex items-center justify-between gap-4">
           <div className="space-y-1">
-            <h2 className="text-[1.1rem] font-semibold tracking-tight">graph state</h2>
-            <p className="text-sm text-muted-foreground">
-              EXTRACTED / INFERRED / AMBIGUOUS edge types appear here.
-            </p>
+            <h2 className="text-[1.1rem] font-semibold tracking-tight">{copy.stateTitle}</h2>
+            <p className="text-sm text-muted-foreground">{copy.stateDescription}</p>
           </div>
           <button
             className="rounded-md border px-3 py-2 text-sm"
             onClick={() => rebuild.mutate()}
           >
-            Rebuild graph
+            {copy.rebuild}
           </button>
         </div>
         <div className="mt-4 text-sm text-muted-foreground">
-          {isLoading ? "loading graph…" : null}
-          {rebuild.isPending ? "rebuilding…" : null}
-          {error ? "failed to load graph" : null}
-          {graph ? `nodes: ${nodes.length}, edges: ${edges.length}` : null}
-          {saveKnowledgeGraphLayoutState.isPending ? " · saving layout…" : null}
+          {isLoading ? copy.loading : null}
+          {rebuild.isPending ? copy.rebuilding : null}
+          {error ? copy.failed : null}
+          {graph ? copy.nodeCount(nodes.length, edges.length) : null}
+          {saveKnowledgeGraphLayoutState.isPending ? ` · ${copy.savingLayout}` : null}
         </div>
         <div className="mt-4 flex flex-wrap gap-2 text-xs text-muted-foreground">
           {graphClusters.map(([cluster, ids]) => (
             <div key={cluster} className="rounded-full border px-2.5 py-1">
-              cluster={cluster} · {ids.length}
+              {copy.clusterCount(cluster, ids.length)}
             </div>
           ))}
         </div>
         <div className="knowledge-graph-canvas relative mt-4 min-h-[24rem] overflow-hidden rounded-xl border bg-muted/20">
           {flowNodes.length === 0 ? (
             <div className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground">
-              no nodes
+              {copy.noNodes}
             </div>
           ) : null}
           <ReactFlow
@@ -263,21 +265,25 @@ export function KnowledgeGraphPage() {
         </div>
         <div className="mt-4 grid gap-4 lg:grid-cols-2">
           <div className="rounded-md border px-3 py-3 text-sm text-muted-foreground">
-            <div className="mb-2 font-medium text-foreground">nodes</div>
+            <div className="mb-2 font-medium text-foreground">{copy.nodes}</div>
             <div className="space-y-1">
-              {nodes.length === 0 ? <div>no nodes</div> : null}
+              {nodes.length === 0 ? <div>{copy.noNodes}</div> : null}
               {nodes.map((node, index) => (
                 <div key={`${String(node.id ?? index)}`}>{String(node.label ?? node.id ?? "")}</div>
               ))}
             </div>
           </div>
           <div className="rounded-md border px-3 py-3 text-sm text-muted-foreground">
-            <div className="mb-2 font-medium text-foreground">edges</div>
+            <div className="mb-2 font-medium text-foreground">{copy.edges}</div>
             <div className="space-y-1">
-              {edges.length === 0 ? <div>no edges</div> : null}
+              {edges.length === 0 ? <div>{copy.noEdges}</div> : null}
               {edges.map((edge, index) => (
                 <div key={`${String(edge.from ?? "")}:${String(edge.to ?? "")}:${index}`}>
-                  {String(edge.from ?? "")} → {String(edge.to ?? "")} · {String(edge.edge_type ?? "")}
+                  {copy.edgeSummary(
+                    String(edge.from ?? ""),
+                    String(edge.to ?? ""),
+                    String(edge.edge_type ?? ""),
+                  )}
                 </div>
               ))}
             </div>

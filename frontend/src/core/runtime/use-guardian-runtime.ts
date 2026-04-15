@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { getDesktopRuntimeInfo } from "../api/desktop-client.ts";
+import type { BridgeRuntimeInfo } from "../bridge/client.ts";
 import { getBridgeClient } from "../bridge/client.ts";
 import {
   createGuardianRuntimeSnapshot,
@@ -18,11 +19,11 @@ export function useGuardianRuntime() {
   const refresh = useCallback(async () => {
     try {
       const desktopRuntime = await getDesktopRuntimeInfo();
-      let bridgeRuntime = null;
+      let bridgeRuntime: BridgeRuntimeInfo | null = null;
       let bridgeRuntimeError = false;
 
       try {
-        bridgeRuntime = await getBridgeClient()?.getRuntimeInfo();
+        bridgeRuntime = (await getBridgeClient()?.getRuntimeInfo()) ?? null;
       } catch {
         bridgeRuntimeError = true;
       }

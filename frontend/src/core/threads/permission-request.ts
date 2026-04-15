@@ -1,4 +1,5 @@
 import type {
+  ApprovalAction,
   LocalActionPlanApprovalRequest,
   Message,
   PendingPermissionRequest,
@@ -103,7 +104,7 @@ function normalizePermissionRequestPayload(
   const normalizedActions =
     actions.length > 0
       ? actions
-      : options.map((option) => ({
+      : options.map((option): ApprovalAction => ({
           key:
             option === "Allow Session"
               ? "allow_session"

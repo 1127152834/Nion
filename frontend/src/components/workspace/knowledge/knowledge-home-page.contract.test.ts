@@ -8,26 +8,26 @@ void test("knowledge home page centers overview queue and graph status instead o
     "utf8",
   );
 
-  assert.match(source, /overview/i);
+  assert.match(source, /useI18n/);
+  assert.match(source, /t\.knowledgePage/);
+  assert.match(source, /copy\.homeTitle/);
+  assert.match(source, /copy\.homeDescription/);
   assert.match(source, /queue/i);
   assert.match(source, /graph/i);
-  assert.match(source, /Notebook 是原料层|原始内容/);
-  assert.match(source, /compiled pages|已编译页面|source candidates|来源候选/);
-  assert.match(source, /broken links|断链/);
   assert.match(source, /activity/i);
-  assert.match(source, /job_started|page_created|source_missing_detected|activity feed/i);
-  assert.match(source, /compile_state|stage|running|failed/);
-  assert.match(source, /Activity|activity/i);
-  assert.match(source, /source_missing|stale|archived/);
+  assert.match(source, /copy\.activityEventLabel/);
   assert.match(source, /reconcile|对账/);
   assert.match(source, /useReconcileKnowledgeSources/);
   assert.match(source, /onClick=\{\(\)\s*=>\s*reconcile\.mutate\(\)\}/);
   assert.match(source, /reconcile\.isPending/);
   assert.match(source, /disabled=\{reconcile\.isPending\}/);
-  assert.match(source, /reconcile\.isPending\s*\?\s*"reconciling/i);
+  assert.match(source, /reconcile\.isPending\s*\?\s*copy\.reconciling/);
   assert.match(source, /activeJob/);
-  assert.match(source, /polling|refreshing/i);
-  assert.match(source, /stage=\{activeJob\.stage\}/);
+  assert.match(source, /copy\.jobSummary/);
+  assert.match(source, /copy\.queueCandidateSummary/);
+  assert.match(source, /copy\.jobHistorySummary/);
+  assert.match(source, /copy\.activityEventSummary/);
+  assert.match(source, /copy\.orphanPages/);
   assert.doesNotMatch(source, /Textarea|draftBody|onDraftBodyChange/);
 });
 
@@ -37,6 +37,6 @@ void test("knowledge home page can point users to retrieval models when semantic
     "utf8",
   );
 
-  assert.match(source, /语义检索增强/);
-  assert.match(source, /前往检索模型完成配置/);
+  assert.match(source, /copy\.semanticRetrievalTitle/);
+  assert.match(source, /copy\.semanticRetrievalDescription/);
 });

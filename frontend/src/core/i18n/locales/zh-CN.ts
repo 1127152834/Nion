@@ -299,11 +299,163 @@ export const zhCN: Translations = {
     },
   },
 
+  knowledgePage: {
+    homeTitle: "知识库",
+    homeDescription:
+      "Notebook 是原始内容层。这里展示编译后的知识页、知识查询和图谱状态。",
+    semanticRetrievalTitle: "语义检索增强",
+    semanticRetrievalDescription: "请先前往检索模型完成配置，再启用语义检索增强。",
+    queue: "队列",
+    compiled: "已编译",
+    stale: "已过期",
+    activity: "活动",
+    lint: "检查",
+    sourceCandidates: "来源候选",
+    compiledPages: "已编译页面",
+    needRecompilation: "需要重新编译",
+    sourceMissing: "来源缺失",
+    brokenLinks: "断链",
+    queueActivityStatus: "队列与活动状态",
+    queueActivityDescription:
+      "Queue/Home 会保持轮询，让运行阶段、活动流和对账入口在批准编译期间可见。",
+    reconcileNow: "立即对账",
+    reconciling: "正在对账...",
+    refreshingStagedProgress: "正在刷新阶段进度",
+    idle: "空闲",
+    noActiveCompileJob: "当前没有运行中的编译任务",
+    sourceMissingCandidates: "来源缺失候选",
+    staleCandidates: "过期候选",
+    archivedPages: "归档页面",
+    reconcileHint: "对账会保持队列、页面和活动流一致",
+    queueSummaryTitle: "队列",
+    queueSummaryDescription:
+      "Notebook 原料的队列摘要：排队中、已过期、来源缺失，以及已编译页面。",
+    openQueue: "打开队列",
+    loadingQueue: "正在加载队列...",
+    pollingQueueProgress: "正在轮询队列进度...",
+    compiledPagesTitle: "已编译页面",
+    compiledPagesDescription: "来自 Notebook 来源的近期知识页，包括活跃和归档产物。",
+    queryPages: "查询页面",
+    loadingCompiledPages: "正在加载已编译页面...",
+    noCompiledPages: "还没有已编译页面",
+    notCompiledYet: "尚未编译",
+    recentCompileJobs: "最近编译任务",
+    recentCompileJobsDescription: "Notebook 到知识库队列活动的可见任务历史。",
+    inspectQueue: "查看队列",
+    loadingJobs: "正在加载任务...",
+    noCompileJobs: "还没有编译任务",
+    activityFeed: "活动流",
+    activityFeedDescription:
+      "展示运行中、失败、完成和来源缺失等知识库活动变化。",
+    inspectActivity: "查看活动",
+    loadingActivity: "正在加载活动...",
+    noActivity: "还没有活动",
+    approving: "正在批准...",
+    queueError: "队列加载失败",
+    queueCandidateSummary: (status, lastCompiledAt) =>
+      `状态=${status} · 最后编译时间=${lastCompiledAt}`,
+    jobSummary: (jobId, stage, status) =>
+      `活动任务=${jobId} · 阶段=${stage} · 状态=${status}`,
+    jobHistorySummary: (jobId, stage, status, createdPageCount) =>
+      `${jobId} · 阶段=${stage} · 状态=${status} · 生成页面=${createdPageCount}`,
+    activityEventSummary: (eventLabel, subject, createdAt) =>
+      `${eventLabel} · ${subject} · ${createdAt}`,
+    orphanPages: "孤儿页面",
+    pageStateLabel: (pageState) => {
+      if (pageState === "active") return "活跃";
+      if (pageState === "stale") return "过期";
+      return "归档";
+    },
+    retrievalPolicyLabel: (policy) => {
+      if (policy === "active_only") return "仅活跃页面";
+      if (policy === "active_with_stale_fallback") return "活跃优先，过期兜底";
+      return "显式包含归档";
+    },
+    activityEventLabel: (eventType) => {
+      switch (eventType) {
+        case "candidate_enqueued":
+          return "候选已入队";
+        case "job_started":
+          return "任务已开始";
+        case "snapshot_completed":
+          return "快照完成";
+        case "page_created":
+          return "页面已创建";
+        case "page_updated":
+          return "页面已更新";
+        case "page_archived":
+          return "页面已归档";
+        case "graph_rebuilt":
+          return "图谱已重建";
+        case "job_failed":
+          return "任务失败";
+        case "job_succeeded":
+          return "任务完成";
+        case "candidate_became_stale":
+          return "候选已过期";
+        case "source_missing_detected":
+          return "检测到来源缺失";
+        case "source_restored":
+          return "来源已恢复";
+        default:
+          return eventType;
+      }
+    },
+    graph: {
+      title: "知识图谱",
+      description: "查看图谱状态并重建当前图谱产物。",
+      stateTitle: "图谱状态",
+      stateDescription: "这里展示 EXTRACTED / INFERRED / AMBIGUOUS 等边类型。",
+      rebuild: "重建图谱",
+      loading: "正在加载图谱...",
+      rebuilding: "正在重建...",
+      failed: "图谱加载失败",
+      savingLayout: "正在保存布局...",
+      noNodes: "暂无节点",
+      nodes: "节点",
+      edges: "边",
+      noEdges: "暂无边",
+      clusterCount: (cluster, count) => `聚类=${cluster} · ${count}`,
+      nodeCount: (nodes, edges) => `节点：${nodes}，边：${edges}`,
+      edgeSummary: (from, to, edgeType) => `${from} → ${to} · ${edgeType}`,
+    },
+    query: {
+      title: "知识查询",
+      description: "查询已编译知识页，并把有价值的答案保存为 synthesis。",
+      label: "查询",
+      placeholder: "向知识库提问...",
+      submit: "查询",
+      empty: "输入问题以查询已编译知识页。",
+      loading: "正在查询...",
+      error: "查询失败",
+      resultPlaceholder: "基于知识页的查询结果会显示在这里",
+      warnings: "警告",
+      citations: "引用",
+      saveSynthesis: "保存为 synthesis",
+    },
+    page: {
+      empty: "未选择知识页。",
+      loading: "正在加载知识页...",
+      loadErrorFallback: "知识页加载失败",
+      compiled: "已编译",
+      revisionRequest: "修订请求",
+      lastCompiledAt: "最后编译时间",
+      sources: "来源",
+    },
+    revision: {
+      title: "修订请求",
+      description: "通过修订请求影响编译页，而不是直接编辑知识页正文。",
+      requestTypes: "修正事实 / 补充上下文 / 合并页面 / 拆分页面 / 重命名页面",
+      submit: "提交修订",
+    },
+  },
+
   // Conversation
   conversation: {
     noMessages: "还没有消息",
     startConversation: "开始新的对话以查看消息",
     compressedSummary: "已自动压缩",
+    knowledgeSourcesLabel: (pageId) => `知识来源：${pageId}`,
   },
 
   // Chats

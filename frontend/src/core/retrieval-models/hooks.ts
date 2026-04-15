@@ -102,7 +102,11 @@ export function useDesktopRetrievalDownloadProgress() {
   return progress;
 }
 
-function desktopActionMutation(action: (id: string) => Promise<{ success?: boolean; message?: string }> | undefined) {
+function desktopActionMutation(
+  action:
+    | ((id: string) => Promise<{ success?: boolean; message?: string }>)
+    | undefined,
+) {
   return async (id: string): Promise<RetrievalDesktopModelActionResult> => {
     if (!action) {
       throw new Error("Desktop retrieval model bridge is unavailable.");

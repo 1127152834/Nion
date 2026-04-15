@@ -7,8 +7,8 @@ void test("human messages disable incomplete markdown parsing", async () => {
 
   assert.match(source, /parseIncompleteMarkdown=\{false\}/);
   assert.match(source, /extractKnowledgeAttachment/);
-  assert.match(source, /引用知识页|知识来源/);
-  assert.match(source, /additional_kwargs\?\.knowledge|知识来源/);
+  assert.match(source, /knowledgeSourcesLabel/);
+  assert.match(source, /additional_kwargs\?\.knowledge|knowledgeSourcesLabel/);
 });
 
 void test("human messages render uploaded image files through the rich files list", async () => {
@@ -42,6 +42,8 @@ void test("knowledge citations are read from assistant additional_kwargs metadat
   const utilsSource = await readFile(new URL("../../../core/messages/utils.ts", import.meta.url), "utf8");
 
   assert.match(itemSource, /const knowledgeAttachment = extractKnowledgeAttachment\(message\);/);
+  assert.match(itemSource, /const \{ t \} = useI18n\(\);/);
+  assert.match(itemSource, /t\.conversation\.knowledgeSourcesLabel/);
   assert.match(utilsSource, /const attachment = message\.additional_kwargs\?\.knowledge;/);
   assert.doesNotMatch(itemSource, /JSON\.parse\(content\).*page_ids/);
 });
