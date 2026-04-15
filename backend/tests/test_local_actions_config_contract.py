@@ -54,6 +54,36 @@ def test_api_config_exposes_local_actions_permission_mode(monkeypatch, tmp_path)
         reset_extensions_config()
 
 
+def test_api_config_adds_only_local_actions_daemon_default(monkeypatch, tmp_path) -> None:
+    db_path = tmp_path / "config.db"
+    extensions_path = tmp_path / "extensions_config.json"
+    _write_extensions_config(extensions_path)
+
+    monkeypatch.delenv("NION_CONFIG_PATH", raising=False)
+    monkeypatch.setenv("NION_CONFIG_DB_PATH", str(db_path))
+    monkeypatch.setenv("NION_EXTENSIONS_CONFIG_PATH", str(extensions_path))
+    reset_app_config()
+    reset_extensions_config()
+
+    try:
+        with TestClient(create_app()) as client:
+            response = client.get("/api/config")
+            assert response.status_code == 200
+
+            config_payload = response.json()["config"]
+            assert config_payload["daemon"] == {
+                "local_actions_permission_mode": "review_required"
+            }
+            assert "document_conversion" not in config_payload
+            assert "extensions" not in config_payload
+            assert "subagents" not in config_payload
+            assert "suggestions" not in config_payload
+            assert "tool_search" not in config_payload
+    finally:
+        reset_app_config()
+        reset_extensions_config()
+
+
 def test_daemon_config_defaults_local_actions_permission_mode() -> None:
     default_config = DaemonConfig()
     explicit_config = DaemonConfig(local_actions_permission_mode="allow_all")

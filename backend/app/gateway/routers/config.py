@@ -3,18 +3,19 @@
 from __future__ import annotations
 
 import logging
+from copy import deepcopy
 from typing import Any
 
 import yaml
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field
 
-from nion.config.app_config import AppConfig
 from nion.config.config_repository import (
     ConfigRepository,
     ConfigValidationError,
     VersionConflictError,
 )
+from nion.config.daemon_config import DaemonConfig
 from nion.config.paths import get_paths
 from nion.subagents.registry import list_subagents
 from nion.telemetry.logger import make_event
@@ -144,8 +145,17 @@ class SessionPolicyOptionsResponse(BaseModel):
     subagents: list[SessionPolicySubagentOption] = Field(default_factory=list)
 
 
-def _serialize_config_payload(config: dict[str, Any]) -> dict[str, Any]:
-    return AppConfig.model_validate(config).to_config_payload()
+def _with_local_actions_permission_mode(config: dict[str, Any]) -> dict[str, Any]:
+    payload = deepcopy(config)
+    daemon_config = payload.get("daemon")
+    if not isinstance(daemon_config, dict):
+        daemon_config = {}
+        payload["daemon"] = daemon_config
+    daemon_config.setdefault(
+        "local_actions_permission_mode",
+        DaemonConfig.model_fields["local_actions_permission_mode"].default,
+    )
+    return payload
 
 
 def _build_schema() -> ConfigSchemaResponse:
@@ -249,7 +259,7 @@ def _resolve_config_payload(
 async def get_config(request: Request) -> ConfigReadResponse:
     repo = ConfigRepository()
     config, version, source_path = repo.read()
-    serialized_config = _serialize_config_payload(config)
+    serialized_config = _with_local_actions_permission_mode(config)
     _record_config_event(
         request,
         level="info",
@@ -336,7 +346,7 @@ async def update_config(
         )
         warnings = [ConfigValidateWarningItem(**item) for item in warnings_raw]
         config, _, source_path = repo.read()
-        serialized_config = _serialize_config_payload(config)
+        serialized_config = _with_local_actions_permission_mode(config)
         return ConfigUpdateResponse(
             version=new_version,
             source_path=str(source_path),
