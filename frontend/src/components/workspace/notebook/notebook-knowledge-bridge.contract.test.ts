@@ -23,6 +23,15 @@ void test("notebook surfaces expose send-to-knowledge and knowledge-status actio
 
   assert.match(pageSource, /enqueue|入队|queue/);
   assert.match(pageSource, /查看知识状态/);
+  assert.match(pageSource, /enqueue_state/);
+  assert.match(pageSource, /compile_state/);
+  assert.match(pageSource, /created_page_ids/);
+  assert.match(pageSource, /error_summary/);
   assert.doesNotMatch(pageSource, /queue\/approve/);
+  assert.doesNotMatch(pageSource, /job_id/);
+  assert.doesNotMatch(pageSource, /jobId/);
+  assert.doesNotMatch(pageSource, /createdPages/);
+  assert.doesNotMatch(pageSource, /createdPageIds/);
+  assert.doesNotMatch(pageSource, /errorSummary/);
   assert.doesNotMatch(pageSource, /点击即编译|同步编译完成/);
 });
