@@ -20,7 +20,7 @@ def query_knowledge_base_tool(question: str) -> str:
 
     Returns:
         JSON string containing the compiled answer, assistant-attachment metadata,
-        and the legacy page_ids compatibility alias.
+        and a legacy page_ids alias kept only for mixed-version consumers.
     """
     result = KnowledgeQueryService().answer(question)
     return json.dumps(

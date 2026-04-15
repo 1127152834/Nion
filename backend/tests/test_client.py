@@ -368,7 +368,7 @@ class TestStream:
         assert len(_ai_events(events)) >= 1
         assert events[-1].type == "end"
 
-    def test_knowledge_tool_result_attaches_page_ids_to_final_answer(self, client):
+    def test_knowledge_tool_result_attaches_knowledge_metadata_to_final_answer(self, client):
         ai_lookup = AIMessage(
             content="",
             id="ai-knowledge-tool-call",
