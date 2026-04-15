@@ -1,6 +1,6 @@
 from nion.config.paths import Paths, reset_paths
-from nion.knowledge.source_candidates import KnowledgeSourceCandidateStore
 from nion.knowledge.models import KnowledgeSourceCandidate
+from nion.knowledge.source_candidates import KnowledgeSourceCandidateStore
 from nion.notebook.history import NotebookHistoryService
 from nion.notebook.service import NotebookService
 
@@ -82,3 +82,48 @@ def test_candidate_registry_keeps_missing_sources_instead_of_deleting_rows(tmp_p
     assert f"source:notebook_note:{note.note_id}" in result.source_missing_ids
     assert candidate.status == "source_missing"
     assert candidate.missing_detected_at is not None
+
+
+def test_refresh_does_not_restore_source_missing_candidate(tmp_path, monkeypatch):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+    notebook = NotebookService(base_dir=tmp_path)
+    history = NotebookHistoryService(base_dir=tmp_path)
+    note = notebook.create_note(directory="", title="Roadmap", body="v1")
+    source_id = f"source:notebook_note:{note.note_id}"
+    store = KnowledgeSourceCandidateStore(base_dir=tmp_path)
+    store.refresh_from_notebook(notebook)
+    store.mark_compiled(source_id, compiled_at="2026-04-13T09:00:00Z")
+
+    history.delete_note(note.note_id, actor_type="user")
+    store.reconcile_with_notebook(notebook)
+    history.restore_deleted_note(note.note_id, actor_type="user")
+
+    refreshed = store.refresh_from_notebook(notebook)
+    candidate = next(item for item in refreshed if item.source_id == source_id)
+
+    assert candidate.status == "source_missing"
+
+
+def test_reconcile_restores_source_missing_candidate_after_refresh_left_it_missing(tmp_path, monkeypatch):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+    notebook = NotebookService(base_dir=tmp_path)
+    history = NotebookHistoryService(base_dir=tmp_path)
+    note = notebook.create_note(directory="", title="Roadmap", body="v1")
+    source_id = f"source:notebook_note:{note.note_id}"
+    store = KnowledgeSourceCandidateStore(base_dir=tmp_path)
+    store.refresh_from_notebook(notebook)
+    store.mark_compiled(source_id, compiled_at="2026-04-13T09:00:00Z")
+
+    history.delete_note(note.note_id, actor_type="user")
+    store.reconcile_with_notebook(notebook)
+    history.restore_deleted_note(note.note_id, actor_type="user")
+    store.refresh_from_notebook(notebook)
+
+    result = store.reconcile_with_notebook(notebook)
+    candidate = store.get_candidate(source_id)
+
+    assert result.restored_source_ids == [source_id]
+    assert candidate.status in {"queued", "compiled", "stale"}
+    assert candidate.status != "source_missing"

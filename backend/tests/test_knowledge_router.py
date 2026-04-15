@@ -2,6 +2,7 @@ from fastapi.testclient import TestClient
 
 from app.daemon.app import create_app
 from nion.config.paths import reset_paths
+from nion.knowledge.activity_store import KnowledgeActivityStore
 from nion.knowledge.source_candidates import KnowledgeSourceCandidateStore
 from nion.notebook.history import NotebookHistoryService
 from nion.notebook.service import NotebookService
@@ -199,6 +200,70 @@ def test_knowledge_reconcile_endpoint_marks_deleted_source_missing(monkeypatch, 
 
     assert response.status_code == 200
     assert f"source:notebook_note:{note.note_id}" in response.json()["source_missing_ids"]
+
+
+def test_knowledge_queue_and_enqueue_do_not_restore_source_missing_candidates(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+    notebook = NotebookService(base_dir=tmp_path)
+    history = NotebookHistoryService(base_dir=tmp_path)
+    note = notebook.create_note(directory="", title="Roadmap", body="v1")
+    source_id = f"source:notebook_note:{note.note_id}"
+
+    store = KnowledgeSourceCandidateStore(base_dir=tmp_path)
+    store.refresh_from_notebook(notebook)
+    store.mark_compiled(source_id, compiled_at="2026-04-15T00:00:00Z")
+    history.delete_note(note.note_id, actor_type="user")
+
+    with TestClient(create_app()) as client:
+        client.post("/api/knowledge/reconcile")
+
+    history.restore_deleted_note(note.note_id, actor_type="user")
+
+    with TestClient(create_app()) as client:
+        queue_response = client.get("/api/knowledge/queue")
+        enqueue_response = client.post("/api/knowledge/sources/enqueue", json={"source_id": source_id})
+
+    queue_candidate = next(item for item in queue_response.json() if item["source_id"] == source_id)
+
+    assert queue_response.status_code == 200
+    assert queue_candidate["status"] == "source_missing"
+    assert enqueue_response.status_code == 200
+    assert enqueue_response.json()["status"] == "source_missing"
+
+
+def test_knowledge_reconcile_endpoint_records_restore_and_stale_events(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+    notebook = NotebookService(base_dir=tmp_path)
+    history = NotebookHistoryService(base_dir=tmp_path)
+    note = notebook.create_note(directory="", title="Roadmap", body="v1")
+    source_id = f"source:notebook_note:{note.note_id}"
+
+    store = KnowledgeSourceCandidateStore(base_dir=tmp_path)
+    store.refresh_from_notebook(notebook)
+    store.mark_compiled(source_id, compiled_at="2026-04-15T00:00:00Z")
+    history.delete_note(note.note_id, actor_type="user")
+
+    with TestClient(create_app()) as client:
+        client.post("/api/knowledge/reconcile")
+
+    history.restore_deleted_note(note.note_id, actor_type="user")
+    notebook.update_note(
+        note_id=note.note_id,
+        body="v2",
+        expected_content_hash=notebook.read_note(note.note_id).content_hash,
+    )
+
+    with TestClient(create_app()) as client:
+        response = client.post("/api/knowledge/reconcile")
+
+    events = KnowledgeActivityStore(base_dir=tmp_path).list_events()
+    event_types = {(event.event_type, event.source_id) for event in events}
+
+    assert response.status_code == 200
+    assert ("source_restored", source_id) in event_types
+    assert ("candidate_became_stale", source_id) in event_types
 
 
 def test_knowledge_query_endpoint_returns_page_based_answer(monkeypatch, tmp_path):

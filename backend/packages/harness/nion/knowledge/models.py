@@ -36,6 +36,7 @@ class KnowledgeActivityEvent(BaseModel):
         "job_succeeded",
         "candidate_became_stale",
         "source_missing_detected",
+        "source_restored",
     ]
     source_id: str | None = None
     page_id: str | None = None

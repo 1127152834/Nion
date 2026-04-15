@@ -25,6 +25,18 @@ class KnowledgeSourceCandidateStore:
         self._db_path = self._paths.knowledge_meta_dir / "source_candidates.sqlite3"
         self._init_schema()
 
+    @staticmethod
+    def _restored_status(
+        previous_candidate: KnowledgeSourceCandidate,
+        *,
+        inventory_hash: str,
+    ) -> str:
+        if previous_candidate.last_compiled_at is None:
+            return "queued"
+        if previous_candidate.content_hash != inventory_hash:
+            return "stale"
+        return "compiled"
+
     def _connect(self) -> sqlite3.Connection:
         conn = sqlite3.connect(self._db_path)
         conn.row_factory = sqlite3.Row
@@ -153,13 +165,8 @@ class KnowledgeSourceCandidateStore:
                 if previous.status == "compiled" and previous.content_hash != content_hash:
                     status = "stale"
                 elif previous.status == "source_missing":
-                    if previous.content_hash != content_hash:
-                        status = "stale"
-                    elif previous.last_compiled_at is not None:
-                        status = "compiled"
-                    else:
-                        status = "queued"
-                    missing_detected_at = None
+                    status = "source_missing"
+                    content_hash = previous.content_hash
 
                 payload = {
                     "status": status,
@@ -283,19 +290,24 @@ class KnowledgeSourceCandidateStore:
                 next_status = candidate.status
                 next_missing_detected_at = candidate.missing_detected_at
                 inventory_hash = str(inventory_item["content_hash"])
+                previous_candidate = previous_candidates.get(candidate.source_id)
+                stale_transition = False
                 if previous_missing:
                     restored_source_ids.append(candidate.source_id)
                     next_missing_detected_at = None
-                    previous_candidate = previous_candidates[candidate.source_id]
-                    if previous_candidate.last_compiled_at is None:
-                        next_status = "queued"
-                    elif previous_candidate.content_hash != inventory_hash:
-                        next_status = "stale"
-                    else:
-                        next_status = "compiled"
-
-                elif candidate.status == "compiled" and candidate.content_hash != inventory_hash:
+                    assert previous_candidate is not None
+                    next_status = self._restored_status(
+                        previous_candidate,
+                        inventory_hash=inventory_hash,
+                    )
+                    stale_transition = next_status == "stale"
+                elif (
+                    previous_candidate is not None
+                    and previous_candidate.status == "compiled"
+                    and previous_candidate.content_hash != inventory_hash
+                ):
                     next_status = "stale"
+                    stale_transition = previous_candidate.status != "stale"
 
                 if (
                     previous_missing
@@ -321,6 +333,20 @@ class KnowledgeSourceCandidateStore:
                             str(inventory_item["updated_at"]),
                             candidate.source_id,
                         ),
+                    )
+                if activity_store is not None and previous_missing:
+                    activity_store.record_event(
+                        event_type="source_restored",
+                        source_id=candidate.source_id,
+                        detail=f"Source restored for {candidate.source_id}",
+                        created_at=detected_at,
+                    )
+                if activity_store is not None and stale_transition:
+                    activity_store.record_event(
+                        event_type="candidate_became_stale",
+                        source_id=candidate.source_id,
+                        detail=f"Source became stale for {candidate.source_id}",
+                        created_at=detected_at,
                     )
 
         return KnowledgeSourceReconciliationResult(
