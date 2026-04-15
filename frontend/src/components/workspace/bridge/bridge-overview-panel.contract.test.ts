@@ -22,6 +22,17 @@ void test("bridge overview panel summarizes runtime state, bindings, incidents, 
   assert.match(source, /value: runtimeInfo\?\.activeBindings \?\? 0/);
   assert.match(source, /value: runtimeInfo\?\.openIncidents \?\? 0/);
   assert.match(source, /value: runtimeInfo\?\.enabledPlatforms\??\.length \?\? 0/);
+  assert.match(source, /let riskHint = t\("bridge\.overviewHintUnavailable"\)/);
+  assert.match(source, /if \(!runtimeInfo\)/);
+  assert.match(source, /riskHint = t\("bridge\.overviewHintUnavailable"\)/);
+  assert.match(source, /else if \(runtimeInfo\.openIncidents > 0\)/);
+  assert.match(source, /riskHint = t\("bridge\.overviewHintIncidents"\)/);
+  assert.match(source, /else if \(!runtimeInfo\.running && runtimeInfo\.autoStartEnabled\)/);
+  assert.match(source, /riskHint = t\("bridge\.overviewHintAutoStartStopped"\)/);
+  assert.match(source, /else if \(runtimeInfo\.enabledPlatforms\.length === 0\)/);
+  assert.match(source, /riskHint = t\("bridge\.overviewHintNoPlatforms"\)/);
+  assert.match(source, /riskHint = t\("bridge\.overviewHintReady"\)/);
+  assert.match(source, /t\("bridge\.overviewPendingRiskHint"\)/);
 
   assert.match(sharedSource, /"bridge\.overviewTitle": "Bridge overview"/);
   assert.match(sharedSource, /"bridge\.overviewRuntimeStatus": "Runtime status"/);
@@ -30,6 +41,12 @@ void test("bridge overview panel summarizes runtime state, bindings, incidents, 
   assert.match(sharedSource, /"bridge\.overviewEnabledPlatforms": "Enabled platforms"/);
   assert.match(sharedSource, /"bridge\.overviewRunning": "Running"/);
   assert.match(sharedSource, /"bridge\.overviewStopped": "Stopped"/);
+  assert.match(sharedSource, /"bridge\.overviewPendingRiskHint": "Pending risk hint"/);
+  assert.match(sharedSource, /"bridge\.overviewHintUnavailable": "Runtime status is unavailable until the desktop bridge responds\."/);
+  assert.match(sharedSource, /"bridge\.overviewHintIncidents": "Open bridge incidents need review before this entry surface is considered stable\."/);
+  assert.match(sharedSource, /"bridge\.overviewHintAutoStartStopped": "Auto-start is enabled, but the bridge is currently stopped and may need attention after launch\."/);
+  assert.match(sharedSource, /"bridge\.overviewHintNoPlatforms": "No platforms are enabled yet, so this remote entry surface is not reachable\."/);
+  assert.match(sharedSource, /"bridge\.overviewHintReady": "No pending bridge risk is visible from the current runtime overview\."/);
   assert.match(sharedSource, /"bridge\.overviewTitle": "Bridge 概览"/);
   assert.match(sharedSource, /"bridge\.overviewRuntimeStatus": "运行状态"/);
   assert.match(sharedSource, /"bridge\.overviewActiveBindings": "活跃绑定"/);
@@ -37,6 +54,12 @@ void test("bridge overview panel summarizes runtime state, bindings, incidents, 
   assert.match(sharedSource, /"bridge\.overviewEnabledPlatforms": "已启用渠道"/);
   assert.match(sharedSource, /"bridge\.overviewRunning": "运行中"/);
   assert.match(sharedSource, /"bridge\.overviewStopped": "已停止"/);
+  assert.match(sharedSource, /"bridge\.overviewPendingRiskHint": "待处理风险提示"/);
+  assert.match(sharedSource, /"bridge\.overviewHintUnavailable": "桌面端 Bridge 尚未返回运行信息，当前概览风险状态未知。"/);
+  assert.match(sharedSource, /"bridge\.overviewHintIncidents": "当前存在待处理 Bridge 事件，进入具体渠道前应先关注这些风险。"/);
+  assert.match(sharedSource, /"bridge\.overviewHintAutoStartStopped": "已开启自动启动，但 Bridge 当前未运行，启动后可能需要进一步检查。"/);
+  assert.match(sharedSource, /"bridge\.overviewHintNoPlatforms": "当前没有启用任何渠道，这个远程入口仍不可达。"/);
+  assert.match(sharedSource, /"bridge\.overviewHintReady": "按当前运行概览看，没有待处理的 Bridge 风险提示。"/);
 });
 
 void test("bridge layout renders the overview panel before platform tabs", async () => {

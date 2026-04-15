@@ -28,6 +28,19 @@ export function BridgeOverviewPanel({
       value: runtimeInfo?.enabledPlatforms?.length ?? 0,
     },
   ] as const;
+  let riskHint = t("bridge.overviewHintUnavailable");
+
+  if (!runtimeInfo) {
+    riskHint = t("bridge.overviewHintUnavailable");
+  } else if (runtimeInfo.openIncidents > 0) {
+    riskHint = t("bridge.overviewHintIncidents");
+  } else if (!runtimeInfo.running && runtimeInfo.autoStartEnabled) {
+    riskHint = t("bridge.overviewHintAutoStartStopped");
+  } else if (runtimeInfo.enabledPlatforms.length === 0) {
+    riskHint = t("bridge.overviewHintNoPlatforms");
+  } else {
+    riskHint = t("bridge.overviewHintReady");
+  }
 
   return (
     <section className="mb-6 rounded-2xl border border-border/60 bg-background p-5">
@@ -51,6 +64,13 @@ export function BridgeOverviewPanel({
             </div>
           </div>
         ))}
+      </div>
+
+      <div className="mt-4 rounded-xl border border-border/50 bg-muted/30 px-4 py-3">
+        <div className="text-xs font-medium text-muted-foreground">
+          {t("bridge.overviewPendingRiskHint")}
+        </div>
+        <p className="mt-2 text-sm leading-6 text-foreground">{riskHint}</p>
       </div>
     </section>
   );
