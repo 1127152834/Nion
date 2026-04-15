@@ -9,6 +9,8 @@ export const DESKTOP_IPC_CHANNELS = {
   terminalKill: "desktop:terminal-kill",
   terminalOnData: "desktop:terminal-data",
   terminalOnExit: "desktop:terminal-exit",
+  localActionsExecute: "desktop:local-actions-execute",
+  localActionsListHistory: "desktop:local-actions-history",
 } as const;
 
 export type DesktopRuntimeInfo = {
@@ -39,6 +41,20 @@ export type DesktopTerminalDataEvent = {
 export type DesktopTerminalExitEvent = {
   id: string;
   code: number;
+};
+
+export type DesktopLocalActionPlan = {
+  actions: Array<{
+    action_type: string;
+  }>;
+};
+
+export type DesktopLocalActionExecutionResult = {
+  executed: Array<{
+    action_type: string;
+    status: "skipped";
+    result_summary: string;
+  }>;
 };
 
 export type DesktopBridgeStatus = {
@@ -119,6 +135,12 @@ declare global {
         onExit: (
           callback: (payload: DesktopTerminalExitEvent) => void,
         ) => () => void;
+      };
+      localActions?: {
+        execute: (
+          plan: DesktopLocalActionPlan,
+        ) => Promise<DesktopLocalActionExecutionResult>;
+        listHistory: () => Promise<DesktopLocalActionExecutionResult[]>;
       };
       bridge: {
         getSettings: () => Promise<Record<string, string>>;

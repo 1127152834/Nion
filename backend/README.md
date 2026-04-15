@@ -210,6 +210,7 @@ FastAPI application providing REST endpoints for frontend integration:
 | `POST /api/config/validate` | Validate config payload |
 | `PUT /api/config` | Persist config with version conflict detection |
 | `GET /api/config/runtime-status` | Inspect store/runtime version alignment |
+| `POST /api/local-actions/plan` | Create a controlled local-action goal, plan, and execution audit record |
 | `GET/PUT /api/threads/{id}/runtime-profile` | Read/update thread runtime mode |
 | `GET /api/threads/{id}/files/meta` | Inspect current thread workdir root |
 | `GET /api/threads/{id}/files/tree` | Browse current thread workdir tree |

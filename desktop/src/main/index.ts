@@ -20,6 +20,7 @@ import { shouldAutoStartDesktopMain } from "./entrypoint.js";
 import { registerDesktopProtocol } from "./protocol.js";
 import { shouldKeepPrimaryInstance } from "./single-instance.js";
 import { createDesktopUpdater, registerUpdaterHandlers } from "./updater.js";
+import { LocalActionsExecutor } from "./local-actions/executor.js";
 import { createMainWindow, focusMainWindow } from "./window.js";
 import { TerminalManager } from "./terminal-manager.js";
 import { DESKTOP_BRIDGE_IPC_CHANNELS } from "../shared/bridge-ipc.js";
@@ -31,6 +32,7 @@ let mainWindow: BrowserWindow | null = null;
 let clientSession: ElectronClientSession | null = null;
 let runtimeInfo: import("../shared/ipc.js").DesktopRuntimeInfo | null = null;
 const terminalManager = new TerminalManager();
+const localActionsExecutor = new LocalActionsExecutor();
 
 const MASKED_SETTING_KEYS = new Set([
   "bridge_discord_bot_token",
@@ -460,6 +462,15 @@ export async function startDesktopMain(): Promise<void> {
   );
   ipcMain.handle(DESKTOP_IPC_CHANNELS.terminalKill, async (_event, id: string) => {
     terminalManager.kill(id);
+  });
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.localActionsExecute,
+    async (_event, plan: { actions: Array<{ action_type: string }> }) => {
+      return localActionsExecutor.executePlan(plan);
+    },
+  );
+  ipcMain.handle(DESKTOP_IPC_CHANNELS.localActionsListHistory, async () => {
+    return [];
   });
 
   const bridgeBindingsStore = createBridgeBindingsStore(

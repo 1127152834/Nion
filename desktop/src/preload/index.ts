@@ -42,6 +42,12 @@ export function registerPreloadBridge(): void {
         };
       },
     },
+    localActions: {
+      execute: (plan: { actions: Array<{ action_type: string }> }) =>
+        ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.localActionsExecute, plan),
+      listHistory: () =>
+        ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.localActionsListHistory),
+    },
     bridge: {
       getSettings: () => ipcRenderer.invoke(DESKTOP_BRIDGE_IPC_CHANNELS.getSettings),
       saveSettings: (updates: Record<string, string>) =>
