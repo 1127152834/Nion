@@ -9,10 +9,11 @@ void test("knowledge queue page renders candidate state and approval affordance"
   );
 
   assert.match(source, /queue/i);
+  assert.match(source, /Queue|Activity|activity/i);
   assert.match(source, /useKnowledgeQueue/);
   assert.match(source, /useApproveKnowledgeQueue/);
   assert.match(source, /approve|批准/);
-  assert.match(source, /编译|compile/i);
+  assert.match(source, /queue activity|activity feed|running/i);
   assert.match(source, /last_compiled_at|compile_error/);
   assert.match(source, /stale|queued|compiled/);
   assert.match(source, /activity/i);

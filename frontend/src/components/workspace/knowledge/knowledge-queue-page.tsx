@@ -27,7 +27,7 @@ export function KnowledgeQueuePage() {
       <section className="rounded-lg border bg-background p-5">
         <h1 className="text-[1.5rem] font-semibold tracking-tight">Knowledge Queue</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Review queued and stale source candidates before they enter the compiled knowledge flow.
+          Review queue activity, stale candidates, and running knowledge work before they settle into compiled pages.
         </p>
       </section>
 
@@ -36,7 +36,7 @@ export function KnowledgeQueuePage() {
           <div className="space-y-1">
             <h2 className="text-[1.1rem] font-semibold tracking-tight">queued candidates</h2>
             <p className="text-sm text-muted-foreground">
-              queued / stale / compiled candidates are reviewed here.
+              queued / stale / compiled candidates are reviewed here, and Activity stays visible while work is still running.
             </p>
           </div>
           <button
@@ -50,7 +50,7 @@ export function KnowledgeQueuePage() {
         <div className="mt-3 rounded-md border px-3 py-2 text-xs text-muted-foreground">
           {hasVisibleProgress ? (
             <span>
-              visible staged progress · stage={activeJob?.stage ?? "queued"} · status=
+              visible queue activity · stage={activeJob?.stage ?? "queued"} · status=
               {activeJob?.status ?? "pending"} · {isPolling ? "polling" : "refreshing"}
             </span>
           ) : (
@@ -81,9 +81,9 @@ export function KnowledgeQueuePage() {
 
       <section className="rounded-lg border bg-background p-5">
         <div className="space-y-1">
-          <h2 className="text-[1.1rem] font-semibold tracking-tight">compile jobs</h2>
+          <h2 className="text-[1.1rem] font-semibold tracking-tight">queue activity jobs</h2>
           <p className="text-sm text-muted-foreground">
-            Visible compile history for queued notebook sources.
+            Visible running and completed queue activity for notebook-derived knowledge work.
           </p>
         </div>
         <div className="mt-4 space-y-2 text-sm text-muted-foreground">
@@ -104,9 +104,9 @@ export function KnowledgeQueuePage() {
 
       <section className="rounded-lg border bg-background p-5">
         <div className="space-y-1">
-          <h2 className="text-[1.1rem] font-semibold tracking-tight">activity feed</h2>
+          <h2 className="text-[1.1rem] font-semibold tracking-tight">Activity feed</h2>
           <p className="text-sm text-muted-foreground">
-            Visible activity feed for queue approvals and source_missing_detected transitions.
+            Visible activity feed for queue approvals, running stages, and source_missing_detected transitions.
           </p>
         </div>
         <div className="mt-4 space-y-2 text-sm text-muted-foreground">

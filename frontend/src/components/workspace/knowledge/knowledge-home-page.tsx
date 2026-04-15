@@ -34,6 +34,8 @@ export function KnowledgeHomePage() {
   const rebuild = useRebuildKnowledgeGraph();
   const compiledCount = queue.filter((item) => item.status === "compiled").length;
   const staleCount = queue.filter((item) => item.status === "stale").length;
+  const sourceMissingCount = queue.filter((item) => item.status === "source_missing").length;
+  const archivedCount = pages.filter((page) => page.page_state === "archived").length;
   const isPolling = queuePolling || jobsPolling;
 
   return (
@@ -48,11 +50,11 @@ export function KnowledgeHomePage() {
       <section className="rounded-lg border bg-muted/20 p-5">
         <h2 className="text-[1.1rem] font-semibold tracking-tight">语义检索增强</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          前往模型管理中的检索模型完成配置。
+          前往检索模型完成配置。
         </p>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-4">
+      <section className="grid gap-4 md:grid-cols-5">
         <div className="rounded-lg border bg-background p-5">
           <div className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Queue</div>
           <div className="mt-3 text-3xl font-semibold">{queue.length}</div>
@@ -69,6 +71,13 @@ export function KnowledgeHomePage() {
           <div className="mt-2 text-sm text-muted-foreground">need recompilation</div>
         </div>
         <div className="rounded-lg border bg-background p-5">
+          <div className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Activity</div>
+          <div className="mt-3 text-3xl font-semibold">{sourceMissingCount}</div>
+          <div className="mt-2 text-sm text-muted-foreground">
+            {queue.filter((item) => item.status === "source_missing").length} source missing
+          </div>
+        </div>
+        <div className="rounded-lg border bg-background p-5">
           <div className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Lint</div>
           <div className="mt-3 text-3xl font-semibold">{report?.broken_links.length ?? 0}</div>
           <div className="mt-2 text-sm text-muted-foreground">broken links</div>
@@ -78,13 +87,16 @@ export function KnowledgeHomePage() {
       <section className="rounded-lg border bg-background p-5">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-[1.1rem] font-semibold tracking-tight">Live compile status</h2>
+            <h2 className="text-[1.1rem] font-semibold tracking-tight">Queue + Activity status</h2>
             <p className="mt-2 text-sm text-muted-foreground">
-              Queue/Home 保持 polling，让 running stage 和 activity feed 在 approve 期间可见。
+              Queue/Home 保持 polling，让 running stage、Activity 和对账入口在 approve 期间可见。
             </p>
           </div>
-          <div className="rounded-full border px-3 py-1 text-xs text-muted-foreground">
-            {isPolling ? "refreshing staged progress" : "idle"}
+          <div className="flex items-center gap-2">
+            <button className="rounded-md border px-3 py-2 text-sm">reconcile now</button>
+            <div className="rounded-full border px-3 py-1 text-xs text-muted-foreground">
+              {isPolling ? "refreshing staged progress" : "idle"}
+            </div>
           </div>
         </div>
         <div className="mt-4 rounded-md border px-3 py-3 text-sm text-muted-foreground">
@@ -96,6 +108,12 @@ export function KnowledgeHomePage() {
             <div>no active compile job</div>
           )}
         </div>
+        <div className="mt-3 flex flex-wrap gap-3 text-xs text-muted-foreground">
+          <span>{sourceMissingCount} source_missing candidates</span>
+          <span>{staleCount} stale candidates</span>
+          <span>{archivedCount} archived pages</span>
+          <span>reconcile / 对账 keeps queue, pages, and activity aligned</span>
+        </div>
       </section>
 
       <section className="rounded-lg border bg-background p-5">
@@ -103,7 +121,7 @@ export function KnowledgeHomePage() {
           <div>
             <h2 className="text-[1.1rem] font-semibold tracking-tight">Queue</h2>
             <p className="mt-2 text-sm text-muted-foreground">
-              Queue summary for notebook-derived source candidates. 它告诉你哪些内容还没编译、哪些已经变成 wiki pages。
+              Queue summary for notebook-derived source candidates. 它告诉你哪些内容还在队列、哪些 stale、哪些 source_missing，以及哪些已经变成 wiki pages。
             </p>
           </div>
           <Link href="/workspace/knowledge/queue" className="rounded-md border px-3 py-2 text-sm">
@@ -126,7 +144,7 @@ export function KnowledgeHomePage() {
           <div>
             <h2 className="text-[1.1rem] font-semibold tracking-tight">Compiled pages</h2>
             <p className="mt-2 text-sm text-muted-foreground">
-              Recently compiled pages from notebook sources.
+              Recently compiled pages from notebook sources, including active and archived outputs.
             </p>
           </div>
           <Link href="/workspace/knowledge/query" className="rounded-md border px-3 py-2 text-sm">
@@ -153,7 +171,7 @@ export function KnowledgeHomePage() {
           <div>
             <h2 className="text-[1.1rem] font-semibold tracking-tight">Recent compile jobs</h2>
             <p className="mt-2 text-sm text-muted-foreground">
-              Visible job history for notebook-to-knowledge compilation.
+              Visible job history for notebook-to-knowledge queue activity.
             </p>
           </div>
           <Link href="/workspace/knowledge/queue" className="rounded-md border px-3 py-2 text-sm">
@@ -177,7 +195,7 @@ export function KnowledgeHomePage() {
           <div>
             <h2 className="text-[1.1rem] font-semibold tracking-tight">Activity feed</h2>
             <p className="mt-2 text-sm text-muted-foreground">
-              Visible activity feed for running, failed, and completed knowledge compilation.
+              Visible activity feed for running, failed, completed, and source_missing transitions across Queue / Activity.
             </p>
           </div>
           <Link href="/workspace/knowledge/queue" className="rounded-md border px-3 py-2 text-sm">

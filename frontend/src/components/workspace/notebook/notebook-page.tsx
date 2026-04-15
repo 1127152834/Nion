@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { useI18n } from "@/core/i18n/hooks";
 import type { NotebookKnowledgeStatus } from "@/core/knowledge/types";
 import {
+  pathOfKnowledge,
   pathOfKnowledgeQueue,
   pathOfNotebookTrash,
 } from "@/core/navigation/desktop-routes";
@@ -306,6 +307,16 @@ export function NotebookPage() {
   function handleViewKnowledgeStatus() {
     router.push(pathOfKnowledgeQueue());
   }
+
+  const knowledgeStatusTone = knowledgeCompileStatus?.compile_state ?? "idle";
+  const knowledgeStatusProgressClass =
+    knowledgeStatusTone === "succeeded"
+      ? "w-full"
+      : knowledgeStatusTone === "failed"
+        ? "w-full bg-[var(--notebook-danger)]"
+        : knowledgeStatusTone === "idle"
+          ? "w-1/4"
+          : "w-2/3 animate-pulse";
 
   const handleSave = useCallback(async () => {
     if (isDraft) {
@@ -749,36 +760,35 @@ export function NotebookPage() {
               {knowledgeCompileStatus ? (
                 <section className="rounded-2xl border border-[var(--notebook-border)] bg-[var(--notebook-panel)] px-4 py-4">
                   <div className="flex items-start justify-between gap-4">
-                    <div>
+                    <div className="min-w-0 flex-1">
                       <div className="text-xs uppercase tracking-[0.14em] text-[var(--notebook-soft-text)]">
-                        知识状态
+                        Queue / Activity
                       </div>
                       <div className="mt-2 text-sm font-medium text-[var(--notebook-ink)]">
-                        enqueue={knowledgeCompileStatus.enqueue_state} · compile={knowledgeCompileStatus.compile_state}
+                        enqueue_state={knowledgeCompileStatus.enqueue_state} · compile_state=
+                        {knowledgeCompileStatus.compile_state}
+                      </div>
+                      <div className="mt-2 text-xs text-[var(--notebook-soft-text)]">
+                        {knowledgeCompileStatus.last_job_id
+                          ? `last_job_id=${knowledgeCompileStatus.last_job_id}`
+                          : "last_job_id=waiting_for_activity"}
                       </div>
                       <div className="mt-2 text-xs text-[var(--notebook-soft-text)]">
                         {knowledgeCompileStatus.created_page_ids.length > 0
-                          ? `已生成 ${knowledgeCompileStatus.created_page_ids.length} 个知识页`
-                          : knowledgeCompileStatus.error_summary ?? "已入队，等待后续编译处理"}
+                          ? `created_page_ids=${knowledgeCompileStatus.created_page_ids.length}`
+                          : knowledgeCompileStatus.error_summary ??
+                            "已进入队列，后续会在 Queue / Activity 中继续推进，不代表立即完成。"}
                       </div>
                       <div className="mt-2 text-xs text-[var(--notebook-soft-text)]">
-                        Notebook 这里仍然是原始内容（raw）入口；这里只显示 enqueue 结果和轻量状态。
+                        Notebook 这里仍然是原始内容（raw）入口；这里只显示 staged knowledge progress，详细状态请看 Queue、Activity 或 Knowledge 状态页。
                       </div>
                       <div className="mt-3 h-2 overflow-hidden rounded-full bg-[var(--notebook-border)]">
                         <div
-                          className={`h-full rounded-full bg-[var(--notebook-brand)] transition-all ${
-                            knowledgeCompileStatus.compile_state === "succeeded"
-                              ? "w-full"
-                              : knowledgeCompileStatus.compile_state === "failed"
-                                ? "w-full bg-[var(--notebook-danger)]"
-                                : knowledgeCompileStatus.compile_state === "idle"
-                                  ? "w-1/3"
-                                  : "w-2/3 animate-pulse"
-                          }`}
+                          className={`h-full rounded-full bg-[var(--notebook-brand)] transition-all ${knowledgeStatusProgressClass}`}
                         />
                       </div>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                       {knowledgeCompileStatus.created_page_ids[0] ? (
                         <Button
                           type="button"
@@ -798,10 +808,26 @@ export function NotebookPage() {
                       <Button
                         type="button"
                         variant="outline"
+                        onClick={() => router.push(pathOfKnowledge())}
+                        className="border-[var(--notebook-border)] bg-[var(--notebook-panel)] text-[var(--notebook-ink)]"
+                      >
+                        Knowledge 首页
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
                         onClick={handleViewKnowledgeStatus}
                         className="border-[var(--notebook-border)] bg-[var(--notebook-panel)] text-[var(--notebook-ink)]"
                       >
-                        查看知识状态
+                        Queue
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleViewKnowledgeStatus}
+                        className="border-[var(--notebook-border)] bg-[var(--notebook-panel)] text-[var(--notebook-ink)]"
+                      >
+                        Activity / 查看知识状态
                       </Button>
                     </div>
                   </div>

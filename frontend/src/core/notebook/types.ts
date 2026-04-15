@@ -65,6 +65,7 @@ export interface NotebookInboxItem {
   tags: string[];
   knowledge_source_id?: string | null;
   knowledge_status?: string | null;
+  knowledge_last_job_id?: string | null;
 }
 
 export interface NotebookInboxResponse {
@@ -82,6 +83,7 @@ export interface NotebookNoteSummary {
   is_pinned: boolean;
   knowledge_source_id?: string | null;
   knowledge_status?: string | null;
+  knowledge_last_job_id?: string | null;
 }
 
 export interface NotebookHistoryEntry {

@@ -17,6 +17,9 @@ void test("knowledge home page centers overview queue and graph status instead o
   assert.match(source, /activity/i);
   assert.match(source, /job_started|page_created|source_missing_detected|activity feed/i);
   assert.match(source, /compile_state|stage|running|failed/);
+  assert.match(source, /Activity|activity/i);
+  assert.match(source, /source_missing|stale|archived/);
+  assert.match(source, /reconcile|对账/);
   assert.match(source, /activeJob/);
   assert.match(source, /polling|refreshing/i);
   assert.match(source, /stage=\{activeJob\.stage\}/);
@@ -30,5 +33,5 @@ void test("knowledge home page can point users to retrieval models when semantic
   );
 
   assert.match(source, /语义检索增强/);
-  assert.match(source, /前往模型管理中的检索模型完成配置/);
+  assert.match(source, /前往检索模型完成配置/);
 });
