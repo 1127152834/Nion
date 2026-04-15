@@ -9,7 +9,7 @@ void test("memory settings page mounts the real embedding control surface", asyn
   );
 
   assert.match(source, /MemoryEmbeddingPanel/);
-  assert.match(source, /本地向量模型是否准备好|API 模型只是高级接入/);
+  assert.match(source, /当前只支持外部向量模型接口|语义检索/);
   assert.doesNotMatch(source, /memory-console-panel|MemoryConsolePanel/);
   assert.doesNotMatch(source, /fingerprint|vector_path|artifact_count/);
   assert.doesNotMatch(source, /Memory OS|legacy `memory\.json`|治理链路|自动成长边界|只保留用户真正需要的入口/);

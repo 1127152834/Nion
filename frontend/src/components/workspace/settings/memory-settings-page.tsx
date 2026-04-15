@@ -17,7 +17,7 @@ export function MemorySettingsPage() {
   return (
     <SettingsSection
       title={t.settings.memory.title}
-      description="先确认本地向量模型是否准备好。API 模型只是高级接入，不该打扰普通用户。"
+      description="当前只支持外部向量模型接口。配置好接口后，长期记忆才能使用语义检索。"
     >
       <div className="space-y-4">
         <MemoryEmbeddingPanel />

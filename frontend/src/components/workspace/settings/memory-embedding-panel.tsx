@@ -1,16 +1,15 @@
 "use client";
 
 import {
-  ChevronDownIcon,
+  ArrowUpRightIcon,
   CheckCircle2Icon,
-  CloudIcon,
+  CloudCogIcon,
   DatabaseZapIcon,
-  DownloadIcon,
+  KeyRoundIcon,
   Loader2Icon,
   RefreshCwIcon,
-  ServerCogIcon,
+  ShieldCheckIcon,
   SparklesIcon,
-  WaypointsIcon,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -24,141 +23,30 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
 import { Input } from "@/components/ui/input";
 import {
-  useDownloadMemoryEmbeddingAssets,
   useMemorySettings,
   usePatchMemorySettings,
   useRebuildMemoryVectorIndex,
 } from "@/core/memory-settings/hooks";
 import { cn } from "@/lib/utils";
 
-type Mode = "local_managed" | "remote_managed";
-
-function statusTone(state: string) {
+function indexTone(state: string) {
   if (state === "ready") {
     return "bg-emerald-50 text-emerald-700 border-emerald-200";
   }
-  if (state === "remote") {
-    return "bg-sky-50 text-sky-700 border-sky-200";
-  }
-  if (state === "loading") {
+  if (state === "empty") {
     return "bg-amber-50 text-amber-700 border-amber-200";
   }
   return "bg-muted text-muted-foreground border-border";
 }
 
-function progressLabel(state: string) {
-  if (state === "ready") {
-    return "已就绪";
-  }
-  if (state === "remote") {
-    return "远端接入中";
-  }
-  if (state === "loading") {
-    return "准备中";
-  }
-  return "尚未准备";
-}
-
-function stageProgressPercent({
-  state,
-  isPreparing,
-  isRebuilding,
-}: {
-  state: string;
-  isPreparing: boolean;
-  isRebuilding: boolean;
-}) {
-  if (isRebuilding) {
-    return 80;
-  }
-  if (isPreparing) {
-    return 45;
-  }
-  if (state === "ready" || state === "remote") {
-    return 100;
-  }
-  return 0;
-}
-
-function ModeOptionCard({
-  active,
-  onSwitch,
-  icon,
-  title,
-  body,
-  accent,
-}: {
-  active: boolean;
-  onSwitch: () => void;
-  icon: typeof CloudIcon;
-  title: string;
-  body: string;
-  accent: "dark" | "light";
-}) {
-  const Icon = icon;
-  return (
-    <button
-      type="button"
-      className={cn(
-        "group rounded-2xl border p-4 text-left transition-colors",
-        active && accent === "dark"
-          ? "border-slate-900 bg-slate-900 text-white"
-          : active
-            ? "border-slate-300 bg-slate-100 text-slate-950"
-            : "border-border bg-background hover:border-slate-300 hover:bg-slate-50",
-      )}
-      onClick={onSwitch}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2 text-sm font-semibold">
-            <Icon className="size-4" />
-            {title}
-          </div>
-          <p
-            className={cn(
-              "text-sm leading-6",
-              active && accent === "dark"
-                ? "text-slate-200"
-                : active
-                  ? "text-slate-700"
-                  : "text-muted-foreground",
-            )}
-          >
-            {body}
-          </p>
-        </div>
-        <Badge
-          variant="outline"
-          className={cn(
-            "rounded-full",
-            active && accent === "dark"
-              ? "border-white/20 bg-white/10 text-white"
-              : "border-border bg-background text-foreground",
-          )}
-        >
-          {active ? "当前模式" : "切换"}
-        </Badge>
-      </div>
-    </button>
-  );
-}
-
 export function MemoryEmbeddingPanel() {
   const { settings, isLoading, error } = useMemorySettings();
   const patchSettings = usePatchMemorySettings();
-  const downloadMutation = useDownloadMemoryEmbeddingAssets();
   const rebuildMutation = useRebuildMemoryVectorIndex();
 
-  const [advancedOpen, setAdvancedOpen] = useState(false);
-  const [remoteDraft, setRemoteDraft] = useState({
+  const [draft, setDraft] = useState({
     endpoint: "",
     apiKey: "",
     modelName: "",
@@ -166,7 +54,7 @@ export function MemoryEmbeddingPanel() {
   });
 
   useEffect(() => {
-    setRemoteDraft({
+    setDraft({
       endpoint: settings.remote_config.endpoint,
       apiKey: "",
       modelName: settings.remote_config.model_name,
@@ -178,103 +66,33 @@ export function MemoryEmbeddingPanel() {
     settings.remote_config.dimensions,
   ]);
 
-  const isRemoteMode = settings.provider_mode.id === "remote_managed";
-  const isPreparing = downloadMutation.isPending;
-  const isRebuilding = rebuildMutation.isPending;
-
-  const localModelLabel = useMemo(() => {
-    if (settings.local_config.model_key.trim()) {
-      return settings.local_config.model_key;
-    }
-    return settings.local_config.model_id;
-  }, [settings.local_config.model_id, settings.local_config.model_key]);
-
-  const visualProgress = useMemo(
-    () =>
-      stageProgressPercent({
-        state: settings.download_status.state,
-        isPreparing,
-        isRebuilding,
-      }),
-    [isPreparing, isRebuilding, settings.download_status.state],
+  const configured = Boolean(
+    settings.remote_config.endpoint.trim() && settings.remote_config.model_name.trim(),
   );
 
-  const localFlowSteps = useMemo(
-    () => [
-      {
-        label: "选择本地模式",
-        done: !isRemoteMode,
-      },
-      {
-        label: "准备本地模型",
-        done: settings.download_status.state === "ready",
-        active: isPreparing,
-      },
-      {
-        label: "完成索引重建",
-        done: settings.index_health.state === "ready",
-        active: isRebuilding,
-      },
-    ],
-    [
-      isPreparing,
-      isRebuilding,
-      isRemoteMode,
-      settings.download_status.state,
-      settings.index_health.state,
-    ],
-  );
-
-  const indexStatusCopy = useMemo(() => {
+  const readinessLabel = useMemo(() => {
     if (settings.index_health.state === "ready") {
-      return "记忆索引已经准备好";
+      return "可直接参与长期记忆检索";
     }
-    if (settings.index_health.state === "empty") {
-      return "还没有建立索引";
+    if (configured) {
+      return "接口已配置，等待索引同步";
     }
-    return "索引需要处理";
-  }, [settings.index_health.state]);
-
-  const heroTitle = isRemoteMode ? "当前正在使用 API 模型" : "先把本地向量模型准备好";
-  const heroDescription = isRemoteMode
-    ? "你现在走的是远端 embedding 接入。普通用户默认不需要这么配，所以这里仍然把本地优先路径放在主位。"
-    : "普通用户只需要关心两件事：本地模型有没有准备好，记忆索引能不能工作。远端 API 接入是高级选项，不应该挡在第一屏。";
-
-  async function switchMode(mode: Mode) {
-    try {
-      await patchSettings.mutateAsync({ mode });
-      toast.success(mode === "local_managed" ? "已切换到本地模型" : "已切换到 API 模型");
-    } catch (mutationError) {
-      toast.error(
-        mutationError instanceof Error ? mutationError.message : "切换模式失败",
-      );
-    }
-  }
+    return "还没有完成外部接口接入";
+  }, [configured, settings.index_health.state]);
 
   async function saveRemoteSettings() {
     try {
       await patchSettings.mutateAsync({
         mode: "remote_managed",
-        remote_endpoint: remoteDraft.endpoint.trim(),
-        remote_api_key: remoteDraft.apiKey.trim(),
-        remote_model_name: remoteDraft.modelName.trim(),
-        remote_dimensions: Number(remoteDraft.dimensions),
+        remote_endpoint: draft.endpoint.trim(),
+        remote_api_key: draft.apiKey.trim(),
+        remote_model_name: draft.modelName.trim(),
+        remote_dimensions: Number(draft.dimensions),
       });
-      toast.success("API 模型配置已保存");
+      toast.success("外部向量模型接口已保存");
     } catch (mutationError) {
       toast.error(
-        mutationError instanceof Error ? mutationError.message : "API 模型保存失败",
-      );
-    }
-  }
-
-  async function downloadModel() {
-    try {
-      await downloadMutation.mutateAsync();
-      toast.success("本地向量模型已经准备完成");
-    } catch (mutationError) {
-      toast.error(
-        mutationError instanceof Error ? mutationError.message : "准备本地模型失败",
+        mutationError instanceof Error ? mutationError.message : "保存外部接口失败",
       );
     }
   }
@@ -282,7 +100,7 @@ export function MemoryEmbeddingPanel() {
   async function rebuildIndex() {
     try {
       await rebuildMutation.mutateAsync();
-      toast.success("记忆索引已经重建完成");
+      toast.success("长期记忆索引已重建");
     } catch (mutationError) {
       toast.error(
         mutationError instanceof Error ? mutationError.message : "重建索引失败",
@@ -292,31 +110,33 @@ export function MemoryEmbeddingPanel() {
 
   return (
     <section className="space-y-5">
-      <Card className="overflow-hidden border-none bg-[linear-gradient(135deg,#f8f4eb_0%,#f7f7f5_55%,#eef4f0_100%)] shadow-sm ring-1 ring-black/5">
-        <CardHeader className="space-y-3 pb-4">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="space-y-2">
+      <Card className="overflow-hidden border-none bg-[linear-gradient(135deg,#f8f4ef_0%,#f5f4f1_48%,#eef4f7_100%)] shadow-sm ring-1 ring-black/5">
+        <CardHeader className="space-y-4 pb-5">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="max-w-3xl space-y-3">
               <div className="inline-flex items-center gap-2 rounded-full border border-black/5 bg-white/70 px-3 py-1 text-xs font-medium text-slate-700">
                 <SparklesIcon className="size-3.5" />
-                检索增强
+                外部向量模型接口
               </div>
-              <CardTitle className="text-2xl tracking-tight">
-                {heroTitle}
+              <CardTitle className="text-3xl tracking-tight text-slate-950">
+                用你的外部 embedding 服务接入长期记忆
               </CardTitle>
-              <CardDescription className="max-w-2xl text-sm leading-6 text-slate-600">
-                {heroDescription}
+              <CardDescription className="text-sm leading-7 text-slate-600">
+                当前阶段不再开放本地向量模型。这里专门配置外部向量模型接口，让长期记忆可以做语义检索。
+                你只需要填四项：接口地址、模型名、API Key、向量维度。
               </CardDescription>
             </div>
-            <div className="grid min-w-[220px] gap-2 text-sm">
-              <div className="rounded-2xl border border-black/5 bg-white/80 p-3">
-                <div className="text-xs text-slate-500">当前模式</div>
+
+            <div className="grid min-w-[240px] gap-3">
+              <div className="rounded-2xl border border-black/5 bg-white/80 p-4">
+                <div className="text-xs text-slate-500">接入模式</div>
                 <div className="mt-1 font-semibold text-slate-900">
                   {settings.provider_mode.label}
                 </div>
               </div>
-              <div className="rounded-2xl border border-black/5 bg-white/80 p-3">
-                <div className="text-xs text-slate-500">索引状态</div>
-                <div className="mt-1 font-semibold text-slate-900">{indexStatusCopy}</div>
+              <div className="rounded-2xl border border-black/5 bg-white/80 p-4">
+                <div className="text-xs text-slate-500">当前状态</div>
+                <div className="mt-1 font-semibold text-slate-900">{readinessLabel}</div>
               </div>
             </div>
           </div>
@@ -324,296 +144,186 @@ export function MemoryEmbeddingPanel() {
       </Card>
 
       {isLoading ? (
-        <div className="text-muted-foreground text-sm">正在读取记忆检索增强状态...</div>
+        <div className="text-muted-foreground text-sm">正在读取向量模型接口状态...</div>
       ) : null}
       {error ? (
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {error instanceof Error ? error.message : "记忆检索增强状态加载失败"}
+          {error instanceof Error ? error.message : "向量模型接口状态加载失败"}
         </div>
       ) : null}
 
-      <Card className="overflow-hidden border-slate-200/80 shadow-sm">
-        <CardHeader className="space-y-4 pb-4">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div className="space-y-2">
+      <Card className="border-slate-200/80 shadow-sm">
+        <CardHeader className="space-y-3 pb-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="space-y-1">
               <CardTitle className="flex items-center gap-2 text-xl">
-                <WaypointsIcon className="size-5 text-slate-700" />
-                先选模式，再准备模型
+                <CloudCogIcon className="size-5 text-slate-800" />
+                接口配置
               </CardTitle>
               <CardDescription className="text-sm leading-6">
-                默认推荐本地模式。API 模式只留给已经有远端服务的人，不和普通用户抢注意力。
+                这是唯一主流程。没有本地下载，也没有模式切换。
               </CardDescription>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <Badge
-                variant="outline"
-                className={cn("rounded-full border px-3 py-1 text-xs", statusTone(settings.download_status.state))}
-              >
-                {progressLabel(settings.download_status.state)}
-              </Badge>
-              <Badge variant="outline" className="rounded-full px-3 py-1 text-xs">
-                {settings.provider_mode.label}
-              </Badge>
-            </div>
+            <Badge variant="outline" className="rounded-full px-3 py-1 text-xs">
+              {configured ? "已配置" : "待配置"}
+            </Badge>
           </div>
         </CardHeader>
         <CardContent className="space-y-5">
-          <div className="grid gap-4 lg:grid-cols-2">
-            <ModeOptionCard
-              active={!isRemoteMode}
-              onSwitch={() => void switchMode("local_managed")}
-              icon={DatabaseZapIcon}
-              title="本地模型"
-              body="推荐给绝大多数人。准备完成后，长期记忆才能稳定做语义检索。"
-              accent="light"
-            />
-            <ModeOptionCard
-              active={isRemoteMode}
-              onSwitch={() => void switchMode("remote_managed")}
-              icon={CloudIcon}
-              title="API 模型"
-              body="只在你已经有统一远端 embedding 服务时使用。普通用户不该先看到这堆东西。"
-              accent="dark"
-            />
-          </div>
-
-          <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-            <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="space-y-1">
-                  <div className="text-sm font-semibold text-slate-900">
-                    {localModelLabel}
-                  </div>
-                  <p className="text-sm leading-6 text-slate-600">
-                    用于长期记忆的向量召回。你只需要知道它有没有准备好，不需要知道什么 API URL。
-                  </p>
-                </div>
-                <Badge
-                  variant={isRemoteMode ? "outline" : "secondary"}
-                  className="rounded-full"
-                >
-                  {isRemoteMode ? "当前未启用" : "当前模式"}
-                </Badge>
+          <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+            <div className="grid gap-3 md:grid-cols-2">
+              <div className="space-y-2 md:col-span-2">
+                <div className="text-sm font-medium text-slate-900">接口地址</div>
+                <Input
+                  value={draft.endpoint}
+                  onChange={(event) =>
+                    setDraft((current) => ({ ...current, endpoint: event.target.value }))
+                  }
+                  placeholder="https://api.example.com/v1/embeddings"
+                />
               </div>
-
-              <div className="mt-4 space-y-3">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-500">准备阶段</span>
-                  <span className="font-medium text-slate-900">
-                    {visualProgress}%
-                  </span>
-                </div>
-                <div className="h-2 overflow-hidden rounded-full bg-slate-200">
-                  <div
-                    className={cn(
-                      "h-full rounded-full bg-slate-900 transition-all",
-                      (isPreparing || isRebuilding) && "animate-pulse",
-                    )}
-                    style={{ width: `${visualProgress}%` }}
-                  />
-                </div>
-                <p className="text-sm leading-6 text-slate-600">
-                  {settings.download_status.detail}
-                </p>
+              <div className="space-y-2">
+                <div className="text-sm font-medium text-slate-900">模型名</div>
+                <Input
+                  value={draft.modelName}
+                  onChange={(event) =>
+                    setDraft((current) => ({ ...current, modelName: event.target.value }))
+                  }
+                  placeholder="text-embedding-3-large"
+                />
               </div>
-
-              <div className="mt-4 flex flex-wrap gap-3">
-                <Button
-                  type="button"
-                  onClick={() => void downloadModel()}
-                  disabled={isPreparing || isRemoteMode}
-                >
-                  {isPreparing ? (
-                    <Loader2Icon className="mr-2 size-4 animate-spin" />
-                  ) : (
-                    <DownloadIcon className="mr-2 size-4" />
-                  )}
-                  {isPreparing ? "准备中..." : "一键准备"}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => void rebuildIndex()}
-                  disabled={isRebuilding}
-                >
-                  {isRebuilding ? (
-                    <Loader2Icon className="mr-2 size-4 animate-spin" />
-                  ) : (
-                    <RefreshCwIcon className="mr-2 size-4" />
-                  )}
-                  {isRebuilding ? "重建中..." : "重建索引"}
-                </Button>
-                {isRemoteMode ? (
-                  <Button type="button" variant="ghost" onClick={() => void switchMode("local_managed")}>
-                    切回本地后再准备
-                  </Button>
-                ) : null}
+              <div className="space-y-2">
+                <div className="text-sm font-medium text-slate-900">向量维度</div>
+                <Input
+                  value={draft.dimensions}
+                  onChange={(event) =>
+                    setDraft((current) => ({ ...current, dimensions: event.target.value }))
+                  }
+                  placeholder="3072"
+                />
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <div className="flex items-center gap-2 text-sm font-medium text-slate-900">
+                  <KeyRoundIcon className="size-4" />
+                  API Key
+                </div>
+                <Input
+                  value={draft.apiKey}
+                  onChange={(event) =>
+                    setDraft((current) => ({ ...current, apiKey: event.target.value }))
+                  }
+                  placeholder={
+                    settings.remote_config.api_key_configured
+                      ? "已配置新的 API Key 可覆盖"
+                      : "输入外部服务 API Key"
+                  }
+                />
               </div>
             </div>
 
-            <div className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4">
+            <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
               <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
-                <CheckCircle2Icon className="size-4 text-emerald-600" />
-                当前工作状态
+                <ShieldCheckIcon className="size-4 text-emerald-600" />
+                接入摘要
               </div>
               <div className="space-y-3 text-sm">
-                <div className="rounded-xl bg-slate-50 p-3">
-                  <div className="text-xs text-slate-500">准备流程</div>
-                  <div className="mt-2 space-y-2">
-                    {localFlowSteps.map((step) => (
-                      <div
-                        key={step.label}
-                        className="flex items-center gap-2 text-sm text-slate-700"
-                      >
-                        <span
-                          className={cn(
-                            "inline-flex size-5 items-center justify-center rounded-full border text-[11px] font-semibold",
-                            step.done
-                              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                              : step.active
-                                ? "border-amber-200 bg-amber-50 text-amber-700"
-                                : "border-slate-200 bg-white text-slate-400",
-                          )}
-                        >
-                          {step.done ? "✓" : step.active ? "…" : ""}
-                        </span>
-                        <span>{step.label}</span>
-                      </div>
-                    ))}
+                <div className="rounded-xl bg-white p-3">
+                  <div className="text-xs text-slate-500">当前接口</div>
+                  <div className="mt-1 font-medium text-slate-900">
+                    {settings.remote_config.endpoint || "还没填写"}
                   </div>
                 </div>
-                <div className="rounded-xl bg-slate-50 p-3">
-                  <div className="text-xs text-slate-500">语义检索</div>
+                <div className="rounded-xl bg-white p-3">
+                  <div className="text-xs text-slate-500">当前模型</div>
                   <div className="mt-1 font-medium text-slate-900">
-                    {settings.download_status.state === "ready"
-                      ? "可以使用"
-                      : "尚未可用"}
+                    {settings.remote_config.model_name || "还没填写"}
                   </div>
                 </div>
-                <div className="rounded-xl bg-slate-50 p-3">
-                  <div className="text-xs text-slate-500">索引健康</div>
+                <div className="rounded-xl bg-white p-3">
+                  <div className="text-xs text-slate-500">API Key</div>
                   <div className="mt-1 font-medium text-slate-900">
-                    {settings.index_health.detail}
-                  </div>
-                </div>
-                <div className="rounded-xl bg-slate-50 p-3">
-                  <div className="text-xs text-slate-500">最近重建</div>
-                  <div className="mt-1 font-medium text-slate-900">
-                    {settings.index_health.last_rebuild_at ?? "还没有重建记录"}
+                    {settings.remote_config.api_key_configured ? "已配置" : "未配置"}
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 p-4">
-            <div className="flex items-start justify-between gap-4">
-              <div className="space-y-1">
-                <div className="text-sm font-semibold text-slate-900">
-                  API 模型接入
-                </div>
-                <p className="text-sm leading-6 text-slate-600">
-                  默认不用看。真的要接远端服务时，再展开填 endpoint 和模型名。
-                </p>
-              </div>
-              <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
-                <CollapsibleTrigger asChild>
-                  <Button type="button" variant="ghost" className="gap-2">
-                    {advancedOpen ? "收起" : "展开"}
-                    <ChevronDownIcon
-                      className={cn("size-4 transition-transform", advancedOpen && "rotate-180")}
-                    />
-                  </Button>
-                </CollapsibleTrigger>
-                <CollapsibleContent />
-              </Collapsible>
-            </div>
-
-            <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
-              <CollapsibleContent className="pt-4">
-                <div className="grid gap-4 lg:grid-cols-[0.85fr_1.15fr]">
-                  <ModeOptionCard
-                    active={isRemoteMode}
-                    onSwitch={() => void switchMode("remote_managed")}
-                    icon={CloudIcon}
-                    title="API 模型"
-                    body="只在你已经有统一远端 embedding 服务时使用。普通用户不该先看到这堆东西。"
-                    accent="dark"
-                  />
-
-                  <div className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4">
-                    <div className="text-sm font-semibold text-slate-900">
-                      API 模型配置
-                    </div>
-                    <div className="grid gap-3 md:grid-cols-2">
-                      <Input
-                        value={remoteDraft.endpoint}
-                        onChange={(event) =>
-                          setRemoteDraft((current) => ({
-                            ...current,
-                            endpoint: event.target.value,
-                          }))
-                        }
-                        placeholder="https://api.example.com/v1/embeddings"
-                      />
-                      <Input
-                        value={remoteDraft.modelName}
-                        onChange={(event) =>
-                          setRemoteDraft((current) => ({
-                            ...current,
-                            modelName: event.target.value,
-                          }))
-                        }
-                        placeholder="远端模型名"
-                      />
-                      <Input
-                        value={remoteDraft.apiKey}
-                        onChange={(event) =>
-                          setRemoteDraft((current) => ({
-                            ...current,
-                            apiKey: event.target.value,
-                          }))
-                        }
-                        placeholder={
-                          settings.remote_config.api_key_configured
-                            ? "已配置新 API Key 可覆盖"
-                            : "API Key"
-                        }
-                      />
-                      <Input
-                        value={remoteDraft.dimensions}
-                        onChange={(event) =>
-                          setRemoteDraft((current) => ({
-                            ...current,
-                            dimensions: event.target.value,
-                          }))
-                        }
-                        placeholder="向量维度"
-                      />
-                    </div>
-
-                    <div className="flex flex-wrap gap-3">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => void saveRemoteSettings()}
-                      >
-                        <ServerCogIcon className="mr-2 size-4" />
-                        保存 API 配置
-                      </Button>
-                      {isRemoteMode ? (
-                        <Badge variant="secondary" className="rounded-full">
-                          当前使用 API 模式
-                        </Badge>
-                      ) : null}
-                    </div>
-                  </div>
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button type="button" onClick={() => void saveRemoteSettings()}>
+              <ArrowUpRightIcon className="mr-2 size-4" />
+              保存接口配置
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => void rebuildIndex()}
+              disabled={rebuildMutation.isPending}
+            >
+              {rebuildMutation.isPending ? (
+                <Loader2Icon className="mr-2 size-4 animate-spin" />
+              ) : (
+                <RefreshCwIcon className="mr-2 size-4" />
+              )}
+              {rebuildMutation.isPending ? "同步中..." : "重建记忆索引"}
+            </Button>
           </div>
         </CardContent>
       </Card>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card className="border-slate-200/80 shadow-sm">
+          <CardHeader className="space-y-1 pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <DatabaseZapIcon className="size-5 text-slate-800" />
+              检索状态
+            </CardTitle>
+            <CardDescription className="text-sm">
+              这里看语义检索是不是已经真正接入到长期记忆。
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm">
+            <div className="rounded-xl bg-slate-50 p-3">
+              <div className="text-xs text-slate-500">接口准备</div>
+              <div className="mt-1 font-medium text-slate-900">
+                {settings.download_status.detail}
+              </div>
+            </div>
+            <div className="rounded-xl bg-slate-50 p-3">
+              <div className="text-xs text-slate-500">索引状态</div>
+              <div className="mt-1 font-medium text-slate-900">
+                {settings.index_health.detail}
+              </div>
+            </div>
+            <div className="rounded-xl bg-slate-50 p-3">
+              <div className="text-xs text-slate-500">最近重建</div>
+              <div className="mt-1 font-medium text-slate-900">
+                {settings.index_health.last_rebuild_at ?? "还没有重建记录"}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-slate-200/80 shadow-sm">
+          <CardHeader className="space-y-1 pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <CheckCircle2Icon className="size-5 text-emerald-600" />
+              使用提醒
+            </CardTitle>
+            <CardDescription className="text-sm">
+              这页不再提供本地向量模型。要用长期记忆语义检索，就必须先接一个外部 embedding 服务。
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm text-slate-700">
+            <div className="rounded-xl bg-slate-50 p-3">
+              不要再在这里找“下载本地模型”按钮了，这条产品路径已经被关掉。
+            </div>
+            <div className="rounded-xl bg-slate-50 p-3">
+              如果接口已配置但索引还没就绪，直接点“重建记忆索引”。
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </section>
   );
 }

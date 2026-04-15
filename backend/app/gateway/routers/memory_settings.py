@@ -4,11 +4,10 @@ import json
 from pathlib import Path
 from typing import Any, Literal
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from nion.config.paths import Paths, get_paths
-from nion.memory.embedding.download_manager import MemoryEmbeddingDownloadManager
 from nion.memory.embedding.index_service import MemoryEmbeddingIndexService
 from nion.memory.embedding.provider_factory import build_embedding_provider
 from nion.memory.embedding.settings import EmbeddingSystemSettings
@@ -19,9 +18,7 @@ router = APIRouter(prefix="/api/memory/settings", tags=["memory"])
 
 
 class MemorySettingsPatchRequest(BaseModel):
-    mode: Literal["local_managed", "remote_managed"] | None = None
-    local_model_id: str | None = None
-    local_model_key: str | None = None
+    mode: Literal["remote_managed"] | None = None
     remote_endpoint: str | None = None
     remote_api_key: str | None = None
     remote_model_name: str | None = None
@@ -45,56 +42,24 @@ def _read_manifest(path: Path) -> dict[str, Any]:
 
 
 def _mode_copy(mode: str) -> dict[str, str]:
-    if mode == "remote_managed":
-        return {
-            "id": "remote_managed",
-            "label": "远端模式",
-            "description": "连接远端 embedding 服务，适合统一模型和更轻本地负担。",
-        }
     return {
-        "id": "local_managed",
-        "label": "本地模式",
-        "description": "使用本机托管模型，适合默认可控和本地构建索引。",
+        "id": "remote_managed",
+        "label": "外部接口",
+        "description": "连接外部 embedding 服务，为长期记忆提供语义检索能力。",
     }
 
 
 def _download_status(paths: Paths, settings: EmbeddingSystemSettings) -> dict[str, Any]:
-    model_dir = paths.memory_os_vector_dir / "models" / settings.local_model_key
-    if settings.mode == "remote_managed":
-        return {
-            "state": "remote",
-            "detail": "当前模式使用远端 embedding 服务，不需要本地模型下载。",
-            "progress": {
-                "percent": 100,
-                "downloaded_bytes": 0,
-                "total_bytes": 0,
-            },
-        }
-    if settings.download_detail:
-        return {
-            "state": settings.download_state,
-            "detail": settings.download_detail,
-            "progress": {
-                "percent": 100 if settings.download_state == "ready" else 0,
-                "downloaded_bytes": 0,
-                "total_bytes": 0,
-            },
-        }
-    if model_dir.exists():
-        return {
-            "state": "ready",
-            "detail": "本地模型已就绪，可以直接重建向量索引。",
-            "progress": {
-                "percent": 100,
-                "downloaded_bytes": 0,
-                "total_bytes": 0,
-            },
-        }
+    configured = bool(settings.remote_endpoint and settings.remote_model_name)
     return {
-        "state": "missing",
-        "detail": "本地模型尚未准备好，首次构建前需要先下载。",
+        "state": "configured" if configured else "missing",
+        "detail": (
+            "外部向量模型接口已配置，可以直接重建索引。"
+            if configured
+            else "还没有配置外部向量模型接口。"
+        ),
         "progress": {
-            "percent": 0,
+            "percent": 100 if configured else 0,
             "downloaded_bytes": 0,
             "total_bytes": 0,
         },
@@ -152,6 +117,8 @@ def read_memory_settings_snapshot(
 ) -> dict[str, Any]:
     resolved_paths = paths or get_paths()
     resolved_settings = settings or _settings_repo(resolved_paths).load()
+    if resolved_settings.mode != "remote_managed":
+        resolved_settings = _settings_repo(resolved_paths).update({"mode": "remote_managed"})
     provider = build_embedding_provider(
         base_dir=resolved_paths.base_dir,
         settings=resolved_settings,
@@ -159,7 +126,7 @@ def read_memory_settings_snapshot(
     manifest = _read_manifest(resolved_paths.memory_os_vector_dir)
 
     return {
-        "provider_mode": _mode_copy(resolved_settings.mode),
+        "provider_mode": _mode_copy("remote_managed"),
         "download_status": _download_status(resolved_paths, resolved_settings),
         "active_fingerprint": _active_fingerprint(
             provider.metadata(),
@@ -167,10 +134,6 @@ def read_memory_settings_snapshot(
             resolved_settings,
         ),
         "index_health": _index_health(resolved_paths, resolved_settings, manifest),
-        "local_config": {
-            "model_id": resolved_settings.local_model_id,
-            "model_key": resolved_settings.local_model_key,
-        },
         "remote_config": {
             "endpoint": resolved_settings.remote_endpoint,
             "api_key_configured": bool(resolved_settings.remote_api_key),
@@ -188,39 +151,29 @@ async def get_memory_settings() -> dict[str, Any]:
 @router.patch("")
 async def patch_memory_settings(request: MemorySettingsPatchRequest) -> dict[str, Any]:
     repo = _settings_repo()
-    settings = repo.update(request.model_dump())
+    patch = request.model_dump()
+    patch["mode"] = "remote_managed"
+    settings = repo.update(patch)
     return read_memory_settings_snapshot(settings=settings)
 
 
 @router.post("/download")
 async def download_memory_embedding_assets() -> dict[str, Any]:
-    paths = get_paths()
-    repo = _settings_repo(paths)
-    settings = repo.load()
-    manager = MemoryEmbeddingDownloadManager()
-    model_dir = manager.ensure_local_model(
-        base_dir=paths.base_dir,
-        model_id=settings.local_model_id,
-        model_key=settings.local_model_key,
+    raise HTTPException(
+        status_code=409,
+        detail="当前版本只支持外部向量模型接口，不再提供本地向量模型下载。",
     )
-    settings = repo.update(
-        {
-            "download_state": "ready",
-            "download_detail": "本地模型已下载完成，可以开始构建索引。",
-        }
-    )
-    provider = build_embedding_provider(base_dir=paths.base_dir, settings=settings)
-    return {
-        "action": "download",
-        "model_dir": str(model_dir),
-        "provider": provider.metadata().model_dump(mode="json"),
-    }
 
 
 @router.post("/rebuild")
 async def rebuild_memory_vector_index() -> dict[str, Any]:
     paths = get_paths()
     settings = _settings_repo(paths).load()
+    if not settings.remote_endpoint or not settings.remote_model_name:
+        raise HTTPException(
+            status_code=409,
+            detail="请先配置外部向量模型接口，再重建长期记忆索引。",
+        )
     service = MemoryEmbeddingIndexService(
         base_dir=paths.base_dir,
         repository=get_memory_os_repository(),

@@ -1,5 +1,5 @@
 export interface MemorySettingsMode {
-  id: "local_managed" | "remote_managed";
+  id: "remote_managed";
   label: string;
   description: string;
 }
@@ -30,11 +30,6 @@ export interface MemorySettingsIndexHealth {
   last_rebuild_at: string | null;
 }
 
-export interface MemorySettingsLocalConfig {
-  model_id: string;
-  model_key: string;
-}
-
 export interface MemorySettingsRemoteConfig {
   endpoint: string;
   api_key_configured: boolean;
@@ -47,14 +42,11 @@ export interface MemorySettingsResponse {
   download_status: MemorySettingsDownloadStatus;
   active_fingerprint: MemorySettingsFingerprint;
   index_health: MemorySettingsIndexHealth;
-  local_config: MemorySettingsLocalConfig;
   remote_config: MemorySettingsRemoteConfig;
 }
 
 export interface MemorySettingsPatchRequest {
-  mode?: "local_managed" | "remote_managed";
-  local_model_id?: string;
-  local_model_key?: string;
+  mode?: "remote_managed";
   remote_endpoint?: string;
   remote_api_key?: string;
   remote_model_name?: string;

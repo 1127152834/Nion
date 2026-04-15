@@ -14,9 +14,9 @@ import type {
 
 const EMPTY_MEMORY_SETTINGS: MemorySettingsResponse = {
   provider_mode: {
-    id: "local_managed",
-    label: "本机推荐",
-    description: "优先使用桌面托管 embedding，兼顾离线可用性与默认体验。",
+    id: "remote_managed",
+    label: "外部接口",
+    description: "通过外部 embedding 服务为长期记忆提供语义检索能力。",
   },
   download_status: {
     state: "loading",
@@ -40,10 +40,6 @@ const EMPTY_MEMORY_SETTINGS: MemorySettingsResponse = {
     detail: "正在检查索引状态。",
     record_count: 0,
     last_rebuild_at: null,
-  },
-  local_config: {
-    model_id: "BAAI/bge-m3",
-    model_key: "bge-m3",
   },
   remote_config: {
     endpoint: "",

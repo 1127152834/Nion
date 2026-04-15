@@ -6,17 +6,13 @@ from app.gateway.app import create_app
 from nion.config.paths import reset_paths
 
 
-def test_memory_settings_router_supports_patch_download_and_rebuild(
+def test_memory_settings_router_supports_remote_patch_and_rebuild(
     monkeypatch,
     tmp_path,
 ) -> None:
     monkeypatch.setenv("NION_HOME", str(tmp_path))
     reset_paths()
 
-    monkeypatch.setattr(
-        "app.gateway.routers.memory_settings.MemoryEmbeddingDownloadManager",
-        lambda: _StubDownloadManager(),
-    )
     monkeypatch.setattr(
         "app.gateway.routers.memory_settings.MemoryEmbeddingIndexService",
         _StubIndexService,
@@ -39,14 +35,15 @@ def test_memory_settings_router_supports_patch_download_and_rebuild(
 
     assert patch.status_code == 200
     assert patch.json()["provider_mode"]["id"] == "remote_managed"
+    assert patch.json()["provider_mode"]["label"] == "外部接口"
     assert patch.json()["remote_config"] == {
         "endpoint": "https://api.example.com/v1/embeddings",
         "api_key_configured": True,
         "model_name": "text-embedding-3-large",
         "dimensions": 3072,
     }
-    assert download.status_code == 200
-    assert download.json()["action"] == "download"
+    assert download.status_code == 409
+    assert "只支持外部向量模型接口" in download.json()["detail"]
     assert rebuild.status_code == 200
     assert rebuild.json()["job"]["state"] == "completed"
     assert rebuild.json()["job"]["record_count"] == 3
@@ -55,11 +52,34 @@ def test_memory_settings_router_supports_patch_download_and_rebuild(
     assert read_back.json()["download_status"]["progress"]["percent"] >= 0
 
 
-class _StubDownloadManager:
-    def ensure_local_model(self, *, base_dir, model_id: str, model_key: str):
-        model_dir = base_dir / "memory-os" / "indexes" / "vector" / "models" / model_key
-        model_dir.mkdir(parents=True, exist_ok=True)
-        return model_dir
+def test_memory_settings_router_rejects_local_mode_patch(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+
+    with TestClient(create_app()) as client:
+        response = client.patch(
+            "/api/memory/settings",
+            json={"mode": "local_managed"},
+        )
+
+    assert response.status_code == 422
+
+
+def test_memory_settings_router_requires_remote_config_before_rebuild(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+
+    with TestClient(create_app()) as client:
+        response = client.post("/api/memory/settings/rebuild")
+
+    assert response.status_code == 409
+    assert "请先配置外部向量模型接口" in response.json()["detail"]
 
 
 class _StubIndexService:

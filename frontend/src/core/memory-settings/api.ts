@@ -38,9 +38,6 @@ function isMemorySettingsResponse(value: unknown): value is MemorySettingsRespon
     typeof value.index_health.record_count === "number" &&
     (typeof value.index_health.last_rebuild_at === "string" ||
       value.index_health.last_rebuild_at === null) &&
-    isObjectRecord(value.local_config) &&
-    typeof value.local_config.model_id === "string" &&
-    typeof value.local_config.model_key === "string" &&
     isObjectRecord(value.remote_config) &&
     typeof value.remote_config.endpoint === "string" &&
     typeof value.remote_config.api_key_configured === "boolean" &&
