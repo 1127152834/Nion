@@ -8,6 +8,7 @@ void test("guardian runtime module defines one shared visibility model and merge
   assert.match(source, /export type GuardianRuntimeSnapshot =/);
   assert.match(source, /export type GuardianRuntimeLoadState =/);
   assert.match(source, /export function mergeGuardianRuntime/);
+  assert.match(source, /export function resolveGuardianDesktopRuntime/);
 });
 
 void test("desktop client delegates guardian status legality fold to shared runtime merge", async () => {
@@ -159,6 +160,114 @@ void test("guardian runtime merge resolves bridge-only overview input", async ()
       activeBindings: 1,
       openIncidents: 0,
       startedAt: "2026-04-15T09:00:00.000Z",
+    },
+  );
+});
+
+void test("normalizeGuardianDesktopRuntime applies daemon overrides and legality folds", async () => {
+  const { normalizeGuardianDesktopRuntime } = await import("./guardian-runtime.ts");
+
+  assert.deepEqual(
+    normalizeGuardianDesktopRuntime({
+      desktopRuntime: {
+        baseUrl: " http://127.0.0.1:43115 ",
+        clientId: "desktop-client-normalized",
+        mode: " local-daemon ",
+        healthUrl: "",
+        workingDirectory: " /desktop ",
+        allowBackgroundRunning: false,
+      },
+      daemonRuntime: {
+        mode: "local-daemon",
+        base_url: "http://127.0.0.1:43116",
+        health_url: "http://127.0.0.1:43116/health",
+        working_directory: "/daemon",
+        allow_background_running: true,
+        guardian_mode: {
+          enabled: true,
+          window_required: false,
+          status: "unexpected",
+        },
+        bridge_runtime: {
+          available: true,
+          running: false,
+        },
+      },
+    }),
+    {
+      mode: "local-daemon",
+      baseUrl: "http://127.0.0.1:43116",
+      healthUrl: "http://127.0.0.1:43116/health",
+      workingDirectory: "/daemon",
+      clientId: "desktop-client-normalized",
+      allowBackgroundRunning: true,
+      guardianMode: {
+        enabled: true,
+        windowRequired: false,
+        status: "offline",
+      },
+      bridgeRuntime: {
+        available: true,
+        running: false,
+      },
+    },
+  );
+});
+
+void test("resolveGuardianDesktopRuntime returns a fully merged desktop runtime DTO", async () => {
+  const { resolveGuardianDesktopRuntime } = await import("./guardian-runtime.ts");
+
+  assert.deepEqual(
+    resolveGuardianDesktopRuntime({
+      desktopRuntime: {
+        baseUrl: " http://127.0.0.1:43115 ",
+        clientId: "desktop-client-resolved",
+        mode: " local-daemon ",
+        healthUrl: "",
+        workingDirectory: " /desktop ",
+        allowBackgroundRunning: true,
+      },
+      daemonRuntime: {
+        mode: "local-daemon",
+        base_url: "http://127.0.0.1:43116",
+        health_url: "http://127.0.0.1:43116/health",
+        working_directory: "/daemon",
+        allow_background_running: true,
+        guardian_mode: {
+          enabled: true,
+          window_required: false,
+          status: "busy",
+        },
+        bridge_runtime: {
+          available: true,
+          running: true,
+        },
+      },
+      bridgeRuntime: {
+        running: false,
+        autoStartEnabled: true,
+        enabledPlatforms: ["telegram"],
+        activeBindings: 2,
+        openIncidents: 1,
+        startedAt: "2026-04-15T09:00:00.000Z",
+      },
+    }),
+    {
+      mode: "local-daemon",
+      baseUrl: "http://127.0.0.1:43116",
+      healthUrl: "http://127.0.0.1:43116/health",
+      workingDirectory: "/daemon",
+      clientId: "desktop-client-resolved",
+      allowBackgroundRunning: true,
+      guardianMode: {
+        enabled: true,
+        windowRequired: false,
+        status: "busy",
+      },
+      bridgeRuntime: {
+        available: true,
+        running: false,
+      },
     },
   );
 });

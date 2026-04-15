@@ -140,6 +140,36 @@ export function normalizeGuardianDesktopRuntime(input: {
   };
 }
 
+export function resolveGuardianDesktopRuntime(input: {
+  desktopRuntime: GuardianRuntimeDesktopInput;
+  daemonRuntime?: GuardianRuntimeDaemonInput | null;
+  bridgeRuntime?: BridgeRuntimeInfo | null;
+  error?: GuardianRuntimeErrorState;
+}): NormalizedGuardianDesktopRuntime {
+  const normalizedDesktopRuntime = normalizeGuardianDesktopRuntime({
+    desktopRuntime: input.desktopRuntime,
+    daemonRuntime: input.daemonRuntime ?? null,
+  });
+  const snapshot = mergeGuardianRuntime({
+    desktopRuntime: normalizedDesktopRuntime,
+    daemonRuntime: input.daemonRuntime ?? null,
+    bridgeRuntime: input.bridgeRuntime ?? null,
+    error: input.error,
+  });
+
+  return {
+    ...normalizedDesktopRuntime,
+    guardianMode: {
+      ...normalizedDesktopRuntime.guardianMode,
+      status: snapshot.guardianStatus,
+    },
+    bridgeRuntime: {
+      ...normalizedDesktopRuntime.bridgeRuntime,
+      running: snapshot.bridgeRunning,
+    },
+  };
+}
+
 export function mergeGuardianRuntime(input: {
   desktopRuntime: GuardianRuntimeDesktopInput | NormalizedGuardianDesktopRuntime | null;
   daemonRuntime?: GuardianRuntimeDaemonInput | null;

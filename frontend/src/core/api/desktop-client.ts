@@ -1,8 +1,8 @@
 "use client";
 
 import {
-  mergeGuardianRuntime,
   normalizeGuardianDesktopRuntime,
+  resolveGuardianDesktopRuntime,
 } from "../runtime/guardian-runtime.ts";
 
 import type {
@@ -138,23 +138,6 @@ export type DesktopRuntimeInfo = {
 
 export type DesktopGuardianModeStatus = "standing_by" | "busy" | "offline";
 
-function applyGuardianRuntimeSnapshot(
-  desktopRuntimeInfo: DesktopRuntimeInfo,
-  runtimeSnapshot: ReturnType<typeof mergeGuardianRuntime>,
-): DesktopRuntimeInfo {
-  return {
-    ...desktopRuntimeInfo,
-    guardianMode: {
-      ...desktopRuntimeInfo.guardianMode,
-      status: runtimeSnapshot.guardianStatus,
-    },
-    bridgeRuntime: {
-      ...desktopRuntimeInfo.bridgeRuntime,
-      running: runtimeSnapshot.bridgeRunning,
-    },
-  };
-}
-
 function getDesktopWindow(): DesktopBridgeWindow | null {
   if (typeof window === "undefined") {
     return null;
@@ -179,16 +162,12 @@ export async function getDesktopRuntimeInfo(): Promise<DesktopRuntimeInfo | null
     const baseUrl = runtimeInfo.baseUrl?.trim() ?? "";
 
     if (!baseUrl) {
-      const desktopRuntimeInfo = normalizeGuardianDesktopRuntime({
-        desktopRuntime: runtimeInfo,
-      });
-      const mergedGuardianRuntime = mergeGuardianRuntime({
+      return resolveGuardianDesktopRuntime({
         desktopRuntime: runtimeInfo,
         daemonRuntime: null,
         bridgeRuntime: null,
         error: "unavailable",
       });
-      return applyGuardianRuntimeSnapshot(desktopRuntimeInfo, mergedGuardianRuntime);
     }
 
     try {
@@ -198,27 +177,17 @@ export async function getDesktopRuntimeInfo(): Promise<DesktopRuntimeInfo | null
       }
 
       const daemonRuntimeInfo = (await response.json()) as DaemonRuntimeInfoPayload;
-      const mergedDesktopRuntimeInfo = normalizeGuardianDesktopRuntime({
-        desktopRuntime: runtimeInfo,
-        daemonRuntime: daemonRuntimeInfo,
-      });
-      const mergedGuardianRuntime = mergeGuardianRuntime({
+      return resolveGuardianDesktopRuntime({
         desktopRuntime: runtimeInfo,
         daemonRuntime: daemonRuntimeInfo,
         bridgeRuntime: null,
       });
-
-      return applyGuardianRuntimeSnapshot(mergedDesktopRuntimeInfo, mergedGuardianRuntime);
     } catch {
-      const desktopRuntimeInfo = normalizeGuardianDesktopRuntime({
-        desktopRuntime: runtimeInfo,
-      });
-      const mergedGuardianRuntime = mergeGuardianRuntime({
+      return resolveGuardianDesktopRuntime({
         desktopRuntime: runtimeInfo,
         daemonRuntime: null,
         bridgeRuntime: null,
       });
-      return applyGuardianRuntimeSnapshot(desktopRuntimeInfo, mergedGuardianRuntime);
     }
   } catch {
     return null;
