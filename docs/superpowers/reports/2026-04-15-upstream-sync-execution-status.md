@@ -161,3 +161,23 @@
 | `6ff60f2a` forward assistant_id as agent_name in run config | `已等价吸收` | 现有代码 | `threads/service.py` 已将 `assistant_id` 归一到 `agent_name`，并有路由测试覆盖。 |
 | `cf43584d` artifact content loading includes URL for non-write files | `当前无安全落点` | 无 | 当前 artifact 详情页仍以 `srcDoc` 预览为主，upstream 方案需要专项评估 iframe/src 与现有 artifact 安全策略的契合度。 |
 | `3e461d9d` safe docker bind mount syntax for sandbox mounts | `已同步` | `5f5e7242` | 已为 local container backend 增加 runtime-aware mount formatter，避免 Docker 在 Windows drive-letter 路径上误解析。 |
+| `52c8c06c` local dev Makefile worker concurrency flag | `当前无安全落点` | 无 | 当前仓库并未沿用 upstream `langgraph dev --n-jobs-per-worker` 本地开发主链，且未复现同类串行阻塞故障。 |
+| `2f3744f8` async httpx Jina client refactor | `当前无安全落点` | 无 | 这是上游对 Jina/web_fetch 热路径的并发优化重构；NION 当前没有对应性能故障证据，不在本批次强行切 async。 |
+| `c2ff59a5` merge context into configurable for langgraph-compat runs | `当前无安全落点` | 无 | NION 当前网关已不承载 upstream `thread_runs` / langgraph-compat run API 面，缺少同构落点。 |
+| `68d44f67` share .deer-flow in docker-compose-dev for uploads | `明确不同步` | 无 | 纯 `.deer-flow` / docker-compose-dev 共享目录修补，不进入当前 NION `.nion` / desktop-first 主链。 |
+| `e97c8c99` multiline YAML strings in SKILL.md frontmatter | `已等价吸收` | 现有代码 | 当前 `parse_and_validate_skill_frontmatter_text()` 已使用 `yaml.safe_load`，并已有 multiline frontmatter 测试覆盖。 |
+| `1fb5acee` avoid 400 when client sends context with configurable | `当前无安全落点` | 无 | 该修补依赖 upstream gateway services / run config 兼容层；NION 当前无对应 router/service 主链。 |
+| `0a379602` avoid treating Feishu file paths as commands | `当前无安全落点` | 无 | NION 当前仓库没有 upstream Feishu parser / channel manager 主链，无法安全局部迁入这条命令解析修补。 |
+| `df5339b5` truncate oversized bash and read_file outputs | `已等价吸收` | 现有代码 | 当前 `sandbox.tools` 已具备 bash/read_file 输出截断与对应安全测试。 |
+| `3a672b39` LLM call retry handling middleware | `当前无安全落点` | 无 | upstream 新增独立 LLM error middleware 与前端错误呈现路径；NION 当前尚无同构中间层，不在本批次硬迁。 |
+| `2d1f90d5` optional Langfuse support | `明确不同步` | 无 | 这会引入新的 tracing provider 与依赖，不属于当前逐提交业务同步面。 |
+| `f8fb8d6f` per-agent skill filter | `已等价吸收` | 现有代码 | 当前 prompt/runtime 已支持 `available_skills` / `requested_skills` 限定，不需要回流 config-file 路线。 |
+| `3aab2445` bump aiohttp indirect dependency | `明确不同步` | 无 | 依赖升级不按逐提交业务同步流处理。 |
+| `a2cb38f6` prevent concurrent subagent file write conflicts | `当前无安全落点` | 无 | upstream 依赖新的 file-operation lock 模块和更大范围 sandbox 写路径治理；当前批次先不扩张到跨路径文件锁体系。 |
+| `f56d0b48` exclude URL paths from absolute path validation | `已等价吸收` | 现有代码 | 当前 `validate_local_bash_command_paths()` 已显式跳过 `http/https` URL 并保留 file URL 拦截。 |
+| `636053fb` add noopener/noreferrer to blank-target links | `已等价吸收` | 现有代码 | 当前 artifact detail / message list item 已有 contract test 锁定关键 blank-target 链接的 `noopener noreferrer`。 |
+| `8128a3bc` enable DanglingToolCallMiddleware for subagents | `已等价吸收` | 现有代码 | `build_subagent_runtime_middlewares()` 已包含 `DanglingToolCallMiddleware`，并被 subagent executor 调用。 |
+| `952059eb` avoid over-segmenting CJK messages | `已同步` | `53636008` | 已为 `rehypeSplitWordsIntoSpans()` 增加 CJK 文本直通保护，并用前端 contract test 锁定。 |
+| `ef711a48` sync README table of contents | `明确不同步` | 无 | 文档目录同步不属于当前 upstream 业务同步面。 |
+| `76fad8b0` available_skills parameter to DeerFlowClient | `已等价吸收` | 现有代码 | NION 当前 prompt/runtime 已把 `available_skills` 与 `requested_skills` 作为显式参数贯通。 |
+| `48565664` ACP mcpServers payload | `当前无安全落点` | 无 | NION ACP 已改为 remote transport seam，当前 transport 没有 upstream `new_session(mcpServers=...)` 同构合同。 |
