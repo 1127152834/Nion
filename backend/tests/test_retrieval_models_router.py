@@ -389,3 +389,36 @@ def test_retrieval_models_router_rebuilds_consumer_indexes(
         "status": "not_supported",
         "detail": "当前知识库仍使用词法检索和知识图谱，暂未接入向量索引重建。",
     }
+
+
+def test_retrieval_models_router_rejects_local_memory_rebuild_until_tokenizer_assets_are_restored(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+    RetrievalModelsSettingsRepository(base_dir=tmp_path).save(
+        RetrievalModelsSettings.model_validate(
+            {
+                "active": {
+                    "embedding": {
+                        "provider": "local_onnx",
+                        "model_id": "zh-embedding-lite",
+                    },
+                    "reranker": {
+                        "provider": "local_onnx",
+                        "model_id": "zh-rerank-lite",
+                    },
+                }
+            }
+        )
+    )
+
+    with TestClient(create_gateway_app()) as client:
+        response = client.post(
+            "/api/retrieval-models/rebuild-consumer-indexes",
+            json={"consumer_ids": ["memory"]},
+        )
+
+    assert response.status_code == 409
+    assert "Memory 索引暂时不能切到本地模型" in response.json()["detail"]

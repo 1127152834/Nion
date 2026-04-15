@@ -29,6 +29,7 @@
     - 检索模型能力 owner 已迁入 `Settings > 检索模型`
     - 页面已恢复 `本地模型 / API` 双模式骨架
     - desktop preload / IPC 已暴露 retrieval model manager 合同
+    - 本地模式当前支持下载/导入/选择/探测；Memory 本地语义索引执行仍待 tokenizer/config 资产恢复
     - `Settings > 记忆` 只保留状态投影
     - `Knowledge Base` 已接入 retrieval consumer 提示
 - custom-agent orchestration

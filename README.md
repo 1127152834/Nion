@@ -289,6 +289,7 @@ NION_STATIC_EXPORT=1 pnpm --dir frontend build
 - `Settings > 检索模型`
   - 统一承载向量模型与重排序模型能力
   - 现已支持 `本地模型 / API` 双模式骨架；桌面端可列举本地模型、下载模型包、导入模型并订阅下载进度
+  - 当前本地模式已支持下载、导入、选择与本地 probe；真正的本地语义索引执行仍待 tokenizer/config 资产一起接回
   - `Memory` 与 `Knowledge Base` 作为共享消费者，不再各自维护一套模型配置
 - `/workspace/automation/*`
   - 已开始区分 `user-owned` 与 `agent-owned` automation

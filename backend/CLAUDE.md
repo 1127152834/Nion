@@ -140,6 +140,7 @@ Soul product contract in this repository:
 - Product-facing retrieval model ownership lives under `Settings > Retrieval Models`, backed by `/api/retrieval-models/*`.
 - `Settings > Retrieval Models` now carries a dual-mode contract: `local_onnx` for desktop-local model selection and `openai_compatible` / `rerank_api` for remote providers.
 - Desktop-local retrieval downloads are an Electron surface concern. Backend status may expose local catalog and active local selections before local embedding runtime is fully restored; do not fake successful local execution.
+- Current local staged state: download/import/select/probe are available, but Memory local semantic indexing is still blocked until tokenizer/config artifacts are restored alongside the ONNX weights.
 - `/api/memory/settings` is a compatibility projection for Memory retrieval state only; it must not regain ownership of embedding / reranker configuration actions.
 - `Memory` and `Knowledge Base` are retrieval model consumers. They share the phase-1 active retrieval profile instead of maintaining independent model settings.
 - `query_knowledge_base` tool payload must keep `page_ids` as a compatibility alias of `matched_page_ids` until the final assistant metadata/message rendering path stops reading the old field.
