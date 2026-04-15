@@ -19,7 +19,7 @@ class KnowledgeLintService:
         inbound: dict[str, int] = {}
         broken_links: list[dict[str, object]] = []
 
-        for path in sorted(self._paths.knowledge_wiki_dir.glob("*.md")):
+        for path in sorted(self._paths.knowledge_wiki_dir.rglob("*.md")):
             page_id = path.stem.replace("__", ":")
             page = self._store.read_page(page_id)
             pages.append(page)

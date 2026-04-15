@@ -38,10 +38,12 @@ void test("human multimodal image_url content is converted into rich file previe
 });
 
 void test("knowledge citations are read from assistant additional_kwargs metadata", async () => {
-  const source = await readFile(new URL("./message-list-item.tsx", import.meta.url), "utf8");
+  const itemSource = await readFile(new URL("./message-list-item.tsx", import.meta.url), "utf8");
+  const utilsSource = await readFile(new URL("../../../core/messages/utils.ts", import.meta.url), "utf8");
 
-  assert.match(source, /additional_kwargs\?\.knowledge/);
-  assert.doesNotMatch(source, /JSON\.parse\(content\).*page_ids/);
+  assert.match(itemSource, /const knowledgeAttachment = extractKnowledgeAttachment\(message\);/);
+  assert.match(utilsSource, /const attachment = message\.additional_kwargs\?\.knowledge;/);
+  assert.doesNotMatch(itemSource, /JSON\.parse\(content\).*page_ids/);
 });
 
 void test("knowledge extraction keeps compatibility fallbacks behind the new metadata path", async () => {

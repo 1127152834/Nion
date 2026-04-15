@@ -310,11 +310,7 @@ function MessageContent_({
       </div>
     ) : null;
 
-  const knowledgeAttachmentSource = message.additional_kwargs?.knowledge;
-  const knowledgeAttachment =
-    knowledgeAttachmentSource && typeof knowledgeAttachmentSource === "object"
-      ? extractKnowledgeAttachment(message)
-      : null;
+  const knowledgeAttachment = extractKnowledgeAttachment(message);
   const knowledgeWarnings = useMemo(() => {
     const warnings = knowledgeAttachment?.warnings;
     return Array.isArray(warnings)

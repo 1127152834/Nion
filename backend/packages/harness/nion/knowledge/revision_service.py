@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import sqlite3
 from pathlib import Path
 from uuid import uuid4
@@ -60,7 +61,7 @@ class KnowledgeRevisionService:
             page_id=str(row["page_id"]),
             request_type=str(row["request_type"]),
             instruction=str(row["instruction"]),
-            optional_source_refs=[],
+            optional_source_refs=list(json.loads(str(row["optional_source_refs_json"]))),
             status=str(row["status"]),
             created_at=str(row["created_at"]),
         )
@@ -82,7 +83,15 @@ class KnowledgeRevisionService:
                     request_id, page_id, request_type, instruction, optional_source_refs_json, status, created_at
                 ) VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
-                (request_id, page_id, request_type, instruction, "[]", "open", created_at),
+                (
+                    request_id,
+                    page_id,
+                    request_type,
+                    instruction,
+                    json.dumps(optional_source_refs, ensure_ascii=False),
+                    "open",
+                    created_at,
+                ),
             )
         return self._load(request_id)
 
