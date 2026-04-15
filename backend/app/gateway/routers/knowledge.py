@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from nion.knowledge.compile_jobs import KnowledgeCompileJobStore
 from nion.knowledge.ingest_service import KnowledgeIngestService
@@ -22,8 +22,23 @@ class KnowledgeQueueApprovalRequest(BaseModel):
     source_ids: list[str]
 
 
+class KnowledgeSourceEnqueueRequest(BaseModel):
+    source_id: str
+
+
 class KnowledgeJobListResponse(BaseModel):
     jobs: list[KnowledgeCompileJob]
+
+
+class NotebookKnowledgeStatus(BaseModel):
+    has_knowledge: bool
+    tag_label: str = "知识库"
+    status: str
+    enqueue_state: str
+    compile_state: str
+    last_job_id: str | None = None
+    created_page_ids: list[str] = Field(default_factory=list)
+    error_summary: str | None = None
 
 
 class KnowledgeRevisionCreateRequest(BaseModel):
@@ -38,11 +53,99 @@ class KnowledgeSynthesisCreateRequest(BaseModel):
     answer_markdown: str
 
 
+def _get_candidate_by_source_id(
+    store: KnowledgeSourceCandidateStore,
+    source_id: str,
+) -> KnowledgeSourceCandidate | None:
+    for candidate in store.list_candidates():
+        if candidate.source_id == source_id:
+            return candidate
+    return None
+
+
+def _build_bridge_status(
+    store: KnowledgeSourceCandidateStore,
+    source_id: str,
+) -> NotebookKnowledgeStatus:
+    candidate = _get_candidate_by_source_id(store, source_id)
+    if candidate is None:
+        return NotebookKnowledgeStatus(
+            has_knowledge=False,
+            status="source_missing",
+            enqueue_state="not_enqueued",
+            compile_state="idle",
+            created_page_ids=[],
+        )
+
+    last_job = next(
+        (job for job in KnowledgeCompileJobStore().list_jobs() if source_id in job.source_ids),
+        None,
+    )
+    created_page_ids: list[str] = []
+    compile_state = "idle"
+    last_job_id: str | None = None
+    error_summary = candidate.compile_error
+
+    if last_job is not None:
+        created_page_ids = list(last_job.outputs.get("created_page_ids", []))
+        last_job_id = last_job.job_id
+        error_summary = last_job.error_summary or error_summary
+        compile_state = {
+            "pending": "pending",
+            "running": "running",
+            "succeeded": "succeeded",
+            "partially_succeeded": "succeeded",
+            "failed": "failed",
+        }.get(last_job.status, "idle")
+
+    status = {
+        "compiled": "compiled",
+        "failed": "failed",
+        "stale": "stale",
+        "approved": "running",
+    }.get(candidate.status, "queued")
+    if compile_state in {"pending", "running"}:
+        status = "running"
+    if candidate.status == "compiled" and not created_page_ids:
+        created_page_ids = [f"sources:{source_id.split(':')[-1]}"]
+
+    return NotebookKnowledgeStatus(
+        has_knowledge=True,
+        status=status,
+        enqueue_state="enqueued",
+        compile_state=compile_state,
+        last_job_id=last_job_id,
+        created_page_ids=created_page_ids,
+        error_summary=error_summary,
+    )
+
+
 @router.get("/queue", response_model=list[KnowledgeSourceCandidate])
 async def get_knowledge_queue() -> list[KnowledgeSourceCandidate]:
     notebook = NotebookService()
     store = KnowledgeSourceCandidateStore()
     return store.refresh_from_notebook(notebook)
+
+
+@router.post("/sources/enqueue", response_model=NotebookKnowledgeStatus)
+async def enqueue_knowledge_source(payload: KnowledgeSourceEnqueueRequest) -> NotebookKnowledgeStatus:
+    notebook = NotebookService()
+    store = KnowledgeSourceCandidateStore()
+    store.refresh_from_notebook(notebook)
+    candidate = _get_candidate_by_source_id(store, payload.source_id)
+    if candidate is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Knowledge source candidate not found: {payload.source_id}",
+        )
+    if candidate.status != "compiled":
+        store.set_status(payload.source_id, status="queued", compile_error=None)
+    return _build_bridge_status(store, payload.source_id)
+
+
+@router.get("/sources/{source_id}/status", response_model=NotebookKnowledgeStatus)
+async def get_knowledge_source_status(source_id: str) -> NotebookKnowledgeStatus:
+    return _build_bridge_status(KnowledgeSourceCandidateStore(), source_id)
 
 
 @router.get("/jobs", response_model=KnowledgeJobListResponse)

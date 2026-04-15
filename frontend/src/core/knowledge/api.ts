@@ -5,6 +5,7 @@ import type {
   KnowledgeLintReport,
   KnowledgePage,
   KnowledgeCompileJobListResponse,
+  NotebookKnowledgeStatus,
   KnowledgeQueryResult,
   KnowledgeRevisionRequest,
   KnowledgeCompileJob,
@@ -129,6 +130,21 @@ function isKnowledgeCompileJobListResponse(
   );
 }
 
+function isNotebookKnowledgeStatus(value: unknown): value is NotebookKnowledgeStatus {
+  return (
+    isObjectRecord(value) &&
+    typeof value.has_knowledge === "boolean" &&
+    value.tag_label === "知识库" &&
+    typeof value.status === "string" &&
+    typeof value.enqueue_state === "string" &&
+    typeof value.compile_state === "string" &&
+    Array.isArray(value.created_page_ids) &&
+    value.created_page_ids.every((item) => typeof item === "string") &&
+    (value.last_job_id === undefined || typeof value.last_job_id === "string") &&
+    (value.error_summary === undefined || typeof value.error_summary === "string")
+  );
+}
+
 export async function loadKnowledgeQueue(): Promise<KnowledgeSourceCandidate[]> {
   const response = await fetch(`${getBackendBaseURL()}/api/knowledge/queue`);
   if (!response.ok) {
@@ -161,6 +177,48 @@ export async function approveKnowledgeQueue(sourceIds: string[]): Promise<Knowle
     );
   }
   return readJson(response);
+}
+
+export async function enqueueKnowledgeSource(sourceId: string): Promise<NotebookKnowledgeStatus> {
+  const response = await fetch(`${getBackendBaseURL()}/api/knowledge/sources/enqueue`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ source_id: sourceId }),
+  });
+  if (!response.ok) {
+    throw new Error(
+      resolveErrorMessage(
+        await response.text(),
+        `Failed to enqueue knowledge source (${response.status})`,
+      ),
+    );
+  }
+  const payload = (await readJson<unknown>(response)) as unknown;
+  if (!isNotebookKnowledgeStatus(payload)) {
+    throw new Error("Invalid knowledge status payload returned from enqueueKnowledgeSource");
+  }
+  return payload;
+}
+
+export async function loadKnowledgeSourceStatus(
+  sourceId: string,
+): Promise<NotebookKnowledgeStatus> {
+  const response = await fetch(
+    `${getBackendBaseURL()}/api/knowledge/sources/${sourceId}/status`,
+  );
+  if (!response.ok) {
+    throw new Error(
+      resolveErrorMessage(
+        await response.text(),
+        `Failed to load knowledge source status (${response.status})`,
+      ),
+    );
+  }
+  const payload = (await readJson<unknown>(response)) as unknown;
+  if (!isNotebookKnowledgeStatus(payload)) {
+    throw new Error("Invalid knowledge status payload returned from loadKnowledgeSourceStatus");
+  }
+  return payload;
 }
 
 export async function loadKnowledgeJobs(): Promise<KnowledgeCompileJobListResponse> {

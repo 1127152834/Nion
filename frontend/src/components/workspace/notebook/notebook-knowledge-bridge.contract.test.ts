@@ -21,9 +21,8 @@ void test("notebook surfaces expose send-to-knowledge and knowledge-status actio
     assert.doesNotMatch(source, /overview\.md|graph\.json|sources\//);
   }
 
-  assert.match(pageSource, /知识库编译状态/);
-  assert.match(pageSource, /knowledgeCompileStatus/);
-  assert.match(pageSource, /打开生成页面/);
-  assert.match(pageSource, /重试编译/);
-  assert.match(pageSource, /createdPageIds/);
+  assert.match(pageSource, /enqueue|入队|queue/);
+  assert.match(pageSource, /查看知识状态/);
+  assert.doesNotMatch(pageSource, /queue\/approve/);
+  assert.doesNotMatch(pageSource, /点击即编译|同步编译完成/);
 });

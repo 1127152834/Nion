@@ -129,6 +129,59 @@ void test("loadKnowledgeJobs calls the jobs endpoint", async () => {
   assert.equal(payload.jobs[0]?.job_id, "job_1");
 });
 
+void test("enqueueKnowledgeSource posts to the enqueue endpoint", async () => {
+  let seenUrl = "";
+  let seenBody = "";
+
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    seenUrl = String(input);
+    seenBody = String(init?.body ?? "");
+    return new Response(
+      JSON.stringify({
+        has_knowledge: true,
+        tag_label: "知识库",
+        status: "queued",
+        enqueue_state: "enqueued",
+        compile_state: "idle",
+        created_page_ids: [],
+      }),
+      { status: 200, headers: { "Content-Type": "application/json" } },
+    );
+  }) as typeof fetch;
+
+  const mod = await import("./api.ts");
+  const payload = await mod.enqueueKnowledgeSource("source:notebook_note:note_1");
+
+  assert.match(seenUrl, /\/api\/knowledge\/sources\/enqueue$/);
+  assert.match(seenBody, /source:notebook_note:note_1/);
+  assert.equal(payload.enqueue_state, "enqueued");
+});
+
+void test("loadNotebookKnowledgeStatus reads status-by-source", async () => {
+  let seenUrl = "";
+
+  globalThis.fetch = (async (input: RequestInfo | URL) => {
+    seenUrl = String(input);
+    return new Response(
+      JSON.stringify({
+        has_knowledge: true,
+        tag_label: "知识库",
+        status: "running",
+        enqueue_state: "enqueued",
+        compile_state: "running",
+        created_page_ids: [],
+      }),
+      { status: 200, headers: { "Content-Type": "application/json" } },
+    );
+  }) as typeof fetch;
+
+  const mod = await import("./api.ts");
+  const payload = await mod.loadKnowledgeSourceStatus("source:notebook_note:note_1");
+
+  assert.match(seenUrl, /\/api\/knowledge\/sources\/source:notebook_note:note_1\/status$/);
+  assert.equal(payload.compile_state, "running");
+});
+
 void test("rebuildKnowledgeGraph posts to the graph rebuild endpoint", async () => {
   let seenUrl = "";
   let seenMethod = "";

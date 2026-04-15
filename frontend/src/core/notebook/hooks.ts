@@ -195,8 +195,11 @@ export function useEnqueueNotebookSourceToKnowledge() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (sourceId: string) => enqueueNotebookSourceToKnowledge(sourceId),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["knowledge", "queue"] });
+    onSuccess: async (_payload, sourceId) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["knowledge", "queue"] }),
+        queryClient.invalidateQueries({ queryKey: ["knowledge", "source-status", sourceId] }),
+      ]);
     },
   });
 }

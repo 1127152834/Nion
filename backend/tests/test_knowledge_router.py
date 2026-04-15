@@ -64,6 +64,42 @@ def test_knowledge_jobs_endpoint_returns_compile_history(monkeypatch, tmp_path):
     assert payload["jobs"][0]["status"] == "succeeded"
 
 
+def test_knowledge_enqueue_endpoint_only_registers_candidate(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+    note = NotebookService(base_dir=tmp_path).create_note(directory="", title="Inbox Note", body="body")
+
+    with TestClient(create_app()) as client:
+        response = client.post(
+            "/api/knowledge/sources/enqueue",
+            json={"source_id": f"source:notebook_note:{note.note_id}"},
+        )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["enqueue_state"] == "enqueued"
+    assert payload["compile_state"] == "idle"
+    assert payload["status"] == "queued"
+
+
+def test_knowledge_source_status_endpoint_returns_bridge_payload(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+    note = NotebookService(base_dir=tmp_path).create_note(directory="", title="Roadmap", body="body")
+
+    with TestClient(create_app()) as client:
+        client.post(
+            "/api/knowledge/sources/enqueue",
+            json={"source_id": f"source:notebook_note:{note.note_id}"},
+        )
+        response = client.get(f"/api/knowledge/sources/source:notebook_note:{note.note_id}/status")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["tag_label"] == "知识库"
+    assert payload["enqueue_state"] == "enqueued"
+
+
 def test_knowledge_query_endpoint_returns_page_based_answer(monkeypatch, tmp_path):
     monkeypatch.setenv("NION_HOME", str(tmp_path))
     reset_paths()

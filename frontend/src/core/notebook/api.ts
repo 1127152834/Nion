@@ -1,4 +1,8 @@
 import { getBackendBaseURL } from "../config/index.ts";
+export {
+  enqueueKnowledgeSource as enqueueNotebookSourceToKnowledge,
+  loadKnowledgeSourceStatus as loadNotebookKnowledgeSourceStatus,
+} from "../knowledge/api.ts";
 
 import type {
   NotebookAssistApplyInput,
@@ -197,28 +201,6 @@ export async function extractNotebookNoteToMemory(
       resolveErrorMessage(
         await response.text(),
         `Failed to extract notebook note to memory (${response.status})`,
-      ),
-    );
-  }
-  return readJson(response);
-}
-
-export async function enqueueNotebookSourceToKnowledge(sourceId: string): Promise<{
-  job_id: string;
-  source_ids: string[];
-  trigger_mode: string;
-  status: string;
-}> {
-  const response = await fetch(`${getBackendBaseURL()}/api/knowledge/queue/approve`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ source_ids: [sourceId] }),
-  });
-  if (!response.ok) {
-    throw new Error(
-      resolveErrorMessage(
-        await response.text(),
-        `Failed to enqueue notebook source to knowledge (${response.status})`,
       ),
     );
   }

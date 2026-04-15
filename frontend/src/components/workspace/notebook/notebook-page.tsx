@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useI18n } from "@/core/i18n/hooks";
+import type { NotebookKnowledgeStatus } from "@/core/knowledge/types";
 import {
   pathOfKnowledgeQueue,
   pathOfNotebookTrash,
@@ -88,17 +89,6 @@ type NotebookConversationStartInput = {
   previewContent?: string;
 };
 
-type KnowledgeCompileStatus =
-  | {
-      jobId: string;
-      status: string;
-      createdPages: string[];
-      createdPageIds: string[];
-      sourceId?: string;
-      errorSummary?: string;
-    }
-  | null;
-
 export function NotebookPage() {
   const { t } = useI18n();
   const copy = t.notebookPage;
@@ -127,7 +117,8 @@ export function NotebookPage() {
   const [moveOpen, setMoveOpen] = useState(false);
   const [extractMemoryOpen, setExtractMemoryOpen] = useState(false);
   const [extractMemoryInstruction, setExtractMemoryInstruction] = useState("");
-  const [knowledgeCompileStatus, setKnowledgeCompileStatus] = useState<KnowledgeCompileStatus>(null);
+  const [knowledgeCompileStatus, setKnowledgeCompileStatus] =
+    useState<NotebookKnowledgeStatus | null>(null);
   const [moveDirectory, setMoveDirectory] = useState("");
   const [inboxMoveDirectory, setInboxMoveDirectory] = useState("inbox");
   const [draftSession, setDraftSession] = useState<DraftSession | null>(null);
@@ -303,20 +294,9 @@ export function NotebookPage() {
       return;
     }
     try {
-      const job = await enqueueToKnowledge.mutateAsync(sourceId);
-      setKnowledgeCompileStatus({
-        jobId: job.job_id,
-        status: job.status,
-        createdPages: job.outputs.created_pages,
-        createdPageIds: job.outputs.created_page_ids,
-        sourceId,
-        errorSummary: job.error_summary,
-      });
-      toast.success(
-        job.status === "succeeded"
-          ? "已转为知识库，已生成编译结果，正在打开知识库状态页"
-          : `知识库编译任务已创建（${job.status}），正在打开知识库状态页`,
-      );
+      const status = await enqueueToKnowledge.mutateAsync(sourceId);
+      setKnowledgeCompileStatus(status);
+      toast.success("已入队知识库，可前往知识状态查看后续编译进展");
       router.push(pathOfKnowledgeQueue());
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err));
@@ -771,37 +751,42 @@ export function NotebookPage() {
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <div className="text-xs uppercase tracking-[0.14em] text-[var(--notebook-soft-text)]">
-                        知识库编译状态
+                        知识状态
                       </div>
                       <div className="mt-2 text-sm font-medium text-[var(--notebook-ink)]">
-                        job={knowledgeCompileStatus.jobId} · {knowledgeCompileStatus.status}
+                        enqueue={knowledgeCompileStatus.enqueue_state} · compile={knowledgeCompileStatus.compile_state}
                       </div>
                       <div className="mt-2 text-xs text-[var(--notebook-soft-text)]">
-                        {knowledgeCompileStatus.createdPages.length > 0
-                          ? `已生成 ${knowledgeCompileStatus.createdPages.length} 个知识页`
-                          : knowledgeCompileStatus.errorSummary ?? "正在等待可见的编译结果"}
+                        {knowledgeCompileStatus.created_page_ids.length > 0
+                          ? `已生成 ${knowledgeCompileStatus.created_page_ids.length} 个知识页`
+                          : knowledgeCompileStatus.error_summary ?? "已入队，等待后续编译处理"}
+                      </div>
+                      <div className="mt-2 text-xs text-[var(--notebook-soft-text)]">
+                        Notebook 这里仍然是原始内容（raw）入口；这里只显示 enqueue 结果和轻量状态。
                       </div>
                       <div className="mt-3 h-2 overflow-hidden rounded-full bg-[var(--notebook-border)]">
                         <div
                           className={`h-full rounded-full bg-[var(--notebook-brand)] transition-all ${
-                            knowledgeCompileStatus.status === "succeeded"
+                            knowledgeCompileStatus.compile_state === "succeeded"
                               ? "w-full"
-                              : knowledgeCompileStatus.status === "failed"
+                              : knowledgeCompileStatus.compile_state === "failed"
                                 ? "w-full bg-[var(--notebook-danger)]"
-                                : "w-2/3 animate-pulse"
+                                : knowledgeCompileStatus.compile_state === "idle"
+                                  ? "w-1/3"
+                                  : "w-2/3 animate-pulse"
                           }`}
                         />
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      {knowledgeCompileStatus.createdPageIds[0] ? (
+                      {knowledgeCompileStatus.created_page_ids[0] ? (
                         <Button
                           type="button"
                           variant="outline"
                           onClick={() =>
                             router.push(
                               `/workspace/knowledge/pages/${encodeURIComponent(
-                                knowledgeCompileStatus.createdPageIds[0]!,
+                                knowledgeCompileStatus.created_page_ids[0]!,
                               )}`,
                             )
                           }
@@ -810,37 +795,13 @@ export function NotebookPage() {
                           打开生成页面
                         </Button>
                       ) : null}
-                      {knowledgeCompileStatus.status === "failed" &&
-                      knowledgeCompileStatus.sourceId ? (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => {
-                            void enqueueToKnowledge
-                              .mutateAsync(knowledgeCompileStatus.sourceId!)
-                              .then((job) =>
-                                setKnowledgeCompileStatus({
-                                  jobId: job.job_id,
-                                  status: job.status,
-                                  createdPages: job.outputs.created_pages,
-                                  createdPageIds: job.outputs.created_page_ids,
-                                  sourceId: knowledgeCompileStatus.sourceId,
-                                  errorSummary: job.error_summary,
-                                }),
-                              );
-                          }}
-                          className="border-[var(--notebook-border)] bg-[var(--notebook-panel)] text-[var(--notebook-ink)]"
-                        >
-                          重试编译
-                        </Button>
-                      ) : null}
                       <Button
                         type="button"
                         variant="outline"
                         onClick={handleViewKnowledgeStatus}
                         className="border-[var(--notebook-border)] bg-[var(--notebook-panel)] text-[var(--notebook-ink)]"
                       >
-                        查看知识库状态
+                        查看知识状态
                       </Button>
                     </div>
                   </div>
@@ -853,8 +814,8 @@ export function NotebookPage() {
                     emptyDescription: copy.emptyDescription,
                     emptyTitle: copy.emptyTitle,
                     inboxLabel: copy.inboxLabel,
-                    knowledgeQueueLabel: "转为知识库",
-                    knowledgeStatusLabel: "查看知识库状态",
+                    knowledgeQueueLabel: "加入知识队列",
+                    knowledgeStatusLabel: "查看知识状态",
                     organizeLabel: "整理到目录",
                     recentTitle: copy.recentTitle,
                     selectFolderPlaceholder: copy.selectFolderPlaceholder,
@@ -902,8 +863,8 @@ export function NotebookPage() {
                     selectNote: copy.selectNote,
                     draftMetaLabel: copy.draftMetaLabel,
                     extractToMemory: copy.extractToMemory,
-                    knowledgeQueueLabel: "转为知识库",
-                    knowledgeStatusLabel: "查看知识库状态",
+                    knowledgeQueueLabel: "加入知识队列",
+                    knowledgeStatusLabel: "查看知识状态",
                     untitledDraftTitle: copy.untitledDraftTitle,
                     unsaved: copy.unsaved,
                   }}

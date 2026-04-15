@@ -51,6 +51,17 @@ export interface KnowledgeCompileJobListResponse {
   jobs: KnowledgeCompileJob[];
 }
 
+export interface NotebookKnowledgeStatus {
+  has_knowledge: boolean;
+  tag_label: "知识库";
+  status: "queued" | "running" | "compiled" | "failed" | "stale" | "source_missing";
+  enqueue_state: "not_enqueued" | "enqueued";
+  compile_state: "idle" | "pending" | "running" | "succeeded" | "failed";
+  last_job_id?: string;
+  created_page_ids: string[];
+  error_summary?: string;
+}
+
 export interface KnowledgeQueryResult {
   answer_markdown: string;
   page_ids: string[];
