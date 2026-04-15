@@ -185,6 +185,29 @@ void test("loadNotebookKnowledgeStatus reads status-by-source", async () => {
   assert.equal(payload.compile_state, "running");
 });
 
+void test("loadNotebookKnowledgeStatus rejects invalid status payload", async () => {
+  globalThis.fetch = (async () => {
+    return new Response(
+      JSON.stringify({
+        has_knowledge: true,
+        tag_label: "知识库",
+        status: "bogus",
+        enqueue_state: "enqueued",
+        compile_state: "idle",
+        created_page_ids: [],
+      }),
+      { status: 200, headers: { "Content-Type": "application/json" } },
+    );
+  }) as typeof fetch;
+
+  const mod = await import("./api.ts");
+
+  await assert.rejects(
+    () => mod.loadKnowledgeSourceStatus("source:notebook_note:note_1"),
+    /Invalid knowledge status payload returned from loadKnowledgeSourceStatus/,
+  );
+});
+
 void test("rebuildKnowledgeGraph posts to the graph rebuild endpoint", async () => {
   let seenUrl = "";
   let seenMethod = "";

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Literal
+
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -32,10 +34,10 @@ class KnowledgeJobListResponse(BaseModel):
 
 class NotebookKnowledgeStatus(BaseModel):
     has_knowledge: bool
-    tag_label: str = "知识库"
-    status: str
-    enqueue_state: str
-    compile_state: str
+    tag_label: Literal["知识库"] = "知识库"
+    status: Literal["queued", "running", "compiled", "failed", "stale", "source_missing"]
+    enqueue_state: Literal["not_enqueued", "enqueued"]
+    compile_state: Literal["idle", "pending", "running", "succeeded", "failed"]
     last_job_id: str | None = None
     created_page_ids: list[str] = Field(default_factory=list)
     error_summary: str | None = None
@@ -136,33 +138,37 @@ def _build_bridge_status(
         (job for job in KnowledgeCompileJobStore().list_jobs() if source_id in job.source_ids),
         None,
     )
-    created_page_ids: list[str] = []
-    compile_state = "idle"
+    compile_state: Literal["idle", "pending", "running", "succeeded", "failed"] = "idle"
     last_job_id: str | None = None
-    error_summary = candidate.compile_error
+    error_summary: str | None = None
+    created_page_ids: list[str] = []
 
-    if last_job is not None:
-        created_page_ids = list(last_job.outputs.get("created_page_ids", []))
-        last_job_id = last_job.job_id
-        error_summary = last_job.error_summary or error_summary
-        compile_state = {
-            "pending": "pending",
-            "running": "running",
-            "succeeded": "succeeded",
-            "partially_succeeded": "succeeded",
-            "failed": "failed",
-        }.get(last_job.status, "idle")
-
-    status = {
+    status: Literal["queued", "running", "compiled", "failed", "stale", "source_missing"] = {
         "compiled": "compiled",
         "failed": "failed",
         "stale": "stale",
         "approved": "running",
     }.get(candidate.status, "queued")
-    if compile_state in {"pending", "running"}:
+
+    if candidate.status == "queued":
+        compile_state = "idle"
+        error_summary = None
+        last_job_id = None
+    elif last_job is not None and last_job.status in {"pending", "running"}:
+        last_job_id = last_job.job_id
+        compile_state = "pending" if last_job.status == "pending" else "running"
         status = "running"
-    if candidate.status == "compiled" and not created_page_ids:
+    elif candidate.status == "failed":
+        compile_state = "failed"
+        error_summary = candidate.compile_error
+        last_job_id = last_job.job_id if last_job is not None else None
+    elif candidate.status == "compiled":
+        compile_state = "succeeded"
+        last_job_id = last_job.job_id if last_job is not None else None
         created_page_ids = [f"sources:{source_id.split(':')[-1]}"]
+    elif candidate.status == "stale":
+        compile_state = "succeeded"
+        last_job_id = last_job.job_id if last_job is not None else None
 
     return NotebookKnowledgeStatus(
         has_knowledge=True,

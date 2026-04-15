@@ -2,6 +2,7 @@ from fastapi.testclient import TestClient
 
 from app.daemon.app import create_app
 from nion.config.paths import reset_paths
+from nion.knowledge.source_candidates import KnowledgeSourceCandidateStore
 from nion.notebook.service import NotebookService
 
 
@@ -113,6 +114,71 @@ def test_knowledge_source_status_endpoint_returns_not_enqueued_for_notebook_sour
     assert payload["has_knowledge"] is False
     assert payload["enqueue_state"] == "not_enqueued"
     assert payload["status"] == "queued"
+
+
+def test_knowledge_source_status_only_returns_current_source_page_ids(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+    notebook = NotebookService(base_dir=tmp_path)
+    note_a = notebook.create_note(directory="", title="Alpha", body="body")
+    note_b = notebook.create_note(directory="", title="Beta", body="body")
+
+    with TestClient(create_app()) as client:
+        queue = client.get("/api/knowledge/queue").json()
+        client.post(
+            "/api/knowledge/queue/approve",
+            json={"source_ids": [queue[0]["source_id"], queue[1]["source_id"]]},
+        )
+        source_a = f"source:notebook_note:{note_a.note_id}"
+        source_b = f"source:notebook_note:{note_b.note_id}"
+        payload_a = client.get(f"/api/knowledge/sources/{source_a}/status").json()
+        payload_b = client.get(f"/api/knowledge/sources/{source_b}/status").json()
+
+    assert payload_a["created_page_ids"] == [f"sources:{note_a.note_id}"]
+    assert payload_b["created_page_ids"] == [f"sources:{note_b.note_id}"]
+
+
+def test_knowledge_source_status_resets_failed_history_after_reenqueue(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+    note = NotebookService(base_dir=tmp_path).create_note(directory="", title="Inbox Note", body="body")
+    source_id = f"source:notebook_note:{note.note_id}"
+
+    with TestClient(create_app()) as client:
+        client.post("/api/knowledge/queue")
+        client.post("/api/knowledge/sources/enqueue", json={"source_id": source_id})
+
+    store = KnowledgeSourceCandidateStore(base_dir=tmp_path)
+    store.set_status(source_id, status="failed", compile_error="boom")
+
+    from nion.knowledge.compile_jobs import KnowledgeCompileJobStore
+
+    job_store = KnowledgeCompileJobStore(base_dir=tmp_path)
+    job = job_store.create_job(source_ids=[source_id], trigger_mode="queue_approval")
+    job_store.update_job(
+        job.job_id,
+        status="failed",
+        outputs={
+            "created_pages": [],
+            "created_page_ids": [],
+            "updated_pages": [],
+            "contradiction_pages": [],
+            "graph_rebuilt": False,
+        },
+        error_summary="boom",
+    )
+
+    with TestClient(create_app()) as client:
+        reenqueued = client.post("/api/knowledge/sources/enqueue", json={"source_id": source_id})
+        status = client.get(f"/api/knowledge/sources/{source_id}/status")
+
+    reenqueued_payload = reenqueued.json()
+    status_payload = status.json()
+    assert reenqueued_payload["compile_state"] == "idle"
+    assert reenqueued_payload["error_summary"] is None
+    assert status_payload["compile_state"] == "idle"
+    assert status_payload["error_summary"] is None
+    assert status_payload["status"] == "queued"
 
 
 def test_knowledge_query_endpoint_returns_page_based_answer(monkeypatch, tmp_path):

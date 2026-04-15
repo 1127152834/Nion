@@ -36,6 +36,25 @@ async function readJson<T>(response: Response): Promise<T> {
   return (await response.json()) as T;
 }
 
+const NOTEBOOK_KNOWLEDGE_STATUSES = new Set([
+  "queued",
+  "running",
+  "compiled",
+  "failed",
+  "stale",
+  "source_missing",
+]);
+
+const NOTEBOOK_KNOWLEDGE_ENQUEUE_STATES = new Set(["not_enqueued", "enqueued"]);
+
+const NOTEBOOK_KNOWLEDGE_COMPILE_STATES = new Set([
+  "idle",
+  "pending",
+  "running",
+  "succeeded",
+  "failed",
+]);
+
 function isKnowledgeSourceCandidate(value: unknown): value is KnowledgeSourceCandidate {
   return (
     isObjectRecord(value) &&
@@ -136,8 +155,11 @@ function isNotebookKnowledgeStatus(value: unknown): value is NotebookKnowledgeSt
     typeof value.has_knowledge === "boolean" &&
     value.tag_label === "知识库" &&
     typeof value.status === "string" &&
+    NOTEBOOK_KNOWLEDGE_STATUSES.has(value.status) &&
     typeof value.enqueue_state === "string" &&
+    NOTEBOOK_KNOWLEDGE_ENQUEUE_STATES.has(value.enqueue_state) &&
     typeof value.compile_state === "string" &&
+    NOTEBOOK_KNOWLEDGE_COMPILE_STATES.has(value.compile_state) &&
     Array.isArray(value.created_page_ids) &&
     value.created_page_ids.every((item) => typeof item === "string") &&
     (value.last_job_id === undefined || typeof value.last_job_id === "string") &&
