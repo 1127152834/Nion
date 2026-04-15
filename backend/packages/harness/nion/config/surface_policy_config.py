@@ -12,4 +12,11 @@ class SurfacePolicyConfig(BaseModel):
     rules: dict[str, SurfaceRule] = Field(default_factory=dict)
 
     def get_rule(self, surface: str) -> SurfaceRule:
-        return self.rules.get(surface, SurfaceRule())
+        rule = self.rules.get(surface)
+        if rule is not None:
+            return rule
+        if surface == "bridge":
+            channel_rule = self.rules.get("channel")
+            if channel_rule is not None:
+                return channel_rule
+        return SurfaceRule()

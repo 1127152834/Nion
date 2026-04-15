@@ -20,3 +20,18 @@ def test_surface_policy_prefers_explicit_allowlist():
 
     assert cfg.rules["workspace"].allowed_groups == ["web", "bash"]
     assert cfg.rules["channel"].denied_tools == ["bash"]
+
+
+def test_surface_policy_aliases_bridge_to_channel_when_bridge_missing():
+    cfg = SurfacePolicyConfig(
+        rules={
+            "channel": SurfaceRule(
+                allowed_groups=["web"],
+                denied_tools=["bash"],
+            )
+        }
+    )
+
+    rule = cfg.get_rule("bridge")
+
+    assert rule == cfg.rules["channel"]
