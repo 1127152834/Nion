@@ -141,3 +141,23 @@
 | `5ceb19f6` Claude OAuth cache_control hardening | `已同步` | `0b7e92b9` | 已在 Claude OAuth sync/async create 路径去除 `cache_control` 标记，并用定向 provider 测试锁定。 |
 | `9aa3ff7c` SandboxAuditMiddleware for bash auditing | `当前无安全落点` | 无 | 方向有价值，但这会新增一层命令审计产品/治理面；当前批次先不在缺少既有事故证据的情况下扩张 runtime middleware 合同。 |
 | `c5034c03` exclude sandbox dirs from gateway hot-reload watcher | `当前无安全落点` | 无 | 需要先确认当前 `scripts/serve.sh` 真有同类误触发 reload 故障，再决定是否吸收；本轮暂不凭 upstream 标题直接改 dev 脚本。 |
+| `ef58bb8d` MiniMax M2.7 highspeed config example fix | `明确不同步` | 无 | 仅涉及 `config.example.yaml` 示例字段与命名，不进入当前设置中心/Config Center 主链。 |
+| `9bcdba60` deferred tool promotion after tool_search | `已同步` | `b7ee334a` | 已在 deferred registry 增加 promotion，并用回归测试锁定“工具已暴露 schema 后即可被调用”的行为。 |
+| `7db95926` configurable Lark domain for Feishu channel | `已等价吸收` | 现有代码 | 当前 bridge 配置、Feishu 设置页和文案已同时支持 `feishu` / `lark` domain 选择。 |
+| `34e835bc` LangGraph Platform API in Gateway | `当前无安全落点` | 无 | 这是 upstream 网关/runtime 大型重构面，NION 当前 gateway/daemon/desktop 路线已明显分叉，不能按逐提交安全同步直接吸收。 |
+| `2330c382` SSR fallback in getBaseOrigin | `已等价吸收` | 现有代码 | 当前 `getBackendBaseURL/getLangGraphBaseURL` 已有 desktop-aware SSR fallback，不依赖 `window` 访问。 |
+| `0f1b023a` langgraph dev worker concurrency flag in Docker | `当前无安全落点` | 无 | 当前批次不回流 upstream `langgraph dev` Docker 路线，也没有现成同类阻塞故障证据。 |
+| `b21792d9` run uv sync before dev services | `当前无安全落点` | 无 | 这是针对 upstream Docker named-volume venv 漂移的修补；NION 当前不在本批次直接调整 dev compose 启动链。 |
+| `4bb3c101` Docker mirrors and uv build acceleration | `明确不同步` | 无 | Docker 构建镜像源优化不属于当前业务同步面，也会引入环境特定默认值。 |
+| `9e3d4848` route agent checks to gateway | `当前无安全落点` | 无 | 当前前端 agent create/check 路由已直连 `getBackendBaseURL()`，但 upstream 依赖本地 rewrite/docker 联动，需专项对照后再决定是否值得同步。 |
+| `64e0f532` remove LANGSMITH_TRACING override | `明确不同步` | 无 | NION 当前生产 compose 使用 `LANGCHAIN_TRACING_V2`，并没有 upstream 所述 `LANGSMITH_TRACING` 覆盖问题。 |
+| `ac9a6ee6` config.yaml mount path in docker-compose | `明确不同步` | 无 | 纯 `config.yaml` 挂载路径修补，不进入当前去 YAML 真源的同步主链。 |
+| `b356a13d` improve network error message for agent name check | `已等价吸收` | 现有代码 | 当前 `AgentNameCheckError` 已区分 backend unreachable 与 request failed，并有中英文文案。 |
+| `09a92097` Windows dependency check compatibility | `当前无安全落点` | 无 | 当前 `scripts/check.py` 未复现同类 Windows `stdio.reconfigure` 问题，本批次不凭标题改脚本。 |
+| `c2f7be37` break circular import in view_image_tool | `已同步` | `30e46efa` | 已把 `sandbox.tools` import 下沉到函数体，并用源码契约测试锁定。 |
+| `3ff15423` Windows Docker sandbox path mounting | `当前无安全落点` | 无 | 该修补落在 upstream runtime/provisioner/config paths 组合层，NION 当前仅局部吸收了 local backend mount 语法修补。 |
+| `aae59a8b` surface configured sandbox mounts to agents | `当前无安全落点` | 无 | upstream 通过 prompt/runtime 注入 sandbox mounts；NION 当前未建立同构合同，不适合直接挪入。 |
+| `a3bfea63` serialize concurrent exec_command in AioSandbox | `已同步` | `5f5e7242` | 已补齐 ErrorObservation 重试与 `list_dir` 安全 quoting，并用 AioSandbox 单测锁定。 |
+| `6ff60f2a` forward assistant_id as agent_name in run config | `已等价吸收` | 现有代码 | `threads/service.py` 已将 `assistant_id` 归一到 `agent_name`，并有路由测试覆盖。 |
+| `cf43584d` artifact content loading includes URL for non-write files | `当前无安全落点` | 无 | 当前 artifact 详情页仍以 `srcDoc` 预览为主，upstream 方案需要专项评估 iframe/src 与现有 artifact 安全策略的契合度。 |
+| `3e461d9d` safe docker bind mount syntax for sandbox mounts | `已同步` | `5f5e7242` | 已为 local container backend 增加 runtime-aware mount formatter，避免 Docker 在 Windows drive-letter 路径上误解析。 |
