@@ -28,6 +28,9 @@ Hermes 最值得学的不是某一个单点功能，而是下面这套一体化�
 - [source-code-architecture.md](./source-code-architecture.md)：从源码与官方开发文档拆 AIAgent、prompt builder、SessionDB、tool registry 等骨干对象
 - [agent-design-patterns.md](./agent-design-patterns.md)：从 Hermes 提炼出的 agent 应用设计模式与可迁移方法论
 - [design-tensions-and-tradeoffs.md](./design-tensions-and-tradeoffs.md)：Hermes 暴露出来的架构张力、边界风险和设计取舍
+- [service-runtime-and-time-model.md](./service-runtime-and-time-model.md)：gateway、cron、多入口服务化、时间驱动任务与会话连续性
+- [plugin-and-provider-architecture.md](./plugin-and-provider-architecture.md)：general plugins、memory providers、context engines、provider runtime、auxiliary routing
+- [expert-skill-blueprint.md](./expert-skill-blueprint.md)：面向未来“agent 应用专家 skill”的知识模块草案
 - [openclaw-vs-hermes.md](./openclaw-vs-hermes.md)：和 OpenClaw 的对照，帮助明确 Hermes 的独特取舍
 
 ## 阅读顺序建议
@@ -41,8 +44,11 @@ Hermes 最值得学的不是某一个单点功能，而是下面这套一体化�
 5. `source-code-architecture.md`
 6. `agent-design-patterns.md`
 7. `design-tensions-and-tradeoffs.md`
-8. `openclaw-vs-hermes.md`
-9. `research-log.md`
+8. `service-runtime-and-time-model.md`
+9. `plugin-and-provider-architecture.md`
+10. `expert-skill-blueprint.md`
+11. `openclaw-vs-hermes.md`
+12. `research-log.md`
 
 ## 维护原则
 

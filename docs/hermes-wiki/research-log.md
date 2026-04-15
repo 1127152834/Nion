@@ -209,3 +209,118 @@ memory prefetch contamination、compression death spiral、fallback auth bug、m
 1. 沿着官方 developer guide 继续拆 `gateway-internals`、`cron-internals`、`memory-provider-plugin`、`context-engine-plugin`
 2. 结合更多 issue / PR，把“架构演化史”整理出来
 3. 开始反推“agent 应用专家 skill”的知识架构，而不是等学完后再临时归纳
+
+## 2026-04-15 第三轮服务层与插件层研究
+
+### 本轮目标
+
+补齐我自己前面明确承认还不够的部分：
+
+1. gateway
+2. cron
+3. provider runtime
+4. memory/context plugin contract
+5. 更像“专家 skill 预备材料”的知识架构
+
+### 本轮新增材料
+
+#### 官方 developer guide
+
+1. `gateway-internals.md`
+2. `cron-internals.md`
+3. `memory-provider-plugin.md`
+4. `context-engine-plugin.md`
+5. `plugins.md`
+6. `credential-pools.md`
+7. `fallback-providers.md`
+
+#### 核心源码
+
+1. `gateway/run.py`
+2. `gateway/session.py`
+3. `cron/scheduler.py`
+4. `hermes_cli/runtime_provider.py`
+5. `agent/auxiliary_client.py`
+
+#### 关键 issue 线索
+
+1. gateway oversized session / hygiene
+2. queued message overwrite
+3. approval interception ambiguity
+4. cron delivery silent failure
+5. cron run hang after output
+6. memory prefetch contamination
+7. fallback not triggered on auth failure
+
+### 本轮最重要的认识变化
+
+#### 1. Hermes 的“服务性”不是副产物，而是主设计目标之一
+
+看完 `gateway-internals` 和源码后，这件事已经很清楚：
+
+- gateway 不是 transport glue
+- 它是会话路由、忙时输入、中断协议、审批路由、适配器生命周期、交付路径的中心
+
+也就是说，Hermes 从一开始就不是只为 CLI 准备的。
+
+#### 2. Hermes 的时间模型比我之前理解的更完整
+
+cron 不是“调度一个 prompt”，而是：
+
+1. fresh session
+2. 可附带 skills
+3. 可附带 script
+4. 有 provider recovery
+5. 有 delivery model
+6. 有 recursion guard
+
+这说明 Hermes 其实在解决一个更大问题：
+
+> agent 如何在没有用户即时输入的情况下，仍然以受控方式行动。
+
+#### 3. Plugin system 真正厉害的地方，不是 extensibility，而是 strategy isolation
+
+这轮让我更确定：
+
+- general plugins 是并列能力
+- memory providers 是长期知识策略
+- context engines 是上下文管理策略
+
+Hermes 不是简单做成“都能插件化”，而是很明确地把可变性分层了。
+
+#### 4. Runtime provider 这层比我之前预期更像基础设施中枢
+
+不只是 main model 会用到它，auxiliary tasks、cron、gateway 都在用。
+这意味着 provider runtime 不只是“配置解析”，而是整个 agent runtime 的认证、路由、fallback、pooling 总线。
+
+#### 5. 真正的设计哲学很多藏在 issue 里，而不是文档里
+
+比如：
+
+1. approval routing 错误说明“中断与审批”是协议问题
+2. cron silent failure 说明执行成功与交付成功必须分开建模
+3. memory prefetch contamination 说明动态 recall 注入层选择会直接伤 prompt correctness
+4. fallback auth failure 说明运行时解析的分层顺序本身就是架构点
+
+这让我更加确定：
+未来 expert skill 必须吸收“失败模式语料库”，不能只吸收官方 happy path。
+
+### 本轮新增产物
+
+新增了三页：
+
+1. `service-runtime-and-time-model.md`
+2. `plugin-and-provider-architecture.md`
+3. `expert-skill-blueprint.md`
+
+其中前两页继续拆 Hermes，本身仍是学习成果。
+最后一页开始反推未来 skill 的知识模块骨架。
+
+### 当前判断
+
+现在我对 Hermes 的理解，已经开始从“理解一个项目”转向“从这个项目里提炼 agent 系统设计学”。
+但还没到可以正式制作 skill 的程度，下一步最关键的是：
+
+1. 继续整理演化史
+2. 引入跨系统对照
+3. 再做一次知识架构收束

@@ -22,6 +22,10 @@
 | [Tools Runtime 源 markdown](https://github.com/NousResearch/hermes-agent/blob/main/website/docs/developer-guide/tools-runtime.md) | 官方仓库文档源码 | registry、自注册、toolset、dispatch、agent-level tools |
 | [Session Storage 源 markdown](https://github.com/NousResearch/hermes-agent/blob/main/website/docs/developer-guide/session-storage.md) | 官方仓库文档源码 | SQLite、FTS5、lineage、WAL、写冲突处理 |
 | [Provider Runtime Resolution 源 markdown](https://github.com/NousResearch/hermes-agent/blob/main/website/docs/developer-guide/provider-runtime.md) | 官方仓库文档源码 | provider resolution、api mode、fallback、auxiliary routing |
+| [Gateway Internals 源 markdown](https://github.com/NousResearch/hermes-agent/blob/main/website/docs/developer-guide/gateway-internals.md) | 官方仓库文档源码 | 多平台 gateway、session routing、busy guards、delivery、hooks |
+| [Cron Internals 源 markdown](https://github.com/NousResearch/hermes-agent/blob/main/website/docs/developer-guide/cron-internals.md) | 官方仓库文档源码 | fresh session、skill-backed jobs、delivery model、provider recovery |
+| [Memory Provider Plugin 源 markdown](https://github.com/NousResearch/hermes-agent/blob/main/website/docs/developer-guide/memory-provider-plugin.md) | 官方仓库文档源码 | MemoryProvider lifecycle、config、hooks、profile isolation |
+| [Context Engine Plugin 源 markdown](https://github.com/NousResearch/hermes-agent/blob/main/website/docs/developer-guide/context-engine-plugin.md) | 官方仓库文档源码 | ContextEngine ABC、single-select 策略层、engine tools |
 | [Memory](https://hermes-agent.nousresearch.com/docs/user-guide/features/memory) | 官方文档 | `MEMORY.md`、`USER.md`、持久记忆边界与用户建模 |
 | [Memory 源 markdown](https://github.com/NousResearch/hermes-agent/blob/main/website/docs/user-guide/features/memory.md) | 官方仓库文档源码 | frozen snapshot、capacity、security scan、session search |
 | [Personality](https://hermes-agent.nousresearch.com/docs/user-guide/features/personality) | 官方文档 | `SOUL.md` 的角色与人格层边界 |
@@ -29,9 +33,12 @@
 | [Skills 源 markdown](https://github.com/NousResearch/hermes-agent/blob/main/website/docs/user-guide/features/skills.md) | 官方仓库文档源码 | progressive disclosure、skill metadata、fallback activation |
 | [Context Files](https://hermes-agent.nousresearch.com/docs/user-guide/features/context-files) | 官方文档 | `AGENTS.md` / `SOUL.md` / workspace context 的加载边界 |
 | [Plugins](https://hermes-agent.nousresearch.com/docs/user-guide/features/plugins) | 官方文档 | general plugins、memory providers、context engines 三类插件 |
+| [Plugins 源 markdown](https://github.com/NousResearch/hermes-agent/blob/main/website/docs/user-guide/features/plugins.md) | 官方仓库文档源码 | plugin types、discovery、hooks、provider plugin selection |
 | [Delegation](https://hermes-agent.nousresearch.com/docs/user-guide/features/delegation) | 官方文档 | subagent delegation、隔离会话、工具边界 |
 | [Delegation 源 markdown](https://github.com/NousResearch/hermes-agent/blob/main/website/docs/user-guide/features/delegation.md) | 官方仓库文档源码 | fresh context、blocked toolsets、depth limit、parallel children |
 | [Scheduled Tasks (Cron)](https://hermes-agent.nousresearch.com/docs/user-guide/features/cron) | 官方文档 | 自然语言调度、跨平台投递、无人值守任务 |
+| [Credential Pools](https://hermes-agent.nousresearch.com/docs/user-guide/features/credential-pools) | 官方文档 | same-provider key rotation、auth source 聚合 |
+| [Fallback Providers](https://hermes-agent.nousresearch.com/docs/user-guide/features/fallback-providers) | 官方文档 | provider fallback、auxiliary fallback、custom endpoint precedence |
 | [Security](https://hermes-agent.nousresearch.com/docs/user-guide/security) | 官方文档 | prompt injection 防护、secret redaction、command approval、容器隔离 |
 | [RELEASE_v0.6.0](https://github.com/NousResearch/hermes-agent/blob/main/RELEASE_v0.6.0.md) | 官方发布说明 | profiles、MCP server mode、多平台 gateway、remote skills/secrets 等重大演进 |
 | [RELEASE_v0.7.0](https://github.com/NousResearch/hermes-agent/blob/main/RELEASE_v0.7.0.md) | 官方发布说明 | pluggable memory、API server continuity、security hardening、gateway hardening |
@@ -45,6 +52,7 @@
 | Tavily 对 Hermes 官方文档页面的摘要 | 检索摘要 | 用于补足直接抓取受限页面的要点，例如 provider resolver、tool registry、session persistence |
 | Tavily 对官方 release/issue/discussion 的摘要 | 检索摘要 | 用于识别近期演进方向，如 profile isolation、security patch、compression death spiral 修复 |
 | Tavily 对 GitHub issue / release 的摘要 | 检索摘要 | 用于发现设计张力，例如 memory prefetch contamination、memory provider bridge 缺失 |
+| Tavily 对 gateway / cron / approval / fallback 相关 issue 的摘要 | 检索摘要 | 用于构建设计失败模式语料：消息覆盖、审批误拦截、cron 交付静默失败、auth 层短路等 |
 
 ## C. 社区二手解读
 
