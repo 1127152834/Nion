@@ -10,7 +10,8 @@ class RetrievalSettingsModel(BaseModel):
 
 
 class RetrievalEmbeddingProfile(RetrievalSettingsModel):
-    mode: Literal["remote_managed"] = "remote_managed"
+    provider: Literal["local_onnx", "openai_compatible"] = "openai_compatible"
+    model_id: str | None = None
     endpoint: str = ""
     api_key: str = ""
     model_name: str = "text-embedding-3-large"
@@ -18,7 +19,8 @@ class RetrievalEmbeddingProfile(RetrievalSettingsModel):
 
 
 class RetrievalRerankerProfile(RetrievalSettingsModel):
-    mode: Literal["remote_managed"] = "remote_managed"
+    provider: Literal["local_onnx", "rerank_api"] = "rerank_api"
+    model_id: str | None = None
     endpoint: str = ""
     api_key: str = ""
     model_name: str = "bge-reranker-large"

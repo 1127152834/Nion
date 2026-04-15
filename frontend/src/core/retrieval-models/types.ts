@@ -1,16 +1,37 @@
 export interface RetrievalEmbeddingProfile {
-  mode: "remote_managed";
+  provider: "local_onnx" | "openai_compatible";
+  model_id?: string | null;
   endpoint: string;
   model_name: string;
   dimensions: number;
   api_key_configured: boolean;
+  display_name?: string | null;
 }
 
 export interface RetrievalRerankerProfile {
-  mode: "remote_managed";
+  provider: "local_onnx" | "rerank_api";
+  model_id?: string | null;
   endpoint: string;
   model_name: string;
   api_key_configured: boolean;
+  display_name?: string | null;
+}
+
+export interface RetrievalLocalModelItem {
+  model_id: string;
+  family: "embedding" | "rerank";
+  display_name: string;
+  locale: string;
+  installed: boolean;
+  downloading: boolean;
+}
+
+export interface RetrievalRecommendedProfile {
+  profile_id: string;
+  label: string;
+  mode: "local" | "remote";
+  embedding_model_id: string | null;
+  reranker_model_id: string | null;
 }
 
 export interface RetrievalCapabilitySnapshot {
@@ -33,6 +54,11 @@ export interface RetrievalModelsStatusResponse {
     embedding: RetrievalEmbeddingProfile;
     reranker: RetrievalRerankerProfile;
   };
+  local_models: {
+    embedding: RetrievalLocalModelItem[];
+    rerank: RetrievalLocalModelItem[];
+  };
+  recommended_profiles: RetrievalRecommendedProfile[];
   consumers: RetrievalModelsConsumerStatus[];
   capability: RetrievalCapabilitySnapshot;
 }

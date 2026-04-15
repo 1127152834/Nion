@@ -38,9 +38,11 @@ class MemoryEmbeddingIndexService:
 
     def _load_runtime_settings(self) -> EmbeddingSystemSettings:
         retrieval_settings = RetrievalModelsSettingsRepository(self._base_dir).load()
+        if retrieval_settings.active.embedding.provider != "openai_compatible":
+            raise ValueError("Local embedding runtime is not restored yet.")
         persisted = self._settings_repository.load()
         return EmbeddingSystemSettings(
-            mode=retrieval_settings.active.embedding.mode,
+            mode="remote_managed",
             remote_endpoint=retrieval_settings.active.embedding.endpoint,
             remote_api_key=retrieval_settings.active.embedding.api_key,
             remote_model_name=retrieval_settings.active.embedding.model_name,

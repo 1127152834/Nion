@@ -22,9 +22,9 @@ def test_retrieval_models_router_exposes_status(
 
     assert response.status_code == 200
     payload = response.json()
-    assert payload["active_profile"]["embedding"]["mode"] == "remote_managed"
+    assert payload["active_profile"]["embedding"]["provider"] == "openai_compatible"
     assert payload["capability"] == {
-        "local_prepare_enabled": False,
+        "local_prepare_enabled": True,
         "remote_config_enabled": True,
         "test_enabled": True,
         "rebuild_enabled": True,
@@ -34,6 +34,44 @@ def test_retrieval_models_router_exposes_status(
     assert "api_key" not in payload["active_profile"]["embedding"]
     assert payload["active_profile"]["reranker"]["api_key_configured"] is False
     assert "api_key" not in payload["active_profile"]["reranker"]
+    assert payload["local_models"]["embedding"][0]["model_id"] == "zh-embedding-lite"
+    assert payload["local_models"]["rerank"][0]["model_id"] == "zh-rerank-lite"
+    assert payload["recommended_profiles"][0]["profile_id"] == "zh-local-default"
+
+
+def test_retrieval_models_router_exposes_local_active_profile(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+
+    RetrievalModelsSettingsRepository(base_dir=tmp_path).save(
+        RetrievalModelsSettings.model_validate(
+            {
+                "active": {
+                    "embedding": {
+                        "provider": "local_onnx",
+                        "model_id": "zh-embedding-lite",
+                    },
+                    "reranker": {
+                        "provider": "local_onnx",
+                        "model_id": "zh-rerank-lite",
+                    },
+                }
+            }
+        )
+    )
+
+    with TestClient(create_gateway_app()) as client:
+        response = client.get("/api/retrieval-models/status")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["active_profile"]["embedding"]["provider"] == "local_onnx"
+    assert payload["active_profile"]["embedding"]["model_id"] == "zh-embedding-lite"
+    assert payload["active_profile"]["reranker"]["provider"] == "local_onnx"
+    assert payload["active_profile"]["reranker"]["model_id"] == "zh-rerank-lite"
 
 
 def test_retrieval_models_router_exposes_status_on_daemon_surface(
@@ -48,7 +86,7 @@ def test_retrieval_models_router_exposes_status_on_daemon_surface(
 
     assert response.status_code == 200
     payload = response.json()
-    assert payload["active_profile"]["embedding"]["mode"] == "remote_managed"
+    assert payload["active_profile"]["embedding"]["provider"] == "openai_compatible"
     assert payload["capability"]["remote_config_enabled"] is True
     assert payload["capability"]["status_only"] is False
 

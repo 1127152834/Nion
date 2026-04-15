@@ -25,8 +25,13 @@ def search_vector_memory(
 ) -> list[SearchRouteHit]:
     resolved_base_dir = Path(base_dir)
     retrieval_settings = RetrievalModelsSettingsRepository(resolved_base_dir).load()
+    if retrieval_settings.active.embedding.provider != "openai_compatible":
+        logger.info(
+            "Vector search skipped because local embedding runtime is not restored yet; lexical fallback remains active."
+        )
+        return []
     settings = EmbeddingSystemSettings(
-        mode=retrieval_settings.active.embedding.mode,
+        mode="remote_managed",
         remote_endpoint=retrieval_settings.active.embedding.endpoint,
         remote_api_key=retrieval_settings.active.embedding.api_key,
         remote_model_name=retrieval_settings.active.embedding.model_name,

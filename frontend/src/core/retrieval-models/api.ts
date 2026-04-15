@@ -2,6 +2,8 @@ import { getBackendBaseURL } from "../config/index.ts";
 
 import type {
   RebuildRetrievalConsumersResult,
+  RetrievalLocalModelItem,
+  RetrievalRecommendedProfile,
   RetrievalModelsConsumerStatus,
   RetrievalModelsStatusResponse,
   SaveRetrievalModelsProfileRequest,
@@ -25,6 +27,29 @@ function isRetrievalConsumerStatus(value: unknown): value is RetrievalModelsCons
   );
 }
 
+function isLocalModelItem(value: unknown): value is RetrievalLocalModelItem {
+  return (
+    isObjectRecord(value) &&
+    typeof value.model_id === "string" &&
+    (value.family === "embedding" || value.family === "rerank") &&
+    typeof value.display_name === "string" &&
+    typeof value.locale === "string" &&
+    typeof value.installed === "boolean" &&
+    typeof value.downloading === "boolean"
+  );
+}
+
+function isRecommendedProfile(value: unknown): value is RetrievalRecommendedProfile {
+  return (
+    isObjectRecord(value) &&
+    typeof value.profile_id === "string" &&
+    typeof value.label === "string" &&
+    (value.mode === "local" || value.mode === "remote") &&
+    (typeof value.embedding_model_id === "string" || value.embedding_model_id === null) &&
+    (typeof value.reranker_model_id === "string" || value.reranker_model_id === null)
+  );
+}
+
 function isRetrievalModelsStatusResponse(
   value: unknown,
 ): value is RetrievalModelsStatusResponse {
@@ -32,16 +57,25 @@ function isRetrievalModelsStatusResponse(
     isObjectRecord(value) &&
     isObjectRecord(value.active_profile) &&
     isObjectRecord(value.active_profile.embedding) &&
-    value.active_profile.embedding.mode === "remote_managed" &&
+    (value.active_profile.embedding.provider === "local_onnx" ||
+      value.active_profile.embedding.provider === "openai_compatible") &&
     typeof value.active_profile.embedding.endpoint === "string" &&
     typeof value.active_profile.embedding.model_name === "string" &&
     typeof value.active_profile.embedding.dimensions === "number" &&
     typeof value.active_profile.embedding.api_key_configured === "boolean" &&
     isObjectRecord(value.active_profile.reranker) &&
-    value.active_profile.reranker.mode === "remote_managed" &&
+    (value.active_profile.reranker.provider === "local_onnx" ||
+      value.active_profile.reranker.provider === "rerank_api") &&
     typeof value.active_profile.reranker.endpoint === "string" &&
     typeof value.active_profile.reranker.model_name === "string" &&
     typeof value.active_profile.reranker.api_key_configured === "boolean" &&
+    isObjectRecord(value.local_models) &&
+    Array.isArray(value.local_models.embedding) &&
+    value.local_models.embedding.every(isLocalModelItem) &&
+    Array.isArray(value.local_models.rerank) &&
+    value.local_models.rerank.every(isLocalModelItem) &&
+    Array.isArray(value.recommended_profiles) &&
+    value.recommended_profiles.every(isRecommendedProfile) &&
     Array.isArray(value.consumers) &&
     value.consumers.every(isRetrievalConsumerStatus) &&
     isObjectRecord(value.capability) &&

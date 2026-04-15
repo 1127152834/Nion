@@ -55,7 +55,7 @@ def update_active_retrieval_profile(
 
 def retrieval_capability_snapshot(*, status_only: bool) -> dict[str, bool]:
     return {
-        "local_prepare_enabled": False,
+        "local_prepare_enabled": True,
         "remote_config_enabled": True,
         "test_enabled": not status_only,
         "rebuild_enabled": not status_only,
@@ -127,11 +127,14 @@ def rebuild_consumer_indexes(*, base_dir: str | Path, consumer_ids: list[str]) -
     resolved_base_dir = Path(base_dir)
     if "memory" in accepted:
         settings = RetrievalModelsSettingsRepository(base_dir=resolved_base_dir).load()
-        _ensure_retrieval_profile_ready(
-            endpoint=settings.active.embedding.endpoint,
-            api_key=settings.active.embedding.api_key,
-            lane="memory",
-        )
+        if settings.active.embedding.provider == "openai_compatible":
+            _ensure_remote_embedding_ready(
+                endpoint=settings.active.embedding.endpoint,
+                api_key=settings.active.embedding.api_key,
+                lane="memory",
+            )
+        else:
+            raise ValueError("当前分支尚未恢复本地 embedding runtime，Memory 索引暂时不能切到本地模型。")
         repository = MemoryOSRepository(resolved_base_dir / "memory-os" / "index.sqlite3")
         job = MemoryEmbeddingIndexService(
             base_dir=resolved_base_dir,
@@ -163,7 +166,7 @@ def rebuild_consumer_indexes(*, base_dir: str | Path, consumer_ids: list[str]) -
     }
 
 
-def _ensure_retrieval_profile_ready(
+def _ensure_remote_embedding_ready(
     *,
     endpoint: str,
     api_key: str,

@@ -21,19 +21,54 @@ void test("loadRetrievalModelsStatus validates the retrieval models payload", as
       JSON.stringify({
         active_profile: {
           embedding: {
-            mode: "remote_managed",
-            endpoint: "https://example.com/v1/embeddings",
-            model_name: "text-embedding-3-large",
-            dimensions: 3072,
+            provider: "local_onnx",
+            model_id: "zh-embedding-lite",
+            endpoint: "",
+            model_name: "jina-embeddings-v2-base-zh",
+            dimensions: 768,
             api_key_configured: false,
+            display_name: "Jina Embeddings v2 Base ZH (INT8)",
           },
           reranker: {
-            mode: "remote_managed",
-            endpoint: "https://example.com/v1/rerank",
-            model_name: "bge-reranker-large",
-            api_key_configured: true,
+            provider: "local_onnx",
+            model_id: "zh-rerank-lite",
+            endpoint: "",
+            model_name: "jina-reranker-v2-base-multilingual",
+            api_key_configured: false,
+            display_name: "Jina Reranker v2 Base Multilingual (Quantized)",
           },
         },
+        local_models: {
+          embedding: [
+            {
+              model_id: "zh-embedding-lite",
+              family: "embedding",
+              display_name: "Jina Embeddings v2 Base ZH (INT8)",
+              locale: "zh-CN",
+              installed: false,
+              downloading: false,
+            },
+          ],
+          rerank: [
+            {
+              model_id: "zh-rerank-lite",
+              family: "rerank",
+              display_name: "Jina Reranker v2 Base Multilingual (Quantized)",
+              locale: "zh-CN",
+              installed: false,
+              downloading: false,
+            },
+          ],
+        },
+        recommended_profiles: [
+          {
+            profile_id: "zh-local-default",
+            label: "中文本地推荐",
+            mode: "local",
+            embedding_model_id: "zh-embedding-lite",
+            reranker_model_id: "zh-rerank-lite",
+          },
+        ],
         consumers: [
           {
             consumer_id: "memory",
@@ -61,8 +96,10 @@ void test("loadRetrievalModelsStatus validates the retrieval models payload", as
     const result = await loadRetrievalModelsStatus();
 
     assert.match(seenUrl, /\/api\/retrieval-models\/status$/);
-    assert.equal(result.active_profile.embedding.mode, "remote_managed");
-    assert.equal(result.active_profile.reranker.mode, "remote_managed");
+    assert.equal(result.active_profile.embedding.provider, "local_onnx");
+    assert.equal(result.active_profile.reranker.provider, "local_onnx");
+    assert.equal(result.local_models.embedding[0]?.model_id, "zh-embedding-lite");
+    assert.equal(result.recommended_profiles[0]?.profile_id, "zh-local-default");
     assert.equal(result.consumers[0]?.consumer_id, "memory");
   } finally {
     globalThis.fetch = originalFetch;
@@ -77,13 +114,19 @@ void test("loadRetrievalModelsStatus rejects invalid retrieval models payload", 
       JSON.stringify({
         active_profile: {
           embedding: {
-            mode: "remote_managed",
+            provider: "openai_compatible",
+            model_id: null,
             endpoint: "https://example.com/v1/embeddings",
             model_name: "text-embedding-3-large",
             dimensions: 3072,
             api_key_configured: false,
           },
         },
+        local_models: {
+          embedding: [],
+          rerank: [],
+        },
+        recommended_profiles: [],
         consumers: [],
       }),
       {
@@ -114,19 +157,26 @@ void test("saveRetrievalModelsProfile persists active retrieval settings", async
       JSON.stringify({
         active_profile: {
           embedding: {
-            mode: "remote_managed",
+            provider: "openai_compatible",
+            model_id: null,
             endpoint: "https://embed.example.com/v1/embeddings",
             model_name: "text-embedding-3-small",
             dimensions: 1536,
             api_key_configured: true,
           },
           reranker: {
-            mode: "remote_managed",
+            provider: "rerank_api",
+            model_id: null,
             endpoint: "https://rerank.example.com/v1/rerank",
             model_name: "bge-reranker-base",
             api_key_configured: true,
           },
         },
+        local_models: {
+          embedding: [],
+          rerank: [],
+        },
+        recommended_profiles: [],
         consumers: [],
         capability: {
           local_prepare_enabled: false,
