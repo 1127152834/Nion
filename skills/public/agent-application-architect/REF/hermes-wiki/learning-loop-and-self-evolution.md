@@ -402,6 +402,16 @@ README 和 prompt guidance 一直在推同一个动作：
 3. mid-session 通过 memory tool 显式 add / replace / remove
 4. 更像 compact, curated, user-steered memory
 
+而且从 `tools/memory_tool.py` 现在已经可以确认：
+
+5. `MemoryStore` 同时维护 live state 与 `_system_prompt_snapshot`
+6. `load_from_disk()` 会捕获快照，后续 mid-session 写入不会刷新这个快照
+7. `add` / `replace` / `remove` 都是 file-backed、受字符上限约束、显式操作
+
+所以 builtin memory 的设计重点是：
+
+> 小而稳，可审计，可持久化，可缓存友好。
+
 ### Honcho / external provider 的特点
 
 从 `plugins/memory/honcho/__init__.py` 与 `MemoryProvider` interface 可确认：
@@ -427,6 +437,76 @@ README 和 prompt guidance 一直在推同一个动作：
 - External provider：高表达力、可检索、可总结、可注入、可扩展的 adaptive layer
 
 这也是为什么两者最好被看成互补层，而不是简单替代层。
+
+## 10.6 Honcho 与 OpenViking：external memory provider 之间也有显著差异
+
+前面说 external provider 是 richer adaptive layer，但它们内部也不一样。
+
+### Honcho 更像什么
+
+从 `plugins/memory/honcho/__init__.py` 可以确认：
+
+1. 有 `recall_mode = context | tools | hybrid`
+2. 有 first-turn context baking
+3. 有 cost-awareness cadence（context/dialectic cadence）
+4. 有 `tools-only` 延迟初始化模式
+5. `system_prompt_block()` 会根据 recall_mode 改变 agent 的使用模式
+6. `prefetch()` / `queue_prefetch()` 带有明确的 auto-injection 语义
+
+也就是说，Honcho 更像一个 **带策略层的认知型 memory provider**。
+
+### OpenViking 更像什么
+
+从 `plugins/memory/openviking/__init__.py` 可以确认：
+
+1. 有自己的知识库与 session
+2. 有 `prefetch()` / `queue_prefetch()`，但更偏搜索结果预热
+3. `sync_turn()` 记录对话 turn
+4. `on_session_end()` 通过 commit 触发 memory extraction
+5. 明确提到会提取 profile、preferences、entities、events、cases、patterns
+6. `on_memory_write()` 会把 builtin memory 写入镜像过去
+
+也就是说，OpenViking 更像一个 **带自动提取器的外部知识基座**。
+
+### 一个更细的结论
+
+- Honcho：更强调 user modeling / dialectic reasoning / recall policy
+- OpenViking：更强调 external knowledge base / session commit / extraction categories
+
+这说明“external provider”本身也不是一个统一范畴，它内部仍然分不同的 memory philosophy。
+
+## 10.7 Background review agent：现在已经能确认的完整行为链
+
+从 `run_agent.py` 可以确认这条链路已经相当具体：
+
+1. 主任务完成
+2. 判断 `_should_review_memory` / `_should_review_skills`
+3. 触发 `_spawn_background_review(...)`
+4. 根据触发源选择 `_MEMORY_REVIEW_PROMPT`、`_SKILL_REVIEW_PROMPT` 或 `_COMBINED_REVIEW_PROMPT`
+5. 启动一个新的 `review_agent`
+6. 这个 agent 会继承当前模型、provider、memory store，但把 nudge interval 清零，防止递归 review
+7. review agent 跑一轮 `run_conversation()`
+8. 主线程扫描 review agent 的 tool messages，抽取成功动作
+
+这说明当前的 learning loop 已经不是“模型可能会记住”，而是：
+
+> 主任务之后，系统确实会起一个后台反思 agent，
+> 让它专门决定要不要固化 memory 或 skill。
+
+## 10.8 但这个 background review 仍然有现实边界
+
+从 issue 线索还能看到两个重要限制：
+
+1. 它可能继承了当前 turn 的 cheap model，导致不会真正调用 tool
+2. 在 smart routing / gateway 场景下，可能出现 review 不触发或效果不稳定
+
+所以更准确的说法应该是：
+
+- background review 已经是内置机制
+- 但它仍是一个有现实失败模式的机制
+
+这也是专家 skill 以后必须提醒用户的点：
+“有 background review” 不等于 “有可靠 reflection pipeline”。
 
 ## 11. 对 expert skill 的直接启发
 
