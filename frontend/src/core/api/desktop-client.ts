@@ -87,6 +87,19 @@ type DesktopBridgeWindow = Window & {
   nionDesktop?: {
     backendBaseUrl?: string;
     getRuntimeInfo?: () => Promise<DesktopRuntimeInfoPayload>;
+    retrievalModels?: {
+      listRetrievalModels?: () => Promise<Record<string, unknown>>;
+      listRetrievalPacks?: () => Promise<Record<string, unknown>>;
+      downloadRetrievalModel?: (modelId: string) => Promise<{ success?: boolean; message?: string }>;
+      cancelRetrievalModel?: (modelId: string) => Promise<{ success?: boolean; message?: string }>;
+      removeRetrievalModel?: (modelId: string) => Promise<{ success?: boolean; message?: string }>;
+      importRetrievalModel?: (modelId: string) => Promise<{ success?: boolean; message?: string }>;
+      downloadRetrievalPack?: (packId: string) => Promise<{ success?: boolean; message?: string }>;
+      cancelRetrievalPack?: (packId: string) => Promise<{ success?: boolean; message?: string }>;
+      removeRetrievalPack?: (packId: string) => Promise<{ success?: boolean; message?: string }>;
+      importRetrievalPack?: (packId: string) => Promise<{ success?: boolean; message?: string }>;
+      onRetrievalModelDownloadProgress?: (callback: (payload: unknown) => void) => (() => void) | void;
+    };
   };
 };
 
@@ -155,6 +168,10 @@ function getDesktopWindow(): DesktopBridgeWindow | null {
 
 function getDesktopBridge() {
   return getDesktopWindow()?.nionDesktop;
+}
+
+export function getDesktopRetrievalModelsBridge() {
+  return getDesktopBridge()?.retrievalModels ?? null;
 }
 
 export async function getDesktopRuntimeInfo(): Promise<DesktopRuntimeInfo | null> {

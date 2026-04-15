@@ -6,6 +6,9 @@ import { toast } from "sonner";
 import { SettingsSection } from "@/components/workspace/settings/settings-section";
 import { useI18n } from "@/core/i18n/hooks";
 import {
+  useDesktopRetrievalCatalog,
+  useDesktopRetrievalModelActions,
+  useDesktopRetrievalDownloadProgress,
   useRebuildRetrievalConsumerIndexes,
   useRetrievalModelsStatus,
   useSaveRetrievalModelsProfile,
@@ -14,6 +17,7 @@ import {
 } from "@/core/retrieval-models/hooks";
 import type {
   RetrievalCapabilitySnapshot,
+  RetrievalLocalModelItem,
   SaveRetrievalModelsProfileRequest,
   TestRetrievalEmbeddingRequest,
   TestRetrievalRerankerRequest,
@@ -63,6 +67,9 @@ export function RetrievalModelsSection() {
   const { t, locale } = useI18n();
   const isZh = locale === "zh-CN";
   const { data: status, isLoading, error } = useRetrievalModelsStatus();
+  const { data: desktopCatalog } = useDesktopRetrievalCatalog();
+  const desktopActions = useDesktopRetrievalModelActions();
+  const downloadProgress = useDesktopRetrievalDownloadProgress();
   const saveMutation = useSaveRetrievalModelsProfile();
   const testEmbeddingMutation = useTestRetrievalEmbeddingProfile();
   const testRerankerMutation = useTestRetrievalRerankerProfile();
@@ -79,6 +86,8 @@ export function RetrievalModelsSection() {
     apiKey: "",
     modelName: "bge-reranker-large",
   });
+  const [embeddingMode, setEmbeddingMode] = useState<"local" | "api">("api");
+  const [rerankerMode, setRerankerMode] = useState<"local" | "api">("api");
 
   useEffect(() => {
     if (!status) {
@@ -86,6 +95,8 @@ export function RetrievalModelsSection() {
     }
     setEmbeddingDraft(buildEmbeddingDraft(status));
     setRerankerDraft(buildRerankerDraft(status));
+    setEmbeddingMode(status.active_profile.embedding.provider === "local_onnx" ? "local" : "api");
+    setRerankerMode(status.active_profile.reranker.provider === "local_onnx" ? "local" : "api");
   }, [status]);
 
   const capability = status?.capability ?? DEFAULT_CAPABILITY;
@@ -95,23 +106,47 @@ export function RetrievalModelsSection() {
     () => (status?.consumers ?? []).map((item) => item.consumer_id),
     [status],
   );
+  const localEmbeddingModels = useMemo<RetrievalLocalModelItem[]>(
+    () =>
+      ((desktopCatalog?.models as { models?: RetrievalLocalModelItem[] } | null)?.models ?? []).filter(
+        (item) => item.family === "embedding",
+      ),
+    [desktopCatalog],
+  );
+  const localRerankModels = useMemo<RetrievalLocalModelItem[]>(
+    () =>
+      ((desktopCatalog?.models as { models?: RetrievalLocalModelItem[] } | null)?.models ?? []).filter(
+        (item) => item.family === "rerank",
+      ),
+    [desktopCatalog],
+  );
 
   const savePayload = useMemo<SaveRetrievalModelsProfileRequest>(() => {
     const dimensions = Number(embeddingDraft.dimensions);
     return {
       embedding: {
+        provider: embeddingMode === "local" ? "local_onnx" : "openai_compatible",
+        model_id:
+          embeddingMode === "local"
+            ? status?.active_profile.embedding.model_id ?? localEmbeddingModels[0]?.model_id ?? null
+            : null,
         endpoint: embeddingDraft.endpoint.trim(),
         api_key: embeddingDraft.apiKey.trim() || undefined,
         model_name: embeddingDraft.modelName.trim(),
         dimensions: Number.isFinite(dimensions) ? dimensions : 0,
       },
       reranker: {
+        provider: rerankerMode === "local" ? "local_onnx" : "rerank_api",
+        model_id:
+          rerankerMode === "local"
+            ? status?.active_profile.reranker.model_id ?? localRerankModels[0]?.model_id ?? null
+            : null,
         endpoint: rerankerDraft.endpoint.trim(),
         api_key: rerankerDraft.apiKey.trim() || undefined,
         model_name: rerankerDraft.modelName.trim(),
       },
     };
-  }, [embeddingDraft, rerankerDraft]);
+  }, [embeddingDraft, rerankerDraft, embeddingMode, rerankerMode, status, localEmbeddingModels, localRerankModels]);
 
   const embeddingTestPayload = useMemo<TestRetrievalEmbeddingRequest>(
     () => ({
@@ -205,10 +240,43 @@ export function RetrievalModelsSection() {
           <RetrievalEmbeddingCard
             embedding={status.active_profile.embedding}
             capability={capability}
+            localModels={localEmbeddingModels}
+            mode={embeddingMode}
             draft={embeddingDraft}
             busy={saveMutation.isPending}
             testBusy={testEmbeddingMutation.isPending}
             testSummary={embeddingTestSummary}
+            onModeChange={setEmbeddingMode}
+            onSelectLocalModel={(modelId) => {
+              runSave({
+                ...savePayload,
+                embedding: {
+                  ...savePayload.embedding,
+                  provider: "local_onnx",
+                  model_id: modelId,
+                },
+              });
+            }}
+            onDownloadLocalModel={(modelId) => {
+              desktopActions.downloadModel.mutate(modelId, {
+                onSuccess: (result) => {
+                  toast[result.success ? "success" : "error"](result.message || "下载完成");
+                },
+                onError: (mutationError) => {
+                  toast.error(mutationError.message);
+                },
+              });
+            }}
+            onImportLocalModel={(modelId) => {
+              desktopActions.importModel.mutate(modelId, {
+                onSuccess: (result) => {
+                  toast[result.success ? "success" : "error"](result.message || "导入完成");
+                },
+                onError: (mutationError) => {
+                  toast.error(mutationError.message);
+                },
+              });
+            }}
             onDraftChange={(patch) => {
               setEmbeddingDraft((current) => ({ ...current, ...patch }));
             }}
@@ -228,11 +296,44 @@ export function RetrievalModelsSection() {
           <RetrievalRerankerCard
             reranker={status.active_profile.reranker}
             capability={capability}
+            localModels={localRerankModels}
+            mode={rerankerMode}
             draft={rerankerDraft}
             busy={saveMutation.isPending}
             testBusy={testRerankerMutation.isPending}
             rebuildBusy={rebuildMutation.isPending}
             testSummary={rerankerTestSummary}
+            onModeChange={setRerankerMode}
+            onSelectLocalModel={(modelId) => {
+              runSave({
+                ...savePayload,
+                reranker: {
+                  ...savePayload.reranker,
+                  provider: "local_onnx",
+                  model_id: modelId,
+                },
+              });
+            }}
+            onDownloadLocalModel={(modelId) => {
+              desktopActions.downloadModel.mutate(modelId, {
+                onSuccess: (result) => {
+                  toast[result.success ? "success" : "error"](result.message || "下载完成");
+                },
+                onError: (mutationError) => {
+                  toast.error(mutationError.message);
+                },
+              });
+            }}
+            onImportLocalModel={(modelId) => {
+              desktopActions.importModel.mutate(modelId, {
+                onSuccess: (result) => {
+                  toast[result.success ? "success" : "error"](result.message || "导入完成");
+                },
+                onError: (mutationError) => {
+                  toast.error(mutationError.message);
+                },
+              });
+            }}
             onDraftChange={(patch) => {
               setRerankerDraft((current) => ({ ...current, ...patch }));
             }}
@@ -267,6 +368,11 @@ export function RetrievalModelsSection() {
           />
 
           <RetrievalConsumersCard consumers={status.consumers} />
+          {downloadProgress ? (
+            <div className="text-muted-foreground text-sm">
+              当前下载：{String(downloadProgress.message ?? "")}
+            </div>
+          ) : null}
         </div>
       ) : null}
     </SettingsSection>

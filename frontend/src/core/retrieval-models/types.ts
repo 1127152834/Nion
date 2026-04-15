@@ -34,6 +34,11 @@ export interface RetrievalRecommendedProfile {
   reranker_model_id: string | null;
 }
 
+export interface RetrievalDesktopModelActionResult {
+  success: boolean;
+  message: string;
+}
+
 export interface RetrievalCapabilitySnapshot {
   local_prepare_enabled: boolean;
   remote_config_enabled: boolean;
@@ -64,6 +69,8 @@ export interface RetrievalModelsStatusResponse {
 }
 
 export interface RetrievalEmbeddingSaveRequest {
+  provider?: "local_onnx" | "openai_compatible";
+  model_id?: string | null;
   endpoint: string;
   api_key?: string;
   model_name: string;
@@ -71,6 +78,8 @@ export interface RetrievalEmbeddingSaveRequest {
 }
 
 export interface RetrievalRerankerSaveRequest {
+  provider?: "local_onnx" | "rerank_api";
+  model_id?: string | null;
   endpoint: string;
   api_key?: string;
   model_name: string;

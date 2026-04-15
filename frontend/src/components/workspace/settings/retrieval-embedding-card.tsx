@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import type {
   RetrievalCapabilitySnapshot,
   RetrievalEmbeddingProfile,
+  RetrievalLocalModelItem,
 } from "@/core/retrieval-models/types";
 
 export interface RetrievalEmbeddingDraft {
@@ -17,10 +18,16 @@ export interface RetrievalEmbeddingDraft {
 export interface RetrievalEmbeddingCardProps {
   embedding: RetrievalEmbeddingProfile;
   capability: RetrievalCapabilitySnapshot;
+  localModels: RetrievalLocalModelItem[];
+  mode: "local" | "api";
   draft: RetrievalEmbeddingDraft;
   busy: boolean;
   testBusy: boolean;
   testSummary: string | null;
+  onModeChange: (mode: "local" | "api") => void;
+  onSelectLocalModel: (modelId: string) => void;
+  onDownloadLocalModel: (modelId: string) => void;
+  onImportLocalModel: (modelId: string) => void;
   onDraftChange: (patch: Partial<RetrievalEmbeddingDraft>) => void;
   onSave: () => void;
   onTest: () => void;
@@ -29,10 +36,16 @@ export interface RetrievalEmbeddingCardProps {
 export function RetrievalEmbeddingCard({
   embedding,
   capability,
+  localModels,
+  mode,
   draft,
   busy,
   testBusy,
   testSummary,
+  onModeChange,
+  onSelectLocalModel,
+  onDownloadLocalModel,
+  onImportLocalModel,
   onDraftChange,
   onSave,
   onTest,
@@ -46,11 +59,69 @@ export function RetrievalEmbeddingCard({
             用于长期记忆和知识库的语义检索。
           </div>
         </div>
-        <div className="text-muted-foreground text-sm">
-          {embedding.api_key_configured ? "密钥已保存" : "未保存密钥"}
+        <div className="flex rounded-md border p-1">
+          <button
+            type="button"
+            className={mode === "local" ? "rounded px-3 py-1 text-sm font-medium bg-muted" : "px-3 py-1 text-sm text-muted-foreground"}
+            onClick={() => onModeChange("local")}
+          >
+            本地模型
+          </button>
+          <button
+            type="button"
+            className={mode === "api" ? "rounded px-3 py-1 text-sm font-medium bg-muted" : "px-3 py-1 text-sm text-muted-foreground"}
+            onClick={() => onModeChange("api")}
+          >
+            API
+          </button>
         </div>
       </div>
 
+      {mode === "local" ? (
+        <div className="space-y-3">
+          {localModels.map((model) => (
+            <div
+              key={model.model_id}
+              className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-background px-4 py-3"
+            >
+              <div className="space-y-1">
+                <div className="text-sm font-medium">{model.display_name}</div>
+                <div className="text-muted-foreground text-xs">
+                  {model.locale} · {model.installed ? "已下载" : model.downloading ? "下载中" : "未下载"}
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant={embedding.model_id === model.model_id ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => onSelectLocalModel(model.model_id)}
+                  disabled={!model.installed}
+                >
+                  {embedding.model_id === model.model_id ? "已选择" : "选择"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onDownloadLocalModel(model.model_id)}
+                  disabled={model.installed || model.downloading}
+                >
+                  下载
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onImportLocalModel(model.model_id)}
+                >
+                  导入
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
       <div className="grid gap-4 md:grid-cols-2">
         <label className="space-y-2 text-sm">
           <span className="font-medium">接口地址</span>
@@ -87,6 +158,7 @@ export function RetrievalEmbeddingCard({
           />
         </label>
       </div>
+      )}
 
       {testSummary ? (
         <div className="rounded-lg border bg-muted/30 px-3 py-2 text-sm">
@@ -94,6 +166,7 @@ export function RetrievalEmbeddingCard({
         </div>
       ) : null}
 
+      {mode === "api" ? (
       <div className="flex flex-wrap gap-2">
         <Button type="button" onClick={onSave} disabled={!capability.remote_config_enabled || busy}>
           {busy ? "保存中..." : "保存"}
@@ -107,6 +180,7 @@ export function RetrievalEmbeddingCard({
           {testBusy ? "测试中..." : "测试连接"}
         </Button>
       </div>
+      ) : null}
     </section>
   );
 }

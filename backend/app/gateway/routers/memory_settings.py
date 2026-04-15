@@ -29,8 +29,8 @@ def read_memory_settings_snapshot() -> dict[str, Any]:
     reranker = active_profile["reranker"]
     return {
         "retrieval_status": {
-            "vector_enabled": embedding["mode"] == "remote_managed",
-            "reranker_enabled": reranker["mode"] in {"local_managed", "remote_managed"},
+            "vector_enabled": embedding["provider"] in {"local_onnx", "openai_compatible"},
+            "reranker_enabled": reranker["provider"] in {"local_onnx", "rerank_api"},
             "detail": _COMPAT_DETAIL,
         },
         "index_health": {

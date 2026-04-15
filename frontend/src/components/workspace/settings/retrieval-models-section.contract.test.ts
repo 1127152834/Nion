@@ -20,4 +20,25 @@ void test("retrieval models section assembles the Task 8 retrieval cards", async
   assert.match(source, /useTestRetrievalEmbeddingProfile/);
   assert.match(source, /useTestRetrievalRerankerProfile/);
   assert.match(source, /useRebuildRetrievalConsumerIndexes/);
+  assert.match(source, /useDesktopRetrievalCatalog/);
+  assert.match(source, /useDesktopRetrievalModelActions/);
+  assert.match(source, /downloadPack|downloadModel/);
+});
+
+void test("retrieval model cards expose local and api modes", async () => {
+  const embeddingSource = await readFile(
+    new URL("./retrieval-embedding-card.tsx", import.meta.url),
+    "utf8",
+  );
+  const rerankerSource = await readFile(
+    new URL("./retrieval-reranker-card.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(embeddingSource, /本地模型/);
+  assert.match(embeddingSource, /API/);
+  assert.match(embeddingSource, /localModels/);
+  assert.match(rerankerSource, /本地模型/);
+  assert.match(rerankerSource, /API/);
+  assert.match(rerankerSource, /localModels/);
 });

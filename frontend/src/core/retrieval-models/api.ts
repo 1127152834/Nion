@@ -160,14 +160,16 @@ export async function saveRetrievalModelsProfile(
     },
     body: JSON.stringify({
       embedding: {
-        mode: "remote_managed",
+        provider: request.embedding.provider ?? "openai_compatible",
+        model_id: request.embedding.model_id ?? null,
         endpoint: request.embedding.endpoint,
         api_key: request.embedding.api_key ?? "",
         model_name: request.embedding.model_name,
         dimensions: request.embedding.dimensions,
       },
       reranker: {
-        mode: "remote_managed",
+        provider: request.reranker.provider ?? "rerank_api",
+        model_id: request.reranker.model_id ?? null,
         endpoint: request.reranker.endpoint,
         api_key: request.reranker.api_key ?? "",
         model_name: request.reranker.model_name,
