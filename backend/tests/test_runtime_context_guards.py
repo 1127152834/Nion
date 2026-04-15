@@ -1,4 +1,5 @@
 import importlib
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
@@ -122,3 +123,13 @@ def test_sandbox_from_runtime_returns_sandbox_without_writing_context_when_missi
 
     assert sandbox.id == "sandbox-1"
     provider.get.assert_called_once_with("sandbox-1")
+
+
+def test_view_image_tool_avoids_top_level_sandbox_tools_import():
+    source = Path("backend/packages/harness/nion/tools/builtins/view_image_tool.py").read_text(
+        encoding="utf-8"
+    )
+    top_level_source, function_source = source.split("def view_image_tool", 1)
+
+    assert "from nion.sandbox.tools import get_thread_data, replace_virtual_path" not in top_level_source
+    assert "from nion.sandbox.tools import get_thread_data, replace_virtual_path" in function_source
