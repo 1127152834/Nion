@@ -17,3 +17,14 @@ void test("input box includes selected CLI tools in shortcut selections payload"
 
   assert.match(source, /shortcutSelections: \{\s*contexts: selectedContexts,\s*skills: selectedSkills,\s*mcpTools: selectedMcpTools,\s*cliTools: selectedCliTools,/s);
 });
+
+void test("input box does not append selected CLI tools back into the visible message text", async () => {
+  const source = await readFile(
+    new URL("../../components/workspace/input-box.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /implicitMentions\.push\(\{ kind, value, mention \}\)/);
+  assert.match(source, /for \(const tool of selectedCliTools\)/);
+  assert.doesNotMatch(source, /appendImplicitMention\("cli", tool, `#\$\{tool\}`\)/);
+});

@@ -29,3 +29,11 @@ void test("input box mention highlight overlay does not render duplicate visible
   assert.doesNotMatch(source, /dark:text-purple-300|dark:text-amber-300|dark:text-blue-300|dark:text-green-300/);
   assert.match(source, /rounded px-0\.5 font-semibold text-transparent", colorClass\)/);
 });
+
+void test("input box keeps CLI implicit mentions out of the visible submitted text", async () => {
+  const source = await readFile(new URL("./input-box.tsx", import.meta.url), "utf8");
+
+  assert.match(source, /const visibleImplicitMentions: string\[] = \[\];/);
+  assert.match(source, /if \(kind !== "cli"\) \{\s*visibleImplicitMentions\.push\(mention\);/s);
+  assert.match(source, /const mentionLine = visibleImplicitMentions\.join\(" "\);/);
+});

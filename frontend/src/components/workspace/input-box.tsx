@@ -444,6 +444,7 @@ function buildSubmissionPayload(
 ) {
   const trimmed = text.trim();
   const implicitMentions: NonNullable<PromptInputMessage["implicitMentions"]> = [];
+  const visibleImplicitMentions: string[] = [];
   const seenMentions = new Set<string>();
 
   const appendImplicitMention = (
@@ -456,6 +457,9 @@ function buildSubmissionPayload(
     }
     seenMentions.add(mention);
     implicitMentions.push({ kind, value, mention });
+    if (kind !== "cli") {
+      visibleImplicitMentions.push(mention);
+    }
   };
 
   for (const context of selectedContexts) {
@@ -479,14 +483,15 @@ function buildSubmissionPayload(
         return false;
       }
       seenMentions.add(mention.mention);
+      visibleImplicitMentions.push(mention.mention);
       return true;
     }),
   );
 
-  const mentionLine = implicitMentions.map((item) => item.mention).join(" ");
+  const mentionLine = visibleImplicitMentions.join(" ");
   return {
     text:
-      implicitMentions.length > 0 && mentionLine
+      mentionLine
         ? `${trimmed}\n\n${mentionLine}`
         : trimmed,
     implicitMentions,
