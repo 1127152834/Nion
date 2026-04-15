@@ -62,6 +62,8 @@ def test_query_knowledge_tool_returns_citations_and_policy(tmp_path, monkeypatch
     payload = json.loads(query_knowledge_base_tool.invoke({"question": "roadmap"}))
 
     assert payload["citations"][0]["page_state"] == "active"
+    assert payload["page_ids"] == ["concept:roadmap"]
+    assert payload["matched_page_ids"] == payload["page_ids"]
     assert payload["retrieval_policy"] == "active_only"
 
 

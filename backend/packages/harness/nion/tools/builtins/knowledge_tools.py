@@ -25,6 +25,7 @@ def query_knowledge_base_tool(question: str) -> str:
     return json.dumps(
         {
             "answer_markdown": result.answer_markdown,
+            "page_ids": result.matched_page_ids,
             "citations": result.citations,
             "matched_page_ids": result.matched_page_ids,
             "retrieval_policy": result.retrieval_policy,

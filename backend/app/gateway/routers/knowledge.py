@@ -338,9 +338,12 @@ async def approve_knowledge_queue(payload: KnowledgeQueueApprovalRequest) -> Kno
 
 
 @router.get("/query", response_model=KnowledgeQueryResult)
-async def query_knowledge(question: str = Query(..., min_length=1)) -> KnowledgeQueryResult:
+async def query_knowledge(
+    question: str = Query(..., min_length=1),
+    include_archived: bool = Query(False),
+) -> KnowledgeQueryResult:
     service = KnowledgeQueryService()
-    return service.answer(question)
+    return service.answer(question, include_archived=include_archived)
 
 
 @router.post("/graph/rebuild")

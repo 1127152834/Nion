@@ -370,6 +370,47 @@ def test_knowledge_query_endpoint_returns_page_based_answer(monkeypatch, tmp_pat
     assert payload["citations"][0]["page_state"] == "active"
 
 
+def test_knowledge_query_endpoint_include_archived_returns_archived_warning(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+
+    from nion.knowledge.page_store import KnowledgePageStore
+
+    store = KnowledgePageStore(base_dir=tmp_path)
+    store.write_page(
+        page_id="concept:roadmap-active",
+        page_type="concept",
+        title="Roadmap Active",
+        body="current roadmap",
+        sources=["source:notebook_note:note_1"],
+        compiled_from=[{"source_id": "source:notebook_note:note_1", "content_hash": "abc123"}],
+        last_compiled_at="2026-04-15T10:00:00Z",
+        page_state="active",
+    )
+    store.write_page(
+        page_id="concept:roadmap-archived",
+        page_type="concept",
+        title="Roadmap Archived",
+        body="archived roadmap",
+        sources=["source:notebook_note:note_2"],
+        compiled_from=[{"source_id": "source:notebook_note:note_2", "content_hash": "def456"}],
+        last_compiled_at="2026-04-14T10:00:00Z",
+        page_state="archived",
+    )
+
+    with TestClient(create_app()) as client:
+        response = client.get(
+            "/api/knowledge/query",
+            params={"question": "roadmap", "include_archived": "true"},
+        )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["retrieval_policy"] == "explicit_archived_lookup"
+    assert {citation["page_state"] for citation in payload["citations"]} == {"active", "archived"}
+    assert "Query included archived knowledge pages." in payload["warnings"]
+
+
 def test_knowledge_graph_rebuild_endpoint_returns_graph_payload(monkeypatch, tmp_path):
     monkeypatch.setenv("NION_HOME", str(tmp_path))
     reset_paths()

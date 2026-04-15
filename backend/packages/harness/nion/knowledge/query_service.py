@@ -58,16 +58,16 @@ class KnowledgeQueryService:
 
         matches.sort(key=lambda item: (item[0], str(item[1]["page_id"])), reverse=True)
         has_active_match = any(citation["page_state"] == "active" for _, citation, _ in matches)
-        selected_matches = [
-            item
-            for item in matches
-            if include_archived
-            or item[1]["page_state"] != "archived"
+        selected_matches = list(matches) if include_archived else [
+            item for item in matches if item[1]["page_state"] != "archived"
         ]
         retrieval_policy = "explicit_archived_lookup" if include_archived else "active_only"
         warnings: list[str] = []
 
-        if has_active_match:
+        if include_archived:
+            if any(citation["page_state"] == "archived" for _, citation, _ in selected_matches):
+                warnings.append("Query included archived knowledge pages.")
+        elif has_active_match:
             selected_matches = [
                 item for item in selected_matches if item[1]["page_state"] == "active"
             ]

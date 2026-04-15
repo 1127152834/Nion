@@ -52,3 +52,35 @@ def test_query_prefers_active_pages_and_downgrades_stale(tmp_path):
     assert result.retrieval_policy == "active_only"
     assert result.citations[0]["page_state"] == "active"
     assert "old roadmap" not in result.answer_markdown
+
+
+def test_query_include_archived_returns_archived_matches_with_warning(tmp_path):
+    store = KnowledgePageStore(base_dir=tmp_path)
+    store.write_page(
+        page_id="concept:roadmap-active",
+        page_type="concept",
+        title="Roadmap Active",
+        body="current roadmap",
+        sources=["source:notebook_note:note_1"],
+        compiled_from=[{"source_id": "source:notebook_note:note_1", "content_hash": "abc123"}],
+        last_compiled_at="2026-04-15T10:00:00Z",
+        page_state="active",
+    )
+    store.write_page(
+        page_id="concept:roadmap-archived",
+        page_type="concept",
+        title="Roadmap Archived",
+        body="archived roadmap",
+        sources=["source:notebook_note:note_2"],
+        compiled_from=[{"source_id": "source:notebook_note:note_2", "content_hash": "def456"}],
+        last_compiled_at="2026-04-14T10:00:00Z",
+        page_state="archived",
+    )
+
+    result = KnowledgeQueryService(base_dir=tmp_path).answer("roadmap", include_archived=True)
+
+    assert result.retrieval_policy == "explicit_archived_lookup"
+    assert {citation["page_state"] for citation in result.citations} == {"active", "archived"}
+    assert "concept:roadmap-active" in result.matched_page_ids
+    assert "concept:roadmap-archived" in result.matched_page_ids
+    assert "Query included archived knowledge pages." in result.warnings
