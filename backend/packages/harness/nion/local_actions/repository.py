@@ -2,7 +2,7 @@ import sqlite3
 from pathlib import Path
 from typing import TypeVar
 
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel
 
 from nion.local_actions.models import (
     LocalActionExecutionRecord,
@@ -82,10 +82,7 @@ class LocalActionsRepository:
 
     @staticmethod
     def _deserialize(payload: str, model_type: type[T]) -> T | None:
-        try:
-            return model_type.model_validate_json(payload)
-        except ValidationError:
-            return None
+        return model_type.model_validate_json(payload)
 
     def save_goal(self, goal: LocalActionGoal) -> LocalActionGoal:
         with self._connect() as connection:
