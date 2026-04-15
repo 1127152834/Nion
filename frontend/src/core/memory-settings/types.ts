@@ -30,6 +30,12 @@ export interface MemorySettingsIndexHealth {
   last_rebuild_at: string | null;
 }
 
+export interface MemorySettingsRetrievalStatus {
+  vector_enabled: boolean;
+  reranker_enabled: boolean;
+  detail: string;
+}
+
 export interface MemorySettingsRemoteConfig {
   endpoint: string;
   api_key_configured: boolean;
@@ -42,6 +48,7 @@ export interface MemorySettingsResponse {
   download_status: MemorySettingsDownloadStatus;
   active_fingerprint: MemorySettingsFingerprint;
   index_health: MemorySettingsIndexHealth;
+  retrieval_status: MemorySettingsRetrievalStatus;
   remote_config: MemorySettingsRemoteConfig;
 }
 

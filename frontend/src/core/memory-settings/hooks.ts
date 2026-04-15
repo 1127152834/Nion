@@ -41,6 +41,11 @@ const EMPTY_MEMORY_SETTINGS: MemorySettingsResponse = {
     record_count: 0,
     last_rebuild_at: null,
   },
+  retrieval_status: {
+    vector_enabled: false,
+    reranker_enabled: false,
+    detail: "正在读取检索增强状态。",
+  },
   remote_config: {
     endpoint: "",
     api_key_configured: false,
