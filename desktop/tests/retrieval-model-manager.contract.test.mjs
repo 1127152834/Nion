@@ -65,4 +65,5 @@ test("desktop retrieval model manager tracks multi-asset local models", () => {
   assert.match(source, /role: "config"/);
   assert.match(source, /resolveModelAssetTargets/);
   assert.match(source, /downloadAsset/);
+  assert.match(source, /assets:/);
 });

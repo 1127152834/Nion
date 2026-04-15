@@ -47,7 +47,38 @@ class LocalOnnxEmbeddingProvider:
 
 
 def _load_local_embedding_runtime(bundle: LocalEmbeddingBundle):
+    runtime = _try_create_onnxruntime_embedding_runtime(bundle)
+    if runtime is not None:
+        return runtime
     return _HashingFallbackEmbeddingRuntime(bundle.dimensions)
+
+
+def _try_create_onnxruntime_embedding_runtime(bundle: LocalEmbeddingBundle):
+    try:
+        import numpy as np
+        import onnxruntime as ort
+        from transformers import AutoTokenizer
+    except Exception:
+        return None
+
+    try:
+        tokenizer = AutoTokenizer.from_pretrained(
+            str(bundle.tokenizer_path.parent),
+            local_files_only=True,
+        )
+        session = ort.InferenceSession(
+            str(bundle.onnx_path),
+            providers=["CPUExecutionProvider"],
+        )
+    except Exception:
+        return None
+
+    return _OnnxRuntimeEmbeddingRuntime(
+        tokenizer=tokenizer,
+        session=session,
+        dimensions=bundle.dimensions,
+        np_module=np,
+    )
 
 
 class _HashingFallbackEmbeddingRuntime:
@@ -74,3 +105,44 @@ class _HashingFallbackEmbeddingRuntime:
                 vector = [value / norm for value in vector]
             vectors.append(vector)
         return vectors
+
+
+class _OnnxRuntimeEmbeddingRuntime:
+    def __init__(self, *, tokenizer, session, dimensions: int, np_module) -> None:
+        self._tokenizer = tokenizer
+        self._session = session
+        self._dimensions = dimensions
+        self._np = np_module
+
+    def embed(self, texts: list[str]) -> list[list[float]]:
+        encoded = self._tokenizer(
+            texts,
+            padding=True,
+            truncation=True,
+            return_tensors="np",
+        )
+        inputs = {
+            key: value.astype(self._np.int64)
+            for key, value in encoded.items()
+            if key in {item.name for item in self._session.get_inputs()}
+        }
+        outputs = self._session.run(None, inputs)
+        if not outputs:
+            raise ValueError("Local ONNX embedding runtime returned no outputs")
+        hidden = outputs[0]
+        mask = inputs.get("attention_mask")
+        if mask is None:
+            pooled = hidden.mean(axis=1)
+        else:
+            mask_expanded = mask[..., None]
+            summed = (hidden * mask_expanded).sum(axis=1)
+            counts = mask_expanded.sum(axis=1).clip(min=1)
+            pooled = summed / counts
+        norms = self._np.linalg.norm(pooled, axis=1, keepdims=True)
+        norms = self._np.clip(norms, 1e-12, None)
+        normalized = pooled / norms
+        vectors = normalized.tolist()
+        return [
+            [float(value) for value in row[: self._dimensions]]
+            for row in vectors
+        ]

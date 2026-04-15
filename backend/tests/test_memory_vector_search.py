@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import httpx
+from pathlib import Path
 
 from nion.memory.embedding.index_service import MemoryEmbeddingIndexService
 from nion.memory.search_fusion.models import SearchRouteHit
@@ -306,6 +307,58 @@ def test_memory_embedding_index_service_can_rebuild_with_complete_local_embeddin
 
     assert result["record_count"] == 1
     assert result["manifest"]["provider_kind"] == "local_onnx"
+
+
+def test_local_embedding_provider_prefers_real_runtime_loader_when_assets_are_complete(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    model_root = tmp_path / "models" / "retrieval" / "modelscope" / "jinaai__jina-embeddings-v2-base-zh"
+    model_root.mkdir(parents=True)
+    (model_root / "onnx__model_quantized.onnx").write_text("fake-onnx", encoding="utf-8")
+    (model_root / "tokenizer.json").write_text("{}", encoding="utf-8")
+    (model_root / "config.json").write_text("{}", encoding="utf-8")
+
+    RetrievalModelsSettingsRepository(base_dir=tmp_path).save(
+        RetrievalModelsSettings.model_validate(
+            {
+                "active": {
+                    "embedding": {
+                        "provider": "local_onnx",
+                        "model_id": "zh-embedding-lite",
+                    }
+                }
+            }
+        )
+    )
+
+    sentinel = object()
+
+    monkeypatch.setattr(
+        "nion.memory.embedding.local_provider._try_create_onnxruntime_embedding_runtime",
+        lambda bundle: sentinel,
+    )
+
+    from nion.memory.embedding.index_service import _resolve_local_embedding_bundle
+    from nion.memory.embedding.local_provider import _load_local_embedding_runtime
+
+    bundle_payload = _resolve_local_embedding_bundle(tmp_path, "zh-embedding-lite")
+    bundle = __import__(
+        "nion.memory.embedding.local_provider",
+        fromlist=["LocalEmbeddingBundle"],
+    ).LocalEmbeddingBundle(
+        provider_id=bundle_payload["model_id"],
+        model_id=bundle_payload["model_id"],
+        model_name=bundle_payload["model_name"],
+        dimensions=bundle_payload["dimensions"],
+        onnx_path=Path(bundle_payload["onnx_path"]),
+        tokenizer_path=Path(bundle_payload["tokenizer_path"]),
+        config_path=Path(bundle_payload["config_path"]),
+    )
+
+    runtime = _load_local_embedding_runtime(bundle)
+
+    assert runtime is sentinel
 
 
 class _StubEmbeddingProvider:
