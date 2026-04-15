@@ -58,26 +58,46 @@ def _mode_copy(mode: str) -> dict[str, str]:
     }
 
 
-def _download_status(paths: Paths, settings: EmbeddingSystemSettings) -> dict[str, str]:
+def _download_status(paths: Paths, settings: EmbeddingSystemSettings) -> dict[str, Any]:
     model_dir = paths.memory_os_vector_dir / "models" / settings.local_model_key
     if settings.mode == "remote_managed":
         return {
             "state": "remote",
             "detail": "当前模式使用远端 embedding 服务，不需要本地模型下载。",
+            "progress": {
+                "percent": 100,
+                "downloaded_bytes": 0,
+                "total_bytes": 0,
+            },
         }
     if settings.download_detail:
         return {
             "state": settings.download_state,
             "detail": settings.download_detail,
+            "progress": {
+                "percent": 100 if settings.download_state == "ready" else 0,
+                "downloaded_bytes": 0,
+                "total_bytes": 0,
+            },
         }
     if model_dir.exists():
         return {
             "state": "ready",
             "detail": "本地模型已就绪，可以直接重建向量索引。",
+            "progress": {
+                "percent": 100,
+                "downloaded_bytes": 0,
+                "total_bytes": 0,
+            },
         }
     return {
         "state": "missing",
         "detail": "本地模型尚未准备好，首次构建前需要先下载。",
+        "progress": {
+            "percent": 0,
+            "downloaded_bytes": 0,
+            "total_bytes": 0,
+        },
     }
 
 

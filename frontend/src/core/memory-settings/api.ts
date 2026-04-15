@@ -20,6 +20,10 @@ function isMemorySettingsResponse(value: unknown): value is MemorySettingsRespon
     isObjectRecord(value.download_status) &&
     typeof value.download_status.state === "string" &&
     typeof value.download_status.detail === "string" &&
+    isObjectRecord(value.download_status.progress) &&
+    typeof value.download_status.progress.percent === "number" &&
+    typeof value.download_status.progress.downloaded_bytes === "number" &&
+    typeof value.download_status.progress.total_bytes === "number" &&
     isObjectRecord(value.active_fingerprint) &&
     typeof value.active_fingerprint.provider_key === "string" &&
     typeof value.active_fingerprint.model_key === "string" &&

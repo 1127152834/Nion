@@ -7,6 +7,11 @@ export interface MemorySettingsMode {
 export interface MemorySettingsDownloadStatus {
   state: string;
   detail: string;
+  progress: {
+    percent: number;
+    downloaded_bytes: number;
+    total_bytes: number;
+  };
 }
 
 export interface MemorySettingsFingerprint {

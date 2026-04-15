@@ -17,7 +17,7 @@ export function MemorySettingsPage() {
   return (
     <SettingsSection
       title={t.settings.memory.title}
-      description="先把向量模式配置好，再决定什么时候去看记忆、改身份或改 Soul。"
+      description="先确认本地向量模型是否准备好。API 模型只是高级接入，不该打扰普通用户。"
     >
       <div className="space-y-4">
         <MemoryEmbeddingPanel />

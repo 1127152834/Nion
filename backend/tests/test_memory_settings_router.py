@@ -52,6 +52,7 @@ def test_memory_settings_router_supports_patch_download_and_rebuild(
     assert rebuild.json()["job"]["record_count"] == 3
     assert read_back.status_code == 200
     assert read_back.json()["index_health"]["record_count"] == 3
+    assert read_back.json()["download_status"]["progress"]["percent"] >= 0
 
 
 class _StubDownloadManager:

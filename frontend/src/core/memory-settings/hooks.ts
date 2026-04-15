@@ -21,6 +21,11 @@ const EMPTY_MEMORY_SETTINGS: MemorySettingsResponse = {
   download_status: {
     state: "loading",
     detail: "正在加载 embedding 设置快照。",
+    progress: {
+      percent: 0,
+      downloaded_bytes: 0,
+      total_bytes: 0,
+    },
   },
   active_fingerprint: {
     provider_key: "",
