@@ -154,7 +154,7 @@ export function SubagentsSection({
     }
     persistEntries([
       ...entries.map((entry) => ({ name: entry.name, timeout: entry.timeout })),
-      [name, "900"],
+      { name, timeout: "900" },
     ]);
   };
 

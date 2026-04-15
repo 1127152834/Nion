@@ -83,3 +83,13 @@ void test("subagent settings choose names from session-policy registry options",
   assert.match(source, /unavailable/);
   assert.doesNotMatch(source, /<Input\s+value=\{name\}/);
 });
+
+void test("subagent settings addEntry appends object-shaped draft rows", async () => {
+  const source = await readFile(
+    new URL("./configuration/sections/subagents-section.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /\{\s*name,\s*timeout:\s*"900"\s*\}/);
+  assert.doesNotMatch(source, /\[name,\s*"900"\]/);
+});
