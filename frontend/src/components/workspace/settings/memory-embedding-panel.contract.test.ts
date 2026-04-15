@@ -11,7 +11,8 @@ void test("memory embedding panel is status-only and does not expose retrieval c
   assert.match(source, /检索增强状态/);
   assert.match(source, /retrieval_status\.detail/);
   assert.match(source, /index_health\.detail/);
-  assert.match(source, /前往模型管理中的检索模型|跳转到模型管理/);
+  assert.match(source, /前往检索模型|跳转到检索模型/);
+  assert.match(source, /goToSection\("retrievalModels"\)/);
   assert.match(source, /useMemorySettings/);
   assert.doesNotMatch(source, /保存接口配置|重建记忆索引|接口配置/);
   assert.doesNotMatch(source, /接口地址|模型名|API Key|向量维度/);

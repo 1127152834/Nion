@@ -11,6 +11,7 @@ from nion.memory.embedding.settings_repository import EmbeddingSettingsRepositor
 from nion.memory.embedding.vector_store import VectorStoreIndexMetadata, VectorStoreRecord
 from nion.memory_os.clock import utcnow_z
 from nion.memory_os.repository import MemoryOSRepository
+from nion.retrieval.models.settings_repository import RetrievalModelsSettingsRepository
 
 STRUCTURED_VECTOR_DOMAINS = {"user_model", "relationship", "agent_self", "soul", "procedure"}
 
@@ -26,13 +27,30 @@ class MemoryEmbeddingIndexService:
         self._base_dir = Path(base_dir)
         self._repository = repository
         self._settings_repository = EmbeddingSettingsRepository(self._base_dir)
-        self._settings = settings or self._settings_repository.load()
+        self._settings = settings or self._load_runtime_settings()
         self._provider = build_embedding_provider(
             base_dir=self._base_dir,
             settings=self._settings,
         )
         self._store = DuckDBVectorStore(
             self._base_dir / "memory-os" / "indexes" / "vector" / "index.duckdb"
+        )
+
+    def _load_runtime_settings(self) -> EmbeddingSystemSettings:
+        retrieval_settings = RetrievalModelsSettingsRepository(self._base_dir).load()
+        persisted = self._settings_repository.load()
+        return EmbeddingSystemSettings(
+            mode=retrieval_settings.active.embedding.mode,
+            remote_endpoint=retrieval_settings.active.embedding.endpoint,
+            remote_api_key=retrieval_settings.active.embedding.api_key,
+            remote_model_name=retrieval_settings.active.embedding.model_name,
+            remote_dimensions=retrieval_settings.active.embedding.dimensions,
+            distance_metric=persisted.distance_metric,
+            last_rebuild_at=persisted.last_rebuild_at,
+            health_state=persisted.health_state,
+            health_detail=persisted.health_detail,
+            active_fingerprint=persisted.active_fingerprint,
+            extra=persisted.extra,
         )
 
     def rebuild_full_index(self) -> dict[str, Any]:

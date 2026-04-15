@@ -96,16 +96,16 @@ export function MemoryEmbeddingPanel() {
         <div className="rounded-lg bg-muted/30 px-4 py-3 text-sm">
           <div className="font-medium">跳转提示</div>
           <div className="text-muted-foreground mt-1">
-            如需调整检索模型，请前往模型管理中的检索模型。
+            如需调整检索模型，请前往检索模型。
           </div>
           <div className="pt-3">
             <Button
               type="button"
               variant="ghost"
               className="h-auto px-0 text-sm"
-              onClick={() => goToSection("models")}
+              onClick={() => goToSection("retrievalModels")}
             >
-              前往模型管理中的检索模型
+              前往检索模型
               <ArrowRightIcon className="ml-1 size-4" />
             </Button>
           </div>

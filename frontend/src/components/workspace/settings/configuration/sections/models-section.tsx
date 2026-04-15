@@ -81,7 +81,7 @@ const OPENAI_PROVIDER_PRESET = "openai-compatible";
 const ANTHROPIC_PROVIDER_PRESET = "anthropic-compatible";
 const UNASSIGNED_PROVIDER = "__unassigned_provider__";
 
-export type ModelSettingsChildView = "providers" | "models" | "retrieval";
+export type ModelSettingsChildView = "providers" | "models";
 type ProviderProtocol = "openai-compatible" | "anthropic-compatible";
 
 type ProviderPreset = {

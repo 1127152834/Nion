@@ -26,7 +26,7 @@
     - `frontend/src/components/workspace/settings/memory-embedding-panel.contract.test.ts`
     - `frontend/src/components/workspace/knowledge/knowledge-home-page.contract.test.ts`
   - 说明：
-    - 检索模型能力 owner 已迁入 `Settings > 模型 > 检索模型`
+    - 检索模型能力 owner 已迁入 `Settings > 检索模型`
     - `Settings > 记忆` 只保留状态投影
     - `Knowledge Base` 已接入 retrieval consumer 提示
 - custom-agent orchestration
@@ -65,6 +65,20 @@
     - `frontend/src/components/workspace/bridge/bridge-layout-guardian-copy.contract.test.ts`
     - `frontend/src/components/workspace/bridge/bridge-overview-panel.contract.test.ts`
     - `frontend/src/components/workspace/bridge/bridge-overview-actions.contract.test.ts`
+- controlled local actions（当前尚未独立成册）
+  - backend:
+    - `backend/tests/test_local_actions_repository.py`
+    - `backend/tests/test_local_actions_config_contract.py`
+    - `backend/tests/test_local_actions_policy.py`
+    - `backend/tests/test_local_actions_service.py`
+    - `backend/tests/test_local_actions_router.py`
+  - desktop:
+    - `desktop/tests/local-actions-ipc.contract.test.mjs`
+    - `desktop/tests/local-actions-executor.contract.test.mjs`
+  - 说明：
+    - `daemon.local_actions_permission_mode` 是全局三档权限来源
+    - `/api/local-actions/plan` 只负责目标、动作计划和执行审计记录
+    - desktop main 的 local-actions executor 当前是 host contract / stub，不是具体 OS 动作执行器
 
 维护约定：
 

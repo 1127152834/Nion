@@ -17,24 +17,24 @@ export function MemorySettingsPage() {
   return (
     <SettingsSection
       title={t.settings.memory.title}
-      description="这里只看检索增强状态。检索模型的配置、测试和重建入口已经迁到模型管理中的检索模型。"
+      description="这里只看检索增强状态。检索模型的配置入口已经迁到独立的检索模型页面。"
     >
       <div className="space-y-4">
         <MemoryEmbeddingPanel />
 
         <section className="rounded-xl border bg-background/80 p-5 shadow-sm">
           <div className="space-y-2">
-            <div className="text-sm font-medium">前往模型管理中的检索模型</div>
+            <div className="text-sm font-medium">前往检索模型</div>
             <div className="text-muted-foreground text-sm">
-              如果你要修改检索增强使用的 embedding 或 reranker，请直接去模型管理中的检索模型入口。
+              如果你要修改检索增强使用的 embedding 或 reranker，请直接去检索模型页面。
             </div>
             <div className="pt-1">
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => goToSection("models")}
+                onClick={() => goToSection("retrievalModels")}
               >
-                前往模型管理中的检索模型
+                前往检索模型
               </Button>
             </div>
           </div>

@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from nion.memory.embedding.settings import EmbeddingSystemSettings
 from nion.memory.search_fusion.vector_search import search_vector_memory
+from nion.retrieval.models.settings import RetrievalModelsSettings
+from nion.retrieval.models.settings_repository import RetrievalModelsSettingsRepository
 
 
 def test_search_vector_memory_returns_hits_when_provider_and_store_succeed(
@@ -25,10 +26,7 @@ def test_search_vector_memory_returns_hits_when_provider_and_store_succeed(
         def search(self, query) -> list[FakeHit]:
             return [FakeHit("mem:1", 0.88)]
 
-    monkeypatch.setattr(
-        "nion.memory.search_fusion.vector_search.EmbeddingSettingsRepository.load",
-        lambda self: EmbeddingSystemSettings(mode="remote_managed"),
-    )
+    RetrievalModelsSettingsRepository(base_dir=tmp_path).save(RetrievalModelsSettings())
     monkeypatch.setattr(
         "nion.memory.search_fusion.vector_search.build_embedding_provider",
         lambda *, base_dir, settings: FakeProvider(),
@@ -58,10 +56,7 @@ def test_search_vector_memory_returns_empty_when_remote_settings_are_unavailable
         def embed(self, texts: list[str]) -> list[list[float]]:
             raise AssertionError("provider should not be reached before local model is ready")
 
-    monkeypatch.setattr(
-        "nion.memory.search_fusion.vector_search.EmbeddingSettingsRepository.load",
-        lambda self: EmbeddingSystemSettings(mode="remote_managed"),
-    )
+    RetrievalModelsSettingsRepository(base_dir=tmp_path).save(RetrievalModelsSettings())
     monkeypatch.setattr(
         "nion.memory.search_fusion.vector_search.build_embedding_provider",
         lambda *, base_dir, settings: FakeProvider(),

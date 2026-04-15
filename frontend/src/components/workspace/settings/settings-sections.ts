@@ -1,6 +1,7 @@
 export const SETTINGS_SECTIONS = [
   "appearance",
   "models",
+  "retrievalModels",
   "sessionPolicy",
   "notification",
   "daemon",

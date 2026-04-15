@@ -32,6 +32,7 @@ import { MCPServersPage } from "@/components/workspace/settings/mcp-servers-page
 import { MemorySettingsPage } from "@/components/workspace/settings/memory-settings-page";
 import { ModelSettingsPage } from "@/components/workspace/settings/model-settings-page";
 import { NotificationSettingsPage } from "@/components/workspace/settings/notification-settings-page";
+import { RetrievalModelsSection } from "@/components/workspace/settings/retrieval-models-section";
 import { SandboxSettingsPage } from "@/components/workspace/settings/sandbox-settings-page";
 import { SearchSettingsPage } from "@/components/workspace/settings/search-settings-page";
 import { SessionPolicySettingsPage } from "@/components/workspace/settings/session-policy-settings-page";
@@ -114,6 +115,11 @@ export function SettingsDialog(props: SettingsDialogProps) {
           label: t.settings.sections.models,
           icon: BotIcon,
         },
+        retrievalModels: {
+          id: "retrievalModels",
+          label: t.settings.sections.retrievalModels,
+          icon: SparklesIcon,
+        },
         sessionPolicy: {
           id: "sessionPolicy",
           label: t.settings.sections.sessionPolicy,
@@ -180,7 +186,7 @@ export function SettingsDialog(props: SettingsDialogProps) {
         {
           id: "conversation",
           title: t.settings.navGroups.conversation,
-          items: [items.models, items.sessionPolicy],
+          items: [items.models, items.retrievalModels, items.sessionPolicy],
         },
         {
           id: "knowledge",
@@ -211,6 +217,7 @@ export function SettingsDialog(props: SettingsDialogProps) {
       t.settings.sections.notification,
       t.settings.sections.daemon,
       t.settings.sections.models,
+      t.settings.sections.retrievalModels,
       t.settings.sections.sessionPolicy,
       t.settings.sections.memory,
       t.settings.sections.identity,
@@ -295,6 +302,7 @@ export function SettingsDialog(props: SettingsDialogProps) {
               <div className="space-y-8 p-6">
                 {activeSection === "appearance" && <AppearanceSettingsPage />}
                 {activeSection === "models" && <ModelSettingsPage />}
+                {activeSection === "retrievalModels" && <RetrievalModelsSection />}
                 {activeSection === "sessionPolicy" && (
                   <SessionPolicySettingsPage />
                 )}

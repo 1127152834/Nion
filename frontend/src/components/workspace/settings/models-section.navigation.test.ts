@@ -26,14 +26,15 @@ void test("leaving provider models returns the outer settings tab to providers",
   );
 });
 
-void test("model settings page exposes retrieval as a child view tab", async () => {
+void test("model settings page no longer exposes retrieval as a child view tab", async () => {
   const source = await readFile(
     new URL("./model-settings-page.tsx", import.meta.url),
     "utf8",
   );
 
   assert.match(source, /ModelSettingsChildView>\("providers"\)/);
-  assert.match(source, /id:\s*"retrieval"/);
-  assert.match(source, /label:\s*isZh \? "检索模型" : "Retrieval"/);
-  assert.match(source, /subtitle:\s*isZh \? "向量与重排序" : "Embedding and rerank"/);
+  assert.doesNotMatch(source, /id:\s*"retrieval"/);
+  assert.doesNotMatch(source, /label:\s*isZh \? "检索模型" : "Retrieval"/);
+  assert.doesNotMatch(source, /subtitle:\s*isZh \? "向量与重排序" : "Embedding and rerank"/);
+  assert.doesNotMatch(source, /RetrievalModelsSection/);
 });

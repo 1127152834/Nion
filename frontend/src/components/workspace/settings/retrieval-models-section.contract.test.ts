@@ -16,4 +16,8 @@ void test("retrieval models section assembles the Task 8 retrieval cards", async
   assert.match(source, /status\.active_profile\.reranker\.model_name/);
   assert.match(source, /status\.consumers\.length/);
   assert.match(source, /status\.consumers/);
+  assert.match(source, /useSaveRetrievalModelsProfile/);
+  assert.match(source, /useTestRetrievalEmbeddingProfile/);
+  assert.match(source, /useTestRetrievalRerankerProfile/);
+  assert.match(source, /useRebuildRetrievalConsumerIndexes/);
 });

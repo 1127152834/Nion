@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 把向量模型 / 重排序模型能力从 `Settings > 记忆` 迁到 `Settings > 模型 > 检索模型`，让 Memory 与 Knowledge Base 成为统一的检索能力消费者。
+**Goal:** 把向量模型 / 重排序模型能力从 `Settings > 记忆` 迁到 `Settings > 检索模型`，让 Memory 与 Knowledge Base 成为统一的检索能力消费者。
 
 **Architecture:** phase 1 采用“单一 active retrieval profile + 多 consumer 独立索引 namespace”的保守方案。前端先在模型管理中增加检索模型中心，Memory 设置页收口为状态投影；后端通过 retrieval-models surface 暴露统一的配置、状态、测试与 consumer rebuild 能力，并让旧 `/api/memory/settings` 进入 compat projection 期。
 
@@ -45,7 +45,7 @@
 - Create: `frontend/src/core/retrieval-models/hooks.ts`
   - retrieval models query / mutation hooks
 - Create: `frontend/src/components/workspace/settings/retrieval-models-section.tsx`
-  - 模型管理中的检索模型中心主容器
+  - 独立的检索模型页面主容器
 - Create: `frontend/src/components/workspace/settings/retrieval-recommended-stack-card.tsx`
   - 推荐组合卡
 - Create: `frontend/src/components/workspace/settings/retrieval-embedding-card.tsx`
@@ -375,7 +375,7 @@ return {
     "retrieval_status": {
         "vector_enabled": payload["active_profile"]["embedding"]["mode"] == "remote_managed",
         "reranker_enabled": payload["active_profile"]["reranker"]["mode"] in {"local_managed", "remote_managed"},
-        "detail": "检索模型配置已迁移到模型管理中的检索模型中心。",
+        "detail": "检索模型配置已迁移到独立的检索模型页面。",
     },
     "index_health": {
         "state": "unknown",
@@ -394,7 +394,7 @@ return {
 
 ```python
 # PATCH /download /rebuild 改成 409 或 redirect-oriented error，提示到新 retrieval models surface。
-raise HTTPException(status_code=409, detail="请前往模型管理中的检索模型中心进行配置。")
+raise HTTPException(status_code=409, detail="请前往独立的检索模型页面进行配置。")
 ```
 
 - [ ] **Step 5: 运行测试确认通过**
@@ -500,7 +500,7 @@ git add frontend/src/core/retrieval-models/types.ts frontend/src/core/retrieval-
 git commit -m "feat: add retrieval models frontend data layer"
 ```
 
-### Task 6: 在模型页增加“检索模型”子视图
+### Task 6: 将“检索模型”提升为设置一级菜单
 
 **Files:**
 - Modify: `frontend/src/components/workspace/settings/model-settings-page.tsx`
@@ -605,7 +605,7 @@ export function MemorySettingsPage() {
     <SettingsSection title={t.settings.memory.title} description="这里只看记忆检索增强状态。">
       <MemoryEmbeddingPanel />
       <Button type="button" variant="outline" onClick={() => window.dispatchEvent(new CustomEvent("nion-open-settings", { detail: { section: "models" } }))}>
-        前往模型管理中的检索模型
+        前往检索模型页面
       </Button>
     </SettingsSection>
   );
@@ -831,7 +831,7 @@ CONSUMER_REGISTRY = [
 ```tsx
 <section>
   <div>语义检索增强</div>
-  <div>前往模型管理中的检索模型完成配置。</div>
+  <div>前往检索模型页面完成配置。</div>
 </section>
 ```
 
@@ -858,7 +858,7 @@ git commit -m "feat: expose retrieval capability hint to knowledge base"
 - [ ] **Step 1: 更新 README 中 retrieval ownership 文案**
 
 ```md
-- 向量模型与重排序模型已迁入 `Settings > 模型 > 检索模型`
+- 向量模型与重排序模型已迁入 `Settings > 检索模型`
 - `Settings > 记忆` 只保留检索增强状态投影
 - `Memory` 与 `Knowledge Base` 共用 single active retrieval profile
 ```
@@ -928,7 +928,7 @@ Expected: pass; if unrelated pre-existing worktree errors remain, document them 
 - [ ] **Step 4: 浏览器级验证**
 
 Run a browser check against:
-- `Settings > 模型 > 检索模型`
+- `Settings > 检索模型`
 - `Settings > 记忆`
 - `Knowledge Base` 首页
 

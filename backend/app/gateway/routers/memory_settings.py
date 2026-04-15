@@ -40,8 +40,7 @@ def read_memory_settings_snapshot() -> dict[str, Any]:
             "last_rebuild_at": None,
         },
         "jump_target": {
-            "section": "models",
-            "child_view": "retrieval",
+            "section": "retrievalModels",
         },
     }
 

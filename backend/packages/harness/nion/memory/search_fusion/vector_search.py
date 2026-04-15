@@ -7,9 +7,10 @@ import httpx
 
 from nion.memory.embedding.duckdb_store import DuckDBVectorStore
 from nion.memory.embedding.provider_factory import build_embedding_provider
-from nion.memory.embedding.settings_repository import EmbeddingSettingsRepository
+from nion.memory.embedding.settings import EmbeddingSystemSettings
 from nion.memory.embedding.vector_store import VectorStoreQuery
 from nion.memory.search_fusion.models import SearchRouteHit
+from nion.retrieval.models.settings_repository import RetrievalModelsSettingsRepository
 
 logger = logging.getLogger(__name__)
 VECTOR_SEARCH_TIMEOUT_SECONDS = 2.0
@@ -23,7 +24,14 @@ def search_vector_memory(
     limit: int,
 ) -> list[SearchRouteHit]:
     resolved_base_dir = Path(base_dir)
-    settings = EmbeddingSettingsRepository(resolved_base_dir).load()
+    retrieval_settings = RetrievalModelsSettingsRepository(resolved_base_dir).load()
+    settings = EmbeddingSystemSettings(
+        mode=retrieval_settings.active.embedding.mode,
+        remote_endpoint=retrieval_settings.active.embedding.endpoint,
+        remote_api_key=retrieval_settings.active.embedding.api_key,
+        remote_model_name=retrieval_settings.active.embedding.model_name,
+        remote_dimensions=retrieval_settings.active.embedding.dimensions,
+    )
 
     try:
         provider = build_embedding_provider(base_dir=resolved_base_dir, settings=settings)

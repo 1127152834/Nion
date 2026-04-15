@@ -10,8 +10,8 @@ void test("memory settings page no longer owns retrieval model configuration", a
 
   assert.match(source, /MemoryEmbeddingPanel/);
   assert.match(source, /检索增强状态/);
-  assert.match(source, /前往模型管理中的检索模型/);
-  assert.match(source, /goToSection\("models"\)/);
+  assert.match(source, /前往检索模型/);
+  assert.match(source, /goToSection\("retrievalModels"\)/);
   assert.doesNotMatch(source, /memory-console-panel|MemoryConsolePanel/);
   assert.doesNotMatch(source, /fingerprint|vector_path|artifact_count/);
   assert.doesNotMatch(source, /endpoint|API Key|向量维度|保存接口配置/);
@@ -24,4 +24,13 @@ void test("settings dialog registers identity as a first-class settings surface"
 
   assert.match(source, /IdentitySettingsPage/);
   assert.match(source, /label:\s*t\.settings\.sections\.identity/);
+});
+
+void test("settings dialog registers retrieval models as a first-class conversation surface", async () => {
+  const source = await readFile(new URL("./settings-dialog.tsx", import.meta.url), "utf8");
+
+  assert.match(source, /RetrievalModelsSection/);
+  assert.match(source, /label:\s*t\.settings\.sections\.retrievalModels/);
+  assert.match(source, /items:\s*\[items\.models,\s*items\.retrievalModels,\s*items\.sessionPolicy\]/);
+  assert.match(source, /activeSection === "retrievalModels"/);
 });

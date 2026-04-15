@@ -30,8 +30,7 @@ def test_memory_settings_router_returns_projection_only(
             "last_rebuild_at": None,
         },
         "jump_target": {
-            "section": "models",
-            "child_view": "retrieval",
+            "section": "retrievalModels",
         },
     }
 

@@ -137,13 +137,12 @@ Soul product contract in this repository:
 - When `preferred_address_for_user` and `assistant_self_name` are both present, the stable profile should auto-derive `mutual_addressing_rule` unless the caller explicitly overrides it.
 - Explicit user identity statements from the current user turn should write straight into the stable profile before continuity/runtime assembly; do not add proposal-confirmation indirection for this lane.
 - `/api/memory` user-facing payload must project stable identity fields from `UserIdentityProfile` ahead of old `workContext / personalContext / topOfMind` context slots.
-- Product-facing retrieval model ownership lives under `Settings > Models > Retrieval Models`, backed by `/api/retrieval-models/*`.
+- Product-facing retrieval model ownership lives under `Settings > Retrieval Models`, backed by `/api/retrieval-models/*`.
 - `/api/memory/settings` is a compatibility projection for Memory retrieval state only; it must not regain ownership of embedding / reranker configuration actions.
 - `Memory` and `Knowledge Base` are retrieval model consumers. They share the phase-1 active retrieval profile instead of maintaining independent model settings.
 - `query_knowledge_base` tool payload must keep `page_ids` as a compatibility alias of `matched_page_ids` until the final assistant metadata/message rendering path stops reading the old field.
 - Streamed knowledge metadata is one-shot per tool result: bind it to the immediately associated final assistant answer, keep that same message annotated across `messages-tuple`, `values`, and final-turn projections, and do not let later plain assistant messages inherit it.
 - `GET /api/knowledge/query` accepts `include_archived=true`; explicit archived lookups may return archived citations alongside active results and must emit a warning when any archived page is selected.
-- Knowledge graph layout reads must sanitize persisted `layout.json` field-by-field inside `KnowledgeGraphService` so malformed node positions, list fields, or timestamps fall back to safe defaults before FastAPI response-model validation.
 - Structured memory retrieval must treat vector search as best-effort. Remote embedding HTTP failures must degrade to lexical fallback instead of aborting the main chat submit path.
 - OpenAI-compatible chat models must carry a finite request timeout at runtime. If config does not set `timeout` / `request_timeout`, the model factory should apply the default 30-second timeout so upstream stalls surface as normal thread-stream errors instead of indefinite loading.
 - `/api/memory/soul` returns the stable settings-shaped payload used by `Settings > Soul`.
@@ -190,6 +189,7 @@ Desktop daemon client contract:
 - `POST /api/daemon/clients/{client_id}/heartbeat` may receive `client_type`; when a session is missing after daemon replacement, it should recover that same `client_id` instead of forcing the desktop shell into repeated `404 client not found`.
 - `/api/daemon/runtime-info` must remain backward compatible for existing desktop consumers, but now also carries product-facing `guardian_mode` and `bridge_runtime` summary objects for Guardian Mode surfaces.
 - `guardian_mode.status` is a bounded contract (`standing_by` | `busy` | `offline`), not a free-form string.
+- `/api/local-actions/plan` is the controlled local-actions planning surface. It must create a structured goal / plan / execution audit tuple and honor `daemon.local_actions_permission_mode`; concrete OS execution stays behind the desktop main host contract, not arbitrary command passthrough.
 - Desktop bridge overview now has its own IPC contract: `DESKTOP_BRIDGE_IPC_CHANNELS.bridgeRuntimeInfo` / `bridge:get-runtime-info`.
   This is the single snapshot surface for renderer-side remote-entry overview consumers and should stay sourced from one `getBridgeRuntimeInfo()` assembly boundary in desktop main.
 - Frontend runtime visibility rule: settings and bridge overview must build on the

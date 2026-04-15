@@ -1,6 +1,6 @@
 "use client";
 
-import { BotIcon, Building2Icon, Layers3Icon, SparklesIcon } from "lucide-react";
+import { BotIcon, Building2Icon, Layers3Icon } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { useI18n } from "@/core/i18n/hooks";
@@ -13,7 +13,6 @@ import {
   normalizeModelProviderConfig,
 } from "./configuration/sections/models-section";
 import { asArray, asString } from "./configuration/shared";
-import { RetrievalModelsSection } from "./retrieval-models-section";
 import { SettingsSection } from "./settings-section";
 import { useLegacyModelSettingsEditor } from "./use-legacy-model-settings-editor";
 
@@ -81,13 +80,6 @@ export function ModelSettingsPage() {
       subtitle: isZh ? "添加与能力配置" : "Catalog and capabilities",
       count: models.length,
       icon: Layers3Icon,
-    },
-    {
-      id: "retrieval",
-      label: isZh ? "检索模型" : "Retrieval",
-      subtitle: isZh ? "向量与重排序" : "Embedding and rerank",
-      count: 2,
-      icon: SparklesIcon,
     },
   ];
 
@@ -159,17 +151,13 @@ export function ModelSettingsPage() {
             </div>
           </div>
 
-          {activeView === "retrieval" ? (
-            <RetrievalModelsSection />
-          ) : (
-            <ModelsSection
-              config={draftConfig}
-              onChange={onConfigChange}
-              disabled={disabled}
-              view={activeView}
-              onViewChange={setActiveView}
-            />
-          )}
+          <ModelsSection
+            config={draftConfig}
+            onChange={onConfigChange}
+            disabled={disabled}
+            view={activeView}
+            onViewChange={setActiveView}
+          />
 
           <ConfigValidationErrors errors={validationErrors} />
           <ConfigSaveBar

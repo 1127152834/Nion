@@ -6,6 +6,8 @@ from nion.memory.embedding.index_service import MemoryEmbeddingIndexService
 from nion.memory.search_fusion.models import SearchRouteHit
 from nion.memory.search_fusion.vector_search import search_vector_memory
 from nion.memory_os.repository import MemoryOSRepository
+from nion.retrieval.models.settings import RetrievalModelsSettings
+from nion.retrieval.models.settings_repository import RetrievalModelsSettingsRepository
 
 
 def test_vector_search_returns_hits_from_rebuilt_index(monkeypatch, tmp_path) -> None:
@@ -68,6 +70,162 @@ def test_vector_search_returns_empty_hits_when_remote_embedding_request_fails(
     )
 
     assert hits == []
+
+
+def test_vector_search_reads_embedding_profile_from_retrieval_models_settings(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    RetrievalModelsSettingsRepository(base_dir=tmp_path).save(
+        RetrievalModelsSettings.model_validate(
+            {
+                "active": {
+                    "embedding": {
+                        "endpoint": "https://embed.example.com/v1/embeddings",
+                        "api_key": "embed-secret",
+                        "model_name": "text-embedding-3-small",
+                        "dimensions": 1536,
+                    }
+                }
+            }
+        )
+    )
+
+    captured: dict[str, object] = {}
+
+    class InspectingProvider:
+        provider_id = "remote-default"
+
+        def metadata(self):
+            from nion.memory.embedding.remote_managed import (
+                RemoteManagedEmbeddingProviderMetadata,
+            )
+
+            return RemoteManagedEmbeddingProviderMetadata(
+                provider_id="remote-default",
+                model_name=str(captured["model_name"]),
+                endpoint=str(captured["endpoint"]),
+                dimensions=int(captured["dimensions"]),
+                revision="2026-04-15",
+            )
+
+        def embed(self, texts: list[str]) -> list[list[float]]:
+            return [[0.9, 0.1] for _ in texts]
+
+    def fake_build_provider(*, base_dir, settings):
+        captured["endpoint"] = settings.remote_endpoint
+        captured["api_key"] = settings.remote_api_key
+        captured["model_name"] = settings.remote_model_name
+        captured["dimensions"] = settings.remote_dimensions
+        return InspectingProvider()
+
+    monkeypatch.setattr(
+        "nion.memory.search_fusion.vector_search.build_embedding_provider",
+        fake_build_provider,
+    )
+
+    class EmptyStore:
+        def __init__(self, path) -> None:
+            self.path = path
+
+        def search(self, query):
+            return []
+
+    monkeypatch.setattr(
+        "nion.memory.search_fusion.vector_search.DuckDBVectorStore",
+        EmptyStore,
+    )
+
+    hits = search_vector_memory(
+        base_dir=tmp_path,
+        query="预算协同岗位",
+        filters={"domain": "user_model"},
+        limit=1,
+    )
+
+    assert hits == []
+    assert captured == {
+        "endpoint": "https://embed.example.com/v1/embeddings",
+        "api_key": "embed-secret",
+        "model_name": "text-embedding-3-small",
+        "dimensions": 1536,
+    }
+
+
+def test_memory_embedding_index_service_reads_embedding_profile_from_retrieval_models_settings(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    repo = MemoryOSRepository(tmp_path / "memory-os" / "index.sqlite3")
+    repo.save_memory_record(
+        {
+            "memory_id": "mem:user:finance",
+            "domain": "user_model",
+            "subtype": "user_role",
+            "owner_type": "agent",
+            "scope": "user",
+            "memory_type": "semantic",
+            "subject_id": "user:default",
+            "status": "active",
+            "summary": "财务 BP",
+            "confidence": 0.9,
+            "created_at": "2026-04-11T00:00:00Z",
+            "updated_at": "2026-04-11T00:00:00Z",
+            "provenance": {"source_type": "test"},
+        }
+    )
+
+    RetrievalModelsSettingsRepository(base_dir=tmp_path).save(
+        RetrievalModelsSettings.model_validate(
+            {
+                "active": {
+                    "embedding": {
+                        "endpoint": "https://embed.example.com/v1/embeddings",
+                        "api_key": "embed-secret",
+                        "model_name": "text-embedding-3-small",
+                        "dimensions": 1536,
+                    }
+                }
+            }
+        )
+    )
+
+    captured: dict[str, object] = {}
+
+    class InspectingProvider(_StubEmbeddingProvider):
+        def metadata(self):
+            from nion.memory.embedding.remote_managed import (
+                RemoteManagedEmbeddingProviderMetadata,
+            )
+
+            return RemoteManagedEmbeddingProviderMetadata(
+                provider_id="remote-default",
+                model_name=str(captured["model_name"]),
+                endpoint=str(captured["endpoint"]),
+                dimensions=int(captured["dimensions"]),
+                revision="2026-04-15",
+            )
+
+    def fake_build_provider(*, base_dir, settings):
+        captured["endpoint"] = settings.remote_endpoint
+        captured["api_key"] = settings.remote_api_key
+        captured["model_name"] = settings.remote_model_name
+        captured["dimensions"] = settings.remote_dimensions
+        return InspectingProvider()
+
+    monkeypatch.setattr(
+        "nion.memory.embedding.index_service.build_embedding_provider",
+        fake_build_provider,
+    )
+
+    MemoryEmbeddingIndexService(base_dir=tmp_path, repository=repo).rebuild_full_index()
+
+    assert captured == {
+        "endpoint": "https://embed.example.com/v1/embeddings",
+        "api_key": "embed-secret",
+        "model_name": "text-embedding-3-small",
+        "dimensions": 1536,
+    }
 
 
 class _StubEmbeddingProvider:

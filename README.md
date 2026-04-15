@@ -283,9 +283,9 @@ NION_STATIC_EXPORT=1 pnpm --dir frontend build
   - 稳定层只能由用户显式设置或在对话中明确要求修改
 - `Settings > 记忆`
   - 现在只承载“检索增强状态”投影与跳转入口
-  - 检索模型配置、测试、能力 gating 迁到 `Settings > 模型 > 检索模型`
+  - 检索模型配置、测试、能力 gating 迁到 `Settings > 检索模型`
   - 未配置检索模型时，长期记忆继续走非向量回退检索
-- `Settings > 模型 > 检索模型`
+- `Settings > 检索模型`
   - 统一承载向量模型与重排序模型能力
   - `Memory` 与 `Knowledge Base` 作为共享消费者，不再各自维护一套模型配置
 - `/workspace/automation/*`

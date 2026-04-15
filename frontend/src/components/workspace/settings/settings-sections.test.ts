@@ -17,3 +17,8 @@ void test("identity appears as a first-class settings section", () => {
   assert.equal(SETTINGS_SECTIONS.includes("identity"), true);
   assert.equal(parseSettingsSection("identity"), "identity");
 });
+
+void test("retrieval models appears as a first-class settings section", () => {
+  assert.equal(SETTINGS_SECTIONS.includes("retrievalModels"), true);
+  assert.equal(parseSettingsSection("retrievalModels"), "retrievalModels");
+});
