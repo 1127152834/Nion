@@ -537,6 +537,7 @@ class NionClient:
         Yields:
             StreamEvent with one of:
             - type="values"          data={"title": str|None, "messages": [...], "artifacts": [...]}
+            - type="custom"          data={...}
             - type="messages-tuple"  data={"type": "ai", "content": str, "id": str}
             - type="messages-tuple"  data={"type": "ai", "content": str, "id": str, "usage_metadata": {...}}
             - type="messages-tuple"  data={"type": "ai", "content": "", "id": str, "tool_calls": [...]}
@@ -649,6 +650,10 @@ class NionClient:
                 ):
                     stream_mode = raw_chunk[0]
                     chunk = raw_chunk[1]
+
+                if str(stream_mode) == "custom":
+                    yield StreamEvent(type="custom", data=chunk)
+                    continue
 
                 if stream_mode == "messages":
                     if (
