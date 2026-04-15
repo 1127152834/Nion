@@ -57,3 +57,12 @@ void test("input box reads attachment limits from session policy config with 9 f
   assert.match(source, /maxFiles=\{attachmentConfig\.maxFiles\}/);
   assert.match(source, /maxFileSize=\{attachmentConfig\.maxFileSizeBytes\}/);
 });
+
+void test("input box no longer drops submit attempts during streaming and instead renders queued message summaries", async () => {
+  const source = await readFile(new URL("./input-box.tsx", import.meta.url), "utf8");
+
+  assert.doesNotMatch(source, /if \(status === "streaming"\) \{\s*onStop\?\.\(\);\s*return;\s*\}/);
+  assert.match(source, /thread\.values\.queued_messages/);
+  assert.match(source, /messageQueueQueued/);
+  assert.match(source, /messageQueueAttachmentOnly/);
+});

@@ -111,6 +111,9 @@ export const zhCN: Translations = {
     followupConfirmDescription: "当前输入框已有内容，选择发送方式。",
     followupConfirmAppend: "追加并发送",
     followupConfirmReplace: "替换并发送",
+    messageQueueQueued: "已排队 {count} 条",
+    messageQueueAttachmentOnly: "仅附件",
+    messageQueueFiles: "{count} 个文件",
     suggestions: [
       {
         suggestion: "写作",

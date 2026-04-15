@@ -116,6 +116,9 @@ export const enUS: Translations = {
       "You already have text in the input. Choose how to send it.",
     followupConfirmAppend: "Append & send",
     followupConfirmReplace: "Replace & send",
+    messageQueueQueued: "{count} queued",
+    messageQueueAttachmentOnly: "Attachment only",
+    messageQueueFiles: "{count} files",
     suggestions: [
       {
         suggestion: "Write",

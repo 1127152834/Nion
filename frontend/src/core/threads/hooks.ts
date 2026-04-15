@@ -27,6 +27,7 @@ import type {
   AgentThreadState,
   BaseStream,
   Message,
+  QueuedThreadMessage,
   ThreadSubmitOptions,
   ThreadSubmitPayload,
 } from "./types";
@@ -40,10 +41,8 @@ type ThreadListSearchParams = ThreadClientSearchParams & {
   scope?: "general" | "notebook_assistant" | "all";
 };
 
-type PendingQueuedMessage = {
-  threadId: string;
+type PendingQueuedThreadMessage = QueuedThreadMessage & {
   message: PromptInputMessage;
-  extraContext?: Record<string, unknown>;
 };
 
 export type ThreadStreamOptions = {
@@ -294,6 +293,24 @@ export function useThreadStream({
       }
     }
     setIsLoading(false);
+    if (!sendInFlightRef.current) {
+      const [next, ...rest] = pendingQueuedMessagesRef.current;
+      pendingQueuedMessagesRef.current = rest;
+      setValues((current) => ({
+        ...current,
+        queued_messages: rest.map((item) => ({
+          text: item.message.text,
+          files: (item.message.files ?? []).map((file) => ({
+            filename: file.filename ?? "attachment",
+            size: 0,
+            status: "uploading",
+          })),
+        })),
+      }));
+      if (next) {
+        void sendMessage(next.threadId, next.message, next.extraContext);
+      }
+    }
   }, [apiClient]);
 
   useEffect(() => {
@@ -552,10 +569,19 @@ export function useThreadStream({
   const [optimisticMessages, setOptimisticMessages] = useState<Message[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const sendInFlightRef = useRef(false);
-  const pendingQueuedMessageRef = useRef<PendingQueuedMessage | null>(null);
-  const drainingQueuedMessageRef = useRef(false);
+  const pendingQueuedMessagesRef = useRef<PendingQueuedThreadMessage[]>([]);
   // Track message count before sending so we know when server has responded
   const prevMsgCountRef = useRef(thread.messages.length);
+
+  const syncQueuedMessagesState = useCallback(() => {
+    setValues((current) => ({
+      ...current,
+      queued_messages: pendingQueuedMessagesRef.current.map((item) => ({
+        text: item.text,
+        files: item.files,
+      })),
+    }));
+  }, []);
 
   // Clear optimistic when server messages arrive (count increases)
   useEffect(() => {
@@ -574,19 +600,20 @@ export function useThreadStream({
       extraContext?: Record<string, unknown>,
     ) => {
       if (sendInFlightRef.current) {
-        pendingQueuedMessageRef.current = {
-          threadId,
-          message,
-          extraContext,
-        };
-        if (!drainingQueuedMessageRef.current) {
-          drainingQueuedMessageRef.current = true;
-          try {
-            await stop();
-          } finally {
-            drainingQueuedMessageRef.current = false;
-          }
-        }
+        pendingQueuedMessagesRef.current = [
+          ...pendingQueuedMessagesRef.current,
+          {
+            threadId,
+            text: message.text,
+            message,
+            files: (message.files ?? []).map((file) => ({
+              filename: file.filename ?? "attachment",
+              size: 0,
+            })),
+            extraContext,
+          },
+        ];
+        syncQueuedMessagesState();
         return;
       }
       sendInFlightRef.current = true;
@@ -750,7 +777,7 @@ export function useThreadStream({
             ],
           },
           {
-            threadId: threadId,
+            threadId,
             streamSubgraphs: true,
             streamResumable: true,
             config: {
@@ -788,18 +815,19 @@ export function useThreadStream({
       } finally {
         sendInFlightRef.current = false;
         void queryClient.invalidateQueries({ queryKey: ["threads", "search"] });
-        const pending = pendingQueuedMessageRef.current;
-        if (pending) {
-          pendingQueuedMessageRef.current = null;
+        const [next, ...rest] = pendingQueuedMessagesRef.current;
+        pendingQueuedMessagesRef.current = rest;
+        syncQueuedMessagesState();
+        if (next) {
           void sendMessage(
-            pending.threadId,
-            pending.message,
-            pending.extraContext,
+            next.threadId,
+            next.message,
+            next.extraContext,
           );
         }
       }
     },
-    [thread, _handleOnStart, t.uploads.uploadingFiles, context, locale, queryClient, stop],
+    [thread, _handleOnStart, t.uploads.uploadingFiles, context, locale, queryClient, syncQueuedMessagesState],
   );
 
   // Merge thread with optimistic messages for display

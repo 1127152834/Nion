@@ -73,7 +73,28 @@ export interface AgentThreadState extends Record<string, unknown> {
     message_count: number;
     summary: string;
   }>;
+  queued_messages?: Array<{
+    text: string;
+    files: Array<{
+      filename: string;
+      path?: string;
+      size?: number;
+      status?: string;
+    }>;
+  }>;
 }
+
+export type QueuedThreadMessage = {
+  threadId: string;
+  text: string;
+  files: Array<{
+    filename: string;
+    size?: number;
+    path?: string;
+    status?: string;
+  }>;
+  extraContext?: Record<string, unknown>;
+};
 
 export interface Thread<TState extends Record<string, unknown>> {
   thread_id: string;

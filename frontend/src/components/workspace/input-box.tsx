@@ -79,6 +79,7 @@ import { useSkills } from "@/core/skills/hooks";
 import type { Skill } from "@/core/skills/type";
 import type { AgentThreadContext } from "@/core/threads";
 import type { PendingClarification } from "@/core/threads";
+import type { QueuedThreadMessage } from "@/core/threads";
 import { textOfMessage } from "@/core/threads/utils";
 import {
   hasInlineMention,
@@ -945,10 +946,6 @@ export function InputBox({
 
   const handleSubmit = useCallback(
     async (message: PromptInputMessage) => {
-      if (status === "streaming") {
-        onStop?.();
-        return;
-      }
       const submissionPayload = buildSubmissionPayload(
         message.text,
         selectedSkills,
@@ -986,7 +983,6 @@ export function InputBox({
       selectedMcpTools,
       selectedObjectMentions,
       selectedSkills,
-      status,
     ],
   );
 
@@ -1495,9 +1491,42 @@ export function InputBox({
     selectedSkills.length > 0 ||
     selectedMcpTools.length > 0 ||
     selectedCliTools.length > 0;
+  const queuedMessages = Array.isArray(thread.values.queued_messages)
+    ? (thread.values.queued_messages as QueuedThreadMessage[])
+    : [];
 
   return (
     <div ref={promptRootRef} className="relative">
+      {queuedMessages.length > 0 ? (
+        <div className="mb-2 rounded-2xl border border-border/60 bg-background/80 px-3 py-2 text-xs shadow-sm backdrop-blur-sm">
+          <div className="mb-1 font-medium text-muted-foreground">
+            {t.inputBox.messageQueueQueued.replace(
+              "{count}",
+              String(queuedMessages.length),
+            )}
+          </div>
+          <div className="flex flex-col gap-1">
+            {queuedMessages.slice(0, 3).map((item, index) => (
+              <div
+                key={`${index}-${item.text}`}
+                className="flex items-center justify-between gap-2 rounded-lg bg-muted/50 px-2 py-1"
+              >
+                <span className="min-w-0 truncate text-foreground/80">
+                  {item.text || t.inputBox.messageQueueAttachmentOnly}
+                </span>
+                {item.files.length > 0 ? (
+                  <span className="shrink-0 text-muted-foreground">
+                    {t.inputBox.messageQueueFiles.replace(
+                      "{count}",
+                      String(item.files.length),
+                    )}
+                  </span>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
       {pendingClarification ? (
         <div className="mb-2 flex items-center gap-2 rounded-2xl border border-border/60 bg-background/75 px-4 py-2 text-sm backdrop-blur-sm">
           <span className="text-muted-foreground shrink-0 font-medium">

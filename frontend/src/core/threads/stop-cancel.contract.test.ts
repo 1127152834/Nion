@@ -20,11 +20,10 @@ void test("thread hooks also cancel active runs during cleanup and thread switch
 void test("thread send queues the latest follow-up message instead of dropping it while a stream is active", async () => {
   const source = await readFile(new URL("./hooks.ts", import.meta.url), "utf8");
 
-  assert.match(source, /type PendingQueuedMessage = \{/);
-  assert.match(source, /pendingQueuedMessageRef/);
+  assert.match(source, /type PendingQueuedThreadMessage = QueuedThreadMessage & \{/);
+  assert.match(source, /pendingQueuedMessagesRef/);
   assert.match(source, /if \(sendInFlightRef\.current\) \{/);
-  assert.match(source, /pendingQueuedMessageRef\.current = \{/);
-  assert.match(source, /await stop\(\)/);
-  assert.match(source, /const pending = pendingQueuedMessageRef\.current;/);
-  assert.match(source, /void sendMessage\(\s*pending\.threadId,\s*pending\.message,\s*pending\.extraContext,/s);
+  assert.match(source, /pendingQueuedMessagesRef\.current = \[/);
+  assert.match(source, /const \[next, \.\.\.rest] = pendingQueuedMessagesRef\.current;/);
+  assert.match(source, /void sendMessage\(\s*next\.threadId,\s*next\.message,\s*next\.extraContext,/s);
 });
