@@ -339,9 +339,14 @@ export interface Translations {
     followupConfirmDescription: string;
     followupConfirmAppend: string;
     followupConfirmReplace: string;
+    messageQueueTitle: string;
     messageQueueQueued: string;
     messageQueueAttachmentOnly: string;
     messageQueueFiles: string;
+    messageQueueStatusActive: string;
+    messageQueueStatusQueued: string;
+    messageQueueSendNext: string;
+    messageQueueRemove: string;
     suggestions: {
       suggestion: string;
       prompt: string;

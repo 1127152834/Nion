@@ -111,9 +111,14 @@ export const zhCN: Translations = {
     followupConfirmDescription: "当前输入框已有内容，选择发送方式。",
     followupConfirmAppend: "追加并发送",
     followupConfirmReplace: "替换并发送",
+    messageQueueTitle: "发送队列",
     messageQueueQueued: "已排队 {count} 条",
     messageQueueAttachmentOnly: "仅附件",
     messageQueueFiles: "{count} 个文件",
+    messageQueueStatusActive: "当前执行",
+    messageQueueStatusQueued: "等待中",
+    messageQueueSendNext: "设为下一条",
+    messageQueueRemove: "删除",
     suggestions: [
       {
         suggestion: "写作",
@@ -630,6 +635,7 @@ export const zhCN: Translations = {
     sections: {
       appearance: "外观",
       models: "模型",
+      retrievalModels: "检索模型",
       sessionPolicy: "会话策略",
       memory: "记忆",
       identity: "身份",
@@ -855,6 +861,11 @@ export const zhCN: Translations = {
       title: "模型",
       description:
         "配置 provider 与可运行模型，并把保存后的默认模型同步到聊天执行面。",
+    },
+    retrievalModels: {
+      title: "检索模型",
+      description:
+        "配置记忆与知识检索实际使用的 embedding 与 reranker 组合，并查看哪些能力正在消费这套检索栈。",
     },
     sessionPolicy: {
       title: "会话策略",
