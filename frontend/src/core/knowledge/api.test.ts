@@ -178,7 +178,10 @@ void test("loadNotebookKnowledgeStatus reads status-by-source", async () => {
   const mod = await import("./api.ts");
   const payload = await mod.loadKnowledgeSourceStatus("source:notebook_note:note_1");
 
-  assert.match(seenUrl, /\/api\/knowledge\/sources\/source:notebook_note:note_1\/status$/);
+  assert.match(
+    seenUrl,
+    /\/api\/knowledge\/sources\/source%3Anotebook_note%3Anote_1\/status$/,
+  );
   assert.equal(payload.compile_state, "running");
 });
 

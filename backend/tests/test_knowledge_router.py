@@ -100,6 +100,21 @@ def test_knowledge_source_status_endpoint_returns_bridge_payload(monkeypatch, tm
     assert payload["enqueue_state"] == "enqueued"
 
 
+def test_knowledge_source_status_endpoint_returns_not_enqueued_for_notebook_source(monkeypatch, tmp_path):
+    monkeypatch.setenv("NION_HOME", str(tmp_path))
+    reset_paths()
+    note = NotebookService(base_dir=tmp_path).create_note(directory="", title="Backlog", body="body")
+
+    with TestClient(create_app()) as client:
+        response = client.get(f"/api/knowledge/sources/source:notebook_note:{note.note_id}/status")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["has_knowledge"] is False
+    assert payload["enqueue_state"] == "not_enqueued"
+    assert payload["status"] == "queued"
+
+
 def test_knowledge_query_endpoint_returns_page_based_answer(monkeypatch, tmp_path):
     monkeypatch.setenv("NION_HOME", str(tmp_path))
     reset_paths()

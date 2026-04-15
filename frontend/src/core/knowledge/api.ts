@@ -204,7 +204,7 @@ export async function loadKnowledgeSourceStatus(
   sourceId: string,
 ): Promise<NotebookKnowledgeStatus> {
   const response = await fetch(
-    `${getBackendBaseURL()}/api/knowledge/sources/${sourceId}/status`,
+    `${getBackendBaseURL()}/api/knowledge/sources/${encodeURIComponent(sourceId)}/status`,
   );
   if (!response.ok) {
     throw new Error(

@@ -63,12 +63,67 @@ def _get_candidate_by_source_id(
     return None
 
 
+def _candidate_from_notebook_source(
+    notebook: NotebookService,
+    source_id: str,
+) -> KnowledgeSourceCandidate | None:
+    if source_id.startswith("source:notebook_note:"):
+        note_id = source_id.removeprefix("source:notebook_note:")
+        try:
+            note = notebook.read_note(note_id)
+        except FileNotFoundError:
+            return None
+        return KnowledgeSourceCandidate(
+            source_id=source_id,
+            source_kind="notebook_note",
+            notebook_ref={
+                "note_id": note.note_id,
+                "relative_path": note.relative_path,
+            },
+            title=note.title,
+            summary=note.body[:280],
+            content_hash=note.content_hash,
+            status="queued",
+            created_at=note.created_at,
+            updated_at=note.updated_at,
+        )
+
+    if source_id.startswith("source:notebook_asset:"):
+        asset_id = source_id.removeprefix("source:notebook_asset:")
+        for asset in notebook.list_assets():
+            if asset.asset_id == asset_id:
+                return KnowledgeSourceCandidate(
+                    source_id=source_id,
+                    source_kind="notebook_asset",
+                    notebook_ref={
+                        "asset_id": asset.asset_id,
+                        "relative_path": asset.relative_path,
+                    },
+                    title=asset.title,
+                    summary=asset.relative_path,
+                    content_hash="",
+                    status="queued",
+                    created_at=asset.created_at,
+                    updated_at=asset.updated_at,
+                )
+    return None
+
+
 def _build_bridge_status(
     store: KnowledgeSourceCandidateStore,
     source_id: str,
 ) -> NotebookKnowledgeStatus:
     candidate = _get_candidate_by_source_id(store, source_id)
     if candidate is None:
+        notebook_candidate = _candidate_from_notebook_source(NotebookService(), source_id)
+        if notebook_candidate is not None:
+            return NotebookKnowledgeStatus(
+                has_knowledge=False,
+                status="queued",
+                enqueue_state="not_enqueued",
+                compile_state="idle",
+                created_page_ids=[],
+            )
         return NotebookKnowledgeStatus(
             has_knowledge=False,
             status="source_missing",
