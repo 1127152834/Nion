@@ -8,7 +8,7 @@ from fastapi import APIRouter, File, HTTPException, UploadFile
 from pydantic import BaseModel
 
 from nion.config.paths import get_paths
-from nion.sandbox.sandbox_provider import get_sandbox_provider
+from nion.sandbox.sandbox_provider import SandboxProvider, get_sandbox_provider
 from nion.uploads import (
     PathTraversalError,
     delete_file_safe,
@@ -30,6 +30,12 @@ class UploadResponse(BaseModel):
     success: bool
     files: list[dict[str, str]]
     message: str
+
+
+def _uses_thread_data_mounts(sandbox_provider: SandboxProvider) -> bool:
+    return bool(getattr(sandbox_provider, "uses_thread_data_mounts", False))
+
+
 @router.post("", response_model=UploadResponse)
 async def upload_files(
     thread_id: str,
@@ -56,8 +62,11 @@ async def upload_files(
     uploaded_files = []
 
     sandbox_provider = get_sandbox_provider()
-    sandbox_id = sandbox_provider.acquire(thread_id)
-    sandbox = sandbox_provider.get(sandbox_id)
+    sync_to_sandbox = not _uses_thread_data_mounts(sandbox_provider)
+    sandbox = None
+    if sync_to_sandbox:
+        sandbox_id = sandbox_provider.acquire(thread_id)
+        sandbox = sandbox_provider.get(sandbox_id)
 
     for file in files:
         if not file.filename:
@@ -78,9 +87,9 @@ async def upload_files(
             relative_path = str(paths.sandbox_uploads_dir(thread_id) / safe_filename)
             virtual_path = upload_virtual_path(safe_filename)
 
-            # Keep local sandbox source of truth in thread-scoped host storage.
-            # For non-local sandboxes, also sync to virtual path for runtime visibility.
-            if sandbox_id != "local":
+            # Keep mounted/thread-data sandbox providers using thread-scoped host storage only.
+            # Other providers still need a sync into the sandbox-visible virtual path.
+            if sync_to_sandbox and sandbox is not None:
                 sandbox.update_file(virtual_path, content)
 
             file_info = {
@@ -101,7 +110,7 @@ async def upload_files(
                     md_relative_path = str(paths.sandbox_uploads_dir(thread_id) / md_path.name)
                     md_virtual_path = upload_virtual_path(md_path.name)
 
-                    if sandbox_id != "local":
+                    if sync_to_sandbox and sandbox is not None:
                         sandbox.update_file(md_virtual_path, md_path.read_bytes())
 
                     file_info["markdown_file"] = md_path.name

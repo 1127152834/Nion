@@ -13,6 +13,7 @@ from nion.agents.middlewares.locale_aware_summarization import (
 from nion.config.app_config import AppConfig
 from nion.config.model_config import ModelConfig
 from nion.config.sandbox_config import SandboxConfig
+from nion.config.summarization_config import SummarizationConfig
 
 
 def _make_app_config(models: list[ModelConfig]) -> AppConfig:
@@ -212,3 +213,36 @@ def test_create_summarization_middleware_uses_runtime_model_instance(monkeypatch
         "name": "gpt-5.4",
         "thinking_enabled": False,
     }
+
+
+def test_create_summarization_middleware_uses_configured_model_alias(monkeypatch):
+    monkeypatch.setattr(
+        lead_agent_module,
+        "get_summarization_config",
+        lambda: SummarizationConfig(enabled=True, model_name="model-masswork"),
+    )
+    monkeypatch.setattr(
+        lead_agent_module,
+        "resolve_model_name_with_fallback",
+        lambda requested_name=None, fallback_name=None: requested_name,
+    )
+
+    captured: dict[str, object] = {}
+
+    class _FakeModel:
+        _llm_type = "openai-chat"
+
+    fake_model = _FakeModel()
+
+    def _fake_create_chat_model(*, name=None, thinking_enabled, reasoning_effort=None):
+        captured["name"] = name
+        captured["thinking_enabled"] = thinking_enabled
+        captured["reasoning_effort"] = reasoning_effort
+        return fake_model
+
+    monkeypatch.setattr(lead_agent_module, "create_chat_model", _fake_create_chat_model)
+    middleware = lead_agent_module._create_summarization_middleware()
+
+    assert captured["name"] == "model-masswork"
+    assert captured["thinking_enabled"] is False
+    assert middleware is not None

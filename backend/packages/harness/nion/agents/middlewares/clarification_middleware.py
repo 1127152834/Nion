@@ -1,6 +1,7 @@
 """Middleware for intercepting clarification requests and presenting them to the user."""
 
 import json
+import logging
 from collections.abc import Callable
 from typing import override
 
@@ -12,6 +13,8 @@ from langgraph.prebuilt.tool_node import ToolCallRequest
 from langgraph.types import Command
 
 from nion.hooks import HookEvent, dispatch_tool_call_in_runtime_hook
+
+logger = logging.getLogger(__name__)
 
 
 class ClarificationMiddlewareState(AgentState):
@@ -117,8 +120,8 @@ class ClarificationMiddleware(AgentMiddleware[ClarificationMiddlewareState]):
         args = request.tool_call.get("args", {})
         question = args.get("question", "")
 
-        print("[ClarificationMiddleware] Intercepted clarification request")
-        print(f"[ClarificationMiddleware] Question: {question}")
+        logger.debug("Intercepted clarification request")
+        logger.debug("Clarification question: %s", question)
 
         # Format the clarification message
         formatted_message = self._format_clarification_message(args)

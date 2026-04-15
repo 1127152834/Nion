@@ -14,10 +14,13 @@ void test("artifact detail exposes explicit save-to-notebook affordance", async 
 void test("artifact file detail secures new window links with noopener noreferrer", async () => {
   const source = await readFile(new URL("./artifact-file-detail.tsx", import.meta.url), "utf8");
 
-  const openInNewWindowLink = /<a[\s\S]*href=\{urlOfArtifact\(\{ filepath, threadId \}\)\}[\s\S]*target="_blank"[\s\S]*rel="noopener noreferrer"[\s\S]*>/m;
-  const downloadLink =
-    /<a[\s\S]*href=\{urlOfArtifact\(\{ filepath, threadId, download: true \}\)\}[\s\S]*target="_blank"[\s\S]*rel="noopener noreferrer"[\s\S]*>/m;
-
-  assert.match(source, openInNewWindowLink);
-  assert.match(source, downloadLink);
+  assert.match(
+    source,
+    /window\.open\(\s*urlOfArtifact\(\{ filepath, threadId \}\),\s*"_blank",\s*"noopener,noreferrer"/m,
+  );
+  assert.match(
+    source,
+    /window\.open\(\s*urlOfArtifact\(\{ filepath, threadId, download: true \}\),\s*"_blank",\s*"noopener,noreferrer"/m,
+  );
+  assert.match(source, /if \(opened\) \{\s*opened\.opener = null;\s*\}/m);
 });

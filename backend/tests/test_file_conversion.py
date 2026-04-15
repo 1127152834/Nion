@@ -118,6 +118,40 @@ def test_extract_outline_supports_markdown_and_split_bold_headings(tmp_path: Pat
     assert outline[2]["line"] == 4
 
 
+def test_extract_outline_supports_non_ascii_split_bold_headings(tmp_path: Path) -> None:
+    md_path = tmp_path / "outline.md"
+    md_path.write_text(
+        "\n".join(
+            [
+                "**1** **概述**",
+                "**2.1** **实验结果**",
+                "**3** **!@#$**",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    outline = file_conversion.extract_outline(md_path)
+
+    assert outline == [
+        {"level": 2, "title": "概述", "number": "1", "line": 1},
+        {"level": 3, "title": "实验结果", "number": "2.1", "line": 2},
+    ]
+
+
+def test_extract_outline_stops_after_reasonable_heading_cap(tmp_path: Path) -> None:
+    md_path = tmp_path / "outline.md"
+    md_path.write_text(
+        "\n".join(f"# Heading {index}" for index in range(75)),
+        encoding="utf-8",
+    )
+
+    outline = file_conversion.extract_outline(md_path)
+
+    assert len(outline) == 50
+    assert outline[-1] == {"level": 1, "title": "Heading 49", "line": 50}
+
+
 def test_app_config_loads_document_conversion_section_from_store(tmp_path: Path, monkeypatch) -> None:
     db_path = tmp_path / "config.db"
     extensions_path = tmp_path / "extensions_config.json"

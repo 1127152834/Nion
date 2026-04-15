@@ -15,17 +15,21 @@ Auto-loads credentials from explicit runtime handoff:
 """
 
 import logging
+import os
+import socket
 import time
 from typing import Any
 
 import anthropic
 from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import BaseMessage
+from pydantic import PrivateAttr
 
 logger = logging.getLogger(__name__)
 
 MAX_RETRIES = 3
 THINKING_BUDGET_RATIO = 0.8
+DEFAULT_OAUTH_BILLING_HEADER = "claude-code"
 
 
 class ClaudeChatModel(ChatAnthropic):
@@ -44,8 +48,8 @@ class ClaudeChatModel(ChatAnthropic):
     prompt_cache_size: int = 3
     auto_thinking_budget: bool = True
     retry_max_attempts: int = MAX_RETRIES
-    _is_oauth: bool = False
-    _oauth_access_token: str = ""
+    _is_oauth: bool = PrivateAttr(default=False)
+    _oauth_access_token: str = PrivateAttr(default="")
 
     model_config = {"arbitrary_types_allowed": True}
 
@@ -128,6 +132,9 @@ class ClaudeChatModel(ChatAnthropic):
         """Override to inject prompt caching and thinking budget."""
         payload = super()._get_request_payload(input_, stop=stop, **kwargs)
 
+        if self._is_oauth:
+            self._apply_oauth_billing(payload)
+
         if self.enable_prompt_caching:
             self._apply_prompt_caching(payload)
 
@@ -135,6 +142,34 @@ class ClaudeChatModel(ChatAnthropic):
             self._apply_thinking_budget(payload)
 
         return payload
+
+    def _apply_oauth_billing(self, payload: dict) -> None:
+        """Inject the billing header block required by Claude OAuth requests."""
+        billing_header = os.getenv("ANTHROPIC_BILLING_HEADER", DEFAULT_OAUTH_BILLING_HEADER)
+        billing_block = {"type": "text", "text": billing_header}
+
+        system = payload.get("system")
+        if isinstance(system, list):
+            filtered_system = [
+                block
+                for block in system
+                if not (
+                    isinstance(block, dict)
+                    and block.get("type") == "text"
+                    and block.get("text") == billing_header
+                )
+            ]
+            payload["system"] = [billing_block, *filtered_system]
+        elif isinstance(system, str) and system:
+            payload["system"] = [billing_block, {"type": "text", "text": system}]
+        else:
+            payload["system"] = [billing_block]
+
+        metadata = payload.get("metadata")
+        if not isinstance(metadata, dict):
+            metadata = {}
+        metadata.setdefault("user_id", f"nion-{socket.gethostname()}")
+        payload["metadata"] = metadata
 
     def _apply_prompt_caching(self, payload: dict) -> None:
         """Apply ephemeral cache_control to system and recent messages."""
@@ -191,6 +226,39 @@ class ClaudeChatModel(ChatAnthropic):
 
         max_tokens = payload.get("max_tokens", 8192)
         thinking["budget_tokens"] = int(max_tokens * THINKING_BUDGET_RATIO)
+
+    @staticmethod
+    def _strip_cache_control(payload: dict) -> None:
+        """Remove cache_control markers before OAuth requests reach Anthropic."""
+        for section in ("system", "messages"):
+            items = payload.get(section)
+            if not isinstance(items, list):
+                continue
+            for item in items:
+                if not isinstance(item, dict):
+                    continue
+                item.pop("cache_control", None)
+                content = item.get("content")
+                if isinstance(content, list):
+                    for block in content:
+                        if isinstance(block, dict):
+                            block.pop("cache_control", None)
+
+        tools = payload.get("tools")
+        if isinstance(tools, list):
+            for tool in tools:
+                if isinstance(tool, dict):
+                    tool.pop("cache_control", None)
+
+    def _create(self, payload: dict) -> Any:
+        if self._is_oauth:
+            self._strip_cache_control(payload)
+        return super()._create(payload)
+
+    async def _acreate(self, payload: dict) -> Any:
+        if self._is_oauth:
+            self._strip_cache_control(payload)
+        return await super()._acreate(payload)
 
     def _generate(self, messages: list[BaseMessage], stop: list[str] | None = None, **kwargs: Any) -> Any:
         """Override with OAuth patching and retry logic."""

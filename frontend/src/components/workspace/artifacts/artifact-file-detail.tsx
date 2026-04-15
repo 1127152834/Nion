@@ -237,13 +237,21 @@ export function ArtifactFileDetail({
                 />
               )}
               {!isWriteFile && (
-                <a href={urlOfArtifact({ filepath, threadId })} target="_blank" rel="noopener noreferrer">
-                  <ArtifactAction
-                    icon={SquareArrowOutUpRightIcon}
-                    label={t.common.openInNewWindow}
-                    tooltip={t.common.openInNewWindow}
-                  />
-                </a>
+                <ArtifactAction
+                  icon={SquareArrowOutUpRightIcon}
+                  label={t.common.openInNewWindow}
+                  tooltip={t.common.openInNewWindow}
+                  onClick={() => {
+                    const opened = window.open(
+                      urlOfArtifact({ filepath, threadId }),
+                      "_blank",
+                      "noopener,noreferrer",
+                    );
+                    if (opened) {
+                      opened.opener = null;
+                    }
+                  }}
+                />
               )}
               {isCodeFile && (
                 <ArtifactAction
@@ -263,17 +271,21 @@ export function ArtifactFileDetail({
                 />
               )}
               {!isWriteFile && (
-                <a
-                  href={urlOfArtifact({ filepath, threadId, download: true })}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <ArtifactAction
-                    icon={DownloadIcon}
-                    label={t.common.download}
-                    tooltip={t.common.download}
-                  />
-                </a>
+                <ArtifactAction
+                  icon={DownloadIcon}
+                  label={t.common.download}
+                  tooltip={t.common.download}
+                  onClick={() => {
+                    const opened = window.open(
+                      urlOfArtifact({ filepath, threadId, download: true }),
+                      "_blank",
+                      "noopener,noreferrer",
+                    );
+                    if (opened) {
+                      opened.opener = null;
+                    }
+                  }}
+                />
               )}
               <ArtifactAction
                 icon={XIcon}
@@ -373,6 +385,23 @@ export function ArtifactFilePreview({
   content: string;
   language: string;
 }) {
+  const [htmlPreviewUrl, setHtmlPreviewUrl] = useState<string>();
+
+  useEffect(() => {
+    if (language !== "html") {
+      setHtmlPreviewUrl(undefined);
+      return;
+    }
+
+    const blob = new Blob([content ?? ""], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    setHtmlPreviewUrl(url);
+
+    return () => {
+      URL.revokeObjectURL(url);
+    };
+  }, [content, language]);
+
   if (language === "markdown") {
     return (
       <div className="size-full px-4">
@@ -391,8 +420,8 @@ export function ArtifactFilePreview({
       <iframe
         className="size-full"
         title="Artifact preview"
-        srcDoc={content}
         sandbox="allow-scripts allow-forms"
+        src={htmlPreviewUrl}
       />
     );
   }

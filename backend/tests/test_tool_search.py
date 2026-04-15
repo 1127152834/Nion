@@ -151,6 +151,21 @@ class TestDeferredToolRegistry:
         reg = DeferredToolRegistry()
         assert len(reg) == 0
 
+    def test_promote_removes_tools_from_registry(self, registry):
+        registry.promote({"github_create_issue"})
+
+        names = [tool.name for tool in registry.search("github")]
+        assert names == ["github_list_repos"]
+
+    def test_promote_nonexistent_or_empty_is_noop(self, registry):
+        before = [entry.name for entry in registry.entries]
+
+        registry.promote(set())
+        registry.promote({"nonexistent_tool"})
+
+        after = [entry.name for entry in registry.entries]
+        assert after == before
+
 
 # ── Singleton Tests ──
 
@@ -217,6 +232,15 @@ class TestToolSearchTool:
         assert len(parsed) == 2
         names = {d["name"] for d in parsed}
         assert names == {"github_create_issue", "github_list_repos"}
+
+    def test_tool_search_promotes_selected_tool(self, registry):
+        from nion.tools.builtins.tool_search import tool_search
+
+        set_deferred_registry(registry)
+        tool_search.invoke({"query": "select:github_create_issue"})
+
+        result = tool_search.invoke({"query": "select:github_create_issue"})
+        assert "No tools found matching" in result
 
 
 # ── Prompt Section Tests ──
@@ -427,6 +451,28 @@ class TestDeferredToolFilterMiddleware:
 
         assert len(filtered.tools) == 1
         assert filtered.tools[0].name == "my_tool"
+
+    def test_promoted_tool_passes_through_filter(self, registry):
+        from nion.agents.middlewares.deferred_tool_filter_middleware import DeferredToolFilterMiddleware
+
+        set_deferred_registry(registry)
+        middleware = DeferredToolFilterMiddleware()
+        active_tool = _make_mock_tool("my_active_tool", "An active tool")
+        promoted_tool = registry.entries[0].tool
+        registry.promote({promoted_tool.name})
+
+        class FakeRequest:
+            def __init__(self, tools):
+                self.tools = tools
+
+            def override(self, **kwargs):
+                return FakeRequest(kwargs.get("tools", self.tools))
+
+        request = FakeRequest(tools=[active_tool, promoted_tool])
+        filtered = middleware._filter_tools(request)
+
+        names = [tool.name for tool in filtered.tools]
+        assert names == ["my_active_tool", promoted_tool.name]
 
     def test_preserves_dict_tools(self, registry):
         """Dict tools (provider built-ins) should not be filtered."""

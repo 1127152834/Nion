@@ -1,12 +1,16 @@
 import base64
 import logging
+import shlex
 import threading
+import uuid
 
 from agent_sandbox import Sandbox as AioSandboxClient
 
 from nion.sandbox.sandbox import Sandbox
 
 logger = logging.getLogger(__name__)
+
+_ERROR_OBSERVATION_SIGNATURE = "'ErrorObservation' object has no attribute 'exit_code'"
 
 
 class AioSandbox(Sandbox):
@@ -53,7 +57,16 @@ class AioSandbox(Sandbox):
         try:
             with self._command_lock:
                 result = self._client.shell.exec_command(command=command)
-            output = result.data.output if result.data else ""
+                output = result.data.output if result.data else ""
+                if output and _ERROR_OBSERVATION_SIGNATURE in output:
+                    logger.warning(
+                        "ErrorObservation detected in sandbox output, retrying with a fresh session"
+                    )
+                    result = self._client.shell.exec_command(
+                        command=command,
+                        id=str(uuid.uuid4()),
+                    )
+                    output = result.data.output if result.data else ""
             return output if output else "(no output)"
         except Exception as e:
             logger.error(f"Failed to execute command in sandbox: {e}")
@@ -86,9 +99,13 @@ class AioSandbox(Sandbox):
             The contents of the directory.
         """
         try:
-            # Use shell command to list directory with depth limit
-            # The -L flag limits the depth for the tree command
-            result = self._client.shell.exec_command(command=f"find {path} -maxdepth {max_depth} -type f -o -type d 2>/dev/null | head -500")
+            with self._command_lock:
+                result = self._client.shell.exec_command(
+                    command=(
+                        f"find {shlex.quote(path)} -maxdepth {max_depth} -type f -o -type d "
+                        "2>/dev/null | head -500"
+                    )
+                )
             output = result.data.output if result.data else ""
             if output:
                 return [line.strip() for line in output.strip().split("\n") if line.strip()]

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import asyncio
 import json
+from unittest import mock
 
 import pytest
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -63,6 +65,72 @@ def test_codex_provider_flattens_structured_text_blocks(monkeypatch):
 def test_claude_provider_rejects_non_positive_retry_attempts():
     with pytest.raises(ValueError, match="retry_max_attempts must be >= 1"):
         ClaudeChatModel(model="claude-sonnet-4-6", retry_max_attempts=0)
+
+
+def test_claude_oauth_request_payload_injects_billing_header(monkeypatch):
+    monkeypatch.setenv("ANTHROPIC_AUTH_TOKEN", "sk-ant-oat01-test-token")
+    monkeypatch.setenv("ANTHROPIC_BILLING_HEADER", "nion-test-billing")
+
+    model = ClaudeChatModel(model="claude-sonnet-4-6", retry_max_attempts=1)
+    payload = model._get_request_payload([HumanMessage(content="hello")])
+
+    system = payload.get("system")
+    assert isinstance(system, list)
+    first_block = system[0]
+    assert first_block["type"] == "text"
+    assert "nion-test-billing" in first_block["text"]
+    metadata = payload.get("metadata")
+    assert isinstance(metadata, dict)
+    assert isinstance(metadata.get("user_id"), str)
+    assert metadata["user_id"]
+
+
+def test_claude_oauth_sync_create_strips_cache_control(monkeypatch):
+    monkeypatch.setenv("ANTHROPIC_AUTH_TOKEN", "sk-ant-oat01-test-token")
+
+    model = ClaudeChatModel(model="claude-sonnet-4-6", retry_max_attempts=1)
+    payload = {
+        "system": [{"type": "text", "text": "sys", "cache_control": {"type": "ephemeral"}}],
+        "messages": [
+            {
+                "role": "user",
+                "content": [{"type": "text", "text": "hi", "cache_control": {"type": "ephemeral"}}],
+            }
+        ],
+        "tools": [{"name": "demo", "input_schema": {"type": "object"}, "cache_control": {"type": "ephemeral"}}],
+    }
+
+    with mock.patch.object(model._client.messages, "create", return_value=object()) as create:
+        model._create(payload)
+
+    sent_payload = create.call_args.kwargs
+    assert "cache_control" not in sent_payload["system"][0]
+    assert "cache_control" not in sent_payload["messages"][0]["content"][0]
+    assert "cache_control" not in sent_payload["tools"][0]
+
+
+def test_claude_oauth_async_create_strips_cache_control(monkeypatch):
+    monkeypatch.setenv("ANTHROPIC_AUTH_TOKEN", "sk-ant-oat01-test-token")
+
+    model = ClaudeChatModel(model="claude-sonnet-4-6", retry_max_attempts=1)
+    payload = {
+        "system": [{"type": "text", "text": "sys", "cache_control": {"type": "ephemeral"}}],
+        "messages": [
+            {
+                "role": "user",
+                "content": [{"type": "text", "text": "hi", "cache_control": {"type": "ephemeral"}}],
+            }
+        ],
+        "tools": [{"name": "demo", "input_schema": {"type": "object"}, "cache_control": {"type": "ephemeral"}}],
+    }
+
+    with mock.patch.object(model._async_client.messages, "create", new=mock.AsyncMock(return_value=object())) as create:
+        asyncio.run(model._acreate(payload))
+
+    sent_payload = create.call_args.kwargs
+    assert "cache_control" not in sent_payload["system"][0]
+    assert "cache_control" not in sent_payload["messages"][0]["content"][0]
+    assert "cache_control" not in sent_payload["tools"][0]
 
 
 def test_codex_provider_skips_terminal_sse_markers(monkeypatch):
@@ -248,6 +316,54 @@ def test_codex_provider_marks_invalid_tool_call_arguments(monkeypatch):
     assert message.invalid_tool_calls[0]["args"] == "{invalid"
     assert message.invalid_tool_calls[0]["id"] == "tc-1"
     assert "Failed to parse tool arguments" in message.invalid_tool_calls[0]["error"]
+
+
+def test_codex_provider_preserves_streamed_output_when_completed_output_is_empty(monkeypatch):
+    monkeypatch.setattr(
+        CodexChatModel,
+        "_load_codex_auth",
+        lambda self: CodexCliCredential(access_token="token", account_id="acct"),
+    )
+
+    class FakeStream:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def raise_for_status(self):
+            return None
+
+        def iter_lines(self):
+            return iter(
+                [
+                    'data: {"type":"response.output_item.done","output_index":0,"item":{"type":"message","content":[{"type":"output_text","text":"hello world"}]}}',
+                    'data: {"type":"response.completed","response":{"model":"gpt-5.4","output":[],"usage":{"input_tokens":1,"output_tokens":2,"total_tokens":3}}}',
+                ]
+            )
+
+    class FakeClient:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def stream(self, *args, **kwargs):
+            return FakeStream()
+
+    monkeypatch.setattr("nion.models.openai_codex_provider.httpx.Client", FakeClient)
+
+    model = CodexChatModel()
+    response = model._stream_response(headers={}, payload={})
+
+    assert response["output"] == [
+        {"type": "message", "content": [{"type": "output_text", "text": "hello world"}]}
+    ]
 
 
 def test_codex_provider_parses_valid_tool_arguments(monkeypatch):

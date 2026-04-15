@@ -57,6 +57,16 @@ class DeferredToolRegistry:
             )
         )
 
+    def promote(self, names: set[str]) -> None:
+        """Remove promoted tools from the deferred registry.
+
+        Once tool_search has returned a tool schema to the model, that tool
+        should stop being filtered from subsequent bind_tools calls.
+        """
+        if not names:
+            return
+        self._entries = [entry for entry in self._entries if entry.name not in names]
+
     def search(self, query: str) -> list[BaseTool]:
         """Search deferred tools by regex pattern against name + description.
 
@@ -171,5 +181,7 @@ def tool_search(query: str) -> str:
     # Use LangChain's built-in serialization to produce OpenAI function format.
     # This is model-agnostic: all LLMs understand this standard schema.
     tool_defs = [convert_to_openai_function(t) for t in matched_tools[:MAX_RESULTS]]
+
+    registry.promote({tool.name for tool in matched_tools[:MAX_RESULTS]})
 
     return json.dumps(tool_defs, indent=2, ensure_ascii=False)

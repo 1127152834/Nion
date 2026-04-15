@@ -127,6 +127,53 @@ void test("desktop thread client surfaces SSE error events", async () => {
   globalThis.fetch = originalFetch;
 });
 
+void test("desktop thread client treats split end events as terminal", async () => {
+  const originalFetch = globalThis.fetch;
+  const seenEvents: string[] = [];
+
+  globalThis.fetch = async () =>
+    new Response(
+      new ReadableStream({
+        start(controller) {
+          const encoder = new TextEncoder();
+          controller.enqueue(
+            encoder.encode(
+              'event: messages-tuple\ndata: {"type":"ai","content":"hello"}\n\n',
+            ),
+          );
+          controller.enqueue(encoder.encode("event: en"));
+          controller.enqueue(encoder.encode("d\ndata: {}"));
+          controller.enqueue(encoder.encode("\n\n"));
+          controller.close();
+        },
+      }),
+      {
+        status: 200,
+        headers: {
+          "Content-Type": "text/event-stream",
+        },
+      },
+    );
+
+  const client = createDesktopThreadClient({
+    getBaseURL: () => "http://127.0.0.1:43115/api/threads",
+  });
+
+  await client.streamRun(
+    "t-1",
+    { messages: [] },
+    { threadId: "t-1", context: {}, config: {} },
+    {
+      onEvent: (event) => {
+        seenEvents.push(event);
+      },
+    },
+  );
+
+  assert.ok(seenEvents.includes("end"));
+  globalThis.fetch = originalFetch;
+});
+
 void test("desktop thread client forwards locale in stream context", async () => {
   const originalFetch = globalThis.fetch;
   let requestBody = "";

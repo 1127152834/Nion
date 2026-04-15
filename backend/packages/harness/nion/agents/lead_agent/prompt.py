@@ -60,7 +60,7 @@ def _get_memory_context(
         if block:
             return block
     except Exception as exc:
-        print(f"Failed to load memory os context: {exc}")
+        logger.warning("Failed to load memory os context: %s", exc)
 
     return ""
 
