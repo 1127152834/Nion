@@ -11,6 +11,24 @@
 
 当前还没有独立成册、但已经有代码级验证矩阵的业务面：
 
+- retrieval models center（当前尚未独立成册）
+  - backend:
+    - `backend/tests/test_retrieval_models_settings_repository.py`
+    - `backend/tests/test_retrieval_models_status_service.py`
+    - `backend/tests/test_retrieval_models_router.py`
+    - `backend/tests/test_memory_settings_router.py`
+  - frontend:
+    - `frontend/src/core/retrieval-models/api.test.ts`
+    - `frontend/src/components/workspace/settings/models-section.navigation.test.ts`
+    - `frontend/src/components/workspace/settings/retrieval-models-section.contract.test.ts`
+    - `frontend/src/components/workspace/settings/retrieval-recommended-stack-card.contract.test.ts`
+    - `frontend/src/components/workspace/settings/memory-settings-page.config.test.ts`
+    - `frontend/src/components/workspace/settings/memory-embedding-panel.contract.test.ts`
+    - `frontend/src/components/workspace/knowledge/knowledge-home-page.contract.test.ts`
+  - 说明：
+    - 检索模型能力 owner 已迁入 `Settings > 模型 > 检索模型`
+    - `Settings > 记忆` 只保留状态投影
+    - `Knowledge Base` 已接入 retrieval consumer 提示
 - custom-agent orchestration
   - backend: child-run repository / router / delegation policy / mention parser / orchestrator graph / delegated thread routing
   - frontend: dedicated sidebar child-run panel / child-run inspector contract / main-thread delegation summary / recent-chat two-tab taxonomy / input-box `@` notebook-agent tabs

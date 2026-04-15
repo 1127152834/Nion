@@ -80,7 +80,7 @@ FastAPI application on port 8001 with health check at `GET /health`.
 | **Models** (`/api/models`) | runtime model catalog |
 | **MCP** (`/api/mcp`) | MCP config surfaces |
 | **Memory** (`/api/memory`) | memory data and config |
-| **Memory Settings** (`/api/memory/settings`) | vector mode / download / rebuild product surface |
+| **Memory Settings** (`/api/memory/settings`) | compatibility projection for memory retrieval state |
 | **User Identity** (`/api/user-identity`) | stable user identity profile owner contract |
 | **Notebook** (`/api/notebook`) | notebook CRUD / history / restore / inbox / import / asset archive |
 | **Uploads** (`/api/threads/{id}/uploads`) | uploads list / delete |
@@ -137,8 +137,9 @@ Soul product contract in this repository:
 - When `preferred_address_for_user` and `assistant_self_name` are both present, the stable profile should auto-derive `mutual_addressing_rule` unless the caller explicitly overrides it.
 - Explicit user identity statements from the current user turn should write straight into the stable profile before continuity/runtime assembly; do not add proposal-confirmation indirection for this lane.
 - `/api/memory` user-facing payload must project stable identity fields from `UserIdentityProfile` ahead of old `workContext / personalContext / topOfMind` context slots.
-- `/api/memory/settings` is no longer a read-only snapshot contract. It must own real vector product actions: `PATCH /api/memory/settings`, `POST /api/memory/settings/download`, and `POST /api/memory/settings/rebuild`.
-- Product-facing vector setup scope is limited to `remote_managed`. Do not reintroduce local embedding or `custom_compatible` into the user-facing product contract unless the product decision changes again.
+- Product-facing retrieval model ownership lives under `Settings > Models > Retrieval Models`, backed by `/api/retrieval-models/*`.
+- `/api/memory/settings` is a compatibility projection for Memory retrieval state only; it must not regain ownership of embedding / reranker configuration actions.
+- `Memory` and `Knowledge Base` are retrieval model consumers. They share the phase-1 active retrieval profile instead of maintaining independent model settings.
 - Structured memory retrieval must treat vector search as best-effort. Remote embedding HTTP failures must degrade to lexical fallback instead of aborting the main chat submit path.
 - OpenAI-compatible chat models must carry a finite request timeout at runtime. If config does not set `timeout` / `request_timeout`, the model factory should apply the default 30-second timeout so upstream stalls surface as normal thread-stream errors instead of indefinite loading.
 - `/api/memory/soul` returns the stable settings-shaped payload used by `Settings > Soul`.
