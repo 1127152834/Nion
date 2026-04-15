@@ -61,29 +61,37 @@ export function BridgeLayout() {
   const [runtimeInfo, setRuntimeInfo] = useState<BridgeRuntimeInfo | null>(null);
   const activeSection = overrideSection ?? hashSection;
   const { t } = useBridgeTranslation();
+  const refreshRuntimeInfo = useCallback(async () => {
+    try {
+      const nextRuntimeInfo = await getBridgeClient()?.getRuntimeInfo();
+      setRuntimeInfo(nextRuntimeInfo ?? null);
+    } catch {
+      setRuntimeInfo(null);
+    }
+  }, []);
 
   useEffect(() => {
-    let cancelled = false;
-
-    const loadRuntimeInfo = async () => {
-      try {
-        const nextRuntimeInfo = await getBridgeClient()?.getRuntimeInfo();
-        if (!cancelled) {
-          setRuntimeInfo(nextRuntimeInfo ?? null);
-        }
-      } catch {
-        if (!cancelled) {
-          setRuntimeInfo(null);
-        }
+    const loadRuntimeInfo = () => {
+      void refreshRuntimeInfo();
+    };
+    const handleWindowFocus = () => {
+      void loadRuntimeInfo();
+    };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void loadRuntimeInfo();
       }
     };
 
     void loadRuntimeInfo();
+    window.addEventListener("focus", handleWindowFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
-      cancelled = true;
+      window.removeEventListener("focus", handleWindowFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, []);
+  }, [refreshRuntimeInfo]);
 
   const handleSectionChange = useCallback((section: Section) => {
     setOverrideSection(section);

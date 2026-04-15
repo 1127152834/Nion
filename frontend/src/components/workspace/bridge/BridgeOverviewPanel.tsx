@@ -10,10 +10,16 @@ export function BridgeOverviewPanel({
   runtimeInfo: BridgeRuntimeInfo | null;
 }) {
   const { t } = useBridgeTranslation();
+  let runtimeStatusLabel = t("bridge.overviewUnavailable");
+
+  if (runtimeInfo) {
+    runtimeStatusLabel = runtimeInfo.running ? t("bridge.overviewRunning") : t("bridge.overviewStopped");
+  }
+
   const summaryItems = [
     {
       label: t("bridge.overviewRuntimeStatus"),
-      value: runtimeInfo?.running ? t("bridge.overviewRunning") : t("bridge.overviewStopped"),
+      value: runtimeStatusLabel,
     },
     {
       label: t("bridge.overviewActiveBindings"),

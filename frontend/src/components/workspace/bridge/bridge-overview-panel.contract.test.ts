@@ -14,8 +14,11 @@ void test("bridge overview panel summarizes runtime state, bindings, incidents, 
 
   assert.match(source, /export function BridgeOverviewPanel/);
   assert.match(source, /runtimeInfo: BridgeRuntimeInfo \| null/);
-  assert.match(source, /runtimeInfo\?\.running \? t\("bridge\.overviewRunning"\) : t\("bridge\.overviewStopped"\)/);
+  assert.match(source, /let runtimeStatusLabel = t\("bridge\.overviewUnavailable"\)/);
+  assert.match(source, /if \(runtimeInfo\) \{/);
+  assert.match(source, /runtimeStatusLabel = runtimeInfo\.running \? t\("bridge\.overviewRunning"\) : t\("bridge\.overviewStopped"\)/);
   assert.match(source, /label: t\("bridge\.overviewRuntimeStatus"\)/);
+  assert.match(source, /value: runtimeStatusLabel/);
   assert.match(source, /label: t\("bridge\.overviewActiveBindings"\)/);
   assert.match(source, /label: t\("bridge\.overviewOpenIncidents"\)/);
   assert.match(source, /label: t\("bridge\.overviewEnabledPlatforms"\)/);
@@ -33,12 +36,17 @@ void test("bridge overview panel summarizes runtime state, bindings, incidents, 
   assert.match(source, /riskHint = t\("bridge\.overviewHintNoPlatforms"\)/);
   assert.match(source, /riskHint = t\("bridge\.overviewHintReady"\)/);
   assert.match(source, /t\("bridge\.overviewPendingRiskHint"\)/);
+  assert.doesNotMatch(source, /import \{ Button \}/);
+  assert.doesNotMatch(source, /runAction/);
+  assert.doesNotMatch(source, /diagnose/);
+  assert.doesNotMatch(source, /runtimeInfo\?\.running \? t\("bridge\.overviewRunning"\) : t\("bridge\.overviewStopped"\)/);
 
   assert.match(sharedSource, /"bridge\.overviewTitle": "Bridge overview"/);
   assert.match(sharedSource, /"bridge\.overviewRuntimeStatus": "Runtime status"/);
   assert.match(sharedSource, /"bridge\.overviewActiveBindings": "Active bindings"/);
   assert.match(sharedSource, /"bridge\.overviewOpenIncidents": "Open incidents"/);
   assert.match(sharedSource, /"bridge\.overviewEnabledPlatforms": "Enabled platforms"/);
+  assert.match(sharedSource, /"bridge\.overviewUnavailable": "Unavailable"/);
   assert.match(sharedSource, /"bridge\.overviewRunning": "Running"/);
   assert.match(sharedSource, /"bridge\.overviewStopped": "Stopped"/);
   assert.match(sharedSource, /"bridge\.overviewPendingRiskHint": "Pending risk hint"/);
@@ -52,6 +60,7 @@ void test("bridge overview panel summarizes runtime state, bindings, incidents, 
   assert.match(sharedSource, /"bridge\.overviewActiveBindings": "活跃绑定"/);
   assert.match(sharedSource, /"bridge\.overviewOpenIncidents": "待处理事件"/);
   assert.match(sharedSource, /"bridge\.overviewEnabledPlatforms": "已启用渠道"/);
+  assert.match(sharedSource, /"bridge\.overviewUnavailable": "不可用"/);
   assert.match(sharedSource, /"bridge\.overviewRunning": "运行中"/);
   assert.match(sharedSource, /"bridge\.overviewStopped": "已停止"/);
   assert.match(sharedSource, /"bridge\.overviewPendingRiskHint": "待处理风险提示"/);
@@ -69,6 +78,9 @@ void test("bridge layout renders the overview panel before platform tabs", async
   assert.match(source, /const \[runtimeInfo, setRuntimeInfo\] = useState<BridgeRuntimeInfo \| null>\(null\);/);
   assert.match(source, /getBridgeClient\(\)\?\.getRuntimeInfo\(\)/);
   assert.match(source, /<BridgeOverviewPanel runtimeInfo=\{runtimeInfo\} \/>/);
+  assert.match(source, /window\.addEventListener\("focus", handleWindowFocus\)/);
+  assert.match(source, /document\.addEventListener\("visibilitychange", handleVisibilityChange\)/);
+  assert.match(source, /if \(document\.visibilityState === "visible"\)/);
 
   const overviewIndex = source.indexOf("<BridgeOverviewPanel runtimeInfo={runtimeInfo} />");
   const tabsIndex = source.indexOf('<div className="flex min-h-0 flex-1 overflow-hidden rounded-2xl border border-border/60 bg-background">');
