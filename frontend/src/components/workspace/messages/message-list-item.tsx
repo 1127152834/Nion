@@ -53,6 +53,51 @@ type SelectionTag = {
   type: "skill" | "mcp" | "cli" | "context";
 };
 
+function imageUrlFromContentPart(part: unknown): string | null {
+  if (!part || typeof part !== "object") {
+    return null;
+  }
+  const candidate = part as {
+    type?: unknown;
+    image_url?: unknown;
+  };
+  if (candidate.type !== "image_url") {
+    return null;
+  }
+  if (typeof candidate.image_url === "string") {
+    return candidate.image_url;
+  }
+  if (
+    candidate.image_url &&
+    typeof candidate.image_url === "object" &&
+    "url" in candidate.image_url &&
+    typeof (candidate.image_url as { url?: unknown }).url === "string"
+  ) {
+    return (candidate.image_url as { url: string }).url;
+  }
+  return null;
+}
+
+function imageFilesFromMultimodalContent(message: Message): FileInMessage[] {
+  if (!Array.isArray(message.content)) {
+    return [];
+  }
+  return message.content
+    .map((part, index) => {
+      const imageUrl = imageUrlFromContentPart(part);
+      if (!imageUrl) {
+        return null;
+      }
+      return {
+        filename: `image-${index + 1}.png`,
+        size: 0,
+        path: imageUrl,
+        status: "uploaded" as const,
+      };
+    })
+    .filter((file): file is FileInMessage => file !== null);
+}
+
 export function MessageListItem({
   className,
   message,
@@ -172,6 +217,10 @@ function MessageContent_({
   const files = useMemo(() => {
     const files = message.additional_kwargs?.files;
     if (!Array.isArray(files) || files.length === 0) {
+      const multimodalImageFiles = imageFilesFromMultimodalContent(message);
+      if (multimodalImageFiles.length > 0) {
+        return multimodalImageFiles;
+      }
       if (rawContent.includes("<uploaded_files>")) {
         // If the content contains the <uploaded_files> tag, we return the parsed files from the content for backward compatibility.
         return parseUploadedFiles(rawContent);
@@ -179,7 +228,7 @@ function MessageContent_({
       return null;
     }
     return files as FileInMessage[];
-  }, [message.additional_kwargs?.files, rawContent]);
+  }, [message, message.additional_kwargs?.files, rawContent]);
 
   const contentToDisplay = useMemo(() => {
     if (isHuman) {
