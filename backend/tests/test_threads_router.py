@@ -351,3 +351,24 @@ def test_cancel_thread_run_route_releases_active_run_lock() -> None:
         thread_service_module._release_thread_run("thread-cancel", replacement_run_id)
     finally:
         thread_service_module._release_thread_run("thread-cancel", run_id)
+
+
+def test_cancel_thread_run_route_records_cancel_event(monkeypatch) -> None:
+    app = create_daemon_app()
+    service = MagicMock()
+    service.cancel_active_run.return_value = True
+    app.dependency_overrides[threads.get_thread_service] = lambda: service
+    recorded: list[dict[str, object]] = []
+
+    monkeypatch.setattr(
+        threads,
+        "_record_thread_event",
+        lambda request, **kwargs: recorded.append(kwargs),
+    )
+
+    with TestClient(app) as client:
+        response = client.post("/api/threads/thread-cancel/cancel")
+
+    assert response.status_code == 200
+    assert recorded[-1]["event_type"] == "thread_run_cancel_requested"
+    assert recorded[-1]["details"] == {"cancelled": True}

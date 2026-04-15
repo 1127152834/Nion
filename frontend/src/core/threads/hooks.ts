@@ -290,6 +290,23 @@ export function useThreadStream({
     setIsLoading(false);
   }, [apiClient]);
 
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current && threadIdRef.current) {
+        void apiClient.cancelRun(threadIdRef.current);
+      }
+    };
+  }, [apiClient]);
+
+  useEffect(() => {
+    const activeThreadIdAtEffectStart = onStreamThreadId;
+    return () => {
+      if (abortControllerRef.current && activeThreadIdAtEffectStart) {
+        void apiClient.cancelRun(activeThreadIdAtEffectStart);
+      }
+    };
+  }, [apiClient, onStreamThreadId]);
+
   const submit = useCallback(
     async (payload: ThreadSubmitPayload, options: ThreadSubmitOptions) => {
       const abortController = new AbortController();

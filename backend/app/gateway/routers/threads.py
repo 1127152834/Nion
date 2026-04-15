@@ -186,9 +186,19 @@ async def delete_thread(
 @router.post("/{thread_id}/cancel")
 async def cancel_thread_run(
     thread_id: str,
+    request: Request,
     service: ThreadService = Depends(get_thread_service),
 ) -> dict[str, Any]:
-    return {"ok": service.cancel_active_run(thread_id)}
+    cancelled = service.cancel_active_run(thread_id)
+    _record_thread_event(
+        request,
+        level="info",
+        event_type="thread_run_cancel_requested",
+        thread_id=thread_id,
+        message=f"Thread run cancel requested for {thread_id}",
+        details={"cancelled": cancelled},
+    )
+    return {"ok": cancelled}
 
 
 @router.post("/{thread_id}/stream")
