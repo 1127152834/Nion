@@ -11,11 +11,11 @@ from nion.memory.embedding.vector_store import (
 
 def test_duckdb_vector_store_upserts_and_searches(tmp_path) -> None:
     snapshot = VectorIndexSnapshot(
-        provider_id="local-default",
-        provider_kind="local_managed",
+        provider_id="remote-default",
+        provider_kind="remote_managed",
         fingerprint=EmbeddingModelFingerprint(
-            provider_key="local_managed:local-default",
-            model_key="bge-m3",
+            provider_key="remote_managed:remote-default",
+            model_key="text-embedding-3-large",
             dimensions=2,
             distance_metric="cosine",
             revision="2026-04-11",
@@ -46,5 +46,4 @@ def test_duckdb_vector_store_upserts_and_searches(tmp_path) -> None:
     assert hits[0].record_id == "mem:user:1"
     assert metadata is not None
     assert metadata.record_count == 2
-    assert metadata.provider.fingerprint.model_key == "bge-m3"
-
+    assert metadata.provider.fingerprint.model_key == "text-embedding-3-large"

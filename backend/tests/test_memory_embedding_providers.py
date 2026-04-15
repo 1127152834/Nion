@@ -5,7 +5,6 @@ import pytest
 from nion.memory.embedding.custom_compatible import (
     CustomCompatibleEmbeddingProviderMetadata,
 )
-from nion.memory.embedding.local_managed import LocalManagedEmbeddingProviderMetadata
 from nion.memory.embedding.models import (
     EmbeddingModelFingerprint,
     VectorIndexSnapshot,
@@ -53,12 +52,6 @@ def test_embedding_model_fingerprint_is_stable_and_ignores_display_fields() -> N
 
 
 def test_provider_metadata_shapes_are_explicit_and_machine_readable() -> None:
-    local = LocalManagedEmbeddingProviderMetadata(
-        provider_id="local-default",
-        model_name="bge-m3",
-        dimensions=1024,
-        metadata={"bundle": "desktop"},
-    )
     remote = RemoteManagedEmbeddingProviderMetadata(
         provider_id="remote-default",
         model_name="text-embedding-3-large",
@@ -74,11 +67,6 @@ def test_provider_metadata_shapes_are_explicit_and_machine_readable() -> None:
         dimensions=1536,
         metadata={"tenant": "internal"},
     )
-
-    assert local.provider_kind == "local_managed"
-    assert local.managed is True
-    assert local.fingerprint.provider_key == "local_managed:local-default"
-    assert local.fingerprint.metadata["bundle"] == "desktop"
 
     assert remote.provider_kind == "remote_managed"
     assert remote.managed is True
@@ -96,10 +84,11 @@ def test_embedding_provider_protocol_supports_common_runtime_surface() -> None:
     class StubProvider:
         provider_id = "stub"
 
-        def metadata(self) -> LocalManagedEmbeddingProviderMetadata:
-            return LocalManagedEmbeddingProviderMetadata(
+        def metadata(self) -> RemoteManagedEmbeddingProviderMetadata:
+            return RemoteManagedEmbeddingProviderMetadata(
                 provider_id="stub",
                 model_name="bge-small",
+                endpoint="https://api.example.com/v1/embeddings",
                 dimensions=384,
             )
 
@@ -235,7 +224,7 @@ def test_vector_index_snapshot_requires_consistent_provider_identity() -> None:
             provider_id="remote-default",
             provider_kind="remote_managed",
             fingerprint=EmbeddingModelFingerprint(
-                provider_key="local_managed:remote-default",
+                provider_key="custom_compatible:remote-default",
                 model_key="text-embedding-3-large",
                 dimensions=3072,
                 distance_metric="cosine",

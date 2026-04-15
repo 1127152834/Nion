@@ -138,8 +138,7 @@ Soul product contract in this repository:
 - Explicit user identity statements from the current user turn should write straight into the stable profile before continuity/runtime assembly; do not add proposal-confirmation indirection for this lane.
 - `/api/memory` user-facing payload must project stable identity fields from `UserIdentityProfile` ahead of old `workContext / personalContext / topOfMind` context slots.
 - `/api/memory/settings` is no longer a read-only snapshot contract. It must own real vector product actions: `PATCH /api/memory/settings`, `POST /api/memory/settings/download`, and `POST /api/memory/settings/rebuild`.
-- Product-facing vector mode scope is limited to `local_managed` and `remote_managed`. Do not reintroduce `custom_compatible` into the user-facing product contract for this phase.
-- Local managed embedding preparation must persist the model's real embedding dimension into the local cache metadata so `/api/memory/settings` and provider fingerprints stay truthful for non-default local models.
+- Product-facing vector setup scope is limited to `remote_managed`. Do not reintroduce local embedding or `custom_compatible` into the user-facing product contract unless the product decision changes again.
 - Structured memory retrieval must treat vector search as best-effort. Remote embedding HTTP failures must degrade to lexical fallback instead of aborting the main chat submit path.
 - OpenAI-compatible chat models must carry a finite request timeout at runtime. If config does not set `timeout` / `request_timeout`, the model factory should apply the default 30-second timeout so upstream stalls surface as normal thread-stream errors instead of indefinite loading.
 - `/api/memory/soul` returns the stable settings-shaped payload used by `Settings > Soul`.

@@ -6,12 +6,13 @@ from nion.memory.embedding.settings import EmbeddingSystemSettings
 from nion.memory.embedding.settings_repository import EmbeddingSettingsRepository
 
 
-def test_embedding_settings_repository_defaults_to_local_managed(tmp_path: Path) -> None:
+def test_embedding_settings_repository_defaults_to_remote_managed(tmp_path: Path) -> None:
     repo = EmbeddingSettingsRepository(tmp_path)
 
     settings = repo.load()
 
     assert settings == EmbeddingSystemSettings()
+    assert settings.mode == "remote_managed"
 
 
 def test_embedding_settings_repository_persists_and_updates_fields(tmp_path: Path) -> None:

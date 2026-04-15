@@ -50,7 +50,7 @@ def test_search_vector_memory_returns_hits_when_provider_and_store_succeed(
     assert hits[0].route == "vector"
 
 
-def test_search_vector_memory_skips_local_lookup_when_model_is_not_ready(
+def test_search_vector_memory_returns_empty_when_remote_settings_are_unavailable(
     tmp_path,
     monkeypatch,
 ) -> None:
@@ -60,11 +60,7 @@ def test_search_vector_memory_skips_local_lookup_when_model_is_not_ready(
 
     monkeypatch.setattr(
         "nion.memory.search_fusion.vector_search.EmbeddingSettingsRepository.load",
-        lambda self: EmbeddingSystemSettings(
-            mode="local_managed",
-            download_state="missing",
-            local_model_key="bge-m3",
-        ),
+        lambda self: EmbeddingSystemSettings(mode="remote_managed"),
     )
     monkeypatch.setattr(
         "nion.memory.search_fusion.vector_search.build_embedding_provider",

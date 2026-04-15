@@ -4,7 +4,6 @@ import json
 from pathlib import Path
 from typing import Any
 
-from nion.memory.embedding.download_manager import MemoryEmbeddingDownloadManager
 from nion.memory.embedding.duckdb_store import DuckDBVectorStore
 from nion.memory.embedding.provider_factory import build_embedding_provider
 from nion.memory.embedding.settings import EmbeddingSystemSettings
@@ -35,16 +34,8 @@ class MemoryEmbeddingIndexService:
         self._store = DuckDBVectorStore(
             self._base_dir / "memory-os" / "indexes" / "vector" / "index.duckdb"
         )
-        self._manager = MemoryEmbeddingDownloadManager()
 
     def rebuild_full_index(self) -> dict[str, Any]:
-        if self._settings.mode == "local_managed":
-            self._manager.ensure_local_model(
-                base_dir=self._base_dir,
-                model_id=self._settings.local_model_id,
-                model_key=self._settings.local_model_key,
-            )
-
         rows = self._collect_structured_rows()
         summaries = [str(row["summary"]).strip() for row in rows]
         vectors = self._provider.embed(summaries) if summaries else []
@@ -86,12 +77,6 @@ class MemoryEmbeddingIndexService:
                 "last_rebuild_at": rebuilt_at,
                 "health_state": "ready",
                 "health_detail": "向量索引已重建完成。",
-                "download_state": "ready" if self._settings.mode == "local_managed" else "remote",
-                "download_detail": (
-                    "本地模型已准备完成。"
-                    if self._settings.mode == "local_managed"
-                    else "当前使用远端 embedding 服务。"
-                ),
                 "active_fingerprint": target.provider.fingerprint.fingerprint,
             }
         )

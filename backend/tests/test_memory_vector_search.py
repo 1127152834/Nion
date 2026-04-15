@@ -36,10 +36,6 @@ def test_vector_search_returns_hits_from_rebuilt_index(monkeypatch, tmp_path) ->
         "nion.memory.search_fusion.vector_search.build_embedding_provider",
         lambda *, base_dir, settings: _StubEmbeddingProvider(),
     )
-    monkeypatch.setattr(
-        "nion.memory.embedding.index_service.MemoryEmbeddingDownloadManager",
-        lambda: _StubDownloadManager(),
-    )
 
     MemoryEmbeddingIndexService(base_dir=tmp_path, repository=repo).rebuild_full_index()
 
@@ -75,19 +71,19 @@ def test_vector_search_returns_empty_hits_when_remote_embedding_request_fails(
 
 
 class _StubEmbeddingProvider:
-    provider_id = "local-default"
+    provider_id = "remote-default"
 
     def metadata(self):
-        from nion.memory.embedding.local_managed import (
-            LocalManagedEmbeddingProviderMetadata,
+        from nion.memory.embedding.remote_managed import (
+            RemoteManagedEmbeddingProviderMetadata,
         )
 
-        return LocalManagedEmbeddingProviderMetadata(
-            provider_id="local-default",
+        return RemoteManagedEmbeddingProviderMetadata(
+            provider_id="remote-default",
             model_name="stub-model",
+            endpoint="https://api.example.com/v1/embeddings",
             dimensions=2,
             revision="2026-04-11",
-            metadata={"bundle": "test"},
         )
 
     def embed(self, texts: list[str]) -> list[list[float]]:
@@ -107,10 +103,3 @@ class _FailingEmbeddingProvider:
             request=request,
             response=response,
         )
-
-
-class _StubDownloadManager:
-    def ensure_local_model(self, *, base_dir, model_id: str, model_key: str):
-        model_dir = base_dir / "memory-os" / "indexes" / "vector" / "models" / model_key
-        model_dir.mkdir(parents=True, exist_ok=True)
-        return model_dir

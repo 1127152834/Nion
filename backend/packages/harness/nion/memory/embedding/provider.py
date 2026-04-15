@@ -7,7 +7,6 @@ from pydantic import BaseModel, Field
 from .models import EmbeddingModelFingerprint, VectorIndexSnapshot
 
 EmbeddingProviderKind = Literal[
-    "local_managed",
     "remote_managed",
     "custom_compatible",
 ]
