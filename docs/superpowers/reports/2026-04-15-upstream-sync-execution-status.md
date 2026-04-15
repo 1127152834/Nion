@@ -181,6 +181,12 @@
 | `ef711a48` sync README table of contents | `明确不同步` | 无 | 文档目录同步不属于当前 upstream 业务同步面。 |
 | `76fad8b0` available_skills parameter to DeerFlowClient | `已等价吸收` | 现有代码 | NION 当前 prompt/runtime 已把 `available_skills` 与 `requested_skills` 作为显式参数贯通。 |
 | `48565664` ACP mcpServers payload | `当前无安全落点` | 无 | NION ACP 已改为 remote transport seam，当前 transport 没有 upstream `new_session(mcpServers=...)` 同构合同。 |
+| `82c3dbbc` Windows startup and dependency checks | `当前无安全落点` | 无 | 当前未复现同类 Windows 启动/检查故障，不应无依据改脚本。 |
+| `c1366cf5` documents site | `明确不同步` | 无 | 文档站点产品面不属于当前 upstream 业务同步面。 |
+| `19809800` WeCom channel support | `明确不同步` | 无 | backend channel 集成路线与当前 NION desktop-first bridge 主链冲突。 |
+| `85b7ed3c` avoid using route new as thread id | `已等价吸收` | 现有代码 | 当前线程路由与 contract 测试已覆盖 `route=new` 保护语义。 |
+| `5350b2fb` Exa search community provider | `明确不同步` | 无 | community provider 扩张不属于当前安全同步主线。 |
+| `fa96acdf` WeChat channel integration | `明确不同步` | 无 | backend channel 集成路线与当前 NION desktop-first bridge 主链冲突。 |
 | `9735d73b` avoid follow-up suggestion overlap | `当前无安全落点` | 无 | 该修补涉及输入框、消息列表和线程模型联动；当前批次暂不在未复现视觉回归的情况下扩张 UI 状态面。 |
 | `c6cdf200` built-in grep and glob tools | `已等价吸收` | 现有代码 | 当前 sandbox/tools 与 `test_sandbox_search_tools.py` 已包含内置 `grep` / `glob` 搜索能力。 |
 | `1694c616` read-only support for local sandbox path mappings | `当前无安全落点` | 无 | upstream 这条会扩张 local sandbox path mapping 合同与 mount 策略；当前批次不直接引入整套读写映射面。 |
@@ -241,3 +247,43 @@
 | `888f7bfb` skill self-evolution and skill_manage flow | `明确不同步` | 无 | 这会引入新的产品语义与治理流，不属于当前上游安全同步范围。 |
 | `88e53526` Feishu receive file | `当前无安全落点` | 无 | NION 当前仓库没有 upstream Feishu channel 实现主链，无法安全局部同步。 |
 | `2d068cc0` restore gateway env vars / langgraph empty arg docker fix | `当前无安全落点` | 无 | 纯 Docker/env 启动链修补，不进入当前逐提交业务同步主线。 |
+| `1b74d845` PatchedChatDeepSeek serialized kwargs | `当前无安全落点` | 无 | 需要先对照当前 DeepSeek provider 序列化缺口与 LangChain 持久化用法，再决定是否吸收；本批次暂不凭标题改 provider 序列化合同。 |
+| `563383c6` file-io path guidance in prompts | `当前无安全落点` | 无 | 提示词文案优化需要结合当前 NION prompt/runtime 设计统一处理，不在本批次零散迁移。 |
+| `52718b0f` disable incomplete markdown parsing for human messages | `已同步` | `6f4568df` | 已为人类消息渲染关闭 incomplete markdown repair，并用前端 contract test 锁定。 |
+| `140907ce` abnormal preview of HTML files | `已同步` | `5cf9e4d2` | 已把 HTML artifact 预览切到 lifecycle-managed blob URL，并用前端 contract test 锁定。 |
+| `0b6fa8b9` sandbox startup reconciliation | `当前无安全落点` | 无 | 这条会扩张 sandbox warm-pool/orphan reconciliation 合同，不在当前批次直接引入。 |
+| `35f141fc` checkpoint rollback on cancellation | `当前无安全落点` | 无 | upstream 依赖 runs worker/checkpointer rollback 主链；NION 当前无同构可安全局部吸收的链路。 |
+| `194bab46` when_thinking_disabled model config | `当前无安全落点` | 无 | 这会扩张 model config 语义面和设置路线，本批次不直接回流。 |
+| `6572fa5b` smoke test skill | `明确不同步` | 无 | 新增 smoke-test 技能不属于当前 upstream 业务同步面。 |
+| `f8897098` metadata fallback in threads.search | `当前无安全落点` | 无 | 需专项对照当前 thread search/select 合同与 metadata 投影链，本批次暂不凭标题迁移。 |
+| `16aa51c9` systematic-literature-review skill | `明确不同步` | 无 | 新增技能不属于当前 upstream 业务同步面。 |
+| `b1074448` recursion_limit docs for LangGraph API | `明确不同步` | 无 | 文档说明项不进入当前业务同步主链。 |
+| `eef0a6e2` Setup Wizard + doctor command | `明确不同步` | 无 | 大范围 DX/脚本新增不属于当前 upstream 业务同步面。 |
+| `654354c6` SLR skill eval assets | `明确不同步` | 无 | 技能评测资产不属于当前 upstream 业务同步面。 |
+| `b1aabe88` token-delta AI text streaming | `已等价吸收` | 现有代码 | 当前 `NionClient.stream()` 已消费 `messages` mode 并产出 token-level AI text deltas。 |
+| `809b3413` TypeScript SDK path in workspace settings | `明确不同步` | 无 | IDE/workspace 配置不属于当前业务同步主链。 |
+| `7dc0c7d0` blog structure | `明确不同步` | 无 | 新增博客产品面不属于当前 upstream 业务同步面。 |
+| `90299e27` provisioner PVC support | `当前无安全落点` | 无 | 涉及 provisioner/Kubernetes volume 合同扩张，不在当前批次直接引入。 |
+| `679ca657` Contributor Covenant | `明确不同步` | 无 | 仓库治理文档不属于当前业务同步面。 |
+| `718dddde` WeakValueDictionary file lock cleanup | `当前无安全落点` | 无 | 当前批次尚未引入 upstream file-operation lock 主链，本条没有独立安全落点。 |
+| `fe2595a0` uvicorn --no-sync runtime flag | `当前无安全落点` | 无 | Docker/runtime 启动参数修补，不进入当前逐提交业务同步主线。 |
+| `19030928` bump langchain-core | `明确不同步` | 无 | 依赖升级不按逐提交业务同步流处理。 |
+| `024ac0e4` bump langsmith frontend lockfile | `当前无安全落点` | 无 | `frontend/pnpm-lock.yaml` 仍不在本轮范围内。 |
+| `02569136` sandbox security and multimodal content | `已等价吸收` | 现有代码 | 当前 uploads middleware 已有 multimodal content 回归测试，sandbox 默认安全门禁也已覆盖。 |
+| `5b633449` loop detection per-tool-type frequency | `当前无安全落点` | 无 | 这是 loop detection 行为面的显著扩张，需要专项评估，不在当前批次直接引入。 |
+| `dc50a7fd` resolve paths in LocalSandbox file content | `当前无安全落点` | 无 | 会改变文件读写内容本身的路径语义，风险高于当前批次允许范围。 |
+| `979a461a` move completed async migration to docs/TODO | `明确不同步` | 无 | 文档跟踪项不属于当前业务同步面。 |
+| `4d4ddb3d` lightweight LLM circuit breaker | `当前无安全落点` | 无 | 这是新的 LLM runtime policy layer，不在当前批次直接引入。 |
+| `4efc8d40` Vitest frontend testing infrastructure | `当前无安全落点` | 无 | 会大规模改前端测试基础设施和 lockfile，本轮不迁移。 |
+| `5db71cb6` repair dangling tool-call history after loop interruption | `当前无安全落点` | 无 | 需与当前 loop/dangling 组合中间件整体设计一起评估，不在本批次零散迁移。 |
+| `1df389b9` web_fetch readability offload | `当前无安全落点` | 无 | 当前 Jina/web_fetch async 路线整体未专项对照，本批次不只迁这一处并发修补。 |
+| `f4c17c66` present_files thread id fallback | `当前无安全落点` | 无 | 需先对照当前 present_file tool runtime/config fallback 行为，本批次暂不凭标题改工具。 |
+| `a7e7c6d6` disable custom-agent management API by default | `当前无安全落点` | 无 | 会改动当前 agent 管理产品面可用性，不在本批次直接迁移。 |
+| `053e18e1` custom skill deletion readonly history writes | `当前无安全落点` | 无 | 涉及技能历史写入/删除合同，需要专项对照，不在本批次直接引入。 |
+| `c91785dd` strip <think> tags from title flow | `当前无安全落点` | 无 | 需与当前 title middleware/title model链路专项对照，本批次暂不凭标题改标题生成。 |
+| `9cf7153b` Windows pnpm version detection in check script | `当前无安全落点` | 无 | 当前未复现同类 Windows 检查脚本故障，不应无依据改动。 |
+| `c43a45ea` bump pillow indirect dependency | `明确不同步` | 无 | 依赖升级不按逐提交业务同步流处理。 |
+| `55bc09ac` uploads for mounted sandbox providers | `当前无安全落点` | 无 | 需要对照当前 mounted provider 合同与 thread-data mounts 能力，本批次暂不单点迁移。 |
+| `07fc25d2` async memory updater LLM calls | `当前无安全落点` | 无 | upstream 落点仍在旧 memory updater 主链，和当前 Memory OS 主链错位。 |
+| `e4f896e9` todo middleware premature exit guard | `已同步` | `f5dcc535` | 已为 TodoMiddleware 增加 after_model completion reminder 与 jump_to=model 保护。 |
+| `4ba3167f` flush memory before summarization | `当前无安全落点` | 无 | upstream 依赖旧 memory queue/summarization hook 重构，不在当前批次直接引入。 |
