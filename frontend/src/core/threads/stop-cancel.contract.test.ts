@@ -9,6 +9,20 @@ void test("thread stop aborts the local stream and requests server-side run canc
   assert.match(source, /await apiClient\.cancelRun\(activeThreadId\)/);
 });
 
+void test("thread queue flushing callback is initialized before stop closes over it", async () => {
+  const source = await readFile(new URL("./hooks.ts", import.meta.url), "utf8");
+
+  const flushIndex = source.indexOf("const flushNextQueuedMessage = useCallback");
+  const stopIndex = source.indexOf("const stop = useCallback");
+
+  assert.notEqual(flushIndex, -1);
+  assert.notEqual(stopIndex, -1);
+  assert.ok(
+    flushIndex < stopIndex,
+    "flushNextQueuedMessage must be declared before stop to avoid TDZ crashes during hook initialization",
+  );
+});
+
 void test("thread hooks also cancel active runs during cleanup and thread switches", async () => {
   const source = await readFile(new URL("./hooks.ts", import.meta.url), "utf8");
 
@@ -22,8 +36,10 @@ void test("thread send queues the latest follow-up message instead of dropping i
 
   assert.match(source, /type PendingQueuedThreadMessage = QueuedThreadMessage & \{/);
   assert.match(source, /pendingQueuedMessagesRef/);
+  assert.match(source, /dispatchQueuedMessageRef/);
   assert.match(source, /if \(sendInFlightRef\.current\) \{/);
   assert.match(source, /pendingQueuedMessagesRef\.current = \[/);
   assert.match(source, /const \[next, \.\.\.rest] = pendingQueuedMessagesRef\.current;/);
-  assert.match(source, /void sendMessage\(\s*next\.threadId,\s*next\.message,\s*next\.extraContext,/s);
+  assert.match(source, /dispatchQueuedMessageRef\.current\?\.\(next\)/);
+  assert.match(source, /void sendMessage\(queued\.threadId, queued\.message, queued\.extraContext\)/);
 });

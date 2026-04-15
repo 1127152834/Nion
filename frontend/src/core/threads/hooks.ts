@@ -181,9 +181,17 @@ export function useThreadStream({
   const [error, setError] = useState<unknown>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isThreadLoading, setIsThreadLoading] = useState(false);
+  // Optimistic messages shown before the server stream responds
+  const [optimisticMessages, setOptimisticMessages] = useState<Message[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   const valuesRef = useRef(values);
   const messagesRef = useRef(messages);
+  const sendInFlightRef = useRef(false);
+  const pendingQueuedMessagesRef = useRef<PendingQueuedThreadMessage[]>([]);
+  const dispatchQueuedMessageRef = useRef<
+    ((message: PendingQueuedThreadMessage) => void) | null
+  >(null);
 
   useEffect(() => {
     valuesRef.current = values;
@@ -192,6 +200,10 @@ export function useThreadStream({
   useEffect(() => {
     messagesRef.current = messages;
   }, [messages]);
+
+  // Track message count before sending so we know when server has responded.
+  // This depends on the latest messages length, so keep it after messages state.
+  const prevMsgCountRef = useRef(messages.length);
 
   const updateThreadSearchCache = useCallback(
     (updater: (thread: AgentThread) => AgentThread) => {
@@ -280,6 +292,25 @@ export function useThreadStream({
       cancelled = true;
     };
   }, [apiClient, isActiveStreamThread, onStreamThreadId]);
+
+  const syncQueuedMessagesState = useCallback(() => {
+    setValues((current) => ({
+      ...current,
+      queued_messages: pendingQueuedMessagesRef.current.map((item) => ({
+        text: item.text,
+        files: item.files,
+      })),
+    }));
+  }, []);
+
+  const flushNextQueuedMessage = useCallback(() => {
+    const [next, ...rest] = pendingQueuedMessagesRef.current;
+    pendingQueuedMessagesRef.current = rest;
+    syncQueuedMessagesState();
+    if (next) {
+      dispatchQueuedMessageRef.current?.(next);
+    }
+  }, [syncQueuedMessagesState]);
 
   const stop = useCallback(async () => {
     abortControllerRef.current?.abort();
@@ -549,36 +580,6 @@ export function useThreadStream({
     }),
     [error, isLoading, isThreadLoading, messages, onStreamThreadId, stop, submit, values],
   );
-
-  // Optimistic messages shown before the server stream responds
-  const [optimisticMessages, setOptimisticMessages] = useState<Message[]>([]);
-  const [isUploading, setIsUploading] = useState(false);
-  const sendInFlightRef = useRef(false);
-  const pendingQueuedMessagesRef = useRef<PendingQueuedThreadMessage[]>([]);
-  // Track message count before sending so we know when server has responded
-  const prevMsgCountRef = useRef(thread.messages.length);
-
-  const syncQueuedMessagesState = useCallback(() => {
-    setValues((current) => ({
-      ...current,
-      queued_messages: pendingQueuedMessagesRef.current.map((item) => ({
-        text: item.text,
-        files: item.files,
-      })),
-    }));
-  }, []);
-  const dispatchQueuedMessageRef = useRef<
-    ((message: PendingQueuedThreadMessage) => void) | null
-  >(null);
-
-  const flushNextQueuedMessage = useCallback(() => {
-    const [next, ...rest] = pendingQueuedMessagesRef.current;
-    pendingQueuedMessagesRef.current = rest;
-    syncQueuedMessagesState();
-    if (next) {
-      dispatchQueuedMessageRef.current?.(next);
-    }
-  }, [syncQueuedMessagesState]);
 
   // Clear optimistic when server messages arrive (count increases)
   useEffect(() => {
