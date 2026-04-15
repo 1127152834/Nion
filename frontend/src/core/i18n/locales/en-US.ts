@@ -696,6 +696,25 @@ export const enUS: Translations = {
       allowBackgroundRunningLabel: "Allow background running",
       allowBackgroundRunningHint:
         "When enabled, closing the Electron window keeps the local daemon alive. When disabled, the daemon exits shortly after the desktop client detaches.",
+      guardianTitle: "Guardian Mode",
+      guardianDescription:
+        "Keep the desktop runtime available for remote entry and show its current guardian status.",
+      guardianBackgroundLabel: "Keep guardian mode running in the background",
+      guardianBackgroundHint:
+        "When enabled, closing the desktop window keeps guardian mode alive so remote entry remains available.",
+      guardianStatusTitle: "Guardian mode",
+      guardianStatusLabels: {
+        standingBy: "Standing by",
+        busy: "Busy",
+        offline: "Offline",
+      },
+      guardianStatusDescriptions: {
+        standingBy:
+          "Guardian mode is running and ready to keep remote entry available.",
+        busy: "Guardian mode is actively handling runtime work right now.",
+        offline:
+          "Guardian mode is not currently reachable from the desktop runtime.",
+      },
     },
     memory: {
       title: "Memory",

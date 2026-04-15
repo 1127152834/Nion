@@ -700,6 +700,21 @@ export interface Translations {
       description: string;
       allowBackgroundRunningLabel: string;
       allowBackgroundRunningHint: string;
+      guardianTitle: string;
+      guardianDescription: string;
+      guardianBackgroundLabel: string;
+      guardianBackgroundHint: string;
+      guardianStatusTitle: string;
+      guardianStatusLabels: {
+        standingBy: string;
+        busy: string;
+        offline: string;
+      };
+      guardianStatusDescriptions: {
+        standingBy: string;
+        busy: string;
+        offline: string;
+      };
     };
     memory: {
       title: string;

@@ -8,18 +8,18 @@ void test("daemon settings page reframes daemon surface as guardian mode status"
     "utf8",
   );
 
-  assert.match(source, /<GuardianModeStatusCard status=\{guardianStatus\} \/>/);
-  assert.match(source, /title="Guardian Mode"/);
   assert.match(
     source,
-    /description="Keep the desktop runtime available for remote entry and show its current guardian status\."/,
+    /<GuardianModeStatusCard copy=\{guardianStatusCopy\} status=\{guardianStatus\} \/>/,
   );
-  assert.match(source, /Keep guardian mode running in the background/);
+  assert.match(source, /title=\{t\.settings\.daemon\.guardianTitle\}/);
+  assert.match(source, /description=\{t\.settings\.daemon\.guardianDescription\}/);
+  assert.match(source, /t\.settings\.daemon\.guardianBackgroundLabel/);
+  assert.match(source, /t\.settings\.daemon\.guardianBackgroundHint/);
   assert.match(source, /getDesktopRuntimeInfo\(/);
   assert.match(source, /runtimeInfo\?\.guardianMode\.status/);
+  assert.match(source, /if \(saved\) {\s*void loadGuardianStatus\(\);/);
   assert.doesNotMatch(source, /const guardianStatus = allowBackgroundRunning/);
-  assert.doesNotMatch(source, /t\.settings\.daemon\.title/);
-  assert.doesNotMatch(source, /t\.settings\.daemon\.description/);
   assert.doesNotMatch(source, /fetch\(`\$\{baseUrl\}\/api\/daemon\/runtime-info`\)/);
 });
 
@@ -32,7 +32,10 @@ void test("guardian mode status card exposes the three runtime states and descri
   assert.match(source, /standing_by/);
   assert.match(source, /busy/);
   assert.match(source, /offline/);
-  assert.match(source, /Guardian mode/);
+  assert.match(source, /copy: GuardianModeStatusCardCopy/);
+  assert.match(source, /copy\.title/);
+  assert.match(source, /copy\.descriptions\[status\]/);
+  assert.match(source, /copy\.labels\[status\]/);
 });
 
 void test("desktop runtime helper merges bridge runtime info with daemon guardian status", async () => {

@@ -667,6 +667,22 @@ export const zhCN: Translations = {
       allowBackgroundRunningLabel: "允许后台运行",
       allowBackgroundRunningHint:
         "开启后，关闭 Electron 窗口不会停止本地 daemon。关闭后，桌面客户端断开后 daemon 会在短暂延迟后退出。",
+      guardianTitle: "值守模式",
+      guardianDescription: "让桌面运行时持续作为远程入口可用，并展示当前值守状态。",
+      guardianBackgroundLabel: "在后台保持值守模式运行",
+      guardianBackgroundHint:
+        "开启后，关闭桌面窗口仍会保留值守模式，让远程入口继续可用。",
+      guardianStatusTitle: "值守模式",
+      guardianStatusLabels: {
+        standingBy: "待命中",
+        busy: "处理中",
+        offline: "离线",
+      },
+      guardianStatusDescriptions: {
+        standingBy: "值守模式已就绪，可以继续承接远程入口请求。",
+        busy: "值守模式当前正在处理运行时工作。",
+        offline: "桌面运行时当前不可达，值守模式处于离线状态。",
+      },
     },
     memory: {
       title: "记忆",

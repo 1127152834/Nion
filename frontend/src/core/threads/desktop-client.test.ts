@@ -2,7 +2,10 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import test from "node:test";
 
-import { createDesktopThreadClient } from "../api/desktop-client.ts";
+import {
+  createDesktopThreadClient,
+  getDesktopRuntimeInfo,
+} from "../api/desktop-client.ts";
 
 void test("shared thread model files avoid explicit any", async () => {
   const files = [
@@ -198,6 +201,223 @@ void test("desktop thread client forwards locale in stream context", async () =>
 
   assert.match(requestBody, /"locale":"zh-CN"/);
   globalThis.fetch = originalFetch;
+});
+
+void test("desktop runtime info returns bridge-only fallback when daemon fetch is unavailable", async () => {
+  const originalFetch = globalThis.fetch;
+  const originalWindow = globalThis.window;
+  const requestedUrls: string[] = [];
+
+  Object.defineProperty(globalThis, "window", {
+    configurable: true,
+    value: {
+      nionDesktop: {
+        getRuntimeInfo: async () => ({
+          mode: "local-daemon",
+          baseUrl: "http://127.0.0.1:43115",
+          healthUrl: "http://127.0.0.1:43115/health",
+          workingDirectory: "/desktop",
+          clientId: "desktop-client-bridge",
+          allowBackgroundRunning: true,
+        }),
+      },
+    },
+  });
+
+  globalThis.fetch = async (input) => {
+    requestedUrls.push(String(input));
+    throw new Error("daemon unavailable");
+  };
+
+  const runtimeInfo = await getDesktopRuntimeInfo();
+
+  assert.equal(requestedUrls[0], "http://127.0.0.1:43115/api/daemon/runtime-info");
+  assert.deepEqual(runtimeInfo, {
+    mode: "local-daemon",
+    baseUrl: "http://127.0.0.1:43115",
+    healthUrl: "http://127.0.0.1:43115/health",
+    workingDirectory: "/desktop",
+    clientId: "desktop-client-bridge",
+    allowBackgroundRunning: true,
+    guardianMode: {
+      enabled: true,
+      windowRequired: false,
+      status: "offline",
+    },
+    bridgeRuntime: {
+      available: true,
+      running: null,
+    },
+  });
+
+  globalThis.fetch = originalFetch;
+  Object.defineProperty(globalThis, "window", {
+    configurable: true,
+    value: originalWindow,
+  });
+});
+
+void test("desktop runtime info merges daemon runtime override when fetch succeeds", async () => {
+  const originalFetch = globalThis.fetch;
+  const originalWindow = globalThis.window;
+
+  Object.defineProperty(globalThis, "window", {
+    configurable: true,
+    value: {
+      nionDesktop: {
+        getRuntimeInfo: async () => ({
+          baseUrl: "http://127.0.0.1:43115",
+          healthUrl: "http://127.0.0.1:43115/health",
+          workingDirectory: "/desktop",
+          clientId: "desktop-client-merge",
+          allowBackgroundRunning: false,
+        }),
+      },
+    },
+  });
+
+  globalThis.fetch = async () =>
+    new Response(
+      JSON.stringify({
+        mode: "local-daemon",
+        base_url: "http://127.0.0.1:43116",
+        health_url: "http://127.0.0.1:43116/health",
+        working_directory: "/daemon",
+        allow_background_running: true,
+        guardian_mode: {
+          enabled: true,
+          window_required: false,
+          status: "busy",
+        },
+        bridge_runtime: {
+          available: true,
+          running: true,
+        },
+      }),
+      {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      },
+    );
+
+  const runtimeInfo = await getDesktopRuntimeInfo();
+
+  assert.deepEqual(runtimeInfo, {
+    mode: "local-daemon",
+    baseUrl: "http://127.0.0.1:43116",
+    healthUrl: "http://127.0.0.1:43116/health",
+    workingDirectory: "/daemon",
+    clientId: "desktop-client-merge",
+    allowBackgroundRunning: true,
+    guardianMode: {
+      enabled: true,
+      windowRequired: false,
+      status: "busy",
+    },
+    bridgeRuntime: {
+      available: true,
+      running: true,
+    },
+  });
+
+  globalThis.fetch = originalFetch;
+  Object.defineProperty(globalThis, "window", {
+    configurable: true,
+    value: originalWindow,
+  });
+});
+
+void test("desktop runtime info falls back to bridge payload when daemon fetch fails", async () => {
+  const originalFetch = globalThis.fetch;
+  const originalWindow = globalThis.window;
+
+  Object.defineProperty(globalThis, "window", {
+    configurable: true,
+    value: {
+      nionDesktop: {
+        getRuntimeInfo: async () => ({
+          baseUrl: "http://127.0.0.1:43115",
+          workingDirectory: "/bridge-only",
+          clientId: "desktop-client-fallback",
+          allowBackgroundRunning: false,
+        }),
+      },
+    },
+  });
+
+  globalThis.fetch = async () =>
+    new Response("unavailable", {
+      status: 503,
+    });
+
+  const runtimeInfo = await getDesktopRuntimeInfo();
+
+  assert.equal(runtimeInfo?.baseUrl, "http://127.0.0.1:43115");
+  assert.equal(runtimeInfo?.healthUrl, "http://127.0.0.1:43115/health");
+  assert.equal(runtimeInfo?.workingDirectory, "/bridge-only");
+  assert.equal(runtimeInfo?.clientId, "desktop-client-fallback");
+  assert.equal(runtimeInfo?.allowBackgroundRunning, false);
+  assert.deepEqual(runtimeInfo?.guardianMode, {
+    enabled: false,
+    windowRequired: false,
+    status: "offline",
+  });
+
+  globalThis.fetch = originalFetch;
+  Object.defineProperty(globalThis, "window", {
+    configurable: true,
+    value: originalWindow,
+  });
+});
+
+void test("desktop runtime info collapses invalid daemon guardian status to offline", async () => {
+  const originalFetch = globalThis.fetch;
+  const originalWindow = globalThis.window;
+
+  Object.defineProperty(globalThis, "window", {
+    configurable: true,
+    value: {
+      nionDesktop: {
+        getRuntimeInfo: async () => ({
+          baseUrl: "http://127.0.0.1:43115",
+          clientId: "desktop-client-invalid-status",
+        }),
+      },
+    },
+  });
+
+  globalThis.fetch = async () =>
+    new Response(
+      JSON.stringify({
+        guardian_mode: {
+          enabled: true,
+          window_required: true,
+          status: "sleeping",
+        },
+      }),
+      {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      },
+    );
+
+  const runtimeInfo = await getDesktopRuntimeInfo();
+
+  assert.deepEqual(runtimeInfo?.guardianMode, {
+    enabled: true,
+    windowRequired: true,
+    status: "offline",
+  });
+
+  globalThis.fetch = originalFetch;
+  Object.defineProperty(globalThis, "window", {
+    configurable: true,
+    value: originalWindow,
+  });
 });
 
 void test("desktop thread client resolves permission through thread-level permission route", async () => {
