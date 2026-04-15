@@ -17,6 +17,7 @@ import {
   loadKnowledgePagesFromQueue,
   loadKnowledgeQueue,
   queryKnowledge,
+  reconcileKnowledgeSources,
   rebuildKnowledgeGraph,
   saveKnowledgeSynthesis,
   previewKnowledgeRevision,
@@ -200,6 +201,22 @@ export function useKnowledgeQuery(question: string | null) {
 export function useRebuildKnowledgeGraph() {
   return useMutation({
     mutationFn: async () => rebuildKnowledgeGraph(),
+  });
+}
+
+export function useReconcileKnowledgeSources() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationKey: ["knowledge", "reconcile"],
+    mutationFn: async () => reconcileKnowledgeSources(),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["knowledge", "queue"] }),
+        queryClient.invalidateQueries({ queryKey: ["knowledge", "jobs"] }),
+        queryClient.invalidateQueries({ queryKey: ["knowledge", "activity"] }),
+        queryClient.invalidateQueries({ queryKey: ["knowledge", "lint"] }),
+      ]);
+    },
   });
 }
 

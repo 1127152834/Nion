@@ -15,6 +15,14 @@ void test("notebook surfaces expose send-to-knowledge and knowledge-status actio
     new URL("./notebook-page.tsx", import.meta.url),
     "utf8",
   );
+  const queueHandlerSource = pageSource.slice(
+    pageSource.indexOf("function handleOpenKnowledgeQueue()"),
+    pageSource.indexOf("function handleOpenKnowledgeActivity()"),
+  );
+  const activityHandlerSource = pageSource.slice(
+    pageSource.indexOf("function handleOpenKnowledgeActivity()"),
+    pageSource.indexOf("const knowledgeStatusTone"),
+  );
 
   for (const source of [inboxSource, editorSource]) {
     assert.match(source, /知识队列|Knowledge/);
@@ -27,9 +35,17 @@ void test("notebook surfaces expose send-to-knowledge and knowledge-status actio
   assert.match(pageSource, /compile_state/);
   assert.match(pageSource, /enqueue_state|compile_state|last_job_id/);
   assert.match(pageSource, /Queue|Activity|查看知识状态/);
+  assert.match(pageSource, /pathOfKnowledgeQueue\(\)/);
+  assert.match(pageSource, /pathOfKnowledge\(\{\s*tab:\s*"activity"\s*\}\)/);
+  assert.match(queueHandlerSource, /pathOfKnowledgeQueue\(\)/);
+  assert.match(activityHandlerSource, /pathOfKnowledge\(\{\s*tab:\s*"activity"\s*\}\)/);
+  assert.match(pageSource, /onClick=\{handleOpenKnowledgeQueue\}/);
+  assert.match(pageSource, /onClick=\{handleOpenKnowledgeActivity\}/);
   assert.match(pageSource, /created_page_ids/);
   assert.match(pageSource, /error_summary/);
   assert.doesNotMatch(pageSource, /queue\/approve/);
+  assert.doesNotMatch(queueHandlerSource, /pathOfKnowledge\(\{\s*tab:\s*"activity"\s*\}\)/);
+  assert.doesNotMatch(activityHandlerSource, /pathOfKnowledgeQueue\(\)/);
   assert.doesNotMatch(pageSource, /(^|[^a-z_])job_id([^a-z_]|$)/);
   assert.doesNotMatch(pageSource, /jobId/);
   assert.doesNotMatch(pageSource, /createdPages/);

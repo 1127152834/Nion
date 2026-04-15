@@ -20,6 +20,11 @@ void test("knowledge home page centers overview queue and graph status instead o
   assert.match(source, /Activity|activity/i);
   assert.match(source, /source_missing|stale|archived/);
   assert.match(source, /reconcile|对账/);
+  assert.match(source, /useReconcileKnowledgeSources/);
+  assert.match(source, /onClick=\{\(\)\s*=>\s*reconcile\.mutate\(\)\}/);
+  assert.match(source, /reconcile\.isPending/);
+  assert.match(source, /disabled=\{reconcile\.isPending\}/);
+  assert.match(source, /reconcile\.isPending\s*\?\s*"reconciling/i);
   assert.match(source, /activeJob/);
   assert.match(source, /polling|refreshing/i);
   assert.match(source, /stage=\{activeJob\.stage\}/);

@@ -10,6 +10,7 @@ import {
   loadKnowledgeLint,
   loadKnowledgeQueue,
   queryKnowledge,
+  reconcileKnowledgeSources,
   rebuildKnowledgeGraph,
   saveKnowledgeSynthesis,
   previewKnowledgeRevision,
@@ -318,6 +319,44 @@ void test("rebuildKnowledgeGraph posts to the graph rebuild endpoint", async () 
   assert.match(seenUrl, /\/api\/knowledge\/graph\/rebuild$/);
   assert.equal(seenMethod, "POST");
   assert.equal(payload.edges[0]?.edge_type, "EXTRACTED");
+});
+
+void test("reconcileKnowledgeSources posts to the reconcile endpoint", async () => {
+  let seenUrl = "";
+  let seenMethod = "";
+
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    seenUrl = String(input);
+    seenMethod = String(init?.method ?? "GET");
+    return new Response(
+      JSON.stringify({
+        jobs: [
+          {
+            job_id: "job_2",
+            source_ids: ["source:notebook_note:note_2"],
+            trigger_mode: "manual",
+            stage: "queued",
+            status: "pending",
+            created_page_ids: [],
+            outputs: {
+              created_pages: [],
+              created_page_ids: [],
+              updated_pages: [],
+              stale_pages: [],
+              archived_pages: [],
+            },
+          },
+        ],
+      }),
+      { status: 200, headers: { "Content-Type": "application/json" } },
+    );
+  }) as typeof fetch;
+
+  const payload = await reconcileKnowledgeSources();
+
+  assert.match(seenUrl, /\/api\/knowledge\/reconcile$/);
+  assert.equal(seenMethod, "POST");
+  assert.equal(payload.jobs[0]?.job_id, "job_2");
 });
 
 void test("createKnowledgeRevision posts revision request payload", async () => {

@@ -8,6 +8,7 @@ import {
   useKnowledgeLint,
   useKnowledgePages,
   useKnowledgeQueue,
+  useReconcileKnowledgeSources,
   useRebuildKnowledgeGraph,
 } from "@/core/knowledge";
 
@@ -32,6 +33,7 @@ export function KnowledgeHomePage() {
   const { events, isLoading: activityLoading } = useKnowledgeActivity();
   const { report } = useKnowledgeLint();
   const rebuild = useRebuildKnowledgeGraph();
+  const reconcile = useReconcileKnowledgeSources();
   const compiledCount = queue.filter((item) => item.status === "compiled").length;
   const staleCount = queue.filter((item) => item.status === "stale").length;
   const sourceMissingCount = queue.filter((item) => item.status === "source_missing").length;
@@ -93,7 +95,13 @@ export function KnowledgeHomePage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <button className="rounded-md border px-3 py-2 text-sm">reconcile now</button>
+            <button
+              className="rounded-md border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={reconcile.isPending}
+              onClick={() => reconcile.mutate()}
+            >
+              {reconcile.isPending ? "reconciling…" : "reconcile now"}
+            </button>
             <div className="rounded-full border px-3 py-1 text-xs text-muted-foreground">
               {isPolling ? "refreshing staged progress" : "idle"}
             </div>

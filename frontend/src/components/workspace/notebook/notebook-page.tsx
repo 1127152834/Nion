@@ -304,8 +304,12 @@ export function NotebookPage() {
     }
   }
 
-  function handleViewKnowledgeStatus() {
+  function handleOpenKnowledgeQueue() {
     router.push(pathOfKnowledgeQueue());
+  }
+
+  function handleOpenKnowledgeActivity() {
+    router.push(pathOfKnowledge({ tab: "activity" }));
   }
 
   const knowledgeStatusTone = knowledgeCompileStatus?.compile_state ?? "idle";
@@ -816,7 +820,7 @@ export function NotebookPage() {
                       <Button
                         type="button"
                         variant="outline"
-                        onClick={handleViewKnowledgeStatus}
+                        onClick={handleOpenKnowledgeQueue}
                         className="border-[var(--notebook-border)] bg-[var(--notebook-panel)] text-[var(--notebook-ink)]"
                       >
                         Queue
@@ -824,7 +828,7 @@ export function NotebookPage() {
                       <Button
                         type="button"
                         variant="outline"
-                        onClick={handleViewKnowledgeStatus}
+                        onClick={handleOpenKnowledgeActivity}
                         className="border-[var(--notebook-border)] bg-[var(--notebook-panel)] text-[var(--notebook-ink)]"
                       >
                         Activity / 查看知识状态
@@ -861,7 +865,7 @@ export function NotebookPage() {
                     }
                   }}
                   onSendToKnowledge={(item) => void handleSendInboxItemToKnowledge(item)}
-                  onViewKnowledgeStatus={() => handleViewKnowledgeStatus()}
+                  onViewKnowledgeStatus={() => handleOpenKnowledgeActivity()}
                 />
               ) : null}
 
@@ -911,7 +915,7 @@ export function NotebookPage() {
                   onOpenDelete={() => setDeleteOpen(true)}
                   onOpenExtractToMemory={openExtractToMemoryDialog}
                   onOpenHistory={() => setContextTab("history")}
-                  onOpenKnowledgeStatus={handleViewKnowledgeStatus}
+                  onOpenKnowledgeStatus={handleOpenKnowledgeActivity}
                   onOpenRename={() => setRenameOpen(true)}
                   onOpenMove={() => setMoveOpen(true)}
                   onSendToKnowledge={() => {

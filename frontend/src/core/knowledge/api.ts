@@ -443,6 +443,27 @@ export async function rebuildKnowledgeGraph(): Promise<KnowledgeGraphPayload> {
   return payload;
 }
 
+export async function reconcileKnowledgeSources(): Promise<KnowledgeCompileJobListResponse> {
+  const response = await fetch(`${getBackendBaseURL()}/api/knowledge/reconcile`, {
+    method: "POST",
+  });
+  if (!response.ok) {
+    throw new Error(
+      resolveErrorMessage(
+        await response.text(),
+        `Failed to reconcile knowledge sources (${response.status})`,
+      ),
+    );
+  }
+  const payload = (await readJson<unknown>(response)) as unknown;
+  if (!isKnowledgeCompileJobListResponse(payload)) {
+    throw new Error(
+      "Invalid knowledge jobs payload returned from reconcileKnowledgeSources",
+    );
+  }
+  return payload;
+}
+
 export async function createKnowledgeRevision(input: {
   page_id: string;
   request_type: string;
