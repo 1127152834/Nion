@@ -67,3 +67,18 @@ test("desktop retrieval model manager tracks multi-asset local models", () => {
   assert.match(source, /downloadAsset/);
   assert.match(source, /assets:/);
 });
+
+test("desktop retrieval model manager only marks complete local asset bundles as ready", () => {
+  const source = fs.readFileSync(
+    new URL("../src/main/retrieval-model-manager.ts", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /private isModelReady\(/);
+  assert.match(source, /entry\.installed/);
+  assert.match(source, /entry\.file_path/);
+  assert.match(source, /spec\.assets\.every/);
+  assert.match(source, /asset\.required/);
+  assert.match(source, /entry\.assets\?\.\[asset\.role\]/);
+  assert.match(source, /existsSync\(assetPath\)/);
+});

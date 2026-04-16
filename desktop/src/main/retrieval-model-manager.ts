@@ -322,9 +322,7 @@ export class RetrievalModelManager {
     const normalizedModelId = this.normalizeModelId(modelId);
     const registry = this.readRegistry();
     const existing = registry.models[normalizedModelId];
-    if (existing?.file_path && existsSync(existing.file_path)) {
-      rmSync(existing.file_path, { force: true });
-    }
+    this.removeModelFiles(existing);
     delete registry.models[normalizedModelId];
     registry.updated_at = new Date().toISOString();
     this.writeRegistry(registry);
@@ -335,6 +333,7 @@ export class RetrievalModelManager {
     const t = this.getText();
     const normalizedModelId = this.normalizeModelId(modelId);
     const spec = MODEL_SPECS[normalizedModelId];
+    const assetTargets = this.resolveModelAssetTargets(spec);
     const result = await dialog.showOpenDialog({
       title: renderTemplate(t.selectOnnxTitleTemplate, { displayName: spec.displayName }),
       properties: ["openFile"],
@@ -345,7 +344,7 @@ export class RetrievalModelManager {
     }
 
     const srcPath = result.filePaths[0];
-    const targetPath = this.resolveModelTargetPath(spec);
+    const targetPath = assetTargets.onnx;
     mkdirSync(path.dirname(targetPath), { recursive: true });
     copyFileSync(srcPath, targetPath);
 
@@ -417,9 +416,7 @@ export class RetrievalModelManager {
     const registry = this.readRegistry();
     for (const modelId of pack.modelIds) {
       const existing = registry.models[modelId];
-      if (existing?.file_path && existsSync(existing.file_path)) {
-        rmSync(existing.file_path, { force: true });
-      }
+      this.removeModelFiles(existing);
       delete registry.models[modelId];
     }
     registry.updated_at = new Date().toISOString();
@@ -511,7 +508,6 @@ export class RetrievalModelManager {
       message: renderTemplate(t.progressVerifiedTemplate, { displayName: spec.displayName })
     });
 
-    renameSync(partPath, targetPath);
     const registry = this.readRegistry();
     registry.models[modelId] = {
       installed: true,
@@ -624,10 +620,46 @@ export class RetrievalModelManager {
     throw new Error(`Pack not found for model id: ${modelId}`);
   }
 
-  private resolveModelTargetPath(spec: RetrievalModelSpec): string {
-    const modelFolder = spec.sourceModelId.replace("/", "__");
-    const normalizedFile = spec.sourceFile.replace(/\//g, "__");
-    return path.join(this.rootDir, "modelscope", modelFolder, normalizedFile);
+  private isModelReady(
+    spec: RetrievalModelSpec,
+    entry: RetrievalModelRegistryItem | undefined,
+  ): boolean {
+    if (!entry || !entry.installed || !entry.file_path || !existsSync(entry.file_path)) {
+      return false;
+    }
+    if (entry.assets?.onnx && !existsSync(entry.assets.onnx)) {
+      return false;
+    }
+    return spec.assets.every((asset) => {
+      if (!asset.required) {
+        return true;
+      }
+      if (asset.role === "onnx") {
+        return true;
+      }
+      const assetPath = entry.assets?.[asset.role];
+      return Boolean(assetPath && existsSync(assetPath));
+    });
+  }
+
+  private removeModelFiles(entry: RetrievalModelRegistryItem | undefined): void {
+    if (!entry) {
+      return;
+    }
+    const candidatePaths = new Set<string>();
+    if (entry.file_path) {
+      candidatePaths.add(entry.file_path);
+    }
+    for (const assetPath of Object.values(entry.assets ?? {})) {
+      if (assetPath) {
+        candidatePaths.add(assetPath);
+      }
+    }
+    for (const filePath of candidatePaths) {
+      if (existsSync(filePath)) {
+        rmSync(filePath, { force: true });
+      }
+    }
   }
 
   private resolveModelAssetTargets(spec: RetrievalModelSpec): Record<string, string> {

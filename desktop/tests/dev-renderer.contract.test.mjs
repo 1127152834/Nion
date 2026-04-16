@@ -47,15 +47,16 @@ test("desktop dev launcher also clears stale electron and daemon processes", () 
   assert.match(source, /Stopping existing local daemon on port 43115/);
 });
 
-test("desktop vite config resolves React aliases from desktop node_modules", () => {
+test("desktop vite config resolves React aliases through Node module resolution", () => {
   const source = fs.readFileSync(
     new URL("../vite.config.ts", import.meta.url),
     "utf8",
   );
 
-  assert.match(source, /const desktopNodeModules = path\.resolve\(import\.meta\.dirname, "node_modules"\);/);
-  assert.match(source, /path\.resolve\(desktopNodeModules, "react\/jsx-dev-runtime\.js"\)/);
-  assert.doesNotMatch(source, /const rootNodeModules = path\.resolve\(rootDir, "node_modules"\);/);
+  assert.match(source, /createRequire\(import\.meta\.url\)/);
+  assert.match(source, /require\.resolve\("react\/jsx-dev-runtime"\)/);
+  assert.match(source, /require\.resolve\("react-dom\/package\.json"\)/);
+  assert.doesNotMatch(source, /path\.resolve\(desktopNodeModules, "react\/jsx-dev-runtime\.js"\)/);
 });
 
 test("desktop dev launcher routes pnpm calls through the shared resolver script", () => {
