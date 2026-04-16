@@ -33,8 +33,11 @@ void test("NotebookPage becomes a shell controller that renders extracted notebo
   assert.match(pageSource, /NotebookInboxPanel/);
   assert.match(pageSource, /NotebookAssetView/);
   assert.match(pageSource, /selectedAssetId/);
-  assert.match(pageSource, /!selectedNoteId && !selectedAssetId && !isDraft/);
   assert.match(pageSource, /inboxItems=\{inboxItems\}/);
+  assert.match(
+    pageSource,
+    /selectedAssetId\s*\?\s*\(\s*<NotebookAssetView[\s\S]*:\s*!selectedNoteId && !isDraft \?\s*\(\s*<NotebookInboxPanel[\s\S]*:\s*\(\s*<NotebookEditorPane/s,
+  );
   assert.match(pageSource, /<NotebookEditorPane[\s\S]*draftBody=\{draftBody\}/);
   assert.match(pageSource, /<NotebookEditorPane[\s\S]*onSelectionChange=/);
   assert.match(pageSource, /<NotebookContextPanel[\s\S]*notebookAssistantSessionId=\{notebookAssistantSessionId\}/);

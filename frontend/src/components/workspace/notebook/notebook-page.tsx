@@ -838,7 +838,12 @@ export function NotebookPage() {
                 </section>
               ) : null}
 
-              {!selectedNoteId && !selectedAssetId && !isDraft ? (
+              {selectedAssetId ? (
+                <NotebookAssetView
+                  asset={asset}
+                  isLoading={assetLoading}
+                />
+              ) : !selectedNoteId && !isDraft ? (
                 <NotebookInboxPanel
                   copy={{
                     emptyDescription: copy.emptyDescription,
@@ -866,13 +871,6 @@ export function NotebookPage() {
                   }}
                   onSendToKnowledge={(item) => void handleSendInboxItemToKnowledge(item)}
                   onViewKnowledgeStatus={() => handleOpenKnowledgeActivity()}
-                />
-              ) : null}
-
-              {selectedAssetId ? (
-                <NotebookAssetView
-                  asset={asset}
-                  isLoading={assetLoading}
                 />
               ) : (
                 <NotebookEditorPane
